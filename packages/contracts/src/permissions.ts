@@ -34,6 +34,7 @@ export const PERMISSIONS = {
   'backup:manage': ['SUPER_ADMIN'],
   'audit:view': ['SUPER_ADMIN', 'ADMIN'],
   'settings:manage': ['SUPER_ADMIN'],
+  'dashboard:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type PermissionKey = keyof typeof PERMISSIONS;

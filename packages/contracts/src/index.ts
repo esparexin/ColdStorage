@@ -11,3 +11,4 @@ export * from './commodity.js';
 export * from './grn.js';
 export * from './inventory.js';
 export * from './delivery.js';
+export * from './dashboard.js';
