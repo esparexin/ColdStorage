@@ -113,19 +113,19 @@ describe('P1 Governance & Shared Contracts Foundation', () => {
       email: 'ramesh@example.com',
       role: 'OPERATOR',
       facilityIds: ['fac-1'],
-      temporaryPassword: 'TempPassword123!',
+      temporaryPassword: 'SamplePassword#2026',
     });
     expect(newUser.username).toBe('ramesh.s');
     expect(newUser.role).toBe('OPERATOR');
 
     const loginInput = loginInputSchema.parse({
       username: 'ramesh.s',
-      password: 'TempPassword123!',
+      password: 'SamplePassword#2026',
     });
     expect(loginInput.username).toBe('ramesh.s');
 
     const changePasswordInput = changePasswordInputSchema.parse({
-      currentPassword: 'TempPassword123!',
+      currentPassword: 'SamplePassword#2026',
       newPassword: 'NewSecurePassword456!',
     });
     expect(changePasswordInput.newPassword).toBe('NewSecurePassword456!');

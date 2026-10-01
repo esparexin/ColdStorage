@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { TokenPayload } from '@cold-storage/contracts';
 import { config } from '../config.js';
-import { verifyToken } from '../utils/crypto.js';
+import { verifyAccessToken } from '../utils/crypto.js';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -20,10 +20,10 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
   }
 
   const token = authHeader.substring(7).trim();
-  const payload = verifyToken(token, config.jwtSecret);
+  const payload = verifyAccessToken(token, config.jwtSecret);
 
   if (!payload) {
-    res.status(401).json({ error: 'Invalid or expired authentication token' });
+    res.status(401).json({ error: 'Invalid or expired access token' });
     return;
   }
 
@@ -32,7 +32,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
 }
 
 /**
- * Optional guard: If a user must change password, block standard business operations until changed.
+ * Guard to ensure users with forced password change cannot execute business routes.
  */
 export function requirePasswordChanged(req: Request, res: Response, next: NextFunction): void {
   if (req.user?.mustChangePassword) {

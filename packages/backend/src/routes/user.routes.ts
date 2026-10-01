@@ -1,13 +1,14 @@
 import { Router, type Request, type Response } from 'express';
 import { createUserSchema, paginationSchema } from '@cold-storage/contracts';
-import { authenticate } from '../middleware/auth.middleware.js';
+import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { userService } from '../modules/users/user.service.js';
 
 export const userRouter = Router();
 
-// All user management routes require authentication and 'user:manage' permission
+// All user management routes require authentication, forced-password-change completion, and 'user:manage' permission
 userRouter.use(authenticate);
+userRouter.use(requirePasswordChanged);
 userRouter.use(requirePermission('user:manage'));
 
 userRouter.post('/', async (req: Request, res: Response): Promise<void> => {

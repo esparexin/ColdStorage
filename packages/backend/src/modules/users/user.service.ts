@@ -39,6 +39,8 @@ export class UserService {
     const id = `usr-${randomUUID()}`;
     const now = new Date();
 
+    const passwordHash = await hashPassword(input.temporaryPassword);
+
     const entity: UserEntity = {
       id,
       fullName: input.fullName,
@@ -49,7 +51,7 @@ export class UserService {
       role: input.role,
       facilityIds: input.facilityIds,
       status: 'ACTIVE',
-      passwordHash: hashPassword(input.temporaryPassword),
+      passwordHash,
       mustChangePassword: true, // P0-Decision 8: forced password change on first login
       lastLoginAt: null,
       createdAt: now,
