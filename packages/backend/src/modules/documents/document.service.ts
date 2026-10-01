@@ -1,0 +1,257 @@
+import type {
+  ChallanDocumentDto,
+  FacilitySubHeader,
+  GrnDocumentDto,
+  ReceiptDocumentDto,
+  RentReceiptPreviewDto,
+} from '@cold-storage/contracts';
+import { CustomerModel } from '../../database/models/customer.model.js';
+import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
+import { FacilityModel } from '../../database/models/facility.model.js';
+import { GrnModel } from '../../database/models/grn.model.js';
+import { PutAwayAllocationModel } from '../../database/models/put-away.model.js';
+import { settingsService } from '../settings/settings.service.js';
+import { renderChallanTemplate } from './templates/challan.template.js';
+import { renderGrnTemplate } from './templates/grn.template.js';
+import { renderReceiptTemplate } from './templates/receipt.template.js';
+import { renderRentReceiptTemplate } from './templates/rent-receipt.template.js';
+
+export class DocumentService {
+  /**
+   * Resolves organization header from SystemSettings singleton.
+   * Throws ORGANIZATION_NOT_CONFIGURED if an administrator has not yet configured
+   * organization details.
+   */
+  private async getVerifiedOrganization() {
+    const { settings, isConfigured } = await settingsService.getSettings();
+    if (!isConfigured) {
+      throw new Error(
+        'ORGANIZATION_NOT_CONFIGURED: Organization details must be configured by an administrator before generating official documents',
+      );
+    }
+    return settings;
+  }
+
+  /**
+   * Resolves facility sub-header.
+   */
+  private async getFacilitySubHeader(facilityId: string): Promise<FacilitySubHeader> {
+    const facility = await FacilityModel.findOne({ id: facilityId }).lean().exec();
+    if (!facility) {
+      throw new Error(`FACILITY_NOT_FOUND: Facility '${facilityId}' not found`);
+    }
+    return {
+      facilityId: facility.id,
+      facilityName: facility.name,
+      facilityCode: facility.code,
+      facilityAddress: facility.address ?? '',
+    };
+  }
+
+  /**
+   * 1. Renders GRN Storage Record HTML document.
+   * Read-only composition layer; zero mutations; zero counter allocations.
+   */
+  public async renderGrnDocument(
+    facilityId: string,
+    grnId: string,
+    userId: string,
+  ): Promise<string> {
+    const organization = await this.getVerifiedOrganization();
+
+    const grn = await GrnModel.findOne({ id: grnId }).lean().exec();
+    if (!grn) {
+      throw new Error('GRN_NOT_FOUND: GRN record not found');
+    }
+
+    // Document-level facility ownership validation
+    if (grn.facilityId !== facilityId) {
+      throw new Error('FACILITY_MISMATCH: Document does not belong to the requested facility');
+    }
+
+    const facility = await this.getFacilitySubHeader(facilityId);
+
+    // Fetch put-away position allocations if available
+    const putAway = await PutAwayAllocationModel.findOne({ grnId: grn.id, facilityId })
+      .lean()
+      .exec();
+    const positions = putAway
+      ? putAway.items.map((i) => ({ positionCode: i.positionCode, bags: i.bags }))
+      : [];
+
+    const customer = await CustomerModel.findOne({ id: grn.customerId }).lean().exec();
+    const customerMobile = customer?.mobile ?? '—';
+
+    const dto: GrnDocumentDto = {
+      organization,
+      facility,
+      grnId: grn.id,
+      grnNumber: grn.grnNumber,
+      inwardReceiptNumber: grn.inwardReceiptNumber,
+      date: grn.date,
+      customerName: grn.customerName,
+      customerMobile,
+      commodityName: grn.commodityName,
+      chamberNumber: grn.chamberNumber,
+      bags: grn.bags,
+      bagType: grn.bagType,
+      rentType: grn.rentType as 'Monthly' | 'Seasonal',
+      rentAmount: grn.rentAmount,
+      rentMonths: grn.rentMonths ?? null,
+      nominalUnitWeight: grn.nominalUnitWeight ?? null,
+      nominalTotalWeight: grn.nominalTotalWeight ?? null,
+      actualWeight: grn.actualWeight ?? null,
+      vehicleNumber: grn.vehicleNumber ?? null,
+      gpNumber: grn.gpNumber ?? null,
+      marks: grn.marks ?? null,
+      status: grn.status,
+      positions,
+      generatedAt: new Date(),
+      generatedBy: userId,
+    };
+
+    return renderGrnTemplate(dto);
+  }
+
+  /**
+   * 2. Renders Farmer Inward Acknowledgement Receipt HTML document.
+   */
+  public async renderReceiptDocument(
+    facilityId: string,
+    grnId: string,
+    userId: string,
+  ): Promise<string> {
+    const organization = await this.getVerifiedOrganization();
+
+    const grn = await GrnModel.findOne({ id: grnId }).lean().exec();
+    if (!grn) {
+      throw new Error('GRN_NOT_FOUND: GRN record not found');
+    }
+
+    // Document-level facility ownership validation
+    if (grn.facilityId !== facilityId) {
+      throw new Error('FACILITY_MISMATCH: Document does not belong to the requested facility');
+    }
+
+    const facility = await this.getFacilitySubHeader(facilityId);
+
+    const customer = await CustomerModel.findOne({ id: grn.customerId }).lean().exec();
+    const customerMobile = customer?.mobile ?? '—';
+
+    const dto: ReceiptDocumentDto = {
+      organization,
+      facility,
+      inwardReceiptNumber: grn.inwardReceiptNumber,
+      grnNumber: grn.grnNumber,
+      date: grn.date,
+      customerName: grn.customerName,
+      customerMobile,
+      commodityName: grn.commodityName,
+      chamberNumber: grn.chamberNumber,
+      bags: grn.bags,
+      bagType: grn.bagType,
+      rentType: grn.rentType as 'Monthly' | 'Seasonal',
+      rentAmount: grn.rentAmount,
+      rentMonths: grn.rentMonths ?? null,
+      vehicleNumber: grn.vehicleNumber ?? null,
+      generatedAt: new Date(),
+      generatedBy: userId,
+    };
+
+    return renderReceiptTemplate(dto);
+  }
+
+  /**
+   * 3. Renders Outward Delivery Challan HTML document.
+   */
+  public async renderChallanDocument(
+    facilityId: string,
+    challanId: string,
+    userId: string,
+  ): Promise<string> {
+    const organization = await this.getVerifiedOrganization();
+
+    const challan = await DeliveryChallanModel.findOne({ id: challanId }).lean().exec();
+    if (!challan) {
+      throw new Error('CHALLAN_NOT_FOUND: Delivery Challan record not found');
+    }
+
+    // Document-level facility ownership validation
+    if (challan.facilityId !== facilityId) {
+      throw new Error('FACILITY_MISMATCH: Document does not belong to the requested facility');
+    }
+
+    const facility = await this.getFacilitySubHeader(facilityId);
+
+    const items = challan.items.map((i) => ({
+      positionCode: i.positionCode,
+      bags: i.bags,
+    }));
+
+    const dto: ChallanDocumentDto = {
+      organization,
+      facility,
+      challanNumber: challan.challanNumber,
+      date: challan.date,
+      grnNumber: challan.grnNumber,
+      customerName: challan.customerName,
+      commodityName: challan.commodityName,
+      chamberNumber: challan.chamberNumber,
+      totalBags: challan.totalBags,
+      items,
+      vehicleNumber: challan.vehicleNumber ?? null,
+      driverName: challan.driverName ?? null,
+      issuedBy: challan.issuedBy,
+      status: challan.status,
+      generatedAt: new Date(),
+      generatedBy: userId,
+    };
+
+    return renderChallanTemplate(dto);
+  }
+
+  /**
+   * 4. Renders Rent Receipt Preview HTML document (Phase 9 preview boundary).
+   * Generates ZERO payment records, modifies ZERO balances, allocates ZERO receipt numbers.
+   */
+  public async renderRentReceiptPreview(
+    facilityId: string,
+    userId: string,
+    overrides?: {
+      customerName?: string;
+      customerMobile?: string;
+      amount?: number;
+      paymentMode?: 'Cash' | 'UPI';
+    },
+  ): Promise<string> {
+    const organization = await this.getVerifiedOrganization();
+    const facility = await this.getFacilitySubHeader(facilityId);
+
+    const amountPaid = overrides?.amount ?? 10000;
+    const totalRentObligation = 25000;
+    const remainingBalance = Math.max(0, totalRentObligation - amountPaid);
+
+    const dto: RentReceiptPreviewDto = {
+      organization,
+      facility,
+      receiptNumber: 'PREVIEW-RRCPT-0001',
+      grnNumber: 'GRN-SAMPLE-0001',
+      date: new Date(),
+      customerName: overrides?.customerName ?? 'Sample Customer (Preview)',
+      customerMobile: overrides?.customerMobile ?? '+91-9876543210',
+      commodityName: 'Potato (Preview)',
+      totalRentObligation,
+      amountPaid,
+      paymentMode: overrides?.paymentMode === 'UPI' ? 'UPI' : 'Cash',
+      remainingBalance,
+      paymentStatus: remainingBalance === 0 ? 'Settled' : 'Not Settled',
+      isPreview: true,
+      generatedAt: new Date(),
+      generatedBy: userId,
+    };
+
+    return renderRentReceiptTemplate(dto);
+  }
+}
+
+export const documentService = new DocumentService();

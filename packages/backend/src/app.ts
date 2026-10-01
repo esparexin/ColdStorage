@@ -11,6 +11,8 @@ import { grnRouter } from './routes/grn.routes.js';
 import { hierarchyRouter } from './routes/hierarchy.routes.js';
 import { importExportRouter } from './routes/import-export.routes.js';
 import { inventoryRouter } from './routes/inventory.routes.js';
+import { documentRouter } from './routes/document.routes.js';
+import { settingsRouter } from './routes/settings.routes.js';
 import { userRouter } from './routes/user.routes.js';
 
 export function createApp(): Express {
@@ -35,6 +37,8 @@ export function createApp(): Express {
   app.use('/api', deliveryRouter);
   app.use('/api', dashboardRouter);
   app.use('/api', importExportRouter);
+  app.use('/api', settingsRouter);
+  app.use('/api', documentRouter);
 
   return app;
 }
