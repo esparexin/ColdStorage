@@ -4,17 +4,21 @@ import {
   bagTypeSchema,
   can,
   chamberSchema,
+  changePasswordInputSchema,
+  createUserSchema,
   facilitySchema,
   getAuthoritativeWeight,
   gpNumberSchema,
   grnNumberSchema,
   inFacilityScope,
   levelSchema,
+  loginInputSchema,
   positionSchema,
   rackSchema,
   receiptNumberSchema,
   rentReceiptNumberSchema,
   systemSettingsSchema,
+  userSummarySchema,
 } from './index.js';
 
 describe('P1 Governance & Shared Contracts Foundation', () => {
@@ -98,5 +102,49 @@ describe('P1 Governance & Shared Contracts Foundation', () => {
     expect(settings.backupPolicy.driveRetentionDays).toBe(30);
     expect(settings.documentNumbering.grnPrefix).toBe('GRN');
     expect(settings.documentNumbering.rentReceiptPrefix).toBe('RRCPT');
+  });
+
+  it('validates user provisioning and authentication schemas', () => {
+    const newUser = createUserSchema.parse({
+      fullName: 'Ramesh Sharma',
+      username: 'ramesh.s',
+      employeeId: 'EMP-1001',
+      mobile: '9876543210',
+      email: 'ramesh@example.com',
+      role: 'OPERATOR',
+      facilityIds: ['fac-1'],
+      temporaryPassword: 'TempPassword123!',
+    });
+    expect(newUser.username).toBe('ramesh.s');
+    expect(newUser.role).toBe('OPERATOR');
+
+    const loginInput = loginInputSchema.parse({
+      username: 'ramesh.s',
+      password: 'TempPassword123!',
+    });
+    expect(loginInput.username).toBe('ramesh.s');
+
+    const changePasswordInput = changePasswordInputSchema.parse({
+      currentPassword: 'TempPassword123!',
+      newPassword: 'NewSecurePassword456!',
+    });
+    expect(changePasswordInput.newPassword).toBe('NewSecurePassword456!');
+
+    const summary = userSummarySchema.parse({
+      id: 'usr-1',
+      fullName: newUser.fullName,
+      username: newUser.username,
+      employeeId: newUser.employeeId,
+      mobile: newUser.mobile,
+      email: newUser.email,
+      role: newUser.role,
+      facilityIds: newUser.facilityIds,
+      status: 'ACTIVE',
+      mustChangePassword: true,
+      lastLoginAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    expect(summary.mustChangePassword).toBe(true);
   });
 });

@@ -4,3 +4,5 @@ export * from './bags.js';
 export * from './storage-hierarchy.js';
 export * from './permissions.js';
 export * from './settings.js';
+export * from './user.js';
+export * from './auth.js';
