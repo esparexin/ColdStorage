@@ -37,10 +37,18 @@ export const createPutAwaySchema = z
 
 export type CreatePutAwayInput = z.infer<typeof createPutAwaySchema>;
 
-export const inventoryTransactionTypeSchema = z.literal('INWARD_PUTAWAY');
+export const inventoryTransactionTypeSchema = z.enum([
+  'INWARD_PUTAWAY',
+  'OUTWARD_DELIVERY',
+  'DELIVERY_REVERSAL',
+]);
 export type InventoryTransactionType = z.infer<typeof inventoryTransactionTypeSchema>;
 
-export const inventoryReferenceTypeSchema = z.literal('PUT_AWAY');
+export const inventoryReferenceTypeSchema = z.enum([
+  'PUT_AWAY',
+  'DELIVERY',
+  'DELIVERY_REVERSAL',
+]);
 export type InventoryReferenceType = z.infer<typeof inventoryReferenceTypeSchema>;
 
 export const inventoryTransactionSchema = z.object({

@@ -5,6 +5,7 @@ import { authRouter } from './routes/auth.routes.js';
 import { commodityRouter } from './routes/commodity.routes.js';
 import { customerRouter } from './routes/customer.routes.js';
 import { facilityRouter } from './routes/facility.routes.js';
+import { deliveryRouter } from './routes/delivery.routes.js';
 import { grnRouter } from './routes/grn.routes.js';
 import { hierarchyRouter } from './routes/hierarchy.routes.js';
 import { inventoryRouter } from './routes/inventory.routes.js';
@@ -29,6 +30,7 @@ export function createApp(): Express {
   app.use('/api/commodities', commodityRouter);
   app.use('/api', grnRouter);
   app.use('/api', inventoryRouter);
+  app.use('/api', deliveryRouter);
 
   return app;
 }

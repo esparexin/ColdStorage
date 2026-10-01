@@ -189,7 +189,20 @@ export class InventoryService {
           const posMeta = lockedPositions.get(item.positionId)!;
           const posOccupancyAgg = await InventoryTransactionModel.aggregate([
             { $match: { positionId: item.positionId, facilityId } },
-            { $group: { _id: null, total: { $sum: '$quantity' } } },
+            {
+              $group: {
+                _id: null,
+                total: {
+                  $sum: {
+                    $cond: [
+                      { $eq: ['$transactionType', 'OUTWARD_DELIVERY'] },
+                      { $multiply: ['$quantity', -1] },
+                      '$quantity',
+                    ],
+                  },
+                },
+              },
+            },
           ]).session(session);
 
           const currentOccupancy = posOccupancyAgg[0]?.total ?? 0;
@@ -352,7 +365,15 @@ export class InventoryService {
             commodityId: '$commodityId',
             bagType: '$bagType',
           },
-          bags: { $sum: '$quantity' },
+          bags: {
+            $sum: {
+              $cond: [
+                { $eq: ['$transactionType', 'OUTWARD_DELIVERY'] },
+                { $multiply: ['$quantity', -1] },
+                '$quantity',
+              ],
+            },
+          },
         },
       },
     ]);
@@ -394,7 +415,20 @@ export class InventoryService {
     // 1. Group by Commodity
     const commodityAgg = await InventoryTransactionModel.aggregate([
       { $match: { facilityId } },
-      { $group: { _id: '$commodityId', totalBags: { $sum: '$quantity' } } },
+      {
+        $group: {
+          _id: '$commodityId',
+          totalBags: {
+            $sum: {
+              $cond: [
+                { $eq: ['$transactionType', 'OUTWARD_DELIVERY'] },
+                { $multiply: ['$quantity', -1] },
+                '$quantity',
+              ],
+            },
+          },
+        },
+      },
     ]);
 
     const commodityIds = commodityAgg.map((c) => c._id);
@@ -410,7 +444,20 @@ export class InventoryService {
     // 2. Group by Chamber
     const chamberAgg = await InventoryTransactionModel.aggregate([
       { $match: { facilityId } },
-      { $group: { _id: '$chamberId', totalBags: { $sum: '$quantity' } } },
+      {
+        $group: {
+          _id: '$chamberId',
+          totalBags: {
+            $sum: {
+              $cond: [
+                { $eq: ['$transactionType', 'OUTWARD_DELIVERY'] },
+                { $multiply: ['$quantity', -1] },
+                '$quantity',
+              ],
+            },
+          },
+        },
+      },
     ]);
 
     const chamberIds = chamberAgg.map((c) => c._id);

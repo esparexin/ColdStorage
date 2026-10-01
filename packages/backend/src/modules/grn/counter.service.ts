@@ -41,6 +41,18 @@ export class CounterService {
     const padded = String(seq).padStart(padLength, '0');
     return `RCPT-${fy}-${padded}`;
   }
+
+  public async generateDeliveryChallanNumber(
+    facilityId: string,
+    date: Date,
+    session?: ClientSession,
+    padLength = 4,
+  ): Promise<string> {
+    const fy = getFinancialYearKey(date);
+    const seq = await this.getNextSequence(facilityId, 'CHALLAN', fy, session);
+    const padded = String(seq).padStart(padLength, '0');
+    return `CHL-${fy}-${padded}`;
+  }
 }
 
 export const counterService = new CounterService();

@@ -63,14 +63,17 @@ describe('P5 Inventory & Rack Allocation Contracts', () => {
     expect(parsed.success).toBe(false);
   });
 
-  it('enforces strictly INWARD_PUTAWAY as transaction type', () => {
+  it('enforces approved vocabulary for transaction type', () => {
     expect(inventoryTransactionTypeSchema.safeParse('INWARD_PUTAWAY').success).toBe(true);
-    expect(inventoryTransactionTypeSchema.safeParse('OUTWARD_DELIVERY').success).toBe(false);
+    expect(inventoryTransactionTypeSchema.safeParse('OUTWARD_DELIVERY').success).toBe(true);
+    expect(inventoryTransactionTypeSchema.safeParse('DELIVERY_REVERSAL').success).toBe(true);
     expect(inventoryTransactionTypeSchema.safeParse('INVENTORY_ADJUSTMENT').success).toBe(false);
   });
 
-  it('enforces strictly PUT_AWAY as reference type', () => {
+  it('enforces approved vocabulary for reference type', () => {
     expect(inventoryReferenceTypeSchema.safeParse('PUT_AWAY').success).toBe(true);
+    expect(inventoryReferenceTypeSchema.safeParse('DELIVERY').success).toBe(true);
+    expect(inventoryReferenceTypeSchema.safeParse('DELIVERY_REVERSAL').success).toBe(true);
     expect(inventoryReferenceTypeSchema.safeParse('ADJUSTMENT').success).toBe(false);
   });
 
