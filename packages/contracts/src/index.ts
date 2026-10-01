@@ -8,3 +8,4 @@ export * from './user.js';
 export * from './auth.js';
 export * from './customer.js';
 export * from './commodity.js';
+export * from './grn.js';

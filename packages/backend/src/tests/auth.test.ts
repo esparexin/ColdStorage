@@ -93,7 +93,7 @@ describe('P2 Auth + Users + RBAC Integration', () => {
   it('responds with health check status', async () => {
     const res = await request(app).get('/health');
     expect(res.status).toBe(200);
-    expect(['P2', 'P3']).toContain(res.body.phase);
+    expect(['P2', 'P3', 'P4']).toContain(res.body.phase);
   });
 
   it('performs Super Admin initial login with temporary password and forces password change', async () => {

@@ -21,6 +21,8 @@ import {
   createCustomerSchema,
   createFacilitySchema,
   createPositionSchema,
+  createGrnSchema,
+  getFinancialYearKey,
   systemSettingsSchema,
   userSummarySchema,
 } from './index.js';
@@ -197,6 +199,70 @@ describe('P1 Governance & Shared Contracts Foundation', () => {
       createPositionSchema.parse({
         code: 'POS-NEG',
         capacityBags: -10,
+      }),
+    ).toThrow();
+  });
+
+  it('validates P4 GRN input schemas and financial year derivation', () => {
+    // FY Derivation
+    expect(getFinancialYearKey(new Date('2026-10-15T00:00:00Z'))).toBe('26-27');
+    expect(getFinancialYearKey(new Date('2027-02-10T00:00:00Z'))).toBe('26-27');
+    expect(getFinancialYearKey(new Date('2026-03-31T12:00:00Z'))).toBe('25-26');
+
+    // Valid Monthly GRN
+    const validMonthly = createGrnSchema.parse({
+      customerId: 'cust-123',
+      commodityId: 'comm-123',
+      chamberId: 'cham-123',
+      bags: 100,
+      bagType: 'S',
+      nominalUnitWeight: 50,
+      rentType: 'Monthly',
+      rentMonths: 3,
+      rentAmount: 1500,
+      vehicleNumber: 'MH12AB1234',
+    });
+    expect(validMonthly.bags).toBe(100);
+    expect(validMonthly.bagType).toBe('S');
+    expect(validMonthly.rentMonths).toBe(3);
+
+    // Monthly without rentMonths rejected
+    expect(() =>
+      createGrnSchema.parse({
+        customerId: 'cust-123',
+        commodityId: 'comm-123',
+        chamberId: 'cham-123',
+        bags: 100,
+        bagType: 'B',
+        rentType: 'Monthly',
+        rentAmount: 1500,
+      }),
+    ).toThrow();
+
+    // Seasonal with rentMonths rejected
+    expect(() =>
+      createGrnSchema.parse({
+        customerId: 'cust-123',
+        commodityId: 'comm-123',
+        chamberId: 'cham-123',
+        bags: 100,
+        bagType: 'S+B',
+        rentType: 'Seasonal',
+        rentMonths: 2,
+        rentAmount: 2500,
+      }),
+    ).toThrow();
+
+    // Invalid bag type rejected
+    expect(() =>
+      createGrnSchema.parse({
+        customerId: 'cust-123',
+        commodityId: 'comm-123',
+        chamberId: 'cham-123',
+        bags: 100,
+        bagType: 'INVALID_BAG' as unknown as 'S',
+        rentType: 'Seasonal',
+        rentAmount: 2500,
       }),
     ).toThrow();
   });
