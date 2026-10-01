@@ -1,7 +1,9 @@
 import type { NextFunction, Request, Response } from 'express';
 import { inFacilityScope } from '@cold-storage/contracts';
 
-type FacilityIdExtractor = (req: Request) => string | string[] | undefined;
+type FacilityIdExtractor = (
+  req: Request,
+) => string | string[] | undefined | null | Promise<string | string[] | undefined | null>;
 
 /**
  * Facility-scoped authorization middleware consuming the SSOT from @cold-storage/contracts.
@@ -9,16 +11,16 @@ type FacilityIdExtractor = (req: Request) => string | string[] | undefined;
  * - Other roles must be explicitly assigned to the target facility ID.
  */
 export function requireFacilityScope(extractor: FacilityIdExtractor) {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     if (!req.user) {
       res.status(401).json({ error: 'Authentication required' });
       return;
     }
 
-    const raw = extractor(req);
+    const raw = await extractor(req);
     const targetFacilityId = Array.isArray(raw) ? raw[0] : raw;
     if (!targetFacilityId) {
-      res.status(400).json({ error: 'Target facility ID could not be determined from request' });
+      res.status(404).json({ error: 'Target facility or parent entity not found' });
       return;
     }
 

@@ -17,6 +17,10 @@ import {
   rackSchema,
   receiptNumberSchema,
   rentReceiptNumberSchema,
+  createCommoditySchema,
+  createCustomerSchema,
+  createFacilitySchema,
+  createPositionSchema,
   systemSettingsSchema,
   userSummarySchema,
 } from './index.js';
@@ -146,5 +150,54 @@ describe('P1 Governance & Shared Contracts Foundation', () => {
       updatedAt: new Date(),
     });
     expect(summary.mustChangePassword).toBe(true);
+  });
+
+  it('validates P3 customer, commodity, and storage hierarchy schemas', () => {
+    // Customer schema validation
+    const customer = createCustomerSchema.parse({
+      name: 'Ramesh Patel',
+      mobile: '9876543210',
+      address: 'Village Khed, Pune',
+      facilityIds: ['fac-pune-01'],
+    });
+    expect(customer.name).toBe('Ramesh Patel');
+    expect(customer.mobile).toBe('9876543210');
+    expect(customer.isActive).toBe(true);
+
+    // Invalid mobile rejected
+    expect(() =>
+      createCustomerSchema.parse({
+        name: 'Invalid User',
+        mobile: '12345',
+        facilityIds: ['fac-1'],
+      }),
+    ).toThrow();
+
+    // Commodity schema validation
+    const commodity = createCommoditySchema.parse({
+      name: 'Potato Jyoti',
+    });
+    expect(commodity.name).toBe('Potato Jyoti');
+    expect(commodity.isActive).toBe(true);
+
+    // Facility input validation
+    const facility = createFacilitySchema.parse({
+      name: 'Nashik Cold Hub',
+      code: 'NSK-01',
+    });
+    expect(facility.code).toBe('NSK-01');
+
+    // Position capacity validation (positive bags required)
+    const position = createPositionSchema.parse({
+      code: 'POS-A1',
+      capacityBags: 150,
+    });
+    expect(position.capacityBags).toBe(150);
+    expect(() =>
+      createPositionSchema.parse({
+        code: 'POS-NEG',
+        capacityBags: -10,
+      }),
+    ).toThrow();
   });
 });

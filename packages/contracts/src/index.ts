@@ -6,3 +6,5 @@ export * from './permissions.js';
 export * from './settings.js';
 export * from './user.js';
 export * from './auth.js';
+export * from './customer.js';
+export * from './commodity.js';

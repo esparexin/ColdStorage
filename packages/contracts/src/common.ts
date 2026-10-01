@@ -14,6 +14,12 @@ export const indianVehicleSchema = z
   .toUpperCase()
   .regex(/^[A-Z]{2}[0-9]{2}[A-Z]{1,3}[0-9]{1,4}$/, 'Invalid Indian vehicle registration format');
 
+export const indianGstinSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Invalid Indian GSTIN format');
+
 export const facilityIdSchema = z.string().trim().min(1).max(64);
 
 export const paginationSchema = z.object({

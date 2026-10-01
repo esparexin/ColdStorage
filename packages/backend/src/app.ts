@@ -2,6 +2,10 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { type Express, type Request, type Response } from 'express';
 import { authRouter } from './routes/auth.routes.js';
+import { commodityRouter } from './routes/commodity.routes.js';
+import { customerRouter } from './routes/customer.routes.js';
+import { facilityRouter } from './routes/facility.routes.js';
+import { hierarchyRouter } from './routes/hierarchy.routes.js';
 import { userRouter } from './routes/user.routes.js';
 
 export function createApp(): Express {
@@ -12,11 +16,15 @@ export function createApp(): Express {
   app.use(cookieParser());
 
   app.get('/health', (_req: Request, res: Response) => {
-    res.status(200).json({ status: 'ok', service: 'cold-storage-backend', phase: 'P2' });
+    res.status(200).json({ status: 'ok', service: 'cold-storage-backend', phase: 'P3' });
   });
 
   app.use('/api/auth', authRouter);
   app.use('/api/users', userRouter);
+  app.use('/api/facilities', facilityRouter);
+  app.use('/api', hierarchyRouter);
+  app.use('/api/customers', customerRouter);
+  app.use('/api/commodities', commodityRouter);
 
   return app;
 }

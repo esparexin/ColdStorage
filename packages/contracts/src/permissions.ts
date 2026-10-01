@@ -24,6 +24,8 @@ export const PERMISSIONS = {
   'storage:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   'customer:manage': ['SUPER_ADMIN', 'ADMIN'],
   'customer:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
+  'commodity:manage': ['SUPER_ADMIN', 'ADMIN'],
+  'commodity:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   'user:manage': ['SUPER_ADMIN'],
   'report:view': ['SUPER_ADMIN', 'ADMIN', 'READ_ONLY'],
   'document:print': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
