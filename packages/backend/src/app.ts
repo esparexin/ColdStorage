@@ -14,6 +14,8 @@ import { inventoryRouter } from './routes/inventory.routes.js';
 import { documentRouter } from './routes/document.routes.js';
 import { settingsRouter } from './routes/settings.routes.js';
 import { userRouter } from './routes/user.routes.js';
+import { auditRouter } from './routes/audit.routes.js';
+import { backupRouter } from './routes/backup.routes.js';
 
 export function createApp(): Express {
   const app = express();
@@ -39,6 +41,8 @@ export function createApp(): Express {
   app.use('/api', importExportRouter);
   app.use('/api', settingsRouter);
   app.use('/api', documentRouter);
+  app.use('/api', auditRouter);
+  app.use('/api', backupRouter);
 
   return app;
 }

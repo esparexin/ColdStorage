@@ -3,6 +3,7 @@ import {
   SystemSettingsModel,
   type SystemSettingsDoc,
 } from '../../database/models/system-settings.model.js';
+import { auditService } from '../audit/audit.service.js';
 
 export interface SettingsResult {
   settings: SystemSettings;
@@ -129,6 +130,18 @@ export class SettingsService {
       updated.address.trim().length > 0 &&
       updated.contact.trim().length > 0,
     );
+
+    await auditService.log({
+      eventType: 'SETTINGS_UPDATED',
+      severity: 'INFO',
+      userId: _updatedBy,
+      facilityId: null,
+      resource: 'settings',
+      resourceId: 'SYSTEM_SETTINGS',
+      details: {
+        modifiedKeys: Object.keys(validatedData),
+      },
+    });
 
     return {
       settings: validatedData,

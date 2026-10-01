@@ -13,6 +13,7 @@ import {
   customerService as defaultCustomerService,
 } from '../customers/customer.service.js';
 import { GrnService, grnService as defaultGrnService } from '../grn/grn.service.js';
+import { auditService } from '../audit/audit.service.js';
 
 export const CUSTOMER_IMPORT_REQUIRED_HEADERS = ['name', 'mobile'] as const;
 export const CUSTOMER_IMPORT_ALLOWED_HEADERS = ['name', 'mobile', 'address', 'gstin'] as const;
@@ -123,6 +124,7 @@ export class ImportService {
   public async importCustomers(
     facilityId: string,
     csvContent: string | Buffer,
+    userId?: string,
   ): Promise<ImportSummary> {
     const { headers, dataRows } = this.parseAndValidateCsv(
       csvContent,
@@ -235,6 +237,21 @@ export class ImportService {
 
     const committed = results.filter((r) => r.status === 'committed').length;
     const rejected = results.filter((r) => r.status === 'rejected').length;
+
+    await auditService.log({
+      eventType: 'IMPORT_EXECUTED',
+      severity: 'INFO',
+      userId: userId ?? 'SYSTEM',
+      facilityId,
+      resource: 'import',
+      resourceId: null,
+      details: {
+        entityType: 'customer',
+        totalRows: dataRows.length,
+        committed,
+        rejected,
+      },
+    });
 
     return {
       totalRows: dataRows.length,
@@ -466,6 +483,21 @@ export class ImportService {
 
     const committed = results.filter((r) => r.status === 'committed').length;
     const rejected = results.filter((r) => r.status === 'rejected').length;
+
+    await auditService.log({
+      eventType: 'IMPORT_EXECUTED',
+      severity: 'INFO',
+      userId,
+      facilityId,
+      resource: 'import',
+      resourceId: null,
+      details: {
+        entityType: 'grn',
+        totalRows: dataRows.length,
+        committed,
+        rejected,
+      },
+    });
 
     return {
       totalRows: dataRows.length,

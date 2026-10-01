@@ -1,6 +1,12 @@
 import type { ChangePasswordInput, LoginInput, UserSummary } from '@cold-storage/contracts';
 import { config } from '../../config.js';
-import { generateAccessToken, generateOpaqueToken, hashPassword, verifyPassword } from '../../utils/crypto.js';
+import {
+  generateAccessToken,
+  generateOpaqueToken,
+  hashPassword,
+  verifyPassword,
+} from '../../utils/crypto.js';
+import { auditService } from '../audit/audit.service.js';
 import { userRepository, type UserRepository } from '../users/user.repository.js';
 import { userService, type UserService } from '../users/user.service.js';
 import { sessionRepository, type SessionRepository } from './session.repository.js';
@@ -28,15 +34,41 @@ export class AuthService {
   public async login(input: LoginInput): Promise<LoginResult> {
     const user = await this.userRepo.findByUsername(input.username);
     if (!user) {
+      await auditService.log({
+        eventType: 'AUTH_LOGIN_FAILED',
+        severity: 'SECURITY',
+        username: input.username,
+        userRole: 'ANONYMOUS',
+        resource: 'auth',
+        details: { reason: 'USER_NOT_FOUND' },
+      });
       throw new Error('Invalid credentials');
     }
 
     if (user.status !== 'ACTIVE') {
+      await auditService.log({
+        eventType: 'AUTH_LOGIN_FAILED',
+        severity: 'WARN',
+        userId: user.id,
+        username: user.username,
+        userRole: user.role,
+        resource: 'auth',
+        details: { reason: 'ACCOUNT_DISABLED' },
+      });
       throw new Error('User account is disabled');
     }
 
     const passwordValid = await verifyPassword(input.password, user.passwordHash);
     if (!passwordValid) {
+      await auditService.log({
+        eventType: 'AUTH_LOGIN_FAILED',
+        severity: 'SECURITY',
+        userId: user.id,
+        username: user.username,
+        userRole: user.role,
+        resource: 'auth',
+        details: { reason: 'PASSWORD_MISMATCH' },
+      });
       throw new Error('Invalid credentials');
     }
 
@@ -56,6 +88,16 @@ export class AuthService {
 
     const refreshToken = generateOpaqueToken(32);
     await this.sessionRepo.createSession(user.id, refreshToken, config.refreshTokenExpiryDays);
+
+    await auditService.log({
+      eventType: 'AUTH_LOGIN_SUCCESS',
+      severity: 'INFO',
+      userId: user.id,
+      username: user.username,
+      userRole: user.role,
+      resource: 'auth',
+      details: { mustChangePassword: user.mustChangePassword },
+    });
 
     return {
       accessToken,
@@ -81,7 +123,11 @@ export class AuthService {
     }
 
     const newRefreshToken = generateOpaqueToken(32);
-    await this.sessionRepo.rotateSession(currentRefreshToken, newRefreshToken, config.refreshTokenExpiryDays);
+    await this.sessionRepo.rotateSession(
+      currentRefreshToken,
+      newRefreshToken,
+      config.refreshTokenExpiryDays,
+    );
 
     const accessToken = generateAccessToken(
       {
@@ -104,6 +150,16 @@ export class AuthService {
 
   public async logout(refreshToken?: string): Promise<void> {
     if (refreshToken) {
+      const session = await this.sessionRepo.findActiveSession(refreshToken);
+      if (session) {
+        await auditService.log({
+          eventType: 'AUTH_LOGOUT',
+          severity: 'INFO',
+          userId: session.userId,
+          resource: 'auth',
+          resourceId: session.id,
+        });
+      }
       await this.sessionRepo.revokeSession(refreshToken);
     }
   }
@@ -119,6 +175,16 @@ export class AuthService {
 
     const currentValid = await verifyPassword(input.currentPassword, user.passwordHash);
     if (!currentValid) {
+      await auditService.log({
+        eventType: 'AUTH_PASSWORD_CHANGE',
+        severity: 'SECURITY',
+        userId: user.id,
+        username: user.username,
+        userRole: user.role,
+        resource: 'user',
+        resourceId: user.id,
+        details: { result: 'FAILURE', reason: 'CURRENT_PASSWORD_MISMATCH' },
+      });
       throw new Error('Current password does not match');
     }
 
@@ -130,6 +196,17 @@ export class AuthService {
 
     // Revoke previous sessions on password change for security
     await this.sessionRepo.revokeAllUserSessions(userId);
+
+    await auditService.log({
+      eventType: 'AUTH_PASSWORD_CHANGE',
+      severity: 'INFO',
+      userId: user.id,
+      username: user.username,
+      userRole: user.role,
+      resource: 'user',
+      resourceId: user.id,
+      details: { result: 'SUCCESS' },
+    });
 
     return {
       success: true,

@@ -25,12 +25,15 @@ import {
   type PutAwayAllocationDoc,
 } from '../../database/models/put-away.model.js';
 import { RackModel } from '../../database/models/rack.model.js';
+import { auditService } from '../audit/audit.service.js';
 
 export class ConcurrencyConflictError extends Error {
   public readonly statusCode = 409;
   public readonly code = 'CONCURRENCY_CONFLICT';
 
-  constructor(message = 'Concurrent allocation conflict on storage position or GRN. Please retry.') {
+  constructor(
+    message = 'Concurrent allocation conflict on storage position or GRN. Please retry.',
+  ) {
     super(message);
     this.name = 'ConcurrencyConflictError';
   }
@@ -76,8 +79,15 @@ export class InventoryService {
     if (!err || typeof err !== 'object') {
       return false;
     }
-    const mongoErr = err as { code?: number; hasErrorLabel?: (label: string) => boolean; message?: string };
-    if (typeof mongoErr.hasErrorLabel === 'function' && mongoErr.hasErrorLabel('TransientTransactionError')) {
+    const mongoErr = err as {
+      code?: number;
+      hasErrorLabel?: (label: string) => boolean;
+      message?: string;
+    };
+    if (
+      typeof mongoErr.hasErrorLabel === 'function' &&
+      mongoErr.hasErrorLabel('TransientTransactionError')
+    ) {
       return true;
     }
     if (mongoErr.code === 112 || mongoErr.code === 251) {
@@ -117,10 +127,15 @@ export class InventoryService {
         }
 
         // 2. Sort target positions deterministically by ID to prevent circular deadlocks
-        const sortedItems = [...input.items].sort((a, b) => a.positionId.localeCompare(b.positionId));
+        const sortedItems = [...input.items].sort((a, b) =>
+          a.positionId.localeCompare(b.positionId),
+        );
 
         // 3. Acquire sequential write-locks on target Position documents in lexicographical order
-        const lockedPositions = new Map<string, { code: string; capacityBags: number; chamberId: string }>();
+        const lockedPositions = new Map<
+          string,
+          { code: string; capacityBags: number; chamberId: string }
+        >();
 
         for (const item of sortedItems) {
           const pos = await PositionModel.findOneAndUpdate(
@@ -145,9 +160,13 @@ export class InventoryService {
 
           // Verify hierarchy active status: Level, Rack, Chamber
           const [level, rack, chamber] = await Promise.all([
-            LevelModel.findOne({ id: pos.levelId, isActive: true }, null, { session }).lean().exec(),
+            LevelModel.findOne({ id: pos.levelId, isActive: true }, null, { session })
+              .lean()
+              .exec(),
             RackModel.findOne({ id: pos.rackId, isActive: true }, null, { session }).lean().exec(),
-            ChamberModel.findOne({ id: pos.chamberId, isActive: true }, null, { session }).lean().exec(),
+            ChamberModel.findOne({ id: pos.chamberId, isActive: true }, null, { session })
+              .lean()
+              .exec(),
           ]);
 
           if (!level) {
@@ -289,10 +308,28 @@ export class InventoryService {
 
     const putAway = this.toPutAwayEntity(createdPutAwayDoc!);
     const summary = await this.getGrnInventorySummary(facilityId, grnId);
+
+    await auditService.log({
+      eventType: 'INVENTORY_PUTAWAY',
+      severity: 'INFO',
+      userId,
+      facilityId,
+      resource: 'inventory',
+      resourceId: putAway.id,
+      details: {
+        grnId,
+        itemsCount: input.items.length,
+        totalBags: input.items.reduce((acc, curr) => acc + curr.bags, 0),
+      },
+    });
+
     return { putAway, summary };
   }
 
-  public async listPutAwayAllocations(facilityId: string, grnId: string): Promise<PutAwayAllocation[]> {
+  public async listPutAwayAllocations(
+    facilityId: string,
+    grnId: string,
+  ): Promise<PutAwayAllocation[]> {
     const docs = await PutAwayAllocationModel.find({ facilityId, grnId })
       .sort({ allocatedAt: -1 })
       .lean()
@@ -300,7 +337,10 @@ export class InventoryService {
     return docs.map((d) => this.toPutAwayEntity(d));
   }
 
-  public async getGrnInventorySummary(facilityId: string, grnId: string): Promise<GrnInventorySummary> {
+  public async getGrnInventorySummary(
+    facilityId: string,
+    grnId: string,
+  ): Promise<GrnInventorySummary> {
     const grn = await GrnModel.findOne({ id: grnId, facilityId }).lean().exec();
     if (!grn) {
       throw new Error(`GRN '${grnId}' not found in facility '${facilityId}'`);
@@ -347,7 +387,10 @@ export class InventoryService {
     };
   }
 
-  public async getPositionOccupancy(facilityId: string, positionId: string): Promise<PositionOccupancy> {
+  public async getPositionOccupancy(
+    facilityId: string,
+    positionId: string,
+  ): Promise<PositionOccupancy> {
     const position = await PositionModel.findOne({ id: positionId, facilityId }).lean().exec();
     if (!position) {
       throw new Error(`Position '${positionId}' not found in facility '${facilityId}'`);
@@ -432,7 +475,9 @@ export class InventoryService {
     ]);
 
     const commodityIds = commodityAgg.map((c) => c._id);
-    const commodities = await CommodityModel.find({ id: { $in: commodityIds } }).lean().exec();
+    const commodities = await CommodityModel.find({ id: { $in: commodityIds } })
+      .lean()
+      .exec();
     const commodityMap = new Map(commodities.map((c) => [c.id, c.name]));
 
     const byCommodity = commodityAgg.map((c) => ({
@@ -461,7 +506,9 @@ export class InventoryService {
     ]);
 
     const chamberIds = chamberAgg.map((c) => c._id);
-    const chambers = await ChamberModel.find({ id: { $in: chamberIds } }).lean().exec();
+    const chambers = await ChamberModel.find({ id: { $in: chamberIds } })
+      .lean()
+      .exec();
     const chamberMap = new Map(chambers.map((c) => [c.id, c.chamberNumber]));
 
     const byChamber = chamberAgg.map((c) => ({
@@ -521,7 +568,9 @@ export class InventoryService {
     return pos?.facilityId ?? null;
   }
 
-  private toPutAwayEntity(doc: PutAwayAllocationDoc | (Record<string, unknown> & { id: string })): PutAwayAllocation {
+  private toPutAwayEntity(
+    doc: PutAwayAllocationDoc | (Record<string, unknown> & { id: string }),
+  ): PutAwayAllocation {
     const d = doc as Record<string, unknown>;
     return {
       id: String(d.id),
@@ -537,7 +586,9 @@ export class InventoryService {
     };
   }
 
-  private toLedgerEntity(doc: InventoryTransactionDoc | (Record<string, unknown> & { id: string })): InventoryTransaction {
+  private toLedgerEntity(
+    doc: InventoryTransactionDoc | (Record<string, unknown> & { id: string }),
+  ): InventoryTransaction {
     const d = doc as Record<string, unknown>;
     return {
       id: String(d.id),

@@ -22,6 +22,7 @@ import {
 import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
 import { PositionModel } from '../../database/models/position.model.js';
+import { auditService } from '../audit/audit.service.js';
 
 export class DeliveryService {
   /**
@@ -99,8 +100,15 @@ export class DeliveryService {
     if (!err || typeof err !== 'object') {
       return false;
     }
-    const mongoErr = err as { code?: number; hasErrorLabel?: (label: string) => boolean; message?: string };
-    if (typeof mongoErr.hasErrorLabel === 'function' && mongoErr.hasErrorLabel('TransientTransactionError')) {
+    const mongoErr = err as {
+      code?: number;
+      hasErrorLabel?: (label: string) => boolean;
+      message?: string;
+    };
+    if (
+      typeof mongoErr.hasErrorLabel === 'function' &&
+      mongoErr.hasErrorLabel('TransientTransactionError')
+    ) {
       return true;
     }
     if (mongoErr.code === 112 || mongoErr.code === 251) {
@@ -139,8 +147,13 @@ export class DeliveryService {
         }
 
         // 2. Lock Position Documents in lexicographical order (Second in global lock order)
-        const sortedItems = [...input.items].sort((a, b) => a.positionId.localeCompare(b.positionId));
-        const lockedPositions = new Map<string, { code: string; capacityBags: number; chamberId: string }>();
+        const sortedItems = [...input.items].sort((a, b) =>
+          a.positionId.localeCompare(b.positionId),
+        );
+        const lockedPositions = new Map<
+          string,
+          { code: string; capacityBags: number; chamberId: string }
+        >();
 
         for (const item of sortedItems) {
           const pos = await PositionModel.findOneAndUpdate(
@@ -219,15 +232,29 @@ export class DeliveryService {
             {
               $group: {
                 _id: null,
-                inward: { $sum: { $cond: [{ $eq: ['$transactionType', 'INWARD_PUTAWAY'] }, '$quantity', 0] } },
-                outward: { $sum: { $cond: [{ $eq: ['$transactionType', 'OUTWARD_DELIVERY'] }, '$quantity', 0] } },
-                reversal: { $sum: { $cond: [{ $eq: ['$transactionType', 'DELIVERY_REVERSAL'] }, '$quantity', 0] } },
+                inward: {
+                  $sum: {
+                    $cond: [{ $eq: ['$transactionType', 'INWARD_PUTAWAY'] }, '$quantity', 0],
+                  },
+                },
+                outward: {
+                  $sum: {
+                    $cond: [{ $eq: ['$transactionType', 'OUTWARD_DELIVERY'] }, '$quantity', 0],
+                  },
+                },
+                reversal: {
+                  $sum: {
+                    $cond: [{ $eq: ['$transactionType', 'DELIVERY_REVERSAL'] }, '$quantity', 0],
+                  },
+                },
               },
             },
           ]).session(session);
 
           const currentPosStock =
-            (posStockAgg[0]?.inward ?? 0) - (posStockAgg[0]?.outward ?? 0) + (posStockAgg[0]?.reversal ?? 0);
+            (posStockAgg[0]?.inward ?? 0) -
+            (posStockAgg[0]?.outward ?? 0) +
+            (posStockAgg[0]?.reversal ?? 0);
 
           if (item.bags > currentPosStock) {
             throw new Error(
@@ -257,7 +284,11 @@ export class DeliveryService {
           throw new Error('Delivery date exceeds permitted 30-day operational backdating window');
         }
 
-        const challanNumber = await counterService.generateDeliveryChallanNumber(facilityId, deliveryDate, session);
+        const challanNumber = await counterService.generateDeliveryChallanNumber(
+          facilityId,
+          deliveryDate,
+          session,
+        );
         const deliveryId = `del-${randomUUID()}`;
 
         // 5. Insert DeliveryChallan document
@@ -348,6 +379,22 @@ export class DeliveryService {
 
     const delivery = this.toChallanEntity(createdChallanDoc!);
     const summary = await this.getDeliverySummary(facilityId, input.grnId);
+
+    await auditService.log({
+      eventType: 'DELIVERY_ISSUED',
+      severity: 'INFO',
+      userId,
+      facilityId,
+      resource: 'delivery',
+      resourceId: delivery.id,
+      details: {
+        challanNumber: delivery.challanNumber,
+        totalBags: delivery.totalBags,
+        grnId: delivery.grnId,
+        customerId: delivery.customerId,
+      },
+    });
+
     return { delivery, summary };
   }
 
@@ -374,7 +421,9 @@ export class DeliveryService {
           throw new Error(`Delivery challan '${deliveryId}' not found in facility '${facilityId}'`);
         }
         if (existingChallan.status === 'REVERSED') {
-          throw new Error(`Delivery challan '${existingChallan.challanNumber}' is already REVERSED`);
+          throw new Error(
+            `Delivery challan '${existingChallan.challanNumber}' is already REVERSED`,
+          );
         }
 
         grnId = existingChallan.grnId;
@@ -393,7 +442,9 @@ export class DeliveryService {
         }
 
         // 2. Lock Position Documents in lexicographical order (Second in global lock order)
-        const sortedItems = [...existingChallan.items].sort((a, b) => a.positionId.localeCompare(b.positionId));
+        const sortedItems = [...existingChallan.items].sort((a, b) =>
+          a.positionId.localeCompare(b.positionId),
+        );
         const lockedPositions = new Map<string, { code: string; capacityBags: number }>();
 
         for (const item of sortedItems) {
@@ -426,7 +477,9 @@ export class DeliveryService {
         ).exec();
 
         if (!lockedChallan) {
-          throw new Error(`Delivery challan '${deliveryId}' cannot be reversed (must be in ISSUED status)`);
+          throw new Error(
+            `Delivery challan '${deliveryId}' cannot be reversed (must be in ISSUED status)`,
+          );
         }
         updatedChallanDoc = lockedChallan;
 
@@ -438,15 +491,29 @@ export class DeliveryService {
             {
               $group: {
                 _id: null,
-                inward: { $sum: { $cond: [{ $eq: ['$transactionType', 'INWARD_PUTAWAY'] }, '$quantity', 0] } },
-                outward: { $sum: { $cond: [{ $eq: ['$transactionType', 'OUTWARD_DELIVERY'] }, '$quantity', 0] } },
-                reversal: { $sum: { $cond: [{ $eq: ['$transactionType', 'DELIVERY_REVERSAL'] }, '$quantity', 0] } },
+                inward: {
+                  $sum: {
+                    $cond: [{ $eq: ['$transactionType', 'INWARD_PUTAWAY'] }, '$quantity', 0],
+                  },
+                },
+                outward: {
+                  $sum: {
+                    $cond: [{ $eq: ['$transactionType', 'OUTWARD_DELIVERY'] }, '$quantity', 0],
+                  },
+                },
+                reversal: {
+                  $sum: {
+                    $cond: [{ $eq: ['$transactionType', 'DELIVERY_REVERSAL'] }, '$quantity', 0],
+                  },
+                },
               },
             },
           ]).session(session);
 
           const currentOccupancy =
-            (posOccupancyAgg[0]?.inward ?? 0) - (posOccupancyAgg[0]?.outward ?? 0) + (posOccupancyAgg[0]?.reversal ?? 0);
+            (posOccupancyAgg[0]?.inward ?? 0) -
+            (posOccupancyAgg[0]?.outward ?? 0) +
+            (posOccupancyAgg[0]?.reversal ?? 0);
           const availableCapacity = posMeta.capacityBags - currentOccupancy;
 
           if (item.bags > availableCapacity) {
@@ -528,10 +595,27 @@ export class DeliveryService {
     const challan = this.toChallanEntity(updatedChallanDoc!);
     const summary = await this.getDeliverySummary(facilityId, grnId);
 
+    await auditService.log({
+      eventType: 'DELIVERY_REVERSED',
+      severity: 'INFO',
+      userId,
+      facilityId,
+      resource: 'delivery',
+      resourceId: reversal.id,
+      details: {
+        deliveryId: challan.id,
+        challanNumber: challan.challanNumber,
+        reason: input.reason,
+      },
+    });
+
     return { reversal, challan, summary };
   }
 
-  public async getDeliveryById(facilityId: string, deliveryId: string): Promise<DeliveryChallan | null> {
+  public async getDeliveryById(
+    facilityId: string,
+    deliveryId: string,
+  ): Promise<DeliveryChallan | null> {
     const doc = await DeliveryChallanModel.findOne({ id: deliveryId, facilityId }).lean().exec();
     return doc ? this.toChallanEntity(doc) : null;
   }
@@ -621,11 +705,16 @@ export class DeliveryService {
   }
 
   public async resolveFacilityIdForDelivery(deliveryId: string): Promise<string | null> {
-    const doc = await DeliveryChallanModel.findOne({ id: deliveryId }).select('facilityId').lean().exec();
+    const doc = await DeliveryChallanModel.findOne({ id: deliveryId })
+      .select('facilityId')
+      .lean()
+      .exec();
     return doc?.facilityId ?? null;
   }
 
-  private toChallanEntity(doc: DeliveryChallanDoc | (Record<string, unknown> & { id: string })): DeliveryChallan {
+  private toChallanEntity(
+    doc: DeliveryChallanDoc | (Record<string, unknown> & { id: string }),
+  ): DeliveryChallan {
     const d = doc as Record<string, unknown>;
     return {
       id: String(d.id),
@@ -653,7 +742,9 @@ export class DeliveryService {
     };
   }
 
-  private toReversalEntity(doc: DeliveryReversalDoc | (Record<string, unknown> & { id: string })): DeliveryReversal {
+  private toReversalEntity(
+    doc: DeliveryReversalDoc | (Record<string, unknown> & { id: string }),
+  ): DeliveryReversal {
     const d = doc as Record<string, unknown>;
     return {
       id: String(d.id),

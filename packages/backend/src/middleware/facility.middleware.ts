@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { inFacilityScope } from '@cold-storage/contracts';
+import { auditService } from '../modules/audit/audit.service.js';
 
 type FacilityIdExtractor = (
   req: Request,
@@ -26,6 +27,25 @@ export function requireFacilityScope(extractor: FacilityIdExtractor) {
 
     const permitted = inFacilityScope(req.user.role, req.user.facilityIds, targetFacilityId);
     if (!permitted) {
+      void auditService.log({
+        eventType: 'ACCESS_DENIED',
+        severity: 'SECURITY',
+        userId: req.user.userId,
+        username: req.user.username,
+        userRole: req.user.role,
+        facilityId: targetFacilityId,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        resource: 'facility',
+        resourceId: targetFacilityId,
+        details: {
+          path: req.originalUrl || req.path,
+          method: req.method,
+          targetFacilityId,
+          userFacilityIds: req.user.facilityIds,
+        },
+      });
+
       res.status(403).json({
         error: `Access denied: User is not authorized to access facility '${targetFacilityId}'`,
       });

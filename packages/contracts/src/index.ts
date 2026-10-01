@@ -14,3 +14,5 @@ export * from './delivery.js';
 export * from './dashboard.js';
 export * from './import-export.js';
 export * from './documents.js';
+export * from './audit.js';
+export * from './backup.js';

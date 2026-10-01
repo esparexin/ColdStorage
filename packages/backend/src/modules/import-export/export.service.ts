@@ -9,6 +9,7 @@ import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
 import { PositionModel } from '../../database/models/position.model.js';
 import { CsvSerializer } from './csv.serializer.js';
+import { auditService } from '../audit/audit.service.js';
 
 export function buildDateFilter(
   dateField: string,
@@ -120,7 +121,17 @@ export class ExportService {
     facilityId: string,
     query: ExportDateRangeQuery,
     res: Response,
+    userId?: string,
   ): Promise<void> {
+    await auditService.log({
+      eventType: 'EXPORT_EXECUTED',
+      severity: 'INFO',
+      userId: userId ?? 'SYSTEM',
+      facilityId,
+      resource: 'export',
+      resourceId: null,
+      details: { entityType: 'grn', filter: query },
+    });
     const filter = { facilityId, ...buildDateFilter('date', query) };
     const cursor = GrnModel.find(filter).sort({ createdAt: -1 }).lean().cursor({ batchSize: 500 });
     const headers = [
@@ -172,7 +183,17 @@ export class ExportService {
     facilityId: string,
     query: ExportDateRangeQuery,
     res: Response,
+    userId?: string,
   ): Promise<void> {
+    await auditService.log({
+      eventType: 'EXPORT_EXECUTED',
+      severity: 'INFO',
+      userId: userId ?? 'SYSTEM',
+      facilityId,
+      resource: 'export',
+      resourceId: null,
+      details: { entityType: 'delivery', filter: query },
+    });
     const filter = { facilityId, ...buildDateFilter('date', query) };
     const cursor = DeliveryChallanModel.find(filter)
       .sort({ createdAt: -1 })
@@ -221,7 +242,17 @@ export class ExportService {
     facilityId: string,
     query: ExportDateRangeQuery,
     res: Response,
+    userId?: string,
   ): Promise<void> {
+    await auditService.log({
+      eventType: 'EXPORT_EXECUTED',
+      severity: 'INFO',
+      userId: userId ?? 'SYSTEM',
+      facilityId,
+      resource: 'export',
+      resourceId: null,
+      details: { entityType: 'inventory_ledger', filter: query },
+    });
     const filter = { facilityId, ...buildDateFilter('createdAt', query) };
     const cursor = InventoryTransactionModel.find(filter)
       .sort({ createdAt: -1 })
@@ -264,7 +295,17 @@ export class ExportService {
     facilityId: string,
     query: ExportDateRangeQuery,
     res: Response,
+    userId?: string,
   ): Promise<void> {
+    await auditService.log({
+      eventType: 'EXPORT_EXECUTED',
+      severity: 'INFO',
+      userId: userId ?? 'SYSTEM',
+      facilityId,
+      resource: 'export',
+      resourceId: null,
+      details: { entityType: 'customer', filter: query },
+    });
     const filter = { facilityIds: facilityId, ...buildDateFilter('createdAt', query) };
     const cursor = CustomerModel.find(filter)
       .sort({ createdAt: -1 })
@@ -288,7 +329,20 @@ export class ExportService {
     );
   }
 
-  public async exportStockSummary(facilityId: string, res: Response): Promise<void> {
+  public async exportStockSummary(
+    facilityId: string,
+    res: Response,
+    userId?: string,
+  ): Promise<void> {
+    await auditService.log({
+      eventType: 'EXPORT_EXECUTED',
+      severity: 'INFO',
+      userId: userId ?? 'SYSTEM',
+      facilityId,
+      resource: 'export',
+      resourceId: null,
+      details: { entityType: 'stock_summary' },
+    });
     // Phase A: Canonical P7 queries
     const [positionCapacities, chambers, stockBreakdown] = await Promise.all([
       // Installed capacity from PositionModel (without isActive filter, exactly matching P7 Query 1)

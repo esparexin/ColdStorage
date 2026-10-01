@@ -14,6 +14,7 @@ import { CustomerModel } from '../../database/models/customer.model.js';
 import { FacilityModel } from '../../database/models/facility.model.js';
 import { GrnModel, type GrnDoc } from '../../database/models/grn.model.js';
 import { counterService } from './counter.service.js';
+import { auditService } from '../audit/audit.service.js';
 
 export class GrnService {
   public async createGrn(
@@ -57,7 +58,9 @@ export class GrnService {
       throw new Error(`Chamber '${input.chamberId}' not found`);
     }
     if (chamber.facilityId !== facilityId) {
-      throw new Error(`Chamber '${chamber.chamberNumber}' does not belong to facility '${facilityId}'`);
+      throw new Error(
+        `Chamber '${chamber.chamberNumber}' does not belong to facility '${facilityId}'`,
+      );
     }
     if (!chamber.isActive) {
       throw new Error(`Chamber '${chamber.chamberNumber}' is inactive`);
@@ -74,7 +77,9 @@ export class GrnService {
     const currentFy = getFinancialYearKey(now);
     const inwardFy = getFinancialYearKey(inwardDate);
     if (inwardFy !== currentFy) {
-      throw new Error(`Inward date belongs to Financial Year '${inwardFy}', but current active FY is '${currentFy}'`);
+      throw new Error(
+        `Inward date belongs to Financial Year '${inwardFy}', but current active FY is '${currentFy}'`,
+      );
     }
 
     const maxPastAllowed = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -152,6 +157,20 @@ export class GrnService {
 
     const grn = this.toEntity(createdDoc!);
     const acknowledgement = this.toAcknowledgement(grn);
+
+    await auditService.log({
+      eventType: 'GRN_CREATED',
+      severity: 'INFO',
+      userId,
+      facilityId,
+      resource: 'grn',
+      resourceId: grn.id,
+      details: {
+        grnNumber: grn.grnNumber,
+        bags: grn.bags,
+        customerId: grn.customerId,
+      },
+    });
 
     return { grn, acknowledgement };
   }
