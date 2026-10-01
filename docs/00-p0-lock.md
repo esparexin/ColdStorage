@@ -242,3 +242,33 @@ The following billing and payment parameters remain pending formal business spec
 | **P10** | **Audit + Backup** | Immutable audit log trail, Atlas snapshot monitoring, encrypted Google Drive backup job |
 | **P11** | **Security + Performance + E2E + Hardening** | Rate-limiting, OWASP hardening, full end-to-end multi-facility verification |
 | **P12** | **Rent Collection & Payment Management** | Rent Collection, GR-based rent obligation, payment transactions, balance calculation, Settled / Not Settled status, payment history, independent receipt numbering, rent payment receipt, print receipt, audit integration, RBAC integration, document/printing integration |
+
+---
+
+## 6. Architecture Amendment: Application Framework & Session Persistence Lock (F1 + S1)
+
+**Approved Date**: 2026-10-01
+**Status**: APPROVED & LOCKED
+**Decision Resolution**: Options F1 + S1 formally adopted as the authoritative architecture baseline.
+
+### 1. Application Framework & Stack
+* **Backend Framework**:
+  - **Express + TypeScript**
+  - **Backend Architecture**: Modular Express application using the existing routes, modules, middleware, and shared-contract structure (`@cold-storage/contracts`).
+* **Frontend Framework**:
+  - **Next.js + React + TypeScript** (hosted on Vercel).
+
+### 2. Primary Persistence & Session Architecture
+* **Primary Datastore**:
+  - **MongoDB Atlas + Mongoose** is the canonical persistent datastore for all domain entities.
+* **Authentication Session Persistence**:
+  - **MongoDB/Mongoose — Canonical SSOT**: Exclusive single source of truth for users, active authentication sessions, rotating refresh tokens, and session revocation history (`SessionModel` / `UserModel`).
+* **Caching & Queue Infrastructure**:
+  - **Upstash Redis**: Reserved strictly for caching, rate limiting, and queue infrastructure.
+  - **BullMQ**: May use Upstash Redis for approved background jobs (e.g. backup workers, heavy report processing).
+* **Authentication Session Rule**:
+  - Authentication sessions, refresh-token rotation state, and revocation state must **NOT** be persisted in Redis. Redis must never become a second authentication-session store.
+* **Dual-Store Rule**:
+  - Authentication session state must **never** be maintained simultaneously in MongoDB and Redis. Dual-store session architectures and split token stores are strictly prohibited.
+* **Critical SSOT Invariant**:
+  - There must be exactly one canonical owner for every business and security concept. Authentication session state has exactly one owner: **MongoDB/Mongoose**. Redis must never become a competing session/revocation source of truth.
