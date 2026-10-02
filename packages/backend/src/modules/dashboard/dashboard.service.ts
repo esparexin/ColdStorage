@@ -84,7 +84,11 @@ export class DashboardService {
 
     const chamberUtilization = projectChamberUtilization(chambers, capacityMap, chamberStockMap);
     const commodityBreakdown = projectCommodityBreakdown(facetResult.byCommodity, commodityMap);
-    const recentActivity = projectRecentActivity(recentTxns as any, challanMap, reversalMap);
+    const recentActivity = projectRecentActivity(
+      recentTxns as unknown as Parameters<typeof projectRecentActivity>[0],
+      challanMap,
+      reversalMap,
+    );
 
     return {
       facilityId,

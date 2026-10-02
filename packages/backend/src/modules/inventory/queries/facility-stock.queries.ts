@@ -107,7 +107,7 @@ export async function queryStockLedger(
   ]);
 
   return {
-    items: docs.map((d: any) => toLedgerEntity(d)),
+    items: docs.map((d) => toLedgerEntity(d)),
     total,
     page: query.page,
     limit: query.limit,

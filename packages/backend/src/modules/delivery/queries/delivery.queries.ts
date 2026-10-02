@@ -1,8 +1,5 @@
 import type { DeliveryChallan, DeliveryQuery, DeliverySummary } from '@cold-storage/contracts';
-import {
-  DeliveryChallanModel,
-  type DeliveryChallanDoc,
-} from '../../../database/models/delivery-challan.model.js';
+import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { toChallanEntity } from '../delivery.mappers.js';
@@ -37,7 +34,7 @@ export async function listDeliveries(
   ]);
 
   return {
-    items: docs.map((d: any) => toChallanEntity(d)),
+    items: docs.map((d) => toChallanEntity(d)),
     total,
     page: query.page,
     limit: query.limit,
@@ -52,7 +49,7 @@ export async function listDeliveriesForGrn(
     .sort({ date: -1, createdAt: -1 })
     .lean()
     .exec();
-  return docs.map((d: any) => toChallanEntity(d));
+  return docs.map((d) => toChallanEntity(d));
 }
 
 export async function getDeliverySummary(
@@ -101,7 +98,7 @@ export async function getDeliverySummary(
     remainingDeliveryBalance,
     physicallyStoredBags,
     grnStatus: grn.status,
-    deliveries: challanDocs.map((d: any) => toChallanEntity(d)),
+    deliveries: challanDocs.map((d) => toChallanEntity(d)),
   };
 }
 

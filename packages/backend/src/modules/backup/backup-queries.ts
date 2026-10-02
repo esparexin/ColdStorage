@@ -1,4 +1,4 @@
-import type { BackupLogRecord, BackupQuery, BackupStatusResponse } from '@cold-storage/contracts';
+import type { BackupQuery, BackupStatusResponse } from '@cold-storage/contracts';
 import { BackupLogModel, type BackupLogDoc } from '../../database/models/backup-log.model.js';
 import { settingsService } from '../settings/settings.service.js';
 

@@ -1,4 +1,3 @@
-import path from 'node:path';
 import crypto from 'node:crypto';
 import { v2 as cloudinary, type UploadApiResponse } from 'cloudinary';
 import { config } from '../../config.js';

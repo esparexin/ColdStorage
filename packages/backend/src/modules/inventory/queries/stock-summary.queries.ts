@@ -18,7 +18,7 @@ export async function listPutAwayAllocations(
     .sort({ allocatedAt: -1 })
     .lean()
     .exec();
-  return docs.map((d: any) => toPutAwayEntity(d));
+  return docs.map((d) => toPutAwayEntity(d));
 }
 
 export async function getGrnInventorySummary(

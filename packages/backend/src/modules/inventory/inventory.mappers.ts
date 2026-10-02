@@ -40,7 +40,7 @@ export function isTransientError(err: unknown): boolean {
   return false;
 }
 
-export function toPutAwayEntity(doc: any): PutAwayAllocation {
+export function toPutAwayEntity(doc: unknown): PutAwayAllocation {
   const d = doc as Record<string, unknown>;
   return {
     id: String(d.id),
@@ -56,7 +56,7 @@ export function toPutAwayEntity(doc: any): PutAwayAllocation {
   };
 }
 
-export function toLedgerEntity(doc: any): InventoryTransaction {
+export function toLedgerEntity(doc: unknown): InventoryTransaction {
   const d = doc as Record<string, unknown>;
   return {
     id: String(d.id),

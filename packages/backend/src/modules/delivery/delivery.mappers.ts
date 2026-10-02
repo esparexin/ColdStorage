@@ -2,7 +2,7 @@ import type { DeliveryChallan, DeliveryReversal } from '@cold-storage/contracts'
 import type { DeliveryChallanDoc } from '../../database/models/delivery-challan.model.js';
 import type { DeliveryReversalDoc } from '../../database/models/delivery-reversal.model.js';
 
-export function toChallanEntity(doc: any): DeliveryChallan {
+export function toChallanEntity(doc: DeliveryChallanDoc | Record<string, unknown> | unknown): DeliveryChallan {
   const d = doc as Record<string, unknown>;
   return {
     id: String(d.id),
@@ -30,7 +30,7 @@ export function toChallanEntity(doc: any): DeliveryChallan {
   };
 }
 
-export function toReversalEntity(doc: any): DeliveryReversal {
+export function toReversalEntity(doc: DeliveryReversalDoc | Record<string, unknown> | unknown): DeliveryReversal {
   const d = doc as Record<string, unknown>;
   return {
     id: String(d.id),
