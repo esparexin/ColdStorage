@@ -14,6 +14,13 @@ jobs:
   validate:
     name: ColdStorage CI
     runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+    env:
+      MONGODB_URI: mongodb://127.0.0.1:27017/cold_storage_test
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
