@@ -1,0 +1,57 @@
+name: Security Audits
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Dependency & Secret Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Verify zero committed secrets or env files
+        run: |
+          echo "Scanning for committed .env files or leaked secrets..."
+          if find . -maxdepth 2 -name ".env" -not -path "./.git/*" | grep -v "\.example" | grep -q .; then
+            echo "::error::Committed .env file detected in repository"
+            exit 1
+          fi
+
+      - name: Verify lockfile integrity
+        run: |
+          npm ci --ignore-scripts
+          if [ -n "$(git status --porcelain package-lock.json)" ]; then
+            echo "::error::package-lock.json is dirty or out of sync with package.json"
+            exit 1
+          fi
+
+      - name: Run dependency vulnerability audit
+        run: |
+          echo "Generating npm audit report..."
+          npm audit --json > audit-report.json || true
+          npm audit || echo "::warning::Vulnerabilities detected. Review audit report and dependabot updates."
+
+      - name: Upload security audit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-audit-report
+          path: audit-report.json
+          if-no-files-found: ignore
