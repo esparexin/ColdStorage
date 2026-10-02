@@ -4,6 +4,7 @@ import multer from 'multer';
 import { exportDateRangeQuerySchema, stockSummaryExportQuerySchema } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
+import { mutationsRateLimiter } from '../middleware/rate-limiter.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { exportService } from '../modules/import-export/export.service.js';
 import { importService } from '../modules/import-export/import.service.js';
@@ -84,6 +85,7 @@ importExportRouter.post(
   '/facilities/:facilityId/import/customers',
   requirePermission('import:execute'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  mutationsRateLimiter,
   uploadSingleCsv,
   async (req: Request, res: Response): Promise<void> => {
     const facilityId = getParamId(req.params.facilityId);
@@ -104,6 +106,7 @@ importExportRouter.post(
   '/facilities/:facilityId/import/grns',
   requirePermission('import:execute'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  mutationsRateLimiter,
   uploadSingleCsv,
   async (req: Request, res: Response): Promise<void> => {
     const facilityId = getParamId(req.params.facilityId);

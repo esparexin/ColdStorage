@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { backupQuerySchema, backupTriggerSchema } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
+import { mutationsRateLimiter } from '../middleware/rate-limiter.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { backupService } from '../modules/backup/backup.service.js';
 
@@ -16,6 +17,7 @@ backupRouter.post(
   authenticate,
   requirePasswordChanged,
   requirePermission('backup:manage'),
+  mutationsRateLimiter,
   async (req: Request, res: Response): Promise<void> => {
     const parseResult = backupTriggerSchema.safeParse(req.body);
     if (!parseResult.success) {

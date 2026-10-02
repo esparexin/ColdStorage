@@ -1,6 +1,13 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import express, { type Express, type Request, type Response } from 'express';
+import express, { type Express, type Request, type Response, type NextFunction } from 'express';
+import {
+  securityHeadersMiddleware,
+  noSqlInjectionGuard,
+  hppGuard,
+} from './middleware/security.middleware.js';
+import { compressionMiddleware } from './middleware/compression.middleware.js';
+import { generalRateLimiter } from './middleware/rate-limiter.middleware.js';
 import { authRouter } from './routes/auth.routes.js';
 import { commodityRouter } from './routes/commodity.routes.js';
 import { customerRouter } from './routes/customer.routes.js';
@@ -20,13 +27,20 @@ import { backupRouter } from './routes/backup.routes.js';
 export function createApp(): Express {
   const app = express();
 
+  app.use(securityHeadersMiddleware);
   app.use(cors());
-  app.use(express.json());
+  app.use(compressionMiddleware);
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
   app.use(cookieParser());
+  app.use(noSqlInjectionGuard);
+  app.use(hppGuard);
 
   app.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({ status: 'ok', service: 'cold-storage-backend', phase: 'P4' });
   });
+
+  app.use('/api', generalRateLimiter);
 
   app.use('/api/auth', authRouter);
   app.use('/api/users', userRouter);
@@ -36,6 +50,7 @@ export function createApp(): Express {
   app.use('/api/commodities', commodityRouter);
   app.use('/api', grnRouter);
   app.use('/api', inventoryRouter);
+  app.use('/api/delivery', deliveryRouter);
   app.use('/api', deliveryRouter);
   app.use('/api', dashboardRouter);
   app.use('/api', importExportRouter);
@@ -43,6 +58,22 @@ export function createApp(): Express {
   app.use('/api', documentRouter);
   app.use('/api', auditRouter);
   app.use('/api', backupRouter);
+
+  // Global payload size and parse error handler
+  app.use((err: unknown, _req: Request, res: Response, next: NextFunction): void => {
+    if (
+      err &&
+      typeof err === 'object' &&
+      ('type' in err || 'status' in err || 'statusCode' in err)
+    ) {
+      const e = err as { type?: string; status?: number; statusCode?: number; message?: string };
+      if (e.type === 'entity.too.large' || e.status === 413 || e.statusCode === 413) {
+        res.status(413).json({ error: 'PAYLOAD_TOO_LARGE: Request entity exceeds 1 MB limit' });
+        return;
+      }
+    }
+    next(err);
+  });
 
   return app;
 }
