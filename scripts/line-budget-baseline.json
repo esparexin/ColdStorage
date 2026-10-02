@@ -30,7 +30,6 @@
   "packages/backend/src/modules/import-export/export.service.ts": 394,
   "packages/backend/src/routes/hierarchy.routes.ts": 378,
   "packages/backend/src/__tests__/rent.service.test.ts": 360,
-  "packages/frontend/src/app/page.tsx": 356,
   "packages/backend/src/__tests__/delivery.routes.test.ts": 345,
   "packages/backend/src/modules/grn/grn.service.ts": 336,
   "packages/backend/src/__tests__/audit-backup.routes.test.ts": 327,
