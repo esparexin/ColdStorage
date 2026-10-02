@@ -22,6 +22,8 @@ export function useCreateGrnForm(
   const [createChamberId, setCreateChamberId] = useState(chambers[0]?.id ?? '');
   const [createBags, setCreateBags] = useState<number | ''>('');
   const [createBagType, setCreateBagType] = useState<BagType>('S');
+  const [createSmallBags, setCreateSmallBags] = useState<number | ''>('');
+  const [createBigBags, setCreateBigBags] = useState<number | ''>('');
   const [createNominalUnitWeight, setCreateNominalUnitWeight] = useState<number | ''>('');
   const [createNominalTotalWeight, setCreateNominalTotalWeight] = useState<number | ''>('');
   const [createActualWeight, setCreateActualWeight] = useState<number | ''>('');
@@ -48,12 +50,51 @@ export function useCreateGrnForm(
     }
   };
 
+  // Resets all bag counts when the bag type is changed to avoid stale state.
+  const handleBagTypeChange = (val: BagType) => {
+    setCreateBagType(val);
+    setCreateBags('');
+    setCreateSmallBags('');
+    setCreateBigBags('');
+    setCreateNominalTotalWeight('');
+  };
+
+  // S+B mode: recalculate total whenever small bags changes.
+  const handleSmallBagsChange = (val: number | '') => {
+    setCreateSmallBags(val);
+    const small = typeof val === 'number' ? val : 0;
+    const big = typeof createBigBags === 'number' ? createBigBags : 0;
+    const total: number | '' = small + big > 0 ? small + big : '';
+    setCreateBags(total);
+    if (typeof total === 'number' && typeof createNominalUnitWeight === 'number') {
+      setCreateNominalTotalWeight(total * createNominalUnitWeight);
+    }
+  };
+
+  // S+B mode: recalculate total whenever big bags changes.
+  const handleBigBagsChange = (val: number | '') => {
+    setCreateBigBags(val);
+    const big = typeof val === 'number' ? val : 0;
+    const small = typeof createSmallBags === 'number' ? createSmallBags : 0;
+    const total: number | '' = small + big > 0 ? small + big : '';
+    setCreateBags(total);
+    if (typeof total === 'number' && typeof createNominalUnitWeight === 'number') {
+      setCreateNominalTotalWeight(total * createNominalUnitWeight);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!createCustomerId) return setModalError('Please select a customer');
     if (!createCommodityId) return setModalError('Please select a commodity');
     if (!createChamberId) return setModalError('Please select a chamber');
-    if (typeof createBags !== 'number' || createBags <= 0) {
+    if (createBagType === 'S+B') {
+      const small = typeof createSmallBags === 'number' ? createSmallBags : 0;
+      const big = typeof createBigBags === 'number' ? createBigBags : 0;
+      if (small + big <= 0) {
+        return setModalError('Enter at least one bag count (Small Bags or Big Bags) for Mixed bag type');
+      }
+    } else if (typeof createBags !== 'number' || createBags <= 0) {
       return setModalError('Bags count must be a positive integer');
     }
     if (createRentType === 'Monthly' && (typeof createRentMonths !== 'number' || createRentMonths < 1)) {
@@ -134,7 +175,11 @@ export function useCreateGrnForm(
     createBags,
     handleBagsChange,
     createBagType,
-    setCreateBagType,
+    handleBagTypeChange,
+    createSmallBags,
+    createBigBags,
+    handleSmallBagsChange,
+    handleBigBagsChange,
     createNominalUnitWeight,
     handleUnitWeightChange,
     createNominalTotalWeight,

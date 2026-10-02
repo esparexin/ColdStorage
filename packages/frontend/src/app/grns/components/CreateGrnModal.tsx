@@ -78,7 +78,7 @@ export function CreateGrnModal({
               </div>
               <div className={styles.fieldGroup}>
                 <label htmlFor="create-bag-type" className={styles.fieldLabel}>Bag Type *</label>
-                <select id="create-bag-type" required value={form.createBagType} onChange={(e) => form.setCreateBagType(e.target.value as BagType)} className={styles.fieldSelect}>
+                <select id="create-bag-type" required value={form.createBagType} onChange={(e) => form.handleBagTypeChange(e.target.value as BagType)} className={styles.fieldSelect}>
                   <option value="S">S (Small)</option>
                   <option value="B">B (Big)</option>
                   <option value="S+B">S+B (Mixed)</option>
@@ -87,17 +87,44 @@ export function CreateGrnModal({
             </div>
 
             <h3 className={styles.sectionHeading}>Quantity & Weight Accounting</h3>
-            <div className={styles.formGrid2}>
-              <div className={styles.fieldGroup}>
-                <label htmlFor="create-bags" className={styles.fieldLabel}>Total Bags *</label>
-                <input id="create-bags" type="number" required min={1} max={100000} value={form.createBags} onChange={(e) => form.handleBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')} placeholder="e.g. 250" className={styles.fieldInput} />
+            {form.createBagType === 'S+B' ? (
+              <>
+                <div className={styles.formGrid2}>
+                  <div className={styles.fieldGroup}>
+                    <label htmlFor="create-small-bags" className={styles.fieldLabel}>Small Bags *</label>
+                    <input id="create-small-bags" type="number" min={0} max={100000} value={form.createSmallBags} onChange={(e) => form.handleSmallBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')} placeholder="e.g. 100" className={styles.fieldInput} />
+                  </div>
+                  <div className={styles.fieldGroup}>
+                    <label htmlFor="create-big-bags" className={styles.fieldLabel}>Big Bags *</label>
+                    <input id="create-big-bags" type="number" min={0} max={100000} value={form.createBigBags} onChange={(e) => form.handleBigBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')} placeholder="e.g. 20" className={styles.fieldInput} />
+                  </div>
+                </div>
+                <div className={styles.formGrid2}>
+                  <div className={styles.fieldGroup}>
+                    <label htmlFor="create-bags-total" className={styles.fieldLabel}>Total Bags</label>
+                    <input id="create-bags-total" type="number" disabled value={form.createBags} className={styles.fieldInput} />
+                    <span className={styles.fieldHint}>Auto-calculated (Small + Big bags)</span>
+                  </div>
+                  <div className={styles.fieldGroup}>
+                    <label htmlFor="create-actual-weight" className={styles.fieldLabel}>Weighbridge Weight (kg)</label>
+                    <input id="create-actual-weight" type="number" step="0.01" min={0} value={form.createActualWeight} onChange={(e) => form.setCreateActualWeight(e.target.value ? parseFloat(e.target.value) : '')} placeholder="e.g. 12500" className={styles.fieldInput} />
+                    <span className={styles.fieldHint}>Authoritative when entered. Falls back to nominal total weight.</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className={styles.formGrid2}>
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="create-bags" className={styles.fieldLabel}>Total Bags *</label>
+                  <input id="create-bags" type="number" required min={1} max={100000} value={form.createBags} onChange={(e) => form.handleBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')} placeholder="e.g. 250" className={styles.fieldInput} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="create-actual-weight" className={styles.fieldLabel}>Weighbridge Weight (kg)</label>
+                  <input id="create-actual-weight" type="number" step="0.01" min={0} value={form.createActualWeight} onChange={(e) => form.setCreateActualWeight(e.target.value ? parseFloat(e.target.value) : '')} placeholder="e.g. 12500" className={styles.fieldInput} />
+                  <span className={styles.fieldHint}>Authoritative when entered. Falls back to nominal total weight.</span>
+                </div>
               </div>
-              <div className={styles.fieldGroup}>
-                <label htmlFor="create-actual-weight" className={styles.fieldLabel}>Weighbridge Weight (kg)</label>
-                <input id="create-actual-weight" type="number" step="0.01" min={0} value={form.createActualWeight} onChange={(e) => form.setCreateActualWeight(e.target.value ? parseFloat(e.target.value) : '')} placeholder="e.g. 12500" className={styles.fieldInput} />
-                <span className={styles.fieldHint}>Authoritative when entered. Falls back to nominal total weight.</span>
-              </div>
-            </div>
+            )}
 
             <div className={styles.formGrid2}>
               <div className={styles.fieldGroup}>
