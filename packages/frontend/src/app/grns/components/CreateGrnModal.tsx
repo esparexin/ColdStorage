@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import type {
   BagType,
@@ -32,6 +32,29 @@ export function CreateGrnModal({
 }: CreateGrnModalProps) {
   const form = useCreateGrnForm(facilityId, customers, commodities, chambers, onSuccess);
 
+  const [customerQuery, setCustomerQuery] = useState('');
+  const [isCustomerOpen, setIsCustomerOpen] = useState(false);
+  const customerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (customerRef.current && !customerRef.current.contains(e.target as Node)) {
+        setIsCustomerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
+
+  const filteredCustomers = customerQuery.trim()
+    ? customers.filter(
+        (c) =>
+          c.name.toLowerCase().includes(customerQuery.toLowerCase()) ||
+          c.mobile.includes(customerQuery),
+      )
+    : customers;
+  const selectedCustomer = customers.find((c) => c.id === form.createCustomerId) ?? null;
+
   return (
     <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="create-modal-title">
       <div className={styles.modalCard}>
@@ -53,11 +76,50 @@ export function CreateGrnModal({
                 <input id="create-date" type="date" required value={form.createDate} onChange={(e) => form.setCreateDate(e.target.value)} className={styles.fieldInput} />
               </div>
               <div className={styles.fieldGroup}>
-                <label htmlFor="create-customer" className={styles.fieldLabel}>Customer *</label>
-                <select id="create-customer" required value={form.createCustomerId} onChange={(e) => form.setCreateCustomerId(e.target.value)} className={styles.fieldSelect}>
-                  <option value="">Select Customer</option>
-                  {customers.map((c) => (<option key={c.id} value={c.id}>{c.name} ({c.mobile})</option>))}
-                </select>
+                <label htmlFor="create-customer-search" className={styles.fieldLabel}>Customer *</label>
+                <div className={styles.comboboxWrapper} ref={customerRef}>
+                  <input
+                    id="create-customer-search"
+                    type="text"
+                    autoComplete="off"
+                    className={styles.comboboxInput}
+                    value={
+                      isCustomerOpen
+                        ? customerQuery
+                        : selectedCustomer
+                          ? `${selectedCustomer.name} (${selectedCustomer.mobile})`
+                          : ''
+                    }
+                    placeholder="Search by name or mobile…"
+                    onFocus={() => {
+                      setIsCustomerOpen(true);
+                      setCustomerQuery('');
+                    }}
+                    onChange={(e) => setCustomerQuery(e.target.value)}
+                  />
+                  {isCustomerOpen && (
+                    <div className={styles.comboboxDropdown}>
+                      {filteredCustomers.length > 0 ? (
+                        filteredCustomers.map((c) => (
+                          <div
+                            key={c.id}
+                            className={styles.comboboxOption}
+                            onMouseDown={() => {
+                              form.setCreateCustomerId(c.id);
+                              setIsCustomerOpen(false);
+                              setCustomerQuery('');
+                            }}
+                          >
+                            <span className={styles.comboboxOptionName}>{c.name}</span>
+                            <span className={styles.comboboxOptionMobile}>{c.mobile}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className={styles.comboboxEmpty}>No customers found</div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className={styles.fieldGroup}>
                 <label htmlFor="create-commodity" className={styles.fieldLabel}>Commodity *</label>
