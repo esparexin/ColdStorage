@@ -7,9 +7,12 @@ import styles from './AppHeader.module.css';
 
 export function AppHeader() {
   const { user, logout } = useAuth();
-  const { selectedFacilityId, setSelectedFacilityId } = useFacility();
+  const { selectedFacilityId, setSelectedFacilityId, availableFacilities } = useFacility();
 
-  const facilities = user?.facilityIds ?? [];
+  const facilities =
+    availableFacilities.length > 0
+      ? availableFacilities
+      : (user?.facilityIds ?? []).map((id) => ({ id, name: id, code: id }));
 
   return (
     <header className={styles.header}>
@@ -29,8 +32,10 @@ export function AppHeader() {
               onChange={(e) => setSelectedFacilityId(e.target.value)}
               aria-label="Select facility"
             >
-              {facilities.map((fid) => (
-                <option key={fid} value={fid}>{fid}</option>
+              {facilities.map((fac) => (
+                <option key={fac.id} value={fac.id}>
+                  {fac.name ? `${fac.name} (${fac.code})` : fac.id}
+                </option>
               ))}
             </select>
             <ChevronDown size={14} aria-hidden="true" />

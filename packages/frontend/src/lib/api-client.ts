@@ -15,8 +15,13 @@
  *   - Each failed request retries exactly once after a successful refresh.
  */
 
+export interface RefreshResult<T = unknown> {
+  token: string;
+  user?: T;
+}
+
 let activeAccessToken: string | null = null;
-let refreshPromise: Promise<string | null> | null = null;
+let refreshPromise: Promise<RefreshResult | null> | null = null;
 
 /** Called by AuthContext after login or bootstrap refresh. */
 export function setAccessToken(token: string | null): void {
@@ -32,10 +37,7 @@ export function getAccessToken(): string | null {
  * Performs an authenticated fetch, automatically refreshing the access token
  * once on a 401 response. Never retries the refresh endpoint itself.
  */
-export async function requestWithAuth(
-  url: string,
-  options: RequestInit = {},
-): Promise<Response> {
+export async function requestWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
   const headers = new Headers(options.headers ?? {});
   if (activeAccessToken) {
     headers.set('Authorization', `Bearer ${activeAccessToken}`);
@@ -46,9 +48,9 @@ export async function requestWithAuth(
   // Guard: do not refresh if the request itself was to the refresh endpoint
   // (prevents infinite recursion on a failing refresh endpoint).
   if (response.status === 401 && !url.includes('/api/auth/refresh')) {
-    const newToken = await executeSingleFlightRefresh();
-    if (newToken) {
-      headers.set('Authorization', `Bearer ${newToken}`);
+    const refreshResult = await executeSingleFlightRefresh();
+    if (refreshResult?.token) {
+      headers.set('Authorization', `Bearer ${refreshResult.token}`);
       // Retry exactly once with the new token
       return fetch(url, { ...options, headers, credentials: 'include' });
     }
@@ -62,13 +64,13 @@ export async function requestWithAuth(
  * Concurrent callers attach to the existing Promise; they do not issue
  * a second HTTP request.
  */
-export async function executeSingleFlightRefresh(): Promise<string | null> {
+export async function executeSingleFlightRefresh<T = unknown>(): Promise<RefreshResult<T> | null> {
   // Attach concurrent 401 callers to the existing in-flight Promise
   if (refreshPromise !== null) {
-    return refreshPromise;
+    return refreshPromise as Promise<RefreshResult<T> | null>;
   }
 
-  refreshPromise = (async (): Promise<string | null> => {
+  refreshPromise = (async (): Promise<RefreshResult<T> | null> => {
     try {
       const res = await fetch('/api/auth/refresh', {
         method: 'POST',
@@ -80,9 +82,9 @@ export async function executeSingleFlightRefresh(): Promise<string | null> {
         return null;
       }
 
-      const data = (await res.json()) as { token: string };
+      const data = (await res.json()) as { token: string; user?: T };
       setAccessToken(data.token);
-      return data.token;
+      return { token: data.token, user: data.user };
     } catch {
       setAccessToken(null);
       return null;
@@ -91,5 +93,5 @@ export async function executeSingleFlightRefresh(): Promise<string | null> {
     }
   })();
 
-  return refreshPromise;
+  return refreshPromise as Promise<RefreshResult<T> | null>;
 }

@@ -13,18 +13,8 @@
  * The access token lives exclusively in api-client.ts (browser memory).
  */
 
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
-import {
-  executeSingleFlightRefresh,
-  requestWithAuth,
-  setAccessToken,
-} from '@/lib/api-client';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { executeSingleFlightRefresh, requestWithAuth, setAccessToken } from '@/lib/api-client';
 
 export interface AuthUser {
   userId: string;
@@ -56,20 +46,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function bootstrap() {
       try {
-        const token = await executeSingleFlightRefresh();
+        const result = await executeSingleFlightRefresh<AuthUser>();
         if (cancelled) return;
 
-        if (token) {
-          // Fetch user profile with the new token
-          const res = await requestWithAuth('/api/users/me');
-          if (!cancelled && res.ok) {
-            const data = (await res.json()) as { user: AuthUser };
-            setUser(data.user);
-          } else {
-            setAccessToken(null);
-            setUser(null);
-          }
+        if (result?.user) {
+          setUser(result.user);
         } else {
+          setAccessToken(null);
           setUser(null);
         }
       } catch {
@@ -101,8 +84,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(err.error ?? 'Login failed');
     }
 
-    const data = (await res.json()) as { accessToken: string; user: AuthUser };
-    setAccessToken(data.accessToken);
+    const data = (await res.json()) as {
+      token?: string;
+      accessToken?: string;
+      user: AuthUser;
+    };
+    const token = data.token ?? data.accessToken ?? null;
+    setAccessToken(token);
     setUser(data.user);
   }, []);
 
