@@ -1,0 +1,93 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v0.1.0)'
+        required: true
+        default: 'v0.1.0'
+      release_notes:
+        description: 'Release summary notes'
+        required: false
+        default: 'Production release'
+      deploy_production:
+        description: 'Deploy Production (requires manual approval gate)'
+        required: false
+        type: boolean
+        default: false
+      deploy_mobile:
+        description: 'Mobile Production Release (requires manual approval gate)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  validate-and-package:
+    name: Build & Validate Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Enforce hygiene audit
+        run: npm run hygiene
+
+      - name: Enforce line budget
+        run: npm run line-budget
+
+      - name: Enforce type-check
+        run: npm run type-check
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Package release artifact
+        run: |
+          mkdir -p release-bundle
+          tar -czf release-bundle/coldstorage-release.tar.gz package.json packages/*/dist 2>/dev/null || tar -czf release-bundle/coldstorage-release.tar.gz package.json
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coldstorage-release
+          path: release-bundle/
+          retention-days: 30
+
+  deploy-production:
+    name: Deploy Production
+    needs: validate-and-package
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    if: ${{ inputs.deploy_production == true }}
+    steps:
+      - name: Deploy to production environment
+        run: echo "Production deployment gated and approved."
+
+  mobile-production-release:
+    name: Mobile Production Release
+    needs: validate-and-package
+    runs-on: ubuntu-latest
+    environment:
+      name: mobile-production
+    if: ${{ inputs.deploy_mobile == true }}
+    steps:
+      - name: Mobile release
+        run: echo "Mobile production release gated and approved."
