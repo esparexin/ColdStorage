@@ -12,6 +12,7 @@ export interface AppConfig {
   rateLimitMaxMutations: number;
   rateLimitWindowMsGeneral: number;
   rateLimitMaxGeneral: number;
+  cloudinaryUrl?: string;
 }
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -39,4 +40,5 @@ export const config: AppConfig = {
   rateLimitMaxMutations: Number(process.env.RATE_LIMIT_MAX_MUTATIONS) || 5,
   rateLimitWindowMsGeneral: Number(process.env.RATE_LIMIT_WINDOW_MS_GENERAL) || 60 * 1000, // 1m
   rateLimitMaxGeneral: Number(process.env.RATE_LIMIT_MAX_GENERAL) || 200,
+  cloudinaryUrl: process.env.CLOUDINARY_URL,
 };

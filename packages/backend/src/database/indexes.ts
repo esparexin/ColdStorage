@@ -1,4 +1,5 @@
 import mongoose, { type Model } from 'mongoose';
+import { AssetModel } from './models/asset.model.js';
 import { AuditLogModel } from './models/audit-log.model.js';
 import { BackupLogModel } from './models/backup-log.model.js';
 import { ChamberModel } from './models/chamber.model.js';
@@ -27,6 +28,7 @@ export interface ModelIndexReport {
 }
 
 const MONITORED_MODELS: Array<{ name: string; model: Model<unknown> }> = [
+  { name: 'Asset', model: AssetModel as unknown as Model<unknown> },
   { name: 'AuditLog', model: AuditLogModel as unknown as Model<unknown> },
   { name: 'BackupLog', model: BackupLogModel as unknown as Model<unknown> },
   { name: 'Chamber', model: ChamberModel as unknown as Model<unknown> },

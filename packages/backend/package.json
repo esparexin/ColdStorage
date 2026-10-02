@@ -13,6 +13,7 @@
   "dependencies": {
     "@cold-storage/contracts": "*",
     "argon2": "^0.41.1",
+    "cloudinary": "^2.11.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "csv-parse": "^5.5.6",

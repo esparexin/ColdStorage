@@ -1,23 +1,40 @@
 'use client';
 
+import React from 'react';
 import { Building2, ChevronDown, LogOut } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
+import { useSettings } from '@/context/SettingsContext';
 import styles from './AppHeader.module.css';
 
 export function AppHeader() {
   const { user, logout } = useAuth();
   const { selectedFacilityId, setSelectedFacilityId, availableFacilities } = useFacility();
+  const { settings } = useSettings();
 
   const facilities =
     availableFacilities.length > 0
       ? availableFacilities
       : (user?.facilityIds ?? []).map((id) => ({ id, name: id, code: id }));
 
+  const orgName = settings?.orgName || 'Cold Storage';
+  const logoAssetId = settings?.logoAssetId;
+
   return (
     <header className={styles.header}>
       <div className={styles.left}>
-        <span className={styles.logo}>❄ ColdStorage</span>
+        {logoAssetId ? (
+          <div className={styles.left}>
+            <img
+              src={`/api/assets/${encodeURIComponent(logoAssetId)}`}
+              alt={orgName}
+              className={styles.orgLogo}
+            />
+            <span className={styles.orgName}>{orgName}</span>
+          </div>
+        ) : (
+          <span className={styles.logo}>❄ {orgName}</span>
+        )}
       </div>
 
       <div className={styles.right}>

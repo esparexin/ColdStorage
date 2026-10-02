@@ -24,6 +24,7 @@ import { userRouter } from './routes/user.routes.js';
 import { auditRouter } from './routes/audit.routes.js';
 import { backupRouter } from './routes/backup.routes.js';
 import { rentRouter } from './routes/rent.routes.js';
+import { assetRouter } from './routes/asset.routes.js';
 
 export function createApp(): Express {
   const app = express();
@@ -44,6 +45,7 @@ export function createApp(): Express {
   app.use('/api', generalRateLimiter);
 
   app.use('/api/auth', authRouter);
+  app.use('/api', assetRouter);
   app.use('/api/users', userRouter);
   app.use('/api/facilities', facilityRouter);
   app.use('/api', hierarchyRouter);

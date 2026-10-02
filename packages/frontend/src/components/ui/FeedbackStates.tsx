@@ -60,13 +60,28 @@ function ErrorState({ title = 'Something went wrong', message, onRetry }: ErrorP
 
 interface EmptyProps {
   message?: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+    id?: string;
+  };
 }
 
-function Empty({ message = 'No data available.' }: EmptyProps) {
+function Empty({ message = 'No data available.', action }: EmptyProps) {
   return (
     <div className={styles.feedbackWrapper} role="status">
       <Inbox size={32} className={styles.emptyIcon} aria-hidden="true" />
       <p className={styles.message}>{message}</p>
+      {action && (
+        <button
+          id={action.id ?? 'empty-state-action'}
+          type="button"
+          className={styles.retryBtn}
+          onClick={action.onClick}
+        >
+          {action.label}
+        </button>
+      )}
     </div>
   );
 }

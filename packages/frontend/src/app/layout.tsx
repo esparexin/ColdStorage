@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/context/AuthContext';
 import { FacilityProvider } from '@/context/FacilityContext';
+import { SettingsProvider } from '@/context/SettingsContext';
 import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 import '@/styles/tokens.css';
 
@@ -22,9 +23,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AuthProvider>
           <FacilityProvider>
-            <ResponsiveShell>
-              {children}
-            </ResponsiveShell>
+            <SettingsProvider>
+              <ResponsiveShell>
+                {children}
+              </ResponsiveShell>
+            </SettingsProvider>
           </FacilityProvider>
         </AuthProvider>
       </body>

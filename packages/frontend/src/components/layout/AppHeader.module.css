@@ -20,6 +20,20 @@
   gap: var(--space-3);
 }
 
+.orgLogo {
+  height: 34px;
+  max-width: 140px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+.orgName {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+}
+
 .logo {
   font-size: var(--text-lg);
   font-weight: var(--font-semibold);
