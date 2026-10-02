@@ -142,6 +142,7 @@ export function useGrns(
     setCommodityFilter,
     currentFacilityName,
     fetchGrns,
+    fetchLookups,
     resetFilters,
   };
 }

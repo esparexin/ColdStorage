@@ -11,6 +11,7 @@ import type {
   RentType,
 } from '@cold-storage/contracts';
 import { useCreateGrnForm } from '../hooks/useCreateGrnForm';
+import { CustomerFormModal } from '../../customers/components/CustomerFormModal';
 import styles from '../page.module.css';
 
 interface CreateGrnModalProps {
@@ -20,6 +21,7 @@ interface CreateGrnModalProps {
   chambers: Chamber[];
   onClose: () => void;
   onSuccess: (newGrn: Grn) => void;
+  onCustomerAdded?: () => void;
 }
 
 export function CreateGrnModal({
@@ -29,8 +31,10 @@ export function CreateGrnModal({
   chambers,
   onClose,
   onSuccess,
+  onCustomerAdded,
 }: CreateGrnModalProps) {
   const form = useCreateGrnForm(facilityId, customers, commodities, chambers, onSuccess);
+  const [isAddingCustomer, setIsAddingCustomer] = useState(false);
 
   const [customerQuery, setCustomerQuery] = useState('');
   const [isCustomerOpen, setIsCustomerOpen] = useState(false);
@@ -38,24 +42,20 @@ export function CreateGrnModal({
 
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
-      if (customerRef.current && !customerRef.current.contains(e.target as Node)) {
+      if (customerRef.current && !customerRef.current.contains(e.target as Node))
         setIsCustomerOpen(false);
-      }
     };
     document.addEventListener('mousedown', handleOutside);
     return () => document.removeEventListener('mousedown', handleOutside);
   }, []);
 
-  const filteredCustomers = customerQuery.trim()
-    ? customers.filter(
-        (c) =>
-          c.name.toLowerCase().includes(customerQuery.toLowerCase()) ||
-          c.mobile.includes(customerQuery),
-      )
+  const q = customerQuery.trim().toLowerCase();
+  const filteredCustomers = q
+    ? customers.filter((c) => c.name.toLowerCase().includes(q) || c.mobile.includes(customerQuery))
     : customers;
   const selectedCustomer = customers.find((c) => c.id === form.createCustomerId) ?? null;
-
   return (
+    <>
     <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="create-modal-title">
       <div className={styles.modalCard}>
         <div className={styles.modalHeader}>
@@ -64,11 +64,9 @@ export function CreateGrnModal({
             <X size={20} aria-hidden="true" />
           </button>
         </div>
-
         <form onSubmit={form.handleSubmit} className={styles.modalForm}>
           <div className={styles.modalBody}>
             {form.modalError && <div className={styles.modalError}>{form.modalError}</div>}
-
             <h3 className={styles.sectionHeading}>Basic Information</h3>
             <div className={styles.formGrid3}>
               <div className={styles.fieldGroup}>
@@ -115,7 +113,10 @@ export function CreateGrnModal({
                           </div>
                         ))
                       ) : (
-                        <div className={styles.comboboxEmpty}>No customers found</div>
+                        <div className={styles.comboboxEmpty}>
+                          No customers found
+                          <button type="button" className={styles.comboboxAddBtn} onMouseDown={(e) => { e.preventDefault(); setIsAddingCustomer(true); setIsCustomerOpen(false); }}>+ Add Customer</button>
+                        </div>
                       )}
                     </div>
                   )}
@@ -129,7 +130,6 @@ export function CreateGrnModal({
                 </select>
               </div>
             </div>
-
             <div className={styles.formGrid2}>
               <div className={styles.fieldGroup}>
                 <label htmlFor="create-chamber" className={styles.fieldLabel}>Chamber *</label>
@@ -147,7 +147,6 @@ export function CreateGrnModal({
                 </select>
               </div>
             </div>
-
             <h3 className={styles.sectionHeading}>Quantity & Weight Accounting</h3>
             {form.createBagType === 'S+B' ? (
               <>
@@ -160,8 +159,6 @@ export function CreateGrnModal({
                     <label htmlFor="create-big-bags" className={styles.fieldLabel}>Big Bags *</label>
                     <input id="create-big-bags" type="number" min={0} max={100000} value={form.createBigBags} onChange={(e) => form.handleBigBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')} placeholder="e.g. 20" className={styles.fieldInput} />
                   </div>
-                </div>
-                <div className={styles.formGrid2}>
                   <div className={styles.fieldGroup}>
                     <label htmlFor="create-bags-total" className={styles.fieldLabel}>Total Bags</label>
                     <input id="create-bags-total" type="number" disabled value={form.createBags} className={styles.fieldInput} />
@@ -187,7 +184,6 @@ export function CreateGrnModal({
                 </div>
               </div>
             )}
-
             <div className={styles.formGrid2}>
               <div className={styles.fieldGroup}>
                 <label htmlFor="create-unit-weight" className={styles.fieldLabel}>Nominal Unit Weight (kg/bag)</label>
@@ -198,7 +194,6 @@ export function CreateGrnModal({
                 <input id="create-total-weight" type="number" step="0.01" min={0} value={form.createNominalTotalWeight} onChange={(e) => form.setCreateNominalTotalWeight(e.target.value ? parseFloat(e.target.value) : '')} placeholder="Auto-calculated (bags × unit weight)" className={styles.fieldInput} />
               </div>
             </div>
-
             <h3 className={styles.sectionHeading}>Rent Terms</h3>
             <div className={styles.formGrid3}>
               <div className={styles.fieldGroup}>
@@ -217,7 +212,6 @@ export function CreateGrnModal({
                 <input id="create-rent-amount" type="number" min={0} step="0.01" required value={form.createRentAmount} onChange={(e) => form.setCreateRentAmount(e.target.value ? parseFloat(e.target.value) : '')} placeholder="e.g. 15000" className={styles.fieldInput} />
               </div>
             </div>
-
             <h3 className={styles.sectionHeading}>Transport & Logistics</h3>
             <div className={styles.formGrid2}>
               <div className={styles.fieldGroup}>
@@ -229,13 +223,11 @@ export function CreateGrnModal({
                 <input id="create-vehicle" type="text" maxLength={15} value={form.createVehicleNumber} onChange={(e) => form.setCreateVehicleNumber(e.target.value.toUpperCase())} placeholder="e.g. UP32AA1111" className={styles.fieldInput} />
               </div>
             </div>
-
             <div className={styles.fieldGroup}>
               <label htmlFor="create-remarks" className={styles.fieldLabel}>Remarks / Notes</label>
               <textarea id="create-remarks" rows={2} maxLength={500} value={form.createRemarks} onChange={(e) => form.setCreateRemarks(e.target.value)} placeholder="Optional inward inspection notes or quality observations" className={styles.fieldInput} />
             </div>
           </div>
-
           <div className={styles.modalFooter}>
             <button type="button" className={styles.cancelBtn} onClick={onClose} disabled={form.submitting}>Cancel</button>
             <button id="submit-create-grn-btn" type="submit" className={styles.primaryBtn} disabled={form.submitting}>
@@ -245,5 +237,14 @@ export function CreateGrnModal({
         </form>
       </div>
     </div>
+    {isAddingCustomer && (
+      <CustomerFormModal
+        customer={null}
+        selectedFacilityId={facilityId}
+        onClose={() => setIsAddingCustomer(false)}
+        onSuccess={() => { setIsAddingCustomer(false); onCustomerAdded?.(); }}
+      />
+    )}
+    </>
   );
 }
