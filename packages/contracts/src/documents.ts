@@ -154,3 +154,27 @@ export const rentReceiptPreviewDtoSchema = z.object({
 });
 
 export type RentReceiptPreviewDto = z.infer<typeof rentReceiptPreviewDtoSchema>;
+
+/**
+ * 5. Rent Payment Receipt Document DTO (Phase 12 Authoritative Template)
+ */
+export const rentReceiptDocumentDtoSchema = z.object({
+  organization: organizationHeaderSchema,
+  facility: facilitySubHeaderSchema,
+  receiptNumber: z.string(),
+  grnNumber: z.string(),
+  date: z.coerce.date(),
+  customerName: z.string(),
+  customerMobile: z.string(),
+  commodityName: z.string(),
+  totalRentObligation: z.number().min(0),
+  amountPaid: z.number().min(0),
+  paymentMode: z.enum(['Cash', 'UPI']),
+  remainingBalance: z.number().min(0),
+  paymentStatus: z.enum(['Settled', 'Not Settled']),
+  notes: z.string().nullable().optional(),
+  generatedAt: z.coerce.date(),
+  generatedBy: z.string(),
+});
+
+export type RentReceiptDocumentDto = z.infer<typeof rentReceiptDocumentDtoSchema>;

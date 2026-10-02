@@ -23,6 +23,7 @@ import { settingsRouter } from './routes/settings.routes.js';
 import { userRouter } from './routes/user.routes.js';
 import { auditRouter } from './routes/audit.routes.js';
 import { backupRouter } from './routes/backup.routes.js';
+import { rentRouter } from './routes/rent.routes.js';
 
 export function createApp(): Express {
   const app = express();
@@ -58,6 +59,7 @@ export function createApp(): Express {
   app.use('/api', documentRouter);
   app.use('/api', auditRouter);
   app.use('/api', backupRouter);
+  app.use('/api', rentRouter);
 
   // Global payload size and parse error handler
   app.use((err: unknown, _req: Request, res: Response, next: NextFunction): void => {

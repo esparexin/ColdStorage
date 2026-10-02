@@ -1,7 +1,11 @@
-import type { RentReceiptPreviewDto } from '@cold-storage/contracts';
+import type { RentReceiptDocumentDto, RentReceiptPreviewDto } from '@cold-storage/contracts';
 import { escapeHtml, renderBaseLayout } from './base.layout.js';
 
-export function renderRentReceiptTemplate(dto: RentReceiptPreviewDto): string {
+export function renderRentReceiptTemplate(
+  dto: RentReceiptDocumentDto | RentReceiptPreviewDto,
+): string {
+  const isPreview = 'isPreview' in dto && Boolean(dto.isPreview);
+
   const bodyContent = `
     <table class="data-table">
       <tr>
@@ -30,20 +34,34 @@ export function renderRentReceiptTemplate(dto: RentReceiptPreviewDto): string {
       </tr>
       <tr>
         <th>Remaining Rent Balance</th>
-        <td colspan="3"><strong style="color: #c00;">₹${escapeHtml(dto.remainingBalance.toFixed(2))}</strong></td>
+        <td colspan="3"><strong style="color: ${dto.remainingBalance === 0 ? '#28a745' : '#c00'};">₹${escapeHtml(dto.remainingBalance.toFixed(2))}</strong></td>
       </tr>
+      ${
+        'notes' in dto && dto.notes
+          ? `<tr>
+        <th>Notes / Remarks</th>
+        <td colspan="3">${escapeHtml(dto.notes)}</td>
+      </tr>`
+          : ''
+      }
     </table>
 
-    <div style="margin-top: 20px; font-size: 11px; color: #856404; background: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 4px;">
+    ${
+      isPreview
+        ? `<div style="margin-top: 20px; font-size: 11px; color: #856404; background: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 4px;">
       <strong>Notice:</strong> This is a print template preview from Phase 9. Formal rent payment collection, balance mutation, and receipt numbering are executed exclusively in Phase 12 (Rent Collection &amp; Payment Management).
-    </div>
+    </div>`
+        : ''
+    }
   `;
 
   return renderBaseLayout({
-    title: `Rent Receipt [PREVIEW] - ${dto.receiptNumber}`,
+    title: isPreview
+      ? `Rent Receipt [PREVIEW] - ${dto.receiptNumber}`
+      : `Rent Receipt - ${dto.receiptNumber}`,
     organization: dto.organization,
     facility: dto.facility,
-    documentTitle: 'RENT PAYMENT RECEIPT [PREVIEW]',
+    documentTitle: isPreview ? 'RENT PAYMENT RECEIPT [PREVIEW]' : 'RENT PAYMENT RECEIPT',
     documentNumber: dto.receiptNumber,
     documentDate:
       dto.date instanceof Date ? dto.date.toISOString().split('T')[0] : String(dto.date),
@@ -51,6 +69,8 @@ export function renderRentReceiptTemplate(dto: RentReceiptPreviewDto): string {
       dto.generatedAt instanceof Date ? dto.generatedAt.toISOString() : String(dto.generatedAt),
     generatedBy: dto.generatedBy,
     bodyContent,
-    watermarkNotice: 'PREVIEW ONLY — UNCOMMITTED (PHASE 12 RENT MODULE INTEGRATION)',
+    watermarkNotice: isPreview
+      ? 'PREVIEW ONLY — UNCOMMITTED (PHASE 12 RENT MODULE INTEGRATION)'
+      : undefined,
   });
 }
