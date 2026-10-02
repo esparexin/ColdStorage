@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { indianGstinSchema, indianMobileSchema } from '@cold-storage/contracts';
 import type { Customer } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import styles from '../page.module.css';
@@ -39,13 +40,13 @@ export function CustomerFormModal({
       setModalError('Customer name is required');
       return;
     }
-    if (!/^[6-9]\d{9}$/.test(trimmedMobile)) {
+    if (!indianMobileSchema.safeParse(trimmedMobile).success) {
       setModalError('Mobile must be a valid 10-digit Indian number (starts with 6-9)');
       return;
     }
 
     const trimmedGstin = formGstin.trim().toUpperCase();
-    if (trimmedGstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(trimmedGstin)) {
+    if (trimmedGstin && !indianGstinSchema.safeParse(trimmedGstin).success) {
       setModalError('Invalid Indian GSTIN format');
       return;
     }
