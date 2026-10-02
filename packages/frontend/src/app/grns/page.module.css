@@ -566,3 +566,23 @@
 .comboboxAddBtn:hover {
   background: color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
+
+.fieldLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inlineAddBtn {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 var(--space-1);
+}
+
+.inlineAddBtn:hover {
+  text-decoration: underline;
+}

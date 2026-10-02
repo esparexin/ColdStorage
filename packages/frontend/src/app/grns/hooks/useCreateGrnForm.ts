@@ -18,8 +18,8 @@ export function useCreateGrnForm(
   onSuccess: (newGrn: Grn) => void,
 ) {
   const [createDate, setCreateDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [createCustomerId, setCreateCustomerId] = useState(customers[0]?.id ?? '');
-  const [createCommodityId, setCreateCommodityId] = useState(commodities[0]?.id ?? '');
+  const [createCustomerId, setCreateCustomerId] = useState('');
+  const [createCommodityId, setCreateCommodityId] = useState('');
   const [createChamberId, setCreateChamberId] = useState(chambers[0]?.id ?? '');
   const [createBags, setCreateBags] = useState<number | ''>('');
   const [createBagType, setCreateBagType] = useState<BagType>('S');

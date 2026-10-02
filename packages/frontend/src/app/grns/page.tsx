@@ -155,6 +155,7 @@ export default function GrnsPage() {
           chambers={grnData.chambers}
           onClose={() => setIsCreateOpen(false)}
           onCustomerAdded={() => void grnData.fetchLookups()}
+          onCommodityAdded={() => void grnData.fetchLookups()}
           onSuccess={(newGrn) => {
             setIsCreateOpen(false);
             void grnData.fetchGrns();
