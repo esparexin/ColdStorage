@@ -1,13 +1,18 @@
-name: CI
+name: ColdStorage CI
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  verify:
+  validate:
+    name: ColdStorage CI
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -28,11 +33,11 @@ jobs:
       - name: Source line budget audit
         run: npm run line-budget
 
-      - name: Type check
-        run: npm run type-check
-
       - name: Lint
         run: npm run lint
+
+      - name: Type check
+        run: npm run type-check
 
       - name: Run tests
         run: npm run test
