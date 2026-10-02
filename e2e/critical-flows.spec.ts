@@ -40,7 +40,7 @@ test.describe('Critical Application Flows', () => {
     await submitBtn.click();
 
     // Verify error alert
-    await expect(page.getByRole('alert')).toBeVisible();
+    await expect(page.getByText('Invalid credentials provided')).toBeVisible();
   });
 
   test('2. Authenticated Session & Navigation: loads dashboard with operational controls', async ({ page }) => {
@@ -90,7 +90,7 @@ test.describe('Critical Application Flows', () => {
 
     // Verify authenticated user greeting and facility header
     await expect(page.locator('body')).not.toContainText('Sign in to access your facility dashboard');
-    await expect(page.locator('nav, header')).toBeVisible();
+    await expect(page.locator('header')).toBeVisible();
   });
 
   test('3. GRN Management Flow: verifies inwarding directory and actions', async ({ page }) => {
