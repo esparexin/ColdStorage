@@ -29,5 +29,11 @@ if find "$ROOT" -maxdepth 2 -name ".env" -not -path "$ROOT/.git/*" | grep -q .; 
   fail ".env must not be committed (use .env.example)"
 fi
 
+# 5. Source file line-budget and ratchet audit
+if ! bash "$ROOT/scripts/check-line-budget.sh"; then
+  fail "source file line budget or ratchet constraint violated"
+fi
+
 if [ "$EXIT" -eq 0 ]; then echo "hygiene: PASS"; else echo "hygiene: FAIL"; fi
 exit "$EXIT"
+

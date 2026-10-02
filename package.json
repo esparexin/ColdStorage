@@ -11,7 +11,8 @@
     "lint": "eslint . --max-warnings=0",
     "test": "npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
-    "hygiene": "bash scripts/hygiene-audit.sh"
+    "hygiene": "bash scripts/hygiene-audit.sh",
+    "line-budget": "bash scripts/check-line-budget.sh"
   },
   "devDependencies": {
     "@eslint/js": "^9.12.0",

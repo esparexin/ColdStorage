@@ -25,6 +25,9 @@ jobs:
       - name: Repository hygiene audit
         run: npm run hygiene
 
+      - name: Source line budget audit
+        run: npm run line-budget
+
       - name: Type check
         run: npm run type-check
 
