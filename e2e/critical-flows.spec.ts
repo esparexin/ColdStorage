@@ -1,0 +1,173 @@
+import { test, expect } from '@playwright/test';
+
+test.describe('Critical Application Flows', () => {
+  test('1. Authentication Gate: enforces login credentials on unauthenticated access', async ({ page }) => {
+    // Mock refresh endpoint returning 401 (unauthenticated)
+    await page.route('**/api/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'No active session' }),
+      });
+    });
+
+    await page.goto('/');
+
+    // Verify login screen renders with title and subtitle
+    await expect(page.locator('h1')).toContainText('Cold Storage Management');
+    await expect(page.getByText('Sign in to access your facility dashboard')).toBeVisible();
+
+    // Verify form inputs exist
+    const usernameInput = page.locator('input[type="text"]');
+    const passwordInput = page.locator('input[type="password"]');
+    const submitBtn = page.locator('button[type="submit"]');
+
+    await expect(usernameInput).toBeVisible();
+    await expect(passwordInput).toBeVisible();
+    await expect(submitBtn).toBeVisible();
+
+    // Submit invalid credentials and verify error message
+    await page.route('**/api/auth/login', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Invalid credentials provided' }),
+      });
+    });
+
+    await usernameInput.fill('invalid_operator');
+    await passwordInput.fill('WrongPassword123!');
+    await submitBtn.click();
+
+    // Verify error alert
+    await expect(page.getByText('Invalid credentials provided')).toBeVisible();
+  });
+
+  test('2. Authenticated Session & Navigation: loads dashboard with operational controls', async ({ page }) => {
+    const mockUser = {
+      userId: 'usr-admin-001',
+      username: 'superadmin',
+      fullName: 'System Administrator',
+      role: 'SUPER_ADMIN',
+      facilityIds: ['fac-alpha', 'fac-beta'],
+    };
+
+    // Mock successful auth refresh
+    await page.route('**/api/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ token: 'mock-jwt-token', user: mockUser }),
+      });
+    });
+
+    // Mock settings singleton
+    await page.route('**/api/settings', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          facilityName: 'Alpha Cold Storage Facility',
+          currency: 'INR',
+          defaultBillingCycle: 'MONTHLY',
+        }),
+      });
+    });
+
+    // Mock facilities
+    await page.route('**/api/facilities', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          { id: 'fac-alpha', name: 'Alpha Cold Storage Facility', code: 'FAC-A' },
+          { id: 'fac-beta', name: 'Beta Cold Storage Facility', code: 'FAC-B' },
+        ]),
+      });
+    });
+
+    await page.goto('/');
+
+    // Verify authenticated user greeting and facility header
+    await expect(page.locator('body')).not.toContainText('Sign in to access your facility dashboard');
+    await expect(page.locator('header')).toBeVisible();
+  });
+
+  test('3. GRN Management Flow: verifies inwarding directory and actions', async ({ page }) => {
+    const mockUser = {
+      userId: 'usr-admin-001',
+      username: 'superadmin',
+      fullName: 'System Administrator',
+      role: 'SUPER_ADMIN',
+      facilityIds: ['fac-alpha'],
+    };
+
+    await page.route('**/api/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ token: 'mock-jwt-token', user: mockUser }),
+      });
+    });
+
+    await page.route('**/api/grns*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: [],
+          total: 0,
+          page: 1,
+          limit: 20,
+        }),
+      });
+    });
+
+    await page.goto('/grns');
+
+    // Verify page heading or action button
+    await expect(page.locator('h1, h2')).toContainText(/Goods Receipt|GRN/i);
+  });
+
+  test('4. Storage & Chamber Hierarchy Flow: verifies facility layout view', async ({ page }) => {
+    const mockUser = {
+      userId: 'usr-admin-001',
+      username: 'superadmin',
+      fullName: 'System Administrator',
+      role: 'SUPER_ADMIN',
+      facilityIds: ['fac-alpha'],
+    };
+
+    await page.route('**/api/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ token: 'mock-jwt-token', user: mockUser }),
+      });
+    });
+
+    await page.goto('/storage');
+    await expect(page.locator('h1, h2')).toContainText(/Storage|Chamber|Facility/i);
+  });
+
+  test('5. Inventory Flow: verifies inventory ledger view', async ({ page }) => {
+    const mockUser = {
+      userId: 'usr-admin-001',
+      username: 'superadmin',
+      fullName: 'System Administrator',
+      role: 'SUPER_ADMIN',
+      facilityIds: ['fac-alpha'],
+    };
+
+    await page.route('**/api/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ token: 'mock-jwt-token', user: mockUser }),
+      });
+    });
+
+    await page.goto('/inventory');
+    await expect(page.locator('h1, h2')).toContainText(/Inventory|Stock/i);
+  });
+});

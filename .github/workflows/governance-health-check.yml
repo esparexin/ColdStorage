@@ -1,0 +1,47 @@
+name: Governance Health Check
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health-check:
+    name: Repository Health Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify dependency lockfile integrity
+        run: |
+          if [ -n "$(git status --porcelain package-lock.json)" ]; then
+            echo "::error::package-lock.json is out of sync with package.json"
+            exit 1
+          fi
+
+      - name: Architecture lock integrity check
+        run: |
+          test -s docs/00-p0-lock.md || (echo "::error::docs/00-p0-lock.md is missing or empty" && exit 1)
+
+      - name: Repository hygiene check
+        run: npm run hygiene
+
+      - name: Source line budget audit
+        run: npm run line-budget

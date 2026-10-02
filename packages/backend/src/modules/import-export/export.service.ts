@@ -1,68 +1,14 @@
-import { Transform } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
 import type { Response } from 'express';
 import type { ExportDateRangeQuery } from '@cold-storage/contracts';
-import { ChamberModel } from '../../database/models/chamber.model.js';
 import { CustomerModel } from '../../database/models/customer.model.js';
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
-import { PositionModel } from '../../database/models/position.model.js';
-import { CsvSerializer } from './csv.serializer.js';
 import { auditService } from '../audit/audit.service.js';
+import { buildDateFilter, streamCursor } from './csv-stream.helper.js';
+import { exportStockSummary } from './handlers/stock-summary-export.handler.js';
 
-export function buildDateFilter(
-  dateField: string,
-  query: ExportDateRangeQuery,
-): Record<string, unknown> {
-  const from = query.from;
-  const to = query.to;
-
-  if (!from && !to) {
-    return {};
-  }
-
-  const fromDate = from ? new Date(`${from}T00:00:00.000+05:30`) : undefined;
-  const toDate = to ? new Date(`${to}T00:00:00.000+05:30`) : undefined;
-
-  if (fromDate && toDate) {
-    if (fromDate >= toDate) {
-      throw new Error("INVALID_DATE_RANGE: 'from' date must be strictly earlier than 'to' date");
-    }
-    return { [dateField]: { $gte: fromDate, $lt: toDate } };
-  }
-
-  if (fromDate) {
-    return { [dateField]: { $gte: fromDate } };
-  }
-
-  if (toDate) {
-    return { [dateField]: { $lt: toDate } };
-  }
-
-  return {};
-}
-
-// Canonical P7 ledger signed quantity scalar
-const ledgerSignedQuantity = {
-  $cond: [
-    { $eq: ['$transactionType', 'INWARD_PUTAWAY'] },
-    '$quantity',
-    {
-      $cond: [
-        { $eq: ['$transactionType', 'DELIVERY_REVERSAL'] },
-        '$quantity',
-        {
-          $cond: [
-            { $eq: ['$transactionType', 'OUTWARD_DELIVERY'] },
-            { $multiply: ['$quantity', -1] },
-            0,
-          ],
-        },
-      ],
-    },
-  ],
-};
+export { buildDateFilter };
 
 export class ExportService {
   /**
@@ -76,45 +22,7 @@ export class ExportService {
     res: Response,
     filename: string,
   ): Promise<void> {
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Transfer-Encoding', 'chunked');
-
-    let headerWritten = false;
-    const transform = new Transform({
-      objectMode: true,
-      transform(doc: T, _encoding, callback) {
-        let chunk = '';
-        if (!headerWritten) {
-          chunk += CsvSerializer.serializeRow(headers);
-          headerWritten = true;
-        }
-        chunk += CsvSerializer.serializeRow(mapDocToCells(doc));
-        callback(null, chunk);
-      },
-      flush(callback) {
-        if (!headerWritten) {
-          this.push(CsvSerializer.serializeRow(headers));
-        }
-        callback();
-      },
-    });
-
-    res.on('close', () => {
-      if (!res.writableEnded) {
-        cursor.close().catch(() => {});
-        transform.destroy();
-      }
-    });
-
-    try {
-      await pipeline(cursor, transform, res);
-    } catch (err: unknown) {
-      if (!res.headersSent) {
-        throw err;
-      }
-      res.destroy();
-    }
+    return streamCursor(cursor, headers, mapDocToCells, res, filename);
   }
 
   public async exportGrns(
@@ -153,7 +61,7 @@ export class ExportService {
       'createdAt',
     ];
 
-    await this.streamCursor(
+    await streamCursor(
       cursor,
       headers,
       (doc) => [
@@ -215,7 +123,7 @@ export class ExportService {
       'createdAt',
     ];
 
-    await this.streamCursor(
+    await streamCursor(
       cursor,
       headers,
       (doc) => [
@@ -271,7 +179,7 @@ export class ExportService {
       'createdBy',
     ];
 
-    await this.streamCursor(
+    await streamCursor(
       cursor,
       headers,
       (doc) => [
@@ -313,7 +221,7 @@ export class ExportService {
       .cursor({ batchSize: 500 });
     const headers = ['name', 'mobile', 'address', 'gstin', 'isActive', 'createdAt'];
 
-    await this.streamCursor(
+    await streamCursor(
       cursor,
       headers,
       (doc) => [
@@ -334,60 +242,7 @@ export class ExportService {
     res: Response,
     userId?: string,
   ): Promise<void> {
-    await auditService.log({
-      eventType: 'EXPORT_EXECUTED',
-      severity: 'INFO',
-      userId: userId ?? 'SYSTEM',
-      facilityId,
-      resource: 'export',
-      resourceId: null,
-      details: { entityType: 'stock_summary' },
-    });
-    // Phase A: Canonical P7 queries
-    const [positionCapacities, chambers, stockBreakdown] = await Promise.all([
-      // Installed capacity from PositionModel (without isActive filter, exactly matching P7 Query 1)
-      PositionModel.aggregate<{ _id: string; capacityBags: number }>([
-        { $match: { facilityId } },
-        { $group: { _id: '$chamberId', capacityBags: { $sum: '$capacityBags' } } },
-      ]),
-      // Chambers metadata (includes all chambers, active and inactive, matching P7 Query 2)
-      ChamberModel.find({ facilityId }).select('id chamberNumber isActive').lean().exec(),
-      // Chamber occupied bags from InventoryTransactionModel using canonical ledgerSignedQuantity (P7 Query 4)
-      InventoryTransactionModel.aggregate<{ _id: string; occupiedBags: number }>([
-        { $match: { facilityId } },
-        { $group: { _id: '$chamberId', occupiedBags: { $sum: ledgerSignedQuantity } } },
-      ]),
-    ]);
-
-    const capacityMap = new Map<string, number>(
-      positionCapacities.map((p) => [p._id, p.capacityBags]),
-    );
-    const stockMap = new Map<string, number>(stockBreakdown.map((s) => [s._id, s.occupiedBags]));
-
-    const headers = [
-      'chamberNumber',
-      'isActive',
-      'capacityBags',
-      'occupiedBags',
-      'availableBags',
-      'utilizationRate',
-    ];
-
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="stock-summary-${facilityId}.csv"`);
-
-    res.write(CsvSerializer.serializeRow(headers));
-
-    for (const ch of chambers) {
-      const cap = capacityMap.get(ch.id) ?? 0;
-      const occ = stockMap.get(ch.id) ?? 0;
-      const avail = Math.max(0, cap - occ);
-      const rate = cap === 0 ? 0 : Math.min(100, Math.round((occ / cap) * 10000) / 100);
-
-      res.write(CsvSerializer.serializeRow([ch.chamberNumber, ch.isActive, cap, occ, avail, rate]));
-    }
-
-    res.end();
+    return exportStockSummary(facilityId, res, userId);
   }
 }
 

@@ -1,0 +1,29 @@
+name: Actionlint
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actionlint:
+    name: Actionlint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run actionlint
+        uses: reviewdog/action-actionlint@v1
+        with:
+          actionlint_flags: -ignore 'runtime "node20" is deprecated'
+          fail_level: error

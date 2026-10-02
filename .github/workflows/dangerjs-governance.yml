@@ -1,0 +1,33 @@
+name: DangerJS Governance
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  danger:
+    name: DangerJS Governance
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Run DangerJS
+        run: npx --yes danger ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}

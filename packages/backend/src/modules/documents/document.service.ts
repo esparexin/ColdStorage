@@ -1,52 +1,23 @@
 import type {
   ChallanDocumentDto,
-  FacilitySubHeader,
   GrnDocumentDto,
   ReceiptDocumentDto,
   RentReceiptPreviewDto,
 } from '@cold-storage/contracts';
 import { CustomerModel } from '../../database/models/customer.model.js';
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
-import { FacilityModel } from '../../database/models/facility.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { PutAwayAllocationModel } from '../../database/models/put-away.model.js';
-import { settingsService } from '../settings/settings.service.js';
+import {
+  getFacilitySubHeader,
+  getVerifiedOrganization,
+} from './document-headers.helper.js';
 import { renderChallanTemplate } from './templates/challan.template.js';
 import { renderGrnTemplate } from './templates/grn.template.js';
 import { renderReceiptTemplate } from './templates/receipt.template.js';
 import { renderRentReceiptTemplate } from './templates/rent-receipt.template.js';
 
 export class DocumentService {
-  /**
-   * Resolves organization header from SystemSettings singleton.
-   * Throws ORGANIZATION_NOT_CONFIGURED if an administrator has not yet configured
-   * organization details.
-   */
-  private async getVerifiedOrganization() {
-    const { settings, isConfigured } = await settingsService.getSettings();
-    if (!isConfigured) {
-      throw new Error(
-        'ORGANIZATION_NOT_CONFIGURED: Organization details must be configured by an administrator before generating official documents',
-      );
-    }
-    return settings;
-  }
-
-  /**
-   * Resolves facility sub-header.
-   */
-  private async getFacilitySubHeader(facilityId: string): Promise<FacilitySubHeader> {
-    const facility = await FacilityModel.findOne({ id: facilityId }).lean().exec();
-    if (!facility) {
-      throw new Error(`FACILITY_NOT_FOUND: Facility '${facilityId}' not found`);
-    }
-    return {
-      facilityId: facility.id,
-      facilityName: facility.name,
-      facilityCode: facility.code,
-      facilityAddress: facility.address ?? '',
-    };
-  }
 
   /**
    * 1. Renders GRN Storage Record HTML document.
@@ -57,7 +28,7 @@ export class DocumentService {
     grnId: string,
     userId: string,
   ): Promise<string> {
-    const organization = await this.getVerifiedOrganization();
+    const organization = await getVerifiedOrganization();
 
     const grn = await GrnModel.findOne({ id: grnId }).lean().exec();
     if (!grn) {
@@ -69,7 +40,7 @@ export class DocumentService {
       throw new Error('FACILITY_MISMATCH: Document does not belong to the requested facility');
     }
 
-    const facility = await this.getFacilitySubHeader(facilityId);
+    const facility = await getFacilitySubHeader(facilityId);
 
     // Fetch put-away position allocations if available
     const putAway = await PutAwayAllocationModel.findOne({ grnId: grn.id, facilityId })
@@ -121,7 +92,7 @@ export class DocumentService {
     grnId: string,
     userId: string,
   ): Promise<string> {
-    const organization = await this.getVerifiedOrganization();
+    const organization = await getVerifiedOrganization();
 
     const grn = await GrnModel.findOne({ id: grnId }).lean().exec();
     if (!grn) {
@@ -133,7 +104,7 @@ export class DocumentService {
       throw new Error('FACILITY_MISMATCH: Document does not belong to the requested facility');
     }
 
-    const facility = await this.getFacilitySubHeader(facilityId);
+    const facility = await getFacilitySubHeader(facilityId);
 
     const customer = await CustomerModel.findOne({ id: grn.customerId }).lean().exec();
     const customerMobile = customer?.mobile ?? '—';
@@ -169,7 +140,7 @@ export class DocumentService {
     challanId: string,
     userId: string,
   ): Promise<string> {
-    const organization = await this.getVerifiedOrganization();
+    const organization = await getVerifiedOrganization();
 
     const challan = await DeliveryChallanModel.findOne({ id: challanId }).lean().exec();
     if (!challan) {
@@ -181,7 +152,7 @@ export class DocumentService {
       throw new Error('FACILITY_MISMATCH: Document does not belong to the requested facility');
     }
 
-    const facility = await this.getFacilitySubHeader(facilityId);
+    const facility = await getFacilitySubHeader(facilityId);
 
     const items = challan.items.map((i) => ({
       positionCode: i.positionCode,
@@ -224,8 +195,8 @@ export class DocumentService {
       paymentMode?: 'Cash' | 'UPI';
     },
   ): Promise<string> {
-    const organization = await this.getVerifiedOrganization();
-    const facility = await this.getFacilitySubHeader(facilityId);
+    const organization = await getVerifiedOrganization();
+    const facility = await getFacilitySubHeader(facilityId);
 
     const amountPaid = overrides?.amount ?? 10000;
     const totalRentObligation = 25000;

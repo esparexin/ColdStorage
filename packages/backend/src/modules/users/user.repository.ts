@@ -26,6 +26,12 @@ export class UserRepository {
     const passwordHash = await hashPassword(tempPassword);
     const now = new Date();
 
+    const rawFacilityIds = process.env.BOOTSTRAP_ADMIN_FACILITY_IDS ?? '';
+    const facilityIds = rawFacilityIds
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
     const entity: UserEntity = {
       id,
       fullName: process.env.BOOTSTRAP_ADMIN_FULLNAME || 'System Administrator',
@@ -34,7 +40,7 @@ export class UserRepository {
       mobile: process.env.BOOTSTRAP_ADMIN_MOBILE || '9999999999',
       email: process.env.BOOTSTRAP_ADMIN_EMAIL || `${username}@coldstorage.local`,
       role: 'SUPER_ADMIN',
-      facilityIds: ['facility-primary'],
+      facilityIds,
       status: 'ACTIVE',
       passwordHash,
       mustChangePassword: true, // P0-Decision 8: mandatory password change on first login

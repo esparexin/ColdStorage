@@ -1,0 +1,45 @@
+name: Governance Validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  governance-rules:
+    name: Enforce Pre-Merge Governance Rules
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Enforce repository hygiene invariants
+        run: npm run hygiene
+
+      - name: Enforce line budget ratchet (<= 250 lines)
+        run: npm run line-budget
+
+      - name: Enforce zero-warning linting
+        run: npm run lint
+
+      - name: Verify working tree clean
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Working tree became dirty after validation checks"
+            git status --porcelain
+            exit 1
+          fi
