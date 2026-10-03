@@ -49,7 +49,7 @@ jobs:
           npm audit || echo "::warning::Vulnerabilities detected. Review audit report and dependabot updates."
 
       - name: Upload security audit report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: security-audit-report
