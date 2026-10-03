@@ -35,7 +35,7 @@ export function useStockLedger(selectedFacilityId: string | null) {
       const matchSearch =
         !ledgerSearch.trim() ||
         tx.grnNumber.toLowerCase().includes(ledgerSearch.toLowerCase()) ||
-        tx.positionCode.toLowerCase().includes(ledgerSearch.toLowerCase());
+        tx.chamber.toLowerCase().includes(ledgerSearch.toLowerCase());
       const matchType = !ledgerTypeFilter || tx.transactionType === ledgerTypeFilter;
       return matchSearch && matchType;
     });

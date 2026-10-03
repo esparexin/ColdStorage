@@ -36,9 +36,9 @@ export function RecentActivitySection({ items }: { items: RecentActivityItem[] }
       render: (row) => <code className={styles.refCode}>{row.referenceNumber}</code>,
     },
     {
-      key: 'position',
-      header: 'Position',
-      render: (row) => <code className={styles.refCode}>{row.positionCode}</code>,
+      key: 'chamber',
+      header: 'Chamber',
+      render: (row) => <code className={styles.refCode}>{row.chamber}</code>,
     },
     {
       key: 'bags',

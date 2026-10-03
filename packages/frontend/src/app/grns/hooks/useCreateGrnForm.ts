@@ -1,19 +1,36 @@
 import { useState } from 'react';
-import { indianVehicleSchema } from '@cold-storage/contracts';
-import type { BagType, Chamber, Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
+import {
+  chamberTextSchema,
+  indianVehicleSchema,
+  rentalAmountSchema,
+  SEASONAL_RENT_MONTHS,
+} from '@cold-storage/contracts';
+import type { BagType, Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
+
+/**
+ * Accepts only numeric input for a money or count field. Anything that is not a finite
+ * decimal (alphabetic entry, stray punctuation, partial exponent) is rejected outright rather
+ * than coerced to NaN and shipped to the API.
+ */
+export function parseNumericInput(raw: string): number | '' {
+  const trimmed = raw.trim();
+  if (trimmed === '' || !/^\d*\.?\d*$/.test(trimmed)) return '';
+  if (trimmed === '.') return '';
+  const value = Number(trimmed);
+  return Number.isFinite(value) ? value : '';
+}
 
 export function useCreateGrnForm(
   facilityId: string,
   customers: Customer[],
   commodities: Commodity[],
-  chambers: Chamber[],
   onSuccess: (newGrn: Grn) => void,
 ) {
   const [createDate, setCreateDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [createCustomerId, setCreateCustomerId] = useState('');
   const [createCommodityId, setCreateCommodityId] = useState('');
-  const [createChamberId, setCreateChamberId] = useState(chambers[0]?.id ?? '');
+  const [createChamber, setCreateChamber] = useState('');
   const [createBags, setCreateBags] = useState<number | ''>('');
   const [createBagType, setCreateBagType] = useState<BagType>('S');
   const [createSmallBags, setCreateSmallBags] = useState<number | ''>('');
@@ -23,6 +40,7 @@ export function useCreateGrnForm(
   const [createActualWeight, setCreateActualWeight] = useState<number | ''>('');
   const [createRentType, setCreateRentType] = useState<RentType>('Seasonal');
   const [createRentMonths, setCreateRentMonths] = useState<number | ''>('');
+
   const [createRentAmount, setCreateRentAmount] = useState<number | ''>('');
   const [createGpNumber, setCreateGpNumber] = useState('');
   const [createVehicleNumber, setCreateVehicleNumber] = useState('');
@@ -101,7 +119,10 @@ export function useCreateGrnForm(
     const errors: Record<string, string> = {};
     if (!createCustomerId) errors.customer = 'Please select a customer';
     if (!createCommodityId) errors.commodity = 'Please select a commodity';
-    if (!createChamberId) errors.chamber = 'Please select a chamber';
+    const parsedChamber = chamberTextSchema.safeParse(createChamber);
+    if (!parsedChamber.success) {
+      errors.chamber = parsedChamber.error.issues[0]?.message ?? 'Chamber is required';
+    }
     if (createBagType === 'S+B') {
       const small = typeof createSmallBags === 'number' ? createSmallBags : 0;
       const big = typeof createBigBags === 'number' ? createBigBags : 0;
@@ -112,8 +133,9 @@ export function useCreateGrnForm(
     if (createRentType === 'Monthly' && (typeof createRentMonths !== 'number' || createRentMonths < 1)) {
       errors.rentMonths = 'Rent months is required (>= 1) for Monthly rent';
     }
-    if (typeof createRentAmount !== 'number' || createRentAmount < 0) {
-      errors.rentAmount = 'Rent amount must be greater than or equal to 0';
+    const parsedAmount = rentalAmountSchema.safeParse(createRentAmount);
+    if (!parsedAmount.success) {
+      errors.rentAmount = parsedAmount.error.issues[0]?.message ?? 'Rent amount must be a number';
     }
     const normVehicle = createVehicleNumber.trim().replace(/[\s-]/g, '').toUpperCase();
     if (normVehicle && !indianVehicleSchema.safeParse(normVehicle).success) {
@@ -142,7 +164,7 @@ export function useCreateGrnForm(
       const inwardDate = createDate === todayStr ? new Date() : new Date(`${createDate}T00:00:00`);
       const payload: Record<string, unknown> = {
         facilityId, date: inwardDate, customerId: createCustomerId, commodityId: createCommodityId,
-        chamberId: createChamberId, bags: createBags, bagType: createBagType,
+        chamber: parsedChamber.data, bags: createBags, bagType: createBagType,
         rentType: createRentType, rentAmount: createRentAmount,
       };
       if (createRentType === 'Monthly' && typeof createRentMonths === 'number') payload.rentMonths = createRentMonths;
@@ -185,7 +207,9 @@ export function useCreateGrnForm(
     createDate, setCreateDate,
     createCustomerId, setCreateCustomerId: (id: string) => { setCreateCustomerId(id); clearFieldError('customer'); },
     createCommodityId, setCreateCommodityId: (id: string) => { setCreateCommodityId(id); clearFieldError('commodity'); },
-    createChamberId, setCreateChamberId: (id: string) => { setCreateChamberId(id); clearFieldError('chamber'); },
+    createChamber,
+    setCreateChamber: (value: string) => { setCreateChamber(value); clearFieldError('chamber'); },
+    seasonalRentMonths: SEASONAL_RENT_MONTHS,
     createBags, handleBagsChange,
     createBagType, handleBagTypeChange,
     createSmallBags, createBigBags, handleSmallBagsChange, handleBigBagsChange,

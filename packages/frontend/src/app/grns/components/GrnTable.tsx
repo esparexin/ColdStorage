@@ -63,7 +63,7 @@ export function GrnTable({
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <span>{row.commodityName}</span>
-          <span className={styles.tagChamber}>Chamber {row.chamberNumber}</span>
+          <span className={styles.tagChamber}>Chamber {row.chamber}</span>
         </div>
       ),
     },

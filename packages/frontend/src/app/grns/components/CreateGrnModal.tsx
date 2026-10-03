@@ -1,60 +1,39 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import type { BagType, Chamber, Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
-import { Button, Modal, Select } from '@/components/ui';
-import { useCreateGrnForm } from '../hooks/useCreateGrnForm';
+import React, { useState } from 'react';
+import type { BagType, Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
+import { Button, Input, Modal, Select } from '@/components/ui';
+import { BagAccountingSection } from './BagAccountingSection';
+import { useCustomerCombobox } from '../hooks/useCustomerCombobox';
+import { parseNumericInput, useCreateGrnForm } from '../hooks/useCreateGrnForm';
 import { CustomerFormModal } from '../../customers/components/CustomerFormModal';
 import { CommodityFormModal } from '../../commodities/components/CommodityFormModal';
 import styles from '../page.module.css';
 
 interface CreateGrnModalProps {
-  facilityId: string; customers: Customer[]; commodities: Commodity[]; chambers: Chamber[];
+  facilityId: string; customers: Customer[]; commodities: Commodity[];
   onClose: () => void; onSuccess: (newGrn: Grn) => void;
   onCustomerAdded?: () => void; onCommodityAdded?: () => void;
 }
 
 export function CreateGrnModal({
-  facilityId, customers, commodities, chambers, onClose, onSuccess, onCustomerAdded, onCommodityAdded,
+  facilityId, customers, commodities, onClose, onSuccess, onCustomerAdded, onCommodityAdded,
 }: CreateGrnModalProps) {
-  const form = useCreateGrnForm(facilityId, customers, commodities, chambers, onSuccess);
+  const form = useCreateGrnForm(facilityId, customers, commodities, onSuccess);
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [isAddingCommodity, setIsAddingCommodity] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [customerQuery, setCustomerQuery] = useState('');
-  const [isCustomerOpen, setIsCustomerOpen] = useState(false);
-  const [highlightIdx, setHighlightIdx] = useState(-1);
-  const customerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleOutside = (e: MouseEvent) => {
-      if (customerRef.current && !customerRef.current.contains(e.target as Node)) setIsCustomerOpen(false);
-    };
-    document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
-  }, []);
+  const customerBox = useCustomerCombobox(
+    customers,
+    form.createCustomerId,
+    form.setCreateCustomerId,
+    () => setIsAddingCustomer(true),
+  );
 
   const handleAttemptClose = () => {
     if (form.isDirty && !form.submitting) setShowExitConfirm(true);
     else onClose();
-  };
-
-  const q = customerQuery.trim().toLowerCase();
-  const filteredCustomers = q
-    ? customers.filter((c) => c.name.toLowerCase().includes(q) || c.mobile.includes(customerQuery))
-    : customers;
-  const selectedCustomer = customers.find((c) => c.id === form.createCustomerId) ?? null;
-
-  const handleCustomerKeyDown = (e: React.KeyboardEvent) => {
-    if (!isCustomerOpen) {
-      if (e.key === 'ArrowDown' || e.key === 'Enter') { setIsCustomerOpen(true); setCustomerQuery(''); }
-      return;
-    }
-    if (e.key === 'ArrowDown') { e.preventDefault(); setHighlightIdx((p) => (p < filteredCustomers.length - 1 ? p + 1 : 0)); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlightIdx((p) => (p > 0 ? p - 1 : filteredCustomers.length - 1)); }
-    else if (e.key === 'Enter' && highlightIdx >= 0 && filteredCustomers[highlightIdx]) {
-      e.preventDefault(); form.setCreateCustomerId(filteredCustomers[highlightIdx].id); setIsCustomerOpen(false); setCustomerQuery('');
-    } else if (e.key === 'Escape') setIsCustomerOpen(false);
   };
 
   return (
@@ -76,34 +55,33 @@ export function CreateGrnModal({
               <label htmlFor="create-customer-search" className={styles.fieldLabel}>Customer *</label>
               <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingCustomer(true)}>+ Add</Button>
             </div>
-            <div className={styles.comboboxWrapper} ref={customerRef}>
-              <input aria-label="Search by name or mobile…"
+            <div className={styles.comboboxWrapper} ref={customerBox.wrapperRef}>
+              <input aria-label="Search customers by name…"
                 id="create-customer-search" type="text" autoComplete="off"
                 className={`${styles.comboboxInput} ${form.fieldErrors.customer ? styles.inputError : ''}`}
-                value={isCustomerOpen ? customerQuery : (selectedCustomer ? `${selectedCustomer.name} (${selectedCustomer.mobile})` : '')}
-                placeholder="Search by name or mobile…"
-                onFocus={() => { setIsCustomerOpen(true); setCustomerQuery(''); setHighlightIdx(-1); }}
-                onChange={(e) => { setCustomerQuery(e.target.value); setHighlightIdx(0); }}
-                onKeyDown={handleCustomerKeyDown}
+                value={customerBox.displayValue}
+                placeholder="Search customers by name…"
+                onFocus={customerBox.open}
+                onChange={(e) => { customerBox.setQuery(e.target.value); customerBox.setHighlightIdx(0); }}
+                onKeyDown={customerBox.handleKeyDown}
                 aria-invalid={Boolean(form.fieldErrors.customer)}
               />
-              {selectedCustomer && !isCustomerOpen && (
-                <Button type="button" variant="ghost" size="sm" className={styles.comboboxClearBtn} onClick={() => { form.setCreateCustomerId(''); setCustomerQuery(''); }} aria-label="Clear customer selection">✕</Button>
+              {form.createCustomerId && !customerBox.isOpen && (
+                <Button type="button" variant="ghost" size="sm" className={styles.comboboxClearBtn} onClick={customerBox.clear} aria-label="Clear customer selection">✕</Button>
               )}
               {form.fieldErrors.customer && <span className={styles.fieldErrorText}>{form.fieldErrors.customer}</span>}
-              {isCustomerOpen && (
+              {customerBox.isOpen && (
                 <div className={styles.comboboxDropdown} role="listbox">
-                  {filteredCustomers.length > 0 ? (
-                    filteredCustomers.map((c, idx) => (
-                      <div key={c.id} role="option" aria-selected={c.id === form.createCustomerId} className={`${styles.comboboxOption} ${highlightIdx === idx ? styles.comboboxOptionActive : ''}`} onMouseDown={() => { form.setCreateCustomerId(c.id); setIsCustomerOpen(false); setCustomerQuery(''); }}>
+                  {customerBox.matches.length > 0 ? (
+                    customerBox.matches.map((c, idx) => (
+                      <div key={c.id} role="option" aria-selected={c.id === form.createCustomerId} className={`${styles.comboboxOption} ${customerBox.highlightIdx === idx ? styles.comboboxOptionActive : ''}`} onMouseDown={() => customerBox.choose(c.id)}>
                         <span className={styles.comboboxOptionName}>{c.name}</span>
-                        <span className={styles.comboboxOptionMobile}>{c.mobile}</span>
                       </div>
                     ))
                   ) : (
                     <div className={styles.comboboxEmpty}>
                       No customers found
-                      <Button type="button" variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); setIsAddingCustomer(true); setIsCustomerOpen(false); }}>+ Add Customer</Button>
+                      <Button type="button" variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); customerBox.requestAdd(); }}>+ Add Customer</Button>
                     </div>
                   )}
                 </div>
@@ -129,17 +107,17 @@ export function CreateGrnModal({
         </div>
         <div className={styles.formGrid2}>
           <div className={styles.fieldGroup}>
-            <Select
+            <Input
               id="create-chamber"
               label="Chamber"
+              type="text"
               required
-              value={form.createChamberId}
-              onChange={(e) => form.setCreateChamberId(e.target.value)}
+              maxLength={20}
+              value={form.createChamber}
+              onChange={(e) => form.setCreateChamber(e.target.value)}
               error={form.fieldErrors.chamber}
-            >
-              <option value="">Select Chamber</option>
-              {chambers.map((ch) => (<option key={ch.id} value={ch.id}>Chamber {ch.chamberNumber}</option>))}
-            </Select>
+              placeholder="e.g. A or CH-01"
+            />
           </div>
           <div className={styles.fieldGroup}>
             <Select id="create-bag-type" label="Bag Type" required value={form.createBagType} onChange={(e) => form.handleBagTypeChange(e.target.value as BagType)}>
@@ -149,54 +127,26 @@ export function CreateGrnModal({
             </Select>
           </div>
         </div>
-        <h3 className={styles.sectionHeading}>Quantity & Weight Accounting</h3>
-        {form.createBagType === 'S+B' ? (
-          <>
-            <div className={styles.formGrid2}>
-              <div className={styles.fieldGroup}>
-                <label htmlFor="create-small-bags" className={styles.fieldLabel}>Small Bags Quantity *</label>
-                <input id="create-small-bags" type="number" min={0} max={100000} value={form.createSmallBags} onChange={(e) => form.handleSmallBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')} placeholder="e.g. 100" className={`${styles.fieldInput} ${form.fieldErrors.bags ? styles.inputError : ''}`} />
-                {form.fieldErrors.bags && <span className={styles.fieldErrorText}>{form.fieldErrors.bags}</span>}
-              </div>
-              <div className={styles.fieldGroup}>
-                <label htmlFor="create-big-bags" className={styles.fieldLabel}>Big Bags Quantity *</label>
-                <input id="create-big-bags" type="number" min={0} max={100000} value={form.createBigBags} onChange={(e) => form.handleBigBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')} placeholder="e.g. 20" className={`${styles.fieldInput} ${form.fieldErrors.bags ? styles.inputError : ''}`} />
-              </div>
-            </div>
-            <div className={styles.formGrid2}>
-              <div className={styles.fieldGroup}>
-                <label htmlFor="create-bags-total" className={styles.fieldLabel}>Total Bags (Calculated)</label>
-                <input id="create-bags-total" type="number" readOnly tabIndex={-1} value={form.createBags} className={`${styles.fieldInput} ${styles.calculatedField}`} aria-label="Total Bags (Calculated)" />
-              </div>
-              <div className={styles.fieldGroup}>
-                <label htmlFor="create-actual-weight-single" className={styles.fieldLabel}>Weighbridge Weight (kg) (Optional)</label>
-                <input id="create-actual-weight-single" type="number" step="0.01" min={0} value={form.createActualWeight} onChange={(e) => form.setCreateActualWeight(e.target.value ? parseFloat(e.target.value) : '')} className={styles.fieldInput} />
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className={styles.formGrid2}>
-            <div className={styles.fieldGroup}>
-              <label htmlFor="create-bags" className={styles.fieldLabel}>{form.createBagType === 'S' ? 'Small Bags Quantity *' : 'Big Bags Quantity *'}</label>
-              <input id="create-bags" type="number" required min={1} max={100000} value={form.createBags} onChange={(e) => form.handleBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')} placeholder={form.createBagType === 'S' ? 'e.g. 250 (Small)' : 'e.g. 150 (Big)'} className={`${styles.fieldInput} ${form.fieldErrors.bags ? styles.inputError : ''}`} aria-invalid={Boolean(form.fieldErrors.bags)} />
-              {form.fieldErrors.bags && <span className={styles.fieldErrorText}>{form.fieldErrors.bags}</span>}
-            </div>
-            <div className={styles.fieldGroup}>
-              <label htmlFor="create-actual-weight" className={styles.fieldLabel}>Weighbridge Weight (kg) (Optional)</label>
-              <input id="create-actual-weight" type="number" step="0.01" min={0} value={form.createActualWeight} onChange={(e) => form.setCreateActualWeight(e.target.value ? parseFloat(e.target.value) : '')} className={styles.fieldInput} />
-            </div>
-          </div>
-        )}
-        <div className={styles.formGrid2}>
-          <div className={styles.fieldGroup}>
-            <label htmlFor="create-unit-weight" className={styles.fieldLabel}>Nominal Unit Weight (kg/bag)</label>
-            <input id="create-unit-weight" type="number" step="0.01" min={0} value={form.createNominalUnitWeight} onChange={(e) => form.handleUnitWeightChange(e.target.value ? parseFloat(e.target.value) : '')} className={styles.fieldInput} />
-          </div>
-          <div className={styles.fieldGroup}>
-            <label htmlFor="create-total-weight" className={styles.fieldLabel}>Nominal Total Weight (kg)</label>
-            <input id="create-total-weight" type="number" step="0.01" min={0} value={form.createNominalTotalWeight} onChange={(e) => form.setCreateNominalTotalWeight(e.target.value ? parseFloat(e.target.value) : '')} placeholder="e.g. 12500" className={styles.fieldInput} />
-          </div>
-        </div>
+        <BagAccountingSection
+          values={{
+            bagType: form.createBagType,
+            bags: form.createBags,
+            smallBags: form.createSmallBags,
+            bigBags: form.createBigBags,
+            nominalUnitWeight: form.createNominalUnitWeight,
+            nominalTotalWeight: form.createNominalTotalWeight,
+            actualWeight: form.createActualWeight,
+            bagError: form.fieldErrors.bags,
+          }}
+          handlers={{
+            onBagsChange: form.handleBagsChange,
+            onSmallBagsChange: form.handleSmallBagsChange,
+            onBigBagsChange: form.handleBigBagsChange,
+            onUnitWeightChange: form.handleUnitWeightChange,
+            onTotalWeightChange: form.setCreateNominalTotalWeight,
+            onActualWeightChange: form.setCreateActualWeight,
+          }}
+        />
         <h3 className={styles.sectionHeading}>Rent Terms</h3>
         <div className={styles.formGrid3}>
           <div className={styles.fieldGroup}>
@@ -206,13 +156,42 @@ export function CreateGrnModal({
             </Select>
           </div>
           <div className={styles.fieldGroup}>
-            <label htmlFor="create-rent-months" className={styles.fieldLabel}>Rent Months {form.createRentType === 'Monthly' ? '*' : ''}</label>
-            <input id="create-rent-months" type="number" min={1} disabled={form.createRentType !== 'Monthly'} required={form.createRentType === 'Monthly'} value={form.createRentMonths} onChange={(e) => form.setCreateRentMonths(e.target.value ? parseInt(e.target.value, 10) : '')} placeholder={form.createRentType === 'Monthly' ? 'e.g. 6' : '—'} className={`${styles.fieldInput} ${form.fieldErrors.rentMonths ? styles.inputError : ''}`} aria-invalid={Boolean(form.fieldErrors.rentMonths)} />
+            <label htmlFor="create-rent-months" className={styles.fieldLabel}>
+              Rent Months {form.createRentType === 'Monthly' ? '*' : ''}
+            </label>
+            <input
+              id="create-rent-months"
+              type="number"
+              min={1}
+              disabled={form.createRentType !== 'Monthly'}
+              required={form.createRentType === 'Monthly'}
+              value={form.createRentType === 'Seasonal' ? form.seasonalRentMonths : form.createRentMonths}
+              onChange={(e) => form.setCreateRentMonths(e.target.value ? parseInt(e.target.value, 10) : '')}
+              placeholder={form.createRentType === 'Monthly' ? 'e.g. 6' : '—'}
+              readOnly={form.createRentType === 'Seasonal'}
+              className={`${styles.fieldInput} ${form.fieldErrors.rentMonths ? styles.inputError : ''}`}
+              aria-invalid={Boolean(form.fieldErrors.rentMonths)}
+              aria-label={form.createRentType === 'Seasonal' ? `Rent Months (fixed at ${form.seasonalRentMonths} for Seasonal)` : 'Rent Months'}
+            />
             {form.fieldErrors.rentMonths && <span className={styles.fieldErrorText}>{form.fieldErrors.rentMonths}</span>}
           </div>
           <div className={styles.fieldGroup}>
-            <label htmlFor="create-rent-amount" className={styles.fieldLabel}>Rent Amount (₹) *</label>
-            <input id="create-rent-amount" type="number" min={0} step="0.01" required value={form.createRentAmount} onChange={(e) => form.setCreateRentAmount(e.target.value ? parseFloat(e.target.value) : '')} className={`${styles.fieldInput} ${form.fieldErrors.rentAmount ? styles.inputError : ''}`} aria-invalid={Boolean(form.fieldErrors.rentAmount)} />
+            <label htmlFor="create-rent-amount" className={styles.fieldLabel}>
+              Rent Amount (₹) *
+            </label>
+            <input
+              id="create-rent-amount"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              required
+              value={form.createRentAmount}
+              onChange={(e) => form.setCreateRentAmount(parseNumericInput(e.target.value))}
+              placeholder="e.g. 50000"
+              className={`${styles.fieldInput} ${form.fieldErrors.rentAmount ? styles.inputError : ''}`}
+              aria-invalid={Boolean(form.fieldErrors.rentAmount)}
+            />
             {form.fieldErrors.rentAmount && <span className={styles.fieldErrorText}>{form.fieldErrors.rentAmount}</span>}
           </div>
         </div>

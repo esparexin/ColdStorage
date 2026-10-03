@@ -1,25 +1,23 @@
 'use client';
 
 import React from 'react';
-import { Archive, Boxes, Clock, Layers, Package, Warehouse } from 'lucide-react';
-import type { Chamber, FacilityInventorySummary, Grn } from '@cold-storage/contracts';
+import { Archive, Boxes, Clock, Package, Warehouse } from 'lucide-react';
+import type { FacilityInventorySummary, Grn } from '@cold-storage/contracts';
 import styles from '../page.module.css';
 
 interface InventoryHeaderProps {
   currentFacilityName: string;
   stockSummary: FacilityInventorySummary | null;
   loadingSummary: boolean;
-  chambers: Chamber[];
   openGrns: Grn[];
-  activeTab: 'put-away' | 'hierarchy' | 'ledger';
-  onTabChange: (tab: 'put-away' | 'hierarchy' | 'ledger') => void;
+  activeTab: 'put-away' | 'ledger';
+  onTabChange: (tab: 'put-away' | 'ledger') => void;
 }
 
 export function InventoryHeader({
   currentFacilityName,
   stockSummary,
   loadingSummary,
-  chambers,
   openGrns,
   activeTab,
   onTabChange,
@@ -30,7 +28,7 @@ export function InventoryHeader({
         <div className={styles.titleArea}>
           <h1 className={styles.pageTitle}>Inventory & Put-Away</h1>
           <p className={styles.pageSub}>
-            Storage capacity, position-level rack allocation, and immutable stock audit trail for{' '}
+            Chamber-level stock allocation and an immutable stock audit trail for{' '}
             {currentFacilityName}.
           </p>
         </div>
@@ -72,10 +70,11 @@ export function InventoryHeader({
             <Warehouse size={24} aria-hidden="true" />
           </div>
           <div className={styles.kpiContent}>
-            <span className={styles.kpiLabel}>Active Chambers</span>
-            <span className={styles.kpiValue}>{chambers.length}</span>
+            <span className={styles.kpiLabel}>Chambers in Use</span>
+            <span className={styles.kpiValue}>{stockSummary?.byChamber.length ?? 0}</span>
             <span className={styles.kpiSub}>
-              {chambers.map((c) => `Chamber ${c.chamberNumber}`).join(', ') || 'No chambers'}
+              {stockSummary?.byChamber.map((c) => `Chamber ${c.chamber}`).join(', ') ||
+                'No chambers holding stock'}
             </span>
           </div>
         </div>
@@ -92,17 +91,6 @@ export function InventoryHeader({
           <Archive size={16} aria-hidden="true" />
           Put-Away Allocations
           {openGrns.length > 0 && <span className={styles.tabBadge}>{openGrns.length}</span>}
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'hierarchy'}
-          className={`${styles.tabBtn} ${activeTab === 'hierarchy' ? styles.tabBtnActive : ''}`}
-          onClick={() => onTabChange('hierarchy')}
-        >
-          <Layers size={16} aria-hidden="true" />
-          Storage Hierarchy & Capacity Grid
         </button>
 
         <button

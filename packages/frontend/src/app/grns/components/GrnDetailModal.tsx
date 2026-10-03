@@ -105,7 +105,7 @@ export function GrnDetailModal({
 
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Chamber</span>
-              <span className={styles.detailValue}>Chamber {grn.chamberNumber}</span>
+              <span className={styles.detailValue}>Chamber {grn.chamber}</span>
             </div>
 
             <div className={styles.detailItem}>

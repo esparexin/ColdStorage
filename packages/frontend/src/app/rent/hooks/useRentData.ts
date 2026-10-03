@@ -87,7 +87,6 @@ export function useRentData() {
         !searchTerm.trim() ||
         acc.grnNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         acc.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        acc.customerMobile.includes(searchTerm.trim()) ||
         acc.commodityName.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchStatus = !statusFilter || acc.paymentStatus === statusFilter;

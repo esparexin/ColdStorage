@@ -40,12 +40,7 @@ export function useCustomersData() {
   const filteredCustomers = useMemo(() => {
     if (!searchTerm.trim()) return customers;
     const term = searchTerm.toLowerCase();
-    return customers.filter(
-      (c) =>
-        c.name.toLowerCase().includes(term) ||
-        c.mobile.includes(term) ||
-        (c.gstin && c.gstin.toLowerCase().includes(term)),
-    );
+    return customers.filter((c) => c.name.toLowerCase().includes(term));
   }, [customers, searchTerm]);
 
   return {

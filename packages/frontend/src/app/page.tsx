@@ -8,7 +8,7 @@
 import React from 'react';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useFacility } from '@/context/FacilityContext';
-import { ChamberUtilizationSection } from './components/dashboard/ChamberUtilizationSection';
+import { ChamberStockSection } from './components/dashboard/ChamberStockSection';
 import { CommodityStockSection } from './components/dashboard/CommodityStockSection';
 import { KpiGrid } from './components/dashboard/KpiGrid';
 import { RecentActivitySection } from './components/dashboard/RecentActivitySection';
@@ -37,10 +37,10 @@ export default function DashboardPage() {
       </p>
 
       <KpiGrid summary={summary} />
-      <ChamberUtilizationSection items={summary.chamberUtilization} />
+      <ChamberStockSection items={summary.chamberStock} />
       <CommodityStockSection
         items={summary.commodityBreakdown}
-        totalOccupied={summary.occupiedBags}
+        totalOccupied={summary.totalStockBags}
       />
       <RecentActivitySection items={summary.recentActivity} />
     </div>

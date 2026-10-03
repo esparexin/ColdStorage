@@ -1,14 +1,7 @@
 'use client';
 
 import React from 'react';
-import {
-  Archive,
-  BarChart3,
-  Box,
-  CheckCircle2,
-  TrendingDown,
-  TrendingUp,
-} from 'lucide-react';
+import { Archive, BarChart3, Box, CheckCircle2, TrendingDown, TrendingUp } from 'lucide-react';
 import type { DashboardSummary } from '@cold-storage/contracts';
 import styles from '@/app/page.module.css';
 
@@ -36,28 +29,21 @@ function KpiCard({ label, value, sub, icon: Icon, accent = 'primary' }: KpiCardP
 }
 
 export function KpiGrid({ summary }: { summary: DashboardSummary }) {
-  const utilAccent =
-    summary.utilizationRate >= 90
-      ? 'danger'
-      : summary.utilizationRate >= 70
-        ? 'warning'
-        : 'success';
-
   return (
     <section className={styles.kpiGrid} aria-label="Key performance indicators">
       <KpiCard
-        label="Stored Bags"
-        value={summary.occupiedBags.toLocaleString('en-IN')}
-        sub={`of ${summary.totalCapacityBags.toLocaleString('en-IN')} capacity`}
+        label="Stock on Hand"
+        value={summary.totalStockBags.toLocaleString('en-IN')}
+        sub="bags currently stored"
         icon={Archive}
         accent="primary"
       />
       <KpiCard
-        label="Utilization"
-        value={`${summary.utilizationRate.toFixed(1)}%`}
-        sub={`${summary.availableBags.toLocaleString('en-IN')} bags available`}
+        label="Chambers in Use"
+        value={summary.chamberStock.length}
+        sub="chamber labels holding stock"
         icon={BarChart3}
-        accent={utilAccent}
+        accent="primary"
       />
       <KpiCard
         label="Monthly Inward"

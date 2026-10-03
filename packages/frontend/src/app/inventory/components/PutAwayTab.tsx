@@ -1,9 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Plus, Trash2 } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
-import { Button, Select } from '@/components/ui';
+import { Button } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import type { usePutAway } from '../hooks/usePutAway';
 import { GrnAllocationStatusCard } from './GrnAllocationStatusCard';
@@ -42,7 +41,7 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
                 >
                   <div className={styles.grnCardTop}>
                     <span className={styles.grnCardNum}>{g.grnNumber}</span>
-                    <span className={styles.unallocatedPill}>Chamber {g.chamberNumber}</span>
+                    <span className={styles.unallocatedPill}>Chamber {g.chamber}</span>
                   </div>
                   <span className={styles.grnCardCust}>{g.customerName}</span>
                   <div className={styles.grnCardMeta}>
@@ -72,9 +71,9 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
             {putAway.grnSummary.unallocatedBags > 0 && canAllocate && (
               <div className={styles.allocationFormCard}>
                 <div className={styles.formHeader}>
-                  <h3 className={styles.formSectionTitle}>Allocate Bags to Rack Positions</h3>
+                  <h3 className={styles.formSectionTitle}>Confirm Stock in Chamber</h3>
                   <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                    Target Chamber: Chamber {putAway.grnSummary.chamberNumber}
+                    Chamber {putAway.grnSummary.chamber}
                   </span>
                 </div>
 
@@ -98,90 +97,20 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
                   onSubmit={putAway.handlePutAwaySubmit}
                   style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
                 >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                    {putAway.allocRows.map((row) => (
-                      <div key={row.id} className={styles.allocRow}>
-                        <Select
-                          aria-label="Select Rack"
-                          className={styles.fieldSelect}
-                          required
-                          value={row.rackId}
-                          onChange={(e) => void putAway.handleAllocRackChange(row.id, e.target.value)}
-                        >
-                          <option value="">Select Rack</option>
-                          {putAway.chamberRacks.map((rk) => (
-                            <option key={rk.id} value={rk.id}>
-                              Rack {rk.code}
-                            </option>
-                          ))}
-                        </Select>
+                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
+                    Confirming records all {putAway.grnSummary.unallocatedBags} outstanding bags of{' '}
+                    {putAway.grnSummary.totalBags} received as on hand in chamber{' '}
+                    {putAway.grnSummary.chamber}.
+                  </p>
 
-                        <Select
-                          aria-label="Select Level"
-                          className={styles.fieldSelect}
-                          required
-                          disabled={!row.rackId}
-                          value={row.levelId}
-                          onChange={(e) => void putAway.handleAllocLevelChange(row.id, e.target.value)}
-                        >
-                          <option value="">Select Level</option>
-                          {(putAway.rackLevels[row.rackId] ?? []).map((lvl) => (
-                            <option key={lvl.id} value={lvl.id}>
-                              Level {lvl.levelNumber} ({lvl.code})
-                            </option>
-                          ))}
-                        </Select>
-
-                        <Select
-                          aria-label="Select Position"
-                          className={styles.fieldSelect}
-                          required
-                          disabled={!row.levelId}
-                          value={row.positionId}
-                          onChange={(e) => putAway.handleAllocPositionChange(row.id, e.target.value)}
-                        >
-                          <option value="">Select Position</option>
-                          {(putAway.levelPositions[row.levelId] ?? []).map((pos) => (
-                            <option key={pos.id} value={pos.id}>
-                              {pos.code} (Cap: {pos.capacityBags} bags)
-                            </option>
-                          ))}
-                        </Select>
-
-                        <input
-                          type="number"
-                          aria-label="Bags"
-                          className={styles.fieldInput}
-                          required
-                          min={1}
-                          max={putAway.grnSummary?.unallocatedBags ?? 100000}
-                          placeholder="Bags"
-                          value={row.bags}
-                          onChange={(e) => putAway.handleAllocBagsChange(row.id, e.target.value)}
-                        />
-
-                        {putAway.allocRows.length > 1 && (
-                          <button
-                            type="button"
-                            className={styles.removeBtn}
-                            onClick={() => putAway.handleRemoveAllocRow(row.id)}
-                            title="Remove position row"
-                          >
-                            <Trash2 size={16} aria-hidden="true" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    className={styles.addAllocBtn}
-                    onClick={putAway.handleAddAllocRow}
-                  >
-                    <Plus size={14} aria-hidden="true" />
-                    Add Another Position
-                  </button>
+                  <input aria-label="Optional put-away notes or lot observations"
+                    type="text"
+                    placeholder="Optional put-away notes or lot observations"
+                    className={styles.fieldInput}
+                    value={putAway.allocNotes}
+                    onChange={(e) => putAway.setAllocNotes(e.target.value)}
+                    maxLength={500}
+                  />
 
                   <input aria-label="Optional put-away notes or lot observations"
                     type="text"
@@ -194,25 +123,25 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
 
                   <div className={styles.formFooter}>
                     <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>
-                      Total Allocating:{' '}
+                      Allocating{' '}
                       <span style={{ color: 'var(--color-primary)' }}>
-                        {putAway.totalAllocatingBags}
+                        {putAway.grnSummary.unallocatedBags}
                       </span>{' '}
-                      / {putAway.grnSummary.unallocatedBags} bags
+                      bags
                     </span>
 
                     <Button
                       id="submit-allocation-btn"
                       type="submit"
                       variant="primary"
-                      disabled={putAway.allocSubmitting || putAway.totalAllocatingBags <= 0 || !!putAway.rentBlocked}
+                      disabled={putAway.allocSubmitting || !!putAway.rentBlocked}
                       isLoading={putAway.allocSubmitting}
                     >
                       {putAway.rentBlocked
                         ? 'Rent payment required'
                         : putAway.allocSubmitting
-                          ? 'Recording Batch...'
-                          : 'Confirm Put-Away Allocation'}
+                          ? 'Recording...'
+                          : 'Confirm Put-Away'}
                     </Button>
                   </div>
                 </form>

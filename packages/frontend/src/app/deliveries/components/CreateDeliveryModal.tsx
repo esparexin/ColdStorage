@@ -61,7 +61,7 @@ export function CreateDeliveryModal({
                 <option value="">Select an active GRN with stored stock</option>
                 {form.availableGrns.map((g) => (
                   <option key={g.id} value={g.id}>
-                    {g.grnNumber} — {g.customerName} ({g.commodityName}, Chamber {g.chamberNumber})
+                    {g.grnNumber} — {g.customerName} ({g.commodityName}, Chamber {g.chamber})
                   </option>
                 ))}
               </Select>
@@ -91,43 +91,27 @@ export function CreateDeliveryModal({
                 {form.grnSummary && (
               <>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                  <span className={styles.fieldLabel}>Withdraw from Stored Positions *</span>
+                  <label htmlFor="delivery-bags" className={styles.fieldLabel}>
+                    Bags to Deliver *
+                  </label>
                   <span className={styles.fieldHint}>
-                    Enter the number of bags to withdraw from each storage position.
+                    {form.grnSummary.allocatedBags - form.grnSummary.unallocatedBags > 0
+                      ? `${form.grnSummary.allocatedBags - form.grnSummary.unallocatedBags} bags of ${form.grnSummary.totalBags} received are in stock in chamber ${form.grnSummary.chamber}.`
+                      : 'No bags of this GRN are in stock yet.'}
                   </span>
-
-                  {form.withdrawals.length === 0 ? (
-                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warning)' }}>
-                      No bags are currently put-away in positions for this GRN.
-                    </p>
-                  ) : (
-                    form.withdrawals.map((w, idx) => (
-                      <div key={w.positionId} className={styles.positionRow}>
-                        <div>
-                          <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
-                            {w.positionCode}
-                          </span>
-                          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', display: 'block' }}>
-                            Available: {w.maxBags} bags
-                          </span>
-                        </div>
-                        <input aria-label="Bags to withdraw"
-                          type="number"
-                          min={0}
-                          max={w.maxBags}
-                          placeholder="Bags to withdraw"
-                          className={styles.fieldInput}
-                          value={w.bags}
-                          onChange={(e) => {
-                            const val = e.target.value ? parseInt(e.target.value, 10) : '';
-                            form.setWithdrawals((prev) =>
-                              prev.map((item, i) => (i === idx ? { ...item, bags: val } : item)),
-                            );
-                          }}
-                        />
-                      </div>
-                    ))
-                  )}
+                  <input
+                    id="delivery-bags"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={form.grnSummary.allocatedBags}
+                    placeholder="Bags to deliver"
+                    className={styles.fieldInput}
+                    value={form.withdrawal.bags}
+                    onChange={(e) =>
+                      form.setWithdrawalBags(e.target.value ? parseInt(e.target.value, 10) : '')
+                    }
+                  />
                 </div>
 
                 <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>
