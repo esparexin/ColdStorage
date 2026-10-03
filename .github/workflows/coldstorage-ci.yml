@@ -56,3 +56,11 @@ jobs:
 
       - name: Build packages
         run: npm run build
+
+      - name: Verify working tree clean
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Working tree became dirty after validation checks"
+            git status --porcelain
+            exit 1
+          fi

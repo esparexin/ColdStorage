@@ -9,6 +9,7 @@ import { CustomerModel } from '../database/models/customer.model.js';
 import { FacilityModel } from '../database/models/facility.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { UserModel } from '../database/models/user.model.js';
+import { clearRateLimiterStore } from '../middleware/rate-limiter.middleware.js';
 import { authService } from '../modules/auth/auth.service.js';
 import { hashPassword } from '../utils/crypto.js';
 
@@ -24,7 +25,10 @@ describe('GRN Retrieval & Acknowledgement Projections', () => {
   let commodityId: string;
   let createdGrnId: string;
 
+  const customerMobile = '9876500999';
+
   beforeAll(async () => {
+    clearRateLimiterStore();
     const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/cold_storage_test';
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(mongoUri);
@@ -32,19 +36,23 @@ describe('GRN Retrieval & Acknowledgement Projections', () => {
   });
 
   afterAll(async () => {
+    clearRateLimiterStore();
+    await CustomerModel.deleteMany({ $or: [{ id: 'cust-ramesh-01' }, { mobile: customerMobile }] });
+    await UserModel.deleteMany({ $or: [{ id: 'user-op-north' }, { username: 'op.north' }] });
+    await FacilityModel.deleteMany({ id: northFacilityId });
     if (mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();
     }
   });
 
   beforeEach(async () => {
-    await UserModel.deleteMany({});
-    await FacilityModel.deleteMany({});
-    await ChamberModel.deleteMany({});
-    await CustomerModel.deleteMany({});
-    await CommodityModel.deleteMany({});
-    await GrnModel.deleteMany({});
-    await CounterModel.deleteMany({});
+    await UserModel.deleteMany({ $or: [{ id: 'user-op-north' }, { username: 'op.north' }] });
+    await FacilityModel.deleteMany({ id: northFacilityId });
+    await ChamberModel.deleteMany({ facilityId: northFacilityId });
+    await CustomerModel.deleteMany({ $or: [{ id: 'cust-ramesh-01' }, { mobile: customerMobile }] });
+    await CommodityModel.deleteMany({ id: 'comm-potato-01' });
+    await GrnModel.deleteMany({ facilityId: northFacilityId });
+    await CounterModel.deleteMany({ facilityId: northFacilityId });
 
     await FacilityModel.create({
       id: northFacilityId,
@@ -72,7 +80,7 @@ describe('GRN Retrieval & Acknowledgement Projections', () => {
     const cust = await CustomerModel.create({
       id: 'cust-ramesh-01',
       name: 'Ramesh Patel',
-      mobile: '9876543210',
+      mobile: customerMobile,
       facilityIds: [northFacilityId],
       isActive: true,
     });
