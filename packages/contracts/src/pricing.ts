@@ -81,3 +81,37 @@ export function calculateMonthlyCharge(remainingBags: number, bagPrice: number):
   if (remainingBags <= 0 || bagPrice <= 0) return 0;
   return Number((remainingBags * bagPrice).toFixed(2));
 }
+
+/**
+ * Derives the active billing cycle period based on the inward entry date.
+ * For Seasonal: Fixed 10-Month Season.
+ * For Monthly: Exact day-of-month cycle (e.g. 15 Apr 2026 – 14 May 2026).
+ */
+export function deriveBillingCycle(
+  inwardDate: Date,
+  rentType: RentType,
+  asOfDate: Date = new Date(),
+): string {
+  if (rentType === 'Seasonal') {
+    return 'Fixed 10-Month Season';
+  }
+  const inDate = new Date(inwardDate);
+  const now = new Date(asOfDate);
+  const day = inDate.getDate();
+
+  let cycleStartYear = now.getFullYear();
+  let cycleStartMonth = now.getMonth();
+
+  if (now.getDate() < day) {
+    cycleStartMonth -= 1;
+  }
+
+  const cycleStart = new Date(cycleStartYear, cycleStartMonth, day);
+  const nextMonth = new Date(cycleStartYear, cycleStartMonth + 1, day);
+  const cycleEnd = new Date(nextMonth.getTime() - 24 * 60 * 60 * 1000);
+
+  const fmt = (d: Date) =>
+    d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  return `${fmt(cycleStart)} – ${fmt(cycleEnd)}`;
+}
