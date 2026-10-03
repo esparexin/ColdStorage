@@ -1,10 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Filter } from 'lucide-react';
 import type { PaymentStatus } from '@cold-storage/contracts';
-import { Button, SearchBar, Select } from '@/components/ui';
-import styles from '../page.module.css';
+import { FilterToolbar, Select } from '@/components/ui';
 
 interface RentFilterToolbarProps {
   searchTerm: string;
@@ -22,40 +20,25 @@ export function RentFilterToolbar({
   onReset,
 }: RentFilterToolbarProps) {
   return (
-    <div className={styles.toolbar}>
-      <SearchBar
-        id="rent-search-input"
-        value={searchTerm}
-        onChange={onSearchChange}
-        placeholder="Search GRN #, Customer, Commodity..."
-        ariaLabel="Search rent billing"
-        onClear={onReset}
-      />
-
-      <div className={styles.filtersGroup}>
-        <Select
-          id="rent-status-filter"
-          aria-label="Filter by Payment Status"
-          className={styles.filterSelect}
-          value={statusFilter}
-          onChange={(e) => onStatusChange(e.target.value as '' | PaymentStatus)}
-        >
-          <option value="">All Payment Statuses</option>
-          <option value="Not Settled">Not Settled (Pending Dues)</option>
-          <option value="Settled">Settled (Fully Paid)</option>
-        </Select>
-
-        {(statusFilter || searchTerm) && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onReset}
-            leftIcon={<Filter size={12} aria-hidden="true" />}
-          >
-            Reset
-          </Button>
-        )}
-      </div>
-    </div>
+    <FilterToolbar
+      searchValue={searchTerm}
+      onSearchChange={onSearchChange}
+      searchPlaceholder="Search GRN #, Customer, Mobile, Commodity..."
+      searchAriaLabel="Search rent billing"
+      searchInputId="rent-search-input"
+      onReset={onReset}
+      hasActiveFilters={Boolean(statusFilter || searchTerm)}
+    >
+      <Select
+        id="rent-status-filter"
+        aria-label="Filter by Payment Status"
+        value={statusFilter}
+        onChange={(e) => onStatusChange(e.target.value as '' | PaymentStatus)}
+      >
+        <option value="">All Payment Statuses</option>
+        <option value="Not Settled">Not Settled (Pending Dues)</option>
+        <option value="Settled">Settled (Fully Paid)</option>
+      </Select>
+    </FilterToolbar>
   );
 }

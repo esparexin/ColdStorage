@@ -11,6 +11,7 @@ export {
   type StatAccent,
 } from './StatCard';
 export { SearchBar, type SearchBarProps } from './SearchBar';
+export { FilterToolbar, type FilterToolbarProps } from './FilterToolbar';
 export { Modal, type ModalProps, type ModalSize } from './Modal';
 export { Pagination, type PaginationProps } from './Pagination';
 export { DataTable, type DataTableColumn } from './DataTable';
