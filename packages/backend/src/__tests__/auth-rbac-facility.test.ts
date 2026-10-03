@@ -4,6 +4,7 @@ import { createApp } from '../app.js';
 import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
+import { createRateLimiter, MemoryRateLimitStore } from '../middleware/rate-limiter.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { sessionRepository } from '../modules/auth/session.repository.js';
 import { userRepository } from '../modules/users/user.repository.js';
@@ -12,8 +13,16 @@ import { hashPassword } from '../utils/crypto.js';
 describe('Auth RBAC & Facility Scope Integration', () => {
   const app = createApp();
 
+  const testLimiter = createRateLimiter({
+    windowMs: 60000,
+    max: 1000,
+    keyPrefix: 'ratelimit:test-rbac',
+    store: new MemoryRateLimitStore(),
+  });
+
   app.get(
     '/test/facilities/:facilityId/scope-check',
+    testLimiter,
     authenticate,
     requirePermission('storage:view'),
     requireFacilityScope((req) => req.params.facilityId),

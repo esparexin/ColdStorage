@@ -4,6 +4,7 @@ import { createApp } from '../app.js';
 import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
+import { createRateLimiter, MemoryRateLimitStore } from '../middleware/rate-limiter.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { sessionRepository } from '../modules/auth/session.repository.js';
 import { userRepository } from '../modules/users/user.repository.js';
@@ -11,8 +12,16 @@ import { userRepository } from '../modules/users/user.repository.js';
 describe('Auth Audit E2E Flow', () => {
   const app = createApp();
 
+  const testLimiter = createRateLimiter({
+    windowMs: 60000,
+    max: 1000,
+    keyPrefix: 'ratelimit:test-audit',
+    store: new MemoryRateLimitStore(),
+  });
+
   app.get(
     '/test/facilities/:facilityId/scope-check',
+    testLimiter,
     authenticate,
     requirePermission('storage:view'),
     requireFacilityScope((req) => req.params.facilityId),
