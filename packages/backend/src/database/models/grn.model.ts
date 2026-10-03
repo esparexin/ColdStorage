@@ -11,8 +11,8 @@ export interface GrnDoc extends Document {
   customerName: string;
   commodityId: string;
   commodityName: string;
-  chamberId: string;
-  chamberNumber: string;
+  /** Free-text physical chamber label; capped at 20 characters. */
+  chamber: string;
   bags: number;
   bagType: BagType;
   nominalUnitWeight: number | null;
@@ -43,8 +43,7 @@ const grnSchema = new Schema<GrnDoc>(
     customerName: { type: String, required: true, trim: true },
     commodityId: { type: String, required: true, index: true },
     commodityName: { type: String, required: true, trim: true },
-    chamberId: { type: String, required: true, index: true },
-    chamberNumber: { type: String, required: true, trim: true },
+    chamber: { type: String, required: true, trim: true, maxlength: 20, index: true },
     bags: { type: Number, required: true, min: 1 },
     bagType: { type: String, required: true, enum: ['S', 'B', 'S+B'] },
     nominalUnitWeight: { type: Number, default: null },
@@ -52,6 +51,7 @@ const grnSchema = new Schema<GrnDoc>(
     actualWeight: { type: Number, default: null },
     authoritativeWeight: { type: Number, default: null },
     rentType: { type: String, required: true, enum: ['Monthly', 'Seasonal'] },
+    /** Seasonal is always the fixed 10-month period; Monthly carries the operator's count. */
     rentMonths: { type: Number, default: null },
     rentAmount: { type: Number, required: true, min: 0 },
     gpNumber: { type: String, trim: true, default: null },

@@ -25,6 +25,11 @@ export const customerSchema = z.object({
 export const createCustomerSchema = z
   .object({
     name: customerNameSchema,
+    /**
+     * Facility the customer is registered for. Supplied from the app's facility selector, not
+     * typed by the operator; the route rejects any facility outside the caller's access scope.
+     */
+    facilityId: z.string().trim().min(1, 'Facility is required'),
     isActive: z.boolean().default(true),
   })
   .strict();

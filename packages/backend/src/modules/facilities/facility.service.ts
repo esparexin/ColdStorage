@@ -1,8 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { CreateFacilityInput, Facility, UpdateFacilityInput } from '@cold-storage/contracts';
-import { ChamberModel } from '../../database/models/chamber.model.js';
 import { FacilityModel } from '../../database/models/facility.model.js';
 
+/**
+ * Facility is the tenancy and access-scope root. It owns no storage hierarchy: chambers are
+ * free-text labels carried on each GRN, so there is no child structure to guard on deactivate.
+ *
+ * Records are maintained by SUPER_ADMIN only; reads are open to any role scoped to a facility.
+ */
 export class FacilityService {
   public async createFacility(input: CreateFacilityInput): Promise<Facility> {
     const code = input.code.trim().toUpperCase();
@@ -57,14 +62,7 @@ export class FacilityService {
       existing.address = input.address?.trim() || null;
     }
 
-    if (input.isActive !== undefined && input.isActive !== existing.isActive) {
-      if (!input.isActive) {
-        // Enforce bottom-up deactivation: cannot deactivate facility with active chambers
-        const activeChambers = await ChamberModel.countDocuments({ facilityId: id, isActive: true }).exec();
-        if (activeChambers > 0) {
-          throw new Error('Cannot deactivate facility while it contains active chambers');
-        }
-      }
+    if (input.isActive !== undefined) {
       existing.isActive = input.isActive;
     }
 

@@ -9,13 +9,11 @@ import {
 } from '../../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
-import { PositionModel } from '../../../database/models/position.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { assertRentAllowedForOutward } from '../../common/rent-gate.service.js';
 import { isTransientError, toChallanEntity } from '../delivery.mappers.js';
 import { getDeliverySummary } from '../queries/delivery.queries.js';
 import {
-  validateAndLockPositions,
   validateDeliveryDate,
   validateStockAndBalances,
 } from './delivery-validation.helper.js';
@@ -81,15 +79,12 @@ async function executeDeliveryTransaction(
         session,
       );
 
-      const lockedPositions = await validateAndLockPositions(
+      const { remainingDeliveryBalance, physicallyStored } = await validateStockAndBalances(
         facilityId,
-        grn.chamberId,
-        input.items,
+        grn,
+        input.bags,
         session,
       );
-
-      const { remainingDeliveryBalance, physicallyStored, totalRequestedBags } =
-        await validateStockAndBalances(facilityId, grn, input.items, lockedPositions, session);
 
       const deliveryDate = validateDeliveryDate(input.date);
 
@@ -99,12 +94,6 @@ async function executeDeliveryTransaction(
         session,
       );
       const deliveryId = `del-${randomUUID()}`;
-
-      const deliveryItems = input.items.map((item) => ({
-        positionId: item.positionId,
-        positionCode: lockedPositions.get(item.positionId)!.code,
-        bags: item.bags,
-      }));
 
       const challanDocs = await DeliveryChallanModel.create(
         [
@@ -119,10 +108,9 @@ async function executeDeliveryTransaction(
             customerName: grn.customerName,
             commodityId: grn.commodityId,
             commodityName: grn.commodityName,
-            chamberId: grn.chamberId,
-            chamberNumber: grn.chamberNumber,
-            items: deliveryItems,
-            totalBags: totalRequestedBags,
+            chamber: grn.chamber,
+            bags: input.bags,
+            totalBags: input.bags,
             vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null,
             driverName: input.driverName?.trim() || null,
             weight: input.weight ?? null,
@@ -136,44 +124,31 @@ async function executeDeliveryTransaction(
 
       createdChallanDoc = challanDocs[0];
 
-      const positionDocs = await PositionModel.find(
-        { id: { $in: input.items.map((i) => i.positionId) } },
-        null,
-        { session },
-      )
-        .lean()
-        .exec();
-      const positionMap = new Map(positionDocs.map((p) => [p.id, p]));
+      await InventoryTransactionModel.create(
+        [
+          {
+            id: `tx-${randomUUID()}`,
+            facilityId,
+            grnId: grn.id,
+            grnNumber: grn.grnNumber,
+            chamber: grn.chamber,
+            customerId: grn.customerId,
+            commodityId: grn.commodityId,
+            bagType: grn.bagType,
+            transactionType: 'OUTWARD_DELIVERY' as const,
+            quantity: input.bags,
+            referenceType: 'DELIVERY' as const,
+            referenceId: deliveryId,
+            notes: input.remarks?.trim() || null,
+            createdBy: userId,
+            createdAt: deliveryDate,
+          },
+        ],
+        { session, ordered: true },
+      );
 
-      const ledgerDocsToCreate = input.items.map((item) => {
-        const pos = positionMap.get(item.positionId)!;
-        return {
-          id: `tx-${randomUUID()}`,
-          facilityId,
-          grnId: grn.id,
-          grnNumber: grn.grnNumber,
-          chamberId: grn.chamberId,
-          rackId: pos.rackId,
-          levelId: pos.levelId,
-          positionId: pos.id,
-          positionCode: pos.code,
-          customerId: grn.customerId,
-          commodityId: grn.commodityId,
-          bagType: grn.bagType,
-          transactionType: 'OUTWARD_DELIVERY' as const,
-          quantity: item.bags,
-          referenceType: 'DELIVERY' as const,
-          referenceId: deliveryId,
-          notes: input.remarks?.trim() || null,
-          createdBy: userId,
-          createdAt: deliveryDate,
-        };
-      });
-
-      await InventoryTransactionModel.create(ledgerDocsToCreate, { session, ordered: true });
-
-      const newRemainingDeliveryBalance = remainingDeliveryBalance - totalRequestedBags;
-      const newPhysicallyStored = physicallyStored - totalRequestedBags;
+      const newRemainingDeliveryBalance = remainingDeliveryBalance - input.bags;
+      const newPhysicallyStored = physicallyStored - input.bags;
 
       if (newRemainingDeliveryBalance === 0 && newPhysicallyStored === 0) {
         await GrnModel.updateOne({ id: grn.id }, { $set: { status: 'CLOSED' } }, { session });

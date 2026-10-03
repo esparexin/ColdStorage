@@ -1,12 +1,6 @@
 import mongoose, { Schema, type Document, type Model } from 'mongoose';
 import type { DeliveryStatus } from '@cold-storage/contracts';
 
-export interface DeliveryChallanItem {
-  positionId: string;
-  positionCode: string;
-  bags: number;
-}
-
 export interface DeliveryChallanDoc extends Document {
   id: string;
   facilityId: string;
@@ -18,9 +12,9 @@ export interface DeliveryChallanDoc extends Document {
   customerName: string;
   commodityId: string;
   commodityName: string;
-  chamberId: string;
-  chamberNumber: string;
-  items: DeliveryChallanItem[];
+  /** Free-text chamber label copied from the owning GRN. */
+  chamber: string;
+  bags: number;
   totalBags: number;
   vehicleNumber: string | null;
   driverName: string | null;
@@ -44,15 +38,8 @@ const deliveryChallanSchema = new Schema<DeliveryChallanDoc>(
     customerName: { type: String, required: true, trim: true },
     commodityId: { type: String, required: true, index: true },
     commodityName: { type: String, required: true, trim: true },
-    chamberId: { type: String, required: true, trim: true },
-    chamberNumber: { type: String, required: true, trim: true },
-    items: [
-      {
-        positionId: { type: String, required: true },
-        positionCode: { type: String, required: true },
-        bags: { type: Number, required: true, min: 1 },
-      },
-    ],
+    chamber: { type: String, required: true, trim: true, maxlength: 20 },
+    bags: { type: Number, required: true, min: 1 },
     totalBags: { type: Number, required: true, min: 1 },
     vehicleNumber: { type: String, trim: true, uppercase: true, default: null },
     driverName: { type: String, trim: true, default: null },

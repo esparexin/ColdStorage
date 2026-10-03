@@ -6,11 +6,8 @@ export interface InventoryTransactionDoc extends Document {
   facilityId: string;
   grnId: string;
   grnNumber: string;
-  chamberId: string;
-  rackId: string;
-  levelId: string;
-  positionId: string;
-  positionCode: string;
+  /** Free-text chamber label copied from the owning GRN; capped at 20 characters. */
+  chamber: string;
   customerId: string;
   commodityId: string;
   bagType: BagType;
@@ -29,11 +26,7 @@ const inventoryTransactionSchema = new Schema<InventoryTransactionDoc>(
     facilityId: { type: String, required: true, index: true },
     grnId: { type: String, required: true, index: true },
     grnNumber: { type: String, required: true, index: true },
-    chamberId: { type: String, required: true, index: true },
-    rackId: { type: String, required: true, index: true },
-    levelId: { type: String, required: true, index: true },
-    positionId: { type: String, required: true, index: true },
-    positionCode: { type: String, required: true, trim: true },
+    chamber: { type: String, required: true, trim: true, maxlength: 20, index: true },
     customerId: { type: String, required: true, index: true },
     commodityId: { type: String, required: true, index: true },
     bagType: { type: String, required: true, enum: ['S', 'B', 'S+B'] },
@@ -60,9 +53,8 @@ const inventoryTransactionSchema = new Schema<InventoryTransactionDoc>(
   },
 );
 
-inventoryTransactionSchema.index({ facilityId: 1, positionId: 1 });
 inventoryTransactionSchema.index({ facilityId: 1, grnId: 1 });
-inventoryTransactionSchema.index({ facilityId: 1, chamberId: 1 });
+inventoryTransactionSchema.index({ facilityId: 1, chamber: 1 });
 inventoryTransactionSchema.index({ facilityId: 1, commodityId: 1 });
 inventoryTransactionSchema.index({ facilityId: 1, customerId: 1 });
 inventoryTransactionSchema.index({ facilityId: 1, createdAt: -1 });

@@ -17,11 +17,10 @@ import {
 } from '../../../database/models/delivery-reversal.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
-import { PositionModel } from '../../../database/models/position.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { isTransientError, toChallanEntity, toReversalEntity } from '../delivery.mappers.js';
 import { getDeliverySummary } from '../queries/delivery.queries.js';
-import { validateReversalPositionsAndCapacity } from './delivery-validation.helper.js';
+import { validateReversalBags } from './delivery-validation.helper.js';
 
 export async function reverseDeliveryWithRetry(
   facilityId: string,
@@ -93,11 +92,7 @@ async function executeReversalTransaction(
         throw new Error(`GRN '${grnId}' not found in facility '${facilityId}'`);
       }
 
-      const lockedPositions = await validateReversalPositionsAndCapacity(
-        facilityId,
-        existingChallan.items,
-        session,
-      );
+      await validateReversalBags(facilityId, existingChallan.id, existingChallan.bags, session);
 
       const lockedChallan = await DeliveryChallanModel.findOneAndUpdate(
         { id: deliveryId, facilityId, status: 'ISSUED' },
@@ -133,41 +128,28 @@ async function executeReversalTransaction(
 
       createdReversalDoc = reversalDocs[0];
 
-      const positionDocs = await PositionModel.find(
-        { id: { $in: existingChallan.items.map((i) => i.positionId) } },
-        null,
-        { session },
-      )
-        .lean()
-        .exec();
-      const positionMap = new Map(positionDocs.map((p) => [p.id, p]));
-
-      const reversalLedgerRows = existingChallan.items.map((item) => {
-        const pos = positionMap.get(item.positionId)!;
-        return {
-          id: `tx-${randomUUID()}`,
-          facilityId,
-          grnId: grn.id,
-          grnNumber: grn.grnNumber,
-          chamberId: grn.chamberId,
-          rackId: pos.rackId,
-          levelId: pos.levelId,
-          positionId: pos.id,
-          positionCode: lockedPositions.get(item.positionId)?.code || pos.code,
-          customerId: grn.customerId,
-          commodityId: grn.commodityId,
-          bagType: grn.bagType,
-          transactionType: 'DELIVERY_REVERSAL' as const,
-          quantity: item.bags,
-          referenceType: 'DELIVERY_REVERSAL' as const,
-          referenceId: reversalId,
-          notes: `Reversal of challan ${existingChallan.challanNumber}: ${input.reason.trim()}`,
-          createdBy: userId,
-          createdAt: reversedAt,
-        };
-      });
-
-      await InventoryTransactionModel.create(reversalLedgerRows, { session, ordered: true });
+      await InventoryTransactionModel.create(
+        [
+          {
+            id: `tx-${randomUUID()}`,
+            facilityId,
+            grnId: grn.id,
+            grnNumber: grn.grnNumber,
+            chamber: existingChallan.chamber,
+            customerId: grn.customerId,
+            commodityId: grn.commodityId,
+            bagType: grn.bagType,
+            transactionType: 'DELIVERY_REVERSAL' as const,
+            quantity: existingChallan.bags,
+            referenceType: 'DELIVERY_REVERSAL' as const,
+            referenceId: reversalId,
+            notes: `Reversal of challan ${existingChallan.challanNumber}: ${input.reason.trim()}`,
+            createdBy: userId,
+            createdAt: reversedAt,
+          },
+        ],
+        { session, ordered: true },
+      );
 
       if (grn.status === 'CLOSED') {
         await GrnModel.updateOne({ id: grn.id }, { $set: { status: 'OPEN' } }, { session });

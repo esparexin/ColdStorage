@@ -1,19 +1,13 @@
 import mongoose, { Schema, type Document, type Model } from 'mongoose';
 
-export interface PutAwayAllocationItem {
-  positionId: string;
-  positionCode: string;
-  bags: number;
-}
-
 export interface PutAwayAllocationDoc extends Document {
   id: string;
   facilityId: string;
   grnId: string;
   grnNumber: string;
-  chamberId: string;
-  items: PutAwayAllocationItem[];
-  totalBags: number;
+  /** Free-text chamber label copied from the owning GRN. */
+  chamber: string;
+  bags: number;
   notes: string | null;
   allocatedBy: string;
   allocatedAt: Date;
@@ -27,15 +21,8 @@ const putAwayAllocationSchema = new Schema<PutAwayAllocationDoc>(
     facilityId: { type: String, required: true, index: true },
     grnId: { type: String, required: true, index: true },
     grnNumber: { type: String, required: true, index: true },
-    chamberId: { type: String, required: true, index: true },
-    items: [
-      {
-        positionId: { type: String, required: true },
-        positionCode: { type: String, required: true },
-        bags: { type: Number, required: true, min: 1 },
-      },
-    ],
-    totalBags: { type: Number, required: true, min: 1 },
+    chamber: { type: String, required: true, trim: true, maxlength: 20 },
+    bags: { type: Number, required: true, min: 1 },
     notes: { type: String, trim: true, default: null },
     allocatedBy: { type: String, required: true },
     allocatedAt: { type: Date, required: true, index: true },

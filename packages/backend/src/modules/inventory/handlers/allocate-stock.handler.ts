@@ -4,28 +4,17 @@ import type {
   CreatePutAwayInput,
   GrnInventorySummary,
   PutAwayAllocation,
-  PutAwayItem,
 } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
-import { PositionModel } from '../../../database/models/position.model.js';
 import {
   PutAwayAllocationModel,
   type PutAwayAllocationDoc,
 } from '../../../database/models/put-away.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { assertRentAllowedForOutward } from '../../common/rent-gate.service.js';
-import {
-  ConcurrencyConflictError,
-  isTransientError,
-  toPutAwayEntity,
-} from '../inventory.mappers.js';
-import { getGrnInventorySummary } from '../queries/stock-summary.queries.js';
-
-import {
-  validateAndLockPutAwayPositions,
-  validatePutAwayCapacity,
-} from './allocate-validation.helper.js';
+import { ConcurrencyConflictError, isTransientError, toPutAwayEntity } from '../inventory.mappers.js';
+import { getAllocatedBags, getGrnInventorySummary } from '../queries/stock-summary.queries.js';
 
 export async function createPutAwayWithRetry(
   facilityId: string,
@@ -46,11 +35,9 @@ export async function createPutAwayWithRetry(
         await new Promise((resolve) => setTimeout(resolve, delayMs));
         continue;
       }
-
       if (isTransientError(err)) {
         throw new ConcurrencyConflictError();
       }
-
       throw err;
     }
   }
@@ -58,6 +45,14 @@ export async function createPutAwayWithRetry(
   throw new ConcurrencyConflictError();
 }
 
+/**
+ * Confirms a GRN's remaining bags are on hand in the chamber recorded on that GRN.
+ *
+ * A GRN is one commodity in one chamber, so allocation is whole-lot: the outstanding bag count
+ * is what gets allocated, there is no per-position breakdown and no capacity to check against.
+ * The GRN row is bumped inside the transaction to serialise concurrent put-aways on the same
+ * GRN, which is what previously came from locking storage positions.
+ */
 async function executePutAwayTransaction(
   facilityId: string,
   grnId: string,
@@ -90,30 +85,15 @@ async function executePutAwayTransaction(
         session,
       );
 
-      const lockedPositions = await validateAndLockPutAwayPositions(
-        facilityId,
-        grn.chamberId,
-        input.items,
-        session,
-      );
-
-      const totalRequestedBags = await validatePutAwayCapacity(
-        facilityId,
-        grn.id,
-        grn.bags,
-        input.items,
-        lockedPositions,
-        session,
-      );
+      const alreadyAllocated = await getAllocatedBags(facilityId, grn.id, session);
+      const remainingBags = grn.bags - alreadyAllocated;
+      if (remainingBags <= 0) {
+        throw new Error(`GRN '${grn.grnNumber}' is already fully allocated`);
+      }
 
       const putAwayId = `pa-${randomUUID()}`;
       const allocatedAt = new Date();
-
-      const putAwayItems: PutAwayItem[] = input.items.map((item) => ({
-        positionId: item.positionId,
-        positionCode: lockedPositions.get(item.positionId)!.code,
-        bags: item.bags,
-      }));
+      const notes = input.notes?.trim() || null;
 
       const putAwayDocs = await PutAwayAllocationModel.create(
         [
@@ -122,10 +102,9 @@ async function executePutAwayTransaction(
             facilityId,
             grnId: grn.id,
             grnNumber: grn.grnNumber,
-            chamberId: grn.chamberId,
-            items: putAwayItems,
-            totalBags: totalRequestedBags,
-            notes: input.notes?.trim() || null,
+            chamber: grn.chamber,
+            bags: remainingBags,
+            notes,
             allocatedBy: userId,
             allocatedAt,
           },
@@ -135,42 +114,28 @@ async function executePutAwayTransaction(
 
       createdPutAwayDoc = putAwayDocs[0];
 
-      const positionDocs = await PositionModel.find(
-        { id: { $in: input.items.map((i) => i.positionId) } },
-        null,
-        { session },
-      )
-        .lean()
-        .exec();
-
-      const positionMap = new Map(positionDocs.map((p) => [p.id, p]));
-
-      const ledgerDocsToCreate = input.items.map((item) => {
-        const pos = positionMap.get(item.positionId)!;
-        return {
-          id: `tx-${randomUUID()}`,
-          facilityId,
-          grnId: grn.id,
-          grnNumber: grn.grnNumber,
-          chamberId: grn.chamberId,
-          rackId: pos.rackId,
-          levelId: pos.levelId,
-          positionId: pos.id,
-          positionCode: pos.code,
-          customerId: grn.customerId,
-          commodityId: grn.commodityId,
-          bagType: grn.bagType,
-          transactionType: 'INWARD_PUTAWAY' as const,
-          quantity: item.bags,
-          referenceType: 'PUT_AWAY' as const,
-          referenceId: putAwayId,
-          notes: input.notes?.trim() || null,
-          createdBy: userId,
-          createdAt: allocatedAt,
-        };
-      });
-
-      await InventoryTransactionModel.create(ledgerDocsToCreate, { session, ordered: true });
+      await InventoryTransactionModel.create(
+        [
+          {
+            id: `tx-${randomUUID()}`,
+            facilityId,
+            grnId: grn.id,
+            grnNumber: grn.grnNumber,
+            chamber: grn.chamber,
+            customerId: grn.customerId,
+            commodityId: grn.commodityId,
+            bagType: grn.bagType,
+            transactionType: 'INWARD_PUTAWAY' as const,
+            quantity: remainingBags,
+            referenceType: 'PUT_AWAY' as const,
+            referenceId: putAwayId,
+            notes,
+            createdBy: userId,
+            createdAt: allocatedAt,
+          },
+        ],
+        { session, ordered: true },
+      );
     });
   } finally {
     await session.endSession();
@@ -188,8 +153,8 @@ async function executePutAwayTransaction(
     resourceId: putAway.id,
     details: {
       grnId,
-      itemsCount: input.items.length,
-      totalBags: input.items.reduce((acc, curr) => acc + curr.bags, 0),
+      chamber: putAway.chamber,
+      bags: putAway.bags,
     },
   });
 

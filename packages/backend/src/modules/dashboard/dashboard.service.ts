@@ -1,14 +1,10 @@
 import type { DashboardSummary } from '@cold-storage/contracts';
 import {
-  projectChamberUtilization,
+  projectChamberStock,
   projectCommodityBreakdown,
   projectRecentActivity,
 } from './dashboard-projections.js';
-import {
-  fetchPhaseAData,
-  fetchPhaseBData,
-  getIstMonthlyWindow,
-} from './dashboard-queries.js';
+import { fetchPhaseAData, fetchPhaseBData, getIstMonthlyWindow } from './dashboard-queries.js';
 
 export class DashboardService {
   /**
@@ -19,19 +15,19 @@ export class DashboardService {
    *   authenticate → requirePasswordChanged → requirePermission('dashboard:view')
    *   → requireFacilityScope(...).
    *   This service trusts the facilityId it receives.
+   *
+   * There is no capacity, occupancy or utilization to report: chamber is a free-text label, so
+   * the summary reports stock held per chamber label alongside the commodity breakdown.
    */
   public async getSummary(facilityId: string): Promise<DashboardSummary> {
     const now = new Date();
     const { startOfMonth, startOfNextMonth } = getIstMonthlyWindow(now);
 
-    const [
-      positionCapacities,
-      chambers,
-      facilityTotals,
-      stockBreakdown,
-      grnCounts,
-      recentTxns,
-    ] = await fetchPhaseAData(facilityId, startOfMonth, startOfNextMonth);
+    const [facilityTotals, stockBreakdown, grnCounts, recentTxns] = await fetchPhaseAData(
+      facilityId,
+      startOfMonth,
+      startOfNextMonth,
+    );
 
     const facetResult = stockBreakdown[0] ?? { byChamber: [], byCommodity: [] };
     const commodityIds = facetResult.byCommodity.map((c) => c._id);
@@ -60,49 +56,23 @@ export class DashboardService {
     );
 
     const totals = facilityTotals[0];
-    const rawOccupied = totals?.occupiedBags ?? 0;
-    const rawMonthlyInward = totals?.monthlyInward ?? 0;
-    const rawMonthlyDelivered = totals?.monthlyDelivered ?? 0;
-
-    const capacityMap = new Map<string, number>(
-      positionCapacities.map((p) => [p._id, p.capacityBags]),
-    );
-    const totalCapacityBags = positionCapacities.reduce((sum, p) => sum + p.capacityBags, 0);
-    const occupiedBags = rawOccupied;
-    const availableBags = Math.max(0, totalCapacityBags - occupiedBags);
-    const utilizationRate =
-      totalCapacityBags === 0
-        ? 0
-        : Math.min(100, Math.round((occupiedBags / totalCapacityBags) * 10000) / 100);
-
     const activeGrns = grnCounts.find((g) => g._id === 'OPEN')?.count ?? 0;
     const closedGrns = grnCounts.find((g) => g._id === 'CLOSED')?.count ?? 0;
 
-    const chamberStockMap = new Map<string, number>(
-      facetResult.byChamber.map((c) => [c._id, c.occupiedBags]),
-    );
-
-    const chamberUtilization = projectChamberUtilization(chambers, capacityMap, chamberStockMap);
-    const commodityBreakdown = projectCommodityBreakdown(facetResult.byCommodity, commodityMap);
-    const recentActivity = projectRecentActivity(
-      recentTxns as unknown as Parameters<typeof projectRecentActivity>[0],
-      challanMap,
-      reversalMap,
-    );
-
     return {
       facilityId,
-      totalCapacityBags,
-      occupiedBags,
-      availableBags,
-      utilizationRate,
+      totalStockBags: totals?.occupiedBags ?? 0,
       activeGrns,
       closedGrns,
-      monthlyInwardBags: Math.max(0, rawMonthlyInward),
-      monthlyDeliveredBags: rawMonthlyDelivered,
-      chamberUtilization,
-      commodityBreakdown,
-      recentActivity,
+      monthlyInwardBags: Math.max(0, totals?.monthlyInward ?? 0),
+      monthlyDeliveredBags: totals?.monthlyDelivered ?? 0,
+      chamberStock: projectChamberStock(facetResult.byChamber),
+      commodityBreakdown: projectCommodityBreakdown(facetResult.byCommodity, commodityMap),
+      recentActivity: projectRecentActivity(
+        recentTxns as unknown as Parameters<typeof projectRecentActivity>[0],
+        challanMap,
+        reversalMap,
+      ),
       generatedAt: now,
     };
   }

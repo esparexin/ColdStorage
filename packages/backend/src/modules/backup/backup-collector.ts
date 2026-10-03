@@ -1,5 +1,4 @@
 import { AuditLogModel } from '../../database/models/audit-log.model.js';
-import { ChamberModel } from '../../database/models/chamber.model.js';
 import { CommodityModel } from '../../database/models/commodity.model.js';
 import { CounterModel } from '../../database/models/counter.model.js';
 import { CustomerModel } from '../../database/models/customer.model.js';
@@ -8,10 +7,7 @@ import { DeliveryReversalModel } from '../../database/models/delivery-reversal.m
 import { FacilityModel } from '../../database/models/facility.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
-import { LevelModel } from '../../database/models/level.model.js';
-import { PositionModel } from '../../database/models/position.model.js';
 import { PutAwayAllocationModel } from '../../database/models/put-away.model.js';
-import { RackModel } from '../../database/models/rack.model.js';
 import { SystemSettingsModel } from '../../database/models/system-settings.model.js';
 import { UserModel } from '../../database/models/user.model.js';
 
@@ -24,10 +20,6 @@ export async function collectBackupEntities(): Promise<Record<string, unknown>> 
     systemSettings,
     users,
     facilities,
-    chambers,
-    racks,
-    levels,
-    positions,
     customers,
     commodities,
     grns,
@@ -41,10 +33,6 @@ export async function collectBackupEntities(): Promise<Record<string, unknown>> 
     SystemSettingsModel.find().lean().exec(),
     UserModel.find().lean().exec(),
     FacilityModel.find().lean().exec(),
-    ChamberModel.find().lean().exec(),
-    RackModel.find().lean().exec(),
-    LevelModel.find().lean().exec(),
-    PositionModel.find().lean().exec(),
     CustomerModel.find().lean().exec(),
     CommodityModel.find().lean().exec(),
     GrnModel.find().lean().exec(),
@@ -60,10 +48,6 @@ export async function collectBackupEntities(): Promise<Record<string, unknown>> 
     systemSettings,
     users,
     facilities,
-    chambers,
-    racks,
-    levels,
-    positions,
     customers,
     commodities,
     grns,

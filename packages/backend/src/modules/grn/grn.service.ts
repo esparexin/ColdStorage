@@ -39,8 +39,8 @@ export class GrnService {
     if (query.commodityId) {
       filter.commodityId = query.commodityId;
     }
-    if (query.chamberId) {
-      filter.chamberId = query.chamberId;
+    if (query.chamber) {
+      filter.chamber = query.chamber;
     }
     if (query.status) {
       filter.status = query.status;

@@ -156,8 +156,6 @@ documentRouter.get(
     const amount = req.query.amount ? Number(req.query.amount) : undefined;
     const customerName =
       typeof req.query.customerName === 'string' ? req.query.customerName : undefined;
-    const customerMobile =
-      typeof req.query.customerMobile === 'string' ? req.query.customerMobile : undefined;
     const paymentMode =
       req.query.paymentMode === 'UPI' || req.query.paymentMode === 'Cash'
         ? req.query.paymentMode
@@ -166,7 +164,6 @@ documentRouter.get(
     try {
       const html = await documentService.renderRentReceiptPreview(facilityId, userId, {
         customerName,
-        customerMobile,
         amount,
         paymentMode,
       });

@@ -11,8 +11,8 @@ export function renderRentReceiptTemplate(
       <tr>
         <th style="width: 25%;">Customer Name</th>
         <td style="width: 25%;"><strong>${escapeHtml(dto.customerName)}</strong></td>
-        <th style="width: 25%;">Mobile Number</th>
-        <td style="width: 25%;">${escapeHtml(dto.customerMobile)}</td>
+        <th style="width: 25%;">Commodity</th>
+        <td style="width: 25%;">${escapeHtml(dto.commodityName)}</td>
       </tr>
       <tr>
         <th>GRN Reference</th>

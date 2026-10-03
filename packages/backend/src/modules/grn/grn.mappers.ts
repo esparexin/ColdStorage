@@ -10,8 +10,7 @@ export function toGrnEntity(doc: {
   customerName: string;
   commodityId: string;
   commodityName: string;
-  chamberId: string;
-  chamberNumber: string;
+  chamber: string;
   bags: number;
   bagType: string;
   nominalUnitWeight?: number | null;
@@ -40,8 +39,7 @@ export function toGrnEntity(doc: {
     customerName: doc.customerName,
     commodityId: doc.commodityId,
     commodityName: doc.commodityName,
-    chamberId: doc.chamberId,
-    chamberNumber: doc.chamberNumber,
+    chamber: doc.chamber,
     bags: doc.bags,
     bagType: doc.bagType as Grn['bagType'],
     nominalUnitWeight: doc.nominalUnitWeight ?? null,
@@ -78,8 +76,7 @@ export function toGrnAcknowledgement(grn: Grn): GrnAcknowledgement {
       name: grn.commodityName,
     },
     storageLocation: {
-      chamberId: grn.chamberId,
-      chamberNumber: grn.chamberNumber,
+      chamber: grn.chamber,
     },
     bagAccounting: {
       bags: grn.bags,
