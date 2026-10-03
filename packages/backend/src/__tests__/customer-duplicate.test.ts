@@ -8,14 +8,19 @@ import { FacilityModel } from '../database/models/facility.model.js';
 import { UserModel } from '../database/models/user.model.js';
 import { hashPassword } from '../utils/crypto.js';
 
+import { authService } from '../modules/auth/auth.service.js';
+import { clearRateLimiterStore } from '../middleware/rate-limiter.middleware.js';
+
 describe('Customer Duplicate Prevention Integration', () => {
   const app = createApp();
   const TEST_PASSWORD = 'TestPassword123!';
   let adminToken: string;
+  let adminUser: string;
   let facilityA: string;
   let facilityB: string;
 
   beforeAll(async () => {
+    clearRateLimiterStore();
     await connectToDatabase('mongodb://127.0.0.1:27017/cold_storage_test');
 
     facilityA = `fac-dup-a-${randomUUID().slice(0, 8)}`;
@@ -25,7 +30,7 @@ describe('Customer Duplicate Prevention Integration', () => {
       { id: facilityB, name: 'Facility Beta', code: `FB-${randomUUID().slice(0, 4)}`, isActive: true },
     ]);
 
-    const adminUser = `admin_${randomUUID().slice(0, 8)}`;
+    adminUser = `admin_${randomUUID().slice(0, 8)}`;
     await UserModel.create({
       id: `usr-${randomUUID()}`,
       fullName: 'Super Admin Test',
@@ -41,13 +46,15 @@ describe('Customer Duplicate Prevention Integration', () => {
       isActive: true,
     });
 
-    const loginRes = await request(app).post('/api/auth/login').send({ username: adminUser, password: TEST_PASSWORD });
-    adminToken = loginRes.body.token as string;
+    const loginRes = await authService.login({ username: adminUser, password: TEST_PASSWORD });
+    adminToken = loginRes.accessToken;
   });
 
   afterAll(async () => {
     await CustomerModel.deleteMany({ facilityIds: { $in: [facilityA, facilityB] } });
     await FacilityModel.deleteMany({ id: { $in: [facilityA, facilityB] } });
+    await UserModel.deleteMany({ username: adminUser });
+    clearRateLimiterStore();
     await disconnectDatabase();
   });
 

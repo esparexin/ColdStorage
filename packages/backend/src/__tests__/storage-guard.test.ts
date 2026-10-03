@@ -9,6 +9,7 @@ import { LevelModel } from '../database/models/level.model.js';
 import { PositionModel } from '../database/models/position.model.js';
 import { RackModel } from '../database/models/rack.model.js';
 import { UserModel } from '../database/models/user.model.js';
+import { clearRateLimiterStore } from '../middleware/rate-limiter.middleware.js';
 import { authService } from '../modules/auth/auth.service.js';
 import { hashPassword } from '../utils/crypto.js';
 
@@ -23,6 +24,7 @@ describe('Storage Rack Space Protection Guards', () => {
   const posId = 'pos-guard-1';
 
   beforeAll(async () => {
+    clearRateLimiterStore();
     const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/cold_storage_test';
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(mongoUri);
@@ -30,19 +32,20 @@ describe('Storage Rack Space Protection Guards', () => {
   });
 
   afterAll(async () => {
+    clearRateLimiterStore();
     if (mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();
     }
   });
 
   beforeEach(async () => {
-    await FacilityModel.deleteMany({});
-    await ChamberModel.deleteMany({});
-    await RackModel.deleteMany({});
-    await LevelModel.deleteMany({});
-    await PositionModel.deleteMany({});
-    await InventoryTransactionModel.deleteMany({});
-    await UserModel.deleteMany({});
+    await FacilityModel.deleteMany({ id: facilityId });
+    await ChamberModel.deleteMany({ facilityId });
+    await RackModel.deleteMany({ facilityId });
+    await LevelModel.deleteMany({ facilityId });
+    await PositionModel.deleteMany({ facilityId });
+    await InventoryTransactionModel.deleteMany({ facilityId });
+    await UserModel.deleteMany({ username: 'guard.admin' });
 
     await FacilityModel.create({
       id: facilityId,
