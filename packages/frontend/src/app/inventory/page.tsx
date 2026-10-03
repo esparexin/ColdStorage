@@ -11,7 +11,6 @@ import { InventoryHeader } from './components/InventoryHeader';
 import { LedgerTab } from './components/LedgerTab';
 import { OccupancyInspectorModal } from './components/OccupancyInspectorModal';
 import { PutAwayTab } from './components/PutAwayTab';
-import { StorageCreationModals } from './components/StorageCreationModals';
 import { useInventoryData } from './hooks/useInventoryData';
 import { usePutAway } from './hooks/usePutAway';
 import { useStockLedger } from './hooks/useStockLedger';
@@ -38,11 +37,6 @@ function InventoryContent() {
   });
   const hierarchy = useStorageHierarchy(selectedFacilityId);
   const ledger = useStockLedger(selectedFacilityId);
-
-  // Storage creation modal triggers
-  const [isAddChamberOpen, setIsAddChamberOpen] = useState(false);
-  const [targetChamberForRack, setTargetChamberForRack] = useState<string | null>(null);
-  const [targetLevelForPos, setTargetLevelForPos] = useState<string | null>(null);
 
   const currentFacilityName = useMemo(() => {
     return (
@@ -84,9 +78,6 @@ function InventoryContent() {
         <HierarchyTab
           hierarchy={hierarchy}
           canManageStorage={canManageStorage}
-          onOpenAddChamber={() => setIsAddChamberOpen(true)}
-          onOpenAddRack={(chamberId) => setTargetChamberForRack(chamberId)}
-          onOpenAddPosition={(levelId) => setTargetLevelForPos(levelId)}
         />
       )}
 
@@ -103,23 +94,6 @@ function InventoryContent() {
           onClose={() => hierarchy.setSelectedOccupancy(null)}
         />
       )}
-
-      <StorageCreationModals
-        facilityId={selectedFacilityId}
-        isAddChamberOpen={isAddChamberOpen}
-        onCloseAddChamber={() => setIsAddChamberOpen(false)}
-        targetChamberForRack={targetChamberForRack}
-        onCloseAddRack={() => setTargetChamberForRack(null)}
-        targetLevelForPos={targetLevelForPos}
-        onCloseAddPosition={() => setTargetLevelForPos(null)}
-        onHierarchyMutated={() => {
-          void hierarchy.fetchChambers();
-          if (hierarchy.activeChamberId) {
-            void hierarchy.fetchChamberHierarchy(hierarchy.activeChamberId);
-          }
-          void inventoryData.fetchStockSummary();
-        }}
-      />
     </div>
   );
 }
