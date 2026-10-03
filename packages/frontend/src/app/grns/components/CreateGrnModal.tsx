@@ -9,25 +9,13 @@ import { CommodityFormModal } from '../../commodities/components/CommodityFormMo
 import styles from '../page.module.css';
 
 interface CreateGrnModalProps {
-  facilityId: string;
-  customers: Customer[];
-  commodities: Commodity[];
-  chambers: Chamber[];
-  onClose: () => void;
-  onSuccess: (newGrn: Grn) => void;
-  onCustomerAdded?: () => void;
-  onCommodityAdded?: () => void;
+  facilityId: string; customers: Customer[]; commodities: Commodity[]; chambers: Chamber[];
+  onClose: () => void; onSuccess: (newGrn: Grn) => void;
+  onCustomerAdded?: () => void; onCommodityAdded?: () => void;
 }
 
 export function CreateGrnModal({
-  facilityId,
-  customers,
-  commodities,
-  chambers,
-  onClose,
-  onSuccess,
-  onCustomerAdded,
-  onCommodityAdded,
+  facilityId, customers, commodities, chambers, onClose, onSuccess, onCustomerAdded, onCommodityAdded,
 }: CreateGrnModalProps) {
   const form = useCreateGrnForm(facilityId, customers, commodities, chambers, onSuccess);
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
@@ -133,44 +121,57 @@ export function CreateGrnModal({
               <div className={styles.fieldGroup}>
                 <label htmlFor="create-bag-type" className={styles.fieldLabel}>Bag Type *</label>
                 <select id="create-bag-type" required value={form.createBagType} onChange={(e) => form.handleBagTypeChange(e.target.value as BagType)} className={styles.fieldSelect}>
-                  <option value="S">Small Bag</option>
-                  <option value="B">Big Bag</option>
+                  <option value="S">Small Bag (S)</option>
+                  <option value="B">Big Bag (B)</option>
                   <option value="S+B">Mixed (Small + Big)</option>
                 </select>
               </div>
             </div>
             <h3 className={styles.sectionHeading}>Quantity & Weight Accounting</h3>
             {form.createBagType === 'S+B' ? (
-              <div className={styles.formGrid2}>
-                <div className={styles.fieldGroup}>
-                  <label htmlFor="create-small-bags" className={styles.fieldLabel}>Small Bags *</label>
-                  <input id="create-small-bags" type="number" min={0} max={100000} value={form.createSmallBags} onChange={(e) => form.handleSmallBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')} placeholder="e.g. 100" className={styles.fieldInput} />
+              <>
+                <div className={styles.formGrid2}>
+                  <div className={styles.fieldGroup}>
+                    <label htmlFor="create-small-bags" className={styles.fieldLabel}>Small Bags Quantity *</label>
+                    <input id="create-small-bags" type="number" min={0} max={100000} value={form.createSmallBags} onChange={(e) => form.handleSmallBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')} placeholder="e.g. 100" className={styles.fieldInput} />
+                  </div>
+                  <div className={styles.fieldGroup}>
+                    <label htmlFor="create-big-bags" className={styles.fieldLabel}>Big Bags Quantity *</label>
+                    <input id="create-big-bags" type="number" min={0} max={100000} value={form.createBigBags} onChange={(e) => form.handleBigBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')} placeholder="e.g. 20" className={styles.fieldInput} />
+                  </div>
                 </div>
-                <div className={styles.fieldGroup}>
-                  <label htmlFor="create-big-bags" className={styles.fieldLabel}>Big Bags *</label>
-                  <input id="create-big-bags" type="number" min={0} max={100000} value={form.createBigBags} onChange={(e) => form.handleBigBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')} placeholder="e.g. 20" className={styles.fieldInput} />
+                <div className={styles.formGrid2}>
+                  <div className={styles.fieldGroup}>
+                    <label htmlFor="create-bags-total" className={styles.fieldLabel}>Total Bags (Calculated)</label>
+                    <input id="create-bags-total" type="number" disabled value={form.createBags} className={styles.fieldInput} />
+                  </div>
+                  <div className={styles.fieldGroup}>
+                    <label htmlFor="create-actual-weight" className={styles.fieldLabel}>Weighbridge Weight (kg) (Optional)</label>
+                    <input id="create-actual-weight" type="number" step="0.01" min={0} value={form.createActualWeight} onChange={(e) => form.setCreateActualWeight(e.target.value ? parseFloat(e.target.value) : '')} className={styles.fieldInput} />
+                  </div>
                 </div>
-                <div className={styles.fieldGroup}>
-                  <label htmlFor="create-bags-total" className={styles.fieldLabel}>Total Bags</label>
-                  <input id="create-bags-total" type="number" disabled value={form.createBags} className={styles.fieldInput} />
-                  <span className={styles.fieldHint}>Auto-calculated (Small + Big bags)</span>
-                </div>
-                <div className={styles.fieldGroup}>
-                  <label htmlFor="create-actual-weight" className={styles.fieldLabel}>Weighbridge Weight (kg) (Optional)</label>
-                  <input id="create-actual-weight" type="number" step="0.01" min={0} value={form.createActualWeight} onChange={(e) => form.setCreateActualWeight(e.target.value ? parseFloat(e.target.value) : '')} className={styles.fieldInput} />
-                  <span className={styles.fieldHint}>Optional — leave blank if no weighbridge reading is available.</span>
-                </div>
-              </div>
+              </>
             ) : (
               <div className={styles.formGrid2}>
                 <div className={styles.fieldGroup}>
-                  <label htmlFor="create-bags" className={styles.fieldLabel}>Total Bags *</label>
-                  <input id="create-bags" type="number" required min={1} max={100000} value={form.createBags} onChange={(e) => form.handleBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')} placeholder="e.g. 250" className={styles.fieldInput} />
+                  <label htmlFor="create-bags" className={styles.fieldLabel}>
+                    {form.createBagType === 'S' ? 'Small Bags Quantity *' : 'Big Bags Quantity *'}
+                  </label>
+                  <input
+                    id="create-bags"
+                    type="number"
+                    required
+                    min={1}
+                    max={100000}
+                    value={form.createBags}
+                    onChange={(e) => form.handleBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')}
+                    placeholder={form.createBagType === 'S' ? 'e.g. 250 (Small)' : 'e.g. 150 (Big)'}
+                    className={styles.fieldInput}
+                  />
                 </div>
                 <div className={styles.fieldGroup}>
                   <label htmlFor="create-actual-weight" className={styles.fieldLabel}>Weighbridge Weight (kg) (Optional)</label>
                   <input id="create-actual-weight" type="number" step="0.01" min={0} value={form.createActualWeight} onChange={(e) => form.setCreateActualWeight(e.target.value ? parseFloat(e.target.value) : '')} className={styles.fieldInput} />
-                  <span className={styles.fieldHint}>Optional — leave blank if no weighbridge reading is available.</span>
                 </div>
               </div>
             )}
@@ -228,7 +229,7 @@ export function CreateGrnModal({
       </div>
     </div>
     {isAddingCustomer && (
-      <CustomerFormModal customer={null} selectedFacilityId={facilityId} onClose={() => setIsAddingCustomer(false)} onSuccess={() => { setIsAddingCustomer(false); onCustomerAdded?.(); }} />
+      <CustomerFormModal customer={null} selectedFacilityId={facilityId} existingCustomers={customers} onClose={() => setIsAddingCustomer(false)} onSuccess={() => { setIsAddingCustomer(false); onCustomerAdded?.(); }} />
     )}
     {isAddingCommodity && (
       <CommodityFormModal onClose={() => setIsAddingCommodity(false)} onSuccess={() => { setIsAddingCommodity(false); onCommodityAdded?.(); }} />

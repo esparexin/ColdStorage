@@ -109,6 +109,7 @@ export default function CustomersPage() {
           customer={editingCustomer}
           selectedFacilityId={selectedFacilityId}
           userFacilityIds={user?.facilityIds}
+          existingCustomers={customers}
           onClose={closeModal}
           onSuccess={() => {
             closeModal();

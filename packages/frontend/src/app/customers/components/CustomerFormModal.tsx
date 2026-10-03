@@ -11,6 +11,7 @@ interface CustomerFormModalProps {
   customer: Customer | null;
   selectedFacilityId: string | null;
   userFacilityIds?: string[];
+  existingCustomers?: Customer[];
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -19,6 +20,7 @@ export function CustomerFormModal({
   customer,
   selectedFacilityId,
   userFacilityIds = [],
+  existingCustomers,
   onClose,
   onSuccess,
 }: CustomerFormModalProps) {
@@ -42,6 +44,18 @@ export function CustomerFormModal({
     }
     if (!indianMobileSchema.safeParse(trimmedMobile).success) {
       setModalError('Mobile must be a valid 10-digit Indian number (starts with 6-9)');
+      return;
+    }
+
+    const duplicateMobile = existingCustomers?.find((c) => c.id !== customer?.id && c.mobile === trimmedMobile);
+    if (duplicateMobile) {
+      setModalError(`Customer with mobile '${trimmedMobile}' already exists (${duplicateMobile.name})`);
+      return;
+    }
+
+    const duplicateName = existingCustomers?.find((c) => c.id !== customer?.id && c.name.trim().toLowerCase() === trimmedName.toLowerCase());
+    if (duplicateName) {
+      setModalError(`Customer with name '${trimmedName}' already exists`);
       return;
     }
 
