@@ -81,9 +81,11 @@ export function InventoryHeader({
         </div>
       </div>
 
-      <div className={styles.tabsBar}>
+      <div className={styles.tabsBar} role="tablist" aria-label="Inventory views">
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === 'put-away'}
           className={`${styles.tabBtn} ${activeTab === 'put-away' ? styles.tabBtnActive : ''}`}
           onClick={() => onTabChange('put-away')}
         >
@@ -94,6 +96,8 @@ export function InventoryHeader({
 
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === 'hierarchy'}
           className={`${styles.tabBtn} ${activeTab === 'hierarchy' ? styles.tabBtnActive : ''}`}
           onClick={() => onTabChange('hierarchy')}
         >
@@ -103,6 +107,8 @@ export function InventoryHeader({
 
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === 'ledger'}
           className={`${styles.tabBtn} ${activeTab === 'ledger' ? styles.tabBtnActive : ''}`}
           onClick={() => onTabChange('ledger')}
         >

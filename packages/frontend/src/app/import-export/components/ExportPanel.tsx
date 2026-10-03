@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Download } from 'lucide-react';
+import { Button } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface ExportPanelProps {
@@ -25,7 +26,7 @@ export function ExportPanel({
       </div>
 
       {!canExport ? (
-        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
+        <p className={styles.mutedNote}>
           Your role does not have authorization to download certified data exports.
         </p>
       ) : (
@@ -37,15 +38,16 @@ export function ExportPanel({
                 All registered customer accounts, mobile numbers, and GSTIN identifiers.
               </span>
             </div>
-            <button
-              type="button"
-              className={styles.exportBtn}
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => onExport('customers', `customers-${selectedFacilityId}.csv`)}
               disabled={exportingType === 'customers'}
+              isLoading={exportingType === 'customers'}
+              leftIcon={<Download size={13} aria-hidden="true" />}
             >
-              <Download size={13} aria-hidden="true" />
               {exportingType === 'customers' ? 'Exporting...' : 'Export CSV'}
-            </button>
+            </Button>
           </div>
 
           <div className={styles.exportCard}>
@@ -55,15 +57,16 @@ export function ExportPanel({
                 All GRN records, bag accounting, weighbridge weights, and rent structures.
               </span>
             </div>
-            <button
-              type="button"
-              className={styles.exportBtn}
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => onExport('grns', `grns-${selectedFacilityId}.csv`)}
               disabled={exportingType === 'grns'}
+              isLoading={exportingType === 'grns'}
+              leftIcon={<Download size={13} aria-hidden="true" />}
             >
-              <Download size={13} aria-hidden="true" />
               {exportingType === 'grns' ? 'Exporting...' : 'Export CSV'}
-            </button>
+            </Button>
           </div>
 
           <div className={styles.exportCard}>
@@ -73,15 +76,16 @@ export function ExportPanel({
                 Issued challans, dispatched quantities, vehicles, and status events.
               </span>
             </div>
-            <button
-              type="button"
-              className={styles.exportBtn}
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => onExport('deliveries', `deliveries-${selectedFacilityId}.csv`)}
               disabled={exportingType === 'deliveries'}
+              isLoading={exportingType === 'deliveries'}
+              leftIcon={<Download size={13} aria-hidden="true" />}
             >
-              <Download size={13} aria-hidden="true" />
               {exportingType === 'deliveries' ? 'Exporting...' : 'Export CSV'}
-            </button>
+            </Button>
           </div>
 
           <div className={styles.exportCard}>
@@ -91,15 +95,16 @@ export function ExportPanel({
                 Aggregated stock bag quantities categorized by commodity and chamber.
               </span>
             </div>
-            <button
-              type="button"
-              className={styles.exportBtn}
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => onExport('stock-summary', `stock-summary-${selectedFacilityId}.csv`)}
               disabled={exportingType === 'stock-summary'}
+              isLoading={exportingType === 'stock-summary'}
+              leftIcon={<Download size={13} aria-hidden="true" />}
             >
-              <Download size={13} aria-hidden="true" />
               {exportingType === 'stock-summary' ? 'Exporting...' : 'Export CSV'}
-            </button>
+            </Button>
           </div>
 
           <div className={styles.exportCard}>
@@ -109,15 +114,16 @@ export function ExportPanel({
                 Full transaction audit trail (Put-Aways, Deliveries, Reversals).
               </span>
             </div>
-            <button
-              type="button"
-              className={styles.exportBtn}
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => onExport('inventory-ledger', `ledger-${selectedFacilityId}.csv`)}
               disabled={exportingType === 'inventory-ledger'}
+              isLoading={exportingType === 'inventory-ledger'}
+              leftIcon={<Download size={13} aria-hidden="true" />}
             >
-              <Download size={13} aria-hidden="true" />
               {exportingType === 'inventory-ledger' ? 'Exporting...' : 'Export CSV'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
