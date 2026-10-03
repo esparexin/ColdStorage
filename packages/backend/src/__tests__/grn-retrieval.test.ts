@@ -56,7 +56,7 @@ describe('GRN Retrieval & Acknowledgement Projections', () => {
 
     await FacilityModel.create({
       id: northFacilityId,
-      code: 'NORTH',
+      code: 'NORTHR',
       name: 'North Cold Facility',
       isActive: true,
     });

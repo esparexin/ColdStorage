@@ -53,7 +53,7 @@ describe('GRN Facility Scoping, RBAC & Child-ID Protection', () => {
 
     await FacilityModel.create({
       id: northFacilityId,
-      code: 'NORTH',
+      code: 'NORTHS',
       name: 'North Cold Facility',
       isActive: true,
     });

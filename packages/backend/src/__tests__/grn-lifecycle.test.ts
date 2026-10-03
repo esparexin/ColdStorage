@@ -48,7 +48,7 @@ describe('GRN Lifecycle & Sequences Integration', () => {
 
     await FacilityModel.create({
       id: northFacilityId,
-      code: 'NORTH',
+      code: 'NORTHL',
       name: 'North Cold Facility',
       isActive: true,
     });

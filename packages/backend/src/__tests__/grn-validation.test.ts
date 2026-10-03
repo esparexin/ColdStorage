@@ -49,7 +49,7 @@ describe('GRN Relational Validation & Business Constraints', () => {
 
     await FacilityModel.create({
       id: northFacilityId,
-      code: 'NORTH',
+      code: 'NORTHV',
       name: 'North Cold Facility',
       isActive: true,
     });
