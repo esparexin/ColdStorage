@@ -3,6 +3,7 @@
 import React from 'react';
 import { Cloud, Lock, Shield } from 'lucide-react';
 import type { BackupStatusResponse } from '@cold-storage/contracts';
+import { Badge, Card } from '@/components/ui';
 import { formatDate } from '../utils';
 import styles from '../page.module.css';
 
@@ -11,84 +12,70 @@ interface BackupStatusCardsProps {
 }
 
 export function BackupStatusCards({ backupStatus }: BackupStatusCardsProps) {
+  const atlas = backupStatus?.atlasManagedBackup;
+  const appBackup = backupStatus?.applicationEncryptedBackup;
+
   return (
     <section className={styles.cardsGrid} aria-label="Backup Status Projections">
-      <div className={styles.statusCard}>
-        <div className={styles.cardHeader}>
-          <div className={styles.cardHeaderLeft}>
-            <Cloud size={20} color="var(--color-primary)" />
-            <h2>Platform Continuous Backup</h2>
-          </div>
-          <span className={`${styles.badge} ${styles.badgeSuccess}`}>
-            {backupStatus?.atlasManagedBackup.status || 'CONFIGURED'}
+      <Card
+        title={
+          <span className={styles.cardHeaderLeft}>
+            <Cloud size={20} color="var(--color-primary)" aria-hidden="true" />
+            Platform Continuous Backup
           </span>
-        </div>
-        <div className={styles.metricsList}>
+        }
+        headerAction={<Badge variant="success">{atlas?.status || 'CONFIGURED'}</Badge>}
+      >
+        <dl className={styles.metricsList}>
           <div className={styles.metricRow}>
-            <span className={styles.metricLabel}>Provider</span>
-            <span className={styles.metricValue}>
-              {backupStatus?.atlasManagedBackup.provider || 'MongoDB Atlas'}
-            </span>
+            <dt className={styles.metricLabel}>Provider</dt>
+            <dd className={styles.metricValue}>{atlas?.provider || 'MongoDB Atlas'}</dd>
           </div>
           <div className={styles.metricRow}>
-            <span className={styles.metricLabel}>Operational Mode</span>
-            <span className={styles.metricValue}>
-              {backupStatus?.atlasManagedBackup.mode || 'PLATFORM_MANAGED'}
-            </span>
+            <dt className={styles.metricLabel}>Operational Mode</dt>
+            <dd className={styles.metricValue}>{atlas?.mode || 'PLATFORM_MANAGED'}</dd>
           </div>
           <div className={styles.metricRow}>
-            <span className={styles.metricLabel}>Retention Window</span>
-            <span className={styles.metricValue}>
-              {backupStatus?.atlasManagedBackup.retentionDays ?? '—'} Days
-            </span>
+            <dt className={styles.metricLabel}>Retention Window</dt>
+            <dd className={styles.metricValue}>{atlas?.retentionDays ?? '—'} Days</dd>
           </div>
-        </div>
-      </div>
+        </dl>
+      </Card>
 
-      <div className={styles.statusCard}>
-        <div className={styles.cardHeader}>
-          <div className={styles.cardHeaderLeft}>
-            <Shield size={20} color="var(--color-primary)" />
-            <h2>Application Encrypted Backups</h2>
-          </div>
-          <span
-            className={`${styles.badge} ${
-              backupStatus?.applicationEncryptedBackup.enabled
-                ? styles.badgeSuccess
-                : styles.badgeDanger
-            }`}
-          >
-            {backupStatus?.applicationEncryptedBackup.enabled ? 'ACTIVE' : 'DISABLED'}
+      <Card
+        title={
+          <span className={styles.cardHeaderLeft}>
+            <Shield size={20} color="var(--color-primary)" aria-hidden="true" />
+            Application Encrypted Backups
           </span>
-        </div>
-        <div className={styles.metricsList}>
+        }
+        headerAction={
+          <Badge variant={appBackup?.enabled ? 'success' : 'danger'}>
+            {appBackup?.enabled ? 'ACTIVE' : 'DISABLED'}
+          </Badge>
+        }
+      >
+        <dl className={styles.metricsList}>
           <div className={styles.metricRow}>
-            <span className={styles.metricLabel}>Encryption Standard</span>
-            <span className={styles.metricValue}>
-              <Lock size={12} style={{ display: 'inline', marginRight: 4 }} />
-              AES-256-GCM + SHA-256
-            </span>
+            <dt className={styles.metricLabel}>Encryption Standard</dt>
+            <dd className={styles.metricValue}>
+              <Lock size={12} aria-hidden="true" /> AES-256-GCM + SHA-256
+            </dd>
           </div>
           <div className={styles.metricRow}>
-            <span className={styles.metricLabel}>Configured Retention</span>
-            <span className={styles.metricValue}>
-              {backupStatus?.applicationEncryptedBackup.retentionDays ?? '—'} Days
-            </span>
+            <dt className={styles.metricLabel}>Configured Retention</dt>
+            <dd className={styles.metricValue}>{appBackup?.retentionDays ?? '—'} Days</dd>
           </div>
           <div className={styles.metricRow}>
-            <span className={styles.metricLabel}>Last Completed Run</span>
-            <span className={styles.metricValue}>
-              {formatDate(backupStatus?.applicationEncryptedBackup.lastBackupAt)}
-            </span>
+            <dt className={styles.metricLabel}>Last Completed Run</dt>
+            <dd className={styles.metricValue}>{formatDate(appBackup?.lastBackupAt)}</dd>
           </div>
           <div className={styles.metricRow}>
-            <span className={styles.metricLabel}>Lifetime Completed Backups</span>
-            <span className={styles.metricValue}>
-              {backupStatus?.applicationEncryptedBackup.totalCompletedBackups ?? 0}
-            </span>
+            <dt className={styles.metricLabel}>Lifetime Completed Backups</dt>
+            <dd className={styles.metricValue}>{appBackup?.totalCompletedBackups ?? 0}</dd>
           </div>
-        </div>
-      </div>
+        </dl>
+      </Card>
     </section>
   );
 }

@@ -3,6 +3,7 @@
 import React from 'react';
 import { Archive, Boxes, Clock, Package, Warehouse } from 'lucide-react';
 import type { FacilityInventorySummary, Grn } from '@cold-storage/contracts';
+import { StatCard, StatGrid } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface InventoryHeaderProps {
@@ -34,51 +35,35 @@ export function InventoryHeader({
         </div>
       </div>
 
-      <div className={styles.kpiGrid}>
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiIconWrap}>
-            <Package size={24} aria-hidden="true" />
-          </div>
-          <div className={styles.kpiContent}>
-            <span className={styles.kpiLabel}>Total Stock in Storage</span>
-            <span className={styles.kpiValue}>
-              {loadingSummary ? '...' : (stockSummary?.totalStockBags ?? 0).toLocaleString('en-IN')}{' '}
-              bags
-            </span>
-            <span className={styles.kpiSub}>Active inventory across facility</span>
-          </div>
-        </div>
-
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiIconWrap}>
-            <Boxes size={24} aria-hidden="true" />
-          </div>
-          <div className={styles.kpiContent}>
-            <span className={styles.kpiLabel}>Commodities Stored</span>
-            <span className={styles.kpiValue}>
-              {loadingSummary ? '...' : stockSummary?.byCommodity.length ?? 0}
-            </span>
-            <span className={styles.kpiSub}>
-              {stockSummary?.byCommodity.map((c) => c.commodityName).join(', ') ||
-                'Zero stock recorded'}
-            </span>
-          </div>
-        </div>
-
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiIconWrap}>
-            <Warehouse size={24} aria-hidden="true" />
-          </div>
-          <div className={styles.kpiContent}>
-            <span className={styles.kpiLabel}>Chambers in Use</span>
-            <span className={styles.kpiValue}>{stockSummary?.byChamber.length ?? 0}</span>
-            <span className={styles.kpiSub}>
-              {stockSummary?.byChamber.map((c) => `Chamber ${c.chamber}`).join(', ') ||
-                'No chambers holding stock'}
-            </span>
-          </div>
-        </div>
-      </div>
+      <StatGrid label="Inventory summary" minTileWidth={240}>
+        <StatCard
+          label="Total Stock in Storage"
+          value={`${loadingSummary ? '...' : (stockSummary?.totalStockBags ?? 0).toLocaleString('en-IN')} bags`}
+          sub="Active inventory across facility"
+          icon={Package}
+          accent="primary"
+        />
+        <StatCard
+          label="Commodities Stored"
+          value={loadingSummary ? '...' : (stockSummary?.byCommodity.length ?? 0)}
+          sub={
+            stockSummary?.byCommodity.map((c) => c.commodityName).join(', ') ||
+            'Zero stock recorded'
+          }
+          icon={Boxes}
+          accent="primary"
+        />
+        <StatCard
+          label="Chambers in Use"
+          value={stockSummary?.byChamber.length ?? 0}
+          sub={
+            stockSummary?.byChamber.map((c) => `Chamber ${c.chamber}`).join(', ') ||
+            'No chambers holding stock'
+          }
+          icon={Warehouse}
+          accent="primary"
+        />
+      </StatGrid>
 
       <div className={styles.tabsBar} role="tablist" aria-label="Inventory views">
         <button

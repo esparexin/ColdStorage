@@ -15,7 +15,9 @@
    - `Select`: Accessible dropdown selection components
    - `Badge`: Status, badge, and counter indicators
    - `Card`: Container and grouping surfaces
+   - `StatCard` / `StatGrid`: Metric tiles (icon + label + value + supporting text) and their responsive grid
    - `SearchBar`: Unified search input fields
+   - `FilterToolbar`: Canonical search + filter-select + reset toolbar used by every list screen
    - `Pagination`: Table and list navigation controls
    - `DataTable`: Tabular data display with loading and empty states
    - `FeedbackStates`: Standardized Loading, Empty, and Error widgets

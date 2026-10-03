@@ -53,35 +53,6 @@
   background: var(--color-primary-hover);
 }
 
-/* Toolbar & Filters */
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  background: var(--color-surface-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-3) var(--space-4);
-}
-
-.filtersGroup {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.filtersGroup .filterSelect {
-  width: auto;
-  min-width: 165px;
-}
-
-.filterSelect:focus {
-  border-color: var(--color-primary);
-}
-
 .clearFiltersBtn {
   display: inline-flex;
   align-items: center;
@@ -314,7 +285,6 @@
   flex-shrink: 0;
 }
 
-
 /* Detail View Modal Grid */
 .detailGrid {
   display: grid;
@@ -444,12 +414,9 @@
   text-align: center;
 }
 
-
-
 .fieldLabelRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-
 

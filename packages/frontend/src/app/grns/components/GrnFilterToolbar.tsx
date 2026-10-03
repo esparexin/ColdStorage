@@ -1,10 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Filter } from 'lucide-react';
 import type { Commodity, Customer, GrnStatus } from '@cold-storage/contracts';
-import { Button, SearchBar, Select } from '@/components/ui';
-import styles from '../page.module.css';
+import { FilterToolbar, Select } from '@/components/ui';
 
 interface GrnFilterToolbarProps {
   searchTerm: string;
@@ -33,75 +31,56 @@ export function GrnFilterToolbar({
   commodities,
   onReset,
 }: GrnFilterToolbarProps) {
-  const hasActiveFilters = Boolean(
-    statusFilter || customerFilter || commodityFilter || searchTerm,
-  );
-
   return (
-    <div className={styles.toolbar}>
-      <SearchBar
-        id="grn-search-input"
-        value={searchTerm}
-        onChange={onSearchChange}
-        placeholder="Search GRN #, Receipt, Customer, Vehicle..."
-        ariaLabel="Search GRNs"
-        onClear={onReset}
-      />
+    <FilterToolbar
+      searchValue={searchTerm}
+      onSearchChange={onSearchChange}
+      searchPlaceholder="Search GRN #, Receipt, Customer, Vehicle..."
+      searchAriaLabel="Search GRNs"
+      searchInputId="grn-search-input"
+      onReset={onReset}
+      hasActiveFilters={Boolean(
+        statusFilter || customerFilter || commodityFilter || searchTerm,
+      )}
+    >
+      <Select
+        id="grn-status-filter"
+        aria-label="Filter by GRN Status"
+        value={statusFilter}
+        onChange={(e) => onStatusChange(e.target.value as '' | GrnStatus)}
+      >
+        <option value="">All Statuses</option>
+        <option value="OPEN">Open (Active)</option>
+        <option value="CLOSED">Closed (Completed)</option>
+      </Select>
 
-      <div className={styles.filtersGroup}>
-        <Select
-          id="grn-status-filter"
-          aria-label="Filter by GRN Status"
-          className={styles.filterSelect}
-          value={statusFilter}
-          onChange={(e) => onStatusChange(e.target.value as '' | GrnStatus)}
-        >
-          <option value="">All Statuses</option>
-          <option value="OPEN">Open (Active)</option>
-          <option value="CLOSED">Closed (Completed)</option>
-        </Select>
+      <Select
+        id="grn-customer-filter"
+        aria-label="Filter by Customer"
+        value={customerFilter}
+        onChange={(e) => onCustomerChange(e.target.value)}
+      >
+        <option value="">All Customers</option>
+        {customers.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </Select>
 
-        <Select
-          id="grn-customer-filter"
-          aria-label="Filter by Customer"
-          className={styles.filterSelect}
-          value={customerFilter}
-          onChange={(e) => onCustomerChange(e.target.value)}
-        >
-          <option value="">All Customers</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </Select>
-
-        <Select
-          id="grn-commodity-filter"
-          aria-label="Filter by Commodity"
-          className={styles.filterSelect}
-          value={commodityFilter}
-          onChange={(e) => onCommodityChange(e.target.value)}
-        >
-          <option value="">All Commodities</option>
-          {commodities.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </Select>
-
-        {hasActiveFilters && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onReset}
-            leftIcon={<Filter size={12} aria-hidden="true" />}
-          >
-            Reset
-          </Button>
-        )}
-      </div>
-    </div>
+      <Select
+        id="grn-commodity-filter"
+        aria-label="Filter by Commodity"
+        value={commodityFilter}
+        onChange={(e) => onCommodityChange(e.target.value)}
+      >
+        <option value="">All Commodities</option>
+        {commodities.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </Select>
+    </FilterToolbar>
   );
 }
