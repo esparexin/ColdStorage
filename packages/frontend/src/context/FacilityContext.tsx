@@ -8,8 +8,8 @@
  * via requireFacilityScope. This context is for UI routing only.
  */
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAuth, type AuthUser } from './AuthContext';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { useAuth } from './AuthContext';
 import { requestWithAuth } from '@/lib/api-client';
 
 export interface FacilityOption {
@@ -24,6 +24,7 @@ interface FacilityContextValue {
   setSelectedFacilityId: (id: string) => void;
   availableFacilities: FacilityOption[];
   isLoadingFacilities: boolean;
+  refreshFacilities: () => Promise<void>;
 }
 
 const FacilityContext = createContext<FacilityContextValue | null>(null);
@@ -34,71 +35,47 @@ export function FacilityProvider({ children }: { children: React.ReactNode }) {
   const [availableFacilities, setAvailableFacilities] = useState<FacilityOption[]>([]);
   const [isLoadingFacilities, setIsLoadingFacilities] = useState<boolean>(false);
 
-  useEffect(() => {
+  const syncFacilities = useCallback(async () => {
     if (!user) {
       setSelectedFacilityId(null);
       setAvailableFacilities([]);
       return;
     }
 
-    const activeUser: AuthUser = user;
-    let cancelled = false;
+    setIsLoadingFacilities(true);
+    try {
+      const res = await requestWithAuth('/api/facilities');
+      if (res.ok) {
+        const data = (await res.json()) as { items?: FacilityOption[] };
+        const facilities = data.items ?? [];
+        setAvailableFacilities(facilities);
+        const validIds = facilities.map((f) => f.id);
+        const assignedValid = user.facilityIds?.filter((fid) => validIds.includes(fid)) ?? [];
 
-    async function syncFacilities(activeUser: AuthUser) {
-      setIsLoadingFacilities(true);
-      try {
-        const res = await requestWithAuth('/api/facilities');
-        if (!cancelled && res.ok) {
-          const data = (await res.json()) as { items?: FacilityOption[] };
-          const facilities = data.items ?? [];
-          if (!cancelled) {
-            setAvailableFacilities(facilities);
-            const validIds = facilities.map((f) => f.id);
-            const assignedValid =
-              activeUser.facilityIds?.filter((fid) => validIds.includes(fid)) ?? [];
-
-            setSelectedFacilityId((current) => {
-              if (current && validIds.includes(current)) {
-                return current;
-              }
-              if (assignedValid.length > 0) {
-                return assignedValid[0];
-              }
-              return facilities.length > 0 ? facilities[0].id : null;
-            });
-          }
-        } else if (!cancelled && activeUser.facilityIds && activeUser.facilityIds.length > 0) {
-          const fallback = activeUser.facilityIds.map((id) => ({
-            id,
-            name: id,
-            code: id,
-          }));
-          setAvailableFacilities(fallback);
-          setSelectedFacilityId((current) => current ?? activeUser.facilityIds[0]);
-        }
-      } catch {
-        if (!cancelled && activeUser.facilityIds && activeUser.facilityIds.length > 0) {
-          const fallback = activeUser.facilityIds.map((id) => ({
-            id,
-            name: id,
-            code: id,
-          }));
-          setAvailableFacilities(fallback);
-          setSelectedFacilityId((current) => current ?? activeUser.facilityIds[0]);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingFacilities(false);
-        }
+        setSelectedFacilityId((current) => {
+          if (current && validIds.includes(current)) return current;
+          if (assignedValid.length > 0) return assignedValid[0];
+          return facilities.length > 0 ? facilities[0].id : null;
+        });
+      } else if (user.facilityIds && user.facilityIds.length > 0) {
+        const fallback = user.facilityIds.map((id) => ({ id, name: id, code: id }));
+        setAvailableFacilities(fallback);
+        setSelectedFacilityId((current) => current ?? user.facilityIds[0]);
       }
+    } catch {
+      if (user.facilityIds && user.facilityIds.length > 0) {
+        const fallback = user.facilityIds.map((id) => ({ id, name: id, code: id }));
+        setAvailableFacilities(fallback);
+        setSelectedFacilityId((current) => current ?? user.facilityIds[0]);
+      }
+    } finally {
+      setIsLoadingFacilities(false);
     }
-
-    void syncFacilities(activeUser);
-
-    return () => {
-      cancelled = true;
-    };
   }, [user]);
+
+  useEffect(() => {
+    void syncFacilities();
+  }, [syncFacilities]);
 
   return (
     <FacilityContext.Provider
@@ -107,6 +84,7 @@ export function FacilityProvider({ children }: { children: React.ReactNode }) {
         setSelectedFacilityId,
         availableFacilities,
         isLoadingFacilities,
+        refreshFacilities: syncFacilities,
       }}
     >
       {children}

@@ -1,16 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  CheckCircle2,
-  ChevronRight,
-  RefreshCw,
-  ShieldAlert,
-  Warehouse,
+  CheckCircle2, ChevronRight, Edit3, Plus, RefreshCw, ShieldAlert, Warehouse,
 } from 'lucide-react';
 import { can, type Role } from '@cold-storage/contracts';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
+import { FacilityModal } from './components/FacilityModal';
 import { PositionOccupancyPanel } from './components/PositionOccupancyPanel';
 import { StorageColumnsView } from './components/StorageColumnsView';
 import { StorageHierarchyModals } from './components/StorageHierarchyModals';
@@ -20,25 +17,22 @@ import styles from './page.module.css';
 
 export default function StorageHierarchyPage() {
   const { user } = useAuth();
-  const { selectedFacilityId, availableFacilities, setSelectedFacilityId } = useFacility();
+  const { selectedFacilityId, availableFacilities, setSelectedFacilityId, refreshFacilities } =
+    useFacility();
 
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const canView = can(userRole, 'storage:view');
   const canManage = can(userRole, 'storage:manage');
 
+  const [facilityModalOpen, setFacilityModalOpen] = useState(false);
+  const [facilityModalMode, setFacilityModalMode] = useState<'create' | 'edit'>('create');
+
   const browser = useStorageBrowser(selectedFacilityId, canView);
   const mutations = useStorageMutations(
-    selectedFacilityId,
-    browser.selectedChamber,
-    browser.selectedRack,
-    browser.selectedLevel,
-    browser.racks,
-    browser.levels,
-    browser.positions,
-    () => void browser.fetchChambers(),
-    (chId) => void browser.fetchRacks(chId),
-    (rkId) => void browser.fetchLevels(rkId),
-    (lvlId) => void browser.fetchPositions(lvlId),
+    selectedFacilityId, browser.selectedChamber, browser.selectedRack, browser.selectedLevel,
+    browser.racks, browser.levels, browser.positions,
+    () => void browser.fetchChambers(), (chId) => void browser.fetchRacks(chId),
+    (rkId) => void browser.fetchLevels(rkId), (lvlId) => void browser.fetchPositions(lvlId),
   );
 
   if (!canView) {
@@ -104,6 +98,30 @@ export default function StorageHierarchyPage() {
               </option>
             ))}
           </select>
+          {canManage && (
+            <div className={styles.facilityActions}>
+              <button
+                type="button"
+                className={styles.facilityBtn}
+                title="Add Facility"
+                onClick={() => { setFacilityModalMode('create'); setFacilityModalOpen(true); }}
+              >
+                <Plus size={13} />
+                <span>New Facility</span>
+              </button>
+              {currentFacility && (
+                <button
+                  type="button"
+                  className={styles.facilityBtn}
+                  title="Edit Facility"
+                  onClick={() => { setFacilityModalMode('edit'); setFacilityModalOpen(true); }}
+                >
+                  <Edit3 size={13} />
+                  <span>Edit</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
         <div className={styles.breadcrumbs} aria-label="Hierarchy Path">
           <span>{currentFacility?.name || 'Facility'}</span>
@@ -199,6 +217,20 @@ export default function StorageHierarchyPage() {
         setPositionCode={mutations.setPositionCode}
         capacityBags={mutations.capacityBags}
         setCapacityBags={mutations.setCapacityBags}
+      />
+
+      <FacilityModal
+        isOpen={facilityModalOpen}
+        mode={facilityModalMode}
+        facilityId={selectedFacilityId}
+        initialCode={currentFacility?.code}
+        initialName={currentFacility?.name}
+        onClose={() => setFacilityModalOpen(false)}
+        onSuccess={async (msg, newFacId) => {
+          mutations.setActionSuccess(msg);
+          await refreshFacilities();
+          if (newFacId) setSelectedFacilityId(newFacId);
+        }}
       />
     </div>
   );
