@@ -1,11 +1,8 @@
 {
   "packages/backend/src/__tests__/export.service.test.ts": 663,
-  "packages/backend/src/tests/grn.test.ts": 573,
   "packages/backend/src/__tests__/e2e-multi-facility.test.ts": 573,
   "packages/backend/src/__tests__/delivery.service.test.ts": 520,
-  "packages/backend/src/tests/master-data.test.ts": 476,
   "packages/backend/src/__tests__/inventory.service.test.ts": 439,
-  "packages/backend/src/tests/auth.test.ts": 434,
   "packages/backend/src/__tests__/document.routes.test.ts": 430,
   "packages/backend/src/__tests__/import.service.test.ts": 423,
   "packages/backend/src/__tests__/dashboard.service.test.ts": 405,

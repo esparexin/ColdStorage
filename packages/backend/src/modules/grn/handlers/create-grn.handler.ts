@@ -13,7 +13,7 @@ import { CustomerModel } from '../../../database/models/customer.model.js';
 import { FacilityModel } from '../../../database/models/facility.model.js';
 import { GrnModel, type GrnDoc } from '../../../database/models/grn.model.js';
 import { auditService } from '../../audit/audit.service.js';
-import { counterService } from '../counter.service.js';
+import { counterService } from '../../common/counter.service.js';
 import { toGrnAcknowledgement, toGrnEntity } from '../grn.mappers.js';
 
 export async function createGrn(

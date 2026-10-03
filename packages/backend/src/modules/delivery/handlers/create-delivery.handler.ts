@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import type { CreateDeliveryInput, DeliveryChallan, DeliverySummary } from '@cold-storage/contracts';
 import { ConcurrencyConflictError } from '../../inventory/inventory.service.js';
-import { counterService } from '../../grn/counter.service.js';
+import { counterService } from '../../common/counter.service.js';
 import {
   DeliveryChallanModel,
   type DeliveryChallanDoc,
