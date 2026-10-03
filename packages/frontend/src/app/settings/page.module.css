@@ -146,3 +146,11 @@
   color: var(--color-warning);
   font-weight: var(--font-medium);
 }
+
+/* Per-row action group in the facilities table. */
+.rowActions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  justify-content: flex-end;
+}

@@ -1,7 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AuditEventType, AuditLogRecord, AuditSeverity } from '@cold-storage/contracts';
+import {
+  hasGlobalFacilityScope,
+  type AuditEventType,
+  type AuditLogRecord,
+  type AuditSeverity,
+  type Role,
+} from '@cold-storage/contracts';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { requestWithAuth } from '@/lib/api-client';
@@ -9,6 +15,7 @@ import { requestWithAuth } from '@/lib/api-client';
 export function useAuditLogs(canViewAudit: boolean) {
   const { user } = useAuth();
   const { selectedFacilityId, availableFacilities } = useFacility();
+  const userRole = (user?.role ?? 'READ_ONLY') as Role;
 
   const [logs, setLogs] = useState<AuditLogRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +32,7 @@ export function useAuditLogs(canViewAudit: boolean) {
     try {
       const params = new URLSearchParams();
       params.set('limit', '100');
-      if (selectedFacilityId && user?.role !== 'SUPER_ADMIN') {
+      if (selectedFacilityId && !hasGlobalFacilityScope(userRole)) {
         params.set('facilityId', selectedFacilityId);
       }
       if (severityFilter) params.set('severity', severityFilter);
@@ -44,7 +51,7 @@ export function useAuditLogs(canViewAudit: boolean) {
     } finally {
       setLoading(false);
     }
-  }, [canViewAudit, selectedFacilityId, user?.role, severityFilter, eventTypeFilter]);
+  }, [canViewAudit, selectedFacilityId, userRole, severityFilter, eventTypeFilter]);
 
   useEffect(() => {
     void fetchLogs();
