@@ -4,6 +4,7 @@ import { authenticate, requirePasswordChanged } from '../middleware/auth.middlew
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { ConcurrencyConflictError, inventoryService } from '../modules/inventory/inventory.service.js';
+import { grnService } from '../modules/grn/grn.service.js';
 import { RentPaymentRequiredError } from '../modules/common/rent-gate.service.js';
 import { getParamId } from '../utils/params.js';
 
@@ -22,7 +23,7 @@ inventoryRouter.post(
     const grnId = getParamId(req.params.grnId);
 
     // Verify child-ID belongs to facility
-    const grnFacilityId = await inventoryService.resolveFacilityIdForGrn(grnId);
+    const grnFacilityId = await grnService.resolveFacilityIdForGrn(grnId);
     if (!grnFacilityId || grnFacilityId !== facilityId) {
       res.status(404).json({ error: `GRN '${grnId}' not found in facility '${facilityId}'` });
       return;
@@ -92,7 +93,7 @@ inventoryRouter.get(
     const facilityId = getParamId(req.params.facilityId);
     const grnId = getParamId(req.params.grnId);
 
-    const grnFacilityId = await inventoryService.resolveFacilityIdForGrn(grnId);
+    const grnFacilityId = await grnService.resolveFacilityIdForGrn(grnId);
     if (!grnFacilityId || grnFacilityId !== facilityId) {
       res.status(404).json({ error: `GRN '${grnId}' not found in facility '${facilityId}'` });
       return;
@@ -117,7 +118,7 @@ inventoryRouter.get(
     const facilityId = getParamId(req.params.facilityId);
     const grnId = getParamId(req.params.grnId);
 
-    const grnFacilityId = await inventoryService.resolveFacilityIdForGrn(grnId);
+    const grnFacilityId = await grnService.resolveFacilityIdForGrn(grnId);
     if (!grnFacilityId || grnFacilityId !== facilityId) {
       res.status(404).json({ error: `GRN '${grnId}' not found in facility '${facilityId}'` });
       return;

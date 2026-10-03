@@ -2,6 +2,8 @@ import type { DeliveryChallan, DeliveryReversal } from '@cold-storage/contracts'
 import type { DeliveryChallanDoc } from '../../database/models/delivery-challan.model.js';
 import type { DeliveryReversalDoc } from '../../database/models/delivery-reversal.model.js';
 
+export { isTransientError } from '../common/mongo-retry.helper.js';
+
 export function toChallanEntity(doc: DeliveryChallanDoc | Record<string, unknown> | unknown): DeliveryChallan {
   const d = doc as Record<string, unknown>;
   return {
@@ -42,28 +44,4 @@ export function toReversalEntity(doc: DeliveryReversalDoc | Record<string, unkno
     reversedBy: String(d.reversedBy),
     reversedAt: d.reversedAt instanceof Date ? d.reversedAt : new Date(String(d.reversedAt)),
   };
-}
-
-export function isTransientError(err: unknown): boolean {
-  if (!err || typeof err !== 'object') {
-    return false;
-  }
-  const mongoErr = err as {
-    code?: number;
-    hasErrorLabel?: (label: string) => boolean;
-    message?: string;
-  };
-  if (
-    typeof mongoErr.hasErrorLabel === 'function' &&
-    mongoErr.hasErrorLabel('TransientTransactionError')
-  ) {
-    return true;
-  }
-  if (mongoErr.code === 112 || mongoErr.code === 251) {
-    return true;
-  }
-  if (typeof mongoErr.message === 'string' && mongoErr.message.includes('WriteConflict')) {
-    return true;
-  }
-  return false;
 }

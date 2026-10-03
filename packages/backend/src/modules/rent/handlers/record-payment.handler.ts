@@ -10,6 +10,7 @@ import {
 import { GrnModel, type GrnDoc } from '../../../database/models/grn.model.js';
 import type { RentPaymentDoc } from '../../../database/models/rent-payment.model.js';
 import { auditService } from '../../audit/audit.service.js';
+import { validateOperationalDate } from '../../common/operational-date.helper.js';
 import { counterService } from '../../common/counter.service.js';
 import { rentRepository } from '../rent.repository.js';
 
@@ -71,12 +72,13 @@ export async function executeRecordPayment(
         );
       }
 
-      // 4. Validate payment date in Asia/Kolkata timezone with +5 min clock skew tolerance
-      const paymentDate = new Date(input.paymentDate);
-      const maxFutureAllowed = new Date(Date.now() + 5 * 60 * 1000);
-      if (paymentDate > maxFutureAllowed) {
-        throw new Error('Payment date cannot be in the future');
-      }
+      // 4. Validate payment date in Asia/Kolkata timezone with +5 min clock skew tolerance.
+      // Rent payments are intentionally exempt from financial-year containment so that an
+      // outstanding balance can still be settled after an FY rollover.
+      const paymentDate = validateOperationalDate(input.paymentDate, {
+        label: 'Payment',
+        enforceFinancialYear: false,
+      });
 
       // 5. Allocate independent FY-sequential receipt number inside the session
       const fy = getFinancialYearKey(paymentDate);

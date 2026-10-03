@@ -3,7 +3,7 @@ import { ChamberModel } from '../../../database/models/chamber.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { PositionModel } from '../../../database/models/position.model.js';
 import { auditService } from '../../audit/audit.service.js';
-import { ledgerSignedQuantity } from '../csv-stream.helper.js';
+import { ledgerSignedQuantity } from '../../inventory/ledger-polarity.js';
 import { CsvSerializer } from '../csv.serializer.js';
 
 export async function exportStockSummary(

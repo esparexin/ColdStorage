@@ -1,52 +1,26 @@
 import type mongoose from 'mongoose';
-import { getFinancialYearKey, type CreateDeliveryInput } from '@cold-storage/contracts';
+import type { CreateDeliveryInput } from '@cold-storage/contracts';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
-import { PositionModel } from '../../../database/models/position.model.js';
+import { validateOperationalDate } from '../../common/operational-date.helper.js';
+import {
+  lockPositionsForUpdate,
+  type LockedPositionMeta,
+} from '../../common/position-lock.helper.js';
 
-export interface LockedPositionMeta {
-  code: string;
-  capacityBags: number;
-  chamberId?: string;
-}
+export type { LockedPositionMeta } from '../../common/position-lock.helper.js';
 
+/**
+ * Delivery withdrawal locks the target positions in ascending order so concurrent
+ * transactions cannot deadlock. Full ancestry verification is not required here: capacity is
+ * re-checked against the ledger, not against the hierarchy.
+ */
 export async function validateAndLockPositions(
   facilityId: string,
   chamberId: string,
   items: CreateDeliveryInput['items'],
   session: mongoose.ClientSession,
 ): Promise<Map<string, LockedPositionMeta>> {
-  const sortedItems = [...items].sort((a, b) => a.positionId.localeCompare(b.positionId));
-  const lockedPositions = new Map<string, LockedPositionMeta>();
-
-  for (const item of sortedItems) {
-    const pos = await PositionModel.findOneAndUpdate(
-      { id: item.positionId, facilityId },
-      { $set: { updatedAt: new Date() } },
-      { session, new: true },
-    )
-      .lean()
-      .exec();
-
-    if (!pos) {
-      throw new Error(`Position '${item.positionId}' not found in facility '${facilityId}'`);
-    }
-    if (!pos.isActive) {
-      throw new Error(`Position '${pos.code}' is inactive`);
-    }
-    if (pos.chamberId !== chamberId) {
-      throw new Error(
-        `Position '${pos.code}' belongs to chamber '${pos.chamberId}', but GRN belongs to chamber '${chamberId}'`,
-      );
-    }
-
-    lockedPositions.set(item.positionId, {
-      code: pos.code,
-      capacityBags: pos.capacityBags,
-      chamberId: pos.chamberId,
-    });
-  }
-
-  return lockedPositions;
+  return lockPositionsForUpdate(facilityId, chamberId, items, session);
 }
 
 export async function validateStockAndBalances(
@@ -135,27 +109,7 @@ export async function validateStockAndBalances(
 }
 
 export function validateDeliveryDate(inputDate?: string | Date): Date {
-  const deliveryDate = new Date(inputDate || Date.now());
-  const now = new Date();
-  const maxFutureAllowed = new Date(now.getTime() + 5 * 60 * 1000);
-  if (deliveryDate > maxFutureAllowed) {
-    throw new Error('Delivery date cannot be in the future');
-  }
-
-  const currentFy = getFinancialYearKey(now);
-  const deliveryFy = getFinancialYearKey(deliveryDate);
-  if (deliveryFy !== currentFy) {
-    throw new Error(
-      `Delivery date belongs to Financial Year '${deliveryFy}', but current active FY is '${currentFy}'`,
-    );
-  }
-
-  const maxPastAllowed = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  if (deliveryDate < maxPastAllowed) {
-    throw new Error('Delivery date exceeds permitted 30-day operational backdating window');
-  }
-
-  return deliveryDate;
+  return validateOperationalDate(inputDate, { label: 'Delivery' });
 }
 
 export async function validateReversalPositionsAndCapacity(
@@ -163,30 +117,7 @@ export async function validateReversalPositionsAndCapacity(
   items: Array<{ positionId: string; bags: number }>,
   session: mongoose.ClientSession,
 ): Promise<Map<string, LockedPositionMeta>> {
-  const sortedItems = [...items].sort((a, b) => a.positionId.localeCompare(b.positionId));
-  const lockedPositions = new Map<string, LockedPositionMeta>();
-
-  for (const item of sortedItems) {
-    const pos = await PositionModel.findOneAndUpdate(
-      { id: item.positionId, facilityId },
-      { $set: { updatedAt: new Date() } },
-      { session, new: true },
-    )
-      .lean()
-      .exec();
-
-    if (!pos) {
-      throw new Error(`Position '${item.positionId}' not found in facility '${facilityId}'`);
-    }
-    if (!pos.isActive) {
-      throw new Error(`Position '${pos.code}' is inactive`);
-    }
-
-    lockedPositions.set(item.positionId, {
-      code: pos.code,
-      capacityBags: pos.capacityBags,
-    });
-  }
+  const lockedPositions = await lockPositionsForUpdate(facilityId, undefined, items, session);
 
   for (const item of items) {
     const posMeta = lockedPositions.get(item.positionId)!;

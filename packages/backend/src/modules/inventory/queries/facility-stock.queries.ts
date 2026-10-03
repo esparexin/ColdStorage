@@ -5,7 +5,6 @@ import type {
 } from '@cold-storage/contracts';
 import { ChamberModel } from '../../../database/models/chamber.model.js';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
-import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { PositionModel } from '../../../database/models/position.model.js';
 import { toLedgerEntity } from '../inventory.mappers.js';
@@ -112,11 +111,6 @@ export async function queryStockLedger(
     page: query.page,
     limit: query.limit,
   };
-}
-
-export async function resolveFacilityIdForGrn(grnId: string): Promise<string | null> {
-  const grn = await GrnModel.findOne({ id: grnId }).select('facilityId').lean().exec();
-  return grn?.facilityId ?? null;
 }
 
 export async function resolveFacilityIdForPosition(positionId: string): Promise<string | null> {

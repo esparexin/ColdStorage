@@ -4,6 +4,8 @@ import type {
   PutAwayItem,
 } from '@cold-storage/contracts';
 
+export { isTransientError } from '../common/mongo-retry.helper.js';
+
 export class ConcurrencyConflictError extends Error {
   public readonly statusCode = 409;
   public readonly code = 'CONCURRENCY_CONFLICT';
@@ -14,30 +16,6 @@ export class ConcurrencyConflictError extends Error {
     super(message);
     this.name = 'ConcurrencyConflictError';
   }
-}
-
-export function isTransientError(err: unknown): boolean {
-  if (!err || typeof err !== 'object') {
-    return false;
-  }
-  const mongoErr = err as {
-    code?: number;
-    hasErrorLabel?: (label: string) => boolean;
-    message?: string;
-  };
-  if (
-    typeof mongoErr.hasErrorLabel === 'function' &&
-    mongoErr.hasErrorLabel('TransientTransactionError')
-  ) {
-    return true;
-  }
-  if (mongoErr.code === 112 || mongoErr.code === 251) {
-    return true;
-  }
-  if (typeof mongoErr.message === 'string' && mongoErr.message.includes('WriteConflict')) {
-    return true;
-  }
-  return false;
 }
 
 export function toPutAwayEntity(doc: unknown): PutAwayAllocation {

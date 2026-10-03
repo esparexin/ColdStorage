@@ -6,7 +6,7 @@ import { requirePermission } from '../middleware/rbac.middleware.js';
 import { ConcurrencyConflictError } from '../modules/inventory/inventory.service.js';
 import { RentPaymentRequiredError } from '../modules/common/rent-gate.service.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
-import { inventoryService } from '../modules/inventory/inventory.service.js';
+import { grnService } from '../modules/grn/grn.service.js';
 import { getParamId } from '../utils/params.js';
 
 export const deliveryRouter = Router();
@@ -36,7 +36,7 @@ deliveryRouter.post(
     }
 
     // Verify GRN child-ID belongs to facility
-    const grnFacilityId = await inventoryService.resolveFacilityIdForGrn(parseResult.data.grnId);
+    const grnFacilityId = await grnService.resolveFacilityIdForGrn(parseResult.data.grnId);
     if (!grnFacilityId || grnFacilityId !== facilityId) {
       res.status(404).json({ error: `GRN '${parseResult.data.grnId}' not found in facility '${facilityId}'` });
       return;
@@ -194,7 +194,7 @@ deliveryRouter.get(
     const facilityId = getParamId(req.params.facilityId);
     const grnId = getParamId(req.params.grnId);
 
-    const grnFacilityId = await inventoryService.resolveFacilityIdForGrn(grnId);
+    const grnFacilityId = await grnService.resolveFacilityIdForGrn(grnId);
     if (!grnFacilityId || grnFacilityId !== facilityId) {
       res.status(404).json({ error: `GRN '${grnId}' not found in facility '${facilityId}'` });
       return;
