@@ -28,7 +28,8 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
   const seed = createAuthSeeder(config.jwtSecret);
 
   beforeAll(async () => {
-    process.env.BACKUP_ENCRYPTION_KEY = validHexKey;
+    // config is the environment SSOT and snapshots process.env at import time.
+    config.backupEncryptionKey = validHexKey;
     const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(mongoUri);
@@ -312,7 +313,7 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
       expect(res.body.encryptedArchive.keyConfigured).toBe(false);
       expect(res.body.encryptedArchive.configured).toBe(false);
 
-      // The trigger must refuse with a configuration code rather than an opaque server error.
+      // The trigger must refuse with a configuration code, not an opaque server error.
       const trigger = await request(app)
         .post('/api/backups/trigger')
         .set('Authorization', `Bearer ${superAdminToken}`)
