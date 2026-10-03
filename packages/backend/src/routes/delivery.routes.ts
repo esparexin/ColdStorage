@@ -7,6 +7,7 @@ import { ConcurrencyConflictError } from '../modules/inventory/inventory.service
 import { RentPaymentRequiredError } from '../modules/common/rent-gate.service.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
+import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
 export const deliveryRouter = Router();
@@ -102,8 +103,7 @@ deliveryRouter.get(
       const result = await deliveryService.listDeliveries(facilityId, parseResult.data);
       res.status(200).json(result);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to list deliveries';
-      res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to list deliveries');
     }
   },
 );
@@ -131,8 +131,7 @@ deliveryRouter.get(
       }
       res.status(200).json({ delivery });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to get delivery';
-      res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to get delivery');
     }
   },
 );
@@ -204,8 +203,7 @@ deliveryRouter.get(
       const deliveries = await deliveryService.listDeliveriesForGrn(facilityId, grnId);
       res.status(200).json({ deliveries });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to list deliveries for GRN';
-      res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to list deliveries for GRN');
     }
   },
 );

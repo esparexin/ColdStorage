@@ -111,5 +111,29 @@ export function useUserLifecycle(onMutated: () => void) {
     [onMutated],
   );
 
-  return { saving, actionError, setActionError, patchUser, setUserStatus, resetPassword };
+  /**
+   * Applies an edited account draft. Trimming and field selection live here so the modal and
+   * the page only deal in the draft shape the user actually filled in.
+   */
+  const submitEdit = useCallback(
+    async (userId: string, draft: UserEditDraft): Promise<UserSummary | null> =>
+      patchUser(userId, {
+        fullName: draft.fullName.trim(),
+        mobile: draft.mobile.trim(),
+        email: draft.email.trim(),
+        role: draft.role,
+        facilityIds: draft.facilityIds,
+      }),
+    [patchUser],
+  );
+
+  return {
+    saving,
+    actionError,
+    setActionError,
+    patchUser,
+    setUserStatus,
+    resetPassword,
+    submitEdit,
+  };
 }

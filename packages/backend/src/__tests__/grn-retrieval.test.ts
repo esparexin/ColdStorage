@@ -25,7 +25,7 @@ describe('GRN Retrieval & Acknowledgement Projections', () => {
   let commodityId: string;
   let createdGrnId: string;
 
-  const customerMobile = '9876500999';
+  const customerMobile = '9876500024';
 
   beforeAll(async () => {
     clearRateLimiterStore();
@@ -37,7 +37,7 @@ describe('GRN Retrieval & Acknowledgement Projections', () => {
 
   afterAll(async () => {
     clearRateLimiterStore();
-    await CustomerModel.deleteMany({ $or: [{ id: 'cust-ramesh-01' }, { mobile: customerMobile }] });
+    await CustomerModel.deleteMany({ $or: [{ id: 'cust-ramesh-ret' }, { mobile: customerMobile }] });
     await UserModel.deleteMany({ $or: [{ id: 'user-op-north' }, { username: 'op.north' }] });
     await FacilityModel.deleteMany({ id: northFacilityId });
     if (mongoose.connection.readyState !== 0) {
@@ -49,20 +49,20 @@ describe('GRN Retrieval & Acknowledgement Projections', () => {
     await UserModel.deleteMany({ $or: [{ id: 'user-op-north' }, { username: 'op.north' }] });
     await FacilityModel.deleteMany({ id: northFacilityId });
     await ChamberModel.deleteMany({ facilityId: northFacilityId });
-    await CustomerModel.deleteMany({ $or: [{ id: 'cust-ramesh-01' }, { mobile: customerMobile }] });
-    await CommodityModel.deleteMany({ id: 'comm-potato-01' });
+    await CustomerModel.deleteMany({ $or: [{ id: 'cust-ramesh-ret' }, { mobile: customerMobile }] });
+    await CommodityModel.deleteMany({ id: 'comm-potato-ret' });
     await GrnModel.deleteMany({ facilityId: northFacilityId });
     await CounterModel.deleteMany({ facilityId: northFacilityId });
 
     await FacilityModel.create({
       id: northFacilityId,
-      code: 'NORTH',
+      code: 'NORTHR',
       name: 'North Cold Facility',
       isActive: true,
     });
 
     const chNorth = await ChamberModel.create({
-      id: 'cham-north-01',
+      id: 'cham-north-ret',
       facilityId: northFacilityId,
       chamberNumber: 'CH-NORTH-01',
       isActive: true,
@@ -70,15 +70,15 @@ describe('GRN Retrieval & Acknowledgement Projections', () => {
     chamberNorthId = chNorth.id;
 
     const comm = await CommodityModel.create({
-      id: 'comm-potato-01',
+      id: 'comm-potato-ret',
       name: 'Potato Jyoti',
-      normalizedName: 'POTATO JYOTI',
+      normalizedName: 'POTATO JYOTI RET',
       isActive: true,
     });
     commodityId = comm.id;
 
     const cust = await CustomerModel.create({
-      id: 'cust-ramesh-01',
+      id: 'cust-ramesh-ret',
       name: 'Ramesh Patel',
       mobile: customerMobile,
       facilityIds: [northFacilityId],
@@ -92,7 +92,7 @@ describe('GRN Retrieval & Acknowledgement Projections', () => {
       id: 'user-op-north',
       fullName: 'Operator North',
       employeeId: 'EMP-P4-004',
-      mobile: '9800000004',
+      mobile: '9800000024',
       username: 'op.north',
       email: 'op.north@coldstorage.local',
       passwordHash: defaultPasswordHash,

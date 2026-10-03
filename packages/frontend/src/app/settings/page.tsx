@@ -54,6 +54,8 @@ export default function SettingsPage() {
     logoUploading,
     logoError,
     logoSuccess,
+    logoDeleteArmed,
+    setLogoDeleteArmed,
     handleLogoUpload,
     handleDeleteLogo,
     handleSaveSettings,
@@ -120,6 +122,8 @@ export default function SettingsPage() {
           logoUploading={logoUploading}
           logoSuccess={logoSuccess}
           logoError={logoError}
+          logoDeleteArmed={logoDeleteArmed}
+          onCancelDeleteLogo={() => setLogoDeleteArmed(false)}
           onLogoUpload={handleLogoUpload}
           onDeleteLogo={handleDeleteLogo}
         />

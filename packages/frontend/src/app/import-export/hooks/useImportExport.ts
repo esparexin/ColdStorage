@@ -10,6 +10,7 @@ export function useImportExport(selectedFacilityId: string | null) {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportSummaryResult | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const [exportingType, setExportingType] = useState<string | null>(null);
 
@@ -84,13 +85,15 @@ export function useImportExport(selectedFacilityId: string | null) {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Export failed');
+      setExportError(err instanceof Error ? err.message : 'Export failed');
     } finally {
       setExportingType(null);
     }
   };
 
   return {
+    exportError,
+    setExportError,
     importTarget,
     setImportTarget,
     selectedFile,

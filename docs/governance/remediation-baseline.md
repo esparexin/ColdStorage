@@ -13,7 +13,7 @@
 | :--- | :--- | :--- |
 | **Branch** | Verified | `fix/ui-ux-ssot-code-hygiene` branched from `main` |
 | **Repository Hygiene** | PASS | `scripts/hygiene-audit.sh` (zero placeholders, zero secrets) |
-| **Line Budget & Ratchet** | PASS | `scripts/check-line-budget.sh` (26 baseline entries, 0 new violations) |
+| **Line Budget & Ratchet** | PASS | `scripts/check-line-budget.sh` (29 baseline entries — 21 TypeScript + 8 CSS — 0 new violations) |
 | **Type Check** | PASS | `npm run type-check` across `@cold-storage/contracts`, `@cold-storage/backend`, `@cold-storage/frontend` |
 | **ESLint** | PASS | `eslint . --max-warnings=0` (zero warnings) |
 | **Test Suites** | PASS | 38 test files, 373 total tests passing (Backend: 303, Contracts: 70) |

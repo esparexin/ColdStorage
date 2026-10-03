@@ -1,4 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
+import {
+  indianVehicleSchema,
+} from '@cold-storage/contracts';
 import type {
   DeliveryChallan,
   DeliverySummary,
@@ -129,8 +132,7 @@ export function useCreateDeliveryForm(
     }
 
     if (createVehicleNumber.trim()) {
-      const vehicleRegex = /^[A-Z]{2}[0-9]{2}[A-Z]{1,3}[0-9]{1,4}$/;
-      if (!vehicleRegex.test(createVehicleNumber.trim().toUpperCase())) {
+      if (!indianVehicleSchema.safeParse(createVehicleNumber.trim()).success) {
         setModalError('Vehicle registration must be in standard Indian format (e.g. UP32AA1111)');
         return;
       }

@@ -12,11 +12,8 @@ import { GrnModel } from '../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { PositionModel } from '../database/models/position.model.js';
 import { dashboardService } from '../modules/dashboard/dashboard.service.js';
-import {
-  ExportService,
-  buildDateFilter,
-  exportService,
-} from '../modules/import-export/export.service.js';
+import { ExportService, exportService } from '../modules/import-export/export.service.js';
+import { buildDateFilter } from '../modules/import-export/csv-stream.helper.js';
 
 // Mock Response object for testing streaming
 class MockResponse extends Writable {

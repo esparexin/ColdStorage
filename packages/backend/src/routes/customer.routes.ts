@@ -3,6 +3,7 @@ import { createCustomerSchema, updateCustomerSchema } from '@cold-storage/contra
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { customerService } from '../modules/customers/customer.service.js';
+import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
 export const customerRouter = Router();
@@ -32,9 +33,7 @@ customerRouter.post('/', requirePermission('customer:manage'), async (req: Reque
     const customer = await customerService.createCustomer(parseResult.data);
     res.status(201).json({ customer });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Customer creation failed';
-    const status = message.includes('already registered') || message.includes('already exists') ? 409 : 400;
-    res.status(status).json({ error: message });
+      sendServiceError(res, err, 'Customer creation failed');
   }
 });
 
@@ -46,9 +45,7 @@ customerRouter.get('/', requirePermission('customer:view'), async (req: Request,
     const customers = await customerService.listCustomers(facilityId, req.user!.facilityIds, isSuperAdmin);
     res.status(200).json({ items: customers, total: customers.length });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Failed to list customers';
-    const status = message.includes('Unauthorized') ? 403 : 500;
-    res.status(status).json({ error: message });
+      sendServiceError(res, err, 'Failed to list customers');
   }
 });
 
@@ -75,8 +72,7 @@ customerRouter.get(
 
       res.status(200).json({ customer });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to get customer';
-      res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to get customer');
     }
   },
 );
@@ -121,9 +117,7 @@ customerRouter.patch(
       const updated = await customerService.updateCustomer(customerId, parseResult.data);
       res.status(200).json({ customer: updated });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Customer update failed';
-      const status = message.includes('already exists') ? 409 : 400;
-      res.status(status).json({ error: message });
+      sendServiceError(res, err, 'Customer update failed');
     }
   },
 );

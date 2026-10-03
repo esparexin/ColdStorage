@@ -32,6 +32,7 @@ export function CollectPaymentModal({
     collectNotes,
     setCollectNotes,
     collectError,
+    previewError,
     collectSubmitting,
     handleSubmit,
     handlePreviewReceipt,
@@ -50,7 +51,17 @@ export function CollectPaymentModal({
     >
       <form onSubmit={handleSubmit}>
           <div className={styles.modalBody}>
-            {collectError && <div className={styles.modalError}>{collectError}</div>}
+            {collectError && (
+              <div className={styles.modalError} role="alert">
+                {collectError}
+              </div>
+            )}
+
+            {previewError && (
+              <div className={styles.modalError} role="alert">
+                {previewError}
+              </div>
+            )}
 
             <div className={styles.infoCard}>
               <div className={styles.infoRow}>
@@ -94,7 +105,7 @@ export function CollectPaymentModal({
                   </button>
                 )}
               </div>
-              <input
+              <input aria-label="Enter amount"
                 id="collect-amount"
                 type="number"
                 min={1}
@@ -150,7 +161,7 @@ export function CollectPaymentModal({
               <label htmlFor="collect-notes" className={styles.fieldLabel}>
                 Receipt Notes / UPI Reference ID
               </label>
-              <input
+              <input aria-label="Optional notes or bank transaction reference"
                 id="collect-notes"
                 type="text"
                 maxLength={500}

@@ -3,11 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { ExternalLink, Eye } from 'lucide-react';
-import type { PositionOccupancy } from '@cold-storage/contracts';
 import { Button } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
-import { useFacility } from '@/context/FacilityContext';
-import { requestWithAuth } from '@/lib/api-client';
 import type { useStorageHierarchy } from '../hooks/useStorageHierarchy';
 import styles from '../page.module.css';
 
@@ -20,23 +17,6 @@ export function HierarchyTab({
   hierarchy,
   canManageStorage,
 }: HierarchyTabProps) {
-  const { selectedFacilityId } = useFacility();
-
-  const handleInspectPosition = async (posId: string) => {
-    if (!selectedFacilityId) return;
-    try {
-      const res = await requestWithAuth(
-        `/api/facilities/${encodeURIComponent(selectedFacilityId)}/positions/${encodeURIComponent(posId)}/occupancy`,
-      );
-      if (res.ok) {
-        const data = (await res.json()) as { occupancy: PositionOccupancy };
-        hierarchy.setSelectedOccupancy(data.occupancy);
-      }
-    } catch {
-      // Graceful
-    }
-  };
-
   return (
     <div className={styles.tabContent}>
       <div className={styles.hierarchyToolbar}>
@@ -113,7 +93,7 @@ export function HierarchyTab({
                                 key={pos.id}
                                 type="button"
                                 className={styles.posSlot}
-                                onClick={() => void handleInspectPosition(pos.id)}
+                                onClick={() => void hierarchy.inspectPositionOccupancy(pos.id)}
                                 title={`Pos ${pos.code}: Cap ${pos.capacityBags} bags (Click to inspect)`}
                               >
                                 <span className={styles.posCode}>{pos.code}</span>

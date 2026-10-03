@@ -12,10 +12,25 @@ if find "$ROOT" -path "$ROOT/node_modules" -prune -o -path "$ROOT/packages/*/nod
   fail "legacy/duplicate filename pattern found"
 fi
 
-# 2. Forbidden content markers in source
-if grep -rniE "dummy|placeholder production logic|lorem ipsum|final2" "$ROOT" --include="*.ts" --exclude-dir=node_modules --exclude-dir=dist 2>/dev/null | grep -qv "hygiene-audit"; then
-  grep -rniE "dummy|placeholder production logic|lorem ipsum|final2" "$ROOT" --include="*.ts" --exclude-dir=node_modules --exclude-dir=dist | head -20
-  fail "forbidden placeholder content found"
+# 2. Forbidden content markers in source.
+# Scanned across .ts, .tsx and .mjs: a frontend page is exactly where placeholder or
+# copy-paste debris tends to survive, and the previous *.ts-only scope could not see it.
+PLACEHOLDER_PATTERNS="dummy|placeholder production logic|lorem ipsum|final2|TODO|FIXME|XXX|HACK:|coming soon|not implemented"
+if grep -rniE "$PLACEHOLDER_PATTERNS" "$ROOT" \
+  --include="*.ts" --include="*.tsx" --include="*.mjs" \
+  --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.next 2>/dev/null \
+  | grep -qv "hygiene-audit"; then
+  grep -rniE "$PLACEHOLDER_PATTERNS" "$ROOT" \
+    --include="*.ts" --include="*.tsx" --include="*.mjs" \
+    --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.next | head -20
+  fail "forbidden placeholder/leftover-work marker found"
+fi
+
+# 2b. debugger statements are dead debugging code.
+if grep -rnE "^\s*debugger\s*;?\s*$" "$ROOT/packages" \
+  --include="*.ts" --include="*.tsx" \
+  --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.next 2>/dev/null; then
+  fail "debugger statement found in source"
 fi
 
 # 3. No dist/coverage tracked in git
@@ -24,9 +39,12 @@ if git -C "$ROOT" ls-files | grep -E '(^|/)(dist|coverage)/' | grep -q .; then
   fail "build artefacts (dist/coverage) must not be tracked in git"
 fi
 
-# 4. No .env secrets committed
-if find "$ROOT" -maxdepth 2 -name ".env" -not -path "$ROOT/.git/*" | grep -q .; then
-  fail ".env must not be committed (use .env.example)"
+# 4. No .env secrets committed (any depth, and not just the exact .env name)
+if find "$ROOT" -name ".env" -o -name ".env.local" -o -name ".env.*.local" 2>/dev/null \
+  | grep -v "/node_modules/" | grep -v "/.git/" | grep -q .; then
+  find "$ROOT" -name ".env" -o -name ".env.local" -o -name ".env.*.local" 2>/dev/null \
+    | grep -v "/node_modules/" | grep -v "/.git/" | head -20
+  fail "local .env files must not be committed (use .env.example)"
 fi
 
 # 5. Source file line-budget and ratchet audit

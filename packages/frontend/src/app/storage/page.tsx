@@ -1,16 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  CheckCircle2, ChevronRight, Edit3, Plus, RefreshCw, ShieldAlert, Warehouse,
-} from 'lucide-react';
+import { CheckCircle2, RefreshCw, ShieldAlert } from 'lucide-react';
 import { can, type Role } from '@cold-storage/contracts';
-import { Button, Select } from '@/components/ui';
+import { Button } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { FacilityModal } from './components/FacilityModal';
 import { PositionOccupancyPanel } from './components/PositionOccupancyPanel';
 import { StorageColumnsView } from './components/StorageColumnsView';
+import { StorageFacilityBar } from './components/StorageFacilityBar';
 import { StorageHierarchyModals } from './components/StorageHierarchyModals';
 import { useStorageBrowser } from './hooks/useStorageBrowser';
 import { useStorageMutations } from './hooks/useStorageMutations';
@@ -82,81 +81,25 @@ export default function StorageHierarchyPage() {
         </div>
       )}
 
-      <div className={styles.facilitySelectCard}>
-        <div className={styles.facilitySelectLeft}>
-          <Warehouse size={20} color="var(--color-primary)" />
-          <label htmlFor="storage-facility-selector">Warehouse Facility:</label>
-          <Select
-            id="storage-facility-selector"
-            className={styles.selectInput}
-            value={selectedFacilityId || ''}
-            onChange={(e) => setSelectedFacilityId(e.target.value)}
-          >
-            {availableFacilities.map((fac) => (
-              <option key={fac.id} value={fac.id}>
-                {fac.name} ({fac.code})
-              </option>
-            ))}
-          </Select>
-          {canManage && (
-            <div className={styles.facilityActions}>
-              <button
-                type="button"
-                className={styles.facilityBtn}
-                title="Add Facility"
-                onClick={() => { setFacilityModalMode('create'); setFacilityModalOpen(true); }}
-              >
-                <Plus size={13} />
-                <span>New Facility</span>
-              </button>
-              {currentFacility && (
-                <button
-                  type="button"
-                  className={styles.facilityBtn}
-                  title="Edit Facility"
-                  onClick={() => { setFacilityModalMode('edit'); setFacilityModalOpen(true); }}
-                >
-                  <Edit3 size={13} />
-                  <span>Edit</span>
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-        <div className={styles.breadcrumbs} aria-label="Hierarchy Path">
-          <span>{currentFacility?.name || 'Facility'}</span>
-          {browser.selectedChamber && (
-            <>
-              <ChevronRight size={14} />
-              <span className={!browser.selectedRack ? styles.breadcrumbActive : undefined}>
-                Chamber {browser.selectedChamber.chamberNumber}
-              </span>
-            </>
-          )}
-          {browser.selectedRack && (
-            <>
-              <ChevronRight size={14} />
-              <span className={!browser.selectedLevel ? styles.breadcrumbActive : undefined}>
-                Rack {browser.selectedRack.code}
-              </span>
-            </>
-          )}
-          {browser.selectedLevel && (
-            <>
-              <ChevronRight size={14} />
-              <span className={!browser.selectedPosition ? styles.breadcrumbActive : undefined}>
-                Level {browser.selectedLevel.code}
-              </span>
-            </>
-          )}
-          {browser.selectedPosition && (
-            <>
-              <ChevronRight size={14} />
-              <span className={styles.breadcrumbActive}>Space {browser.selectedPosition.code}</span>
-            </>
-          )}
-        </div>
-      </div>
+      <StorageFacilityBar
+        selectedFacilityId={selectedFacilityId}
+        availableFacilities={availableFacilities}
+        canManage={canManage}
+        currentFacility={currentFacility}
+        selectedChamber={browser.selectedChamber}
+        selectedRack={browser.selectedRack}
+        selectedLevel={browser.selectedLevel}
+        selectedPosition={browser.selectedPosition}
+        onSelectFacility={setSelectedFacilityId}
+        onCreateFacility={() => {
+          setFacilityModalMode('create');
+          setFacilityModalOpen(true);
+        }}
+        onEditFacility={() => {
+          setFacilityModalMode('edit');
+          setFacilityModalOpen(true);
+        }}
+      />
 
       <StorageColumnsView
         chambers={browser.chambers}

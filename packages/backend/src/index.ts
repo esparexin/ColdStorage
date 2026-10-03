@@ -2,6 +2,7 @@ import { createApp } from './app.js';
 import { config } from './config.js';
 import { connectToDatabase } from './database/connection.js';
 import { userRepository } from './modules/users/user.repository.js';
+import { logger } from './utils/logger.js';
 
 export * from './app.js';
 export * from './config.js';
@@ -14,7 +15,6 @@ if (process.env.NODE_ENV !== 'test') {
   await connectToDatabase();
   await userRepository.bootstrapSuperAdminFromEnv();
   app.listen(config.port, () => {
-    // Standard startup notification
-    console.log(`Backend server listening on port ${config.port}`);
+    logger.info('Backend server listening', { port: config.port });
   });
 }

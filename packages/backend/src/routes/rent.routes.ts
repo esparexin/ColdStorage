@@ -4,6 +4,7 @@ import { authenticate, requirePasswordChanged } from '../middleware/auth.middlew
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { rentService } from '../modules/rent/rent.service.js';
+import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
 export const rentRouter = Router();
@@ -66,9 +67,7 @@ rentRouter.get(
       const summary = await rentService.getRentSummary(facilityId, identifier);
       res.status(200).json(summary);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to retrieve rent summary';
-      const status = message.includes('not found') ? 404 : 500;
-      res.status(status).json({ error: message });
+      sendServiceError(res, err, 'Failed to retrieve rent summary');
     }
   },
 );
@@ -91,9 +90,7 @@ rentRouter.get(
       );
       res.status(200).send(html);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Receipt rendering failed';
-      const status = message.includes('not found') ? 404 : 500;
-      res.status(status).json({ error: message });
+      sendServiceError(res, err, 'Receipt rendering failed');
     }
   },
 );

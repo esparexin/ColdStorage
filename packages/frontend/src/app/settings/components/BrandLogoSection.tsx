@@ -9,8 +9,10 @@ interface BrandLogoSectionProps {
   logoUploading: boolean;
   logoSuccess: string | null;
   logoError: string | null;
+  logoDeleteArmed: boolean;
   onLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteLogo: () => void;
+  onCancelDeleteLogo: () => void;
 }
 
 export function BrandLogoSection({
@@ -18,8 +20,10 @@ export function BrandLogoSection({
   logoUploading,
   logoSuccess,
   logoError,
+  logoDeleteArmed,
   onLogoUpload,
   onDeleteLogo,
+  onCancelDeleteLogo,
 }: BrandLogoSectionProps) {
   return (
     <div className={styles.sectionCard}>
@@ -68,12 +72,31 @@ export function BrandLogoSection({
                 className={styles.deleteLogoBtn}
                 onClick={onDeleteLogo}
                 disabled={logoUploading}
+                aria-label={
+                  logoDeleteArmed
+                    ? 'Confirm removing the organization logo'
+                    : 'Remove the organization logo'
+                }
               >
                 <Trash2 size={15} aria-hidden="true" />
-                Remove
+                {logoDeleteArmed ? 'Confirm Remove' : 'Remove'}
               </button>
             )}
           </div>
+
+          {logoDeleteArmed && (
+            <div className={styles.saveError} role="alert">
+              Removing the logo affects all printed documents.{' '}
+              <button
+                type="button"
+                className={styles.deleteLogoBtn}
+                onClick={onCancelDeleteLogo}
+                disabled={logoUploading}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
 
           <span className={styles.logoHint}>
             PNG, JPEG, or WebP up to 1 MB. Dynamically embedded into official print templates and

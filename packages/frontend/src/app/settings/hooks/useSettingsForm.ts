@@ -31,6 +31,7 @@ export function useSettingsForm() {
 
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
+  const [logoDeleteArmed, setLogoDeleteArmed] = useState(false);
   const [logoSuccess, setLogoSuccess] = useState<string | null>(null);
 
   useEffect(() => {
@@ -104,8 +105,15 @@ export function useSettingsForm() {
   };
 
   const handleDeleteLogo = async () => {
-    if (!confirm('Are you sure you want to remove the organization logo?')) return;
+    // Destructive confirmation is handled in the UI rather than a blocking browser dialog,
+    // so it can be styled, announced to assistive tech, and composed with the section's
+    // existing error/success messaging.
+    if (!logoDeleteArmed) {
+      setLogoDeleteArmed(true);
+      return;
+    }
 
+    setLogoDeleteArmed(false);
     setLogoUploading(true);
     setLogoError(null);
     setLogoSuccess(null);
@@ -229,6 +237,8 @@ export function useSettingsForm() {
     logoUploading,
     logoError,
     logoSuccess,
+    logoDeleteArmed,
+    setLogoDeleteArmed,
     handleLogoUpload,
     handleDeleteLogo,
     handleSaveSettings,

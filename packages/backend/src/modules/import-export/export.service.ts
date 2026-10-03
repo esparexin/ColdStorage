@@ -8,8 +8,6 @@ import { auditService } from '../audit/audit.service.js';
 import { buildDateFilter, streamCursor } from './csv-stream.helper.js';
 import { exportStockSummary } from './handlers/stock-summary-export.handler.js';
 
-export { buildDateFilter };
-
 export class ExportService {
   /**
    * Pipes a Mongoose cursor through CsvSerializer to Express response with backpressure,

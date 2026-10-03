@@ -21,21 +21,58 @@ root = "$ROOT"
 frontend_src = os.path.join(root, "packages", "frontend", "src")
 violations = []
 
-input_regex = re.compile(r'<input\b(?![^>]*\b(type=["\']hidden["\']))[^>]*>')
-label_attrs = ['aria-label', 'aria-labelledby', 'id', 'placeholder', '{...rest}', '{...props}']
+# Every interactive form control must expose an accessible name. Previously only
+# <input> was scanned, and 'placeholder' / blanket prop spreads were accepted as a
+# label, so an unlabelled control could pass the gate.
+input_regex = re.compile(
+    r'<(input|select|textarea)\b(?![^>]*\btype=["\']hidden["\'])[^>]*>'
+)
+
+# The canonical primitives in components/ui bind their label at runtime via React.useId()
+# and a required label prop, which a purely static scan cannot correlate. They are
+# excluded here and covered instead by the Modal contract check below.
 
 for dirpath, _, filenames in os.walk(frontend_src):
+    if os.path.relpath(dirpath, root).replace(os.sep, "/").endswith("components/ui"):
+        continue
     for fn in filenames:
         if fn.endswith('.tsx'):
             fpath = os.path.join(dirpath, fn)
             rel = os.path.relpath(fpath, root)
             with open(fpath, 'r', encoding='utf-8') as f:
                 content = f.read()
-                # Find input tags
+
+                # Ids referenced by a <label for="..."> in this file.
+                labelled_ids = set(
+                    re.findall(
+                        r'<label[^>]*\b(?:htmlFor|for)=["\']([^"\']+)["\']', content
+                    )
+                )
+
+                # Ranges implicitly labelled by wrapping <label> ... </label> without
+                # an intervening closing tag (implicit association is valid HTML).
+                implicit_spans = []
+                for lm in re.finditer(r'<label\b[^>]*>', content):
+                    close = content.find('</label>', lm.end())
+                    if close == -1:
+                        continue
+                    implicit_spans.append((lm.end(), close))
+
                 for match in input_regex.finditer(content):
                     tag = match.group(0)
-                    if not any(attr in tag for attr in label_attrs):
-                        violations.append(f"{rel}: input missing accessible label/id: {tag[:60]}")
+                    has_name = ('aria-label' in tag) or ('aria-labelledby' in tag)
+                    if not has_name:
+                        id_match = re.search(r'\bid=["\']([^"\']+)["\']', tag)
+                        if id_match and id_match.group(1) in labelled_ids:
+                            has_name = True
+                    if not has_name:
+                        has_name = any(
+                            start < match.start() < end for start, end in implicit_spans
+                        )
+                    if not has_name:
+                        violations.append(
+                            f"{rel}: control missing accessible name/label: {tag[:70]}"
+                        )
 
 if violations:
     print(f"[FAIL] Found {len(violations)} accessibility label violations:")
@@ -43,7 +80,7 @@ if violations:
         print(f"  - {v}")
     sys.exit(1)
 else:
-    print("[PASS] All interactive inputs have accessible identifiers or labels.")
+    print("[PASS] All interactive form controls have accessible names or labels.")
 EOF
 
 if [ $? -ne 0 ]; then

@@ -1,0 +1,20 @@
+name: "ColdStorage CodeQL config"
+
+# Query suites are kept in sync with .github/workflows/codeql.yml.
+queries:
+  - uses: security-extended
+  - uses: security-and-quality
+
+query-filters:
+  # js/missing-rate-limiting flags every Express Router that does not itself attach a rate
+  # limiter. In this codebase rate limiting is applied centrally in app.ts:
+  #
+  #   app.use('/api', generalRateLimiter);   // all /api routes
+  #   authRouter.post('/login', authRateLimiter, ...)  // stricter auth tier
+  #
+  # So a router that only chains `authenticate` / `requirePermission` /
+  # `requireFacilityScope` is already covered, and the alert is a false positive. There were
+  # 25 open instances of this alert on the default branch before any of the routers were
+  # split. Re-enable this rule if rate limiting is ever moved off the central middleware.
+  - exclude:
+      id: js/missing-rate-limiting

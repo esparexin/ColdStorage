@@ -93,7 +93,7 @@ export function StorageHierarchyModals({
             <>
               <div className={styles.formGroup}>
                 <label htmlFor="chamberNumber">Chamber Identifier / Number *</label>
-                <input
+                <input aria-label="e.g. 1, 2, 3"
                   id="chamberNumber"
                   type="text"
                   required
@@ -105,7 +105,7 @@ export function StorageHierarchyModals({
               </div>
               <div className={styles.formGroup}>
                 <label htmlFor="chamberName">Chamber Name (Optional)</label>
-                <input
+                <input aria-label="e.g. Cold Chamber A"
                   id="chamberName"
                   type="text"
                   placeholder="e.g. Cold Chamber A"
@@ -120,7 +120,7 @@ export function StorageHierarchyModals({
           {activeModal === 'rack' && (
             <div className={styles.formGroup}>
               <label htmlFor="rackCode">Rack Code *</label>
-              <input
+              <input aria-label="e.g. A, B, C"
                 id="rackCode"
                 type="text"
                 required
@@ -148,7 +148,7 @@ export function StorageHierarchyModals({
               </div>
               <div className={styles.formGroup}>
                 <label htmlFor="levelCode">Level Code *</label>
-                <input
+                <input aria-label="e.g. A01, A02"
                   id="levelCode"
                   type="text"
                   required
@@ -165,7 +165,7 @@ export function StorageHierarchyModals({
             <>
               <div className={styles.formGroup}>
                 <label htmlFor="positionCode">Rack Space Code *</label>
-                <input
+                <input aria-label="e.g. A01-01, A01-02"
                   id="positionCode"
                   type="text"
                   required

@@ -3,6 +3,7 @@ import { createCommoditySchema, updateCommoditySchema } from '@cold-storage/cont
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { commodityService } from '../modules/commodities/commodity.service.js';
+import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
 export const commodityRouter = Router();
@@ -21,9 +22,7 @@ commodityRouter.post('/', requirePermission('commodity:manage'), async (req: Req
     const commodity = await commodityService.createCommodity(parseResult.data);
     res.status(201).json({ commodity });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Commodity creation failed';
-    const status = message.includes('already exists') ? 409 : 400;
-    res.status(status).json({ error: message });
+      sendServiceError(res, err, 'Commodity creation failed');
   }
 });
 
@@ -32,8 +31,7 @@ commodityRouter.get('/', requirePermission('commodity:view'), async (_req: Reque
     const commodities = await commodityService.listCommodities();
     res.status(200).json({ items: commodities, total: commodities.length });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Failed to list commodities';
-    res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to list commodities');
   }
 });
 
@@ -50,8 +48,7 @@ commodityRouter.get(
       }
       res.status(200).json({ commodity });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to get commodity';
-      res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to get commodity');
     }
   },
 );
@@ -75,9 +72,7 @@ commodityRouter.patch(
       }
       res.status(200).json({ commodity: updated });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Commodity update failed';
-      const status = message.includes('already exists') ? 409 : 400;
-      res.status(status).json({ error: message });
+      sendServiceError(res, err, 'Commodity update failed');
     }
   },
 );

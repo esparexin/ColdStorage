@@ -4,6 +4,7 @@ import { authenticate, requirePasswordChanged } from '../middleware/auth.middlew
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { grnService } from '../modules/grn/grn.service.js';
+import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
 export const grnRouter = Router();
@@ -70,8 +71,7 @@ grnRouter.get(
       const result = await grnService.listGrns(facilityId, parseResult.data);
       res.status(200).json(result);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to list GRNs';
-      res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to list GRNs');
     }
   },
 );
@@ -91,8 +91,7 @@ grnRouter.get(
       }
       res.status(200).json({ grn });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to get GRN';
-      res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to get GRN');
     }
   },
 );
@@ -112,8 +111,7 @@ grnRouter.get(
       }
       res.status(200).json({ acknowledgement });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to get GRN acknowledgement';
-      res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to get GRN acknowledgement');
     }
   },
 );

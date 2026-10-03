@@ -55,7 +55,7 @@ export function useCommodities() {
 
       await fetchCommodities();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Failed to update status');
+      setError(err instanceof Error ? err.message : 'Failed to update status');
     }
   };
 
