@@ -8,6 +8,7 @@ import styles from '../page.module.css';
 
 interface StorageHierarchyModalsProps {
   activeModal: ModalType;
+  modalMode: 'create' | 'edit';
   onClose: () => void;
   selectedChamber: Chamber | null;
   selectedRack: Rack | null;
@@ -33,6 +34,7 @@ interface StorageHierarchyModalsProps {
 
 export function StorageHierarchyModals({
   activeModal,
+  modalMode,
   onClose,
   selectedChamber,
   selectedRack,
@@ -62,10 +64,20 @@ export function StorageHierarchyModals({
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
           <h3>
-            {activeModal === 'chamber' && 'Add New Chamber'}
-            {activeModal === 'rack' && `Add Rack to Chamber ${selectedChamber?.chamberNumber}`}
-            {activeModal === 'level' && `Add Level to Rack ${selectedRack?.code}`}
-            {activeModal === 'position' && `Add Rack Space to Level ${selectedLevel?.code}`}
+            {activeModal === 'chamber' &&
+              (modalMode === 'edit' ? 'Edit Chamber' : 'Add New Chamber')}
+            {activeModal === 'rack' &&
+              (modalMode === 'edit'
+                ? `Edit Rack ${rackCode}`
+                : `Add Rack to Chamber ${selectedChamber?.chamberNumber}`)}
+            {activeModal === 'level' &&
+              (modalMode === 'edit'
+                ? `Edit Level ${levelCode}`
+                : `Add Level to Rack ${selectedRack?.code}`)}
+            {activeModal === 'position' &&
+              (modalMode === 'edit'
+                ? `Edit Rack Space ${positionCode}`
+                : `Add Rack Space to Level ${selectedLevel?.code}`)}
           </h3>
           <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close modal">
             <X size={18} />
@@ -185,7 +197,13 @@ export function StorageHierarchyModals({
               Cancel
             </button>
             <button type="submit" className={styles.submitBtn} disabled={submitting}>
-              {submitting ? 'Creating...' : 'Create'}
+              {submitting
+                ? modalMode === 'edit'
+                  ? 'Saving...'
+                  : 'Creating...'
+                : modalMode === 'edit'
+                  ? 'Save Changes'
+                  : 'Create'}
             </button>
           </div>
         </form>

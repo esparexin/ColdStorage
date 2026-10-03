@@ -227,6 +227,46 @@
   color: var(--color-text-muted);
 }
 
+.itemCardTitleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.actionIconBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease-in-out;
+}
+
+.actionIconBtn:hover {
+  background: var(--color-surface-2);
+  color: var(--color-primary);
+}
+
+.actionIconBtnDanger:hover {
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
+}
+
+.itemChevron {
+  color: var(--color-text-muted);
+  margin-left: 2px;
+}
+
 .emptyColumnNotice {
   padding: var(--space-6) var(--space-3);
   text-align: center;

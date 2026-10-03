@@ -155,6 +155,14 @@ export default function StorageHierarchyPage() {
         onSelectPosition={browser.handleSelectPosition}
         canManage={canManage}
         onOpenModal={mutations.openCreateModal}
+        onEditChamber={mutations.openEditChamber}
+        onDeactivateChamber={(c) => mutations.handleDeactivate('chamber', c.id, `Chamber ${c.chamberNumber}`)}
+        onEditRack={mutations.openEditRack}
+        onDeactivateRack={(r) => mutations.handleDeactivate('rack', r.id, `Rack ${r.code}`)}
+        onEditLevel={mutations.openEditLevel}
+        onDeactivateLevel={(l) => mutations.handleDeactivate('level', l.id, `Level ${l.code}`)}
+        onEditPosition={mutations.openEditPosition}
+        onDeactivatePosition={(p) => mutations.handleDeactivate('position', p.id, `Rack Space ${p.code}`)}
         loadingChambers={browser.loadingChambers}
         loadingRacks={browser.loadingRacks}
         loadingLevels={browser.loadingLevels}
@@ -169,11 +177,12 @@ export default function StorageHierarchyPage() {
 
       <StorageHierarchyModals
         activeModal={mutations.activeModal}
+        modalMode={mutations.modalMode}
         onClose={() => mutations.setActiveModal(null)}
         selectedChamber={browser.selectedChamber}
         selectedRack={browser.selectedRack}
         selectedLevel={browser.selectedLevel}
-        onSubmit={mutations.handleCreateSubmit}
+        onSubmit={mutations.handleSaveSubmit}
         submitting={mutations.submitting}
         formError={mutations.formError}
         chamberNumber={mutations.chamberNumber}
