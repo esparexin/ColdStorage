@@ -2,10 +2,12 @@
 
 import React, { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { can, type Role } from '@cold-storage/contracts';
+import { can, type RentSummaryDto, type Role } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
+import { requestWithAuth } from '@/lib/api-client';
+import { CollectPaymentModal } from '../rent/components/CollectPaymentModal';
 import { HierarchyTab } from './components/HierarchyTab';
 import { InventoryHeader } from './components/InventoryHeader';
 import { LedgerTab } from './components/LedgerTab';
@@ -26,6 +28,10 @@ function InventoryContent() {
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const canAllocate = can(userRole, 'rack:allocate');
   const canManageStorage = can(userRole, 'storage:manage');
+  const canCollectRent = can(userRole, 'rent:collect');
+  const canPrintRent = can(userRole, 'rent:print');
+
+  const [rentPayAccount, setRentPayAccount] = useState<RentSummaryDto | null>(null);
 
   const [activeTab, setActiveTab] = useState<'put-away' | 'hierarchy' | 'ledger'>(() =>
     initialGrnId ? 'put-away' : 'put-away',
@@ -45,6 +51,28 @@ function InventoryContent() {
       ''
     );
   }, [availableFacilities, selectedFacilityId]);
+
+  const handlePayRentForBlockedGrn = async () => {
+    if (!selectedFacilityId || !putAway.rentBlocked) return;
+    try {
+      const res = await requestWithAuth(
+        `/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/grn/${encodeURIComponent(putAway.rentBlocked.grnId)}`,
+      );
+      if (res.ok) {
+        setRentPayAccount((await res.json()) as RentSummaryDto);
+      }
+    } catch {
+      // Graceful: banner already explains the pending amount
+    }
+  };
+
+  const handleRentPaidFromPutAway = () => {
+    setRentPayAccount(null);
+    putAway.clearRentBlock();
+    if (putAway.selectedGrnId) {
+      void putAway.fetchGrnSummaryAndHistory(putAway.selectedGrnId);
+    }
+  };
 
   if (!selectedFacilityId) {
     return (
@@ -71,6 +99,8 @@ function InventoryContent() {
           openGrns={inventoryData.openGrns}
           putAway={putAway}
           canAllocate={canAllocate}
+          canPayRent={canCollectRent}
+          onPayRent={() => void handlePayRentForBlockedGrn()}
         />
       )}
 
@@ -92,6 +122,16 @@ function InventoryContent() {
         <OccupancyInspectorModal
           occupancy={hierarchy.selectedOccupancy}
           onClose={() => hierarchy.setSelectedOccupancy(null)}
+        />
+      )}
+
+      {rentPayAccount && selectedFacilityId && (
+        <CollectPaymentModal
+          account={rentPayAccount}
+          selectedFacilityId={selectedFacilityId}
+          canPrint={canPrintRent}
+          onClose={() => setRentPayAccount(null)}
+          onPaymentSuccess={handleRentPaidFromPutAway}
         />
       )}
     </div>

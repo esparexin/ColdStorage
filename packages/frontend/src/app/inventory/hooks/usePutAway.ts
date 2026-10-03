@@ -29,12 +29,24 @@ export function usePutAway(
   const [allocNotes, setAllocNotes] = useState('');
   const [allocSubmitting, setAllocSubmitting] = useState(false);
   const [allocError, setAllocError] = useState<string | null>(null);
+  const [rentBlocked, setRentBlocked] = useState<{
+    grnId: string;
+    grnNumber: string;
+    rentAmount: number;
+    totalPaid: number;
+    remainingBalance: number;
+  } | null>(null);
+
+  const clearRentBlock = useCallback(() => {
+    setRentBlocked(null);
+  }, []);
 
   const fetchGrnSummaryAndHistory = useCallback(
     async (grnId: string) => {
       if (!selectedFacilityId || !grnId) return;
       setLoadingGrnDetails(true);
       setAllocError(null);
+      setRentBlocked(null);
       try {
         const [sumRes, allocRes] = await Promise.all([
           requestWithAuth(
@@ -186,9 +198,18 @@ export function usePutAway(
       );
 
       if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
+        const data = (await res.json()) as {
+          error?: string;
+          code?: string;
+          rent?: { grnId: string; grnNumber: string; rentAmount: number; totalPaid: number; remainingBalance: number };
+        };
+        if (res.status === 402 && data.code === 'RENT_PAYMENT_REQUIRED' && data.rent) {
+          setRentBlocked(data.rent);
+        }
         throw new Error(data.error ?? `Put-away failed with HTTP ${res.status}`);
       }
+
+      setRentBlocked(null);
 
       setAllocRows([{ id: 'row-1', rackId: '', levelId: '', positionId: '', bags: '' }]);
       setAllocNotes('');
@@ -215,6 +236,8 @@ export function usePutAway(
     setAllocNotes,
     allocSubmitting,
     allocError,
+    rentBlocked,
+    clearRentBlock,
     totalAllocatingBags,
     handleAllocRackChange,
     handleAllocLevelChange,

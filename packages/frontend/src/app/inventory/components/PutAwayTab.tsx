@@ -12,9 +12,11 @@ interface PutAwayTabProps {
   openGrns: Grn[];
   putAway: ReturnType<typeof usePutAway>;
   canAllocate: boolean;
+  canPayRent: boolean;
+  onPayRent: () => void;
 }
 
-export function PutAwayTab({ openGrns, putAway, canAllocate }: PutAwayTabProps) {
+export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, onPayRent }: PutAwayTabProps) {
   return (
     <div className={styles.putAwayLayout}>
       {/* Left Sidebar */}
@@ -74,8 +76,20 @@ export function PutAwayTab({ openGrns, putAway, canAllocate }: PutAwayTabProps) 
                   </span>
                 </div>
 
-                {putAway.allocError && (
-                  <div className={styles.modalError}>{putAway.allocError}</div>
+                {putAway.rentBlocked ? (
+                  <div className={styles.modalError} role="alert">
+                    Rent ₹{putAway.rentBlocked.remainingBalance.toLocaleString('en-IN')} pending for{' '}
+                    {putAway.rentBlocked.grnNumber}. Complete payment to allocate — you will return here.
+                    {canPayRent && (
+                      <div style={{ marginTop: 8 }}>
+                        <button type="button" className={styles.primaryBtn} onClick={onPayRent}>
+                          Pay rent now
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  putAway.allocError && <div className={styles.modalError}>{putAway.allocError}</div>
                 )}
 
                 <form
@@ -199,11 +213,13 @@ export function PutAwayTab({ openGrns, putAway, canAllocate }: PutAwayTabProps) 
                       id="submit-allocation-btn"
                       type="submit"
                       className={styles.primaryBtn}
-                      disabled={putAway.allocSubmitting || putAway.totalAllocatingBags <= 0}
+                      disabled={putAway.allocSubmitting || putAway.totalAllocatingBags <= 0 || !!putAway.rentBlocked}
                     >
-                      {putAway.allocSubmitting
-                        ? 'Recording Batch...'
-                        : 'Confirm Put-Away Allocation'}
+                      {putAway.rentBlocked
+                        ? 'Rent payment required'
+                        : putAway.allocSubmitting
+                          ? 'Recording Batch...'
+                          : 'Confirm Put-Away Allocation'}
                     </button>
                   </div>
                 </form>

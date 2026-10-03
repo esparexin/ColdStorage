@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Printer } from 'lucide-react';
 import type { DeliveryChallan } from '@cold-storage/contracts';
 import { Badge, Button, Modal } from '@/components/ui';
@@ -30,6 +31,9 @@ export function DeliveryDetailModal({
       size="lg"
       footer={
         <>
+          <Link href={`/inventory?grnId=${encodeURIComponent(delivery.grnId)}`}>
+            <Button variant="outline">View GRN stock</Button>
+          </Link>
           {canPrint && (
             <Button
               variant="primary"
