@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { ConnectionStates } from 'mongoose';
 import { CommodityModel } from '../../database/models/commodity.model.js';
 import { CounterModel } from '../../database/models/counter.model.js';
 import { CustomerModel } from '../../database/models/customer.model.js';
@@ -45,9 +45,50 @@ function stockSuiteUri(): string {
   return `${server}/${STOCK_SUITE_DB}${query ? `?${query}` : ''}`;
 }
 
-/** Resolves once the suite has a live mongoose connection, reusing an existing one if present. */
+/**
+ * Resolves once the suite has a live mongoose connection.
+ *
+ * `mongoose` is a module singleton, so every test file in the worker shares ONE connection.
+ * A previous file's `afterAll` teardown can therefore still be closing that connection when the
+ * next file's `beforeAll` runs. The old `readyState === 0` guard read `1` (connected) during
+ * that window, skipped connecting, and the suite then queried a dying socket — surfacing as an
+ * intermittent "GRN not found" in whichever suite happened to run next.
+ *
+ * Awaiting `asPromise()` settles any in-flight connect/close, and re-checking after the await
+ * makes the connect idempotent under concurrency.
+ */
+let connectOnce: Promise<void> | null = null;
+
+/**
+ * Reads the live connection state.
+ *
+ * Read through a function so TypeScript cannot narrow it across the awaits below: the state
+ * genuinely can change while awaiting, and narrowing would hide that from the compiler.
+ */
+const connectionState = (): ConnectionStates => mongoose.connection.readyState;
+
 export async function connectToTestDatabase(): Promise<void> {
-  if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(stockSuiteUri());
+  if (connectionState() === ConnectionStates.connected) return;
+
+  connectOnce ??= mongoose.connect(stockSuiteUri()).then(() => undefined);
+  try {
+    await connectOnce;
+  } finally {
+    connectOnce = null;
   }
+
+  // Settle any close that a previous suite kicked off before deciding we are still connected.
+  if (connectionState() !== ConnectionStates.connected) {
+    await mongoose.connection.asPromise();
+  }
+}
+
+/**
+ * No-op teardown for suites on the shared connection.
+ *
+ * Disconnecting here would tear down the connection the next suite depends on. The vitest
+ * worker closes it when the process exits.
+ */
+export async function disconnectTestDatabase(): Promise<void> {
+  // Intentionally empty — see the note above.
 }

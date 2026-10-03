@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
@@ -7,7 +6,11 @@ import { RentPaymentRequiredError } from '../modules/common/rent-gate.service.js
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { inventoryService } from '../modules/inventory/inventory.service.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
-import { connectToTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
+import {
+  connectToTestDatabase,
+  disconnectTestDatabase,
+  resetStockCollections,
+} from './helpers/stock-reset.js';
 
 const userId = 'usr-operator-1';
 
@@ -20,11 +23,7 @@ describe('P6 DeliveryService outward delivery tests', () => {
     await connectToTestDatabase();
   });
 
-  afterAll(async () => {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
-  });
+    afterAll(disconnectTestDatabase);
 
   beforeEach(async () => {
     await resetStockCollections();

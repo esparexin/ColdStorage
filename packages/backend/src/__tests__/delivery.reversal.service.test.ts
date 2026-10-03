@@ -8,7 +8,11 @@ import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { validateReversalBags } from '../modules/delivery/handlers/delivery-validation.helper.js';
 import { inventoryService } from '../modules/inventory/inventory.service.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
-import { connectToTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
+import {
+  connectToTestDatabase,
+  disconnectTestDatabase,
+  resetStockCollections,
+} from './helpers/stock-reset.js';
 
 const userId = 'usr-operator-1';
 
@@ -21,11 +25,7 @@ describe('P6 DeliveryService reversal tests', () => {
     await connectToTestDatabase();
   });
 
-  afterAll(async () => {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
-  });
+    afterAll(disconnectTestDatabase);
 
   beforeEach(async () => {
     await resetStockCollections();

@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
@@ -7,7 +6,11 @@ import { CommodityModel } from '../database/models/commodity.model.js';
 import { CustomerModel } from '../database/models/customer.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility } from './helpers/master-data-fixtures.js';
-import { connectToTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
+import {
+  connectToTestDatabase,
+  disconnectTestDatabase,
+  resetStockCollections,
+} from './helpers/stock-reset.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
@@ -60,11 +63,7 @@ describe('GRN Facility Scoping, RBAC & Child-ID Protection', () => {
     }));
   });
 
-  afterAll(async () => {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
-  });
+    afterAll(disconnectTestDatabase);
 
   beforeEach(async () => {
     await resetStockCollections();
