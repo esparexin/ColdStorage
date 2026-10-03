@@ -33,7 +33,11 @@ export function toGrnEntity(doc: {
   createdBy: string;
   createdAt?: Date;
   updatedAt?: Date;
-}): Grn {
+  netDeliveredBags?: number;
+  closingBags?: number;
+}, extras?: { netDeliveredBags?: number; closingBags?: number }): Grn {
+  const netDelivered = extras?.netDeliveredBags ?? doc.netDeliveredBags ?? 0;
+  const closing = extras?.closingBags ?? doc.closingBags ?? Math.max(0, doc.bags - netDelivered);
   return {
     id: doc.id,
     facilityId: doc.facilityId,
@@ -64,6 +68,8 @@ export function toGrnEntity(doc: {
     vehicleNumber: doc.vehicleNumber ?? null,
     remarks: doc.remarks ?? null,
     status: doc.status as Grn['status'],
+    netDeliveredBags: netDelivered,
+    closingBags: closing,
     createdBy: doc.createdBy,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,

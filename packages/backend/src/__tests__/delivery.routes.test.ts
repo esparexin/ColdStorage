@@ -67,7 +67,6 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
       chamber: 'CH-1',
       bags: 80,
       commodityName: 'Onions',
-      grnNumber: 'GRN-25-26-0001',
     });
     // Put-away is whole-lot, so one call makes the full 80 bags deliverable.
     await inventoryService.createPutAway(facilityId, grnId, {}, 'usr-del-op');

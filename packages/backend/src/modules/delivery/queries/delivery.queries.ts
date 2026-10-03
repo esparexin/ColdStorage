@@ -61,7 +61,7 @@ export async function getDeliverySummary(
     throw new Error(`GRN '${grnId}' not found in facility '${facilityId}'`);
   }
 
-  const [outwardAgg, reversalAgg, inwardAgg] = await Promise.all([
+  const [outwardAgg, reversalAgg] = await Promise.all([
     InventoryTransactionModel.aggregate([
       { $match: { grnId, facilityId, transactionType: 'OUTWARD_DELIVERY' } },
       { $group: { _id: null, total: { $sum: '$quantity' } } },
@@ -70,19 +70,14 @@ export async function getDeliverySummary(
       { $match: { grnId, facilityId, transactionType: 'DELIVERY_REVERSAL' } },
       { $group: { _id: null, total: { $sum: '$quantity' } } },
     ]),
-    InventoryTransactionModel.aggregate([
-      { $match: { grnId, facilityId, transactionType: 'INWARD_PUTAWAY' } },
-      { $group: { _id: null, total: { $sum: '$quantity' } } },
-    ]),
   ]);
 
   const totalOutward = outwardAgg[0]?.total ?? 0;
   const totalReversal = reversalAgg[0]?.total ?? 0;
-  const totalInward = inwardAgg[0]?.total ?? 0;
 
   const netDeliveredBags = totalOutward - totalReversal;
   const remainingDeliveryBalance = Math.max(0, grn.bags - netDeliveredBags);
-  const physicallyStoredBags = Math.max(0, totalInward - totalOutward + totalReversal);
+  const physicallyStoredBags = remainingDeliveryBalance;
 
   const challanDocs = await DeliveryChallanModel.find({ facilityId, grnId })
     .sort({ date: -1, createdAt: -1 })

@@ -143,6 +143,8 @@ export const grnSchema = z.object({
   vehicleNumber: z.string().nullable().optional(),
   remarks: z.string().nullable().optional(),
   status: grnStatusSchema,
+  netDeliveredBags: z.number().int().min(0).optional(),
+  closingBags: z.number().int().min(0).optional(),
   createdBy: z.string().min(1),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
