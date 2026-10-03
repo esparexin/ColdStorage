@@ -3,7 +3,8 @@
 import React from 'react';
 import { KeyRound, UserCheck } from 'lucide-react';
 import type { UserSummary } from '@cold-storage/contracts';
-import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import { Badge } from '@/components/ui';
+import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import styles from '../page.module.css';
 
 interface UserTableProps {
@@ -31,199 +32,139 @@ export function UserTable({
   onPageChange,
   onOpenCreate,
 }: UserTableProps) {
-  if (loading) {
-    return <FeedbackStates.Loading label="Loading users..." />;
-  }
-
-  if (users.length === 0) {
-    return (
-      <FeedbackStates.Empty
-        message={
-          searchTerm || roleFilter
-            ? 'No users match your filter criteria.'
-            : 'No registered users found.'
-        }
-        action={
-          !searchTerm && !roleFilter
-            ? {
-                label: 'Provision First User',
-                onClick: onOpenCreate,
-                id: 'empty-create-user-btn',
-              }
-            : undefined
-        }
-      />
-    );
-  }
+  const columns: DataTableColumn<UserSummary>[] = [
+    {
+      key: 'user',
+      header: 'User',
+      render: (u) => (
+        <div className={styles.userInfo}>
+          <span className={styles.userName}>{u.fullName}</span>
+          <span className={styles.userHandle}>@{u.username}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'employeeId',
+      header: 'Emp ID',
+      render: (u) => <span className={styles.codeText}>{u.employeeId}</span>,
+    },
+    {
+      key: 'role',
+      header: 'Role',
+      render: (u) => (
+        <Badge
+          variant={
+            u.role === 'SUPER_ADMIN' || u.role === 'ADMIN'
+              ? 'primary'
+              : u.role === 'OPERATOR'
+              ? 'warning'
+              : 'neutral'
+          }
+        >
+          {u.role}
+        </Badge>
+      ),
+    },
+    {
+      key: 'facilities',
+      header: 'Assigned Facilities',
+      render: (u) =>
+        u.role === 'SUPER_ADMIN' ? (
+          <span className={styles.facilityTag}>Global (All Facilities)</span>
+        ) : u.facilityIds && u.facilityIds.length > 0 ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+            {u.facilityIds.map((fId) => (
+              <span key={fId} className={styles.facilityTag}>
+                {facilityNameMap.get(fId) || fId}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <span style={{ color: 'var(--color-danger)', fontSize: 'var(--text-xs)' }}>
+            No Facilities Assigned
+          </span>
+        ),
+    },
+    {
+      key: 'contact',
+      header: 'Mobile / Email',
+      render: (u) => (
+        <div className={styles.userInfo}>
+          <span>{u.mobile}</span>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
+            {u.email}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'security',
+      header: 'Security State',
+      render: (u) =>
+        u.mustChangePassword ? (
+          <Badge variant="warning" icon={<KeyRound size={12} aria-hidden="true" />}>
+            Force Reset
+          </Badge>
+        ) : (
+          <Badge variant="success" icon={<UserCheck size={12} aria-hidden="true" />}>
+            Password Set
+          </Badge>
+        ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (u) => (
+        <Badge variant={u.status === 'ACTIVE' ? 'success' : 'danger'}>
+          {u.status}
+        </Badge>
+      ),
+    },
+    {
+      key: 'lastLogin',
+      header: 'Last Login',
+      render: (u) => (
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
+          {u.lastLoginAt
+            ? new Date(u.lastLoginAt).toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              })
+            : 'Never'}
+        </span>
+      ),
+    },
+  ];
 
   return (
-    <>
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Emp ID</th>
-              <th>Role</th>
-              <th>Assigned Facilities</th>
-              <th>Mobile / Email</th>
-              <th>Security State</th>
-              <th>Status</th>
-              <th>Last Login</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => {
-              const roleBadgeClass =
-                u.role === 'SUPER_ADMIN'
-                  ? styles.badgeSuperAdmin
-                  : u.role === 'ADMIN'
-                  ? styles.badgeAdmin
-                  : u.role === 'OPERATOR'
-                  ? styles.badgeOperator
-                  : styles.badgeReadOnly;
-
-              return (
-                <tr key={u.id}>
-                  <td>
-                    <div className={styles.userInfo}>
-                      <span className={styles.userName}>{u.fullName}</span>
-                      <span className={styles.userHandle}>@{u.username}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span className={styles.codeText}>{u.employeeId}</span>
-                  </td>
-                  <td>
-                    <span className={`${styles.badge} ${roleBadgeClass}`}>{u.role}</span>
-                  </td>
-                  <td>
-                    {u.role === 'SUPER_ADMIN' ? (
-                      <span className={styles.facilityTag}>Global (All Facilities)</span>
-                    ) : u.facilityIds && u.facilityIds.length > 0 ? (
-                      u.facilityIds.map((fId) => (
-                        <span key={fId} className={styles.facilityTag}>
-                          {facilityNameMap.get(fId) || fId}
-                        </span>
-                      ))
-                    ) : (
-                      <span style={{ color: 'var(--color-danger)', fontSize: 'var(--text-xs)' }}>
-                        No Facilities Assigned
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    <div className={styles.userInfo}>
-                      <span>{u.mobile}</span>
-                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
-                        {u.email}
-                      </span>
-                    </div>
-                  </td>
-                  <td>
-                    {u.mustChangePassword ? (
-                      <span
-                        className={styles.badge}
-                        style={{
-                          background: 'var(--color-warning-subtle)',
-                          color: 'var(--color-warning)',
-                        }}
-                      >
-                        <KeyRound size={12} /> Force Reset
-                      </span>
-                    ) : (
-                      <span
-                        className={styles.badge}
-                        style={{
-                          background: 'var(--color-success-subtle)',
-                          color: 'var(--color-success)',
-                        }}
-                      >
-                        <UserCheck size={12} /> Password Set
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    <span
-                      className={styles.badge}
-                      style={{
-                        background:
-                          u.status === 'ACTIVE'
-                            ? 'var(--color-success-subtle)'
-                            : 'var(--color-danger-subtle)',
-                        color:
-                          u.status === 'ACTIVE'
-                            ? 'var(--color-success)'
-                            : 'var(--color-danger)',
-                      }}
-                    >
-                      {u.status}
-                    </span>
-                  </td>
-                  <td>
-                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
-                      {u.lastLoginAt
-                        ? new Date(u.lastLoginAt).toLocaleDateString('en-IN', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                          })
-                        : 'Never'}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {totalPages > 1 && (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            paddingTop: 'var(--space-2)',
-          }}
-        >
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
-            Page {page} of {totalPages} ({totalUsers} total)
-          </span>
-          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-            <button
-              type="button"
-              style={{
-                padding: 'var(--space-1) var(--space-3)',
-                background: 'var(--color-surface-1)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: 'var(--text-xs)',
-                cursor: 'pointer',
-              }}
-              onClick={() => onPageChange(Math.max(1, page - 1))}
-              disabled={page <= 1}
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              style={{
-                padding: 'var(--space-1) var(--space-3)',
-                background: 'var(--color-surface-1)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: 'var(--text-xs)',
-                cursor: 'pointer',
-              }}
-              onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-              disabled={page >= totalPages}
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
-    </>
+    <DataTable
+      columns={columns}
+      rows={users}
+      rowKey={(u) => u.id}
+      caption="User accounts directory"
+      loading={loading}
+      loadingLabel="Loading users..."
+      emptyMessage={
+        searchTerm || roleFilter
+          ? 'No users match your filter criteria.'
+          : 'No registered users found.'
+      }
+      emptyAction={
+        !searchTerm && !roleFilter
+          ? {
+              label: 'Provision First User',
+              onClick: onOpenCreate,
+              id: 'empty-create-user-btn',
+            }
+          : undefined
+      }
+      pagination={{
+        page,
+        totalPages,
+        totalRecords: totalUsers,
+        onPageChange,
+      }}
+    />
   );
 }
