@@ -20,6 +20,7 @@ export function CreateGrnModal({
   const form = useCreateGrnForm(facilityId, customers, commodities, chambers, onSuccess);
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [isAddingCommodity, setIsAddingCommodity] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [customerQuery, setCustomerQuery] = useState('');
   const [isCustomerOpen, setIsCustomerOpen] = useState(false);
   const [highlightIdx, setHighlightIdx] = useState(-1);
@@ -33,6 +34,11 @@ export function CreateGrnModal({
     return () => document.removeEventListener('mousedown', handleOutside);
   }, []);
 
+  const handleAttemptClose = () => {
+    if (form.isDirty && !form.submitting) setShowExitConfirm(true);
+    else onClose();
+  };
+
   const q = customerQuery.trim().toLowerCase();
   const filteredCustomers = q
     ? customers.filter((c) => c.name.toLowerCase().includes(q) || c.mobile.includes(customerQuery))
@@ -44,34 +50,18 @@ export function CreateGrnModal({
       if (e.key === 'ArrowDown' || e.key === 'Enter') { setIsCustomerOpen(true); setCustomerQuery(''); }
       return;
     }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setHighlightIdx((p) => (p < filteredCustomers.length - 1 ? p + 1 : 0));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setHighlightIdx((p) => (p > 0 ? p - 1 : filteredCustomers.length - 1));
-    } else if (e.key === 'Enter' && highlightIdx >= 0 && filteredCustomers[highlightIdx]) {
-      e.preventDefault();
-      form.setCreateCustomerId(filteredCustomers[highlightIdx].id);
-      setIsCustomerOpen(false);
-      setCustomerQuery('');
-    } else if (e.key === 'Escape') {
-      setIsCustomerOpen(false);
-    }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setHighlightIdx((p) => (p < filteredCustomers.length - 1 ? p + 1 : 0)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlightIdx((p) => (p > 0 ? p - 1 : filteredCustomers.length - 1)); }
+    else if (e.key === 'Enter' && highlightIdx >= 0 && filteredCustomers[highlightIdx]) {
+      e.preventDefault(); form.setCreateCustomerId(filteredCustomers[highlightIdx].id); setIsCustomerOpen(false); setCustomerQuery('');
+    } else if (e.key === 'Escape') setIsCustomerOpen(false);
   };
 
   return (
     <>
     <Modal
-      isOpen onClose={onClose} title="Inward Goods Receipt Note (GRN)" size="lg"
-      footer={
-        <>
-          <Button variant="outline" onClick={onClose} disabled={form.submitting}>Cancel</Button>
-          <Button id="submit-create-grn-btn" form="create-grn-form" type="submit" variant="primary" disabled={form.submitting} isLoading={form.submitting}>
-            Create Inward GRN
-          </Button>
-        </>
-      }
+      isOpen onClose={handleAttemptClose} title="Inward Goods Receipt Note (GRN)" size="lg"
+      footer={<><Button variant="outline" onClick={handleAttemptClose} disabled={form.submitting}>Cancel</Button><Button id="submit-create-grn-btn" form="create-grn-form" type="submit" variant="primary" disabled={form.submitting} isLoading={form.submitting}>Create Inward GRN</Button></>}
     >
       <form id="create-grn-form" noValidate onSubmit={form.handleSubmit} className={styles.modalForm}>
         {form.modalError && <div id="modal-error-banner" className={styles.modalError} role="alert">{form.modalError}</div>}
@@ -178,9 +168,7 @@ export function CreateGrnModal({
         ) : (
           <div className={styles.formGrid2}>
             <div className={styles.fieldGroup}>
-              <label htmlFor="create-bags" className={styles.fieldLabel}>
-                {form.createBagType === 'S' ? 'Small Bags Quantity *' : 'Big Bags Quantity *'}
-              </label>
+              <label htmlFor="create-bags" className={styles.fieldLabel}>{form.createBagType === 'S' ? 'Small Bags Quantity *' : 'Big Bags Quantity *'}</label>
               <input id="create-bags" type="number" required min={1} max={100000} value={form.createBags} onChange={(e) => form.handleBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')} placeholder={form.createBagType === 'S' ? 'e.g. 250 (Small)' : 'e.g. 150 (Big)'} className={`${styles.fieldInput} ${form.fieldErrors.bags ? styles.inputError : ''}`} aria-invalid={Boolean(form.fieldErrors.bags)} />
               {form.fieldErrors.bags && <span className={styles.fieldErrorText}>{form.fieldErrors.bags}</span>}
             </div>
@@ -238,12 +226,15 @@ export function CreateGrnModal({
         </div>
       </form>
     </Modal>
-    {isAddingCustomer && (
-      <CustomerFormModal customer={null} selectedFacilityId={facilityId} existingCustomers={customers} onClose={() => setIsAddingCustomer(false)} onSuccess={() => { setIsAddingCustomer(false); onCustomerAdded?.(); }} />
+    {showExitConfirm && (
+      <Modal isOpen onClose={() => setShowExitConfirm(false)} title="Unsaved Changes" size="sm" footer={<><Button variant="outline" onClick={() => setShowExitConfirm(false)}>Stay</Button><Button variant="danger" onClick={() => { setShowExitConfirm(false); onClose(); }}>Exit</Button></>}>
+        <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)', lineHeight: 1.5 }}>
+          You have entered information that has not been saved. Are you sure you want to exit?
+        </p>
+      </Modal>
     )}
-    {isAddingCommodity && (
-      <CommodityFormModal onClose={() => setIsAddingCommodity(false)} onSuccess={() => { setIsAddingCommodity(false); onCommodityAdded?.(); }} />
-    )}
+    {isAddingCustomer && <CustomerFormModal customer={null} selectedFacilityId={facilityId} existingCustomers={customers} onClose={() => setIsAddingCustomer(false)} onSuccess={() => { setIsAddingCustomer(false); onCustomerAdded?.(); }} />}
+    {isAddingCommodity && <CommodityFormModal onClose={() => setIsAddingCommodity(false)} onSuccess={() => { setIsAddingCommodity(false); onCommodityAdded?.(); }} />}
     </>
   );
 }
