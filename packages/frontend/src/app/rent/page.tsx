@@ -50,7 +50,7 @@ export default function RentPage() {
         <div className={styles.titleArea}>
           <h1 className={styles.pageTitle}>Rent Billing & Payment Collection</h1>
           <p className={styles.pageSub}>
-            Customer rent accounts, cash & UPI collections, and official FY rent receipts for{' '}
+            Customer rent accounts, cash & UPI collections, and official FY cash memos for{' '}
             {currentFacilityName}.
           </p>
         </div>

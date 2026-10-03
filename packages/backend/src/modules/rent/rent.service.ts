@@ -1,11 +1,13 @@
 import mongoose from 'mongoose';
-import type {
-  RecordRentPaymentInput,
-  RecordRentPaymentResult,
-  RentReceiptDocumentDto,
-  RentSummaryDto,
+import {
+  deriveBillingCycle,
+  type RecordRentPaymentInput,
+  type RecordRentPaymentResult,
+  type RentReceiptDocumentDto,
+  type RentSummaryDto,
 } from '@cold-storage/contracts';
 import { GrnModel, type GrnDoc } from '../../database/models/grn.model.js';
+import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
 import { computeRentBalance } from '../common/rent-balance.js';
 import { renderRentReceiptTemplate } from '../documents/templates/rent-receipt.template.js';
 import {
@@ -114,22 +116,58 @@ export class RentService {
 
     const summary = await this.getRentSummary(facilityId, grn.id);
 
-    // Bind to the canonical document header helpers so the rent receipt renders with the
-    // same System Settings organization header and facility sub-header as every other
-    // official document, and is subject to the same ORGANIZATION_NOT_CONFIGURED guard.
-    const organization = await getVerifiedOrganization();
-    const facility = await getFacilitySubHeader(facilityId);
+    const [deliveryAgg, organization, facility] = await Promise.all([
+      InventoryTransactionModel.aggregate([
+        {
+          $match: {
+            facilityId,
+            grnId: grn.id,
+            transactionType: { $in: ['OUTWARD_DELIVERY', 'DELIVERY_REVERSAL'] },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            netDelivered: {
+              $sum: {
+                $cond: [{ $eq: ['$transactionType', 'OUTWARD_DELIVERY'] }, '$quantity', { $multiply: ['$quantity', -1] }],
+              },
+            },
+          },
+        },
+      ]),
+      getVerifiedOrganization(),
+      getFacilitySubHeader(facilityId),
+    ]);
+
+    const netDeliveredBags = deliveryAgg[0]?.netDelivered ?? 0;
+    const remainingBags = Math.max(0, grn.bags - netDeliveredBags);
+    const billingCyclePeriod = deriveBillingCycle(grn.date, grn.rentType, payment.paymentDate);
+    const previousPaidAmount = Math.max(0, summary.totalPaid - payment.amountPaid);
 
     const docDto: RentReceiptDocumentDto = {
       organization,
       facility,
       receiptNumber: payment.receiptNumber,
       grnNumber: grn.grnNumber,
+      inwardReceiptNumber: grn.inwardReceiptNumber,
+      inwardDate: grn.date,
       date: payment.paymentDate,
       customerName: grn.customerName,
       commodityName: grn.commodityName,
       chamber: grn.chamber,
+      bagType: grn.bagType,
+      inwardBags: grn.bags,
+      deliveredBags: netDeliveredBags,
+      remainingBags,
+      bagPrice: grn.bagPrice ?? null,
+      smallBagPrice: grn.smallBagPrice ?? null,
+      bigBagPrice: grn.bigBagPrice ?? null,
+      rentType: grn.rentType,
+      rentMonths: grn.rentMonths ?? null,
+      billingCyclePeriod,
       totalRentObligation: grn.rentAmount,
+      previousPaidAmount,
       amountPaid: payment.amountPaid,
       paymentMode: payment.paymentMode,
       remainingBalance: summary.remainingBalance,

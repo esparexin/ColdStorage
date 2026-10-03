@@ -6,6 +6,7 @@ import type {
   GrnQuery,
 } from '@cold-storage/contracts';
 import { GrnModel } from '../../database/models/grn.model.js';
+import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
 import { toGrnAcknowledgement, toGrnEntity } from './grn.mappers.js';
 import { createGrn } from './handlers/create-grn.handler.js';
 import { correctGrn } from './handlers/update-grn.handler.js';
@@ -31,7 +32,28 @@ export class GrnService {
 
   public async getGrnById(id: string): Promise<Grn | null> {
     const doc = await GrnModel.findOne({ id }).lean().exec();
-    return doc ? toGrnEntity(doc) : null;
+    if (!doc) return null;
+    const agg = await InventoryTransactionModel.aggregate([
+      {
+        $match: {
+          grnId: id,
+          transactionType: { $in: ['OUTWARD_DELIVERY', 'DELIVERY_REVERSAL'] },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          netDelivered: {
+            $sum: {
+              $cond: [{ $eq: ['$transactionType', 'OUTWARD_DELIVERY'] }, '$quantity', { $multiply: ['$quantity', -1] }],
+            },
+          },
+        },
+      },
+    ]);
+    const netDelivered = agg[0]?.netDelivered ?? 0;
+    const closing = Math.max(0, doc.bags - netDelivered);
+    return toGrnEntity(doc, { netDeliveredBags: netDelivered, closingBags: closing });
   }
 
   public async getAcknowledgementByGrnId(id: string): Promise<GrnAcknowledgement | null> {
@@ -72,8 +94,34 @@ export class GrnService {
       GrnModel.countDocuments(filter).exec(),
     ]);
 
+    const grnIds = docs.map((d) => d.id);
+    const deliveryAgg = await InventoryTransactionModel.aggregate([
+      {
+        $match: {
+          facilityId,
+          grnId: { $in: grnIds },
+          transactionType: { $in: ['OUTWARD_DELIVERY', 'DELIVERY_REVERSAL'] },
+        },
+      },
+      {
+        $group: {
+          _id: '$grnId',
+          netDelivered: {
+            $sum: {
+              $cond: [{ $eq: ['$transactionType', 'OUTWARD_DELIVERY'] }, '$quantity', { $multiply: ['$quantity', -1] }],
+            },
+          },
+        },
+      },
+    ]);
+    const deliveryMap = new Map<string, number>(deliveryAgg.map((a) => [String(a._id), Number(a.netDelivered)]));
+
     return {
-      items: docs.map((d) => toGrnEntity(d)),
+      items: docs.map((d) => {
+        const netDelivered = deliveryMap.get(d.id) ?? 0;
+        const closing = Math.max(0, d.bags - netDelivered);
+        return toGrnEntity(d, { netDeliveredBags: netDelivered, closingBags: closing });
+      }),
       total,
       page,
       limit,

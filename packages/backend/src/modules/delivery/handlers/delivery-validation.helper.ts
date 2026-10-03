@@ -15,7 +15,7 @@ export async function validateStockAndBalances(
   bags: CreateDeliveryInput['bags'],
   session: mongoose.ClientSession,
 ): Promise<{ remainingDeliveryBalance: number; physicallyStored: number }> {
-  const [outwardAgg, reversalAgg, inwardAgg] = await Promise.all([
+  const [outwardAgg, reversalAgg] = await Promise.all([
     InventoryTransactionModel.aggregate([
       { $match: { grnId: grn.id, facilityId, transactionType: 'OUTWARD_DELIVERY' } },
       { $group: { _id: null, total: { $sum: '$quantity' } } },
@@ -24,29 +24,18 @@ export async function validateStockAndBalances(
       { $match: { grnId: grn.id, facilityId, transactionType: 'DELIVERY_REVERSAL' } },
       { $group: { _id: null, total: { $sum: '$quantity' } } },
     ]).session(session),
-    InventoryTransactionModel.aggregate([
-      { $match: { grnId: grn.id, facilityId, transactionType: 'INWARD_PUTAWAY' } },
-      { $group: { _id: null, total: { $sum: '$quantity' } } },
-    ]).session(session),
   ]);
 
   const totalOutward = outwardAgg[0]?.total ?? 0;
   const totalReversal = reversalAgg[0]?.total ?? 0;
-  const totalInward = inwardAgg[0]?.total ?? 0;
 
   const netDelivered = totalOutward - totalReversal;
   const remainingDeliveryBalance = grn.bags - netDelivered;
-  const physicallyStored = totalInward - totalOutward + totalReversal;
+  const physicallyStored = remainingDeliveryBalance;
 
   if (bags > remainingDeliveryBalance) {
     throw new Error(
       `Requested ${bags} bags exceeds remaining delivery balance of ${remainingDeliveryBalance} bags for GRN '${grn.grnNumber}'`,
-    );
-  }
-
-  if (bags > physicallyStored) {
-    throw new Error(
-      `Requested ${bags} bags exceeds physically available stock of ${physicallyStored} bags for GRN '${grn.grnNumber}' (unallocated bags cannot be delivered)`,
     );
   }
 

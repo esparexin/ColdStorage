@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { bagTypeSchema } from './bags.js';
 import { chamberTextSchema, indianVehicleSchema, rentalAmountSchema } from './common.js';
 import { gpNumberSchema, grnNumberSchema, receiptNumberSchema } from './identifiers.js';
+import { bagPriceSchema } from './pricing.js';
 
 export const rentTypeSchema = z.enum(['Monthly', 'Seasonal']);
 export type RentType = z.infer<typeof rentTypeSchema>;
@@ -75,7 +76,12 @@ export const createGrnSchema = z
     actualWeight: z.number().positive().nullish(),
     rentType: rentTypeSchema,
     rentMonths: rentMonthsInputSchema.nullish(),
-    rentAmount: rentalAmountSchema,
+    rentAmount: rentalAmountSchema.nullish(),
+    bagPrice: bagPriceSchema.nullish(),
+    smallBags: z.number().int().min(0).nullish(),
+    bigBags: z.number().int().min(0).nullish(),
+    smallBagPrice: bagPriceSchema.nullish(),
+    bigBagPrice: bagPriceSchema.nullish(),
     gpNumber: gpNumberSchema,
     marks: z.string().trim().max(100).nullish(),
     vehicleNumber: indianVehicleSchema.nullish(),
@@ -127,11 +133,18 @@ export const grnSchema = z.object({
   rentType: rentTypeSchema,
   rentMonths: z.number().int().nullable().optional(),
   rentAmount: rentalAmountSchema,
+  bagPrice: z.number().nullable().optional(),
+  smallBagPrice: z.number().nullable().optional(),
+  bigBagPrice: z.number().nullable().optional(),
+  smallBags: z.number().int().nullable().optional(),
+  bigBags: z.number().int().nullable().optional(),
   gpNumber: z.string().nullable().optional(),
   marks: z.string().nullable().optional(),
   vehicleNumber: z.string().nullable().optional(),
   remarks: z.string().nullable().optional(),
   status: grnStatusSchema,
+  netDeliveredBags: z.number().int().min(0).optional(),
+  closingBags: z.number().int().min(0).optional(),
   createdBy: z.string().min(1),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
@@ -188,6 +201,11 @@ export const grnAcknowledgementSchema = z.object({
   bagAccounting: z.object({
     bags: z.number().int().positive(),
     bagType: bagTypeSchema,
+    bagPrice: z.number().nullable().optional(),
+    smallBagPrice: z.number().nullable().optional(),
+    bigBagPrice: z.number().nullable().optional(),
+    smallBags: z.number().int().nullable().optional(),
+    bigBags: z.number().int().nullable().optional(),
     nominalUnitWeight: z.number().nullable().optional(),
     nominalTotalWeight: z.number().nullable().optional(),
     actualWeight: z.number().nullable().optional(),

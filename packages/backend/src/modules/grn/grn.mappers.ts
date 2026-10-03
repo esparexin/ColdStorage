@@ -20,6 +20,11 @@ export function toGrnEntity(doc: {
   rentType: string;
   rentMonths?: number | null;
   rentAmount: number;
+  bagPrice?: number | null;
+  smallBagPrice?: number | null;
+  bigBagPrice?: number | null;
+  smallBags?: number | null;
+  bigBags?: number | null;
   gpNumber?: string | null;
   marks?: string | null;
   vehicleNumber?: string | null;
@@ -28,7 +33,11 @@ export function toGrnEntity(doc: {
   createdBy: string;
   createdAt?: Date;
   updatedAt?: Date;
-}): Grn {
+  netDeliveredBags?: number;
+  closingBags?: number;
+}, extras?: { netDeliveredBags?: number; closingBags?: number }): Grn {
+  const netDelivered = extras?.netDeliveredBags ?? doc.netDeliveredBags ?? 0;
+  const closing = extras?.closingBags ?? doc.closingBags ?? Math.max(0, doc.bags - netDelivered);
   return {
     id: doc.id,
     facilityId: doc.facilityId,
@@ -49,11 +58,18 @@ export function toGrnEntity(doc: {
     rentType: doc.rentType as Grn['rentType'],
     rentMonths: doc.rentMonths ?? null,
     rentAmount: doc.rentAmount,
+    bagPrice: doc.bagPrice ?? null,
+    smallBagPrice: doc.smallBagPrice ?? null,
+    bigBagPrice: doc.bigBagPrice ?? null,
+    smallBags: doc.smallBags ?? null,
+    bigBags: doc.bigBags ?? null,
     gpNumber: doc.gpNumber ?? null,
     marks: doc.marks ?? null,
     vehicleNumber: doc.vehicleNumber ?? null,
     remarks: doc.remarks ?? null,
     status: doc.status as Grn['status'],
+    netDeliveredBags: netDelivered,
+    closingBags: closing,
     createdBy: doc.createdBy,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
@@ -81,6 +97,11 @@ export function toGrnAcknowledgement(grn: Grn): GrnAcknowledgement {
     bagAccounting: {
       bags: grn.bags,
       bagType: grn.bagType,
+      bagPrice: grn.bagPrice ?? null,
+      smallBagPrice: grn.smallBagPrice ?? null,
+      bigBagPrice: grn.bigBagPrice ?? null,
+      smallBags: grn.smallBags ?? null,
+      bigBags: grn.bigBags ?? null,
       nominalUnitWeight: grn.nominalUnitWeight,
       nominalTotalWeight: grn.nominalTotalWeight,
       actualWeight: grn.actualWeight,

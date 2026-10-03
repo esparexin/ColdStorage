@@ -6,19 +6,38 @@ export function renderRentReceiptTemplate(
 ): string {
   const isPreview = 'isPreview' in dto && Boolean(dto.isPreview);
 
+  const priceStr =
+    dto.smallBagPrice != null || dto.bigBagPrice != null
+      ? `Small: ₹${(dto.smallBagPrice ?? 0).toFixed(2)} | Big: ₹${(dto.bigBagPrice ?? 0).toFixed(2)}`
+      : dto.bagPrice != null
+        ? `₹${dto.bagPrice.toFixed(2)} / bag`
+        : '—';
+
   const bodyContent = `
     <table class="data-table">
       <tr>
         <th style="width: 25%;">Customer Name</th>
         <td style="width: 25%;"><strong>${escapeHtml(dto.customerName)}</strong></td>
-        <th style="width: 25%;">Commodity</th>
-        <td style="width: 25%;">${escapeHtml(dto.commodityName)}</td>
+        <th style="width: 25%;">Chamber</th>
+        <td style="width: 25%;"><span class="tag-chamber">${escapeHtml(dto.chamber)}</span></td>
       </tr>
       <tr>
-        <th>GRN Reference</th>
-        <td><strong>${escapeHtml(dto.grnNumber)}</strong></td>
-        <th>Commodity</th>
-        <td>${escapeHtml(dto.commodityName)}</td>
+        <th>Inward Receipt / GRN</th>
+        <td>${dto.inwardReceiptNumber ? `${escapeHtml(dto.inwardReceiptNumber)} / ` : ''}<strong>${escapeHtml(dto.grnNumber)}</strong></td>
+        <th>Commodity &amp; Bag Type</th>
+        <td>${escapeHtml(dto.commodityName)} (${escapeHtml(dto.bagType || 'S')})</td>
+      </tr>
+      <tr>
+        <th>Inward Bags</th>
+        <td><strong>${(dto.inwardBags ?? 0) > 0 ? (dto.inwardBags ?? 0).toLocaleString('en-IN') : '—'}</strong></td>
+        <th>Delivered / Balance Bags</th>
+        <td>Del: ${(dto.deliveredBags ?? 0).toLocaleString('en-IN')} | Bal: <strong>${(dto.remainingBags ?? 0) > 0 ? (dto.remainingBags ?? 0).toLocaleString('en-IN') : '—'}</strong></td>
+      </tr>
+      <tr>
+        <th>Bag Price / Rate</th>
+        <td>${priceStr}</td>
+        <th>Billing Cycle / Term</th>
+        <td>${escapeHtml(dto.billingCyclePeriod || (dto.rentType ? `${dto.rentType}${dto.rentMonths ? ` (${dto.rentMonths}m)` : ''}` : 'Fixed 10-Month Season'))}</td>
       </tr>
       <tr>
         <th>Total Rent Obligation</th>
@@ -57,11 +76,13 @@ export function renderRentReceiptTemplate(
 
   return renderBaseLayout({
     title: isPreview
-      ? `Rent Receipt [PREVIEW] - ${dto.receiptNumber}`
-      : `Rent Receipt - ${dto.receiptNumber}`,
+      ? `Cash Memo / Rent Receipt [PREVIEW] - ${dto.receiptNumber}`
+      : `Cash Memo / Rent Receipt - ${dto.receiptNumber}`,
     organization: dto.organization,
     facility: dto.facility,
-    documentTitle: isPreview ? 'RENT PAYMENT RECEIPT [PREVIEW]' : 'RENT PAYMENT RECEIPT',
+    documentTitle: isPreview
+      ? 'CASH MEMO / RENT PAYMENT RECEIPT [PREVIEW]'
+      : 'CASH MEMO / RENT PAYMENT RECEIPT',
     documentNumber: dto.receiptNumber,
     documentDate:
       dto.date instanceof Date ? dto.date.toISOString().split('T')[0] : String(dto.date),

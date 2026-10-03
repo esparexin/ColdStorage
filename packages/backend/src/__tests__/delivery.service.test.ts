@@ -91,15 +91,21 @@ describe('P6 DeliveryService outward delivery tests', () => {
     expect(await InventoryTransactionModel.countDocuments({ transactionType: 'OUTWARD_DELIVERY' })).toBe(0);
   });
 
-  it('rejects delivery of bags that were never put away', async () => {
-    await expect(
-      deliveryService.createDelivery(facilityId, { grnId, bags: 1 }, userId),
-    ).rejects.toThrow(/exceeds physically available stock/);
+  it('delivers bags directly without requiring a separate put-away step', async () => {
+    const res = await deliveryService.createDelivery(
+      facilityId,
+      {
+        grnId,
+        date: new Date(),
+        bags: 50,
+      },
+      userId,
+    );
 
-    expect(await DeliveryChallanModel.countDocuments()).toBe(0);
-    const summary = await deliveryService.getDeliverySummary(facilityId, grnId);
-    expect(summary.physicallyStoredBags).toBe(0);
-    expect(summary.netDeliveredBags).toBe(0);
+    expect(res.delivery.totalBags).toBe(50);
+    expect(res.summary.remainingDeliveryBalance).toBe(50);
+    expect(res.summary.physicallyStoredBags).toBe(50);
+    expect(res.summary.netDeliveredBags).toBe(50);
   });
 
   it('automatically closes the GRN when balance and stored stock both reach zero', async () => {

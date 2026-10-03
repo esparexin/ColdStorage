@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
+  calculateRentAmount,
+  deriveBagPrice,
   getAuthoritativeWeight,
   rentMonthsForType,
   type CreateGrnInput,
@@ -69,6 +71,30 @@ export async function createGrn(
     actualWeight: input.actualWeight ?? null,
   });
 
+  const rentMonths = rentMonthsForType(input.rentType) ?? input.rentMonths!;
+  const derivedBagPrice = deriveBagPrice({
+    rentType: input.rentType,
+    bags: input.bags,
+    bagPrice: input.bagPrice,
+    rentMonths,
+    rentAmount: input.rentAmount,
+  });
+  const finalRentAmount =
+    input.rentAmount && input.rentAmount > 0
+      ? input.rentAmount
+      : calculateRentAmount({
+          rentType: input.rentType,
+          bags: input.bags,
+          bagType: input.bagType,
+          bagPrice: input.bagPrice ?? derivedBagPrice,
+          smallBags: input.smallBags,
+          bigBags: input.bigBags,
+          smallBagPrice: input.smallBagPrice,
+          bigBagPrice: input.bigBagPrice,
+          rentMonths,
+          rentAmount: input.rentAmount,
+        });
+
   const id = `grn-${randomUUID()}`;
 
   // 7. Atomic transaction for counter increments and GRN persistence
@@ -104,8 +130,13 @@ export async function createGrn(
             actualWeight: input.actualWeight ?? null,
             authoritativeWeight,
             rentType: input.rentType,
-            rentMonths: rentMonthsForType(input.rentType) ?? input.rentMonths!,
-            rentAmount: input.rentAmount,
+            rentMonths,
+            rentAmount: finalRentAmount,
+            bagPrice: input.bagPrice ?? derivedBagPrice ?? null,
+            smallBagPrice: input.smallBagPrice ?? null,
+            bigBagPrice: input.bigBagPrice ?? null,
+            smallBags: input.smallBags ?? null,
+            bigBags: input.bigBags ?? null,
             gpNumber: input.gpNumber?.trim() || null,
             marks: input.marks?.trim() || null,
             vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null,

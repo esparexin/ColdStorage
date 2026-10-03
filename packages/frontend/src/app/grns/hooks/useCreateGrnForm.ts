@@ -1,25 +1,10 @@
 import { useState } from 'react';
-import {
-  chamberTextSchema,
-  indianVehicleSchema,
-  rentalAmountSchema,
-  SEASONAL_RENT_MONTHS,
-} from '@cold-storage/contracts';
+import { calculateRentAmount, SEASONAL_RENT_MONTHS } from '@cold-storage/contracts';
 import type { BagType, Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
+import { parseNumericInput, validateCreateGrnForm } from './createGrnForm.helper';
 
-/**
- * Accepts only numeric input for a money or count field. Anything that is not a finite
- * decimal (alphabetic entry, stray punctuation, partial exponent) is rejected outright rather
- * than coerced to NaN and shipped to the API.
- */
-export function parseNumericInput(raw: string): number | '' {
-  const trimmed = raw.trim();
-  if (trimmed === '' || !/^\d*\.?\d*$/.test(trimmed)) return '';
-  if (trimmed === '.') return '';
-  const value = Number(trimmed);
-  return Number.isFinite(value) ? value : '';
-}
+export { parseNumericInput };
 
 export function useCreateGrnForm(
   facilityId: string,
@@ -40,7 +25,9 @@ export function useCreateGrnForm(
   const [createActualWeight, setCreateActualWeight] = useState<number | ''>('');
   const [createRentType, setCreateRentType] = useState<RentType>('Seasonal');
   const [createRentMonths, setCreateRentMonths] = useState<number | ''>('');
-
+  const [createBagPrice, setCreateBagPrice] = useState<number | ''>('');
+  const [createSmallBagPrice, setCreateSmallBagPrice] = useState<number | ''>('');
+  const [createBigBagPrice, setCreateBigBagPrice] = useState<number | ''>('');
   const [createRentAmount, setCreateRentAmount] = useState<number | ''>('');
   const [createGpNumber, setCreateGpNumber] = useState('');
   const [createVehicleNumber, setCreateVehicleNumber] = useState('');
@@ -66,12 +53,45 @@ export function useCreateGrnForm(
     }
   };
 
+  const autoComputeRent = (overrides?: Partial<{
+    bags: number | ''; bagType: BagType; smallBags: number | ''; bigBags: number | '';
+    bagPrice: number | ''; smallBagPrice: number | ''; bigBagPrice: number | '';
+    rentType: RentType; rentMonths: number | '';
+  }>) => {
+    const bags = overrides?.bags ?? createBags;
+    const bagType = overrides?.bagType ?? createBagType;
+    const smallBags = overrides?.smallBags ?? createSmallBags;
+    const bigBags = overrides?.bigBags ?? createBigBags;
+    const bagPrice = overrides?.bagPrice ?? createBagPrice;
+    const smallBagPrice = overrides?.smallBagPrice ?? createSmallBagPrice;
+    const bigBagPrice = overrides?.bigBagPrice ?? createBigBagPrice;
+    const rentType = overrides?.rentType ?? createRentType;
+    const rentMonths = overrides?.rentMonths ?? createRentMonths;
+
+    if (typeof bags === 'number' && bags > 0) {
+      const calc = calculateRentAmount({
+        rentType, bags, bagType,
+        bagPrice: typeof bagPrice === 'number' ? bagPrice : null,
+        smallBags: typeof smallBags === 'number' ? smallBags : null,
+        bigBags: typeof bigBags === 'number' ? bigBags : null,
+        smallBagPrice: typeof smallBagPrice === 'number' ? smallBagPrice : null,
+        bigBagPrice: typeof bigBagPrice === 'number' ? bigBagPrice : null,
+        rentMonths: typeof rentMonths === 'number' ? rentMonths : null,
+      });
+      if (calc > 0) {
+        setCreateRentAmount(calc);
+        clearFieldError('rentAmount');
+      }
+    }
+  };
+
   const handleBagsChange = (val: number | '') => {
     setCreateBags(val);
     clearFieldError('bags');
     if (typeof val === 'number' && typeof createNominalUnitWeight === 'number') {
       setCreateNominalTotalWeight(val * createNominalUnitWeight);
     }
+    autoComputeRent({ bags: val });
   };
 
   const handleUnitWeightChange = (val: number | '') => {
@@ -88,6 +108,7 @@ export function useCreateGrnForm(
     setCreateBigBags('');
     setCreateNominalTotalWeight('');
     clearFieldError('bags');
+    autoComputeRent({ bagType: val, bags: '', smallBags: '', bigBags: '' });
   };
 
   const handleSmallBagsChange = (val: number | '') => {
@@ -100,6 +121,7 @@ export function useCreateGrnForm(
     if (typeof total === 'number' && typeof createNominalUnitWeight === 'number') {
       setCreateNominalTotalWeight(total * createNominalUnitWeight);
     }
+    autoComputeRent({ smallBags: val, bags: total });
   };
 
   const handleBigBagsChange = (val: number | '') => {
@@ -112,35 +134,22 @@ export function useCreateGrnForm(
     if (typeof total === 'number' && typeof createNominalUnitWeight === 'number') {
       setCreateNominalTotalWeight(total * createNominalUnitWeight);
     }
+    autoComputeRent({ bigBags: val, bags: total });
+  };
+
+  const handleRentMonthsChange = (val: number | '') => {
+    setCreateRentMonths(val);
+    clearFieldError('rentMonths');
+    autoComputeRent({ rentMonths: val });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const errors: Record<string, string> = {};
-    if (!createCustomerId) errors.customer = 'Please select a customer';
-    if (!createCommodityId) errors.commodity = 'Please select a commodity';
-    const parsedChamber = chamberTextSchema.safeParse(createChamber);
-    if (!parsedChamber.success) {
-      errors.chamber = parsedChamber.error.issues[0]?.message ?? 'Chamber is required';
-    }
-    if (createBagType === 'S+B') {
-      const small = typeof createSmallBags === 'number' ? createSmallBags : 0;
-      const big = typeof createBigBags === 'number' ? createBigBags : 0;
-      if (small + big <= 0) errors.bags = 'Enter at least one bag count (Small or Big) for Mixed bag type';
-    } else if (typeof createBags !== 'number' || createBags <= 0) {
-      errors.bags = `${createBagType === 'S' ? 'Small' : 'Big'} bags count must be a positive integer`;
-    }
-    if (createRentType === 'Monthly' && (typeof createRentMonths !== 'number' || createRentMonths < 1)) {
-      errors.rentMonths = 'Rent months is required (>= 1) for Monthly rent';
-    }
-    const parsedAmount = rentalAmountSchema.safeParse(createRentAmount);
-    if (!parsedAmount.success) {
-      errors.rentAmount = parsedAmount.error.issues[0]?.message ?? 'Rent amount must be a number';
-    }
-    const normVehicle = createVehicleNumber.trim().replace(/[\s-]/g, '').toUpperCase();
-    if (normVehicle && !indianVehicleSchema.safeParse(normVehicle).success) {
-      errors.vehicleNumber = 'Vehicle number must be in standard Indian format (e.g., UP32AA1111)';
-    }
+    const { errors, parsedChamber, normalizedVehicle } = validateCreateGrnForm({
+      createCustomerId, createCommodityId, createChamber, createBags, createBagType,
+      createSmallBags, createBigBags, createRentType, createRentMonths, createRentAmount,
+      createVehicleNumber,
+    });
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -164,15 +173,20 @@ export function useCreateGrnForm(
       const inwardDate = createDate === todayStr ? new Date() : new Date(`${createDate}T00:00:00`);
       const payload: Record<string, unknown> = {
         facilityId, date: inwardDate, customerId: createCustomerId, commodityId: createCommodityId,
-        chamber: parsedChamber.data, bags: createBags, bagType: createBagType,
+        chamber: parsedChamber, bags: createBags, bagType: createBagType,
         rentType: createRentType, rentAmount: createRentAmount,
       };
+      if (typeof createBagPrice === 'number' && createBagPrice > 0) payload.bagPrice = createBagPrice;
+      if (typeof createSmallBagPrice === 'number' && createSmallBagPrice > 0) payload.smallBagPrice = createSmallBagPrice;
+      if (typeof createBigBagPrice === 'number' && createBigBagPrice > 0) payload.bigBagPrice = createBigBagPrice;
+      if (typeof createSmallBags === 'number' && createSmallBags > 0) payload.smallBags = createSmallBags;
+      if (typeof createBigBags === 'number' && createBigBags > 0) payload.bigBags = createBigBags;
       if (createRentType === 'Monthly' && typeof createRentMonths === 'number') payload.rentMonths = createRentMonths;
       if (typeof createNominalUnitWeight === 'number' && createNominalUnitWeight > 0) payload.nominalUnitWeight = createNominalUnitWeight;
       if (typeof createNominalTotalWeight === 'number' && createNominalTotalWeight > 0) payload.nominalTotalWeight = createNominalTotalWeight;
       if (typeof createActualWeight === 'number' && createActualWeight > 0) payload.actualWeight = createActualWeight;
       if (createGpNumber.trim()) payload.gpNumber = createGpNumber.trim();
-      if (normVehicle) payload.vehicleNumber = normVehicle;
+      if (normalizedVehicle) payload.vehicleNumber = normalizedVehicle;
       if (createRemarks.trim()) payload.remarks = createRemarks.trim();
 
       const res = await requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns`, {
@@ -207,8 +221,7 @@ export function useCreateGrnForm(
     createDate, setCreateDate,
     createCustomerId, setCreateCustomerId: (id: string) => { setCreateCustomerId(id); clearFieldError('customer'); },
     createCommodityId, setCreateCommodityId: (id: string) => { setCreateCommodityId(id); clearFieldError('commodity'); },
-    createChamber,
-    setCreateChamber: (value: string) => { setCreateChamber(value); clearFieldError('chamber'); },
+    createChamber, setCreateChamber: (value: string) => { setCreateChamber(value); clearFieldError('chamber'); },
     seasonalRentMonths: SEASONAL_RENT_MONTHS,
     createBags, handleBagsChange,
     createBagType, handleBagTypeChange,
@@ -216,8 +229,11 @@ export function useCreateGrnForm(
     createNominalUnitWeight, handleUnitWeightChange,
     createNominalTotalWeight, setCreateNominalTotalWeight,
     createActualWeight, setCreateActualWeight,
-    createRentType, setCreateRentType,
-    createRentMonths, setCreateRentMonths: (val: number | '') => { setCreateRentMonths(val); clearFieldError('rentMonths'); },
+    createRentType, handleRentTypeChange: (val: RentType) => { setCreateRentType(val); autoComputeRent({ rentType: val }); },
+    createRentMonths, handleRentMonthsChange,
+    createBagPrice, handleBagPriceChange: (val: number | '') => { setCreateBagPrice(val); autoComputeRent({ bagPrice: val }); },
+    createSmallBagPrice, handleSmallBagPriceChange: (val: number | '') => { setCreateSmallBagPrice(val); autoComputeRent({ smallBagPrice: val }); },
+    createBigBagPrice, handleBigBagPriceChange: (val: number | '') => { setCreateBigBagPrice(val); autoComputeRent({ bigBagPrice: val }); },
     createRentAmount, setCreateRentAmount: (val: number | '') => { setCreateRentAmount(val); clearFieldError('rentAmount'); },
     createGpNumber, setCreateGpNumber,
     createVehicleNumber, setCreateVehicleNumber: (val: string) => { setCreateVehicleNumber(val); clearFieldError('vehicleNumber'); },

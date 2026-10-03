@@ -69,19 +69,24 @@ export function GrnTable({
     },
     {
       key: 'bags',
-      header: 'Bags & Type',
+      header: 'Bags & Closing',
       align: 'right',
-      render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-          <span style={{ fontWeight: 600 }}>{row.bags.toLocaleString('en-IN')} bags</span>
-          <span className={styles.tagBagType}>Type: {row.bagType}</span>
-          {row.authoritativeWeight && (
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-              {row.authoritativeWeight} kg
+      render: (row) => {
+        const closing = row.closingBags ?? Math.max(0, row.bags - (row.netDeliveredBags ?? 0));
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+            <span style={{ fontWeight: 600 }}>{row.bags.toLocaleString('en-IN')} in</span>
+            {row.netDeliveredBags != null && row.netDeliveredBags > 0 && (
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
+                Del: {row.netDeliveredBags.toLocaleString('en-IN')}
+              </span>
+            )}
+            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: closing === 0 ? 'var(--color-text-muted)' : 'var(--color-primary)' }}>
+              Bal: {closing.toLocaleString('en-IN')}
             </span>
-          )}
-        </div>
-      ),
+          </div>
+        );
+      },
     },
     {
       key: 'rent',

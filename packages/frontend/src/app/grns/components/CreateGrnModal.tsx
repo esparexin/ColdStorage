@@ -147,10 +147,29 @@ export function CreateGrnModal({
             onActualWeightChange: form.setCreateActualWeight,
           }}
         />
-        <h3 className={styles.sectionHeading}>Rent Terms</h3>
+        <h3 className={styles.sectionHeading}>Rent Terms &amp; Bag Pricing</h3>
+        {form.createBagType === 'S+B' ? (
+          <div className={styles.formGrid2}>
+            <div className={styles.fieldGroup}>
+              <label htmlFor="create-small-bag-price" className={styles.fieldLabel}>Small Bag Price (₹/bag)</label>
+              <input id="create-small-bag-price" type="number" inputMode="decimal" min={0} step="0.01" value={form.createSmallBagPrice} onChange={(e) => form.handleSmallBagPriceChange(parseNumericInput(e.target.value))} placeholder="e.g. 80" className={styles.fieldInput} />
+            </div>
+            <div className={styles.fieldGroup}>
+              <label htmlFor="create-big-bag-price" className={styles.fieldLabel}>Big Bag Price (₹/bag)</label>
+              <input id="create-big-bag-price" type="number" inputMode="decimal" min={0} step="0.01" value={form.createBigBagPrice} onChange={(e) => form.handleBigBagPriceChange(parseNumericInput(e.target.value))} placeholder="e.g. 100" className={styles.fieldInput} />
+            </div>
+          </div>
+        ) : (
+          <div className={styles.formGrid2}>
+            <div className={styles.fieldGroup}>
+              <label htmlFor="create-bag-price" className={styles.fieldLabel}>Bag Price (₹/bag)</label>
+              <input id="create-bag-price" type="number" inputMode="decimal" min={0} step="0.01" value={form.createBagPrice} onChange={(e) => form.handleBagPriceChange(parseNumericInput(e.target.value))} placeholder="e.g. 80" className={styles.fieldInput} />
+            </div>
+          </div>
+        )}
         <div className={styles.formGrid3}>
           <div className={styles.fieldGroup}>
-            <Select id="create-rent-type" label="Rent Type" required value={form.createRentType} onChange={(e) => form.setCreateRentType(e.target.value as RentType)}>
+            <Select id="create-rent-type" label="Rent Type" required value={form.createRentType} onChange={(e) => form.createRentType !== e.target.value && form.handleRentTypeChange(e.target.value as RentType)}>
               <option value="Seasonal">Seasonal</option>
               <option value="Monthly">Monthly</option>
             </Select>
@@ -166,7 +185,7 @@ export function CreateGrnModal({
               disabled={form.createRentType !== 'Monthly'}
               required={form.createRentType === 'Monthly'}
               value={form.createRentType === 'Seasonal' ? form.seasonalRentMonths : form.createRentMonths}
-              onChange={(e) => form.setCreateRentMonths(e.target.value ? parseInt(e.target.value, 10) : '')}
+              onChange={(e) => form.handleRentMonthsChange(e.target.value ? parseInt(e.target.value, 10) : '')}
               placeholder={form.createRentType === 'Monthly' ? 'e.g. 6' : '—'}
               readOnly={form.createRentType === 'Seasonal'}
               className={`${styles.fieldInput} ${form.fieldErrors.rentMonths ? styles.inputError : ''}`}

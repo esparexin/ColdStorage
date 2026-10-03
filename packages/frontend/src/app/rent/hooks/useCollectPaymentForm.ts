@@ -22,6 +22,7 @@ export function useCollectPaymentForm({
   const [collectMode, setCollectMode] = useState<PaymentMode>('Cash');
   const [collectDate, setCollectDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [collectNotes, setCollectNotes] = useState('');
+  const [upiReference, setUpiReference] = useState('');
   const [collectError, setCollectError] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [collectSubmitting, setCollectSubmitting] = useState(false);
@@ -42,8 +43,19 @@ export function useCollectPaymentForm({
       return;
     }
 
+    if (collectMode === 'UPI' && !upiReference.trim()) {
+      setCollectError('Please enter a UPI transaction reference or ID');
+      return;
+    }
+
     setCollectSubmitting(true);
     setCollectError(null);
+
+    const trimmedNotes = collectNotes.trim();
+    const effectiveNotes =
+      collectMode === 'UPI'
+        ? `UPI Ref: ${upiReference.trim()}${trimmedNotes ? ` - ${trimmedNotes}` : ''}`
+        : trimmedNotes || undefined;
 
     try {
       const res = await requestWithAuth(
@@ -56,7 +68,7 @@ export function useCollectPaymentForm({
             amountPaid: collectAmount,
             paymentMode: collectMode,
             paymentDate: new Date(collectDate),
-            notes: collectNotes.trim() || undefined,
+            notes: effectiveNotes,
           }),
         },
       );
@@ -89,12 +101,12 @@ export function useCollectPaymentForm({
       });
       await printHtmlDocument({
         url: `/api/facilities/${encodeURIComponent(selectedFacilityId)}/documents/rent-receipt/preview?${params.toString()}`,
-        popupBlockedMessage: 'Pop-up window was blocked. Please allow pop-ups to preview receipts.',
-        failureMessage: 'Failed to preview receipt',
+        popupBlockedMessage: 'Pop-up window was blocked. Please allow pop-ups to preview cash memos.',
+        failureMessage: 'Failed to preview cash memo',
         autoPrint: false,
       });
     } catch (err: unknown) {
-      setPreviewError(err instanceof Error ? err.message : 'Failed to preview receipt');
+      setPreviewError(err instanceof Error ? err.message : 'Failed to preview cash memo');
     }
   };
 
@@ -107,6 +119,8 @@ export function useCollectPaymentForm({
     setCollectDate,
     collectNotes,
     setCollectNotes,
+    upiReference,
+    setUpiReference,
     collectError,
     previewError,
     collectSubmitting,

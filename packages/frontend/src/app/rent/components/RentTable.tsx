@@ -133,10 +133,10 @@ export function RentTable({
             variant="outline"
             size="sm"
             onClick={() => onOpenHistory(row)}
-            title="View payment receipts history"
+            title="View payment cash memos history"
             leftIcon={<Eye size={13} aria-hidden="true" />}
           >
-            Receipts ({row.payments.length})
+            Cash Memos ({row.payments.length})
           </Button>
         </div>
       ),

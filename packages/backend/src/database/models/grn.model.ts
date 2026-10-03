@@ -22,6 +22,11 @@ export interface GrnDoc extends Document {
   rentType: RentType;
   rentMonths: number | null;
   rentAmount: number;
+  bagPrice: number | null;
+  smallBagPrice: number | null;
+  bigBagPrice: number | null;
+  smallBags: number | null;
+  bigBags: number | null;
   gpNumber: string | null;
   marks: string | null;
   vehicleNumber: string | null;
@@ -54,6 +59,11 @@ const grnSchema = new Schema<GrnDoc>(
     /** Seasonal is always the fixed 10-month period; Monthly carries the operator's count. */
     rentMonths: { type: Number, default: null },
     rentAmount: { type: Number, required: true, min: 0 },
+    bagPrice: { type: Number, default: null },
+    smallBagPrice: { type: Number, default: null },
+    bigBagPrice: { type: Number, default: null },
+    smallBags: { type: Number, default: null },
+    bigBags: { type: Number, default: null },
     gpNumber: { type: String, trim: true, default: null },
     marks: { type: String, trim: true, default: null },
     vehicleNumber: { type: String, trim: true, uppercase: true, default: null },

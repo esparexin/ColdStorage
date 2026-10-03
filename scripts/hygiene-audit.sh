@@ -40,10 +40,8 @@ if git -C "$ROOT" ls-files | grep -E '(^|/)(dist|coverage)/' | grep -q .; then
 fi
 
 # 4. No .env secrets committed (any depth, and not just the exact .env name)
-if find "$ROOT" -name ".env" -o -name ".env.local" -o -name ".env.*.local" 2>/dev/null \
-  | grep -v "/node_modules/" | grep -v "/.git/" | grep -q .; then
-  find "$ROOT" -name ".env" -o -name ".env.local" -o -name ".env.*.local" 2>/dev/null \
-    | grep -v "/node_modules/" | grep -v "/.git/" | head -20
+if git -C "$ROOT" ls-files | grep -E '(^|/)(\.env|\.env\.local|\.env\..*\.local)$' | grep -q .; then
+  git -C "$ROOT" ls-files | grep -E '(^|/)(\.env|\.env\.local|\.env\..*\.local)$' | head -20
   fail "local .env files must not be committed (use .env.example)"
 fi
 
