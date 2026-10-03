@@ -4,6 +4,7 @@ import { authenticate, requirePasswordChanged } from '../middleware/auth.middlew
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { ConcurrencyConflictError, inventoryService } from '../modules/inventory/inventory.service.js';
+import { RentPaymentRequiredError } from '../modules/common/rent-gate.service.js';
 import { getParamId } from '../utils/params.js';
 
 export const inventoryRouter = Router();
@@ -51,6 +52,20 @@ inventoryRouter.post(
     } catch (err: unknown) {
       if (err instanceof ConcurrencyConflictError) {
         res.status(409).json({ error: err.message, code: err.code });
+        return;
+      }
+      if (err instanceof RentPaymentRequiredError) {
+        res.status(err.statusCode).json({
+          error: err.message,
+          code: err.code,
+          rent: {
+            grnId: err.grnId,
+            grnNumber: err.grnNumber,
+            rentAmount: err.rentAmount,
+            totalPaid: err.totalPaid,
+            remainingBalance: err.remainingBalance,
+          },
+        });
         return;
       }
       const message = err instanceof Error ? err.message : 'Put-away allocation failed';

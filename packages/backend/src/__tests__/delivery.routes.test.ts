@@ -114,7 +114,7 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
       bags: 80,
       bagType: 'B',
       rentType: 'Seasonal',
-      rentAmount: 3200,
+      rentAmount: 0,
       status: 'OPEN',
       createdBy: 'admin',
     });

@@ -11,6 +11,7 @@ import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { PositionModel } from '../../../database/models/position.model.js';
 import { auditService } from '../../audit/audit.service.js';
+import { assertRentAllowedForOutward } from '../../common/rent-gate.service.js';
 import { isTransientError, toChallanEntity } from '../delivery.mappers.js';
 import { getDeliverySummary } from '../queries/delivery.queries.js';
 import {
@@ -73,6 +74,12 @@ async function executeDeliveryTransaction(
       if (grn.status === 'CLOSED') {
         throw new Error(`Cannot create delivery: GRN '${grn.grnNumber}' is CLOSED`);
       }
+
+      await assertRentAllowedForOutward(
+        facilityId,
+        { id: grn.id, grnNumber: grn.grnNumber, rentAmount: grn.rentAmount ?? 0 },
+        session,
+      );
 
       const lockedPositions = await validateAndLockPositions(
         facilityId,

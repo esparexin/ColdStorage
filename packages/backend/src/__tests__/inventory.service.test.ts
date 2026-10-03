@@ -175,7 +175,7 @@ describe('P5 InventoryService Unit & Concurrency Tests', () => {
       bagType: 'S',
       rentType: 'Monthly',
       rentMonths: 3,
-      rentAmount: 4500,
+      rentAmount: 0,
       status: 'OPEN',
       createdBy: userId,
     });
