@@ -61,7 +61,7 @@ describe('GRN Relational Validation & Business Constraints', () => {
     });
 
     const chNorth = await ChamberModel.create({
-      id: 'cham-north-01',
+      id: 'cham-north-val',
       facilityId: northFacilityId,
       chamberNumber: 'CH-NORTH-01',
       isActive: true,
@@ -77,17 +77,17 @@ describe('GRN Relational Validation & Business Constraints', () => {
     chamberSouthId = chSouth.id;
 
     const comm = await CommodityModel.create({
-      id: 'comm-potato-01',
+      id: 'comm-potato-val',
       name: 'Potato Jyoti',
-      normalizedName: 'POTATO JYOTI',
+      normalizedName: 'POTATO JYOTI VAL',
       isActive: true,
     });
     commodityId = comm.id;
 
     const cust = await CustomerModel.create({
-      id: 'cust-ramesh-01',
+      id: 'cust-ramesh-val',
       name: 'Ramesh Patel',
-      mobile: '9876543210',
+      mobile: '9876500002',
       facilityIds: [northFacilityId],
       isActive: true,
     });
@@ -127,7 +127,7 @@ describe('GRN Relational Validation & Business Constraints', () => {
       id: 'user-op-north',
       fullName: 'Operator North',
       employeeId: 'EMP-P4-004',
-      mobile: '9800000004',
+      mobile: '9800000002',
       username: 'op.north',
       email: 'op.north@coldstorage.local',
       passwordHash: defaultPasswordHash,

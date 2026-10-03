@@ -87,6 +87,29 @@ export function useStorageHierarchy(selectedFacilityId: string | null) {
     }
   }, [activeChamberId, fetchChamberHierarchy]);
 
+  /**
+   * Owns the position-occupancy read. This lives in the hook rather than the presentation
+   * component so the inventory hierarchy tab performs no direct HTTP, and so the occupancy
+   * request shape has a single owner instead of one copy per consuming surface.
+   */
+  const inspectPositionOccupancy = useCallback(
+    async (positionId: string) => {
+      if (!selectedFacilityId || !positionId) return;
+      try {
+        const res = await requestWithAuth(
+          `/api/facilities/${encodeURIComponent(selectedFacilityId)}/positions/${encodeURIComponent(positionId)}/occupancy`,
+        );
+        if (res.ok) {
+          const data = (await res.json()) as { occupancy?: PositionOccupancy };
+          setSelectedOccupancy(data.occupancy ?? null);
+        }
+      } catch {
+        // Graceful
+      }
+    },
+    [selectedFacilityId],
+  );
+
   return {
     chambers,
     activeChamberId,
@@ -99,5 +122,6 @@ export function useStorageHierarchy(selectedFacilityId: string | null) {
     setSelectedOccupancy,
     fetchChambers,
     fetchChamberHierarchy,
+    inspectPositionOccupancy,
   };
 }

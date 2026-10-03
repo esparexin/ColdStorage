@@ -60,7 +60,7 @@ describe('GRN Lifecycle & Sequences Integration', () => {
     });
 
     const chNorth = await ChamberModel.create({
-      id: 'cham-north-01',
+      id: 'cham-north-life',
       facilityId: northFacilityId,
       chamberNumber: 'CH-NORTH-01',
       isActive: true,
@@ -68,17 +68,17 @@ describe('GRN Lifecycle & Sequences Integration', () => {
     chamberNorthId = chNorth.id;
 
     const comm = await CommodityModel.create({
-      id: 'comm-potato-01',
+      id: 'comm-potato-life',
       name: 'Potato Jyoti',
-      normalizedName: 'POTATO JYOTI',
+      normalizedName: 'POTATO JYOTI LIFE',
       isActive: true,
     });
     commodityId = comm.id;
 
     const cust = await CustomerModel.create({
-      id: 'cust-ramesh-01',
+      id: 'cust-ramesh-life',
       name: 'Ramesh Patel',
-      mobile: '9876543210',
+      mobile: '9876500004',
       facilityIds: [northFacilityId],
       isActive: true,
     });
@@ -90,7 +90,7 @@ describe('GRN Lifecycle & Sequences Integration', () => {
       id: 'user-op-north',
       fullName: 'Operator North',
       employeeId: 'EMP-P4-004',
-      mobile: '9800000004',
+      mobile: '9800000014',
       username: 'op.north',
       email: 'op.north@coldstorage.local',
       passwordHash: defaultPasswordHash,

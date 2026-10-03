@@ -102,9 +102,12 @@ if [ -n "$DUPLICATE_IDS" ]; then
   fail "DOM integrity violation: duplicate id attribute(s) found; label htmlFor/aria-* associations become ambiguous."
 fi
 
-# 15. Backend Logging Hygiene: Zero raw console.(log|warn|error) in backend modules
-if grep -rnE "console\.(log|warn|error)" "$ROOT/packages/backend/src/modules" 2>/dev/null; then
-  fail "Backend logging hygiene violation: raw console.* calls prohibited in backend modules. Use structured error handling or domain events."
+# 15. Backend Logging Hygiene: Zero raw console.(log|warn|error) anywhere in backend src.
+# utils/logger.ts is the single sanctioned logging entry point; scoping this to src/modules
+# previously let a bare console.log survive in the process entry point.
+if grep -rnE "console\.(log|warn|error)" "$ROOT/packages/backend/src" --include="*.ts" 2>/dev/null \
+  | grep -v "packages/backend/src/utils/logger.ts"; then
+  fail "Backend logging hygiene violation: raw console.* calls are prohibited outside utils/logger.ts. Use logger.info/warn/error or auditService."
 fi
 
 if [ "$EXIT" -eq 0 ]; then

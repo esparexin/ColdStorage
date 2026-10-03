@@ -65,7 +65,7 @@ describe('GRN Facility Scoping, RBAC & Child-ID Protection', () => {
     });
 
     const chNorth = await ChamberModel.create({
-      id: 'cham-north-01',
+      id: 'cham-north-scope',
       facilityId: northFacilityId,
       chamberNumber: 'CH-NORTH-01',
       isActive: true,
@@ -81,17 +81,17 @@ describe('GRN Facility Scoping, RBAC & Child-ID Protection', () => {
     chamberSouthId = chSouth.id;
 
     const comm = await CommodityModel.create({
-      id: 'comm-potato-01',
+      id: 'comm-potato-scope',
       name: 'Potato Jyoti',
-      normalizedName: 'POTATO JYOTI',
+      normalizedName: 'POTATO JYOTI SCOPE',
       isActive: true,
     });
     commodityId = comm.id;
 
     const cust = await CustomerModel.create({
-      id: 'cust-ramesh-01',
+      id: 'cust-ramesh-scope',
       name: 'Ramesh Patel',
-      mobile: '9876543210',
+      mobile: '9876500009',
       facilityIds: [northFacilityId],
       isActive: true,
     });
