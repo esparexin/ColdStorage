@@ -21,7 +21,7 @@ export function PositionOccupancyPanel({
 
   return (
     <div className={styles.occupancySection}>
-      <h2>Position Occupancy Details: {positionCode}</h2>
+      <h2>Rack Space Used Details: {positionCode}</h2>
       {loading ? (
         <FeedbackStates.Loading label="Loading occupancy data..." />
       ) : !occupancy ? (
@@ -53,7 +53,7 @@ export function PositionOccupancyPanel({
           {occupancy.storedLots.length === 0 ? (
             <div className={styles.emptyLots}>
               <AlertCircle size={16} />
-              <span>This position is currently empty.</span>
+              <span>This rack space is currently empty.</span>
             </div>
           ) : (
             <div className={styles.lotsTableWrapper}>

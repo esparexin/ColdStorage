@@ -89,7 +89,7 @@ export function useStorageMutations(
         onRefreshLevels(selectedRack.id);
       } else if (activeModal === 'position') {
         if (!selectedLevel) throw new Error('Please select a parent level.');
-        if (!positionCode.trim()) throw new Error('Position code is required.');
+        if (!positionCode.trim()) throw new Error('Rack space code is required.');
         const parsedCap = parseInt(capacityBags, 10);
         if (isNaN(parsedCap) || parsedCap < 1)
           throw new Error('Capacity bags must be a positive integer.');
@@ -100,9 +100,9 @@ export function useStorageMutations(
         });
         if (!res.ok) {
           const err = (await res.json()) as { error?: string };
-          throw new Error(err.error || 'Failed to create position');
+          throw new Error(err.error || 'Failed to create rack space');
         }
-        setActionSuccess(`Position "${positionCode}" created successfully.`);
+        setActionSuccess(`Rack Space "${positionCode}" created successfully.`);
         setActiveModal(null);
         setPositionCode('');
         setCapacityBags('100');

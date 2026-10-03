@@ -65,7 +65,7 @@ export function StorageHierarchyModals({
             {activeModal === 'chamber' && 'Add New Chamber'}
             {activeModal === 'rack' && `Add Rack to Chamber ${selectedChamber?.chamberNumber}`}
             {activeModal === 'level' && `Add Level to Rack ${selectedRack?.code}`}
-            {activeModal === 'position' && `Add Position to Level ${selectedLevel?.code}`}
+            {activeModal === 'position' && `Add Rack Space to Level ${selectedLevel?.code}`}
           </h3>
           <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close modal">
             <X size={18} />
@@ -154,7 +154,7 @@ export function StorageHierarchyModals({
           {activeModal === 'position' && (
             <>
               <div className={styles.formGroup}>
-                <label htmlFor="positionCode">Position Code *</label>
+                <label htmlFor="positionCode">Rack Space Code *</label>
                 <input
                   id="positionCode"
                   type="text"

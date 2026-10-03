@@ -60,7 +60,7 @@ export default function StorageHierarchyPage() {
         <div className={styles.titleArea}>
           <h1>Storage Hierarchy & Occupancy</h1>
           <p className={styles.subtitle}>
-            Facility-scoped multi-tier layout: Facility → Chamber → Rack → Level → Position with live
+            Facility-scoped multi-tier layout: Facility → Chamber → Rack → Level → Rack Space with live
             occupancy calculation.
           </p>
         </div>
@@ -131,7 +131,7 @@ export default function StorageHierarchyPage() {
           {browser.selectedPosition && (
             <>
               <ChevronRight size={14} />
-              <span className={styles.breadcrumbActive}>Pos {browser.selectedPosition.code}</span>
+              <span className={styles.breadcrumbActive}>Space {browser.selectedPosition.code}</span>
             </>
           )}
         </div>

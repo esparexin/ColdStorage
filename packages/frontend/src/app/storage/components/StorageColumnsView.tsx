@@ -179,19 +179,19 @@ export function StorageColumnsView({
         </div>
       </div>
 
-      {/* Tier 4: Positions */}
+      {/* Tier 4: Positions (Rack Spaces) */}
       <div className={styles.column}>
         <div className={styles.columnHeader}>
           <div className={styles.columnTitle}>
             <Package size={16} />
-            <span>Positions ({positions.length})</span>
+            <span>Rack Spaces ({positions.length})</span>
           </div>
           {canManage && selectedLevel && (
             <button
               type="button"
               className={styles.columnAddBtn}
               onClick={() => onOpenModal('position')}
-              title="Add Position"
+              title="Add Rack Space"
             >
               <Plus size={14} />
             </button>
@@ -201,9 +201,9 @@ export function StorageColumnsView({
           {!selectedLevel ? (
             <FeedbackStates.Empty message="Select a level." />
           ) : loadingPositions ? (
-            <FeedbackStates.Loading label="Loading positions..." />
+            <FeedbackStates.Loading label="Loading rack spaces..." />
           ) : positions.length === 0 ? (
-            <FeedbackStates.Empty message="No positions on this level." />
+            <FeedbackStates.Empty message="No rack spaces on this level." />
           ) : (
             positions.map((p) => (
               <button
