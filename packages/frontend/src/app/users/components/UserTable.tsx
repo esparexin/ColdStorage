@@ -5,6 +5,7 @@ import { KeyRound, UserCheck } from 'lucide-react';
 import type { UserSummary } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { UserRowActions } from './UserRowActions';
 import styles from '../page.module.css';
 
 interface UserTableProps {
@@ -16,8 +17,13 @@ interface UserTableProps {
   searchTerm: string;
   roleFilter: string;
   facilityNameMap: Map<string, string>;
+  currentUserId: string | null;
+  actionsBusy: boolean;
   onPageChange: (newPage: number) => void;
   onOpenCreate: () => void;
+  onEditUser: (user: UserSummary) => void;
+  onResetPassword: (user: UserSummary) => void;
+  onToggleStatus: (user: UserSummary) => void;
 }
 
 export function UserTable({
@@ -29,8 +35,13 @@ export function UserTable({
   searchTerm,
   roleFilter,
   facilityNameMap,
+  currentUserId,
+  actionsBusy,
   onPageChange,
   onOpenCreate,
+  onEditUser,
+  onResetPassword,
+  onToggleStatus,
 }: UserTableProps) {
   const columns: DataTableColumn<UserSummary>[] = [
     {
@@ -133,6 +144,20 @@ export function UserTable({
               })
             : 'Never'}
         </span>
+      ),
+    },
+{
+      key: 'actions',
+      header: 'Lifecycle Actions',
+      render: (u) => (
+        <UserRowActions
+          user={u}
+          isSelf={u.id === currentUserId}
+          busy={actionsBusy}
+          onEdit={onEditUser}
+          onResetPassword={onResetPassword}
+          onToggleStatus={onToggleStatus}
+        />
       ),
     },
   ];

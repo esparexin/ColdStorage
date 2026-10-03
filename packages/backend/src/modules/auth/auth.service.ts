@@ -189,7 +189,7 @@ export class AuthService {
     }
 
     const newHash = await hashPassword(input.newPassword);
-    const updated = await this.userRepo.updatePassword(userId, newHash);
+    const updated = await this.userRepo.updatePassword(userId, newHash, false);
     if (!updated) {
       throw new Error('Failed to update password');
     }

@@ -3,6 +3,7 @@ import type {
   ImportRowResult,
   ImportSummary,
 } from '@cold-storage/contracts';
+import { createGrnSchema } from '@cold-storage/contracts';
 import { ChamberModel } from '../../../database/models/chamber.model.js';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
@@ -13,6 +14,19 @@ import {
   GRN_IMPORT_REQUIRED_HEADERS,
   parseAndValidateCsv,
 } from '../csv-parser.helper.js';
+
+/** Row-level numeric parsing helpers: empty cells become null so the canonical schema decides. */
+function parseOptionalInt(value: string | undefined): number | null {
+  if (!value || value.trim() === '') return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? Number.NaN : parsed;
+}
+
+function parseOptionalFloat(value: string | undefined): number | null {
+  if (!value || value.trim() === '') return null;
+  const parsed = Number.parseFloat(value);
+  return Number.isNaN(parsed) ? Number.NaN : parsed;
+}
 
 export async function executeGrnImport(
   facilityId: string,
@@ -128,72 +142,52 @@ export async function executeGrnImport(
       rowErrors.push(`Chamber '${row.chamberNumber}' not found or inactive for this facility`);
     }
 
-    const bags = parseInt(row.bagsStr, 10);
-    if (isNaN(bags) || bags <= 0) {
-      rowErrors.push('Bags must be a positive integer >= 1');
-    }
+    // Row-level business validation is delegated to the canonical createGrnSchema so the CSV
+    // import path can never accept a row that the interactive GRN endpoint would reject.
+    const rentMonths = row.rentType === 'Monthly' ? parseOptionalInt(row.rentMonthsStr) : null;
+    const contractCheck = createGrnSchema.safeParse({
+      date: row.date,
+      customerId: customerId ?? 'unresolved-customer',
+      commodityId: commodityId ?? 'unresolved-commodity',
+      chamberId: chamberId ?? 'unresolved-chamber',
+      bags: parseInt(row.bagsStr, 10),
+      bagType: row.bagType,
+      nominalUnitWeight: parseOptionalFloat(row.nominalUnitWeightStr),
+      nominalTotalWeight: parseOptionalFloat(row.nominalTotalWeightStr),
+      actualWeight: parseOptionalFloat(row.actualWeightStr),
+      rentType: row.rentType,
+      rentMonths,
+      rentAmount: parseFloat(row.rentAmountStr),
+      gpNumber: null,
+      marks: null,
+      vehicleNumber: row.vehicleNumber || null,
+      remarks: row.remarks || null,
+    });
 
-    if (!['S', 'B', 'S+B'].includes(row.bagType)) {
-      rowErrors.push("Bag type must be 'S', 'B', or 'S+B'");
-    }
-
-    if (!['Monthly', 'Seasonal'].includes(row.rentType)) {
-      rowErrors.push("Rent type must be 'Monthly' or 'Seasonal'");
-    }
-
-    let rentMonths: number | undefined;
-    if (row.rentType === 'Monthly') {
-      if (!row.rentMonthsStr) {
-        rowErrors.push("Rent months is required when rent type is 'Monthly'");
-      } else {
-        rentMonths = parseInt(row.rentMonthsStr, 10);
-        if (isNaN(rentMonths) || rentMonths <= 0) {
-          rowErrors.push('Rent months must be a positive integer');
-        }
+    if (!contractCheck.success) {
+      for (const issue of contractCheck.error.issues) {
+        const field = issue.path.join('.') || 'row';
+        rowErrors.push(`${field}: ${issue.message}`);
       }
     }
 
-    const rentAmount = parseFloat(row.rentAmountStr);
-    if (isNaN(rentAmount) || rentAmount < 0) {
-      rowErrors.push('Rent amount must be a non-negative number');
-    }
-
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(row.date) || isNaN(Date.parse(row.date))) {
-      rowErrors.push('Date must be a valid ISO 8601 date string (YYYY-MM-DD)');
-    }
-
-    const nominalUnitWeight = row.nominalUnitWeightStr
-      ? parseFloat(row.nominalUnitWeightStr)
-      : undefined;
-    const nominalTotalWeight = row.nominalTotalWeightStr
-      ? parseFloat(row.nominalTotalWeightStr)
-      : undefined;
-    const actualWeight = row.actualWeightStr ? parseFloat(row.actualWeightStr) : undefined;
-
-    if (rowErrors.length > 0) {
+    if (rowErrors.length > 0 || !contractCheck.success) {
       results.push({
         row: row.rowNumber,
         status: 'rejected',
-        errors: rowErrors,
+        errors: rowErrors.length > 0 ? rowErrors : ['Row failed contract validation'],
       });
       continue;
     }
 
     try {
+      // The canonical schema output is authoritative, so imported rows carry exactly the
+      // same coerced values an interactive GRN submission would have produced.
       const createGrnInput: CreateGrnInput = {
-        date: new Date(row.date),
+        ...contractCheck.data,
         customerId: customerId!,
         commodityId: commodityId!,
         chamberId: chamberId!,
-        bags,
-        bagType: row.bagType as 'S' | 'B' | 'S+B',
-        rentType: row.rentType as 'Monthly' | 'Seasonal',
-        rentMonths: rentMonths ?? null,
-        rentAmount,
-        nominalUnitWeight: nominalUnitWeight ?? null,
-        nominalTotalWeight: nominalTotalWeight ?? null,
-        actualWeight: actualWeight ?? null,
-        vehicleNumber: row.vehicleNumber ?? null,
         gpNumber: row.gpNumber ?? null,
         marks: row.marks ?? null,
         remarks: row.remarks ?? null,

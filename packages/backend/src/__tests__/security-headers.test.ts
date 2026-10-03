@@ -60,3 +60,4 @@ describe('Phase 11: Security Headers & OWASP Hardening Controls', () => {
     expect(res.body.error).toContain('PARAMETER_POLLUTION');
   });
 });
+

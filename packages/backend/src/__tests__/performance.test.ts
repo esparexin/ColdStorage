@@ -7,7 +7,7 @@ import { config } from '../config.js';
 import { inspectDatabaseIndexesReadOnly, verifyIndexDeclarations } from '../database/indexes.js';
 import { FacilityModel } from '../database/models/facility.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
-import { generateAccessToken } from '../utils/crypto.js';
+import { createAuthSeeder } from './helpers/auth-fixtures.js';
 
 const app = createApp();
 
@@ -17,6 +17,8 @@ describe('Phase 11: Performance Optimization, Index Audit & Benchmarking', () =>
   let superAdminToken: string;
   let server: http.Server;
   let serverPort: number;
+
+  const seed = createAuthSeeder(config.jwtSecret);
 
   beforeAll(async () => {
     const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
@@ -35,29 +37,21 @@ describe('Phase 11: Performance Optimization, Index Audit & Benchmarking', () =>
       totalCapacityBags: 100000,
     });
 
-    adminToken = generateAccessToken(
-      {
-        userId: 'usr-perf-admin',
-        username: 'perf_admin',
-        role: 'ADMIN',
-        facilityIds: [facilityId],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-      3600,
-    );
+    ({ token: adminToken } = await seed({
+      userId: 'usr-perf-admin',
+      username: 'perf_admin',
+      role: 'ADMIN',
+      facilityIds: [facilityId],
+      expiresInSeconds: 3600,
+    }));
 
-    superAdminToken = generateAccessToken(
-      {
-        userId: 'usr-perf-super',
-        username: 'perf_super',
-        role: 'SUPER_ADMIN',
-        facilityIds: [],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-      3600,
-    );
+    ({ token: superAdminToken } = await seed({
+      userId: 'usr-perf-super',
+      username: 'perf_super',
+      role: 'SUPER_ADMIN',
+      facilityIds: [],
+      expiresInSeconds: 3600,
+    }));
 
     await new Promise<void>((resolve) => {
       server = app.listen(0, () => {

@@ -5,7 +5,7 @@ import { AlertCircle, UserPlus } from 'lucide-react';
 import type { Role } from '@cold-storage/contracts';
 import { Button, Modal, Select } from '@/components/ui';
 import { useProvisionUserForm } from '../hooks/useProvisionUserForm';
-import type { FacilityOption } from '../types';
+import type { FacilityOption } from '@/context/FacilityContext';
 import styles from '../page.module.css';
 
 interface ProvisionUserModalProps {

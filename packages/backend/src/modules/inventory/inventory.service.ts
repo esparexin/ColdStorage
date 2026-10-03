@@ -12,7 +12,6 @@ import { ConcurrencyConflictError } from './inventory.mappers.js';
 import {
   getFacilityInventorySummary,
   queryStockLedger,
-  resolveFacilityIdForGrn,
   resolveFacilityIdForPosition,
 } from './queries/facility-stock.queries.js';
 import {
@@ -63,10 +62,6 @@ export class InventoryService {
     query: StockLedgerQuery,
   ): Promise<{ items: InventoryTransaction[]; total: number; page: number; limit: number }> {
     return queryStockLedger(facilityId, query);
-  }
-
-  public async resolveFacilityIdForGrn(grnId: string): Promise<string | null> {
-    return resolveFacilityIdForGrn(grnId);
   }
 
   public async resolveFacilityIdForPosition(positionId: string): Promise<string | null> {

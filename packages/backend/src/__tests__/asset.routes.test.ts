@@ -7,7 +7,7 @@ import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { AssetModel } from '../database/models/asset.model.js';
 import { SystemSettingsModel } from '../database/models/system-settings.model.js';
-import { generateAccessToken } from '../utils/crypto.js';
+import { createAuthSeeder } from './helpers/auth-fixtures.js';
 
 const app = createApp();
 
@@ -43,6 +43,8 @@ describe('Brand Asset & Logo Management Routes & Security Tests', () => {
     0x14, 0x00, 0x00, 0x00, 0x30, 0x01, 0x00, 0x9d,
   ]);
 
+  const seed = createAuthSeeder(config.jwtSecret);
+
   beforeAll(async () => {
     config.cloudinaryUrl = 'cloudinary://test_key:test_secret@test_cloud';
     const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
@@ -50,41 +52,29 @@ describe('Brand Asset & Logo Management Routes & Security Tests', () => {
       await mongoose.connect(mongoUri);
     }
 
-    superAdminToken = generateAccessToken(
-      {
-        userId: 'usr-super-admin',
-        username: 'super_admin',
-        role: 'SUPER_ADMIN',
-        facilityIds: [],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-      3600,
-    );
+    ({ token: superAdminToken } = await seed({
+      userId: 'usr-super-admin',
+      username: 'super_admin',
+      role: 'SUPER_ADMIN',
+      facilityIds: [],
+      expiresInSeconds: 3600,
+    }));
 
-    adminToken = generateAccessToken(
-      {
-        userId: 'usr-admin',
-        username: 'plant_admin',
-        role: 'ADMIN',
-        facilityIds: ['fac-1'],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-      3600,
-    );
+    ({ token: adminToken } = await seed({
+      userId: 'usr-admin',
+      username: 'plant_admin',
+      role: 'ADMIN',
+      facilityIds: ['fac-1'],
+      expiresInSeconds: 3600,
+    }));
 
-    operatorToken = generateAccessToken(
-      {
-        userId: 'usr-operator',
-        username: 'plant_operator',
-        role: 'OPERATOR',
-        facilityIds: ['fac-1'],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-      3600,
-    );
+    ({ token: operatorToken } = await seed({
+      userId: 'usr-operator',
+      username: 'plant_operator',
+      role: 'OPERATOR',
+      facilityIds: ['fac-1'],
+      expiresInSeconds: 3600,
+    }));
   });
 
   afterAll(async () => {

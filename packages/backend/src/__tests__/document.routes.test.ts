@@ -9,7 +9,7 @@ import { FacilityModel } from '../database/models/facility.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { SystemSettingsModel } from '../database/models/system-settings.model.js';
 import { UserModel } from '../database/models/user.model.js';
-import { generateAccessToken } from '../utils/crypto.js';
+import { createAuthSeeder } from './helpers/auth-fixtures.js';
 
 const app = createApp();
 
@@ -23,6 +23,8 @@ describe('P9 Document Routes, Security & Facility Validation Tests', () => {
   let readOnlyToken: string;
   let operatorFacilityBToken: string;
   let mustChangePasswordToken: string;
+
+  const seed = createAuthSeeder(config.jwtSecret);
 
   beforeAll(async () => {
     const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
@@ -123,71 +125,48 @@ describe('P9 Document Routes, Security & Facility Validation Tests', () => {
     });
 
     // Generate tokens
-    superAdminToken = generateAccessToken(
-      {
-        userId: 'usr-sa',
-        username: 'superadmin',
-        role: 'SUPER_ADMIN',
-        facilityIds: [],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-    );
+    ({ token: superAdminToken } = await seed({
+      userId: 'doc-usr-sa',
+      username: 'doc_superadmin',
+      role: 'SUPER_ADMIN',
+      facilityIds: [],
+    }));
 
-    adminToken = generateAccessToken(
-      {
-        userId: 'usr-adm',
-        username: 'admin',
-        role: 'ADMIN',
-        facilityIds: [facilityA],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-    );
+    ({ token: adminToken } = await seed({
+      userId: 'doc-usr-adm',
+      username: 'doc_admin',
+      role: 'ADMIN',
+      facilityIds: [facilityA],
+    }));
 
-    operatorToken = generateAccessToken(
-      {
-        userId: 'usr-op',
-        username: 'operator',
-        role: 'OPERATOR',
-        facilityIds: [facilityA],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-    );
+    ({ token: operatorToken } = await seed({
+      userId: 'doc-usr-op',
+      username: 'doc_operator',
+      role: 'OPERATOR',
+      facilityIds: [facilityA],
+    }));
 
-    readOnlyToken = generateAccessToken(
-      {
-        userId: 'usr-ro',
-        username: 'readonly',
-        role: 'READ_ONLY',
-        facilityIds: [facilityA],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-    );
+    ({ token: readOnlyToken } = await seed({
+      userId: 'doc-usr-ro',
+      username: 'doc_readonly',
+      role: 'READ_ONLY',
+      facilityIds: [facilityA],
+    }));
 
-    operatorFacilityBToken = generateAccessToken(
-      {
-        userId: 'usr-op-b',
-        username: 'operator_b',
-        role: 'OPERATOR',
-        facilityIds: [facilityB],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-    );
+    ({ token: operatorFacilityBToken } = await seed({
+      userId: 'doc-usr-op-b',
+      username: 'doc_operator_b',
+      role: 'OPERATOR',
+      facilityIds: [facilityB],
+    }));
 
-    mustChangePasswordToken = generateAccessToken(
-      {
-        userId: 'usr-pwd',
-        username: 'pwd_change',
-        role: 'OPERATOR',
-        facilityIds: [facilityA],
-        mustChangePassword: true,
-      },
-      config.jwtSecret,
-    );
+    ({ token: mustChangePasswordToken } = await seed({
+      userId: 'doc-usr-pwd',
+      username: 'doc_pwd_change',
+      role: 'OPERATOR',
+      facilityIds: [facilityA],
+      mustChangePassword: true,
+    }));
   });
 
   const configureOrganization = async () => {

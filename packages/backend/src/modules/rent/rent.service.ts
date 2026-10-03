@@ -5,26 +5,18 @@ import type {
   RentReceiptDocumentDto,
   RentSummaryDto,
 } from '@cold-storage/contracts';
-import { AuditLogModel } from '../../database/models/audit-log.model.js';
 import { CustomerModel } from '../../database/models/customer.model.js';
-import { FacilityModel } from '../../database/models/facility.model.js';
 import { GrnModel, type GrnDoc } from '../../database/models/grn.model.js';
 import { renderRentReceiptTemplate } from '../documents/templates/rent-receipt.template.js';
-import { settingsService } from '../settings/settings.service.js';
+import {
+  getFacilitySubHeader,
+  getVerifiedOrganization,
+} from '../documents/document-headers.helper.js';
 import {
   executeRecordPayment,
   toPaymentEntity,
 } from './handlers/record-payment.handler.js';
 import { rentRepository } from './rent.repository.js';
-
-// Ensure Mongoose schema permits RENT_PAYMENT_COLLECTED without violating 14-file boundary
-const auditEventTypePath = AuditLogModel.schema.path('eventType') as { enumValues?: string[] };
-if (
-  auditEventTypePath?.enumValues &&
-  !auditEventTypePath.enumValues.includes('RENT_PAYMENT_COLLECTED')
-) {
-  auditEventTypePath.enumValues.push('RENT_PAYMENT_COLLECTED');
-}
 
 export class RentService {
   /**
@@ -123,28 +115,19 @@ export class RentService {
       throw new Error(`GRN '${payment.grnId}' not found for receipt '${receiptNumber}'`);
     }
 
-    const facility = await FacilityModel.findOne({ id: facilityId }).lean().exec();
     const customer = await CustomerModel.findOne({ id: grn.customerId }).lean().exec();
-    const { settings } = await settingsService.getSettings();
 
     const summary = await this.getRentSummary(facilityId, grn.id);
 
+    // Bind to the canonical document header helpers so the rent receipt renders with the
+    // same System Settings organization header and facility sub-header as every other
+    // official document, and is subject to the same ORGANIZATION_NOT_CONFIGURED guard.
+    const organization = await getVerifiedOrganization();
+    const facility = await getFacilitySubHeader(facilityId);
+
     const docDto: RentReceiptDocumentDto = {
-      organization: {
-        orgName: settings.orgName,
-        address: settings.address,
-        contact: settings.contact,
-        gstin: settings.gstin,
-        logoAssetId: settings.logoAssetId,
-        printFooter: settings.printFooter,
-        timezone: settings.timezone,
-      },
-      facility: {
-        facilityId: facility?.id ?? facilityId,
-        facilityName: facility?.name ?? 'Facility',
-        facilityCode: facility?.code ?? 'FAC',
-        facilityAddress: facility?.address ?? '',
-      },
+      organization,
+      facility,
       receiptNumber: payment.receiptNumber,
       grnNumber: grn.grnNumber,
       date: payment.paymentDate,

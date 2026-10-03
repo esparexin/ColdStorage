@@ -9,7 +9,8 @@ import { AuditLogModel } from '../database/models/audit-log.model.js';
 import { BackupLogModel } from '../database/models/backup-log.model.js';
 import { FacilityModel } from '../database/models/facility.model.js';
 import { SystemSettingsModel } from '../database/models/system-settings.model.js';
-import { generateAccessToken } from '../utils/crypto.js';
+import { UserModel } from '../database/models/user.model.js';
+import { createAuthSeeder } from './helpers/auth-fixtures.js';
 
 const app = createApp();
 
@@ -23,6 +24,8 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
   let operatorToken: string;
   let readOnlyToken: string;
   let mustChangePasswordToken: string;
+
+  const seed = createAuthSeeder(config.jwtSecret);
 
   beforeAll(async () => {
     process.env.BACKUP_ENCRYPTION_KEY = validHexKey;
@@ -49,6 +52,7 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
     await BackupLogModel.deleteMany({});
     await SystemSettingsModel.deleteMany({});
     await FacilityModel.deleteMany({});
+    await UserModel.deleteMany({});
 
     // Seed facilities
     await FacilityModel.create([
@@ -90,60 +94,41 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
     });
 
     // Create tokens
-    superAdminToken = generateAccessToken(
-      {
-        userId: 'usr-sa',
-        username: 'superadmin',
-        role: 'SUPER_ADMIN',
-        facilityIds: [],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-    );
+    ({ token: superAdminToken } = await seed({
+      userId: 'audit-usr-sa',
+      username: 'audit_superadmin',
+      role: 'SUPER_ADMIN',
+      facilityIds: [],
+    }));
 
-    adminToken = generateAccessToken(
-      {
-        userId: 'usr-adm',
-        username: 'admin',
-        role: 'ADMIN',
-        facilityIds: [facilityA],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-    );
+    ({ token: adminToken } = await seed({
+      userId: 'audit-usr-adm',
+      username: 'audit_admin',
+      role: 'ADMIN',
+      facilityIds: [facilityA],
+    }));
 
-    operatorToken = generateAccessToken(
-      {
-        userId: 'usr-op',
-        username: 'operator',
-        role: 'OPERATOR',
-        facilityIds: [facilityA],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-    );
+    ({ token: operatorToken } = await seed({
+      userId: 'audit-usr-op',
+      username: 'audit_operator',
+      role: 'OPERATOR',
+      facilityIds: [facilityA],
+    }));
 
-    readOnlyToken = generateAccessToken(
-      {
-        userId: 'usr-ro',
-        username: 'readonly',
-        role: 'READ_ONLY',
-        facilityIds: [facilityA],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-    );
+    ({ token: readOnlyToken } = await seed({
+      userId: 'audit-usr-ro',
+      username: 'audit_readonly',
+      role: 'READ_ONLY',
+      facilityIds: [facilityA],
+    }));
 
-    mustChangePasswordToken = generateAccessToken(
-      {
-        userId: 'usr-mcp',
-        username: 'mustchange',
-        role: 'SUPER_ADMIN',
-        facilityIds: [],
-        mustChangePassword: true,
-      },
-      config.jwtSecret,
-    );
+    ({ token: mustChangePasswordToken } = await seed({
+      userId: 'audit-usr-mcp',
+      username: 'audit_mustchange',
+      role: 'SUPER_ADMIN',
+      facilityIds: [],
+      mustChangePassword: true,
+    }));
 
     // Seed sample audit logs
     await AuditLogModel.create([
@@ -153,8 +138,8 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
         eventType: 'GRN_CREATED',
         severity: 'INFO',
         facilityId: facilityA,
-        userId: 'usr-op',
-        username: 'operator',
+        userId: 'audit-usr-op',
+        username: 'audit_operator',
         userRole: 'OPERATOR',
         ipAddress: '127.0.0.1',
         userAgent: 'TestClient/1.0',
@@ -168,7 +153,7 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
         eventType: 'GRN_CREATED',
         severity: 'INFO',
         facilityId: facilityB,
-        userId: 'usr-adm2',
+        userId: 'audit-usr-adm2',
         username: 'admin2',
         userRole: 'ADMIN',
         ipAddress: '127.0.0.1',
@@ -183,8 +168,8 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
         eventType: 'AUTH_LOGIN_SUCCESS',
         severity: 'INFO',
         facilityId: null,
-        userId: 'usr-sa',
-        username: 'superadmin',
+        userId: 'audit-usr-sa',
+        username: 'audit_superadmin',
         userRole: 'SUPER_ADMIN',
         ipAddress: '127.0.0.1',
         userAgent: 'TestClient/1.0',

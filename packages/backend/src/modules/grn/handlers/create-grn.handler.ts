@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
   getAuthoritativeWeight,
-  getFinancialYearKey,
   type CreateGrnInput,
   type Grn,
   type GrnAcknowledgement,
@@ -14,6 +13,7 @@ import { FacilityModel } from '../../../database/models/facility.model.js';
 import { GrnModel, type GrnDoc } from '../../../database/models/grn.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { counterService } from '../../common/counter.service.js';
+import { validateOperationalDate } from '../../common/operational-date.helper.js';
 import { toGrnAcknowledgement, toGrnEntity } from '../grn.mappers.js';
 
 export async function createGrn(
@@ -66,25 +66,7 @@ export async function createGrn(
   }
 
   // 5. Inward Date and FY validation
-  const inwardDate = new Date(input.date);
-  const now = new Date();
-  const maxFutureAllowed = new Date(now.getTime() + 5 * 60 * 1000);
-  if (inwardDate > maxFutureAllowed) {
-    throw new Error('Inward date cannot be in the future');
-  }
-
-  const currentFy = getFinancialYearKey(now);
-  const inwardFy = getFinancialYearKey(inwardDate);
-  if (inwardFy !== currentFy) {
-    throw new Error(
-      `Inward date belongs to Financial Year '${inwardFy}', but current active FY is '${currentFy}'`,
-    );
-  }
-
-  const maxPastAllowed = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  if (inwardDate < maxPastAllowed) {
-    throw new Error('Inward date exceeds permitted 30-day operational backdating window');
-  }
+  const inwardDate = validateOperationalDate(input.date, { label: 'Inward' });
 
   // 6. Weight accounting
   const nominalTotalWeight =

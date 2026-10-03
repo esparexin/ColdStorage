@@ -36,26 +36,6 @@ export function buildDateFilter(
   return {};
 }
 
-// Canonical P7 ledger signed quantity scalar
-export const ledgerSignedQuantity = {
-  $cond: [
-    { $eq: ['$transactionType', 'INWARD_PUTAWAY'] },
-    '$quantity',
-    {
-      $cond: [
-        { $eq: ['$transactionType', 'DELIVERY_REVERSAL'] },
-        '$quantity',
-        {
-          $cond: [
-            { $eq: ['$transactionType', 'OUTWARD_DELIVERY'] },
-            { $multiply: ['$quantity', -1] },
-            0,
-          ],
-        },
-      ],
-    },
-  ],
-};
 
 /**
  * Pipes a Mongoose cursor through CsvSerializer to Express response with backpressure,

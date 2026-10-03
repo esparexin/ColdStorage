@@ -11,12 +11,14 @@ import {
   MemoryRateLimitStore,
   setDefaultRateLimitStore,
 } from '../middleware/rate-limiter.middleware.js';
-import { generateAccessToken } from '../utils/crypto.js';
+import { createAuthSeeder } from './helpers/auth-fixtures.js';
 
 const app = createApp();
 
 describe('Phase 11: Multi-Tiered Rate Limiting & Audit Security Controls', () => {
   let superAdminToken: string;
+
+  const seed = createAuthSeeder(config.jwtSecret);
 
   beforeAll(async () => {
     const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
@@ -24,17 +26,13 @@ describe('Phase 11: Multi-Tiered Rate Limiting & Audit Security Controls', () =>
       await mongoose.connect(mongoUri);
     }
 
-    superAdminToken = generateAccessToken(
-      {
-        userId: 'usr-rate-superadmin',
-        username: 'superadmin_rate',
-        role: 'SUPER_ADMIN',
-        facilityIds: [],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-      3600,
-    );
+    ({ token: superAdminToken } = await seed({
+      userId: 'usr-rate-superadmin',
+      username: 'superadmin_rate',
+      role: 'SUPER_ADMIN',
+      facilityIds: [],
+      expiresInSeconds: 3600,
+    }));
   });
 
   afterAll(async () => {

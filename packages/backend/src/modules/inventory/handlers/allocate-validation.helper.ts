@@ -1,70 +1,25 @@
 import type mongoose from 'mongoose';
-import { ChamberModel } from '../../../database/models/chamber.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
-import { LevelModel } from '../../../database/models/level.model.js';
-import { PositionModel } from '../../../database/models/position.model.js';
-import { RackModel } from '../../../database/models/rack.model.js';
+import {
+  lockPositionsForUpdate,
+  type LockedPositionMeta,
+} from '../../common/position-lock.helper.js';
 
-export interface LockedPositionMeta {
-  code: string;
-  capacityBags: number;
-  chamberId: string;
-}
+export type { LockedPositionMeta } from '../../common/position-lock.helper.js';
 
+/**
+ * Put-away additionally requires the position's parent Level, Rack and Chamber to be active,
+ * because it writes stock into the hierarchy rather than withdrawing from it.
+ */
 export async function validateAndLockPutAwayPositions(
   facilityId: string,
   chamberId: string,
   items: Array<{ positionId: string; bags: number }>,
   session: mongoose.ClientSession,
 ): Promise<Map<string, LockedPositionMeta>> {
-  const sortedItems = [...items].sort((a, b) => a.positionId.localeCompare(b.positionId));
-  const lockedPositions = new Map<string, LockedPositionMeta>();
-
-  for (const item of sortedItems) {
-    const pos = await PositionModel.findOneAndUpdate(
-      { id: item.positionId, facilityId },
-      { $set: { updatedAt: new Date() } },
-      { session, new: true },
-    )
-      .lean()
-      .exec();
-
-    if (!pos) {
-      throw new Error(`Position '${item.positionId}' not found in facility '${facilityId}'`);
-    }
-    if (!pos.isActive) {
-      throw new Error(`Position '${pos.code}' is inactive`);
-    }
-    if (pos.chamberId !== chamberId) {
-      throw new Error(
-        `Position '${pos.code}' belongs to chamber '${pos.chamberId}', but GRN belongs to chamber '${chamberId}'`,
-      );
-    }
-
-    const [level, rack, chamber] = await Promise.all([
-      LevelModel.findOne({ id: pos.levelId, isActive: true }, null, { session }).lean().exec(),
-      RackModel.findOne({ id: pos.rackId, isActive: true }, null, { session }).lean().exec(),
-      ChamberModel.findOne({ id: pos.chamberId, isActive: true }, null, { session }).lean().exec(),
-    ]);
-
-    if (!level) {
-      throw new Error(`Parent Level for position '${pos.code}' is inactive or invalid`);
-    }
-    if (!rack) {
-      throw new Error(`Parent Rack for position '${pos.code}' is inactive or invalid`);
-    }
-    if (!chamber) {
-      throw new Error(`Parent Chamber for position '${pos.code}' is inactive or invalid`);
-    }
-
-    lockedPositions.set(item.positionId, {
-      code: pos.code,
-      capacityBags: pos.capacityBags,
-      chamberId: pos.chamberId,
-    });
-  }
-
-  return lockedPositions;
+  return lockPositionsForUpdate(facilityId, chamberId, items, session, {
+    verifyActiveParents: true,
+  });
 }
 
 export async function validatePutAwayCapacity(

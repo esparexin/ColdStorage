@@ -3,6 +3,18 @@ import { UserModel } from '../../database/models/user.model.js';
 import { hashPassword } from '../../utils/crypto.js';
 import type { UserEntity } from './user.entity.js';
 
+/**
+ * Sanitize a user-supplied identifier before embedding in a MongoDB query.
+ * Strips everything except alphanumeric chars, hyphens and underscores —
+ * the only characters our application-generated IDs ever contain.
+ */
+function sanitizeId(raw: unknown): string {
+  if (typeof raw !== 'string') {
+    return '';
+  }
+  return raw.replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
 export class UserRepository {
   /**
    * Secure bootstrap helper:
@@ -75,20 +87,33 @@ export class UserRepository {
   }
 
   public async findById(id: string): Promise<UserEntity | null> {
-    const doc = await UserModel.findOne({ id }).lean().exec();
+    const doc = await UserModel.findOne({ id: { $eq: sanitizeId(id) } }).lean().exec();
     return doc ? (doc as unknown as UserEntity) : null;
   }
 
   public async findByUsername(username: string): Promise<UserEntity | null> {
-    const normalized = username.trim().toLowerCase();
-    const doc = await UserModel.findOne({ username: normalized }).lean().exec();
+    const normalized = typeof username === 'string' ? username.trim().toLowerCase() : '';
+    const doc = await UserModel.findOne({ username: { $eq: normalized } }).lean().exec();
     return doc ? (doc as unknown as UserEntity) : null;
   }
 
   public async findByEmail(email: string): Promise<UserEntity | null> {
-    const normalized = email.trim().toLowerCase();
-    const doc = await UserModel.findOne({ email: normalized }).lean().exec();
+    const normalized = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const doc = await UserModel.findOne({ email: { $eq: normalized } }).lean().exec();
     return doc ? (doc as unknown as UserEntity) : null;
+  }
+
+  /**
+   * Minimal projection used by the authentication guard to confirm an account is still
+   * authoritative. The JWT carries identity only; activation status always resolves from
+   * MongoDB, which the architecture lock designates as the single session/identity SSOT.
+   */
+  public async findActivationStateById(id: string): Promise<UserEntity['status'] | null> {
+    const doc = await UserModel.findOne({ id: { $eq: sanitizeId(id) } })
+      .select('status')
+      .lean()
+      .exec();
+    return doc ? ((doc as unknown as UserEntity).status ?? null) : null;
   }
 
   public async listUsers(page = 1, limit = 20): Promise<{ items: UserEntity[]; total: number }> {
@@ -103,10 +128,19 @@ export class UserRepository {
     };
   }
 
-  public async updatePassword(userId: string, newPasswordHash: string): Promise<UserEntity | null> {
+  /**
+   * Writes a new password hash. `mustChangePassword` is explicit because the two callers
+   * have opposite intent: a completed self-service change clears the flag, whereas an
+   * Admin-issued temporary password must re-arm it for the next login (P0-Decision 8).
+   */
+  public async updatePassword(
+    userId: string,
+    newPasswordHash: string,
+    mustChangePassword: boolean,
+  ): Promise<UserEntity | null> {
     const doc = await UserModel.findOneAndUpdate(
-      { id: userId },
-      { passwordHash: newPasswordHash, mustChangePassword: false, updatedAt: new Date() },
+      { id: { $eq: sanitizeId(userId) } },
+      { passwordHash: newPasswordHash, mustChangePassword, updatedAt: new Date() },
       { new: true },
     )
       .lean()
@@ -115,14 +149,34 @@ export class UserRepository {
   }
 
   public async updateLastLogin(userId: string): Promise<void> {
-    await UserModel.updateOne({ id: userId }, { lastLoginAt: new Date() }).exec();
+    await UserModel.updateOne({ id: { $eq: sanitizeId(userId) } }, { lastLoginAt: new Date() }).exec();
   }
 
   public async updateStatus(userId: string, status: UserEntity['status']): Promise<UserEntity | null> {
     const doc = await UserModel.findOneAndUpdate(
-      { id: userId },
+      { id: { $eq: sanitizeId(userId) } },
       { status, updatedAt: new Date() },
       { new: true },
+    )
+      .lean()
+      .exec();
+    return doc ? (doc as unknown as UserEntity) : null;
+  }
+
+  /**
+   * Applies a whitelisted partial update. The caller owns validation and field selection, so
+   * only these explicitly listed mutable attributes are ever written.
+   */
+  public async updateFields(
+    userId: string,
+    fields: Partial<
+      Pick<UserEntity, 'fullName' | 'mobile' | 'email' | 'role' | 'facilityIds' | 'status'>
+    >,
+  ): Promise<UserEntity | null> {
+    const doc = await UserModel.findOneAndUpdate(
+      { id: { $eq: sanitizeId(userId) } },
+      { ...fields, updatedAt: new Date() },
+      { new: true, runValidators: true },
     )
       .lean()
       .exec();

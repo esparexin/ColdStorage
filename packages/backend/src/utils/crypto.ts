@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes } from 'node:crypto';
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import argon2 from 'argon2';
 import type { TokenPayload } from '@cold-storage/contracts';
 
@@ -89,7 +89,11 @@ export function verifyAccessToken(token: string, secret: string): TokenPayload |
       .replace(/\+/g, '-')
       .replace(/\//g, '_');
 
-    if (signature !== expectedSignature) return null;
+    const sigBuf = Buffer.from(signature);
+    const expectedBuf = Buffer.from(expectedSignature);
+    if (sigBuf.length !== expectedBuf.length || !timingSafeEqual(sigBuf, expectedBuf)) {
+      return null;
+    }
 
     const decodedPayload = JSON.parse(base64UrlDecode(encodedPayload));
     if (decodedPayload.exp && decodedPayload.exp < Math.floor(Date.now() / 1000)) {

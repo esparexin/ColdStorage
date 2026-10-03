@@ -28,6 +28,38 @@ export const createUserSchema = z.object({
 
 export type CreateUser = z.infer<typeof createUserSchema>;
 
+/**
+ * Partial lifecycle update for an existing account. `username` is deliberately immutable
+ * because it is the authentication key and the anchor referenced by audit records;
+ * deactivation is expressed through `status` rather than record deletion so the immutable
+ * audit trail (createdBy / updatedBy) keeps its referent.
+ */
+export const updateUserSchema = z
+  .object({
+    fullName: z.string().trim().min(1).max(120),
+    mobile: indianMobileSchema,
+    email: z.string().trim().email().max(160),
+    role: roleSchema,
+    facilityIds: z.array(facilityIdSchema).min(1, 'User must be assigned to at least one facility'),
+    status: userStatusSchema,
+  })
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'At least one updatable field must be provided',
+  });
+
+export type UpdateUser = z.infer<typeof updateUserSchema>;
+
+/**
+ * P0-Decision 8: only the Admin issues temporary passwords; the user is forced to change
+ * it on first login. There is no self-service reset-link workflow in V1.
+ */
+export const resetUserPasswordSchema = z.object({
+  temporaryPassword: z.string().min(8).max(128),
+});
+
+export type ResetUserPassword = z.infer<typeof resetUserPasswordSchema>;
+
 export const userSummarySchema = z.object({
   id: z.string().min(1),
   fullName: z.string().min(1),

@@ -5,6 +5,7 @@ import { DeliveryReversalModel } from '../../database/models/delivery-reversal.m
 import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
 import { PositionModel } from '../../database/models/position.model.js';
+import { ledgerSignedQuantity } from '../inventory/ledger-polarity.js';
 
 export function getIstMonthlyWindow(date: Date = new Date()): {
   startOfMonth: Date;
@@ -31,26 +32,6 @@ export function getIstMonthlyWindow(date: Date = new Date()): {
   );
   return { startOfMonth, startOfNextMonth };
 }
-
-export const ledgerSignedQuantity = {
-  $cond: [
-    { $eq: ['$transactionType', 'INWARD_PUTAWAY'] },
-    '$quantity',
-    {
-      $cond: [
-        { $eq: ['$transactionType', 'DELIVERY_REVERSAL'] },
-        '$quantity',
-        {
-          $cond: [
-            { $eq: ['$transactionType', 'OUTWARD_DELIVERY'] },
-            { $multiply: ['$quantity', -1] },
-            0,
-          ],
-        },
-      ],
-    },
-  ],
-};
 
 export const APPROVED_RECENT_TYPES = [
   'INWARD_PUTAWAY',

@@ -40,6 +40,9 @@ const auditLogSchema = new Schema<AuditLogDoc>(
         'EXPORT_EXECUTED',
         'BACKUP_TRIGGERED',
         'ACCESS_DENIED',
+        'RENT_PAYMENT_COLLECTED',
+        'USER_UPDATED',
+        'USER_PASSWORD_RESET',
       ],
     },
     severity: {
