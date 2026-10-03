@@ -5,7 +5,6 @@ import { createApp } from '../app.js';
 import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { CustomerModel } from '../database/models/customer.model.js';
 import { FacilityModel } from '../database/models/facility.model.js';
-import { SessionModel } from '../database/models/session.model.js';
 import { UserModel } from '../database/models/user.model.js';
 import { hashPassword } from '../utils/crypto.js';
 
