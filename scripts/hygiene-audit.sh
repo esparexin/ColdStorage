@@ -34,6 +34,16 @@ if ! bash "$ROOT/scripts/check-line-budget.sh"; then
   fail "source file line budget or ratchet constraint violated"
 fi
 
+# 6. Architecture boundaries & UI SSOT audit
+if ! bash "$ROOT/scripts/check-architecture-boundaries.sh"; then
+  fail "architecture boundary or UI SSOT constraint violated"
+fi
+
+# 7. Semantic accessibility (a11y) audit
+if ! bash "$ROOT/scripts/check-accessibility.sh"; then
+  fail "accessibility governance constraint violated"
+fi
+
 if [ "$EXIT" -eq 0 ]; then echo "hygiene: PASS"; else echo "hygiene: FAIL"; fi
 exit "$EXIT"
 

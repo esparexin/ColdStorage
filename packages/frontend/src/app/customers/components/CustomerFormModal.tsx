@@ -180,8 +180,9 @@ export function CustomerFormModal({
           />
 
           <div className={styles.fieldGroup}>
-            <label className={styles.checkboxLabel}>
+            <label htmlFor="customer-is-active" className={styles.checkboxLabel}>
               <input
+                id="customer-is-active"
                 type="checkbox"
                 checked={formIsActive}
                 onChange={(e) => setFormIsActive(e.target.checked)}

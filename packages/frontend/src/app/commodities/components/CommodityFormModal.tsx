@@ -77,8 +77,9 @@ export function CommodityFormModal({ onClose, onSuccess }: CommodityFormModalPro
           />
 
           <div className={styles.fieldGroup} style={{ marginTop: 'var(--space-3)' }}>
-            <label className={styles.checkboxLabel}>
+            <label htmlFor="commodity-is-active" className={styles.checkboxLabel}>
               <input
+                id="commodity-is-active"
                 type="checkbox"
                 checked={formIsActive}
                 onChange={(e) => setFormIsActive(e.target.checked)}

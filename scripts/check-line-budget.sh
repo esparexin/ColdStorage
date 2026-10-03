@@ -45,7 +45,7 @@ for s_dir in scan_dirs:
         if any(ignored in dirpath for ignored in ['node_modules', '.next', 'dist', 'coverage']):
             continue
         for fn in filenames:
-            if fn.endswith(('.ts', '.tsx')):
+            if fn.endswith(('.ts', '.tsx', '.css')):
                 full_path = os.path.join(dirpath, fn)
                 rel_path = os.path.relpath(full_path, root)
                 with open(full_path, 'r', encoding='utf-8', errors='ignore') as fp:

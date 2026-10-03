@@ -58,6 +58,7 @@ export function BrandLogoSection({
                 className={styles.uploadInput}
                 onChange={onLogoUpload}
                 disabled={logoUploading}
+                aria-label="Upload Organization Brand Logo"
               />
             </label>
 
