@@ -1,4 +1,5 @@
 import type {
+  CorrectGrnInput,
   CreateGrnInput,
   Grn,
   GrnAcknowledgement,
@@ -7,6 +8,7 @@ import type {
 import { GrnModel } from '../../database/models/grn.model.js';
 import { toGrnAcknowledgement, toGrnEntity } from './grn.mappers.js';
 import { createGrn } from './handlers/create-grn.handler.js';
+import { correctGrn } from './handlers/update-grn.handler.js';
 
 export class GrnService {
   public async createGrn(
@@ -15,6 +17,16 @@ export class GrnService {
     userId: string,
   ): Promise<{ grn: Grn; acknowledgement: GrnAcknowledgement }> {
     return createGrn(facilityId, input, userId);
+  }
+
+  /** Authorized receipt correction; audits the before/after state. */
+  public async correctGrn(
+    facilityId: string,
+    grnId: string,
+    input: CorrectGrnInput,
+    userId: string,
+  ): Promise<Grn> {
+    return correctGrn(facilityId, grnId, input, userId);
   }
 
   public async getGrnById(id: string): Promise<Grn | null> {

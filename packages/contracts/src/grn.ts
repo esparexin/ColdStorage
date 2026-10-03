@@ -139,6 +139,35 @@ export const grnSchema = z.object({
 
 export type Grn = z.infer<typeof grnSchema>;
 
+/**
+ * Authorized correction of an inward receipt.
+ *
+ * Only the operational facts of a receipt may be corrected: what was stored, how many bags, and
+ * which chamber it went into. This is the approved correction workflow required by the
+ * architecture lock's transaction-immutability rule — it is not a chamber transfer feature, and
+ * it refuses to run once stock has moved so the ledger and the receipt cannot diverge.
+ *
+ * Financial and identity terms (rent, customer, dates, numbering) are deliberately NOT
+ * correctable; those require the reversal workflows.
+ */
+export const correctGrnSchema = z
+  .object({
+    commodityId: z.string().trim().min(1, 'commodityId is required').optional(),
+    bags: z.number().int().positive('bags must be a positive integer').max(100000).optional(),
+    chamber: chamberTextSchema.optional(),
+    reason: z.string().trim().min(5, 'A correction reason of at least 5 characters is required').max(500),
+  })
+  .strict()
+  .refine(
+    (data) => data.commodityId !== undefined || data.bags !== undefined || data.chamber !== undefined,
+    {
+      message: 'Provide at least one of commodityId, bags or chamber to correct',
+      path: ['chamber'],
+    },
+  );
+
+export type CorrectGrnInput = z.infer<typeof correctGrnSchema>;
+
 export const grnAcknowledgementSchema = z.object({
   grnId: z.string().min(1),
   facilityId: z.string().min(1),
