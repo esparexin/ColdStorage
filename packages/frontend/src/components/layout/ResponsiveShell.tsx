@@ -25,6 +25,7 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   if (isLoading) {
     return <FeedbackStates.Loading fullPage label="Checking authentication…" />;
@@ -109,9 +110,15 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
 
   return (
     <div className={styles.shell}>
-      <SidebarNav />
+      <SidebarNav
+        isOpen={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+      />
       <div className={styles.main}>
-        <AppHeader />
+        <AppHeader
+          isMobileNavOpen={mobileNavOpen}
+          onToggleMobileNav={() => setMobileNavOpen((prev) => !prev)}
+        />
         <main className={styles.content} id="main-content">
           {children}
         </main>

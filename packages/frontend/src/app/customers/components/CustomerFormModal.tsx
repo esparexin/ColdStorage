@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
 import { indianGstinSchema, indianMobileSchema } from '@cold-storage/contracts';
 import type { Customer } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
+import { Button, Input, Modal } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface CustomerFormModalProps {
@@ -75,7 +75,7 @@ export function CustomerFormModal({
     try {
       if (customer) {
         const res = await requestWithAuth(`/api/customers/${customer.id}`, {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: trimmedName,
@@ -119,99 +119,70 @@ export function CustomerFormModal({
   };
 
   return (
-    <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <div className={styles.modalCard}>
-        <div className={styles.modalHeader}>
-          <h2 id="modal-title" className={styles.modalTitle}>
-            {customer ? 'Edit Customer' : 'Register New Customer'}
-          </h2>
-          <button
-            type="button"
-            className={styles.modalClose}
-            onClick={onClose}
-            aria-label="Close dialog"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className={styles.modalForm}>
-          {modalError && (
-            <div className={styles.modalError} role="alert">
-              {modalError}
-            </div>
-          )}
-
-          <div className={styles.fieldGroup}>
-            <label htmlFor="customer-name" className={styles.fieldLabel}>
-              Full Name / Entity Name *
-            </label>
-            <input
-              id="customer-name"
-              type="text"
-              required
-              maxLength={150}
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              placeholder="e.g. Ramesh Agro Traders"
-              className={styles.fieldInput}
-              disabled={submitting}
-            />
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={customer ? 'Edit Customer' : 'Register New Customer'}
+      size="md"
+    >
+      <form onSubmit={handleSubmit} className={styles.modalForm}>
+        {modalError && (
+          <div className={styles.modalError} role="alert">
+            {modalError}
           </div>
+        )}
+
+          <Input
+            id="customer-name"
+            label="Full Name / Entity Name"
+            type="text"
+            required
+            maxLength={150}
+            value={formName}
+            onChange={(e) => setFormName(e.target.value)}
+            placeholder="e.g. Ramesh Agro Traders"
+            disabled={submitting}
+          />
+
+          <Input
+            id="customer-mobile"
+            label="Mobile Number (10 Digits)"
+            type="tel"
+            required
+            pattern="[6-9][0-9]{9}"
+            maxLength={10}
+            value={formMobile}
+            onChange={(e) => setFormMobile(e.target.value.replace(/\D/g, ''))}
+            placeholder="e.g. 9876543210"
+            disabled={submitting}
+          />
+
+          <Input
+            id="customer-address"
+            label="Address"
+            type="text"
+            maxLength={300}
+            value={formAddress}
+            onChange={(e) => setFormAddress(e.target.value)}
+            placeholder="Village / Tehsil / City"
+            disabled={submitting}
+          />
+
+          <Input
+            id="customer-gstin"
+            label="GSTIN (Optional)"
+            type="text"
+            maxLength={15}
+            value={formGstin}
+            onChange={(e) => setFormGstin(e.target.value.toUpperCase())}
+            placeholder="e.g. 06AAAAA1234A1Z5"
+            disabled={submitting}
+          />
 
           <div className={styles.fieldGroup}>
-            <label htmlFor="customer-mobile" className={styles.fieldLabel}>
-              Mobile Number (10 Digits) *
-            </label>
-            <input
-              id="customer-mobile"
-              type="tel"
-              required
-              pattern="[6-9][0-9]{9}"
-              maxLength={10}
-              value={formMobile}
-              onChange={(e) => setFormMobile(e.target.value.replace(/\D/g, ''))}
-              placeholder="e.g. 9876543210"
-              className={styles.fieldInput}
-              disabled={submitting}
-            />
-          </div>
-
-          <div className={styles.fieldGroup}>
-            <label htmlFor="customer-address" className={styles.fieldLabel}>
-              Address
-            </label>
-            <input
-              id="customer-address"
-              type="text"
-              maxLength={300}
-              value={formAddress}
-              onChange={(e) => setFormAddress(e.target.value)}
-              placeholder="Village / Tehsil / City"
-              className={styles.fieldInput}
-              disabled={submitting}
-            />
-          </div>
-
-          <div className={styles.fieldGroup}>
-            <label htmlFor="customer-gstin" className={styles.fieldLabel}>
-              GSTIN (Optional)
-            </label>
-            <input
-              id="customer-gstin"
-              type="text"
-              maxLength={15}
-              value={formGstin}
-              onChange={(e) => setFormGstin(e.target.value.toUpperCase())}
-              placeholder="e.g. 06AAAAA1234A1Z5"
-              className={styles.fieldInput}
-              disabled={submitting}
-            />
-          </div>
-
-          <div className={styles.fieldGroup}>
-            <label className={styles.checkboxLabel}>
+            <label htmlFor="customer-is-active" className={styles.checkboxLabel}>
               <input
+                id="customer-is-active"
                 type="checkbox"
                 checked={formIsActive}
                 onChange={(e) => setFormIsActive(e.target.checked)}
@@ -222,25 +193,23 @@ export function CustomerFormModal({
           </div>
 
           <div className={styles.modalFooter}>
-            <button
-              type="button"
-              className={styles.cancelBtn}
+            <Button
+              variant="outline"
               onClick={onClose}
               disabled={submitting}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               id="save-customer-btn"
               type="submit"
-              className={styles.primaryBtn}
-              disabled={submitting}
+              variant="primary"
+              isLoading={submitting}
             >
-              {submitting ? 'Saving…' : customer ? 'Update Customer' : 'Register Customer'}
-            </button>
+              {customer ? 'Update Customer' : 'Register Customer'}
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

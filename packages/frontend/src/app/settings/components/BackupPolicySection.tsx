@@ -62,8 +62,9 @@ export function BackupPolicySection({
         </div>
       </div>
 
-      <label className={styles.checkboxLabel}>
+      <label htmlFor="drive-backup-enabled" className={styles.checkboxLabel}>
         <input
+          id="drive-backup-enabled"
           type="checkbox"
           checked={driveBackupEnabled}
           onChange={(e) => setDriveBackupEnabled(e.target.checked)}

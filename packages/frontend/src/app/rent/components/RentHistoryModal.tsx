@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Printer, X } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
+import { Badge, Button, Modal } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
 import styles from '../page.module.css';
 
@@ -52,33 +53,19 @@ export function RentHistoryModal({
   };
 
   return (
-    <div
-      className={styles.modalBackdrop}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="history-title"
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={`Rent Receipts: ${account.grnNumber}`}
+      subtitle={`Customer: ${account.customerName} (${account.customerMobile})`}
+      size="lg"
+      footer={
+        <Button variant="outline" onClick={onClose}>
+          Close
+        </Button>
+      }
     >
-      <div className={styles.modalCard}>
-        <div className={styles.modalHeader}>
-          <div>
-            <h2 id="history-title" className={styles.modalTitle}>
-              Rent Receipts: {account.grnNumber}
-            </h2>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-              Customer: {account.customerName} ({account.customerMobile})
-            </span>
-          </div>
-          <button
-            type="button"
-            className={styles.modalClose}
-            onClick={onClose}
-            aria-label="Close modal"
-          >
-            <X size={20} aria-hidden="true" />
-          </button>
-        </div>
-
-        <div className={styles.modalBody}>
+      <div className={styles.modalBody}>
           <div
             style={{
               display: 'grid',
@@ -132,11 +119,9 @@ export function RentHistoryModal({
                       <strong style={{ fontSize: 'var(--text-sm)' }}>
                         {p.receiptNumber}
                       </strong>
-                      <span
-                        className={p.paymentMode === 'Cash' ? styles.badgeCash : styles.badgeUpi}
-                      >
+                      <Badge variant={p.paymentMode === 'Cash' ? 'primary' : 'success'}>
                         {p.paymentMode}
-                      </span>
+                      </Badge>
                     </div>
                     <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
                       {new Date(p.paymentDate).toLocaleDateString('en-IN')} • Received by{' '}
@@ -155,16 +140,17 @@ export function RentHistoryModal({
                     </strong>
 
                     {canPrint && (
-                      <button
-                        type="button"
-                        className={styles.actionBtnSuccess}
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => void handlePrintReceipt(p.receiptNumber)}
                         disabled={printingReceiptNum === p.receiptNumber}
+                        isLoading={printingReceiptNum === p.receiptNumber}
                         title="Print Official Rent Receipt"
+                        leftIcon={<Printer size={13} aria-hidden="true" />}
                       >
-                        <Printer size={13} aria-hidden="true" />
                         Print
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -172,17 +158,6 @@ export function RentHistoryModal({
             </div>
           )}
         </div>
-
-        <div className={styles.modalFooter}>
-          <button
-            type="button"
-            className={styles.cancelBtn}
-            onClick={onClose}
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

@@ -5,6 +5,7 @@ import {
   CheckCircle2, ChevronRight, Edit3, Plus, RefreshCw, ShieldAlert, Warehouse,
 } from 'lucide-react';
 import { can, type Role } from '@cold-storage/contracts';
+import { Button } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { FacilityModal } from './components/FacilityModal';
@@ -62,16 +63,15 @@ export default function StorageHierarchyPage() {
           </p>
         </div>
         <div className={styles.headerActions}>
-          <button
-            type="button"
-            className={styles.refreshBtn}
+          <Button
+            variant="outline"
             onClick={() => void browser.fetchChambers()}
             disabled={browser.loadingChambers}
             aria-label="Refresh hierarchy"
+            leftIcon={<RefreshCw size={16} className={browser.loadingChambers ? styles.spinning : ''} />}
           >
-            <RefreshCw size={16} className={browser.loadingChambers ? styles.spinning : ''} />
-            <span>Refresh</span>
-          </button>
+            Refresh
+          </Button>
         </div>
       </header>
 

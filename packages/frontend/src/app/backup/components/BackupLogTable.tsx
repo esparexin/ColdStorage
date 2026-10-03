@@ -2,7 +2,8 @@
 
 import React from 'react';
 import type { BackupLogRecord, BackupStatus } from '@cold-storage/contracts';
-import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import { Badge } from '@/components/ui';
+import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { formatBytes, formatDate } from '../utils';
 import styles from '../page.module.css';
 
@@ -29,6 +30,82 @@ export function BackupLogTable({
   onPageChange,
   onTriggerBackup,
 }: BackupLogTableProps) {
+  const columns: DataTableColumn<BackupLogRecord>[] = [
+    {
+      key: 'createdAt',
+      header: 'Created At',
+      render: (log) => formatDate(log.createdAt),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (log) => {
+        const variant =
+          log.status === 'COMPLETED'
+            ? 'success'
+            : log.status === 'FAILED'
+            ? 'danger'
+            : log.status === 'IN_PROGRESS'
+            ? 'warning'
+            : 'neutral';
+
+        return (
+          <div>
+            <Badge variant={variant}>{log.status}</Badge>
+            {log.errorMessage && (
+              <div
+                style={{
+                  color: 'var(--color-danger)',
+                  fontSize: 'var(--text-xs)',
+                  marginTop: 4,
+                }}
+              >
+                {log.errorMessage}
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'backupType',
+      header: 'Type',
+      render: (log) => log.backupType,
+    },
+    {
+      key: 'sizeBytes',
+      header: 'File Size',
+      render: (log) => formatBytes(log.sizeBytes),
+    },
+    {
+      key: 'checksum',
+      header: 'Checksum (SHA-256)',
+      render: (log) =>
+        log.checksum ? (
+          <span className={styles.codeText} title={log.checksum}>
+            {log.checksum.slice(0, 16)}…
+          </span>
+        ) : (
+          '—'
+        ),
+    },
+    {
+      key: 'storageLocation',
+      header: 'Storage Driver Path',
+      render: (log) => <span className={styles.codeText}>{log.storageLocation}</span>,
+    },
+    {
+      key: 'retentionExpiresAt',
+      header: 'Retention Expiry',
+      render: (log) => formatDate(log.retentionExpiresAt),
+    },
+    {
+      key: 'triggeredBy',
+      header: 'Triggered By',
+      render: (log) => <span className={styles.codeText}>{log.triggeredBy}</span>,
+    },
+  ];
+
   return (
     <section className={styles.tableSection}>
       <div className={styles.tableHeader}>
@@ -55,113 +132,30 @@ export function BackupLogTable({
         </div>
       </div>
 
-      {loading ? (
-        <FeedbackStates.Loading label="Loading backup logs..." />
-      ) : logs.length === 0 ? (
-        <FeedbackStates.Empty
-          message="No backup history recorded yet. You can trigger an on-demand encrypted backup now."
-          action={{
-            label: 'Trigger Backup Now',
-            onClick: onTriggerBackup,
-            id: 'empty-trigger-backup-btn',
-          }}
-        />
-      ) : (
-        <>
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Created At</th>
-                  <th>Status</th>
-                  <th>Type</th>
-                  <th>File Size</th>
-                  <th>Checksum (SHA-256)</th>
-                  <th>Storage Driver Path</th>
-                  <th>Retention Expiry</th>
-                  <th>Triggered By</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => {
-                  const statusClass =
-                    log.status === 'COMPLETED'
-                      ? styles.badgeSuccess
-                      : log.status === 'FAILED'
-                      ? styles.badgeDanger
-                      : log.status === 'IN_PROGRESS'
-                      ? styles.badgeWarning
-                      : styles.badgeMuted;
-
-                  return (
-                    <tr key={log.id}>
-                      <td>{formatDate(log.createdAt)}</td>
-                      <td>
-                        <span className={`${styles.badge} ${statusClass}`}>{log.status}</span>
-                        {log.errorMessage && (
-                          <div
-                            style={{
-                              color: 'var(--color-danger)',
-                              fontSize: 'var(--text-xs)',
-                              marginTop: 4,
-                            }}
-                          >
-                            {log.errorMessage}
-                          </div>
-                        )}
-                      </td>
-                      <td>{log.backupType}</td>
-                      <td>{formatBytes(log.sizeBytes)}</td>
-                      <td>
-                        {log.checksum ? (
-                          <span className={styles.codeText} title={log.checksum}>
-                            {log.checksum.slice(0, 16)}…
-                          </span>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td>
-                        <span className={styles.codeText}>{log.storageLocation}</span>
-                      </td>
-                      <td>{formatDate(log.retentionExpiresAt)}</td>
-                      <td>
-                        <span className={styles.codeText}>{log.triggeredBy}</span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {totalPages > 1 && (
-            <div className={styles.pagination}>
-              <span className={styles.paginationInfo}>
-                Page {page} of {totalPages} ({totalLogs} records)
-              </span>
-              <div className={styles.paginationButtons}>
-                <button
-                  type="button"
-                  className={styles.pageBtn}
-                  onClick={() => onPageChange(Math.max(1, page - 1))}
-                  disabled={page <= 1}
-                >
-                  Previous
-                </button>
-                <button
-                  type="button"
-                  className={styles.pageBtn}
-                  onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-                  disabled={page >= totalPages}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
-        </>
-      )}
+      <DataTable
+        columns={columns}
+        rows={logs}
+        rowKey={(log) => log.id}
+        caption="Encrypted Backup Log Ledger"
+        loading={loading}
+        loadingLabel="Loading backup logs..."
+        emptyMessage="No backup history recorded yet. You can trigger an on-demand encrypted backup now."
+        emptyAction={{
+          label: 'Trigger Backup Now',
+          onClick: onTriggerBackup,
+          id: 'empty-trigger-backup-btn',
+        }}
+        pagination={
+          totalPages > 1
+            ? {
+                page,
+                totalPages,
+                totalRecords: totalLogs,
+                onPageChange,
+              }
+            : undefined
+        }
+      />
     </section>
   );
 }

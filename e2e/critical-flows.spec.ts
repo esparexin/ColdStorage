@@ -170,4 +170,40 @@ test.describe('Critical Application Flows', () => {
     await page.goto('/inventory');
     await expect(page.locator('h1, h2')).toContainText(/Inventory|Stock/i);
   });
+
+  test('6. Mobile Navigation Flow: opens drawer on small viewport, navigates and closes on Escape', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+
+    const mockUser = {
+      userId: 'usr-admin-001',
+      username: 'superadmin',
+      fullName: 'System Administrator',
+      role: 'SUPER_ADMIN',
+      facilityIds: ['fac-alpha'],
+    };
+
+    await page.route('**/api/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ token: 'mock-jwt-token', user: mockUser }),
+      });
+    });
+
+    await page.goto('/');
+
+    const mobileToggle = page.locator('#mobile-nav-toggle');
+    await expect(mobileToggle).toBeVisible();
+
+    await mobileToggle.click();
+    const sidebar = page.locator('#sidebar-navigation');
+    await expect(sidebar).toBeVisible();
+
+    const grnLink = sidebar.locator('a[href="/grns"]');
+    await expect(grnLink).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(sidebar).not.toHaveClass(/sidebarOpen/);
+  });
 });
+

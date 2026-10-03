@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import { Button, Input, Modal } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
 import styles from '../page.module.css';
 
@@ -51,49 +51,35 @@ export function CommodityFormModal({ onClose, onSuccess }: CommodityFormModalPro
   };
 
   return (
-    <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <div className={styles.modalCard}>
-        <div className={styles.modalHeader}>
-          <h2 id="modal-title" className={styles.modalTitle}>
-            Register New Commodity
-          </h2>
-          <button
-            type="button"
-            className={styles.modalClose}
-            onClick={onClose}
-            aria-label="Close dialog"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className={styles.modalForm}>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Register New Commodity"
+      size="sm"
+    >
+      <form onSubmit={handleSubmit} className={styles.modalForm}>
           {modalError && (
             <div className={styles.modalError} role="alert">
               {modalError}
             </div>
           )}
 
-          <div className={styles.fieldGroup}>
-            <label htmlFor="commodity-name" className={styles.fieldLabel}>
-              Commodity Name *
-            </label>
-            <input
-              id="commodity-name"
-              type="text"
-              required
-              maxLength={100}
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              placeholder="e.g. Potato (Kufri Jyoti), Apples, Garlic"
-              className={styles.fieldInput}
-              disabled={submitting}
-            />
-          </div>
+          <Input
+            id="commodity-name"
+            label="Commodity Name"
+            type="text"
+            required
+            maxLength={100}
+            value={formName}
+            onChange={(e) => setFormName(e.target.value)}
+            placeholder="e.g. Potato (Kufri Jyoti), Apples, Garlic"
+            disabled={submitting}
+          />
 
-          <div className={styles.fieldGroup}>
-            <label className={styles.checkboxLabel}>
+          <div className={styles.fieldGroup} style={{ marginTop: 'var(--space-3)' }}>
+            <label htmlFor="commodity-is-active" className={styles.checkboxLabel}>
               <input
+                id="commodity-is-active"
                 type="checkbox"
                 checked={formIsActive}
                 onChange={(e) => setFormIsActive(e.target.checked)}
@@ -104,25 +90,23 @@ export function CommodityFormModal({ onClose, onSuccess }: CommodityFormModalPro
           </div>
 
           <div className={styles.modalFooter}>
-            <button
-              type="button"
-              className={styles.cancelBtn}
+            <Button
+              variant="secondary"
               onClick={onClose}
               disabled={submitting}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               id="save-commodity-btn"
               type="submit"
-              className={styles.primaryBtn}
-              disabled={submitting}
+              variant="primary"
+              isLoading={submitting}
             >
-              {submitting ? 'Saving…' : 'Register Commodity'}
-            </button>
+              Register Commodity
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

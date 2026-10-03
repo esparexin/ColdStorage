@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Filter, Search } from 'lucide-react';
+import { Filter } from 'lucide-react';
 import type { Commodity, Customer, GrnStatus } from '@cold-storage/contracts';
+import { Button, SearchBar } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface GrnFilterToolbarProps {
@@ -38,17 +39,14 @@ export function GrnFilterToolbar({
 
   return (
     <div className={styles.toolbar}>
-      <div className={styles.searchGroup}>
-        <Search size={16} color="var(--color-text-muted)" aria-hidden="true" />
-        <input
-          id="grn-search-input"
-          type="text"
-          placeholder="Search GRN #, Receipt, Customer, Vehicle..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className={styles.searchInput}
-        />
-      </div>
+      <SearchBar
+        id="grn-search-input"
+        value={searchTerm}
+        onChange={onSearchChange}
+        placeholder="Search GRN #, Receipt, Customer, Vehicle..."
+        ariaLabel="Search GRNs"
+        onClear={onReset}
+      />
 
       <div className={styles.filtersGroup}>
         <select
@@ -94,14 +92,14 @@ export function GrnFilterToolbar({
         </select>
 
         {hasActiveFilters && (
-          <button
-            type="button"
-            className={styles.clearFiltersBtn}
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={onReset}
+            leftIcon={<Filter size={12} aria-hidden="true" />}
           >
-            <Filter size={12} aria-hidden="true" />
             Reset
-          </button>
+          </Button>
         )}
       </div>
     </div>
