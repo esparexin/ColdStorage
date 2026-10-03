@@ -57,7 +57,18 @@ workflows.
 
 ## 5. Tooling that is available but not yet gating
 
-- `npm run format:check` / `npm run format` wrap Prettier. Prettier is configured and the
-  scripts exist, but the repository has never been Prettier-formatted, so this is **not**
-  wired into CI. Landing it requires a dedicated formatting-only change so that enforcement
-  and formatting are not conflated.
+- **Prettier** is configured in `.prettierrc` and installed, but there is no `format` script
+  and it is not wired into CI. The repository has never been Prettier-formatted (174 files
+  differ), so enforcing it now would bury any functional change in unrelated churn. This
+  needs a dedicated formatting-only change first: run `npx prettier --write` across the tree,
+  then add a `format:check` script and a CI step.
+
+## 6. Known pre-existing alerts (not regressions)
+
+- `js/missing-rate-limiting` fires on every Express router in `packages/backend/src/routes`.
+  It is a false positive here: `app.use('/api', generalRateLimiter)` in `app.ts` applies a
+  limiter to all `/api` routes, with `auth.routes.ts` additionally using `authRateLimiter`.
+  There are 25 such open alerts on the default branch. Splitting the storage hierarchy router
+  re-expressed the same already-alerted code under new filenames, which is why the PR-scoped
+  CodeQL check reports them as "new". The correct fix is a CodeQL suppression config or
+  query configuration, not restructuring working code.
