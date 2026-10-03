@@ -59,13 +59,10 @@ export function GrnDetailModal({
             <Link
               href={`/inventory?grnId=${encodeURIComponent(grn.id)}`}
               className={styles.linkButton}
+              aria-label={`Put away bags for ${grn.grnNumber}`}
             >
-              <Button
-                variant="primary"
-                leftIcon={<ArrowRight size={15} aria-hidden="true" />}
-              >
-                Put-Away Bags
-              </Button>
+              <ArrowRight size={15} aria-hidden="true" />
+              Put-Away Bags
             </Link>
           )}
           <Button variant="outline" onClick={onClose}>

@@ -30,12 +30,11 @@ function InventoryContent() {
   const canManageStorage = can(userRole, 'storage:manage');
   const canCollectRent = can(userRole, 'rent:collect');
   const canPrintRent = can(userRole, 'rent:print');
-
   const [rentPayAccount, setRentPayAccount] = useState<RentSummaryDto | null>(null);
   const rentGate = useRentGate();
 
-  const [activeTab, setActiveTab] = useState<'put-away' | 'hierarchy' | 'ledger'>(() =>
-    initialGrnId ? 'put-away' : 'put-away',
+  const [activeTab, setActiveTab] = useState<'put-away' | 'hierarchy' | 'ledger'>(
+    'put-away',
   );
 
   const inventoryData = useInventoryData(selectedFacilityId);
