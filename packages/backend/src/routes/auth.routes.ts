@@ -7,6 +7,13 @@ import { authService } from '../modules/auth/auth.service.js';
 
 export const authRouter = Router();
 
+function getCookie(req: Request, name: string): string | undefined {
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader) return undefined;
+  const match = cookieHeader.match(new RegExp(`(^|;\\s*)${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[2]) : undefined;
+}
+
 authRouter.post('/login', authRateLimiter, async (req: Request, res: Response): Promise<void> => {
   const parseResult = loginInputSchema.safeParse(req.body);
   if (!parseResult.success) {
@@ -38,7 +45,7 @@ authRouter.post('/login', authRateLimiter, async (req: Request, res: Response): 
 });
 
 authRouter.post('/refresh', authRateLimiter, async (req: Request, res: Response): Promise<void> => {
-  const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+  const refreshToken = getCookie(req, 'refreshToken') || req.body?.refreshToken;
   if (!refreshToken) {
     res.status(400).json({ error: 'Refresh token cookie or payload is required' });
     return;
@@ -67,7 +74,7 @@ authRouter.post('/refresh', authRateLimiter, async (req: Request, res: Response)
 });
 
 authRouter.post('/logout', async (req: Request, res: Response): Promise<void> => {
-  const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+  const refreshToken = getCookie(req, 'refreshToken') || req.body?.refreshToken;
   if (refreshToken) {
     await authService.logout(refreshToken);
   }

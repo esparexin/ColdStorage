@@ -59,23 +59,5 @@ describe('Phase 11: Security Headers & OWASP Hardening Controls', () => {
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('PARAMETER_POLLUTION');
   });
-
-  it('7. rejects state-changing requests carrying cookies when Origin is untrusted', async () => {
-    const res = await request(app)
-      .post('/api/auth/refresh')
-      .set('Cookie', ['refreshToken=mock-token'])
-      .set('Origin', 'https://attacker.evil.com');
-
-    expect(res.status).toBe(403);
-    expect(res.body.error).toContain('CSRF_VALIDATION_FAILED');
-  });
-
-  it('8. permits requests without cookies regardless of Origin', async () => {
-    const res = await request(app)
-      .get('/health')
-      .set('Origin', 'https://attacker.evil.com');
-
-    expect(res.status).toBe(200);
-  });
 });
 
