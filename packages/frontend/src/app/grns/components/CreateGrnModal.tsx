@@ -42,14 +42,26 @@ export function CreateGrnModal({
 
   return (
     <>
-    <Modal isOpen onClose={onClose} title="Inward Goods Receipt Note (GRN)" size="xl">
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Inward Goods Receipt Note (GRN)"
+      size="lg"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose} disabled={form.submitting}>Cancel</Button>
+          <Button id="submit-create-grn-btn" form="create-grn-form" type="submit" variant="primary" disabled={form.submitting} isLoading={form.submitting}>
+            Create Inward GRN
+          </Button>
+        </>
+      }
+    >
       <form id="create-grn-form" noValidate onSubmit={form.handleSubmit} className={styles.modalForm}>
-        <div className={styles.modalBody}>
-          {form.modalError && (
-            <div id="modal-error-banner" className={styles.modalError} role="alert">
-              {form.modalError}
-            </div>
-          )}
+        {form.modalError && (
+          <div id="modal-error-banner" className={styles.modalError} role="alert">
+            {form.modalError}
+          </div>
+        )}
           <h3 className={styles.sectionHeading}>Basic Information</h3>
           <div className={styles.formGrid3}>
             <div className={styles.fieldGroup}>
@@ -207,15 +219,8 @@ export function CreateGrnModal({
             <label htmlFor="create-remarks" className={styles.fieldLabel}>Remarks / Notes</label>
             <textarea id="create-remarks" rows={2} maxLength={500} value={form.createRemarks} onChange={(e) => form.setCreateRemarks(e.target.value)} placeholder="Optional inward inspection notes or quality observations" className={styles.fieldInput} />
           </div>
-        </div>
-        <div className={styles.modalFooter}>
-          <Button variant="outline" onClick={onClose} disabled={form.submitting}>Cancel</Button>
-          <Button id="submit-create-grn-btn" form="create-grn-form" type="submit" variant="primary" disabled={form.submitting} isLoading={form.submitting}>
-            Create Inward GRN
-          </Button>
-        </div>
-      </form>
-    </Modal>
+        </form>
+      </Modal>
     {isAddingCustomer && (
       <CustomerFormModal customer={null} selectedFacilityId={facilityId} existingCustomers={customers} onClose={() => setIsAddingCustomer(false)} onSuccess={() => { setIsAddingCustomer(false); onCustomerAdded?.(); }} />
     )}
