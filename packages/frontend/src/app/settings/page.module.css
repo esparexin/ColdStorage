@@ -1,8 +1,42 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-4);
   max-width: 960px;
+}
+
+/* Collapsible areas keep the page short without introducing a new design-system primitive. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.disclosure {
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.disclosureSummary {
+  cursor: pointer;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  list-style: revert;
+}
+
+.disclosureSummary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.disclosureBody {
+  padding: 0 var(--space-4) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .headerRow {
@@ -83,117 +117,7 @@
 }
 
 /* Settings Sections */
-.sectionCard {
-  background: var(--color-surface-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  padding: var(--space-6);
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
-
-.sectionHeader {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: var(--space-3);
-}
-
-.sectionTitle {
-  font-size: var(--text-base);
-  font-weight: var(--font-bold);
-  color: var(--color-text-primary);
-}
-
 /* Logo Management */
-.logoLayout {
-  display: flex;
-  align-items: center;
-  gap: var(--space-6);
-  flex-wrap: wrap;
-}
-
-.logoPreviewWrapper {
-  width: 140px;
-  height: 90px;
-  border: 2px dashed var(--color-border);
-  border-radius: var(--radius-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-surface-2);
-  overflow: hidden;
-  position: relative;
-}
-
-.logoImage {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  padding: var(--space-1);
-}
-
-.logoPlaceholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-}
-
-.logoControls {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  flex: 1;
-  min-width: 240px;
-}
-
-.logoActionsRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-
-.uploadLabel {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  background: var(--color-primary);
-  color: var(--color-text-on-accent);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  cursor: pointer;
-  transition: background var(--transition-fast);
-}
-
-.uploadLabel:hover {
-  background: var(--color-primary-hover);
-}
-
-.uploadInput {
-  display: none;
-}
-
-.logoHint {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-}
-
-/* Forms */
-.formGrid2 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-4);
-}
-
 @media (max-width: 640px) {
   .formGrid2,
   .formGrid3 {
@@ -201,36 +125,24 @@
   }
 }
 
-.fieldGroup {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.fieldLabel {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-text-primary);
-}
-
 .fieldInput,
 .fieldInput:focus,
-.checkboxLabel {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--color-text-primary);
-  cursor: pointer;
-  user-select: none;
-  margin-top: var(--space-2);
-}
-
 /* Footer Actions */
 .saveFooter {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: var(--space-3);
-  padding-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.unsavedHint {
+  font-size: var(--text-xs);
+  color: var(--color-warning);
+  font-weight: var(--font-medium);
 }

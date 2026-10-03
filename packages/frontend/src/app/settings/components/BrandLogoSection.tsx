@@ -3,7 +3,8 @@
 import React from 'react';
 import { Image as ImageIcon, Trash2, UploadCloud } from 'lucide-react';
 import { Button } from '@/components/ui';
-import styles from '../page.module.css';
+import pageStyles from '../page.module.css';
+import styles from './BrandLogoSection.module.css';
 
 interface BrandLogoSectionProps {
   logoAssetId: string | null;
@@ -27,14 +28,14 @@ export function BrandLogoSection({
   onCancelDeleteLogo,
 }: BrandLogoSectionProps) {
   return (
-    <div className={styles.sectionCard}>
-      <div className={styles.sectionHeader}>
+    <div className={pageStyles.sectionCard}>
+      <div className={pageStyles.sectionHeader}>
         <ImageIcon size={18} color="var(--color-primary)" aria-hidden="true" />
-        <h2 className={styles.sectionTitle}>Brand Logo & Asset Management</h2>
+        <h2 className={pageStyles.sectionTitle}>Brand Logo & Asset Management</h2>
       </div>
 
-      {logoSuccess && <div className={styles.saveSuccess}>{logoSuccess}</div>}
-      {logoError && <div className={styles.saveError}>{logoError}</div>}
+      {logoSuccess && <div className={pageStyles.saveSuccess}>{logoSuccess}</div>}
+      {logoError && <div className={pageStyles.saveError}>{logoError}</div>}
 
       <div className={styles.logoLayout}>
         <div className={styles.logoPreviewWrapper}>
@@ -87,7 +88,7 @@ export function BrandLogoSection({
           </div>
 
           {logoDeleteArmed && (
-            <div className={styles.saveError} role="alert">
+            <div className={pageStyles.saveError} role="alert">
               Removing the logo affects all printed documents.{' '}
               <Button
                 type="button"

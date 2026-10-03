@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Building2, Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import type { Facility } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { Badge, Button, DataTable, type DataTableColumn } from '@/components/ui';
@@ -83,8 +83,6 @@ export function FacilitySection() {
   return (
     <div className={pageStyles.sectionCard}>
       <div className={pageStyles.sectionHeader}>
-        <Building2 size={18} color="var(--color-primary)" aria-hidden="true" />
-        <Building2 size={18} color="var(--color-primary)" aria-hidden="true" />
         <h2 className={pageStyles.sectionTitle}>Facilities</h2>
         <div style={{ marginLeft: 'auto' }}>
           <Button

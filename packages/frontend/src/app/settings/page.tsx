@@ -1,10 +1,12 @@
 'use client';
 
-import React from 'react';
-import { AlertCircle, CheckCircle2, Save } from 'lucide-react';
+import React, { useCallback } from 'react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { can, type Role } from '@cold-storage/contracts';
-import { Button, FeedbackStates } from '@/components/ui';
+import { Button, ConfirmDialog, FeedbackStates } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { useRouter } from 'next/navigation';
 import { BackupPolicySection } from './components/BackupPolicySection';
 import { BrandLogoSection } from './components/BrandLogoSection';
 import { ConnectivitySection } from './components/ConnectivitySection';
@@ -14,6 +16,7 @@ import { useSettingsForm } from './hooks/useSettingsForm';
 import styles from './page.module.css';
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const isSuperAdmin = can(userRole, 'settings:manage');
@@ -39,6 +42,7 @@ export default function SettingsPage() {
     setRetentionDays,
     backupEnabled,
     setBackupEnabled,
+    isDirty,
     saving,
     saveSuccess,
     saveError,
@@ -51,6 +55,9 @@ export default function SettingsPage() {
     handleDeleteLogo,
     handleSaveSettings,
   } = useSettingsForm();
+
+  const { attemptExit, isConfirmOpen, confirmExit, cancelExit } = useUnsavedChanges(isDirty);
+  const handleLeavePage = useCallback(() => router.push('/'), [router]);
 
   if (!isSuperAdmin) {
     return (
@@ -107,50 +114,83 @@ export default function SettingsPage() {
       {saveSuccess && <div className={styles.saveSuccess}>{saveSuccess}</div>}
       {saveError && <div className={styles.saveError}>{saveError}</div>}
 
-      <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-        <BrandLogoSection
-          logoAssetId={logoAssetId}
-          logoUploading={logoUploading}
-          logoSuccess={logoSuccess}
-          logoError={logoError}
-          logoDeleteArmed={logoDeleteArmed}
-          onCancelDeleteLogo={() => setLogoDeleteArmed(false)}
-          onLogoUpload={handleLogoUpload}
-          onDeleteLogo={handleDeleteLogo}
-        />
+      <form onSubmit={handleSaveSettings} className={styles.form}>
+        {/*
+          Native disclosure keeps each area collapsible without introducing a new design-system
+          primitive. Organization details stay open because they gate document generation; the
+          rest start collapsed so the page fits without a long scroll.
+        */}
+        <details className={styles.disclosure} open>
+          <summary className={styles.disclosureSummary}>Organization Identity &amp; Operating Details</summary>
+          <div className={styles.disclosureBody}>
+            <OrgIdentitySection
+              orgName={orgName}
+              setOrgName={setOrgName}
+              gstin={gstin}
+              setGstin={setGstin}
+              address={address}
+              setAddress={setAddress}
+              contact={contact}
+              setContact={setContact}
+              timezone={timezone}
+              setTimezone={setTimezone}
+              printFooter={printFooter}
+              setPrintFooter={setPrintFooter}
+            />
+          </div>
+        </details>
 
-        <OrgIdentitySection
-          orgName={orgName}
-          setOrgName={setOrgName}
-          gstin={gstin}
-          setGstin={setGstin}
-          address={address}
-          setAddress={setAddress}
-          contact={contact}
-          setContact={setContact}
-          timezone={timezone}
-          setTimezone={setTimezone}
-          printFooter={printFooter}
-          setPrintFooter={setPrintFooter}
-        />
+        <details className={styles.disclosure}>
+          <summary className={styles.disclosureSummary}>Brand Logo</summary>
+          <div className={styles.disclosureBody}>
+            <BrandLogoSection
+              logoAssetId={logoAssetId}
+              logoUploading={logoUploading}
+              logoSuccess={logoSuccess}
+              logoError={logoError}
+              logoDeleteArmed={logoDeleteArmed}
+              onCancelDeleteLogo={() => setLogoDeleteArmed(false)}
+              onLogoUpload={handleLogoUpload}
+              onDeleteLogo={handleDeleteLogo}
+            />
+          </div>
+        </details>
 
-        <BackupPolicySection
-          retentionDays={retentionDays}
-          setRetentionDays={setRetentionDays}
-          backupEnabled={backupEnabled}
-          setBackupEnabled={setBackupEnabled}
-        />
+        <details className={styles.disclosure}>
+          <summary className={styles.disclosureSummary}>Database Backup</summary>
+          <div className={styles.disclosureBody}>
+            <BackupPolicySection
+              retentionDays={retentionDays}
+              setRetentionDays={setRetentionDays}
+              backupEnabled={backupEnabled}
+              setBackupEnabled={setBackupEnabled}
+            />
+          </div>
+        </details>
 
         <div className={styles.saveFooter}>
+          {isDirty && (
+            <>
+              <span className={styles.unsavedHint}>Unsaved changes</span>
+              <Button
+                id="discard-settings-btn"
+                variant="ghost"
+                size="sm"
+                onClick={() => attemptExit(handleLeavePage)}
+              >
+                Discard and leave
+              </Button>
+            </>
+          )}
           <Button
             id="save-settings-btn"
             type="submit"
             variant="primary"
+            size="sm"
             disabled={saving}
             isLoading={saving}
-            leftIcon={<Save size={16} aria-hidden="true" />}
           >
-            {saving ? 'Saving Settings...' : 'Save System Settings'}
+            {saving ? 'Saving...' : 'Save Settings'}
           </Button>
         </div>
       </form>
@@ -164,6 +204,16 @@ export default function SettingsPage() {
       <FacilitySection />
 
       <ConnectivitySection />
+
+      <ConfirmDialog
+        isOpen={isConfirmOpen}
+        title="Unsaved Changes"
+        message="Your changes to organization details have not been saved. Are you sure you want to leave this page?"
+        cancelLabel="Stay"
+        confirmLabel="Leave"
+        onCancel={cancelExit}
+        onConfirm={confirmExit}
+      />
     </div>
   );
 }

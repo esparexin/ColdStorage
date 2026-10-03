@@ -75,11 +75,13 @@ export default function UsersPage() {
     return (
       <div className={styles.container}>
         <div className={styles.unauthorizedWrapper}>
-          <ShieldAlert size={48} color="var(--color-danger)" />
-          <h2>Restricted Access</h2>
-          <p className={styles.subtitle}>
-            User administration is strictly restricted to SUPER_ADMIN authority.
-          </p>
+          <ShieldAlert size={20} color="var(--color-danger)" aria-hidden="true" />
+          <div>
+            <p className={styles.unauthorizedTitle}>Restricted Access</p>
+            <p className={styles.subtitle}>
+              User administration is restricted to Super Admin authority.
+            </p>
+          </div>
         </div>
       </div>
     );

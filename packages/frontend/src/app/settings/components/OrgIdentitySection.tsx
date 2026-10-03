@@ -1,9 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Building } from 'lucide-react';
-import { Select } from '@/components/ui';
-import styles from '../page.module.css';
+import { Input, Select } from '@/components/ui';
+import styles from './OrgIdentitySection.module.css';
 
 interface OrgIdentitySectionProps {
   orgName: string;
@@ -20,6 +19,13 @@ interface OrgIdentitySectionProps {
   setPrintFooter: (val: string) => void;
 }
 
+/**
+ * Organization identity and operating details.
+ *
+ * Fields use the shared Input and Select primitives so accessible-name association is handled
+ * by the primitives. The previous markup paired a real <label> with an aria-label holding the
+ * placeholder text, which made the placeholder override the visible label for screen readers.
+ */
 export function OrgIdentitySection({
   orgName,
   setOrgName,
@@ -35,96 +41,69 @@ export function OrgIdentitySection({
   setPrintFooter,
 }: OrgIdentitySectionProps) {
   return (
-    <div className={styles.sectionCard}>
-      <div className={styles.sectionHeader}>
-        <Building size={18} color="var(--color-primary)" aria-hidden="true" />
-        <h2 className={styles.sectionTitle}>Organization Identity & Operating Details</h2>
-      </div>
+    <div className={styles.grid}>
+      <Input
+        id="org-name"
+        label="Organization / Company Legal Name"
+        required
+        maxLength={160}
+        placeholder="e.g. Kisan Cold Storage & Warehousing Pvt. Ltd."
+        value={orgName}
+        onChange={(e) => setOrgName(e.target.value)}
+      />
 
-      <div className={styles.formGrid2}>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="org-name" className={styles.fieldLabel}>
-            Organization / Company Legal Name *
-          </label>
-          <input aria-label="e.g. Kisan Cold Storage & Warehousing Pvt. Ltd."
-            id="org-name"
-            required
-            maxLength={160}
-            className={styles.fieldInput}
-            placeholder="e.g. Kisan Cold Storage & Warehousing Pvt. Ltd."
-            value={orgName}
-            onChange={(e) => setOrgName(e.target.value)}
-          />
-        </div>
+      <Input
+        id="org-gstin"
+        label="GSTIN Registration Number"
+        maxLength={15}
+        placeholder="e.g. 09AAACB1234D1Z5"
+        value={gstin}
+        onChange={(e) => setGstin(e.target.value.toUpperCase())}
+        className={styles.narrow}
+      />
 
-        <div className={styles.fieldGroup}>
-          <label htmlFor="org-gstin" className={styles.fieldLabel}>
-            GSTIN Registration Number
-          </label>
-          <input aria-label="e.g. 09AAACB1234D1Z5"
-            id="org-gstin"
-            maxLength={15}
-            className={styles.fieldInput}
-            placeholder="e.g. 09AAACB1234D1Z5"
-            value={gstin}
-            onChange={(e) => setGstin(e.target.value.toUpperCase())}
-          />
-        </div>
-      </div>
+      <Input
+        id="org-address"
+        label="Registered Business Address"
+        required
+        maxLength={500}
+        placeholder="e.g. Plot No. 42, Industrial Cold Zone, Kanpur Road, Lucknow, UP - 226012"
+        value={address}
+        onChange={(e) => setAddress(e.target.value)}
+        className={styles.fullWidth}
+      />
 
-      <div className={styles.fieldGroup}>
-        <label htmlFor="org-address" className={styles.fieldLabel}>
-          Registered Business Address *
-        </label>
-        <input aria-label="e.g. Plot No. 42, Industrial Cold Zone, Kanpur Road, Luck..."
-          id="org-address"
-          required
-          maxLength={500}
-          className={styles.fieldInput}
-          placeholder="e.g. Plot No. 42, Industrial Cold Zone, Kanpur Road, Lucknow, UP - 226012"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-        />
-      </div>
+      <Input
+        id="org-contact"
+        label="Official Contact Numbers / Email"
+        required
+        maxLength={200}
+        placeholder="e.g. +91 98765 43210, info@kisancoldstorage.in"
+        value={contact}
+        onChange={(e) => setContact(e.target.value)}
+        className={styles.fullWidth}
+      />
 
-      <div className={styles.formGrid2}>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="org-contact" className={styles.fieldLabel}>
-            Official Contact Numbers / Email *
-          </label>
-          <input aria-label="e.g. +91 98765 43210, info@kisancoldstorage.in"
-            id="org-contact"
-            required
-            maxLength={200}
-            className={styles.fieldInput}
-            placeholder="e.g. +91 98765 43210, info@kisancoldstorage.in"
-            value={contact}
-            onChange={(e) => setContact(e.target.value)}
-          />
-        </div>
+      <Select
+        id="org-timezone"
+        label="System Operational Timezone"
+        value={timezone}
+        onChange={(e) => setTimezone(e.target.value)}
+        className={styles.narrow}
+      >
+        <option value="Asia/Kolkata">Asia/Kolkata (IST, UTC+5:30)</option>
+      </Select>
 
-        <div className={styles.fieldGroup}>
-          <Select
-          id="org-timezone"
-          label="System Operational Timezone"
-          value={timezone}
-          onChange={(e) => setTimezone(e.target.value)}
-        >
-          <option value="Asia/Kolkata">Asia/Kolkata (IST — UTC+5:30)</option>
-        </Select>
-        </div>
-      </div>
-
-      <div className={styles.fieldGroup}>
-        <label htmlFor="org-footer" className={styles.fieldLabel}>
+      <div className={styles.fullWidth}>
+        <label htmlFor="org-footer" className={styles.footerLabel}>
           Document Print Footer Notes
         </label>
-        <textarea aria-label="e.g. Goods stored at owner's risk under standard warehous..."
+        <textarea
           id="org-footer"
           rows={2}
           maxLength={500}
-          className={styles.fieldInput}
-          placeholder="e.g. Goods stored at owner's risk under standard warehousing terms. Banking Details: Bank of India A/C: 1234567890."
+          className={styles.textarea}
+          placeholder="e.g. Goods stored at owner's risk under standard warehousing terms."
           value={printFooter}
           onChange={(e) => setPrintFooter(e.target.value)}
         />

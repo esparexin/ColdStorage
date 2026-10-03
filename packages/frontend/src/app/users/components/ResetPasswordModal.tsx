@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AlertCircle, KeyRound } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { resetUserPasswordSchema, type UserSummary } from '@cold-storage/contracts';
 import { Button, Modal } from '@/components/ui';
 import styles from '../page.module.css';
@@ -52,10 +52,26 @@ export function ResetPasswordModal({
       isOpen
       onClose={onClose}
       title={`Reset Temporary Password — ${user.fullName}`}
-      size="md"
+      size="sm"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            id="submit-user-password-reset-btn"
+            type="submit"
+            form="reset-password-form"
+            variant="primary"
+            disabled={saving}
+            isLoading={saving}
+          >
+            Reset Password
+          </Button>
+        </>
+      }
     >
-      <form onSubmit={handleSubmit}>
-        <div className={styles.modalBody}>
+      <form id="reset-password-form" onSubmit={handleSubmit}>
           {shownError && (
             <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
               <AlertCircle size={16} />
@@ -94,23 +110,6 @@ export function ResetPasswordModal({
             All active sessions for @{user.username} will be revoked immediately. The user must
             change this password at first login.
           </p>
-        </div>
-
-        <div className={styles.modalFooter}>
-          <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancel
-          </Button>
-          <Button
-            id="submit-user-password-reset-btn"
-            type="submit"
-            variant="primary"
-            disabled={saving}
-            isLoading={saving}
-            leftIcon={!saving ? <KeyRound size={14} /> : undefined}
-          >
-            Reset Password
-          </Button>
-        </div>
       </form>
     </Modal>
   );
