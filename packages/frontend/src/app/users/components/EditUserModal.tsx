@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { AlertCircle, Save } from 'lucide-react';
 import { indianMobileSchema, type Role, type UserSummary } from '@cold-storage/contracts';
-import { Button, Modal } from '@/components/ui';
+import { Button, Modal, Select } from '@/components/ui';
 import type { FacilityOption } from '@/context/FacilityContext';
 import { toUserEditDraft, type UserEditDraft } from '../hooks/useUserLifecycle';
 import styles from '../page.module.css';
@@ -92,7 +92,7 @@ export function EditUserModal({
 
             <div className={styles.formGroup}>
               <label htmlFor="edit-user-role">Role *</label>
-              <select
+              <Select
                 id="edit-user-role"
                 className={styles.formInput}
                 value={draft.role}
@@ -103,7 +103,7 @@ export function EditUserModal({
                     {opt.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div className={styles.formGroup}>

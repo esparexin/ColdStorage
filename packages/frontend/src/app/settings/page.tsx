@@ -3,7 +3,7 @@
 import React from 'react';
 import { AlertCircle, CheckCircle2, Save } from 'lucide-react';
 import { can, type Role } from '@cold-storage/contracts';
-import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import { Button, FeedbackStates } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { BackupPolicySection } from './components/BackupPolicySection';
 import { BrandLogoSection } from './components/BrandLogoSection';
@@ -167,15 +167,16 @@ export default function SettingsPage() {
         />
 
         <div className={styles.saveFooter}>
-          <button
+          <Button
             id="save-settings-btn"
             type="submit"
-            className={styles.saveBtn}
+            variant="primary"
             disabled={saving}
+            isLoading={saving}
+            leftIcon={<Save size={16} aria-hidden="true" />}
           >
-            <Save size={16} aria-hidden="true" />
             {saving ? 'Saving Settings...' : 'Save System Settings'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

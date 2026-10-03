@@ -98,13 +98,15 @@ export function CollectPaymentModal({
                   Amount to Collect (₹) *
                 </label>
                 {account.remainingBalance > 0 && (
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     className={styles.quickFillBtn}
                     onClick={() => setCollectAmount(account.remainingBalance)}
                   >
                     Pay Full Balance (₹{account.remainingBalance})
-                  </button>
+                  </Button>
                 )}
               </div>
               <input aria-label="Enter amount"
@@ -126,22 +128,24 @@ export function CollectPaymentModal({
             <div className={styles.fieldGroup}>
               <span className={styles.fieldLabel}>Payment Mode *</span>
               <div className={styles.modeToggleGroup}>
-                <button
+                <Button
                   type="button"
+                  variant={collectMode === 'Cash' ? 'primary' : 'outline'}
                   className={`${styles.modeOption} ${collectMode === 'Cash' ? styles.modeOptionActive : ''}`}
                   onClick={() => setCollectMode('Cash')}
+                  leftIcon={<Wallet size={16} aria-hidden="true" />}
                 >
-                  <Wallet size={16} aria-hidden="true" />
                   Cash
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant={collectMode === 'UPI' ? 'primary' : 'outline'}
                   className={`${styles.modeOption} ${collectMode === 'UPI' ? styles.modeOptionActive : ''}`}
                   onClick={() => setCollectMode('UPI')}
+                  leftIcon={<CreditCard size={16} aria-hidden="true" />}
                 >
-                  <CreditCard size={16} aria-hidden="true" />
                   UPI
-                </button>
+                </Button>
               </div>
             </div>
 
