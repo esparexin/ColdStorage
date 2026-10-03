@@ -6,6 +6,7 @@ import type { Facility } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { Badge, Button, DataTable, type DataTableColumn } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import { useFacility } from '@/context/FacilityContext';
 import pageStyles from '../page.module.css';
 import styles from './FacilitySection.module.css';
 import { FacilityFormModal } from './FacilityFormModal';
@@ -21,6 +22,7 @@ export function FacilitySection() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Facility | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const { refreshFacilities } = useFacility();
 
   const fetchFacilities = useCallback(async () => {
     setLoading(true);
@@ -82,6 +84,7 @@ export function FacilitySection() {
     <div className={pageStyles.sectionCard}>
       <div className={pageStyles.sectionHeader}>
         <Building2 size={18} color="var(--color-primary)" aria-hidden="true" />
+        <Building2 size={18} color="var(--color-primary)" aria-hidden="true" />
         <h2 className={pageStyles.sectionTitle}>Facilities</h2>
         <div style={{ marginLeft: 'auto' }}>
           <Button
@@ -127,6 +130,9 @@ export function FacilitySection() {
             setIsCreating(false);
             setEditing(null);
             void fetchFacilities();
+            // Keep the app-wide facility selector in step so a newly created facility is
+            // selectable without a full page reload.
+            void refreshFacilities();
           }}
         />
       )}

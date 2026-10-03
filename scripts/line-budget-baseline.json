@@ -8,6 +8,5 @@
   "packages/frontend/src/app/grns/page.module.css": 538,
   "packages/frontend/src/app/rent/page.module.css": 415,
   "packages/frontend/src/app/deliveries/page.module.css": 363,
-  "packages/frontend/src/app/settings/page.module.css": 301,
-  "packages/frontend/src/app/backup/page.module.css": 271
+  "packages/frontend/src/app/settings/page.module.css": 301
 }

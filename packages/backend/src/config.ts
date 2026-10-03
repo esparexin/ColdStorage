@@ -1,3 +1,18 @@
+import { config as loadDotenv } from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+/**
+ * Environment loading (SSOT).
+ *
+ * `.env.local` at the repository root is the documented local configuration file, but nothing
+ * previously loaded it, so every documented variable silently fell back to the defaults below.
+ * It is loaded here, before any `process.env` read, and with `override: false` so a real
+ * environment variable (CI, container runtime, shell export) always wins over the file.
+ */
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+loadDotenv({ path: path.join(repoRoot, '.env.local'), override: false, quiet: true });
+
 export interface AppConfig {
   port: number;
   jwtSecret: string;
@@ -13,6 +28,8 @@ export interface AppConfig {
   rateLimitWindowMsGeneral: number;
   rateLimitMaxGeneral: number;
   cloudinaryUrl?: string;
+  /** 64 hex characters. Required to run encrypted backups; absent means backups are unconfigured. */
+  backupEncryptionKey?: string;
 }
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -41,4 +58,5 @@ export const config: AppConfig = {
   rateLimitWindowMsGeneral: Number(process.env.RATE_LIMIT_WINDOW_MS_GENERAL) || 60 * 1000, // 1m
   rateLimitMaxGeneral: Number(process.env.RATE_LIMIT_MAX_GENERAL) || 200,
   cloudinaryUrl: process.env.CLOUDINARY_URL,
+  backupEncryptionKey: process.env.BACKUP_ENCRYPTION_KEY,
 };

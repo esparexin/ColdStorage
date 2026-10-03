@@ -7,6 +7,7 @@ import { Button, FeedbackStates } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { BackupPolicySection } from './components/BackupPolicySection';
 import { BrandLogoSection } from './components/BrandLogoSection';
+import { ConnectivitySection } from './components/ConnectivitySection';
 import { DocumentNumberingSection } from './components/DocumentNumberingSection';
 import { FacilitySection } from './components/FacilitySection';
 import { OrgIdentitySection } from './components/OrgIdentitySection';
@@ -155,8 +156,6 @@ export default function SettingsPage() {
           setRentReceiptPrefix={setRentReceiptPrefix}
         />
 
-        <FacilitySection />
-
         <BackupPolicySection
           atlasRetentionDays={atlasRetentionDays}
           setAtlasRetentionDays={setAtlasRetentionDays}
@@ -179,6 +178,16 @@ export default function SettingsPage() {
           </Button>
         </div>
       </form>
+
+      {/*
+        Facilities are managed through their own modal form and persist immediately, so this
+        section is deliberately rendered OUTSIDE the system-settings form above. Nesting it
+        inside would submit the settings form on every facility save, writing unrelated
+        organization fields and reporting a misleading save result.
+      */}
+      <FacilitySection />
+
+      <ConnectivitySection />
     </div>
   );
 }

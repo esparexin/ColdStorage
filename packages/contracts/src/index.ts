@@ -18,3 +18,4 @@ export * from './audit.js';
 export * from './backup.js';
 export * from './rent.js';
 export * from './pricing.js';
+export * from './health.js';
