@@ -3,6 +3,7 @@
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
+import { Select } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import type { usePutAway } from '../hooks/usePutAway';
 import { GrnAllocationStatusCard } from './GrnAllocationStatusCard';
@@ -100,7 +101,7 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                     {putAway.allocRows.map((row) => (
                       <div key={row.id} className={styles.allocRow}>
-                        <select
+                        <Select
                           aria-label="Select Rack"
                           className={styles.fieldSelect}
                           required
@@ -113,9 +114,9 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
                               Rack {rk.code}
                             </option>
                           ))}
-                        </select>
+                        </Select>
 
-                        <select
+                        <Select
                           aria-label="Select Level"
                           className={styles.fieldSelect}
                           required
@@ -129,9 +130,9 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
                               Level {lvl.levelNumber} ({lvl.code})
                             </option>
                           ))}
-                        </select>
+                        </Select>
 
-                        <select
+                        <Select
                           aria-label="Select Position"
                           className={styles.fieldSelect}
                           required
@@ -150,7 +151,7 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
                               {pos.code} (Cap: {pos.capacityBags} bags)
                             </option>
                           ))}
-                        </select>
+                        </Select>
 
                         <input
                           type="number"

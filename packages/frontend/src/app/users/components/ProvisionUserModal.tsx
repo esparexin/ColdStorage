@@ -3,7 +3,7 @@
 import React from 'react';
 import { AlertCircle, UserPlus } from 'lucide-react';
 import type { Role } from '@cold-storage/contracts';
-import { Button, Modal } from '@/components/ui';
+import { Button, Modal, Select } from '@/components/ui';
 import { useProvisionUserForm } from '../hooks/useProvisionUserForm';
 import type { FacilityOption } from '../types';
 import styles from '../page.module.css';
@@ -102,10 +102,10 @@ export function ProvisionUserModal({
               </div>
 
               <div className={styles.formGroup}>
-                <label htmlFor="user-role">Role *</label>
-                <select
+                <Select
                   id="user-role"
-                  className={styles.formInput}
+                  label="Role"
+                  required
                   value={role}
                   onChange={(e) => setRole(e.target.value as Role)}
                 >
@@ -113,7 +113,7 @@ export function ProvisionUserModal({
                   <option value="ADMIN">ADMIN (Facility Supervisor, Approvals)</option>
                   <option value="READ_ONLY">READ_ONLY (Auditor, Viewer)</option>
                   <option value="SUPER_ADMIN">SUPER_ADMIN (Complete System Authority)</option>
-                </select>
+                </Select>
               </div>
 
               <div className={styles.formGroup}>

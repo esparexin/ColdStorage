@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import type { BagType, Chamber, Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
-import { Button, Modal } from '@/components/ui';
+import { Button, Modal, Select } from '@/components/ui';
 import { useCreateGrnForm } from '../hooks/useCreateGrnForm';
 import { CustomerFormModal } from '../../customers/components/CustomerFormModal';
 import { CommodityFormModal } from '../../commodities/components/CommodityFormModal';
@@ -111,33 +111,42 @@ export function CreateGrnModal({
             </div>
           </div>
           <div className={styles.fieldGroup}>
-            <div className={styles.fieldLabelRow}>
-              <label htmlFor="create-commodity" className={styles.fieldLabel}>Commodity *</label>
-              <button type="button" className={styles.inlineAddBtn} onClick={() => setIsAddingCommodity(true)}>+ Add</button>
-            </div>
-            <select id="create-commodity" required value={form.createCommodityId} onChange={(e) => form.setCreateCommodityId(e.target.value)} className={`${styles.fieldSelect} ${form.fieldErrors.commodity ? styles.inputError : ''}`} aria-invalid={Boolean(form.fieldErrors.commodity)}>
+            <Select
+              id="create-commodity"
+              label="Commodity"
+              required
+              value={form.createCommodityId}
+              onChange={(e) => form.setCreateCommodityId(e.target.value)}
+              error={form.fieldErrors.commodity}
+              rightAction={
+                <button type="button" className={styles.inlineAddBtn} onClick={() => setIsAddingCommodity(true)}>+ Add</button>
+              }
+            >
               <option value="">Select Commodity</option>
               {commodities.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-            </select>
-            {form.fieldErrors.commodity && <span className={styles.fieldErrorText}>{form.fieldErrors.commodity}</span>}
+            </Select>
           </div>
         </div>
         <div className={styles.formGrid2}>
           <div className={styles.fieldGroup}>
-            <label htmlFor="create-chamber" className={styles.fieldLabel}>Chamber *</label>
-            <select id="create-chamber" required value={form.createChamberId} onChange={(e) => form.setCreateChamberId(e.target.value)} className={`${styles.fieldSelect} ${form.fieldErrors.chamber ? styles.inputError : ''}`} aria-invalid={Boolean(form.fieldErrors.chamber)}>
+            <Select
+              id="create-chamber"
+              label="Chamber"
+              required
+              value={form.createChamberId}
+              onChange={(e) => form.setCreateChamberId(e.target.value)}
+              error={form.fieldErrors.chamber}
+            >
               <option value="">Select Chamber</option>
               {chambers.map((ch) => (<option key={ch.id} value={ch.id}>Chamber {ch.chamberNumber}</option>))}
-            </select>
-            {form.fieldErrors.chamber && <span className={styles.fieldErrorText}>{form.fieldErrors.chamber}</span>}
+            </Select>
           </div>
           <div className={styles.fieldGroup}>
-            <label htmlFor="create-bag-type" className={styles.fieldLabel}>Bag Type *</label>
-            <select id="create-bag-type" required value={form.createBagType} onChange={(e) => form.handleBagTypeChange(e.target.value as BagType)} className={styles.fieldSelect}>
+            <Select id="create-bag-type" label="Bag Type" required value={form.createBagType} onChange={(e) => form.handleBagTypeChange(e.target.value as BagType)}>
               <option value="S">Small Bag (S)</option>
               <option value="B">Big Bag (B)</option>
               <option value="S+B">Mixed (Small + Big)</option>
-            </select>
+            </Select>
           </div>
         </div>
         <h3 className={styles.sectionHeading}>Quantity & Weight Accounting</h3>
@@ -191,11 +200,10 @@ export function CreateGrnModal({
         <h3 className={styles.sectionHeading}>Rent Terms</h3>
         <div className={styles.formGrid3}>
           <div className={styles.fieldGroup}>
-            <label htmlFor="create-rent-type" className={styles.fieldLabel}>Rent Type *</label>
-            <select id="create-rent-type" required value={form.createRentType} onChange={(e) => form.setCreateRentType(e.target.value as RentType)} className={styles.fieldSelect}>
+            <Select id="create-rent-type" label="Rent Type" required value={form.createRentType} onChange={(e) => form.setCreateRentType(e.target.value as RentType)}>
               <option value="Seasonal">Seasonal</option>
               <option value="Monthly">Monthly</option>
-            </select>
+            </Select>
           </div>
           <div className={styles.fieldGroup}>
             <label htmlFor="create-rent-months" className={styles.fieldLabel}>Rent Months {form.createRentType === 'Monthly' ? '*' : ''}</label>

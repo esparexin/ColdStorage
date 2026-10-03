@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Building2, ChevronDown, LogOut, Menu } from 'lucide-react';
+import { Building2, LogOut, Menu } from 'lucide-react';
+import { Select } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { useSettings } from '@/context/SettingsContext';
@@ -60,7 +61,7 @@ export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHea
         {facilities.length > 1 && (
           <div className={styles.facilitySelector}>
             <Building2 size={16} aria-hidden="true" />
-            <select
+            <Select
               id="facility-selector"
               className={styles.facilitySelect}
               value={selectedFacilityId ?? ''}
@@ -72,8 +73,7 @@ export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHea
                   {fac.name ? `${fac.name} (${fac.code})` : fac.id}
                 </option>
               ))}
-            </select>
-            <ChevronDown size={14} aria-hidden="true" />
+            </Select>
           </div>
         )}
 

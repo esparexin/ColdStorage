@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { BackupLogRecord, BackupStatus } from '@cold-storage/contracts';
-import { Badge } from '@/components/ui';
+import { Badge, Select } from '@/components/ui';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { formatBytes, formatDate } from '../utils';
 import styles from '../page.module.css';
@@ -114,11 +114,9 @@ export function BackupLogTable({
           <span className={styles.tableCount}>({totalLogs} total entries)</span>
         </div>
         <div className={styles.filterControls}>
-          <label htmlFor="status-filter" className={styles.metricLabel}>
-            Status:
-          </label>
-          <select
+          <Select
             id="status-filter"
+            aria-label="Filter backups by status"
             className={styles.selectInput}
             value={statusFilter}
             onChange={(e) => onStatusFilterChange(e.target.value as '' | BackupStatus)}
@@ -128,7 +126,7 @@ export function BackupLogTable({
             <option value="IN_PROGRESS">IN_PROGRESS</option>
             <option value="FAILED">FAILED</option>
             <option value="PRUNED">PRUNED</option>
-          </select>
+          </Select>
         </div>
       </div>
 
