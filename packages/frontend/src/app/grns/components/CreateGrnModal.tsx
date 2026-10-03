@@ -74,7 +74,7 @@ export function CreateGrnModal({
           <div className={styles.fieldGroup}>
             <div className={styles.fieldLabelRow}>
               <label htmlFor="create-customer-search" className={styles.fieldLabel}>Customer *</label>
-              <button type="button" className={styles.inlineAddBtn} onClick={() => setIsAddingCustomer(true)}>+ Add</button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingCustomer(true)}>+ Add</Button>
             </div>
             <div className={styles.comboboxWrapper} ref={customerRef}>
               <input
@@ -88,7 +88,7 @@ export function CreateGrnModal({
                 aria-invalid={Boolean(form.fieldErrors.customer)}
               />
               {selectedCustomer && !isCustomerOpen && (
-                <button type="button" className={styles.comboboxClearBtn} onClick={() => { form.setCreateCustomerId(''); setCustomerQuery(''); }} aria-label="Clear customer selection">✕</button>
+                <Button type="button" variant="ghost" size="sm" className={styles.comboboxClearBtn} onClick={() => { form.setCreateCustomerId(''); setCustomerQuery(''); }} aria-label="Clear customer selection">✕</Button>
               )}
               {form.fieldErrors.customer && <span className={styles.fieldErrorText}>{form.fieldErrors.customer}</span>}
               {isCustomerOpen && (
@@ -103,7 +103,7 @@ export function CreateGrnModal({
                   ) : (
                     <div className={styles.comboboxEmpty}>
                       No customers found
-                      <button type="button" className={styles.comboboxAddBtn} onMouseDown={(e) => { e.preventDefault(); setIsAddingCustomer(true); setIsCustomerOpen(false); }}>+ Add Customer</button>
+                      <Button type="button" variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); setIsAddingCustomer(true); setIsCustomerOpen(false); }}>+ Add Customer</Button>
                     </div>
                   )}
                 </div>
@@ -119,7 +119,7 @@ export function CreateGrnModal({
               onChange={(e) => form.setCreateCommodityId(e.target.value)}
               error={form.fieldErrors.commodity}
               rightAction={
-                <button type="button" className={styles.inlineAddBtn} onClick={() => setIsAddingCommodity(true)}>+ Add</button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingCommodity(true)}>+ Add</Button>
               }
             >
               <option value="">Select Commodity</option>
@@ -169,8 +169,8 @@ export function CreateGrnModal({
                 <input id="create-bags-total" type="number" readOnly tabIndex={-1} value={form.createBags} className={`${styles.fieldInput} ${styles.calculatedField}`} aria-label="Total Bags (Calculated)" />
               </div>
               <div className={styles.fieldGroup}>
-                <label htmlFor="create-actual-weight" className={styles.fieldLabel}>Weighbridge Weight (kg) (Optional)</label>
-                <input id="create-actual-weight" type="number" step="0.01" min={0} value={form.createActualWeight} onChange={(e) => form.setCreateActualWeight(e.target.value ? parseFloat(e.target.value) : '')} className={styles.fieldInput} />
+                <label htmlFor="create-actual-weight-single" className={styles.fieldLabel}>Weighbridge Weight (kg) (Optional)</label>
+                <input id="create-actual-weight-single" type="number" step="0.01" min={0} value={form.createActualWeight} onChange={(e) => form.setCreateActualWeight(e.target.value ? parseFloat(e.target.value) : '')} className={styles.fieldInput} />
               </div>
             </div>
           </>

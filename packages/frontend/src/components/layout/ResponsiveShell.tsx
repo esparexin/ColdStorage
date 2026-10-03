@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { AppHeader } from './AppHeader';
 import { SidebarNav } from './SidebarNav';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
+import { Button } from '@/components/ui/Button';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useAuth } from '@/context/AuthContext';
 import styles from './ResponsiveShell.module.css';
@@ -100,9 +101,9 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
               />
             </div>
 
-            <button type="submit" className={styles.loginButton} disabled={isSubmitting}>
+            <Button type="submit" variant="primary" size="lg" disabled={isSubmitting} isLoading={isSubmitting}>
               {isSubmitting ? 'Signing in…' : 'Sign In'}
-            </button>
+            </Button>
           </form>
         </div>
       </div>

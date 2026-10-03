@@ -117,25 +117,5 @@
   cursor: not-allowed;
 }
 
-.loginButton {
-  margin-top: var(--space-2);
-  width: 100%;
-  padding: var(--space-3);
-  background: var(--color-primary);
-  color: var(--color-text-on-accent);
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
-  border-radius: var(--radius-md);
-  border: none;
-  cursor: pointer;
-  transition: background-color var(--transition-fast);
-}
 
-.loginButton:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-}
 
-.loginButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
