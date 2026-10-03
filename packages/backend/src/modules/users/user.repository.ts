@@ -86,15 +86,6 @@ export class UserRepository {
     return user;
   }
 
-  /** Counts active SUPER_ADMIN accounts; used to refuse removing the last one. */
-  public async countActiveSuperAdmins(excludingId?: string): Promise<number> {
-    const filter: Record<string, unknown> = { role: 'SUPER_ADMIN', status: 'ACTIVE' };
-    if (excludingId) {
-      filter.id = { $ne: excludingId };
-    }
-    return UserModel.countDocuments(filter).exec();
-  }
-
   public async findById(id: string): Promise<UserEntity | null> {
     const doc = await UserModel.findOne({ id: { $eq: sanitizeId(id) } }).lean().exec();
     return doc ? (doc as unknown as UserEntity) : null;

@@ -300,4 +300,27 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
     expect(res.body).not.toHaveProperty('atlasManagedBackup');
     expect(archive.totalCompletedBackups).toBeGreaterThanOrEqual(0);
   });
+
+  it('13. reports backups as not configured when the encryption key is absent', async () => {
+    const originalKey = config.backupEncryptionKey;
+    config.backupEncryptionKey = undefined;
+    try {
+      const res = await request(app)
+        .get('/api/backups/status')
+        .set('Authorization', `Bearer ${superAdminToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.encryptedArchive.keyConfigured).toBe(false);
+      expect(res.body.encryptedArchive.configured).toBe(false);
+
+      // The trigger must refuse with a configuration code rather than an opaque server error.
+      const trigger = await request(app)
+        .post('/api/backups/trigger')
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .send({ backupType: 'MANUAL' });
+      expect(trigger.status).toBe(503);
+      expect(trigger.body.code).toBe('BACKUP_KEY_INVALID');
+    } finally {
+      config.backupEncryptionKey = originalKey;
+    }
+  });
 });

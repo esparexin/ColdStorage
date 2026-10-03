@@ -21,6 +21,7 @@ const CONFLICT_MARKERS = [
   'duplicate key',
   'E11000',
   'already exists',
+  'cannot be deleted',
   'already registered',
   'already in use',
   'active chambers',
