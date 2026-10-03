@@ -29,13 +29,13 @@ workflows.
 | # | Rule | Enforces |
 |---|---|---|
 | 1 | Backend cross-domain imports | `delivery`/`rent` must not import `grn` internals |
-| 2 | Frontend domain isolation | `inventory` must not import `storage` internals |
+| 2 | Storage-hierarchy retirement | chamber/rack/level/position route files, models and the `/storage` feature module must not be reintroduced |
 | 3 | Competing UI primitives | feature CSS must not redefine modal/pagination/search primitives |
 | 4 | Route contract drift | customer update must be `PATCH`, not `PUT` |
 | 5 | Legacy directories | `packages/backend/src/tests` stays retired |
 | 6 | Put-away contract | frontend must call `/allocations`, never `/put-away` |
-| 7 | Occupancy facility scope | occupancy reads must include `:facilityId` |
-| 8 | Type SSOT | no local `PositionOccupancyResponse`; import from contracts |
+| 7 | Free-text chamber | `capacityBags` / `occupiedBags` / `availableBags` / `utilizationRate` / `positionOccupancy` must not reappear in contracts or backend source (tests excluded: they assert rejection) |
+| 8 | Type SSOT | `positionId`, `positionCode`, `rackId`, `levelId`, `chamberId`, `chamberNumber` must not reappear in `@cold-storage/contracts` |
 | 9 | Mongoose duplicate index | no field with both `index: true` and `schema.index()` |
 | 11 | Native `<select>` | must use the `Select` primitive |
 | 12 | Native `<button>` | must use the `Button` primitive in feature/layout/auth code |

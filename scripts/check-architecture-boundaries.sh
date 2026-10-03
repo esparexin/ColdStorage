@@ -20,9 +20,23 @@ if grep -rn --include="*.ts" "from '\.\./\.\./grn/" "$ROOT/packages/backend/src/
   fail "Rent module has unauthorized internal imports from grn module."
 fi
 
-# 2. Frontend Domain Isolation: inventory must not import storage internal components
-if grep -rn --include="*.tsx" "from '@/app/storage" "$ROOT/packages/frontend/src/app/inventory" 2>/dev/null; then
-  fail "Inventory feature module has unauthorized direct imports from storage internal components."
+# 2. Storage-hierarchy retirement: the Facility -> Chamber -> Rack -> Level -> Position model
+# has been replaced by a free-text chamber field on the GRN. These guards keep it retired.
+RETIRED_HIERARCHY_ROUTES=(chamber rack level position)
+for entity in "${RETIRED_HIERARCHY_ROUTES[@]}"; do
+  if [ -f "$ROOT/packages/backend/src/routes/$entity.routes.ts" ]; then
+    fail "Storage hierarchy is retired: $entity.routes.ts must not be reintroduced."
+  fi
+done
+
+for model in chamber rack level position; do
+  if [ -f "$ROOT/packages/backend/src/database/models/$model.model.ts" ]; then
+    fail "Storage hierarchy is retired: $model.model.ts must not be reintroduced."
+  fi
+done
+
+if [ -d "$ROOT/packages/frontend/src/app/storage" ]; then
+  fail "Storage hierarchy is retired: the /storage feature module must not be reintroduced."
 fi
 
 # 3. UI SSOT Enforcement: feature stylesheets must not define competing UI primitives
@@ -48,14 +62,20 @@ if grep -rnE "(\/grns\/[^\/]+\/put-away)" "$ROOT/packages/frontend/src" --exclud
   fail "Put-Away contract violation: frontend must call canonical '/allocations' endpoint, not '/put-away'."
 fi
 
-# 7. Position Occupancy Facility-Scope Enforcement: frontend must include facilityId in path
-if grep -rnE "requestWithAuth\(['\`]\/?api\/positions\/[^/]+\/occupancy" "$ROOT/packages/frontend/src" --exclude-dir=.next --exclude-dir=node_modules 2>/dev/null; then
-  fail "Position occupancy route contract violation: frontend must include facilityId scope (/api/facilities/:facilityId/positions/:positionId/occupancy)."
+# 7. Chamber is free text, capped at 20 characters. Capacity, occupancy and utilization have no
+# denominator once chamber is a label, so none may be reintroduced on the contracts or backend.
+# Test files are excluded: they legitimately assert that these payloads are now rejected.
+if grep -rnE "(capacityBags|occupiedBags|availableBags|utilizationRate|positionOccupancy)" \
+  "$ROOT/packages/contracts/src" "$ROOT/packages/backend/src" \
+  --include="*.ts" --exclude-dir=__tests__ --exclude="*.test.ts" 2>/dev/null; then
+  fail "Chamber is free text: capacity/occupancy/utilization fields must not be reintroduced."
 fi
 
-# 8. Type SSOT Enforcement: frontend must not declare duplicate PositionOccupancyResponse
-if grep -rnE "interface PositionOccupancyResponse" "$ROOT/packages/frontend/src" --exclude-dir=.next --exclude-dir=node_modules 2>/dev/null; then
-  fail "Type SSOT violation: frontend must import PositionOccupancy from @cold-storage/contracts instead of declaring PositionOccupancyResponse."
+# 8. Type SSOT: rack/level/position identifiers must not reappear in the shared contracts.
+if grep -rnE "\b(positionId|positionCode|rackId|levelId|chamberId|chamberNumber)\b" \
+  "$ROOT/packages/contracts/src" \
+  --include="*.ts" --exclude-dir=__tests__ --exclude="*.test.ts" 2>/dev/null; then
+  fail "Type SSOT violation: storage hierarchy identifiers must not reappear in @cold-storage/contracts."
 fi
 
 # 9. Mongoose Duplicate Schema Index Prevention
@@ -110,12 +130,7 @@ if grep -rnE "console\.(log|warn|error)" "$ROOT/packages/backend/src" --include=
   fail "Backend logging hygiene violation: raw console.* calls are prohibited outside utils/logger.ts. Use logger.info/warn/error or auditService."
 fi
 
-# 16. Storage hierarchy routers must stay split per entity.
-if [ -f "$ROOT/packages/backend/src/routes/hierarchy.routes.ts" ]; then
-  fail "Storage hierarchy routes must remain split per entity (chamber/rack/level/position); the monolithic hierarchy.routes.ts has been retired."
-fi
-
-# 17. Frontend document printing must go through the canonical helper.
+# 16. Frontend document printing must go through the canonical helper.
 PRINT_HITS=$(grep -rn "window.open" "$ROOT/packages/frontend/src" --include="*.ts" --include="*.tsx" \
   --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null \
   | grep -v "packages/frontend/src/lib/print-document.ts" || true)

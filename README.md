@@ -2,11 +2,19 @@
 
 Production-grade cold-storage workflow digitization.
 
-## Current Phase: P2 Auth + Users + RBAC
+## Authoritative Architecture Lock
 
-- **Status**: P2 implementation complete, verified through all 7 phase gates.
-- **Next Phase**: P3 Master Data + Storage Hierarchy (**Awaiting explicit user approval**).
-- **Authoritative Architecture Lock**: [`docs/00-p0-lock.md`](docs/00-p0-lock.md).
+[`docs/00-p0-lock.md`](docs/00-p0-lock.md) — LOCKED.
+
+Key data model decisions:
+
+- **Chamber** is free text (max 20 characters), not a managed entity. There is no rack, level or
+  position beneath it, and no occupancy or capacity tracking.
+- **Facility** is the tenancy and access-scope root only; SUPER_ADMIN manages facilities from
+  System Settings.
+- **Customer** identity is a single name (max 50 characters, special characters allowed).
+- **Rental** is Monthly (amount + month count) or Seasonal — a fixed **10-month** period whose
+  amount is the total for the whole term.
 
 ## Monorepo Layout (P2 Scope)
 
