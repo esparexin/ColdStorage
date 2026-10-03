@@ -78,6 +78,7 @@ export function ImportPanel({
               accept=".csv,text/csv"
               className={styles.fileInput}
               onChange={onFileChange}
+              aria-label="Upload CSV file"
             />
           </label>
 

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { Badge, Button } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface GrnTableProps {
@@ -112,17 +113,18 @@ export function GrnTable({
       header: 'Status',
       align: 'center',
       render: (row) => (
-        <span className={row.status === 'OPEN' ? styles.badgeOpen : styles.badgeClosed}>
-          {row.status === 'OPEN' ? (
-            <>
-              <Clock size={12} aria-hidden="true" /> OPEN
-            </>
-          ) : (
-            <>
-              <CheckCircle2 size={12} aria-hidden="true" /> CLOSED
-            </>
-          )}
-        </span>
+        <Badge
+          variant={row.status === 'OPEN' ? 'warning' : 'neutral'}
+          icon={
+            row.status === 'OPEN' ? (
+              <Clock size={12} aria-hidden="true" />
+            ) : (
+              <CheckCircle2 size={12} aria-hidden="true" />
+            )
+          }
+        >
+          {row.status}
+        </Badge>
       ),
     },
     {
@@ -131,38 +133,40 @@ export function GrnTable({
       align: 'right',
       render: (row) => (
         <div className={styles.actionGroup}>
-          <button
-            type="button"
-            className={styles.actionBtn}
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => onSelectGrn(row)}
             title="View Details"
+            leftIcon={<Eye size={13} aria-hidden="true" />}
           >
-            <Eye size={13} aria-hidden="true" />
             View
-          </button>
+          </Button>
 
           {canPrint && (
             <>
-              <button
-                type="button"
-                className={styles.actionBtnPrimary}
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => onPrint('grn', row.id)}
                 disabled={printingId === `grn-${row.id}`}
+                isLoading={printingId === `grn-${row.id}`}
                 title="Print Official GRN"
+                leftIcon={<Printer size={13} aria-hidden="true" />}
               >
-                <Printer size={13} aria-hidden="true" />
                 GRN
-              </button>
-              <button
-                type="button"
-                className={styles.actionBtnSuccess}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => onPrint('receipt', row.id)}
                 disabled={printingId === `receipt-${row.id}`}
+                isLoading={printingId === `receipt-${row.id}`}
                 title="Print Farmer Inward Receipt"
+                leftIcon={<FileText size={13} aria-hidden="true" />}
               >
-                <FileText size={13} aria-hidden="true" />
                 Ack
-              </button>
+              </Button>
             </>
           )}
 

@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { X } from 'lucide-react';
 import type { Chamber, Level, Rack } from '@cold-storage/contracts';
+import { Button, Modal } from '@/components/ui';
 import type { ModalType } from '../types';
 import styles from '../page.module.css';
 
@@ -59,30 +59,28 @@ export function StorageHierarchyModals({
 }: StorageHierarchyModalsProps) {
   if (!activeModal) return null;
 
+  const modalTitle =
+    activeModal === 'chamber'
+      ? (modalMode === 'edit' ? 'Edit Chamber' : 'Add New Chamber')
+      : activeModal === 'rack'
+      ? (modalMode === 'edit'
+        ? `Edit Rack ${rackCode}`
+        : `Add Rack to Chamber ${selectedChamber?.chamberNumber}`)
+      : activeModal === 'level'
+      ? (modalMode === 'edit'
+        ? `Edit Level ${levelCode}`
+        : `Add Level to Rack ${selectedRack?.code}`)
+      : (modalMode === 'edit'
+        ? `Edit Rack Space ${positionCode}`
+        : `Add Rack Space to Level ${selectedLevel?.code}`);
+
   return (
-    <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-      <div className={styles.modalContent}>
-        <div className={styles.modalHeader}>
-          <h3>
-            {activeModal === 'chamber' &&
-              (modalMode === 'edit' ? 'Edit Chamber' : 'Add New Chamber')}
-            {activeModal === 'rack' &&
-              (modalMode === 'edit'
-                ? `Edit Rack ${rackCode}`
-                : `Add Rack to Chamber ${selectedChamber?.chamberNumber}`)}
-            {activeModal === 'level' &&
-              (modalMode === 'edit'
-                ? `Edit Level ${levelCode}`
-                : `Add Level to Rack ${selectedRack?.code}`)}
-            {activeModal === 'position' &&
-              (modalMode === 'edit'
-                ? `Edit Rack Space ${positionCode}`
-                : `Add Rack Space to Level ${selectedLevel?.code}`)}
-          </h3>
-          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close modal">
-            <X size={18} />
-          </button>
-        </div>
+    <Modal
+      isOpen={!!activeModal}
+      onClose={onClose}
+      title={modalTitle}
+      size="sm"
+    >
 
         {formError && (
           <div className={styles.bannerError} role="alert">
@@ -193,21 +191,19 @@ export function StorageHierarchyModals({
           )}
 
           <div className={styles.modalActions}>
-            <button type="button" className={styles.cancelBtn} onClick={onClose} disabled={submitting}>
+            <Button variant="outline" onClick={onClose} disabled={submitting}>
               Cancel
-            </button>
-            <button type="submit" className={styles.submitBtn} disabled={submitting}>
-              {submitting
-                ? modalMode === 'edit'
-                  ? 'Saving...'
-                  : 'Creating...'
-                : modalMode === 'edit'
-                  ? 'Save Changes'
-                  : 'Create'}
-            </button>
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={submitting}
+              isLoading={submitting}
+            >
+              {modalMode === 'edit' ? 'Save Changes' : 'Create'}
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

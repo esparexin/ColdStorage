@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { CreditCard, Eye, Wallet, X } from 'lucide-react';
+import { CreditCard, Eye, Wallet } from 'lucide-react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
+import { Button, Modal } from '@/components/ui';
 import { useCollectPaymentForm } from '../hooks/useCollectPaymentForm';
 import styles from '../page.module.css';
 
@@ -41,28 +42,13 @@ export function CollectPaymentModal({
   });
 
   return (
-    <div
-      className={styles.modalBackdrop}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="collect-payment-title"
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Collect Rent Payment"
+      size="md"
     >
-      <div className={styles.modalCard}>
-        <div className={styles.modalHeader}>
-          <h2 id="collect-payment-title" className={styles.modalTitle}>
-            Collect Rent Payment
-          </h2>
-          <button
-            type="button"
-            className={styles.modalClose}
-            onClick={onClose}
-            aria-label="Close modal"
-          >
-            <X size={20} aria-hidden="true" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit}>
           <div className={styles.modalBody}>
             {collectError && <div className={styles.modalError}>{collectError}</div>}
 
@@ -178,34 +164,32 @@ export function CollectPaymentModal({
 
           <div className={styles.modalFooter}>
             {canPrint && typeof collectAmount === 'number' && collectAmount > 0 && (
-              <button
-                type="button"
-                className={styles.actionBtn}
+              <Button
+                variant="outline"
                 onClick={() => void handlePreviewReceipt()}
+                leftIcon={<Eye size={14} aria-hidden="true" />}
               >
-                <Eye size={14} aria-hidden="true" />
                 Preview Receipt
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
-              className={styles.cancelBtn}
+            <Button
+              variant="outline"
               onClick={onClose}
               disabled={collectSubmitting}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               id="confirm-collect-payment-btn"
               type="submit"
-              className={styles.primaryBtn}
+              variant="primary"
               disabled={collectSubmitting || typeof collectAmount !== 'number' || collectAmount <= 0}
+              isLoading={collectSubmitting}
             >
-              {collectSubmitting ? 'Recording...' : 'Collect & Issue Receipt'}
-            </button>
+              Collect & Issue Receipt
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

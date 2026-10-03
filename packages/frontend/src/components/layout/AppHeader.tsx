@@ -1,13 +1,18 @@
 'use client';
 
 import React from 'react';
-import { Building2, ChevronDown, LogOut } from 'lucide-react';
+import { Building2, ChevronDown, LogOut, Menu } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { useSettings } from '@/context/SettingsContext';
 import styles from './AppHeader.module.css';
 
-export function AppHeader() {
+interface AppHeaderProps {
+  onToggleMobileNav?: () => void;
+  isMobileNavOpen?: boolean;
+}
+
+export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHeaderProps) {
   const { user, logout } = useAuth();
   const { selectedFacilityId, setSelectedFacilityId, availableFacilities } = useFacility();
   const { settings } = useSettings();
@@ -23,6 +28,19 @@ export function AppHeader() {
   return (
     <header className={styles.header}>
       <div className={styles.left}>
+        {onToggleMobileNav && (
+          <button
+            type="button"
+            id="mobile-nav-toggle"
+            className={styles.menuTrigger}
+            onClick={onToggleMobileNav}
+            aria-label={isMobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={isMobileNavOpen}
+            aria-controls="sidebar-navigation"
+          >
+            <Menu size={22} aria-hidden="true" />
+          </button>
+        )}
         {logoAssetId ? (
           <div className={styles.left}>
             <img

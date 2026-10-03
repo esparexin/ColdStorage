@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { Truck, X } from 'lucide-react';
+import { Truck } from 'lucide-react';
 import type { DeliveryChallan } from '@cold-storage/contracts';
+import { Button, Modal } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useCreateDeliveryForm } from '../hooks/useCreateDeliveryForm';
 import styles from '../page.module.css';
@@ -25,28 +26,13 @@ export function CreateDeliveryModal({
   }, [form.fetchAvailableGrns]);
 
   return (
-    <div
-      className={styles.modalBackdrop}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="create-delivery-title"
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Issue Outward Delivery Challan"
+      size="lg"
     >
-      <div className={styles.modalCard}>
-        <div className={styles.modalHeader}>
-          <h2 id="create-delivery-title" className={styles.modalTitle}>
-            Issue Outward Delivery Challan
-          </h2>
-          <button
-            type="button"
-            className={styles.modalClose}
-            onClick={onClose}
-            aria-label="Close modal"
-          >
-            <X size={20} aria-hidden="true" />
-          </button>
-        </div>
-
-        <form onSubmit={form.handleSubmit}>
+      <form onSubmit={form.handleSubmit}>
           <div className={styles.modalBody}>
             {form.modalError && <div className={styles.modalError}>{form.modalError}</div>}
 
@@ -204,26 +190,25 @@ export function CreateDeliveryModal({
           </div>
 
           <div className={styles.modalFooter}>
-            <button
-              type="button"
-              className={styles.cancelBtn}
+            <Button
+              variant="outline"
               onClick={onClose}
               disabled={form.submitting}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               id="submit-create-delivery-btn"
               type="submit"
-              className={styles.primaryBtn}
+              variant="primary"
               disabled={form.submitting || form.totalWithdrawingBags <= 0}
+              isLoading={form.submitting}
+              leftIcon={!form.submitting ? <Truck size={15} aria-hidden="true" /> : undefined}
             >
-              <Truck size={15} aria-hidden="true" />
-              {form.submitting ? 'Issuing...' : 'Issue Delivery Challan'}
-            </button>
+              Issue Delivery Challan
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

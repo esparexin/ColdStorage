@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { CheckCircle2, Plus, RefreshCw, ShieldAlert } from 'lucide-react';
 import { can, type Role } from '@cold-storage/contracts';
+import { Button } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { ProvisionUserModal } from './components/ProvisionUserModal';
 import { UserFilterBar } from './components/UserFilterBar';
@@ -59,25 +60,23 @@ export default function UsersPage() {
           </p>
         </div>
         <div className={styles.headerActions}>
-          <button
-            type="button"
-            className={styles.refreshBtn}
+          <Button
+            variant="outline"
             onClick={() => void fetchUsers()}
             disabled={loadingUsers}
             aria-label="Refresh users list"
+            leftIcon={<RefreshCw size={16} className={loadingUsers ? styles.spinning : ''} />}
           >
-            <RefreshCw size={16} className={loadingUsers ? styles.spinning : ''} />
-            <span>Refresh</span>
-          </button>
-          <button
-            type="button"
+            Refresh
+          </Button>
+          <Button
             id="create-user-button"
-            className={styles.primaryBtn}
+            variant="primary"
             onClick={() => setShowModal(true)}
+            leftIcon={<Plus size={16} />}
           >
-            <Plus size={16} />
-            <span>Provision User</span>
-          </button>
+            Provision User
+          </Button>
         </div>
       </header>
 

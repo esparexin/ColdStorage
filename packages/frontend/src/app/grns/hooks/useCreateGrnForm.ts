@@ -96,7 +96,7 @@ export function useCreateGrnForm(
         return setModalError('Enter at least one bag count (Small Bags or Big Bags) for Mixed bag type');
       }
     } else if (typeof createBags !== 'number' || createBags <= 0) {
-      return setModalError('Bags count must be a positive integer');
+      return setModalError(`${createBagType === 'S' ? 'Small' : 'Big'} bags count must be a positive integer`);
     }
     if (createRentType === 'Monthly' && (typeof createRentMonths !== 'number' || createRentMonths < 1)) {
       return setModalError('Rent months is required (>= 1) for Monthly rent');

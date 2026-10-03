@@ -2,8 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowRight, FileText, Printer, X } from 'lucide-react';
+import { ArrowRight, FileText, Printer } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
+import { Badge, Button, Modal } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface GrnDetailModalProps {
@@ -24,33 +25,56 @@ export function GrnDetailModal({
   onPrint,
 }: GrnDetailModalProps) {
   return (
-    <div
-      className={styles.modalBackdrop}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="detail-modal-title"
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={`GRN Details: ${grn.grnNumber}`}
+      subtitle={`Inward Receipt #${grn.inwardReceiptNumber}`}
+      size="lg"
+      footer={
+        <>
+          {canPrint && (
+            <>
+              <Button
+                variant="primary"
+                onClick={() => onPrint('grn', grn.id)}
+                disabled={printingId === `grn-${grn.id}`}
+                isLoading={printingId === `grn-${grn.id}`}
+                leftIcon={<Printer size={15} aria-hidden="true" />}
+              >
+                Print Official GRN
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => onPrint('receipt', grn.id)}
+                disabled={printingId === `receipt-${grn.id}`}
+                isLoading={printingId === `receipt-${grn.id}`}
+                leftIcon={<FileText size={15} aria-hidden="true" />}
+              >
+                Print Inward Receipt
+              </Button>
+            </>
+          )}
+          {grn.status === 'OPEN' && canAllocate && (
+            <Link
+              href={`/inventory?grnId=${encodeURIComponent(grn.id)}`}
+              className={styles.linkButton}
+            >
+              <Button
+                variant="primary"
+                leftIcon={<ArrowRight size={15} aria-hidden="true" />}
+              >
+                Put-Away Bags
+              </Button>
+            </Link>
+          )}
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </>
+      }
     >
-      <div className={styles.modalCard}>
-        <div className={styles.modalHeader}>
-          <div>
-            <h2 id="detail-modal-title" className={styles.modalTitle}>
-              GRN Details: {grn.grnNumber}
-            </h2>
-            <span className={styles.receiptNumber}>
-              Inward Receipt #{grn.inwardReceiptNumber}
-            </span>
-          </div>
-          <button
-            type="button"
-            className={styles.modalClose}
-            onClick={onClose}
-            aria-label="Close details"
-          >
-            <X size={20} aria-hidden="true" />
-          </button>
-        </div>
-
-        <div className={styles.modalBody}>
+      <div className={styles.modalBody}>
           <div className={styles.detailGrid}>
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Inward Date</span>
@@ -66,13 +90,9 @@ export function GrnDetailModal({
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Status</span>
               <span className={styles.detailValue}>
-                <span
-                  className={
-                    grn.status === 'OPEN' ? styles.badgeOpen : styles.badgeClosed
-                  }
-                >
+                <Badge variant={grn.status === 'OPEN' ? 'warning' : 'neutral'}>
                   {grn.status}
-                </span>
+                </Badge>
               </span>
             </div>
 
@@ -136,48 +156,6 @@ export function GrnDetailModal({
             </div>
           </div>
         </div>
-
-        <div className={styles.modalFooter}>
-          {canPrint && (
-            <>
-              <button
-                type="button"
-                className={styles.actionBtnPrimary}
-                onClick={() => onPrint('grn', grn.id)}
-                disabled={printingId === `grn-${grn.id}`}
-              >
-                <Printer size={15} aria-hidden="true" />
-                Print Official GRN
-              </button>
-              <button
-                type="button"
-                className={styles.actionBtnSuccess}
-                onClick={() => onPrint('receipt', grn.id)}
-                disabled={printingId === `receipt-${grn.id}`}
-              >
-                <FileText size={15} aria-hidden="true" />
-                Print Inward Receipt
-              </button>
-            </>
-          )}
-          {grn.status === 'OPEN' && canAllocate && (
-            <Link
-              href={`/inventory?grnId=${encodeURIComponent(grn.id)}`}
-              className={styles.primaryBtn}
-            >
-              <ArrowRight size={15} aria-hidden="true" />
-              Put-Away Bags
-            </Link>
-          )}
-          <button
-            type="button"
-            className={styles.cancelBtn}
-            onClick={onClose}
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

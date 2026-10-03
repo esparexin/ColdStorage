@@ -33,7 +33,7 @@ customerRouter.post('/', requirePermission('customer:manage'), async (req: Reque
     res.status(201).json({ customer });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Customer creation failed';
-    const status = message.includes('already registered') ? 409 : 400;
+    const status = message.includes('already registered') || message.includes('already exists') ? 409 : 400;
     res.status(status).json({ error: message });
   }
 });

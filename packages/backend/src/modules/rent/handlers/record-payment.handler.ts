@@ -10,7 +10,7 @@ import {
 import { GrnModel, type GrnDoc } from '../../../database/models/grn.model.js';
 import type { RentPaymentDoc } from '../../../database/models/rent-payment.model.js';
 import { auditService } from '../../audit/audit.service.js';
-import { counterService } from '../../grn/counter.service.js';
+import { counterService } from '../../common/counter.service.js';
 import { rentRepository } from '../rent.repository.js';
 
 export function toPaymentEntity(doc: RentPaymentDoc): RentPayment {

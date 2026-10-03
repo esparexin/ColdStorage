@@ -173,11 +173,19 @@
   border-radius: var(--radius-sm);
   color: var(--color-primary);
   cursor: pointer;
-  padding: 3px 6px;
+  min-width: 36px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.15s ease-in-out;
+}
+
+@media (max-width: 768px) {
+  .columnAddBtn {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 
 .columnAddBtn:hover {
@@ -270,13 +278,22 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
+  min-width: 32px;
+  min-height: 32px;
   border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: all 0.15s ease-in-out;
+}
+
+@media (max-width: 768px) {
+  .actionIconBtn {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 
 .actionIconBtn:hover {

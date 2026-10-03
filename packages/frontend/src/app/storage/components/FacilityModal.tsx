@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { Button, Input, Modal } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
 import styles from '../page.module.css';
 
@@ -36,8 +36,6 @@ export function FacilityModal({
       setError(null);
     }
   }, [isOpen, initialCode, initialName]);
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,58 +78,48 @@ export function FacilityModal({
   };
 
   return (
-    <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-      <div className={styles.modalContent}>
-        <div className={styles.modalHeader}>
-          <h3>{mode === 'edit' ? 'Edit Warehouse Facility' : 'Add New Warehouse Facility'}</h3>
-          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close modal">
-            <X size={18} />
-          </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={mode === 'edit' ? 'Edit Warehouse Facility' : 'Add New Warehouse Facility'}
+      size="sm"
+    >
+      {error && (
+        <div className={styles.bannerError} role="alert" style={{ marginBottom: 'var(--space-3)' }}>
+          {error}
         </div>
+      )}
 
-        {error && (
-          <div className={styles.bannerError} role="alert">
-            {error}
-          </div>
-        )}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        <Input
+          id="facilityCode"
+          label="Facility Code"
+          required
+          placeholder="e.g. F1, CENTRAL, NORTH"
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          disabled={submitting}
+        />
 
-        <form onSubmit={handleSubmit}>
-          <div className={styles.formGroup}>
-            <label htmlFor="facilityCode">Facility Code *</label>
-            <input
-              id="facilityCode"
-              type="text"
-              required
-              placeholder="e.g. F1, CENTRAL, NORTH"
-              className={styles.inputField}
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-            />
-          </div>
+        <Input
+          id="facilityName"
+          label="Facility Name"
+          required
+          placeholder="e.g. Nashik Cold Storage Hub 1"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          disabled={submitting}
+        />
 
-          <div className={styles.formGroup}>
-            <label htmlFor="facilityName">Facility Name *</label>
-            <input
-              id="facilityName"
-              type="text"
-              required
-              placeholder="e.g. Nashik Cold Storage Hub 1"
-              className={styles.inputField}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-
-          <div className={styles.modalActions}>
-            <button type="button" className={styles.cancelBtn} onClick={onClose} disabled={submitting}>
-              Cancel
-            </button>
-            <button type="submit" className={styles.submitBtn} disabled={submitting}>
-              {submitting ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Create'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className={styles.modalActions}>
+          <Button variant="outline" onClick={onClose} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary" disabled={submitting} isLoading={submitting}>
+            {mode === 'edit' ? 'Save Changes' : 'Create'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

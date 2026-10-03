@@ -1,8 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Eye, Plus } from 'lucide-react';
+import Link from 'next/link';
+import { ExternalLink, Eye } from 'lucide-react';
 import type { PositionOccupancy } from '@cold-storage/contracts';
+import { Button } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { requestWithAuth } from '@/lib/api-client';
 import type { useStorageHierarchy } from '../hooks/useStorageHierarchy';
@@ -11,17 +13,11 @@ import styles from '../page.module.css';
 interface HierarchyTabProps {
   hierarchy: ReturnType<typeof useStorageHierarchy>;
   canManageStorage: boolean;
-  onOpenAddChamber: () => void;
-  onOpenAddRack: (chamberId: string) => void;
-  onOpenAddPosition: (levelId: string) => void;
 }
 
 export function HierarchyTab({
   hierarchy,
   canManageStorage,
-  onOpenAddChamber,
-  onOpenAddRack,
-  onOpenAddPosition,
 }: HierarchyTabProps) {
   const handleInspectPosition = async (posId: string) => {
     try {
@@ -58,24 +54,15 @@ export function HierarchyTab({
 
         {canManageStorage && (
           <div className={styles.hierarchyActions}>
-            <button
-              type="button"
-              className={styles.outlineBtn}
-              onClick={onOpenAddChamber}
-            >
-              <Plus size={14} aria-hidden="true" />
-              Add Chamber
-            </button>
-            {hierarchy.activeChamberId && (
-              <button
-                type="button"
-                className={styles.primaryBtn}
-                onClick={() => onOpenAddRack(hierarchy.activeChamberId!)}
+            <Link href="/storage">
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<ExternalLink size={14} aria-hidden="true" />}
               >
-                <Plus size={14} aria-hidden="true" />
-                Add Rack to Chamber
-              </button>
-            )}
+                Manage Storage Layout
+              </Button>
+            </Link>
           </div>
         )}
       </div>
@@ -106,16 +93,6 @@ export function HierarchyTab({
                         <span className={styles.levelNumber}>
                           L{lvl.levelNumber} ({lvl.code})
                         </span>
-                        {canManageStorage && (
-                          <button
-                            type="button"
-                            className={styles.miniBtn}
-                            onClick={() => onOpenAddPosition(lvl.id)}
-                            title="Add Position"
-                          >
-                            <Plus size={10} aria-hidden="true" /> Pos
-                          </button>
-                        )}
                       </div>
 
                       <div className={styles.positionsRow}>

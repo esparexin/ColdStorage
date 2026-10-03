@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle, RefreshCw, UserPlus, X } from 'lucide-react';
+import { AlertCircle, UserPlus } from 'lucide-react';
 import type { Role } from '@cold-storage/contracts';
+import { Button, Modal } from '@/components/ui';
 import { useProvisionUserForm } from '../hooks/useProvisionUserForm';
 import type { FacilityOption } from '../types';
 import styles from '../page.module.css';
@@ -45,21 +46,13 @@ export function ProvisionUserModal({
   });
 
   return (
-    <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <div className={styles.modalContent}>
-        <div className={styles.modalHeader}>
-          <h2 id="modal-title">Provision New User Account</h2>
-          <button
-            type="button"
-            className={styles.closeBtn}
-            onClick={onClose}
-            aria-label="Close dialog"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <form onSubmit={handleCreateUser}>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Provision New User Account"
+      size="lg"
+    >
+      <form onSubmit={handleCreateUser}>
           <div className={styles.modalBody}>
             {createError && (
               <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
@@ -184,35 +177,25 @@ export function ProvisionUserModal({
           </div>
 
           <div className={styles.modalFooter}>
-            <button
-              type="button"
-              className={styles.cancelBtn}
+            <Button
+              variant="outline"
               onClick={onClose}
               disabled={creating}
             >
               Cancel
-            </button>
-            <button
-              type="submit"
+            </Button>
+            <Button
               id="submit-user-btn"
-              className={styles.primaryBtn}
+              type="submit"
+              variant="primary"
               disabled={creating}
+              isLoading={creating}
+              leftIcon={!creating ? <UserPlus size={14} /> : undefined}
             >
-              {creating ? (
-                <>
-                  <RefreshCw size={14} className={styles.spinning} />
-                  <span>Provisioning...</span>
-                </>
-              ) : (
-                <>
-                  <UserPlus size={14} />
-                  <span>Provision User</span>
-                </>
-              )}
-            </button>
+              Provision User
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

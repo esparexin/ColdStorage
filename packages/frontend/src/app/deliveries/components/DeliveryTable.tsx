@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { DeliveryChallan } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { Badge, Button } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface DeliveryTableProps {
@@ -95,17 +96,18 @@ export function DeliveryTable({
       header: 'Status',
       align: 'center',
       render: (row) => (
-        <span className={row.status === 'ISSUED' ? styles.badgeIssued : styles.badgeReversed}>
-          {row.status === 'ISSUED' ? (
-            <>
-              <CheckCircle2 size={12} aria-hidden="true" /> ISSUED
-            </>
-          ) : (
-            <>
-              <Clock size={12} aria-hidden="true" /> REVERSED
-            </>
-          )}
-        </span>
+        <Badge
+          variant={row.status === 'ISSUED' ? 'success' : 'neutral'}
+          icon={
+            row.status === 'ISSUED' ? (
+              <CheckCircle2 size={12} aria-hidden="true" />
+            ) : (
+              <Clock size={12} aria-hidden="true" />
+            )
+          }
+        >
+          {row.status}
+        </Badge>
       ),
     },
     {
@@ -114,39 +116,40 @@ export function DeliveryTable({
       align: 'right',
       render: (row) => (
         <div className={styles.actionGroup}>
-          <button
-            type="button"
-            className={styles.actionBtn}
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => onSelectDelivery(row)}
             title="View Details"
+            leftIcon={<Eye size={13} aria-hidden="true" />}
           >
-            <Eye size={13} aria-hidden="true" />
             View
-          </button>
+          </Button>
 
           {canPrint && (
-            <button
-              type="button"
-              className={styles.actionBtnPrimary}
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => onPrintChallan(row.id)}
               disabled={printingId === row.id}
+              isLoading={printingId === row.id}
               title="Print Outward Delivery Challan & Gate Pass"
+              leftIcon={<Printer size={13} aria-hidden="true" />}
             >
-              <Printer size={13} aria-hidden="true" />
               Challan
-            </button>
+            </Button>
           )}
 
           {row.status === 'ISSUED' && canReverse && (
-            <button
-              type="button"
-              className={styles.actionBtnDanger}
+            <Button
+              variant="dangerOutline"
+              size="sm"
               onClick={() => onStartReversal(row)}
               title="Reverse Delivery (Restores stock to positions)"
+              leftIcon={<RotateCcw size={13} aria-hidden="true" />}
             >
-              <RotateCcw size={13} aria-hidden="true" />
               Reverse
-            </button>
+            </Button>
           )}
         </div>
       ),
