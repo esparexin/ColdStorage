@@ -153,12 +153,10 @@ export function CreateGrnModal({
                 <div className={styles.fieldGroup}>
                   <label htmlFor="create-bags-total" className={styles.fieldLabel}>Total Bags</label>
                   <input id="create-bags-total" type="number" disabled value={form.createBags} className={styles.fieldInput} />
-                  <span className={styles.fieldHint}>Auto-calculated (Small + Big bags)</span>
                 </div>
                 <div className={styles.fieldGroup}>
                   <label htmlFor="create-actual-weight" className={styles.fieldLabel}>Weighbridge Weight (kg) (Optional)</label>
                   <input id="create-actual-weight" type="number" step="0.01" min={0} value={form.createActualWeight} onChange={(e) => form.setCreateActualWeight(e.target.value ? parseFloat(e.target.value) : '')} className={styles.fieldInput} />
-                  <span className={styles.fieldHint}>Optional — leave blank if no weighbridge reading is available.</span>
                 </div>
               </div>
             ) : (
@@ -170,7 +168,6 @@ export function CreateGrnModal({
                 <div className={styles.fieldGroup}>
                   <label htmlFor="create-actual-weight" className={styles.fieldLabel}>Weighbridge Weight (kg) (Optional)</label>
                   <input id="create-actual-weight" type="number" step="0.01" min={0} value={form.createActualWeight} onChange={(e) => form.setCreateActualWeight(e.target.value ? parseFloat(e.target.value) : '')} className={styles.fieldInput} />
-                  <span className={styles.fieldHint}>Optional — leave blank if no weighbridge reading is available.</span>
                 </div>
               </div>
             )}
