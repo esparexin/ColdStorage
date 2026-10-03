@@ -4,8 +4,6 @@
    Do NOT define raw color/spacing values inline.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
 :root {
   /* ---- Brand palette ---- */
   --color-primary:        hsl(220, 90%, 56%);
@@ -43,7 +41,7 @@
   --color-sidebar-hover:  hsl(222, 30%, 18%);
 
   /* ---- Typography ---- */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-inter, 'Inter', system-ui, -apple-system, sans-serif);
   --font-mono: ui-monospace, 'Cascadia Code', monospace;
 
   --text-xs:   0.75rem;
