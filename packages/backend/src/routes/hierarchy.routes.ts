@@ -1,13 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import {
-  createChamberSchema,
-  createLevelSchema,
-  createPositionSchema,
-  createRackSchema,
-  updateChamberSchema,
-  updateLevelSchema,
-  updatePositionSchema,
-  updateRackSchema,
+  createChamberSchema, createLevelSchema, createPositionSchema, createRackSchema,
+  updateChamberSchema, updateLevelSchema, updatePositionSchema, updateRackSchema,
 } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
@@ -371,8 +365,9 @@ hierarchyRouter.patch(
       res.status(200).json({ position: updated });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Position update failed';
-      const status = message.includes('already exists') || message.includes('inactive') ? 409 : 400;
-      res.status(status).json({ error: message });
+      const isConflict = message.includes('already exists') || message.includes('inactive') ||
+        message.includes('active inventory') || message.includes('reduce capacity');
+      res.status(isConflict ? 409 : 400).json({ error: message });
     }
   },
 );
