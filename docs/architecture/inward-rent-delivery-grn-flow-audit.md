@@ -56,3 +56,7 @@ Apparent duplicates that are **not** duplicates: header `create-*-btn` vs empty-
 * Frontend: one `useRentGate(grnId)` reusing `GET /rent/grn/:id`; `useCreateDeliveryForm` + put-away submit check gate before `POST`; pending-intent state reuses existing `CollectPaymentModal` + `useCollectPaymentForm`; on success resume preserved draft. No new route, no new payment hook, no duplicated `POST /rent/collect`.
 * Phase 4: no new GRN API. Delivery summary already links `grnId/grnNumber`; GRN detail already links `inventory?grnId=`. Only ensure rent warning surfaces in final-delivery path that triggers auto-`CLOSED`.
 * Phase 5: no component deletions beyond gating UI; keep both entry buttons (header + empty) as they share one modal.
+
+## 6. Operational note: CI only schedules `main`-gated workflows for PRs targeting `main`
+
+`ColdStorage CI`, `Governance Validation`, `Governance Health Check`, `Playwright Tests`, `Security Audits`, `CodeQL Advanced`, and `Commitlint` all gate `pull_request` on `branches: [main]`. A PR opened against any other base runs only `DangerJS Governance` (+ skipped `Dependabot Updates`) until it targets `main` and receives an `opened`/`synchronize`/`reopened` event. Open flow PRs directly against `main`.
