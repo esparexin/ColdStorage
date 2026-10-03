@@ -69,8 +69,14 @@ for model in "$ROOT/packages/backend/src/database/models"/*.ts; do
   done
 done
 
+# 10. Backend Logging Hygiene: Zero raw console.(log|warn|error) in backend modules
+if grep -rnE "console\.(log|warn|error)" "$ROOT/packages/backend/src/modules" 2>/dev/null; then
+  fail "Backend logging hygiene violation: raw console.* calls prohibited in backend modules. Use structured error handling or domain events."
+fi
+
 if [ "$EXIT" -eq 0 ]; then
   echo "[PASS] All architecture boundaries and UI SSOT governance checks passed."
 fi
 
 exit "$EXIT"
+

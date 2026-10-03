@@ -117,9 +117,8 @@ export class AssetService {
             await cloudinary.uploader.destroy(oldAsset.publicId, { resource_type: 'image' });
             await AssetModel.deleteOne({ id: oldAssetId });
           }
-        } catch (cleanupErr) {
-          // Non-fatal warning
-          console.warn('Failed to clean up superseded logo asset:', cleanupErr);
+        } catch {
+          // Non-blocking cleanup: ignore failures when purging superseded asset
         }
       }
 
@@ -128,8 +127,8 @@ export class AssetService {
       // Rollback newly uploaded Cloudinary image to prevent orphans
       try {
         await cloudinary.uploader.destroy(uploadResult.public_id, { resource_type: 'image' });
-      } catch (destroyErr) {
-        console.error('Failed to destroy Cloudinary image during upload rollback:', destroyErr);
+      } catch {
+        // Rollback failure is ignored so original database error is preserved
       }
       throw dbErr;
     }
@@ -155,8 +154,8 @@ export class AssetService {
         cloudinary.config({ cloudinary_url: config.cloudinaryUrl });
         try {
           await cloudinary.uploader.destroy(assetDoc.publicId, { resource_type: 'image' });
-        } catch (destroyErr) {
-          console.warn('Failed to destroy Cloudinary image during logo removal:', destroyErr);
+        } catch {
+          // Best-effort remote deletion; continue local database cleanup
         }
       }
       await AssetModel.deleteOne({ id: currentAssetId });
