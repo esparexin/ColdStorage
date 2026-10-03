@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Chamber, Level, Rack } from '@cold-storage/contracts';
+import type { Chamber, Level, Position, Rack } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import type { ModalType } from '../types';
 
@@ -8,6 +8,9 @@ export function useStorageMutations(
   selectedChamber: Chamber | null,
   selectedRack: Rack | null,
   selectedLevel: Level | null,
+  racks: Rack[],
+  levels: Level[],
+  positions: Position[],
   onRefreshChambers: () => void,
   onRefreshRacks: (chamberId: string) => void,
   onRefreshLevels: (rackId: string) => void,
@@ -25,6 +28,31 @@ export function useStorageMutations(
   const [levelCode, setLevelCode] = useState('');
   const [positionCode, setPositionCode] = useState('');
   const [capacityBags, setCapacityBags] = useState('100');
+
+  const openCreateModal = (type: ModalType) => {
+    setFormError(null);
+    setActionSuccess(null);
+    if (type === 'chamber') {
+      setChamberNumber('');
+      setChamberName('');
+    } else if (type === 'rack') {
+      const nextCharCode = 65 + racks.length;
+      const suggestedCode =
+        nextCharCode <= 90 ? String.fromCharCode(nextCharCode) : `R-${racks.length + 1}`;
+      setRackCode(suggestedCode);
+    } else if (type === 'level') {
+      const nextNum = levels.length + 1;
+      const rackPrefix = selectedRack ? selectedRack.code.trim().toUpperCase() : 'A';
+      setLevelNumber(String(nextNum));
+      setLevelCode(`${rackPrefix}${String(nextNum).padStart(2, '0')}`);
+    } else if (type === 'position') {
+      const nextNum = positions.length + 1;
+      const levelPrefix = selectedLevel ? selectedLevel.code.trim() : 'A01';
+      setPositionCode(`${levelPrefix}-${String(nextNum).padStart(2, '0')}`);
+      setCapacityBags('100');
+    }
+    setActiveModal(type);
+  };
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,6 +146,7 @@ export function useStorageMutations(
   return {
     activeModal,
     setActiveModal,
+    openCreateModal,
     submitting,
     formError,
     setFormError,

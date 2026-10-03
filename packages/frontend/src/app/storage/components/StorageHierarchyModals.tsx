@@ -114,7 +114,7 @@ export function StorageHierarchyModals({
                 id="rackCode"
                 type="text"
                 required
-                placeholder="e.g. R-01, R-02"
+                placeholder="e.g. A, B, C"
                 className={styles.inputField}
                 value={rackCode}
                 onChange={(e) => setRackCode(e.target.value)}
@@ -142,7 +142,7 @@ export function StorageHierarchyModals({
                   id="levelCode"
                   type="text"
                   required
-                  placeholder="e.g. L-01, L-02"
+                  placeholder="e.g. A01, A02"
                   className={styles.inputField}
                   value={levelCode}
                   onChange={(e) => setLevelCode(e.target.value)}
@@ -159,7 +159,7 @@ export function StorageHierarchyModals({
                   id="positionCode"
                   type="text"
                   required
-                  placeholder="e.g. P-01, P-02"
+                  placeholder="e.g. A01-01, A01-02"
                   className={styles.inputField}
                   value={positionCode}
                   onChange={(e) => setPositionCode(e.target.value)}

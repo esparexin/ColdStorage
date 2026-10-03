@@ -32,6 +32,9 @@ export default function StorageHierarchyPage() {
     browser.selectedChamber,
     browser.selectedRack,
     browser.selectedLevel,
+    browser.racks,
+    browser.levels,
+    browser.positions,
     () => void browser.fetchChambers(),
     (chId) => void browser.fetchRacks(chId),
     (rkId) => void browser.fetchLevels(rkId),
@@ -151,11 +154,7 @@ export default function StorageHierarchyPage() {
         selectedPosition={browser.selectedPosition}
         onSelectPosition={browser.handleSelectPosition}
         canManage={canManage}
-        onOpenModal={(type) => {
-          mutations.setFormError(null);
-          mutations.setActionSuccess(null);
-          mutations.setActiveModal(type);
-        }}
+        onOpenModal={mutations.openCreateModal}
         loadingChambers={browser.loadingChambers}
         loadingRacks={browser.loadingRacks}
         loadingLevels={browser.loadingLevels}
