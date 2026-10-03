@@ -38,8 +38,21 @@ backupRouter.post(
         res.status(409).json({ error: 'Backup is already in progress' });
         return;
       }
+      // Configuration refusals are reported as 503 so a client can distinguish "not set up yet"
+      // from a genuine server fault, which previously surfaced as an opaque 500.
       if (message.includes('BACKUP_DISABLED')) {
-        res.status(400).json({ error: 'Drive backup is disabled in system settings' });
+        res.status(503).json({
+          error: 'Encrypted backup is disabled in system settings',
+          code: 'BACKUP_DISABLED',
+        });
+        return;
+      }
+      if (message.includes('BACKUP_KEY_INVALID')) {
+        res.status(503).json({
+          error:
+            'BACKUP_ENCRYPTION_KEY is not configured on the server; it must be a 64-character hexadecimal string',
+          code: 'BACKUP_KEY_INVALID',
+        });
         return;
       }
       res.status(500).json({ error: message });
