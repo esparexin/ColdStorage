@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Search } from 'lucide-react';
 import type { AuditEventType, AuditSeverity } from '@cold-storage/contracts';
+import { SearchBar } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface AuditFilterToolbarProps {
@@ -24,16 +24,13 @@ export function AuditFilterToolbar({
 }: AuditFilterToolbarProps) {
   return (
     <div className={styles.toolbar}>
-      <div className={styles.searchGroup}>
-        <Search size={16} color="var(--color-text-muted)" aria-hidden="true" />
-        <input
-          type="text"
-          placeholder="Search Actor, Event, Resource, IP..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className={styles.searchInput}
-        />
-      </div>
+      <SearchBar
+        value={searchTerm}
+        onChange={onSearchChange}
+        placeholder="Search Actor, Event, Resource, IP..."
+        ariaLabel="Search audit logs"
+        onClear={() => onSearchChange('')}
+      />
 
       <div className={styles.filtersGroup}>
         <select

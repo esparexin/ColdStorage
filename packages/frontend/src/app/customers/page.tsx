@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { can, type Customer, type Role } from '@cold-storage/contracts';
-import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import { Button, FeedbackStates, SearchBar } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { CustomerFormModal } from './components/CustomerFormModal';
@@ -53,29 +53,23 @@ export default function CustomersPage() {
           <p className={styles.pageSub}>Directory of registered farmers, traders, and institutional clients</p>
         </div>
         {canManage && (
-          <button
+          <Button
             id="add-customer-btn"
-            type="button"
-            className={styles.primaryBtn}
+            variant="primary"
             onClick={openCreateModal}
+            leftIcon={<Plus size={16} aria-hidden="true" />}
           >
-            <Plus size={16} aria-hidden="true" />
-            <span>Add Customer</span>
-          </button>
+            Add Customer
+          </Button>
         )}
       </div>
 
-      <div className={styles.searchBar}>
-        <Search size={16} aria-hidden="true" color="var(--color-text-muted)" />
-        <input
-          type="search"
-          placeholder="Search by name, mobile, or GSTIN…"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className={styles.searchInput}
-          aria-label="Search customers"
-        />
-      </div>
+      <SearchBar
+        value={searchTerm}
+        onChange={setSearchTerm}
+        placeholder="Search by name, mobile, or GSTIN…"
+        ariaLabel="Search customers"
+      />
 
       {loading ? (
         <FeedbackStates.Loading label="Loading customers…" />

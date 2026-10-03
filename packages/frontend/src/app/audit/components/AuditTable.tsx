@@ -4,7 +4,7 @@ import React from 'react';
 import { Eye } from 'lucide-react';
 import type { AuditLogRecord } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
-import styles from '../page.module.css';
+import { Badge, Button } from '@/components/ui';
 
 interface AuditTableProps {
   logs: AuditLogRecord[];
@@ -30,19 +30,17 @@ export function AuditTable({ logs, onInspect }: AuditTableProps) {
       header: 'Severity',
       align: 'center',
       render: (r) => (
-        <span
-          className={
-            r.severity === 'CRITICAL'
-              ? styles.badgeCritical
-              : r.severity === 'SECURITY'
-                ? styles.badgeSecurity
-                : r.severity === 'WARN'
-                  ? styles.badgeWarn
-                  : styles.badgeInfo
+        <Badge
+          variant={
+            r.severity === 'CRITICAL' || r.severity === 'SECURITY'
+              ? 'danger'
+              : r.severity === 'WARN'
+                ? 'warning'
+                : 'neutral'
           }
         >
           {r.severity}
-        </span>
+        </Badge>
       ),
     },
     {
@@ -89,14 +87,14 @@ export function AuditTable({ logs, onInspect }: AuditTableProps) {
       header: 'Payload',
       align: 'right',
       render: (r) => (
-        <button
-          type="button"
-          className={styles.actionBtn}
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => onInspect(r)}
+          leftIcon={<Eye size={13} aria-hidden="true" />}
         >
-          <Eye size={13} aria-hidden="true" />
           Inspect
-        </button>
+        </Button>
       ),
     },
   ];

@@ -4,7 +4,7 @@ import React from 'react';
 import { Edit2 } from 'lucide-react';
 import type { Customer } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
-import styles from '../page.module.css';
+import { Badge, Button } from '@/components/ui';
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -38,9 +38,9 @@ export function CustomerTable({ customers, canManage, onEdit }: CustomerTablePro
       key: 'status',
       header: 'Status',
       render: (row) => (
-        <span className={row.isActive ? styles.statusActive : styles.statusInactive}>
+        <Badge variant={row.isActive ? 'success' : 'neutral'}>
           {row.isActive ? 'Active' : 'Inactive'}
-        </span>
+        </Badge>
       ),
     },
     ...(canManage
@@ -49,15 +49,15 @@ export function CustomerTable({ customers, canManage, onEdit }: CustomerTablePro
             key: 'actions',
             header: 'Actions',
             render: (row: Customer) => (
-              <button
-                type="button"
-                className={styles.editBtn}
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => onEdit(row)}
                 title="Edit customer details"
+                leftIcon={<Edit2 size={13} aria-hidden="true" />}
               >
-                <Edit2 size={13} aria-hidden="true" />
-                <span>Edit</span>
-              </button>
+                Edit
+              </Button>
             ),
             align: 'right' as const,
           },

@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Search } from 'lucide-react';
+import { Filter } from 'lucide-react';
 import type { Role } from '@cold-storage/contracts';
+import { Button, SearchBar } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface UserFilterBarProps {
@@ -18,18 +19,22 @@ export function UserFilterBar({
   roleFilter,
   onRoleFilterChange,
 }: UserFilterBarProps) {
+  const hasActiveFilters = Boolean(searchTerm || roleFilter);
+
+  const handleReset = () => {
+    onSearchChange('');
+    onRoleFilterChange('');
+  };
+
   return (
     <div className={styles.filterCard}>
-      <div className={styles.searchBox}>
-        <Search size={16} color="var(--color-text-secondary)" />
-        <input
-          type="text"
-          placeholder="Search by name, username, employee ID, mobile, or email..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          aria-label="Search users"
-        />
-      </div>
+      <SearchBar
+        value={searchTerm}
+        onChange={onSearchChange}
+        placeholder="Search by name, username, employee ID, mobile, or email..."
+        ariaLabel="Search users"
+        onClear={() => onSearchChange('')}
+      />
       <select
         className={styles.selectInput}
         value={roleFilter}
@@ -42,6 +47,16 @@ export function UserFilterBar({
         <option value="OPERATOR">OPERATOR</option>
         <option value="READ_ONLY">READ_ONLY</option>
       </select>
+      {hasActiveFilters && (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handleReset}
+          leftIcon={<Filter size={12} aria-hidden="true" />}
+        >
+          Reset
+        </Button>
+      )}
     </div>
   );
 }

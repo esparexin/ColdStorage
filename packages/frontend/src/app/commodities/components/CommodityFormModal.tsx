@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { Button, Input } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
 import styles from '../page.module.css';
 
@@ -74,24 +75,19 @@ export function CommodityFormModal({ onClose, onSuccess }: CommodityFormModalPro
             </div>
           )}
 
-          <div className={styles.fieldGroup}>
-            <label htmlFor="commodity-name" className={styles.fieldLabel}>
-              Commodity Name *
-            </label>
-            <input
-              id="commodity-name"
-              type="text"
-              required
-              maxLength={100}
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              placeholder="e.g. Potato (Kufri Jyoti), Apples, Garlic"
-              className={styles.fieldInput}
-              disabled={submitting}
-            />
-          </div>
+          <Input
+            id="commodity-name"
+            label="Commodity Name"
+            type="text"
+            required
+            maxLength={100}
+            value={formName}
+            onChange={(e) => setFormName(e.target.value)}
+            placeholder="e.g. Potato (Kufri Jyoti), Apples, Garlic"
+            disabled={submitting}
+          />
 
-          <div className={styles.fieldGroup}>
+          <div className={styles.fieldGroup} style={{ marginTop: 'var(--space-3)' }}>
             <label className={styles.checkboxLabel}>
               <input
                 type="checkbox"
@@ -104,22 +100,21 @@ export function CommodityFormModal({ onClose, onSuccess }: CommodityFormModalPro
           </div>
 
           <div className={styles.modalFooter}>
-            <button
-              type="button"
-              className={styles.cancelBtn}
+            <Button
+              variant="secondary"
               onClick={onClose}
               disabled={submitting}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               id="save-commodity-btn"
               type="submit"
-              className={styles.primaryBtn}
-              disabled={submitting}
+              variant="primary"
+              isLoading={submitting}
             >
-              {submitting ? 'Saving…' : 'Register Commodity'}
-            </button>
+              Register Commodity
+            </Button>
           </div>
         </form>
       </div>

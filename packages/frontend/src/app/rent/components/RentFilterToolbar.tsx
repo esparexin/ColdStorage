@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Filter, Search } from 'lucide-react';
+import { Filter } from 'lucide-react';
 import type { PaymentStatus } from '@cold-storage/contracts';
+import { Button, SearchBar } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface RentFilterToolbarProps {
@@ -22,17 +23,14 @@ export function RentFilterToolbar({
 }: RentFilterToolbarProps) {
   return (
     <div className={styles.toolbar}>
-      <div className={styles.searchGroup}>
-        <Search size={16} color="var(--color-text-muted)" aria-hidden="true" />
-        <input
-          id="rent-search-input"
-          type="text"
-          placeholder="Search GRN #, Customer, Mobile, Commodity..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className={styles.searchInput}
-        />
-      </div>
+      <SearchBar
+        id="rent-search-input"
+        value={searchTerm}
+        onChange={onSearchChange}
+        placeholder="Search GRN #, Customer, Mobile, Commodity..."
+        ariaLabel="Search rent billing"
+        onClear={onReset}
+      />
 
       <div className={styles.filtersGroup}>
         <select
@@ -48,14 +46,14 @@ export function RentFilterToolbar({
         </select>
 
         {(statusFilter || searchTerm) && (
-          <button
-            type="button"
-            className={styles.clearFiltersBtn}
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={onReset}
+            leftIcon={<Filter size={12} aria-hidden="true" />}
           >
-            <Filter size={12} aria-hidden="true" />
             Reset
-          </button>
+          </Button>
         )}
       </div>
     </div>

@@ -4,7 +4,7 @@ import React from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import type { Commodity } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
-import styles from '../page.module.css';
+import { Badge, Button } from '@/components/ui';
 
 interface CommodityTableProps {
   commodities: Commodity[];
@@ -23,9 +23,9 @@ export function CommodityTable({ commodities, canManage, onToggleActive }: Commo
       key: 'status',
       header: 'Status',
       render: (row) => (
-        <span className={row.isActive ? styles.statusActive : styles.statusInactive}>
+        <Badge variant={row.isActive ? 'success' : 'neutral'}>
           {row.isActive ? 'Active' : 'Inactive'}
-        </span>
+        </Badge>
       ),
     },
     ...(canManage
@@ -34,24 +34,21 @@ export function CommodityTable({ commodities, canManage, onToggleActive }: Commo
             key: 'actions',
             header: 'Actions',
             render: (row: Commodity) => (
-              <button
-                type="button"
-                className={styles.toggleBtn}
+              <Button
+                variant={row.isActive ? 'dangerOutline' : 'outline'}
+                size="sm"
                 onClick={() => void onToggleActive(row)}
                 title={row.isActive ? 'Deactivate commodity' : 'Activate commodity'}
-              >
-                {row.isActive ? (
-                  <>
+                leftIcon={
+                  row.isActive ? (
                     <XCircle size={13} aria-hidden="true" color="var(--color-danger)" />
-                    <span>Deactivate</span>
-                  </>
-                ) : (
-                  <>
+                  ) : (
                     <CheckCircle2 size={13} aria-hidden="true" color="var(--color-success)" />
-                    <span>Activate</span>
-                  </>
-                )}
-              </button>
+                  )
+                }
+              >
+                {row.isActive ? 'Deactivate' : 'Activate'}
+              </Button>
             ),
             align: 'right' as const,
           },

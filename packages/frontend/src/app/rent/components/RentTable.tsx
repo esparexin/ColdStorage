@@ -4,6 +4,7 @@ import React from 'react';
 import { CheckCircle2, Clock, Eye, Plus } from 'lucide-react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { Badge, Button } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface RentTableProps {
@@ -103,19 +104,18 @@ export function RentTable({
       header: 'Status',
       align: 'center',
       render: (row) => (
-        <span
-          className={row.paymentStatus === 'Settled' ? styles.badgeSettled : styles.badgeDue}
+        <Badge
+          variant={row.paymentStatus === 'Settled' ? 'success' : 'warning'}
+          icon={
+            row.paymentStatus === 'Settled' ? (
+              <CheckCircle2 size={12} aria-hidden="true" />
+            ) : (
+              <Clock size={12} aria-hidden="true" />
+            )
+          }
         >
-          {row.paymentStatus === 'Settled' ? (
-            <>
-              <CheckCircle2 size={12} aria-hidden="true" /> Settled
-            </>
-          ) : (
-            <>
-              <Clock size={12} aria-hidden="true" /> Not Settled
-            </>
-          )}
-        </span>
+          {row.paymentStatus === 'Settled' ? 'Settled' : 'Not Settled'}
+        </Badge>
       ),
     },
     {
@@ -125,26 +125,26 @@ export function RentTable({
       render: (row) => (
         <div className={styles.actionGroup}>
           {row.paymentStatus !== 'Settled' && canCollect && (
-            <button
-              type="button"
-              className={styles.actionBtnPrimary}
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => onOpenCollect(row)}
               title="Collect rent payment"
+              leftIcon={<Plus size={13} aria-hidden="true" />}
             >
-              <Plus size={13} aria-hidden="true" />
               Collect
-            </button>
+            </Button>
           )}
 
-          <button
-            type="button"
-            className={styles.actionBtn}
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => onOpenHistory(row)}
             title="View payment receipts history"
+            leftIcon={<Eye size={13} aria-hidden="true" />}
           >
-            <Eye size={13} aria-hidden="true" />
             Receipts ({row.payments.length})
-          </button>
+          </Button>
         </div>
       ),
     },

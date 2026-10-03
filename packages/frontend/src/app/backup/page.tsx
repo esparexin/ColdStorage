@@ -3,6 +3,7 @@
 import React from 'react';
 import { AlertCircle, CheckCircle2, Play, RefreshCw, ShieldAlert } from 'lucide-react';
 import { can, type BackupStatus, type Role } from '@cold-storage/contracts';
+import { Button } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { BackupLogTable } from './components/BackupLogTable';
 import { BackupStatusCards } from './components/BackupStatusCards';
@@ -58,38 +59,28 @@ export default function BackupPage() {
           </p>
         </div>
         <div className={styles.headerActions}>
-          <button
-            type="button"
-            className={styles.refreshBtn}
+          <Button
+            variant="outline"
             onClick={() => {
               void fetchStatus();
               void fetchLogs();
             }}
             disabled={loadingStatus || loadingLogs}
             aria-label="Refresh backup data"
+            leftIcon={<RefreshCw size={16} className={loadingStatus || loadingLogs ? styles.spinning : ''} />}
           >
-            <RefreshCw size={16} className={loadingStatus || loadingLogs ? styles.spinning : ''} />
-            <span>Refresh</span>
-          </button>
-          <button
-            type="button"
+            Refresh
+          </Button>
+          <Button
             id="trigger-backup-button"
-            className={styles.triggerBtn}
+            variant="primary"
             onClick={handleTriggerBackup}
             disabled={triggering}
+            isLoading={triggering}
+            leftIcon={!triggering ? <Play size={16} /> : undefined}
           >
-            {triggering ? (
-              <>
-                <RefreshCw size={16} className={styles.spinning} />
-                <span>Encrypting & Writing Backup...</span>
-              </>
-            ) : (
-              <>
-                <Play size={16} />
-                <span>Trigger Manual Backup</span>
-              </>
-            )}
-          </button>
+            {triggering ? 'Encrypting & Writing Backup...' : 'Trigger Manual Backup'}
+          </Button>
         </div>
       </header>
 

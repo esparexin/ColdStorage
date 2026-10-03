@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { can, type DeliveryChallan, type Role } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import { Button } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { requestWithAuth } from '@/lib/api-client';
@@ -71,15 +72,14 @@ export default function DeliveriesPage() {
 
         <div className={styles.headerActions}>
           {canCreate && selectedFacilityId && (
-            <button
+            <Button
               id="create-delivery-btn"
-              type="button"
-              className={styles.primaryBtn}
+              variant="primary"
               onClick={() => setIsCreateOpen(true)}
+              leftIcon={<Plus size={16} aria-hidden="true" />}
             >
-              <Plus size={16} aria-hidden="true" />
               Issue Delivery Challan
-            </button>
+            </Button>
           )}
         </div>
       </div>

@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { can, type Role } from '@cold-storage/contracts';
-import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import { Button, FeedbackStates, SearchBar } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { CommodityFormModal } from './components/CommodityFormModal';
 import { CommodityTable } from './components/CommodityTable';
@@ -44,29 +44,23 @@ export default function CommoditiesPage() {
           <p className={styles.pageSub}>Master catalog of acceptable agricultural and perishable goods</p>
         </div>
         {canManage && (
-          <button
+          <Button
             id="add-commodity-btn"
-            type="button"
-            className={styles.primaryBtn}
+            variant="primary"
             onClick={openCreateModal}
+            leftIcon={<Plus size={16} aria-hidden="true" />}
           >
-            <Plus size={16} aria-hidden="true" />
-            <span>Add Commodity</span>
-          </button>
+            Add Commodity
+          </Button>
         )}
       </div>
 
-      <div className={styles.searchBar}>
-        <Search size={16} aria-hidden="true" color="var(--color-text-muted)" />
-        <input
-          type="search"
-          placeholder="Search by commodity name…"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className={styles.searchInput}
-          aria-label="Search commodities"
-        />
-      </div>
+      <SearchBar
+        value={searchTerm}
+        onChange={setSearchTerm}
+        placeholder="Search by commodity name…"
+        ariaLabel="Search commodities"
+      />
 
       {loading ? (
         <FeedbackStates.Loading label="Loading commodities…" />
