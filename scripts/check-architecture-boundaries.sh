@@ -43,6 +43,21 @@ if [ -d "$ROOT/packages/backend/src/tests" ]; then
   fail "Legacy test directory packages/backend/src/tests exists; tests must reside in __tests__."
 fi
 
+# 6. Put-Away Route Contract Enforcement: frontend must use /allocations, not /put-away
+if grep -rnE "(\/grns\/[^\/]+\/put-away)" "$ROOT/packages/frontend/src" --exclude-dir=.next --exclude-dir=node_modules 2>/dev/null; then
+  fail "Put-Away contract violation: frontend must call canonical '/allocations' endpoint, not '/put-away'."
+fi
+
+# 7. Position Occupancy Facility-Scope Enforcement: frontend must include facilityId in path
+if grep -rnE "requestWithAuth\(['\`]\/?api\/positions\/[^/]+\/occupancy" "$ROOT/packages/frontend/src" --exclude-dir=.next --exclude-dir=node_modules 2>/dev/null; then
+  fail "Position occupancy route contract violation: frontend must include facilityId scope (/api/facilities/:facilityId/positions/:positionId/occupancy)."
+fi
+
+# 8. Type SSOT Enforcement: frontend must not declare duplicate PositionOccupancyResponse
+if grep -rnE "interface PositionOccupancyResponse" "$ROOT/packages/frontend/src" --exclude-dir=.next --exclude-dir=node_modules 2>/dev/null; then
+  fail "Type SSOT violation: frontend must import PositionOccupancy from @cold-storage/contracts instead of declaring PositionOccupancyResponse."
+fi
+
 if [ "$EXIT" -eq 0 ]; then
   echo "[PASS] All architecture boundaries and UI SSOT governance checks passed."
 fi
