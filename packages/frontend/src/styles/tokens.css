@@ -17,6 +17,7 @@
   --color-warning-subtle: hsl(38, 92%, 96%);
 
   --color-danger:         hsl(0, 72%, 51%);
+  --color-danger-hover:  hsl(0, 72%, 44%);
   --color-danger-subtle:  hsl(0, 72%, 96%);
 
   --color-inactive:       hsl(0, 0%, 60%);

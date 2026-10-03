@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { AlertCircle, CheckCircle2, FileSpreadsheet, Upload } from 'lucide-react';
+import { Button, Select } from '@/components/ui';
 import type { ImportSummaryResult } from '../types';
 import styles from '../page.module.css';
 
@@ -48,20 +49,16 @@ export function ImportPanel({
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="import-target-select" style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>
-              Select Data Entity Type *
-            </label>
-            <select
+          <Select
               id="import-target-select"
+              label="Select Data Entity Type"
+              required
               value={importTarget}
               onChange={(e) => setImportTarget(e.target.value as 'customers' | 'grns')}
-              style={{ padding: '8px 12px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', background: 'var(--color-surface-1)' }}
             >
               <option value="customers">Customers (KYC & Contact Records)</option>
               <option value="grns">Inward Goods Receipt Notes (GRNs)</option>
-            </select>
-          </div>
+            </Select>
 
           <label className={styles.dropzone}>
             <FileSpreadsheet size={32} color="var(--color-primary)" aria-hidden="true" />
@@ -82,14 +79,15 @@ export function ImportPanel({
             />
           </label>
 
-          <button
+          <Button
             type="submit"
-            className={styles.primaryBtn}
+            variant="primary"
             disabled={importing || !selectedFile}
+            isLoading={importing}
+            leftIcon={<Upload size={15} aria-hidden="true" />}
           >
-            <Upload size={15} aria-hidden="true" />
             {importing ? 'Processing Import...' : `Import ${importTarget.toUpperCase()} CSV`}
-          </button>
+          </Button>
 
           {importResult && (
             <div className={styles.summaryBox}>

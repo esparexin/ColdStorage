@@ -3,6 +3,7 @@
 import React from 'react';
 import { Filter, Search } from 'lucide-react';
 import type { InventoryTransaction } from '@cold-storage/contracts';
+import { Button, Select } from '@/components/ui';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import type { useStockLedger } from '../hooks/useStockLedger';
@@ -92,7 +93,7 @@ export function LedgerTab({ ledger, currentFacilityName }: LedgerTabProps) {
         </div>
 
         <div className={styles.filtersGroup}>
-          <select
+          <Select
             aria-label="Filter by Transaction Type"
             className={styles.filterSelect}
             value={ledger.ledgerTypeFilter}
@@ -102,21 +103,21 @@ export function LedgerTab({ ledger, currentFacilityName }: LedgerTabProps) {
             <option value="INWARD_PUTAWAY">Inward Put-Away (+)</option>
             <option value="OUTWARD_DELIVERY">Outward Delivery (-)</option>
             <option value="DELIVERY_REVERSAL">Delivery Reversal (+)</option>
-          </select>
+          </Select>
 
           {(ledger.ledgerSearch || ledger.ledgerTypeFilter) && (
-            <button
-              type="button"
-              className={styles.clearFiltersBtn}
-              onClick={() => {
-                ledger.setLedgerSearch('');
-                ledger.setLedgerTypeFilter('');
-              }}
-            >
-              <Filter size={12} aria-hidden="true" />
-              Reset
-            </button>
-          )}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  ledger.setLedgerSearch('');
+                  ledger.setLedgerTypeFilter('');
+                }}
+                leftIcon={<Filter size={12} aria-hidden="true" />}
+              >
+                Reset
+              </Button>
+            )}
         </div>
       </div>
 

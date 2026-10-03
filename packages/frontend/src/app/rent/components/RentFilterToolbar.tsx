@@ -3,7 +3,7 @@
 import React from 'react';
 import { Filter } from 'lucide-react';
 import type { PaymentStatus } from '@cold-storage/contracts';
-import { Button, SearchBar } from '@/components/ui';
+import { Button, SearchBar, Select } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface RentFilterToolbarProps {
@@ -33,7 +33,7 @@ export function RentFilterToolbar({
       />
 
       <div className={styles.filtersGroup}>
-        <select
+        <Select
           id="rent-status-filter"
           aria-label="Filter by Payment Status"
           className={styles.filterSelect}
@@ -43,7 +43,7 @@ export function RentFilterToolbar({
           <option value="">All Payment Statuses</option>
           <option value="Not Settled">Not Settled (Pending Dues)</option>
           <option value="Settled">Settled (Fully Paid)</option>
-        </select>
+        </Select>
 
         {(statusFilter || searchTerm) && (
           <Button

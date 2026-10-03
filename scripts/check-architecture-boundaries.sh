@@ -69,7 +69,40 @@ for model in "$ROOT/packages/backend/src/database/models"/*.ts; do
   done
 done
 
-# 10. Backend Logging Hygiene: Zero raw console.(log|warn|error) in backend modules
+# 11. UI SSOT Primitive Enforcement: no native <select> outside the DS primitive
+if grep -rnE "<select[ >]" "$ROOT/packages/frontend/src" \
+  --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null \
+  | grep -v "components/ui/Select.tsx"; then
+  fail "UI SSOT violation: native <select> bypasses the canonical Select primitive (components/ui/Select.tsx). Use <Select> instead."
+fi
+
+# 12. UI SSOT Primitive Enforcement: no native <button> in feature/layout code
+NATIVE_BUTTON_HITS=$(grep -rnE "<button[ >]" "$ROOT/packages/frontend/src/app" "$ROOT/packages/frontend/src/components/layout" "$ROOT/packages/frontend/src/components/auth" \
+  --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null || true)
+if [ -n "$NATIVE_BUTTON_HITS" ]; then
+  echo "$NATIVE_BUTTON_HITS" | head -20
+  fail "UI SSOT violation: native <button> found outside components/ui. Use the canonical Button primitive (variant/size/leftIcon/isLoading)."
+fi
+
+# 13. Design Token SSOT: no raw hex/hsl colors outside the canonical token sheet
+RAW_COLOR_HITS=$(grep -rnE "#[0-9a-fA-F]{3,8}\b|hsl\(" "$ROOT/packages/frontend/src" \
+  --include="*.css" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null \
+  | grep -v "styles/tokens.css" || true)
+if [ -n "$RAW_COLOR_HITS" ]; then
+  echo "$RAW_COLOR_HITS" | head -20
+  fail "Design Token SSOT violation: raw hex/hsl color found outside styles/tokens.css. Declare a --color-* token and consume var(--color-*)."
+fi
+
+# 14. DOM Integrity: duplicate element ids break label/aria association
+DUPLICATE_IDS=$(grep -rhoE 'id="[a-zA-Z][a-zA-Z0-9_-]*"' "$ROOT/packages/frontend/src" \
+  --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null \
+  | sort | uniq -d || true)
+if [ -n "$DUPLICATE_IDS" ]; then
+  echo "Duplicate element ids: $DUPLICATE_IDS"
+  fail "DOM integrity violation: duplicate id attribute(s) found; label htmlFor/aria-* associations become ambiguous."
+fi
+
+# 15. Backend Logging Hygiene: Zero raw console.(log|warn|error) in backend modules
 if grep -rnE "console\.(log|warn|error)" "$ROOT/packages/backend/src/modules" 2>/dev/null; then
   fail "Backend logging hygiene violation: raw console.* calls prohibited in backend modules. Use structured error handling or domain events."
 fi

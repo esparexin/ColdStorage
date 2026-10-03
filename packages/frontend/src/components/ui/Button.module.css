@@ -82,7 +82,7 @@
 }
 
 .danger:hover:not(:disabled) {
-  background-color: hsl(0, 72%, 44%);
+  background-color: var(--color-danger-hover);
 }
 
 .dangerOutline {
