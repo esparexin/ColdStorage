@@ -43,7 +43,7 @@ describe('Customer Duplicate Prevention Integration', () => {
       role: 'SUPER_ADMIN',
       facilityIds: [FACILITY_A, FACILITY_B],
     }));
-  });
+  }, 30000);
 
   beforeEach(seedFacilities);
 
@@ -53,7 +53,7 @@ describe('Customer Duplicate Prevention Integration', () => {
     await UserModel.deleteMany({ id: 'usr-dup-admin' });
     clearRateLimiterStore();
     await disconnectDatabase();
-  });
+  }, 30000);
 
   it('registers a name-only customer for a facility and returns no retired identity fields', async () => {
     const res = await createCustomer({ name: 'Ramesh Agro Foods', facilityId: FACILITY_A });
