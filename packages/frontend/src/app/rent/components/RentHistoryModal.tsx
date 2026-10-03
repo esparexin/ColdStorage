@@ -44,7 +44,7 @@ export function RentHistoryModal({
     <Modal
       isOpen
       onClose={onClose}
-      title={`Rent Receipts: ${account.grnNumber}`}
+      title={`Cash Memos: ${account.grnNumber}`}
       subtitle={`Customer: ${account.customerName}`}
       size="lg"
       footer={
@@ -91,7 +91,7 @@ export function RentHistoryModal({
           </div>
 
           <h4 style={{ fontSize: 'var(--text-xs)', fontWeight: 700, textTransform: 'uppercase' }}>
-            Issued Official Receipts ({account.payments.length})
+            Issued Official Cash Memos ({account.payments.length})
           </h4>
 
           {error && (
@@ -102,7 +102,7 @@ export function RentHistoryModal({
 
           {account.payments.length === 0 ? (
             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-              No payment receipts issued yet for this account.
+              No cash memos issued yet for this account.
             </p>
           ) : (
             <div className={styles.paymentsList}>
@@ -140,7 +140,7 @@ export function RentHistoryModal({
                         onClick={() => void handlePrintReceipt(p.receiptNumber)}
                         disabled={printingReceiptNum === p.receiptNumber}
                         isLoading={printingReceiptNum === p.receiptNumber}
-                        title="Print Official Rent Receipt"
+                        title="Print Official Cash Memo"
                         leftIcon={<Printer size={13} aria-hidden="true" />}
                       >
                         Print

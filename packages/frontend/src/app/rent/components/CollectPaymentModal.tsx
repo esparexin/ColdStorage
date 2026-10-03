@@ -31,6 +31,8 @@ export function CollectPaymentModal({
     setCollectDate,
     collectNotes,
     setCollectNotes,
+    upiReference,
+    setUpiReference,
     collectError,
     previewError,
     collectSubmitting,
@@ -46,7 +48,7 @@ export function CollectPaymentModal({
     <Modal
       isOpen
       onClose={onClose}
-      title="Collect Rent Payment"
+      title="Collect Rent & Issue Cash Memo"
       size="md"
     >
       <form onSubmit={handleSubmit}>
@@ -157,16 +159,35 @@ export function CollectPaymentModal({
               />
             </div>
 
+            {collectMode === 'UPI' && (
+              <div className={styles.fieldGroup}>
+                <label htmlFor="collect-upi-ref" className={styles.fieldLabel}>
+                  UPI Transaction ID / Reference *
+                </label>
+                <input
+                  id="collect-upi-ref"
+                  type="text"
+                  required
+                  maxLength={100}
+                  className={styles.fieldInput}
+                  placeholder="e.g. UPI1234567890 or Bank Ref"
+                  value={upiReference}
+                  onChange={(e) => setUpiReference(e.target.value)}
+                />
+              </div>
+            )}
+
             <div className={styles.fieldGroup}>
               <label htmlFor="collect-notes" className={styles.fieldLabel}>
-                Receipt Notes / UPI Reference ID
+                {collectMode === 'UPI' ? 'Additional Notes (Optional)' : 'Payment Notes (Optional)'}
               </label>
-              <input aria-label="Optional notes or bank transaction reference"
+              <input
+                aria-label="Optional payment notes"
                 id="collect-notes"
                 type="text"
-                maxLength={500}
+                maxLength={400}
                 className={styles.fieldInput}
-                placeholder="Optional notes or bank transaction reference"
+                placeholder="Optional notes"
                 value={collectNotes}
                 onChange={(e) => setCollectNotes(e.target.value)}
               />
@@ -180,7 +201,7 @@ export function CollectPaymentModal({
                 onClick={() => void handlePreviewReceipt()}
                 leftIcon={<Eye size={14} aria-hidden="true" />}
               >
-                Preview Receipt
+                Preview Cash Memo
               </Button>
             )}
             <Button
@@ -197,7 +218,7 @@ export function CollectPaymentModal({
               disabled={collectSubmitting || typeof collectAmount !== 'number' || collectAmount <= 0}
               isLoading={collectSubmitting}
             >
-              Collect & Issue Receipt
+              Collect & Issue Cash Memo
             </Button>
           </div>
         </form>
