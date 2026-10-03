@@ -91,6 +91,19 @@ export class UserRepository {
     return doc ? (doc as unknown as UserEntity) : null;
   }
 
+  /**
+   * Minimal projection used by the authentication guard to confirm an account is still
+   * authoritative. The JWT carries identity only; activation status always resolves from
+   * MongoDB, which the architecture lock designates as the single session/identity SSOT.
+   */
+  public async findActivationStateById(id: string): Promise<UserEntity['status'] | null> {
+    const doc = await UserModel.findOne({ id })
+      .select('status')
+      .lean()
+      .exec();
+    return doc ? ((doc as unknown as UserEntity).status ?? null) : null;
+  }
+
   public async listUsers(page = 1, limit = 20): Promise<{ items: UserEntity[]; total: number }> {
     const offset = (page - 1) * limit;
     const [docs, total] = await Promise.all([
@@ -103,10 +116,19 @@ export class UserRepository {
     };
   }
 
-  public async updatePassword(userId: string, newPasswordHash: string): Promise<UserEntity | null> {
+  /**
+   * Writes a new password hash. `mustChangePassword` is explicit because the two callers
+   * have opposite intent: a completed self-service change clears the flag, whereas an
+   * Admin-issued temporary password must re-arm it for the next login (P0-Decision 8).
+   */
+  public async updatePassword(
+    userId: string,
+    newPasswordHash: string,
+    mustChangePassword: boolean,
+  ): Promise<UserEntity | null> {
     const doc = await UserModel.findOneAndUpdate(
       { id: userId },
-      { passwordHash: newPasswordHash, mustChangePassword: false, updatedAt: new Date() },
+      { passwordHash: newPasswordHash, mustChangePassword, updatedAt: new Date() },
       { new: true },
     )
       .lean()
@@ -123,6 +145,26 @@ export class UserRepository {
       { id: userId },
       { status, updatedAt: new Date() },
       { new: true },
+    )
+      .lean()
+      .exec();
+    return doc ? (doc as unknown as UserEntity) : null;
+  }
+
+  /**
+   * Applies a whitelisted partial update. The caller owns validation and field selection, so
+   * only these explicitly listed mutable attributes are ever written.
+   */
+  public async updateFields(
+    userId: string,
+    fields: Partial<
+      Pick<UserEntity, 'fullName' | 'mobile' | 'email' | 'role' | 'facilityIds' | 'status'>
+    >,
+  ): Promise<UserEntity | null> {
+    const doc = await UserModel.findOneAndUpdate(
+      { id: userId },
+      { ...fields, updatedAt: new Date() },
+      { new: true, runValidators: true },
     )
       .lean()
       .exec();

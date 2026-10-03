@@ -21,7 +21,7 @@ import { PutAwayAllocationModel } from '../database/models/put-away.model.js';
 import { RackModel } from '../database/models/rack.model.js';
 import { SystemSettingsModel } from '../database/models/system-settings.model.js';
 import { settingsService } from '../modules/settings/settings.service.js';
-import { generateAccessToken } from '../utils/crypto.js';
+import { createAuthSeeder } from './helpers/auth-fixtures.js';
 
 const app = createApp();
 
@@ -78,6 +78,8 @@ describe('Phase 11: Multi-Facility End-to-End Operational Lifecycle', () => {
   function UserModel_stub_skip() {
     return Promise.resolve();
   }
+
+  const seed = createAuthSeeder(config.jwtSecret);
 
   beforeAll(async () => {
     process.env.BACKUP_ENCRYPTION_KEY =
@@ -203,65 +205,45 @@ describe('Phase 11: Multi-Facility End-to-End Operational Lifecycle', () => {
       isActive: true,
     });
 
-    superAdminToken = generateAccessToken(
-      {
-        userId: 'usr-e2e-super',
-        username: 'e2e_superadmin',
-        role: 'SUPER_ADMIN',
-        facilityIds: [],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-      3600,
-    );
+    ({ token: superAdminToken } = await seed({
+      userId: 'usr-e2e-super',
+      username: 'e2e_superadmin',
+      role: 'SUPER_ADMIN',
+      facilityIds: [],
+      expiresInSeconds: 3600,
+    }));
 
-    adminTokenA = generateAccessToken(
-      {
-        userId: 'usr-e2e-admin-a',
-        username: 'e2e_admin_a',
-        role: 'ADMIN',
-        facilityIds: [facilityA],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-      3600,
-    );
+    ({ token: adminTokenA } = await seed({
+      userId: 'usr-e2e-admin-a',
+      username: 'e2e_admin_a',
+      role: 'ADMIN',
+      facilityIds: [facilityA],
+      expiresInSeconds: 3600,
+    }));
 
-    adminTokenB = generateAccessToken(
-      {
-        userId: 'usr-e2e-admin-b',
-        username: 'e2e_admin_b',
-        role: 'ADMIN',
-        facilityIds: [facilityB],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-      3600,
-    );
+    ({ token: adminTokenB } = await seed({
+      userId: 'usr-e2e-admin-b',
+      username: 'e2e_admin_b',
+      role: 'ADMIN',
+      facilityIds: [facilityB],
+      expiresInSeconds: 3600,
+    }));
 
-    operatorTokenA = generateAccessToken(
-      {
-        userId: 'usr-e2e-operator-a',
-        username: 'e2e_operator_a',
-        role: 'OPERATOR',
-        facilityIds: [facilityA],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-      3600,
-    );
+    ({ token: operatorTokenA } = await seed({
+      userId: 'usr-e2e-operator-a',
+      username: 'e2e_operator_a',
+      role: 'OPERATOR',
+      facilityIds: [facilityA],
+      expiresInSeconds: 3600,
+    }));
 
-    operatorTokenB = generateAccessToken(
-      {
-        userId: 'usr-e2e-operator-b',
-        username: 'e2e_operator_b',
-        role: 'OPERATOR',
-        facilityIds: [facilityB],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-      3600,
-    );
+    ({ token: operatorTokenB } = await seed({
+      userId: 'usr-e2e-operator-b',
+      username: 'e2e_operator_b',
+      role: 'OPERATOR',
+      facilityIds: [facilityB],
+      expiresInSeconds: 3600,
+    }));
   }, 60000);
 
   afterAll(async () => {

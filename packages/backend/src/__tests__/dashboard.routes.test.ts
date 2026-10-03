@@ -7,7 +7,7 @@ import { ChamberModel } from '../database/models/chamber.model.js';
 import { FacilityModel } from '../database/models/facility.model.js';
 import { PositionModel } from '../database/models/position.model.js';
 import { dashboardService } from '../modules/dashboard/dashboard.service.js';
-import { generateAccessToken } from '../utils/crypto.js';
+import { createAuthSeeder } from './helpers/auth-fixtures.js';
 
 /**
  * P7 Dashboard Routes & Authorization Integration Tests
@@ -34,66 +34,49 @@ describe('P7 Dashboard Routes & Authorization', () => {
 
   const dashboardUrl = `/api/facilities/${facilityId}/dashboard/summary`;
 
+  const seed = createAuthSeeder(config.jwtSecret);
+
   beforeAll(async () => {
     const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(mongoUri);
     }
 
-    superAdminToken = generateAccessToken(
-      {
-        userId: 'usr-dash-sa',
-        username: 'dash_superadmin',
-        role: 'SUPER_ADMIN',
-        facilityIds: [],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-    );
+    ({ token: superAdminToken } = await seed({
+      userId: 'usr-dash-sa',
+      username: 'dash_superadmin',
+      role: 'SUPER_ADMIN',
+      facilityIds: [],
+    }));
 
-    operatorToken = generateAccessToken(
-      {
-        userId: 'usr-dash-op',
-        username: 'dash_operator',
-        role: 'OPERATOR',
-        facilityIds: [facilityId],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-    );
+    ({ token: operatorToken } = await seed({
+      userId: 'usr-dash-op',
+      username: 'dash_operator',
+      role: 'OPERATOR',
+      facilityIds: [facilityId],
+    }));
 
-    readOnlyToken = generateAccessToken(
-      {
-        userId: 'usr-dash-ro',
-        username: 'dash_readonly',
-        role: 'READ_ONLY',
-        facilityIds: [facilityId],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-    );
+    ({ token: readOnlyToken } = await seed({
+      userId: 'usr-dash-ro',
+      username: 'dash_readonly',
+      role: 'READ_ONLY',
+      facilityIds: [facilityId],
+    }));
 
-    otherFacilityToken = generateAccessToken(
-      {
-        userId: 'usr-dash-other',
-        username: 'dash_other_facility',
-        role: 'OPERATOR',
-        facilityIds: [otherFacilityId],
-        mustChangePassword: false,
-      },
-      config.jwtSecret,
-    );
+    ({ token: otherFacilityToken } = await seed({
+      userId: 'usr-dash-other',
+      username: 'dash_other_facility',
+      role: 'OPERATOR',
+      facilityIds: [otherFacilityId],
+    }));
 
-    mustChangePasswordToken = generateAccessToken(
-      {
-        userId: 'usr-dash-pwd',
-        username: 'dash_must_change',
-        role: 'OPERATOR',
-        facilityIds: [facilityId],
-        mustChangePassword: true, // triggers requirePasswordChanged gate
-      },
-      config.jwtSecret,
-    );
+    ({ token: mustChangePasswordToken } = await seed({
+      userId: 'usr-dash-pwd',
+      username: 'dash_must_change',
+      role: 'OPERATOR',
+      facilityIds: [facilityId],
+      mustChangePassword: true, // triggers requirePasswordChanged gate
+    }));
   });
 
   afterAll(async () => {

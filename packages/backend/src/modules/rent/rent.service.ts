@@ -5,7 +5,6 @@ import type {
   RentReceiptDocumentDto,
   RentSummaryDto,
 } from '@cold-storage/contracts';
-import { AuditLogModel } from '../../database/models/audit-log.model.js';
 import { CustomerModel } from '../../database/models/customer.model.js';
 import { FacilityModel } from '../../database/models/facility.model.js';
 import { GrnModel, type GrnDoc } from '../../database/models/grn.model.js';
@@ -16,15 +15,6 @@ import {
   toPaymentEntity,
 } from './handlers/record-payment.handler.js';
 import { rentRepository } from './rent.repository.js';
-
-// Ensure Mongoose schema permits RENT_PAYMENT_COLLECTED without violating 14-file boundary
-const auditEventTypePath = AuditLogModel.schema.path('eventType') as { enumValues?: string[] };
-if (
-  auditEventTypePath?.enumValues &&
-  !auditEventTypePath.enumValues.includes('RENT_PAYMENT_COLLECTED')
-) {
-  auditEventTypePath.enumValues.push('RENT_PAYMENT_COLLECTED');
-}
 
 export class RentService {
   /**

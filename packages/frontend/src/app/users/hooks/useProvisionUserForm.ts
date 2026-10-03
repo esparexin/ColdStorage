@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { Role } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
-import type { FacilityOption } from '../types';
+import type { FacilityOption } from '@/context/FacilityContext';
 
 interface UseProvisionUserFormProps {
   availableFacilities: FacilityOption[];

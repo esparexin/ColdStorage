@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Role, UserSummary } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
-import type { FacilityOption } from '../types';
+import type { FacilityOption } from '@/context/FacilityContext';
 
 export function useUsersData(canManage: boolean) {
   const [users, setUsers] = useState<UserSummary[]>([]);
