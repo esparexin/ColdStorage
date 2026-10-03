@@ -83,7 +83,7 @@ describe('Storage Rack Space Protection Guards', () => {
       isActive: true,
     });
 
-    const admin = await UserModel.create({
+    await UserModel.create({
       id: 'usr-guard-admin',
       username: 'guard.admin',
       fullName: 'Guard Admin',
