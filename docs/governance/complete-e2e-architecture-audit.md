@@ -210,3 +210,44 @@ An exhaustive end-to-end audit was conducted across the Cold Storage management 
 | `/users` | Reset Password | `useUserLifecycle` | `/api/users/:id/reset-password` | POST | `user:manage` | Password hash update & flag |
 | Global | Log Out | `AuthContext` | `/api/auth/logout` | POST | (authenticated) | Clears session cookie & memory token |
 | Global | Change Password | `AuthContext` | `/api/auth/change-password` | POST | (authenticated) | Updates password hash in `UserModel` |
+
+---
+
+## 4. Remediation Execution & Certification Log
+
+All remediation phases were executed on the dedicated branch `feat/complete-e2e-audit-and-remediation` in strict accordance with architecture governance boundaries and conventional commit standards:
+
+1. **Phase 1: Architecture Baseline & Complete Audit**
+   - Cataloged all 15 audit dimensions, 12 frontend routes, 44 API routes, 16 Mongoose models, and comprehensive button/link action mappings.
+   - Commit: `016161b` (`docs(audit): complete repository architecture and dependency audit`).
+
+2. **Phase 2: Dead Legacy & Duplicate Code Pruning**
+   - Pruned completely unconsumed contract module `packages/contracts/src/security.ts` (`rateLimitTierSchema`, `rateLimitErrorResponseSchema`, `rateLimitTierConfigSchema`, `securityHeadersPolicySchema`).
+   - Removed dead export in `packages/contracts/src/index.ts`.
+   - Commit: `3d3d037` (`refactor: remove dead legacy and duplicate code`).
+
+3. **Phase 3: UI/UX SSOT Primitive & Governance Alignment**
+   - Corrected governance regex flaw in `scripts/check-architecture-boundaries.sh` (Rule 11 and Rule 12) where tags followed by newlines bypassed static scanning.
+   - Migrated native `<select>` in `EditUserModal.tsx` to canonical DS `<Select>`.
+   - Migrated native `<button>` tags in `settings/page.tsx`, `BrandLogoSection.tsx`, and `CollectPaymentModal.tsx` to canonical DS `<Button>`.
+   - Verified 100% compliance with line budget ratchets and a11y automated gates.
+   - Commit: `a1f9aa0` (`fix(ui): align ui ux and accessibility patterns`).
+
+4. **Phase 4: Frontend/Backend Integration & Documentation Alignment**
+   - Updated `docs/ui-backend-wiring-matrix.md` to remove retired `/storage` and explicitly document all 10 retained headless REST API endpoints.
+   - Aligned `e2e/critical-flows.spec.ts` settings mock with the canonical `SystemSettings` contract schema.
+   - Updated Customer Directory subtitle in `ExportPanel.tsx` to reflect name-only identity.
+   - Cleaned obsolete `storage-hierarchy.ts` reference in root `README.md`.
+   - Commit: `0981109` (`fix(integration): consolidate frontend backend integration flows`).
+
+5. **Phase 5: API, Services & Data Integrity**
+   - Added `RentPaymentModel` to `MONITORED_MODELS` in `packages/backend/src/database/indexes.ts`, ensuring 100% index coverage across all 16 Mongoose models.
+   - Identified and removed obsolete legacy `mobile_1` unique index from remote MongoDB Atlas `customers` collection.
+   - Added 30,000ms hook timeout to `beforeAll` and `afterAll` in `customer-duplicate.test.ts` to ensure stability over high-latency Atlas connections.
+   - Commit: `a2e6e07` (`refactor(api): consolidate api hooks and services`).
+
+6. **Phase 6: Final Verification & Certification**
+   - Verified full test suite (`@cold-storage/contracts`, `@cold-storage/backend`, `@cold-storage/frontend`).
+   - Verified strict TypeScript type-checking across all monorepo workspaces.
+   - Verified zero ESLint warnings and zero line-budget ratchet violations.
+   - Verified clean production build (`npm run build`).
