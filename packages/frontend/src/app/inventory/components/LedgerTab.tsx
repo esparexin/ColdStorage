@@ -51,10 +51,10 @@ export function LedgerTab({ ledger, currentFacilityName }: LedgerTabProps) {
       render: (r) => <span style={{ fontWeight: 600 }}>{r.grnNumber}</span>,
     },
     {
-      key: 'positionCode',
+      key: 'chamber',
       header: 'Storage Location',
       render: (r) => (
-        <span style={{ fontFamily: 'var(--font-mono, monospace)' }}>{r.positionCode}</span>
+        <span style={{ fontFamily: 'var(--font-mono, monospace)' }}>{r.chamber}</span>
       ),
     },
     {

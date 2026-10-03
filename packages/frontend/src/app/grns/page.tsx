@@ -28,7 +28,7 @@ export default function GrnsPage() {
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const canCreate = can(userRole, 'grn:create');
   const canPrint = can(userRole, 'document:print');
-  const canAllocate = can(userRole, 'rack:allocate');
+  const canAllocate = can(userRole, 'allocation:manage');
 
   const handlePrint = async (type: 'grn' | 'receipt', grnId: string) => {
     if (!selectedFacilityId) return;
@@ -148,7 +148,6 @@ export default function GrnsPage() {
           facilityId={selectedFacilityId}
           customers={grnData.customers}
           commodities={grnData.commodities}
-          chambers={grnData.chambers}
           onClose={() => setIsCreateOpen(false)}
           onCustomerAdded={() => void grnData.fetchLookups()}
           onCommodityAdded={() => void grnData.fetchLookups()}

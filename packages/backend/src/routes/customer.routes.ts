@@ -18,19 +18,17 @@ customerRouter.post('/', requirePermission('customer:manage'), async (req: Reque
     return;
   }
 
-  // If caller is not SUPER_ADMIN, they can only register customers for their assigned facilities
-  if (req.user!.role !== 'SUPER_ADMIN') {
-    const unauthorizedFacility = parseResult.data.facilityIds.find((fid) => !req.user!.facilityIds.includes(fid));
-    if (unauthorizedFacility) {
-      res.status(403).json({
-        error: `Access denied: User is not authorized to register customer for facility '${unauthorizedFacility}'`,
-      });
-      return;
-    }
+  // The customer is registered for a single facility; it must be inside the caller's scope.
+  if (req.user!.role !== 'SUPER_ADMIN' && !req.user!.facilityIds.includes(parseResult.data.facilityId)) {
+    res.status(403).json({
+      error: `Access denied: User is not authorized to register customer for facility '${parseResult.data.facilityId}'`,
+    });
+    return;
   }
 
   try {
-    const customer = await customerService.createCustomer(parseResult.data);
+    const { facilityId, ...customerInput } = parseResult.data;
+    const customer = await customerService.createCustomer(customerInput, [facilityId]);
     res.status(201).json({ customer });
   } catch (err: unknown) {
       sendServiceError(res, err, 'Customer creation failed');
@@ -40,9 +38,15 @@ customerRouter.post('/', requirePermission('customer:manage'), async (req: Reque
 customerRouter.get('/', requirePermission('customer:view'), async (req: Request, res: Response): Promise<void> => {
   try {
     const facilityId = typeof req.query.facilityId === 'string' ? req.query.facilityId : undefined;
+    const search = typeof req.query.search === 'string' ? req.query.search : undefined;
     const isSuperAdmin = req.user!.role === 'SUPER_ADMIN';
 
-    const customers = await customerService.listCustomers(facilityId, req.user!.facilityIds, isSuperAdmin);
+    const customers = await customerService.listCustomers(
+      facilityId,
+      req.user!.facilityIds,
+      isSuperAdmin,
+      search,
+    );
     res.status(200).json({ items: customers, total: customers.length });
   } catch (err: unknown) {
       sendServiceError(res, err, 'Failed to list customers');
@@ -100,17 +104,6 @@ customerRouter.patch(
         if (!hasAccess) {
           res.status(403).json({ error: 'Access denied: Customer does not belong to your assigned facilities' });
           return;
-        }
-        if (parseResult.data.facilityIds) {
-          const unauthorizedFacility = parseResult.data.facilityIds.find(
-            (fid) => !req.user!.facilityIds.includes(fid),
-          );
-          if (unauthorizedFacility) {
-            res.status(403).json({
-              error: `Access denied: User is not authorized to associate facility '${unauthorizedFacility}'`,
-            });
-            return;
-          }
         }
       }
 

@@ -84,7 +84,6 @@ export function useCollectPaymentForm({
     try {
       const params = new URLSearchParams({
         customerName: account.customerName,
-        customerMobile: account.customerMobile,
         amount: String(collectAmount),
         paymentMode: collectMode,
       });

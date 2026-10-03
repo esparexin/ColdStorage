@@ -1,7 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import {
-  indianVehicleSchema,
-} from '@cold-storage/contracts';
+import { useCallback, useState } from 'react';
+import { indianVehicleSchema } from '@cold-storage/contracts';
 import type {
   DeliveryChallan,
   DeliverySummary,
@@ -10,7 +8,7 @@ import type {
 } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { useRentGate } from '@/hooks/useRentGate';
-import type { PositionWithdrawal } from '../types';
+import type { GrnWithdrawal } from '../types';
 
 export interface RentRequiredPayload {
   code: 'RENT_PAYMENT_REQUIRED';
@@ -26,7 +24,7 @@ export function useCreateDeliveryForm(
   const [grnSummary, setGrnSummary] = useState<GrnInventorySummary | null>(null);
   const [loadingGrnSummary, setLoadingGrnSummary] = useState(false);
   const [createDate, setCreateDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [withdrawals, setWithdrawals] = useState<PositionWithdrawal[]>([]);
+  const [withdrawal, setWithdrawal] = useState<GrnWithdrawal>({ maxBags: 0, bags: '' });
   const [createVehicleNumber, setCreateVehicleNumber] = useState('');
   const [createDriverName, setCreateDriverName] = useState('');
   const [createWeight, setCreateWeight] = useState<number | ''>('');
@@ -54,7 +52,7 @@ export function useCreateDeliveryForm(
   const handleSelectGrn = async (grnId: string) => {
     setCreateGrnId(grnId);
     setGrnSummary(null);
-    setWithdrawals([]);
+    setWithdrawal({ maxBags: 0, bags: '' });
     setRentRequired(null);
     rentGate.resetRentGate();
     if (!facilityId || !grnId) return;
@@ -83,27 +81,16 @@ export function useCreateDeliveryForm(
       if (invRes.ok) {
         const data = (await invRes.json()) as { summary: GrnInventorySummary };
         setGrnSummary(data.summary);
-        const rows: PositionWithdrawal[] = data.summary.positions.map((p) => ({
-          positionId: p.positionId,
-          positionCode: p.positionCode,
-          maxBags: p.bags,
-          bags: '',
-        }));
-        setWithdrawals(rows);
+        setWithdrawal({ maxBags: data.summary.allocatedBags, bags: '' });
       }
     } catch {
-      setModalError('Failed to load GRN position allocation summary');
+      setModalError('Failed to load GRN stock summary');
     } finally {
       setLoadingGrnSummary(false);
     }
   };
 
-  const totalWithdrawingBags = useMemo(() => {
-    return withdrawals.reduce(
-      (acc, w) => acc + (typeof w.bags === 'number' ? w.bags : 0),
-      0,
-    );
-  }, [withdrawals]);
+  const totalWithdrawingBags = typeof withdrawal.bags === 'number' ? withdrawal.bags : 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,22 +100,16 @@ export function useCreateDeliveryForm(
       return;
     }
 
-    const activeWithdrawals = withdrawals.filter(
-      (w) => typeof w.bags === 'number' && w.bags > 0,
-    );
-
-    if (activeWithdrawals.length === 0) {
-      setModalError('Please specify at least 1 bag to withdraw from an allocated position');
+    if (typeof withdrawal.bags !== 'number' || withdrawal.bags <= 0) {
+      setModalError('Please specify how many bags to withdraw');
       return;
     }
 
-    for (const w of activeWithdrawals) {
-      if ((w.bags as number) > w.maxBags) {
-        setModalError(
-          `Cannot withdraw ${w.bags} bags from position ${w.positionCode} (only ${w.maxBags} available)`,
-        );
-        return;
-      }
+    if (withdrawal.bags > withdrawal.maxBags) {
+      setModalError(
+        `Cannot withdraw ${withdrawal.bags} bags: only ${withdrawal.maxBags} are available in stock`,
+      );
+      return;
     }
 
     if (createVehicleNumber.trim()) {
@@ -145,10 +126,7 @@ export function useCreateDeliveryForm(
       const payload: Record<string, unknown> = {
         grnId: createGrnId,
         date: new Date(createDate),
-        items: activeWithdrawals.map((w) => ({
-          positionId: w.positionId,
-          bags: w.bags as number,
-        })),
+        bags: withdrawal.bags as number,
       };
 
       if (createVehicleNumber.trim()) {
@@ -200,8 +178,8 @@ export function useCreateDeliveryForm(
     loadingGrnSummary,
     createDate,
     setCreateDate,
-    withdrawals,
-    setWithdrawals,
+    withdrawal,
+    setWithdrawalBags: (bags: number | '') => setWithdrawal((prev) => ({ ...prev, bags })),
     createVehicleNumber,
     setCreateVehicleNumber,
     createDriverName,

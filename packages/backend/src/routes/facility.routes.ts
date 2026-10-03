@@ -3,7 +3,7 @@ import { createFacilitySchema, updateFacilitySchema } from '@cold-storage/contra
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
-import { facilityService } from '../modules/storage/facility.service.js';
+import { facilityService } from '../modules/facilities/facility.service.js';
 import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
@@ -12,7 +12,7 @@ export const facilityRouter = Router();
 facilityRouter.use(authenticate);
 facilityRouter.use(requirePasswordChanged);
 
-facilityRouter.post('/', requirePermission('storage:manage'), async (req: Request, res: Response): Promise<void> => {
+facilityRouter.post('/', requirePermission('settings:manage'), async (req: Request, res: Response): Promise<void> => {
   const parseResult = createFacilitySchema.safeParse(req.body);
   if (!parseResult.success) {
     res.status(400).json({ error: 'Validation failed', details: parseResult.error.flatten() });
@@ -27,7 +27,7 @@ facilityRouter.post('/', requirePermission('storage:manage'), async (req: Reques
   }
 });
 
-facilityRouter.get('/', requirePermission('storage:view'), async (req: Request, res: Response): Promise<void> => {
+facilityRouter.get('/', requirePermission('facility:view'), async (req: Request, res: Response): Promise<void> => {
   try {
     const isSuperAdmin = req.user!.role === 'SUPER_ADMIN';
     const facilities = await facilityService.listFacilities(req.user!.facilityIds, isSuperAdmin);
@@ -39,7 +39,7 @@ facilityRouter.get('/', requirePermission('storage:view'), async (req: Request, 
 
 facilityRouter.get(
   '/:facilityId',
-  requirePermission('storage:view'),
+  requirePermission('facility:view'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
   async (req: Request, res: Response): Promise<void> => {
     try {
@@ -58,7 +58,7 @@ facilityRouter.get(
 
 facilityRouter.patch(
   '/:facilityId',
-  requirePermission('storage:manage'),
+  requirePermission('settings:manage'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
   async (req: Request, res: Response): Promise<void> => {
     const parseResult = updateFacilitySchema.safeParse(req.body);

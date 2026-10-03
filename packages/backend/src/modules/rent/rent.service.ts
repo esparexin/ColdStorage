@@ -5,8 +5,8 @@ import type {
   RentReceiptDocumentDto,
   RentSummaryDto,
 } from '@cold-storage/contracts';
-import { CustomerModel } from '../../database/models/customer.model.js';
 import { GrnModel, type GrnDoc } from '../../database/models/grn.model.js';
+import { computeRentBalance } from '../common/rent-balance.js';
 import { renderRentReceiptTemplate } from '../documents/templates/rent-receipt.template.js';
 import {
   getFacilitySubHeader,
@@ -52,12 +52,10 @@ export class RentService {
   public async getRentSummary(facilityId: string, identifier: string): Promise<RentSummaryDto> {
     const grn = await this.resolveGrn(facilityId, identifier);
     const payments = await rentRepository.findPaymentsByGrnId(facilityId, grn.id);
-    const customer = await CustomerModel.findOne({ id: grn.customerId }).lean().exec();
-    const customerMobile = customer?.mobile ?? '';
-
-    const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
-    const remainingBalance = Math.max(0, Number((grn.rentAmount - totalPaid).toFixed(2)));
-    const paymentStatus = remainingBalance === 0 ? 'Settled' : 'Not Settled';
+    const balance = computeRentBalance(
+      grn.rentAmount,
+      payments.reduce((sum, p) => sum + p.amountPaid, 0),
+    );
 
     return {
       grnId: grn.id,
@@ -65,17 +63,16 @@ export class RentService {
       facilityId: grn.facilityId,
       customerId: grn.customerId,
       customerName: grn.customerName,
-      customerMobile,
       commodityName: grn.commodityName,
-      chamberNumber: grn.chamberNumber,
+      chamber: grn.chamber,
       inwardDate: grn.date,
       totalBags: grn.bags,
-      rentType: grn.rentType as 'Monthly' | 'Seasonal',
-      rentAmount: grn.rentAmount,
+      rentType: grn.rentType,
+      rentAmount: balance.rentAmount,
       rentMonths: grn.rentMonths ?? null,
-      totalPaid,
-      remainingBalance,
-      paymentStatus,
+      totalPaid: balance.totalPaid,
+      remainingBalance: balance.remainingBalance,
+      paymentStatus: balance.paymentStatus,
       payments: payments.map((p) => toPaymentEntity(p)),
     };
   }
@@ -115,8 +112,6 @@ export class RentService {
       throw new Error(`GRN '${payment.grnId}' not found for receipt '${receiptNumber}'`);
     }
 
-    const customer = await CustomerModel.findOne({ id: grn.customerId }).lean().exec();
-
     const summary = await this.getRentSummary(facilityId, grn.id);
 
     // Bind to the canonical document header helpers so the rent receipt renders with the
@@ -132,13 +127,14 @@ export class RentService {
       grnNumber: grn.grnNumber,
       date: payment.paymentDate,
       customerName: grn.customerName,
-      customerMobile: customer?.mobile ?? '',
       commodityName: grn.commodityName,
+      chamber: grn.chamber,
       totalRentObligation: grn.rentAmount,
       amountPaid: payment.amountPaid,
       paymentMode: payment.paymentMode,
       remainingBalance: summary.remainingBalance,
       paymentStatus: summary.paymentStatus,
+      isPreview: false,
       notes: payment.notes,
       generatedAt: new Date(),
       generatedBy: payment.createdBy,

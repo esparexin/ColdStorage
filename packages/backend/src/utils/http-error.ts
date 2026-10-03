@@ -1,4 +1,5 @@
 import type { Response } from 'express';
+import type { RentPaymentRequiredError } from '../modules/common/rent-gate.service.js';
 
 /**
  * Canonical domain-error to HTTP mapping.
@@ -68,4 +69,23 @@ export function statusForDomainError(message: string): 400 | 403 | 404 | 409 {
 export function sendServiceError(res: Response, err: unknown, fallbackMessage: string): void {
   const message = err instanceof Error ? err.message : fallbackMessage;
   res.status(statusForDomainError(message)).json({ error: message });
+}
+/**
+ * Canonical 402 responder for the shared rent gate.
+ *
+ * Put-away and delivery both raise `RentPaymentRequiredError` and both previously restated the
+ * same response body, so the two could drift. The wire shape is defined once here.
+ */
+export function sendRentPaymentRequired(res: Response, err: RentPaymentRequiredError): void {
+  res.status(err.statusCode).json({
+    error: err.message,
+    code: err.code,
+    rent: {
+      grnId: err.grnId,
+      grnNumber: err.grnNumber,
+      rentAmount: err.rentAmount,
+      totalPaid: err.totalPaid,
+      remainingBalance: err.remainingBalance,
+    },
+  });
 }

@@ -46,7 +46,7 @@ export class ExportService {
       'date',
       'customerName',
       'commodityName',
-      'chamberNumber',
+      'chamber',
       'bags',
       'bagType',
       'rentType',
@@ -68,7 +68,7 @@ export class ExportService {
         doc.date instanceof Date ? doc.date.toISOString().split('T')[0] : doc.date,
         doc.customerName,
         doc.commodityName,
-        doc.chamberNumber,
+        doc.chamber,
         doc.bags,
         doc.bagType,
         doc.rentType,
@@ -111,7 +111,7 @@ export class ExportService {
       'grnNumber',
       'customerName',
       'commodityName',
-      'chamberNumber',
+      'chamber',
       'totalBags',
       'vehicleNumber',
       'driverName',
@@ -130,7 +130,7 @@ export class ExportService {
         doc.grnNumber,
         doc.customerName,
         doc.commodityName,
-        doc.chamberNumber,
+        doc.chamber,
         doc.totalBags,
         doc.vehicleNumber ?? '',
         doc.driverName ?? '',
@@ -168,7 +168,7 @@ export class ExportService {
       'createdAt',
       'transactionType',
       'grnNumber',
-      'positionCode',
+      'chamber',
       'commodityId',
       'bagType',
       'quantity',
@@ -184,7 +184,7 @@ export class ExportService {
         doc.createdAt,
         doc.transactionType,
         doc.grnNumber,
-        doc.positionCode,
+        doc.chamber,
         doc.commodityId,
         doc.bagType,
         doc.quantity,
@@ -217,19 +217,12 @@ export class ExportService {
       .sort({ createdAt: -1 })
       .lean()
       .cursor({ batchSize: 500 });
-    const headers = ['name', 'mobile', 'address', 'gstin', 'isActive', 'createdAt'];
+    const headers = ['name', 'isActive', 'createdAt'];
 
     await streamCursor(
       cursor,
       headers,
-      (doc) => [
-        doc.name,
-        doc.mobile,
-        doc.address ?? '',
-        doc.gstin ?? '',
-        doc.isActive,
-        doc.createdAt,
-      ],
+      (doc) => [doc.name, doc.isActive, doc.createdAt],
       res,
       `customers-${facilityId}.csv`,
     );

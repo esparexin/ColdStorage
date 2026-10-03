@@ -1,19 +1,27 @@
-import mongoose from 'mongoose';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
-import { FacilityModel } from '../database/models/facility.model.js';
-import { SessionModel } from '../database/models/session.model.js';
-import { UserModel } from '../database/models/user.model.js';
-import { CustomerModel } from '../database/models/customer.model.js';
-import { authService } from '../modules/auth/auth.service.js';
-import { hashPassword } from '../utils/crypto.js';
+import { config } from '../config.js';
+import { createAuthSeeder } from './helpers/auth-fixtures.js';
+import {
+  IMPORT_FACILITY_ID,
+  IMPORT_OTHER_FACILITY_ID,
+  connectImportDatabase,
+  disconnectImportDatabase,
+  resetImportDatabase,
+  seedImportMasterData,
+} from './helpers/import-fixtures.js';
 
-const app = createApp();
-
+/**
+ * P8 Import & Export Routes Integration Tests.
+ *
+ * `name` is now the only customer column, so every upload fixture uses a bare `name` header and
+ * the export contract is exactly `name,isActive,createdAt`. The upload guards (.csv only, 2 MB
+ * cap, MIME allowlist) and the export date-range rules are asserted at the HTTP boundary.
+ */
 describe('P8 Import & Export Routes Integration Tests', () => {
-  const facilityId = 'fac-ie-routes-1';
-  const otherFacilityId = 'fac-ie-routes-2';
+  const facilityId = IMPORT_FACILITY_ID;
+  const otherFacilityId = IMPORT_OTHER_FACILITY_ID;
 
   let superAdminToken: string;
   let adminOtherToken: string;
@@ -21,129 +29,59 @@ describe('P8 Import & Export Routes Integration Tests', () => {
   let readOnlyToken: string;
   let mustChangePasswordToken: string;
 
+  const seed = createAuthSeeder(config.jwtSecret);
+  const app = createApp();
+
   beforeAll(async () => {
-    const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri);
-    }
+    await connectImportDatabase();
+
+    ({ token: superAdminToken } = await seed({
+      userId: 'usr-ie-sa',
+      username: 'ie_superadmin',
+      role: 'SUPER_ADMIN',
+      facilityIds: [],
+    }));
+    ({ token: adminOtherToken } = await seed({
+      userId: 'usr-ie-admin-other',
+      username: 'ie_admin_other',
+      role: 'ADMIN',
+      facilityIds: [otherFacilityId],
+    }));
+    ({ token: operatorToken } = await seed({
+      userId: 'usr-ie-op',
+      username: 'ie_operator',
+      role: 'OPERATOR',
+      facilityIds: [facilityId],
+    }));
+    ({ token: readOnlyToken } = await seed({
+      userId: 'usr-ie-ro',
+      username: 'ie_readonly',
+      role: 'READ_ONLY',
+      facilityIds: [facilityId],
+    }));
+    ({ token: mustChangePasswordToken } = await seed({
+      userId: 'usr-ie-pwd',
+      username: 'ie_must_change',
+      role: 'ADMIN',
+      facilityIds: [facilityId],
+      mustChangePassword: true,
+    }));
   });
 
   afterAll(async () => {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
+    await disconnectImportDatabase();
   });
 
   beforeEach(async () => {
-    await FacilityModel.deleteMany({});
-    await UserModel.deleteMany({});
-    await SessionModel.deleteMany({});
-    await CustomerModel.deleteMany({});
-
-    await FacilityModel.create([
-      { id: facilityId, name: 'Facility One', code: 'F1', isActive: true },
-      { id: otherFacilityId, name: 'Facility Two', code: 'F2', isActive: true },
-    ]);
-
-    const passwordHash = await hashPassword('SecurePass123!');
-    await UserModel.create([
-      {
-        id: 'usr-ie-sa',
-        username: 'ie_superadmin',
-        employeeId: 'EMP-ISA',
-        mobile: '9876541001',
-        email: 'ie_sa@example.com',
-        passwordHash,
-        fullName: 'IE Super Admin',
-        role: 'SUPER_ADMIN',
-        facilityIds: [],
-        isActive: true,
-        mustChangePassword: false,
-      },
-      {
-        id: 'usr-ie-admin-other',
-        username: 'ie_admin_other',
-        employeeId: 'EMP-IAO',
-        mobile: '9876541002',
-        email: 'ie_ao@example.com',
-        passwordHash,
-        fullName: 'IE Admin Other',
-        role: 'ADMIN',
-        facilityIds: [otherFacilityId],
-        isActive: true,
-        mustChangePassword: false,
-      },
-      {
-        id: 'usr-ie-op',
-        username: 'ie_operator',
-        employeeId: 'EMP-IOP',
-        mobile: '9876541003',
-        email: 'ie_op@example.com',
-        passwordHash,
-        fullName: 'IE Operator',
-        role: 'OPERATOR',
-        facilityIds: [facilityId],
-        isActive: true,
-        mustChangePassword: false,
-      },
-      {
-        id: 'usr-ie-ro',
-        username: 'ie_readonly',
-        employeeId: 'EMP-IRO',
-        mobile: '9876541004',
-        email: 'ie_ro@example.com',
-        passwordHash,
-        fullName: 'IE ReadOnly',
-        role: 'READ_ONLY',
-        facilityIds: [facilityId],
-        isActive: true,
-        mustChangePassword: false,
-      },
-      {
-        id: 'usr-ie-pwd',
-        username: 'ie_must_change',
-        employeeId: 'EMP-IPW',
-        mobile: '9876541005',
-        email: 'ie_pw@example.com',
-        passwordHash,
-        fullName: 'Must Change Password',
-        role: 'ADMIN',
-        facilityIds: [facilityId],
-        isActive: true,
-        mustChangePassword: true,
-      },
-    ]);
-
-    const saLogin = await authService.login({
-      username: 'ie_superadmin',
-      password: 'SecurePass123!',
-    });
-    superAdminToken = saLogin.accessToken;
-
-    const aoLogin = await authService.login({
-      username: 'ie_admin_other',
-      password: 'SecurePass123!',
-    });
-    adminOtherToken = aoLogin.accessToken;
-
-    const opLogin = await authService.login({
-      username: 'ie_operator',
-      password: 'SecurePass123!',
-    });
-    operatorToken = opLogin.accessToken;
-
-    const roLogin = await authService.login({
-      username: 'ie_readonly',
-      password: 'SecurePass123!',
-    });
-    readOnlyToken = roLogin.accessToken;
-
-    const pwdLogin = await authService.login({
-      username: 'ie_must_change',
-      password: 'SecurePass123!',
-    });
-    mustChangePasswordToken = pwdLogin.accessToken;
+    await resetImportDatabase();
+    await seedImportMasterData();
   });
+
+  const uploadCustomers = (bearer?: string, body = 'name\nAlice') =>
+    request(app)
+      .post(`/api/facilities/${facilityId}/import/customers`)
+      .set('Authorization', `Bearer ${bearer}`)
+      .attach('file', Buffer.from(body), 'customers.csv');
 
   // 1. Returns 401 when unauthenticated.
   it('returns 401 when unauthenticated', async () => {
@@ -156,16 +94,13 @@ describe('P8 Import & Export Routes Integration Tests', () => {
     const res = await request(app)
       .post(`/api/facilities/${facilityId}/import/customers`)
       .set('Authorization', `Bearer ${mustChangePasswordToken}`)
-      .attach('file', Buffer.from('name,mobile\nAlice,9876543210'), 'customers.csv');
+      .attach('file', Buffer.from('name\nAlice'), 'customers.csv');
     expect(res.status).toBe(403);
   });
 
   // 3. Returns 403 when user lacks import:execute (e.g. OPERATOR on import).
   it('returns 403 when user lacks import:execute (e.g. OPERATOR on import)', async () => {
-    const res = await request(app)
-      .post(`/api/facilities/${facilityId}/import/customers`)
-      .set('Authorization', `Bearer ${operatorToken}`)
-      .attach('file', Buffer.from('name,mobile\nAlice,9876543210'), 'customers.csv');
+    const res = await uploadCustomers(operatorToken);
     expect(res.status).toBe(403);
   });
 
@@ -190,7 +125,7 @@ describe('P8 Import & Export Routes Integration Tests', () => {
     const res = await request(app)
       .post(`/api/facilities/${facilityId}/import/customers`)
       .set('Authorization', `Bearer ${superAdminToken}`)
-      .attach('wrong_field', Buffer.from('name,mobile\nAlice,9876543210'), 'customers.csv');
+      .attach('wrong_field', Buffer.from('name\nAlice'), 'customers.csv');
     expect(res.status).toBe(400);
   });
 
@@ -199,7 +134,7 @@ describe('P8 Import & Export Routes Integration Tests', () => {
     const res = await request(app)
       .post(`/api/facilities/${facilityId}/import/customers`)
       .set('Authorization', `Bearer ${superAdminToken}`)
-      .attach('file', Buffer.from('name,mobile\nAlice,9876543210'), 'customers.xlsx');
+      .attach('file', Buffer.from('name\nAlice'), 'customers.xlsx');
     expect(res.status).toBe(400);
   });
 
@@ -241,14 +176,10 @@ describe('P8 Import & Export Routes Integration Tests', () => {
     expect(res.status).toBe(400);
   });
 
-  // 12. Returns 200 with ImportSummary for valid Customer / GRN upload, and 200 chunked CSV for valid export.
-  it('returns 200 with ImportSummary for valid Customer / GRN upload, and 200 chunked CSV for valid export', async () => {
-    // A. Valid Customer Import
-    const csvContent = 'name,mobile\nCustomer Valid,9870001234\n';
-    const importRes = await request(app)
-      .post(`/api/facilities/${facilityId}/import/customers`)
-      .set('Authorization', `Bearer ${superAdminToken}`)
-      .attach('file', Buffer.from(csvContent), 'customers.csv');
+  // 12. Returns 200 with ImportSummary for a valid Customer upload, and 200 chunked CSV for a valid export.
+  it('returns 200 with ImportSummary for a valid Customer upload, and 200 chunked CSV for a valid export', async () => {
+    // A. Valid Customer Import — `name` is the only column a customer CSV may carry.
+    const importRes = await uploadCustomers(superAdminToken, 'name\nCustomer Valid\n');
 
     expect(importRes.status).toBe(200);
     expect(importRes.body.totalRows).toBe(1);
@@ -257,14 +188,14 @@ describe('P8 Import & Export Routes Integration Tests', () => {
     expect(importRes.body.results).toHaveLength(1);
     expect(importRes.body.results[0].status).toBe('committed');
 
-    // B. Valid Customer Export
+    // B. Valid Customer Export — header is exactly name,isActive,createdAt.
     const exportRes = await request(app)
       .get(`/api/facilities/${facilityId}/export/customers`)
       .set('Authorization', `Bearer ${superAdminToken}`);
 
     expect(exportRes.status).toBe(200);
     expect(exportRes.headers['content-type']).toBe('text/csv; charset=utf-8');
+    expect(exportRes.text.split('\r\n')[0]).toBe('name,isActive,createdAt');
     expect(exportRes.text).toContain('Customer Valid');
-    expect(exportRes.text).toContain('9870001234');
   });
 });

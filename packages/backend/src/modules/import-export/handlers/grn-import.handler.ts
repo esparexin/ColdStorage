@@ -3,8 +3,7 @@ import type {
   ImportRowResult,
   ImportSummary,
 } from '@cold-storage/contracts';
-import { createGrnSchema } from '@cold-storage/contracts';
-import { ChamberModel } from '../../../database/models/chamber.model.js';
+import { bagTypeSchema, createGrnSchema, rentTypeSchema } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { auditService } from '../../audit/audit.service.js';
@@ -43,7 +42,7 @@ export async function executeGrnImport(
   const dateIdx = headers.indexOf('date');
   const customerNameIdx = headers.indexOf('customerName');
   const commodityNameIdx = headers.indexOf('commodityName');
-  const chamberNumberIdx = headers.indexOf('chamberNumber');
+  const chamberIdx = headers.indexOf('chamber');
   const bagsIdx = headers.indexOf('bags');
   const bagTypeIdx = headers.indexOf('bagType');
   const rentTypeIdx = headers.indexOf('rentType');
@@ -62,7 +61,7 @@ export async function executeGrnImport(
     date: cols[dateIdx]?.trim() ?? '',
     customerName: cols[customerNameIdx]?.trim() ?? '',
     commodityName: cols[commodityNameIdx]?.trim() ?? '',
-    chamberNumber: cols[chamberNumberIdx]?.trim() ?? '',
+    chamber: cols[chamberIdx]?.trim() ?? '',
     bagsStr: cols[bagsIdx]?.trim() ?? '',
     bagType: cols[bagTypeIdx]?.trim() ?? '',
     rentType: cols[rentTypeIdx]?.trim() ?? '',
@@ -87,11 +86,7 @@ export async function executeGrnImport(
   const uniqueCommodityNames = Array.from(
     new Set(parsedRows.map((r) => r.commodityName.toLowerCase()).filter(Boolean)),
   );
-  const uniqueChamberNumbers = Array.from(
-    new Set(parsedRows.map((r) => r.chamberNumber).filter(Boolean)),
-  );
-
-  const [customers, commodities, chambers] = await Promise.all([
+  const [customers, commodities] = await Promise.all([
     uniqueCustomerNames.length > 0
       ? CustomerModel.find(
           { facilityIds: facilityId, name: { $in: uniqueCustomerNames }, isActive: true },
@@ -108,19 +103,10 @@ export async function executeGrnImport(
           .lean()
           .exec()
       : [],
-    uniqueChamberNumbers.length > 0
-      ? ChamberModel.find(
-          { facilityId, chamberNumber: { $in: uniqueChamberNumbers }, isActive: true },
-          { id: 1, chamberNumber: 1 },
-        )
-          .lean()
-          .exec()
-      : [],
   ]);
 
   const customerMap = new Map<string, string>(customers.map((c) => [c.name, c.id]));
   const commodityMap = new Map<string, string>(commodities.map((c) => [c.normalizedName, c.id]));
-  const chamberMap = new Map<string, string>(chambers.map((c) => [c.chamberNumber, c.id]));
 
   const results: ImportRowResult[] = [];
 
@@ -137,11 +123,6 @@ export async function executeGrnImport(
       rowErrors.push(`Commodity '${row.commodityName}' not found or inactive`);
     }
 
-    const chamberId = chamberMap.get(row.chamberNumber);
-    if (!chamberId) {
-      rowErrors.push(`Chamber '${row.chamberNumber}' not found or inactive for this facility`);
-    }
-
     // Row-level business validation is delegated to the canonical createGrnSchema so the CSV
     // import path can never accept a row that the interactive GRN endpoint would reject.
     const rentMonths = row.rentType === 'Monthly' ? parseOptionalInt(row.rentMonthsStr) : null;
@@ -149,13 +130,13 @@ export async function executeGrnImport(
       date: row.date,
       customerId: customerId ?? 'unresolved-customer',
       commodityId: commodityId ?? 'unresolved-commodity',
-      chamberId: chamberId ?? 'unresolved-chamber',
+      chamber: row.chamber,
       bags: parseInt(row.bagsStr, 10),
-      bagType: row.bagType,
+      bagType: bagTypeSchema.safeParse(row.bagType).data ?? row.bagType,
       nominalUnitWeight: parseOptionalFloat(row.nominalUnitWeightStr),
       nominalTotalWeight: parseOptionalFloat(row.nominalTotalWeightStr),
       actualWeight: parseOptionalFloat(row.actualWeightStr),
-      rentType: row.rentType,
+      rentType: rentTypeSchema.safeParse(row.rentType).data ?? row.rentType,
       rentMonths,
       rentAmount: parseFloat(row.rentAmountStr),
       gpNumber: null,
@@ -187,7 +168,6 @@ export async function executeGrnImport(
         ...contractCheck.data,
         customerId: customerId!,
         commodityId: commodityId!,
-        chamberId: chamberId!,
         gpNumber: row.gpNumber ?? null,
         marks: row.marks ?? null,
         remarks: row.remarks ?? null,

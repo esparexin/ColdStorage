@@ -11,6 +11,7 @@ import type { RentPaymentDoc } from '../../../database/models/rent-payment.model
 import { auditService } from '../../audit/audit.service.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
 import { counterService } from '../../common/counter.service.js';
+import { computeRentBalance } from '../../common/rent-balance.js';
 import { rentRepository } from '../rent.repository.js';
 
 export function toPaymentEntity(doc: RentPaymentDoc): RentPayment {
@@ -62,7 +63,8 @@ export async function executeRecordPayment(
         grn.id,
         session,
       );
-      const remainingBalance = Math.max(0, Number((grn.rentAmount - totalPaidBefore).toFixed(2)));
+      const balanceBefore = computeRentBalance(grn.rentAmount, totalPaidBefore);
+      const remainingBalance = balanceBefore.remainingBalance;
 
       // 3. Strict Overpayment Guard (Zero negative balance permitted per P0-Decision 9)
       if (input.amountPaid > remainingBalance) {

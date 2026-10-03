@@ -1,8 +1,4 @@
-import type {
-  InventoryTransaction,
-  PutAwayAllocation,
-  PutAwayItem,
-} from '@cold-storage/contracts';
+import type { InventoryTransaction, PutAwayAllocation } from '@cold-storage/contracts';
 
 export { isTransientError } from '../common/mongo-retry.helper.js';
 
@@ -10,9 +6,7 @@ export class ConcurrencyConflictError extends Error {
   public readonly statusCode = 409;
   public readonly code = 'CONCURRENCY_CONFLICT';
 
-  constructor(
-    message = 'Concurrent allocation conflict on storage position or GRN. Please retry.',
-  ) {
+  constructor(message = 'Concurrent allocation conflict on this GRN. Please retry.') {
     super(message);
     this.name = 'ConcurrencyConflictError';
   }
@@ -25,9 +19,8 @@ export function toPutAwayEntity(doc: unknown): PutAwayAllocation {
     facilityId: String(d.facilityId),
     grnId: String(d.grnId),
     grnNumber: String(d.grnNumber),
-    chamberId: String(d.chamberId),
-    items: (d.items as PutAwayItem[]) ?? [],
-    totalBags: Number(d.totalBags),
+    chamber: String(d.chamber),
+    bags: Number(d.bags),
     notes: d.notes ? String(d.notes) : null,
     allocatedBy: String(d.allocatedBy),
     allocatedAt: d.allocatedAt instanceof Date ? d.allocatedAt : new Date(String(d.allocatedAt)),
@@ -41,11 +34,7 @@ export function toLedgerEntity(doc: unknown): InventoryTransaction {
     facilityId: String(d.facilityId),
     grnId: String(d.grnId),
     grnNumber: String(d.grnNumber),
-    chamberId: String(d.chamberId),
-    rackId: String(d.rackId),
-    levelId: String(d.levelId),
-    positionId: String(d.positionId),
-    positionCode: String(d.positionCode),
+    chamber: String(d.chamber),
     customerId: String(d.customerId),
     commodityId: String(d.commodityId),
     bagType: d.bagType as InventoryTransaction['bagType'],

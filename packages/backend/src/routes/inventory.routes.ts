@@ -6,7 +6,7 @@ import { requirePermission } from '../middleware/rbac.middleware.js';
 import { ConcurrencyConflictError, inventoryService } from '../modules/inventory/inventory.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
 import { RentPaymentRequiredError } from '../modules/common/rent-gate.service.js';
-import { sendServiceError } from '../utils/http-error.js';
+import { sendRentPaymentRequired, sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
 export const inventoryRouter = Router();
@@ -17,7 +17,7 @@ inventoryRouter.use(requirePasswordChanged);
 // 1. Create put-away allocation for GRN
 inventoryRouter.post(
   '/facilities/:facilityId/grns/:grnId/allocations',
-  requirePermission('rack:allocate'),
+  requirePermission('allocation:manage'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
   async (req: Request, res: Response): Promise<void> => {
     const facilityId = getParamId(req.params.facilityId);
@@ -57,17 +57,7 @@ inventoryRouter.post(
         return;
       }
       if (err instanceof RentPaymentRequiredError) {
-        res.status(err.statusCode).json({
-          error: err.message,
-          code: err.code,
-          rent: {
-            grnId: err.grnId,
-            grnNumber: err.grnNumber,
-            rentAmount: err.rentAmount,
-            totalPaid: err.totalPaid,
-            remainingBalance: err.remainingBalance,
-          },
-        });
+        sendRentPaymentRequired(res, err);
         return;
       }
       const message = err instanceof Error ? err.message : 'Put-away allocation failed';
@@ -133,31 +123,8 @@ inventoryRouter.get(
   },
 );
 
-// 4. Get derived Position occupancy and stored batches
-inventoryRouter.get(
-  '/facilities/:facilityId/positions/:positionId/occupancy',
-  requirePermission('inventory:view'),
-  requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
-    const facilityId = getParamId(req.params.facilityId);
-    const positionId = getParamId(req.params.positionId);
 
-    const posFacilityId = await inventoryService.resolveFacilityIdForPosition(positionId);
-    if (!posFacilityId || posFacilityId !== facilityId) {
-      res.status(404).json({ error: `Position '${positionId}' not found in facility '${facilityId}'` });
-      return;
-    }
-
-    try {
-      const occupancy = await inventoryService.getPositionOccupancy(facilityId, positionId);
-      res.status(200).json({ occupancy });
-    } catch (err: unknown) {
-      sendServiceError(res, err, 'Failed to get position occupancy');
-    }
-  },
-);
-
-// 5. Get facility inventory stock summary
+// 4. Get facility inventory stock summary
 inventoryRouter.get(
   '/facilities/:facilityId/inventory',
   requirePermission('inventory:view'),

@@ -42,14 +42,7 @@ export function RentTable({
     {
       key: 'customer',
       header: 'Customer',
-      render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span>{row.customerName}</span>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-            {row.customerMobile}
-          </span>
-        </div>
-      ),
+      render: (row) => <span>{row.customerName}</span>,
     },
     {
       key: 'commodity',
@@ -58,7 +51,7 @@ export function RentTable({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span>{row.commodityName}</span>
           <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-            Chamber {row.chamberNumber} ({row.totalBags} bags)
+            Chamber {row.chamber} ({row.totalBags} bags)
           </span>
         </div>
       ),

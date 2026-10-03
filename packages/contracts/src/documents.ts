@@ -1,5 +1,8 @@
 import { z } from 'zod';
 import { bagTypeSchema } from './bags.js';
+import { chamberTextSchema, rentalAmountSchema } from './common.js';
+import { rentTypeSchema } from './grn.js';
+import { paymentModeSchema, paymentStatusSchema } from './rent.js';
 
 /**
  * Query schema for document format.
@@ -40,16 +43,6 @@ export const facilitySubHeaderSchema = z.object({
 export type FacilitySubHeader = z.infer<typeof facilitySubHeaderSchema>;
 
 /**
- * Position allocation item for GRN / Put-Away storage record.
- */
-export const documentPositionItemSchema = z.object({
-  positionCode: z.string(),
-  bags: z.number().int().min(1),
-});
-
-export type DocumentPositionItem = z.infer<typeof documentPositionItemSchema>;
-
-/**
  * 1. GRN Storage Document DTO
  */
 export const grnDocumentDtoSchema = z.object({
@@ -60,13 +53,12 @@ export const grnDocumentDtoSchema = z.object({
   inwardReceiptNumber: z.string(),
   date: z.coerce.date(),
   customerName: z.string(),
-  customerMobile: z.string(),
   commodityName: z.string(),
-  chamberNumber: z.string(),
+  chamber: chamberTextSchema,
   bags: z.number().int().min(1),
   bagType: bagTypeSchema,
-  rentType: z.enum(['Monthly', 'Seasonal']),
-  rentAmount: z.number().min(0),
+  rentType: rentTypeSchema,
+  rentAmount: rentalAmountSchema,
   rentMonths: z.number().int().positive().nullable().optional(),
   nominalUnitWeight: z.number().positive().nullable().optional(),
   nominalTotalWeight: z.number().positive().nullable().optional(),
@@ -75,7 +67,6 @@ export const grnDocumentDtoSchema = z.object({
   gpNumber: z.string().nullable().optional(),
   marks: z.string().nullable().optional(),
   status: z.string(),
-  positions: z.array(documentPositionItemSchema),
   generatedAt: z.coerce.date(),
   generatedBy: z.string(),
 });
@@ -92,13 +83,12 @@ export const receiptDocumentDtoSchema = z.object({
   grnNumber: z.string(),
   date: z.coerce.date(),
   customerName: z.string(),
-  customerMobile: z.string(),
   commodityName: z.string(),
-  chamberNumber: z.string(),
+  chamber: chamberTextSchema,
   bags: z.number().int().min(1),
   bagType: bagTypeSchema,
-  rentType: z.enum(['Monthly', 'Seasonal']),
-  rentAmount: z.number().min(0),
+  rentType: rentTypeSchema,
+  rentAmount: rentalAmountSchema,
   rentMonths: z.number().int().positive().nullable().optional(),
   vehicleNumber: z.string().nullable().optional(),
   generatedAt: z.coerce.date(),
@@ -118,9 +108,8 @@ export const challanDocumentDtoSchema = z.object({
   grnNumber: z.string(),
   customerName: z.string(),
   commodityName: z.string(),
-  chamberNumber: z.string(),
-  totalBags: z.number().int().min(1),
-  items: z.array(documentPositionItemSchema),
+  chamber: chamberTextSchema,
+  bags: z.number().int().min(1),
   vehicleNumber: z.string().nullable().optional(),
   driverName: z.string().nullable().optional(),
   issuedBy: z.string(),
@@ -132,31 +121,11 @@ export const challanDocumentDtoSchema = z.object({
 export type ChallanDocumentDto = z.infer<typeof challanDocumentDtoSchema>;
 
 /**
- * 4. Rent Payment Receipt Preview DTO (P9 Preview Template Only)
- */
-export const rentReceiptPreviewDtoSchema = z.object({
-  organization: organizationHeaderSchema,
-  facility: facilitySubHeaderSchema,
-  receiptNumber: z.string(),
-  grnNumber: z.string(),
-  date: z.coerce.date(),
-  customerName: z.string(),
-  customerMobile: z.string(),
-  commodityName: z.string(),
-  totalRentObligation: z.number().min(0),
-  amountPaid: z.number().min(0),
-  paymentMode: z.enum(['Cash', 'UPI']),
-  remainingBalance: z.number().min(0),
-  paymentStatus: z.enum(['Settled', 'Not Settled']),
-  isPreview: z.literal(true),
-  generatedAt: z.coerce.date(),
-  generatedBy: z.string(),
-});
-
-export type RentReceiptPreviewDto = z.infer<typeof rentReceiptPreviewDtoSchema>;
-
-/**
- * 5. Rent Payment Receipt Document DTO (Phase 12 Authoritative Template)
+ * 4. Rent Payment Receipt DTO.
+ *
+ * One schema serves both the authoritative committed receipt and the zero-write preview:
+ * `isPreview` drives the watermark and notice banner in the template. This previously existed
+ * as two near-identical schemas that had to be kept in sync by hand.
  */
 export const rentReceiptDocumentDtoSchema = z.object({
   organization: organizationHeaderSchema,
@@ -165,16 +134,24 @@ export const rentReceiptDocumentDtoSchema = z.object({
   grnNumber: z.string(),
   date: z.coerce.date(),
   customerName: z.string(),
-  customerMobile: z.string(),
   commodityName: z.string(),
-  totalRentObligation: z.number().min(0),
-  amountPaid: z.number().min(0),
-  paymentMode: z.enum(['Cash', 'UPI']),
-  remainingBalance: z.number().min(0),
-  paymentStatus: z.enum(['Settled', 'Not Settled']),
+  chamber: chamberTextSchema,
+  totalRentObligation: rentalAmountSchema,
+  amountPaid: rentalAmountSchema,
+  paymentMode: paymentModeSchema,
+  remainingBalance: rentalAmountSchema,
+  paymentStatus: paymentStatusSchema,
+  isPreview: z.boolean().default(false),
   notes: z.string().nullable().optional(),
   generatedAt: z.coerce.date(),
   generatedBy: z.string(),
 });
 
 export type RentReceiptDocumentDto = z.infer<typeof rentReceiptDocumentDtoSchema>;
+
+/** Preview is the same document shape, flagged as uncommitted. */
+export const rentReceiptPreviewDtoSchema = rentReceiptDocumentDtoSchema.extend({
+  isPreview: z.literal(true),
+});
+
+export type RentReceiptPreviewDto = z.infer<typeof rentReceiptPreviewDtoSchema>;

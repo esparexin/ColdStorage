@@ -1,8 +1,7 @@
 import { z } from 'zod';
-import { indianVehicleSchema } from './common.js';
+import { chamberTextSchema, indianVehicleSchema } from './common.js';
 import { challanNumberSchema } from './identifiers.js';
 import { grnStatusSchema } from './grn.js';
-import { allocationItemSchema } from './inventory.js';
 
 /**
  * P6: Delivery + Outward Challan + Full Reversal + GRN Closure Contracts.
@@ -15,37 +14,25 @@ import { allocationItemSchema } from './inventory.js';
 export const deliveryStatusSchema = z.enum(['ISSUED', 'REVERSED']);
 export type DeliveryStatus = z.infer<typeof deliveryStatusSchema>;
 
-export const deliveryItemSchema = z.object({
-  positionId: z.string().min(1),
-  positionCode: z.string().min(1),
-  bags: z.number().int().positive(),
-});
-
-export type DeliveryItem = z.infer<typeof deliveryItemSchema>;
-
+/**
+ * A GRN is one commodity in one chamber, so an outward movement withdraws a single bag count
+ * from that GRN's available balance. Over-withdrawal is rejected atomically by the backend
+ * against the ledger-derived balance.
+ */
 export const createDeliverySchema = z
   .object({
     grnId: z.string().trim().min(1, 'grnId is required'),
     date: z.coerce.date().default(() => new Date()),
-    items: z
-      .array(allocationItemSchema)
-      .min(1, 'At least one delivery item is required')
-      .max(50, 'Cannot exceed 50 delivery items in a single request'),
+    bags: z
+      .number({ invalid_type_error: 'Bags must be a number' })
+      .int('Bags must be a whole number')
+      .positive('Delivery bags must be greater than zero')
+      .max(100000, 'Bags cannot exceed 100,000'),
     vehicleNumber: indianVehicleSchema.nullish(),
     driverName: z.string().trim().max(100).nullish(),
     weight: z.number().positive('weight must be positive').nullish(),
     remarks: z.string().trim().max(500).nullish(),
   })
-  .refine(
-    (data) => {
-      const positionIds = data.items.map((i) => i.positionId);
-      return new Set(positionIds).size === positionIds.length;
-    },
-    {
-      message: 'Duplicate positionId in delivery items is not permitted',
-      path: ['items'],
-    },
-  )
   .refine(
     (data) => {
       const maxFutureAllowed = new Date(Date.now() + 5 * 60 * 1000);
@@ -77,9 +64,8 @@ export const deliveryChallanSchema = z.object({
   customerName: z.string().min(1),
   commodityId: z.string().min(1),
   commodityName: z.string().min(1),
-  chamberId: z.string().min(1),
-  chamberNumber: z.string().min(1),
-  items: z.array(deliveryItemSchema),
+  chamber: chamberTextSchema,
+  bags: z.number().int().positive(),
   totalBags: z.number().int().positive(),
   vehicleNumber: z.string().nullable().optional(),
   driverName: z.string().nullable().optional(),

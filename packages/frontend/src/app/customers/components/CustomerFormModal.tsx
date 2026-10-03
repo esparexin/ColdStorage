@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { indianGstinSchema, indianMobileSchema } from '@cold-storage/contracts';
-import type { Customer } from '@cold-storage/contracts';
+import { customerNameSchema, type Customer } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { Button, Input, Modal } from '@/components/ui';
 import styles from '../page.module.css';
@@ -10,24 +9,24 @@ import styles from '../page.module.css';
 interface CustomerFormModalProps {
   customer: Customer | null;
   selectedFacilityId: string | null;
-  userFacilityIds?: string[];
   existingCustomers?: Customer[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
+/**
+ * Customer identity is a single name (max 50 characters, special characters allowed). Facility
+ * scope comes from the app's facility selector rather than a form field, and active status is
+ * only editable when updating an existing record.
+ */
 export function CustomerFormModal({
   customer,
   selectedFacilityId,
-  userFacilityIds = [],
   existingCustomers,
   onClose,
   onSuccess,
 }: CustomerFormModalProps) {
   const [formName, setFormName] = useState(customer?.name ?? '');
-  const [formMobile, setFormMobile] = useState(customer?.mobile ?? '');
-  const [formAddress, setFormAddress] = useState(customer?.address ?? '');
-  const [formGstin, setFormGstin] = useState(customer?.gstin ?? '');
   const [formIsActive, setFormIsActive] = useState(customer?.isActive ?? true);
   const [modalError, setModalError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -36,78 +35,43 @@ export function CustomerFormModal({
     e.preventDefault();
     setModalError(null);
 
-    const trimmedName = formName.trim();
-    const trimmedMobile = formMobile.trim();
-    if (!trimmedName) {
-      setModalError('Customer name is required');
+    // Reuse the shared contract validator so the browser cannot accept a name the API rejects.
+    const parsedName = customerNameSchema.safeParse(formName.trim());
+    if (!parsedName.success) {
+      setModalError(parsedName.error.issues[0]?.message ?? 'Customer name is invalid');
       return;
     }
-    if (!indianMobileSchema.safeParse(trimmedMobile).success) {
-      setModalError('Mobile must be a valid 10-digit Indian number (starts with 6-9)');
+    const name = parsedName.data;
+
+    const duplicate = existingCustomers?.find(
+      (c) => c.id !== customer?.id && c.name.trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (duplicate) {
+      setModalError(`Customer with name '${name}' already exists`);
       return;
     }
 
-    const duplicateMobile = existingCustomers?.find((c) => c.id !== customer?.id && c.mobile === trimmedMobile);
-    if (duplicateMobile) {
-      setModalError(`Customer with mobile '${trimmedMobile}' already exists (${duplicateMobile.name})`);
-      return;
-    }
-
-    const duplicateName = existingCustomers?.find((c) => c.id !== customer?.id && c.name.trim().toLowerCase() === trimmedName.toLowerCase());
-    if (duplicateName) {
-      setModalError(`Customer with name '${trimmedName}' already exists`);
-      return;
-    }
-
-    const trimmedGstin = formGstin.trim().toUpperCase();
-    if (trimmedGstin && !indianGstinSchema.safeParse(trimmedGstin).success) {
-      setModalError('Invalid Indian GSTIN format');
-      return;
-    }
-
-    const facilityIds = selectedFacilityId ? [selectedFacilityId] : userFacilityIds;
-    if (facilityIds.length === 0) {
-      setModalError('At least one facility must be selected or assigned');
+    if (!customer && !selectedFacilityId) {
+      setModalError('Select a facility before registering a customer');
       return;
     }
 
     setSubmitting(true);
     try {
-      if (customer) {
-        const res = await requestWithAuth(`/api/customers/${customer.id}`, {
-          method: 'PATCH',
+      const res = await requestWithAuth(
+        customer ? `/api/customers/${customer.id}` : '/api/customers',
+        {
+          method: customer ? 'PATCH' : 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: trimmedName,
-            mobile: trimmedMobile,
-            address: formAddress.trim() || null,
-            gstin: trimmedGstin || null,
-            isActive: formIsActive,
-          }),
-        });
+          body: JSON.stringify(
+            customer ? { name, isActive: formIsActive } : { name, facilityId: selectedFacilityId },
+          ),
+        },
+      );
 
-        if (!res.ok) {
-          const err = (await res.json()) as { error?: string };
-          throw new Error(err.error ?? 'Failed to update customer');
-        }
-      } else {
-        const res = await requestWithAuth('/api/customers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: trimmedName,
-            mobile: trimmedMobile,
-            address: formAddress.trim() || null,
-            gstin: trimmedGstin || null,
-            facilityIds,
-            isActive: formIsActive,
-          }),
-        });
-
-        if (!res.ok) {
-          const err = (await res.json()) as { error?: string };
-          throw new Error(err.error ?? 'Failed to register customer');
-        }
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        throw new Error(err.error ?? (customer ? 'Failed to update customer' : 'Failed to register customer'));
       }
 
       onSuccess();
@@ -132,53 +96,19 @@ export function CustomerFormModal({
           </div>
         )}
 
-          <Input
-            id="customer-name"
-            label="Full Name / Entity Name"
-            type="text"
-            required
-            maxLength={150}
-            value={formName}
-            onChange={(e) => setFormName(e.target.value)}
-            placeholder="e.g. Ramesh Agro Traders"
-            disabled={submitting}
-          />
+        <Input
+          id="customer-name"
+          label="Customer Name"
+          type="text"
+          required
+          maxLength={50}
+          value={formName}
+          onChange={(e) => setFormName(e.target.value)}
+          placeholder="e.g. Ramesh Agro Traders"
+          disabled={submitting}
+        />
 
-          <Input
-            id="customer-mobile"
-            label="Mobile Number (10 Digits)"
-            type="tel"
-            required
-            pattern="[6-9][0-9]{9}"
-            maxLength={10}
-            value={formMobile}
-            onChange={(e) => setFormMobile(e.target.value.replace(/\D/g, ''))}
-            placeholder="e.g. 9876543210"
-            disabled={submitting}
-          />
-
-          <Input
-            id="customer-address"
-            label="Address"
-            type="text"
-            maxLength={300}
-            value={formAddress}
-            onChange={(e) => setFormAddress(e.target.value)}
-            placeholder="Village / Tehsil / City"
-            disabled={submitting}
-          />
-
-          <Input
-            id="customer-gstin"
-            label="GSTIN (Optional)"
-            type="text"
-            maxLength={15}
-            value={formGstin}
-            onChange={(e) => setFormGstin(e.target.value.toUpperCase())}
-            placeholder="e.g. 06AAAAA1234A1Z5"
-            disabled={submitting}
-          />
-
+        {customer && (
           <div className={styles.fieldGroup}>
             <label htmlFor="customer-is-active" className={styles.checkboxLabel}>
               <input
@@ -188,28 +118,25 @@ export function CustomerFormModal({
                 onChange={(e) => setFormIsActive(e.target.checked)}
                 disabled={submitting}
               />
-              <span>Active KYC & Operational</span>
+              <span>Active</span>
             </label>
           </div>
+        )}
 
-          <div className={styles.modalFooter}>
-            <Button
-              variant="outline"
-              onClick={onClose}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              id="save-customer-btn"
-              type="submit"
-              variant="primary"
-              isLoading={submitting}
-            >
-              {customer ? 'Update Customer' : 'Register Customer'}
-            </Button>
-          </div>
-        </form>
+        <div className={styles.modalFooter}>
+          <Button variant="outline" onClick={onClose} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button
+            id="save-customer-btn"
+            type="submit"
+            variant="primary"
+            isLoading={submitting}
+          >
+            {customer ? 'Update Customer' : 'Register Customer'}
+          </Button>
+        </div>
+      </form>
     </Modal>
   );
 }

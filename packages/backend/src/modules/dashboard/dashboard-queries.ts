@@ -1,10 +1,8 @@
-import { ChamberModel } from '../../database/models/chamber.model.js';
 import { CommodityModel } from '../../database/models/commodity.model.js';
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
 import { DeliveryReversalModel } from '../../database/models/delivery-reversal.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
-import { PositionModel } from '../../database/models/position.model.js';
 import { ledgerSignedQuantity } from '../inventory/ledger-polarity.js';
 
 export function getIstMonthlyWindow(date: Date = new Date()): {
@@ -45,14 +43,9 @@ export async function fetchPhaseAData(
   startOfNextMonth: Date,
 ) {
   return Promise.all([
-    PositionModel.aggregate<{ _id: string; capacityBags: number }>([
-      { $match: { facilityId } },
-      { $group: { _id: '$chamberId', capacityBags: { $sum: '$capacityBags' } } },
-    ]),
-    ChamberModel.find({ facilityId }).select('id chamberNumber isActive').lean().exec(),
     InventoryTransactionModel.aggregate<{
       _id: null;
-      occupiedBags: number;
+      totalBags: number;
       monthlyInward: number;
       monthlyDelivered: number;
     }>([
@@ -60,7 +53,7 @@ export async function fetchPhaseAData(
       {
         $group: {
           _id: null,
-          occupiedBags: { $sum: ledgerSignedQuantity },
+          totalBags: { $sum: ledgerSignedQuantity },
           monthlyInward: {
             $sum: {
               $cond: [
@@ -107,14 +100,14 @@ export async function fetchPhaseAData(
       },
     ]),
     InventoryTransactionModel.aggregate<{
-      byChamber: Array<{ _id: string; occupiedBags: number }>;
+      byChamber: Array<{ _id: string; totalBags: number }>;
       byCommodity: Array<{ _id: string; totalBags: number }>;
     }>([
       { $match: { facilityId } },
       {
         $facet: {
           byChamber: [
-            { $group: { _id: '$chamberId', occupiedBags: { $sum: ledgerSignedQuantity } } },
+            { $group: { _id: '$chamber', totalBags: { $sum: ledgerSignedQuantity } } },
           ],
           byCommodity: [
             { $group: { _id: '$commodityId', totalBags: { $sum: ledgerSignedQuantity } } },

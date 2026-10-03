@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { BackupPolicySection } from './components/BackupPolicySection';
 import { BrandLogoSection } from './components/BrandLogoSection';
 import { DocumentNumberingSection } from './components/DocumentNumberingSection';
+import { FacilitySection } from './components/FacilitySection';
 import { OrgIdentitySection } from './components/OrgIdentitySection';
 import { useSettingsForm } from './hooks/useSettingsForm';
 import styles from './page.module.css';
@@ -153,6 +154,8 @@ export default function SettingsPage() {
           rentReceiptPrefix={rentReceiptPrefix}
           setRentReceiptPrefix={setRentReceiptPrefix}
         />
+
+        <FacilitySection />
 
         <BackupPolicySection
           atlasRetentionDays={atlasRetentionDays}

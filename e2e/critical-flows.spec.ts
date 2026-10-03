@@ -129,7 +129,7 @@ test.describe('Critical Application Flows', () => {
     await expect(page.locator('h1, h2')).toContainText(/Goods Receipt|GRN/i);
   });
 
-  test('4. Storage & Chamber Hierarchy Flow: verifies facility layout view', async ({ page }) => {
+  test('4. Facility Management Flow: verifies facilities are managed from settings', async ({ page }) => {
     const mockUser = {
       userId: 'usr-admin-001',
       username: 'superadmin',
@@ -146,8 +146,12 @@ test.describe('Critical Application Flows', () => {
       });
     });
 
-    await page.goto('/storage');
-    await expect(page.locator('h1, h2')).toContainText(/Storage|Chamber|Facility/i);
+    await page.goto('/settings');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Settings/i);
+    // Facility records are maintained here by SUPER_ADMIN; chamber is free text on the GRN
+    // and has no management screen of its own.
+    await expect(page.getByRole('heading', { name: /^Facilities$/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Add Facility/i })).toBeVisible();
   });
 
   test('5. Inventory Flow: verifies inventory ledger view', async ({ page }) => {

@@ -1,95 +1,128 @@
 import { describe, expect, it } from 'vitest';
 import {
   createPutAwaySchema,
-  stockLedgerQuerySchema,
-  putAwayStatusSchema,
+  facilityInventorySummarySchema,
+  grnInventorySummarySchema,
   inventoryTransactionTypeSchema,
-  inventoryReferenceTypeSchema,
+  putAwayStatusSchema,
+  stockLedgerQuerySchema,
 } from '../inventory.js';
 
-describe('P5 Inventory & Rack Allocation Contracts', () => {
-  it('validates a valid createPutAway input', () => {
-    const input = {
-      items: [
-        { positionId: 'pos-1', bags: 100 },
-        { positionId: 'pos-2', bags: 50 },
-      ],
-      notes: 'Initial lot allocation',
+describe('P5 Inventory Contracts', () => {
+  describe('createPutAwaySchema', () => {
+    it('validates a put-away confirmation with only optional notes', () => {
+      expect(createPutAwaySchema.safeParse({}).success).toBe(true);
+      expect(createPutAwaySchema.safeParse({ notes: 'Stacked at back' }).success).toBe(true);
+    });
+
+    it('rejects notes longer than 500 characters', () => {
+      expect(createPutAwaySchema.safeParse({ notes: 'x'.repeat(501) }).success).toBe(false);
+    });
+
+    it('rejects unknown keys so position-era payloads fail loudly', () => {
+      expect(createPutAwaySchema.safeParse({ items: [] }).success).toBe(false);
+      expect(createPutAwaySchema.safeParse({ positionId: 'pos-1' }).success).toBe(false);
+    });
+  });
+
+  describe('putAwayStatusSchema vocabulary', () => {
+    it('accepts only UNALLOCATED and ALLOCATED', () => {
+      expect(putAwayStatusSchema.safeParse('UNALLOCATED').success).toBe(true);
+      expect(putAwayStatusSchema.safeParse('ALLOCATED').success).toBe(true);
+      expect(putAwayStatusSchema.safeParse('PARTIALLY_ALLOCATED').success).toBe(false);
+      expect(putAwayStatusSchema.safeParse('FULLY_ALLOCATED').success).toBe(false);
+    });
+  });
+
+  describe('inventoryTransactionTypeSchema vocabulary', () => {
+    it('is the canonical ledger event vocabulary', () => {
+      expect(inventoryTransactionTypeSchema.options).toEqual([
+        'INWARD_PUTAWAY',
+        'OUTWARD_DELIVERY',
+        'DELIVERY_REVERSAL',
+      ]);
+    });
+  });
+
+  describe('grnInventorySummarySchema', () => {
+    const base = {
+      grnId: 'grn-1',
+      facilityId: 'fac-1',
+      grnNumber: 'GRN-26-27-0001',
+      chamber: 'A',
+      totalBags: 100,
+      allocatedBags: 100,
+      unallocatedBags: 0,
+      putAwayStatus: 'ALLOCATED',
     };
-    const parsed = createPutAwaySchema.safeParse(input);
-    expect(parsed.success).toBe(true);
-    if (parsed.success) {
-      expect(parsed.data.items).toHaveLength(2);
-      expect(parsed.data.items[0].bags).toBe(100);
-    }
+
+    it('accepts a fully allocated GRN', () => {
+      expect(grnInventorySummarySchema.safeParse(base).success).toBe(true);
+    });
+
+    it('accepts an unallocated GRN', () => {
+      const result = grnInventorySummarySchema.safeParse({
+        ...base,
+        allocatedBags: 0,
+        unallocatedBags: 100,
+        putAwayStatus: 'UNALLOCATED',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects a chamber longer than 20 characters', () => {
+      expect(grnInventorySummarySchema.safeParse({ ...base, chamber: 'x'.repeat(21) }).success).toBe(
+        false,
+      );
+    });
+
+    it('rejects an empty chamber', () => {
+      expect(grnInventorySummarySchema.safeParse({ ...base, chamber: '   ' }).success).toBe(false);
+    });
   });
 
-  it('rejects duplicate positionIds in the same put-away request', () => {
-    const input = {
-      items: [
-        { positionId: 'pos-1', bags: 100 },
-        { positionId: 'pos-1', bags: 50 },
-      ],
-    };
-    const parsed = createPutAwaySchema.safeParse(input);
-    expect(parsed.success).toBe(false);
-    if (!parsed.success) {
-      expect(parsed.error.issues[0].message).toContain('Duplicate positionId');
-    }
+  describe('facilityInventorySummarySchema', () => {
+    it('groups stock by commodity and free-text chamber', () => {
+      const result = facilityInventorySummarySchema.safeParse({
+        facilityId: 'fac-1',
+        totalStockBags: 250,
+        byCommodity: [{ commodityId: 'cmd-1', commodityName: 'Potato', totalBags: 250 }],
+        byChamber: [
+          { chamber: 'A', totalBags: 150 },
+          { chamber: 'CH-01', totalBags: 100 },
+        ],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects an over-length chamber label', () => {
+      const result = facilityInventorySummarySchema.safeParse({
+        facilityId: 'fac-1',
+        totalStockBags: 10,
+        byCommodity: [],
+        byChamber: [{ chamber: 'y'.repeat(21), totalBags: 10 }],
+      });
+      expect(result.success).toBe(false);
+    });
   });
 
-  it('rejects non-positive or fractional bag quantities in put-away', () => {
-    expect(
-      createPutAwaySchema.safeParse({
-        items: [{ positionId: 'pos-1', bags: 0 }],
-      }).success,
-    ).toBe(false);
+  describe('stockLedgerQuerySchema', () => {
+    it('filters by grn and free-text chamber', () => {
+      const result = stockLedgerQuerySchema.safeParse({ grnId: 'grn-1', chamber: 'A' });
+      expect(result.success).toBe(true);
+    });
 
-    expect(
-      createPutAwaySchema.safeParse({
-        items: [{ positionId: 'pos-1', bags: -5 }],
-      }).success,
-    ).toBe(false);
+    it('caps the chamber filter at 20 characters', () => {
+      expect(stockLedgerQuerySchema.safeParse({ chamber: 'z'.repeat(21) }).success).toBe(false);
+    });
 
-    expect(
-      createPutAwaySchema.safeParse({
-        items: [{ positionId: 'pos-1', bags: 10.5 }],
-      }).success,
-    ).toBe(false);
-  });
-
-  it('rejects empty allocation items array', () => {
-    const parsed = createPutAwaySchema.safeParse({ items: [] });
-    expect(parsed.success).toBe(false);
-  });
-
-  it('enforces approved vocabulary for transaction type', () => {
-    expect(inventoryTransactionTypeSchema.safeParse('INWARD_PUTAWAY').success).toBe(true);
-    expect(inventoryTransactionTypeSchema.safeParse('OUTWARD_DELIVERY').success).toBe(true);
-    expect(inventoryTransactionTypeSchema.safeParse('DELIVERY_REVERSAL').success).toBe(true);
-    expect(inventoryTransactionTypeSchema.safeParse('INVENTORY_ADJUSTMENT').success).toBe(false);
-  });
-
-  it('enforces approved vocabulary for reference type', () => {
-    expect(inventoryReferenceTypeSchema.safeParse('PUT_AWAY').success).toBe(true);
-    expect(inventoryReferenceTypeSchema.safeParse('DELIVERY').success).toBe(true);
-    expect(inventoryReferenceTypeSchema.safeParse('DELIVERY_REVERSAL').success).toBe(true);
-    expect(inventoryReferenceTypeSchema.safeParse('ADJUSTMENT').success).toBe(false);
-  });
-
-  it('validates putAwayStatusSchema vocabulary', () => {
-    expect(putAwayStatusSchema.safeParse('UNALLOCATED').success).toBe(true);
-    expect(putAwayStatusSchema.safeParse('PARTIALLY_ALLOCATED').success).toBe(true);
-    expect(putAwayStatusSchema.safeParse('FULLY_ALLOCATED').success).toBe(true);
-    expect(putAwayStatusSchema.safeParse('CLOSED').success).toBe(false);
-  });
-
-  it('parses stockLedgerQuery with default pagination', () => {
-    const parsed = stockLedgerQuerySchema.safeParse({});
-    expect(parsed.success).toBe(true);
-    if (parsed.success) {
-      expect(parsed.data.page).toBe(1);
-      expect(parsed.data.limit).toBe(20);
-    }
+    it('applies page and limit defaults', () => {
+      const result = stockLedgerQuerySchema.safeParse({});
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.page).toBe(1);
+        expect(result.data.limit).toBe(20);
+      }
+    });
   });
 });

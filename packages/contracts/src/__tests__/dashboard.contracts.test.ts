@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  chamberUtilizationSchema,
+  chamberStockSchema,
   commodityStockSchema,
   dashboardSummarySchema,
   recentActivityItemSchema,
@@ -8,58 +8,30 @@ import {
 
 describe('P7 Dashboard Contracts', () => {
   // ---------------------------------------------------------------------------
-  // ChamberUtilization
+  // ChamberStock — no capacity, occupancy or utilization is reported
   // ---------------------------------------------------------------------------
-  describe('chamberUtilizationSchema', () => {
-    it('accepts a valid active chamber', () => {
-      const result = chamberUtilizationSchema.safeParse({
-        chamberId: 'ch-1',
-        chamberNumber: 'CH-01',
-        isActive: true,
-        capacityBags: 1000,
-        occupiedBags: 400,
-        availableBags: 600,
-        utilizationRate: 40,
-      });
+  describe('chamberStockSchema', () => {
+    it('reports stock held under a free-text chamber label', () => {
+      const result = chamberStockSchema.safeParse({ chamber: 'CH-01', totalBags: 400 });
       expect(result.success).toBe(true);
     });
 
-    it('accepts an inactive chamber with stock', () => {
-      const result = chamberUtilizationSchema.safeParse({
-        chamberId: 'ch-2',
-        chamberNumber: 'CH-02',
-        isActive: false,
-        capacityBags: 500,
-        occupiedBags: 100,
-        availableBags: 400,
-        utilizationRate: 20,
-      });
-      expect(result.success).toBe(true);
-      if (result.success) expect(result.data.isActive).toBe(false);
-    });
-
-    it('rejects utilizationRate > 100', () => {
-      const result = chamberUtilizationSchema.safeParse({
-        chamberId: 'ch-1',
-        chamberNumber: 'CH-01',
-        isActive: true,
-        capacityBags: 100,
-        occupiedBags: 110,
-        availableBags: 0,
-        utilizationRate: 110,
-      });
+    it('rejects a chamber label longer than 20 characters', () => {
+      const result = chamberStockSchema.safeParse({ chamber: 'x'.repeat(21), totalBags: 10 });
       expect(result.success).toBe(false);
     });
 
-    it('rejects negative availableBags', () => {
-      const result = chamberUtilizationSchema.safeParse({
-        chamberId: 'ch-1',
-        chamberNumber: 'CH-01',
-        isActive: true,
+    it('rejects negative stock', () => {
+      const result = chamberStockSchema.safeParse({ chamber: 'A', totalBags: -1 });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects capacity-era keys', () => {
+      const result = chamberStockSchema.safeParse({
+        chamber: 'A',
+        totalBags: 10,
         capacityBags: 100,
-        occupiedBags: 110,
-        availableBags: -10,
-        utilizationRate: 100,
+        utilizationRate: 10,
       });
       expect(result.success).toBe(false);
     });
@@ -69,22 +41,11 @@ describe('P7 Dashboard Contracts', () => {
   // CommodityStock
   // ---------------------------------------------------------------------------
   describe('commodityStockSchema', () => {
-    it('accepts valid commodity stock', () => {
-      const result = commodityStockSchema.safeParse({
-        commodityId: 'cmd-1',
-        commodityName: 'Wheat',
-        totalBags: 500,
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it('rejects zero totalBags (only positive stock is reported)', () => {
-      const result = commodityStockSchema.safeParse({
-        commodityId: 'cmd-1',
-        commodityName: 'Wheat',
-        totalBags: 0,
-      });
-      expect(result.success).toBe(false);
+    it('accepts a commodity holding stock', () => {
+      expect(
+        commodityStockSchema.safeParse({ commodityId: 'cmd-1', commodityName: 'Wheat', totalBags: 40 })
+          .success,
+      ).toBe(true);
     });
   });
 
@@ -94,57 +55,36 @@ describe('P7 Dashboard Contracts', () => {
   describe('recentActivityItemSchema', () => {
     const base = {
       id: 'txn-1',
-      type: 'INWARD_PUTAWAY' as const,
       referenceNumber: 'GRN-26-27-001',
-      positionCode: 'CH1-R1-L1-P1',
+      chamber: 'A',
       date: new Date('2026-10-01T10:00:00.000Z'),
-      bags: 100,
-      summary: 'Put away 100 bags at CH1-R1-L1-P1',
+      bags: 200,
+      summary: 'Put away 200 bags in chamber A',
     };
 
     it('accepts a valid INWARD_PUTAWAY activity', () => {
-      const result = recentActivityItemSchema.safeParse(base);
-      expect(result.success).toBe(true);
+      expect(
+        recentActivityItemSchema.safeParse({ ...base, type: 'INWARD_PUTAWAY' }).success,
+      ).toBe(true);
     });
 
     it('accepts a valid OUTWARD_DELIVERY activity', () => {
-      const result = recentActivityItemSchema.safeParse({
-        ...base,
-        id: 'txn-2',
-        type: 'OUTWARD_DELIVERY',
-        referenceNumber: 'DC-26-27-001',
-        summary: 'Delivered 100 bags via challan DC-26-27-001',
-      });
-      expect(result.success).toBe(true);
+      expect(
+        recentActivityItemSchema.safeParse({ ...base, type: 'OUTWARD_DELIVERY' }).success,
+      ).toBe(true);
     });
 
     it('accepts a valid DELIVERY_REVERSAL activity', () => {
-      const result = recentActivityItemSchema.safeParse({
-        ...base,
-        id: 'txn-3',
-        type: 'DELIVERY_REVERSAL',
-        referenceNumber: 'DC-26-27-001',
-        summary: 'Reversed delivery DC-26-27-001 — 100 bags returned',
-      });
-      expect(result.success).toBe(true);
+      expect(
+        recentActivityItemSchema.safeParse({ ...base, type: 'DELIVERY_REVERSAL' }).success,
+      ).toBe(true);
     });
 
-    it('rejects unknown transaction type', () => {
-      const result = recentActivityItemSchema.safeParse({
-        ...base,
-        type: 'UNKNOWN_TYPE',
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it('rejects zero bags', () => {
-      const result = recentActivityItemSchema.safeParse({ ...base, bags: 0 });
-      expect(result.success).toBe(false);
-    });
-
-    it('rejects negative bags', () => {
-      const result = recentActivityItemSchema.safeParse({ ...base, bags: -10 });
-      expect(result.success).toBe(false);
+    it('rejects a position-era payload', () => {
+      expect(
+        recentActivityItemSchema.safeParse({ ...base, type: 'INWARD_PUTAWAY', positionCode: 'P-1' })
+          .success,
+      ).toBe(false);
     });
   });
 
@@ -154,69 +94,63 @@ describe('P7 Dashboard Contracts', () => {
   describe('dashboardSummarySchema', () => {
     const validSummary = {
       facilityId: 'fac-1',
-      totalCapacityBags: 2000,
-      occupiedBags: 800,
-      availableBags: 1200,
-      utilizationRate: 40,
+      totalStockBags: 800,
       activeGrns: 3,
       closedGrns: 5,
       monthlyInwardBags: 200,
       monthlyDeliveredBags: 50,
-      chamberUtilization: [
-        {
-          chamberId: 'ch-1',
-          chamberNumber: 'CH-01',
-          isActive: true,
-          capacityBags: 2000,
-          occupiedBags: 800,
-          availableBags: 1200,
-          utilizationRate: 40,
-        },
-      ],
-      commodityBreakdown: [
-        { commodityId: 'cmd-1', commodityName: 'Wheat', totalBags: 800 },
-      ],
+      chamberStock: [{ chamber: 'CH-01', totalBags: 800 }],
+      commodityBreakdown: [{ commodityId: 'cmd-1', commodityName: 'Wheat', totalBags: 800 }],
       recentActivity: [
         {
           id: 'txn-1',
           type: 'INWARD_PUTAWAY' as const,
           referenceNumber: 'GRN-26-27-001',
-          positionCode: 'CH1-R1-L1-P1',
+          chamber: 'A',
           date: new Date('2026-10-01T10:00:00.000Z'),
           bags: 200,
-          summary: 'Put away 200 bags at CH1-R1-L1-P1',
+          summary: 'Put away 200 bags in chamber A',
         },
       ],
       generatedAt: new Date(),
     };
 
     it('accepts a valid dashboard summary', () => {
-      const result = dashboardSummarySchema.safeParse(validSummary);
-      expect(result.success).toBe(true);
+      expect(dashboardSummarySchema.safeParse(validSummary).success).toBe(true);
     });
 
     it('rejects negative activeGrns', () => {
-      const result = dashboardSummarySchema.safeParse({ ...validSummary, activeGrns: -1 });
-      expect(result.success).toBe(false);
+      expect(dashboardSummarySchema.safeParse({ ...validSummary, activeGrns: -1 }).success).toBe(
+        false,
+      );
     });
 
-    it('rejects utilizationRate > 100', () => {
-      const result = dashboardSummarySchema.safeParse({ ...validSummary, utilizationRate: 101 });
-      expect(result.success).toBe(false);
-    });
-
-    it('allows zero capacity facility (utilizationRate = 0)', () => {
+    it('allows an empty facility with no stock and no activity', () => {
       const result = dashboardSummarySchema.safeParse({
-        ...validSummary,
-        totalCapacityBags: 0,
-        occupiedBags: 0,
-        availableBags: 0,
-        utilizationRate: 0,
-        chamberUtilization: [],
+        facilityId: 'fac-1',
+        totalStockBags: 0,
+        activeGrns: 0,
+        closedGrns: 0,
+        monthlyInwardBags: 0,
+        monthlyDeliveredBags: 0,
+        chamberStock: [],
         commodityBreakdown: [],
         recentActivity: [],
+        generatedAt: new Date(),
       });
       expect(result.success).toBe(true);
+    });
+
+    it('rejects capacity and utilization keys outright', () => {
+      expect(
+        dashboardSummarySchema.safeParse({ ...validSummary, utilizationRate: 40 }).success,
+      ).toBe(false);
+      expect(
+        dashboardSummarySchema.safeParse({ ...validSummary, totalCapacityBags: 2000 }).success,
+      ).toBe(false);
+      expect(
+        dashboardSummarySchema.safeParse({ ...validSummary, chamberUtilization: [] }).success,
+      ).toBe(false);
     });
   });
 });

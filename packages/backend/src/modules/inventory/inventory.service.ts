@@ -3,7 +3,6 @@ import type {
   FacilityInventorySummary,
   GrnInventorySummary,
   InventoryTransaction,
-  PositionOccupancy,
   PutAwayAllocation,
   StockLedgerQuery,
 } from '@cold-storage/contracts';
@@ -12,11 +11,10 @@ import { ConcurrencyConflictError } from './inventory.mappers.js';
 import {
   getFacilityInventorySummary,
   queryStockLedger,
-  resolveFacilityIdForPosition,
 } from './queries/facility-stock.queries.js';
 import {
+  getAvailableBags,
   getGrnInventorySummary,
-  getPositionOccupancy,
   listPutAwayAllocations,
 } from './queries/stock-summary.queries.js';
 
@@ -46,11 +44,8 @@ export class InventoryService {
     return getGrnInventorySummary(facilityId, grnId);
   }
 
-  public async getPositionOccupancy(
-    facilityId: string,
-    positionId: string,
-  ): Promise<PositionOccupancy> {
-    return getPositionOccupancy(facilityId, positionId);
+  public async getAvailableBags(facilityId: string, grnId: string): Promise<number> {
+    return getAvailableBags(facilityId, grnId);
   }
 
   public async getFacilityInventorySummary(facilityId: string): Promise<FacilityInventorySummary> {
@@ -62,10 +57,6 @@ export class InventoryService {
     query: StockLedgerQuery,
   ): Promise<{ items: InventoryTransaction[]; total: number; page: number; limit: number }> {
     return queryStockLedger(facilityId, query);
-  }
-
-  public async resolveFacilityIdForPosition(positionId: string): Promise<string | null> {
-    return resolveFacilityIdForPosition(positionId);
   }
 }
 

@@ -1,59 +1,44 @@
 import { randomUUID } from 'node:crypto';
 import type { CreateCustomerInput, Customer, UpdateCustomerInput } from '@cold-storage/contracts';
-import { CustomerModel, type CustomerDoc } from '../../database/models/customer.model.js';
+import { CustomerModel } from '../../database/models/customer.model.js';
 import { FacilityModel } from '../../database/models/facility.model.js';
 
-export class CustomerService {
-  public async createCustomer(input: CreateCustomerInput): Promise<Customer> {
-    const name = input.name.trim();
-    const mobile = input.mobile.trim();
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
-    // Verify all specified facilityIds exist
-    const facilityCount = await FacilityModel.countDocuments({ id: { $in: input.facilityIds } }).exec();
-    if (facilityCount !== input.facilityIds.length) {
+/**
+ * Name is the sole customer identifier. The previous mobile-keyed re-registration merge is gone:
+ * a customer is created once and re-associated with a facility, never implicitly duplicated.
+ */
+export class CustomerService {
+  public async createCustomer(
+    { name: rawName, isActive }: Omit<CreateCustomerInput, 'facilityId'>,
+    facilityIds: string[],
+  ): Promise<Customer> {
+    const name = rawName.trim();
+
+    const facilityCount = await FacilityModel.countDocuments({ id: { $in: facilityIds } }).exec();
+    if (facilityCount !== facilityIds.length) {
       throw new Error('One or more specified facility IDs do not exist');
     }
 
-    // Duplicate prevention: check customer name (case-insensitive) within target facilities
-    const nameRegex = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
     const duplicateName = await CustomerModel.findOne({
-      name: { $regex: nameRegex },
-      facilityIds: { $in: input.facilityIds },
-    }).lean().exec();
-    if (duplicateName && duplicateName.mobile !== mobile) {
+      name: { $regex: new RegExp(`^${escapeRegExp(name)}$`, 'i') },
+      facilityIds: { $in: facilityIds },
+    })
+      .lean()
+      .exec();
+    if (duplicateName) {
       throw new Error(`Customer with name '${name}' already exists in this facility`);
-    }
-
-    const existing = await CustomerModel.findOne({ mobile }).exec();
-    if (existing) {
-      // If customer already exists, associate any new facilities
-      const newFacilities = input.facilityIds.filter((fid) => !existing.facilityIds.includes(fid));
-      if (newFacilities.length === 0) {
-        throw new Error(`Customer with mobile '${mobile}' is already registered for all requested facilities`);
-      }
-      existing.facilityIds.push(...newFacilities);
-      if (input.name && input.name.trim() !== existing.name) {
-        existing.name = input.name.trim();
-      }
-      if (input.address !== undefined) {
-        existing.address = input.address?.trim() || null;
-      }
-      if (input.gstin !== undefined) {
-        existing.gstin = input.gstin?.trim() ? input.gstin.trim().toUpperCase() : null;
-      }
-      await existing.save();
-      return this.toEntity(existing);
     }
 
     const id = `cust-${randomUUID()}`;
     const doc = await CustomerModel.create({
       id,
       name,
-      mobile,
-      address: input.address?.trim() || null,
-      gstin: input.gstin?.trim() ? input.gstin.trim().toUpperCase() : null,
-      facilityIds: input.facilityIds,
-      isActive: input.isActive ?? true,
+      facilityIds,
+      isActive: isActive ?? true,
     });
 
     return this.toEntity(doc);
@@ -68,6 +53,7 @@ export class CustomerService {
     facilityId?: string,
     userFacilityIds: string[] = [],
     isSuperAdmin = false,
+    search?: string,
   ): Promise<Customer[]> {
     let query: Record<string, unknown> = {};
 
@@ -80,6 +66,10 @@ export class CustomerService {
       query = { facilityIds: { $in: userFacilityIds } };
     }
 
+    if (search) {
+      query.name = { $regex: escapeRegExp(search.trim()), $options: 'i' };
+    }
+
     const docs = await CustomerModel.find(query).sort({ name: 1 }).lean().exec();
     return docs.map((d) => this.toEntity(d));
   }
@@ -88,43 +78,19 @@ export class CustomerService {
     const existing = await CustomerModel.findOne({ id }).exec();
     if (!existing) return null;
 
-    if (input.mobile && input.mobile.trim() !== existing.mobile) {
-      const mobile = input.mobile.trim();
-      const duplicate = await CustomerModel.findOne({ mobile, id: { $ne: id } }).lean().exec();
-      if (duplicate) {
-        throw new Error(`Customer with mobile '${mobile}' already exists`);
-      }
-      existing.mobile = mobile;
-    }
-
     if (input.name && input.name.trim().toLowerCase() !== existing.name.toLowerCase()) {
       const name = input.name.trim();
-      const nameRegex = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
       const duplicateName = await CustomerModel.findOne({
-        name: { $regex: nameRegex },
+        name: { $regex: new RegExp(`^${escapeRegExp(name)}$`, 'i') },
         facilityIds: { $in: existing.facilityIds },
         id: { $ne: id },
-      }).lean().exec();
+      })
+        .lean()
+        .exec();
       if (duplicateName) {
         throw new Error(`Customer with name '${name}' already exists in this facility`);
       }
       existing.name = name;
-    }
-
-    if (input.address !== undefined) {
-      existing.address = input.address?.trim() || null;
-    }
-
-    if (input.gstin !== undefined) {
-      existing.gstin = input.gstin?.trim() ? input.gstin.trim().toUpperCase() : null;
-    }
-
-    if (input.facilityIds && input.facilityIds.length > 0) {
-      const facilityCount = await FacilityModel.countDocuments({ id: { $in: input.facilityIds } }).exec();
-      if (facilityCount !== input.facilityIds.length) {
-        throw new Error('One or more specified facility IDs do not exist');
-      }
-      existing.facilityIds = input.facilityIds;
     }
 
     if (input.isActive !== undefined) {
@@ -135,13 +101,15 @@ export class CustomerService {
     return this.toEntity(existing);
   }
 
-  private toEntity(doc: CustomerDoc | (Customer & { _id?: unknown })): Customer {
+  private toEntity(doc: {
+    id: string;
+    name: string;
+    facilityIds: string[];
+    isActive: boolean;
+  }): Customer {
     return {
       id: doc.id,
       name: doc.name,
-      mobile: doc.mobile,
-      address: doc.address || undefined,
-      gstin: doc.gstin || undefined,
       facilityIds: doc.facilityIds,
       isActive: doc.isActive,
     };

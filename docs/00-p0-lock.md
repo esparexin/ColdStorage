@@ -28,17 +28,29 @@
    - Actual / weighbridge weight is **authoritative**.
    - Weight unit (e.g. Kg vs. Quintal standard) remains **PENDING CONFIRMATION**.
    - No duplicate inventory or parallel balance tracking systems.
-5. **Initial Seed & Storage Hierarchy**:
+5. **Initial Seed & Storage Model** *(amended — supersedes the former Decision 5 hierarchy)*:
    - Initial seed: 1 facility minimal.
-   - Chambers, racks, levels, and positions created by Admin in P3.
    - No dummy production seed data.
-   - Approved physical hierarchy:
+   - **Facility is the tenancy and access-scope root only.** It carries no storage hierarchy and is
+     maintained by SUPER_ADMIN from System Settings.
+   - **Chamber is a free-text label captured at inward time**, maximum **20 characters**. It is not a
+     managed entity and has no child structure.
+   - Racks, levels, shelves, bins and positions are **retired**. So are occupancy, occupancy
+     percentage and storage-capacity tracking: with chamber as a label there is no denominator to
+     report against, so those metrics are meaningless rather than merely unused.
+   - Physical stock is derived solely from the immutable ledger for a GRN, which is one commodity
+     in one chamber. Put-away confirms a GRN's outstanding bags in its chamber as a whole lot;
+     delivery withdraws a single bag count from that GRN's ledger-derived balance.
      ```text
-     Facility
-     └── Chamber
-         └── Rack
-             └── Level
-                 └── Position
+     Customer
+        ↓
+     Rental / Subscription
+        ↓
+     Commodity + Bags
+        ↓
+     Chamber (free text, max 20)
+        ↓
+     Receipt
      ```
 6. **Hosting Architecture Target**:
    - Frontend: Vercel.
@@ -82,9 +94,11 @@
 - Bag Type: `S` / `B` / `S+B`
 - Rent Type: `Monthly` / `Seasonal`
 - If Monthly: No. of Months
+- **A Seasonal subscription is exactly 10 months.** The period is a fixed business constant, not
+  operator input, and is derived server-side. `Rent Amount` is the total for the whole term.
 - Rent Amount
 - Vehicle Number
-- Chamber Number
+- Chamber (free text, max 20 characters)
 - Remarks
 
 ### Delivery Entry (Outward Challan)
@@ -105,7 +119,7 @@
 - GR Number
 - Date
 - Commodity (auto-filled)
-- Chamber Number (auto-filled)
+- Chamber (auto-filled from the inward receipt)
 - Total Bags Received (derived from ledger)
 - Total Bags Delivered (derived from ledger)
 - Current Balance Bags (derived from ledger)
@@ -232,7 +246,7 @@ The following billing and payment parameters remain pending formal business spec
 | **P0** | **Discovery + Requirement Lock** | Architecture lock, assumptions isolation, business sign-off |
 | **P1** | **Governance + Foundation** | Monorepo setup, shared contracts SSOT, hygiene gate, CI |
 | **P2** | **Auth + Users + RBAC** | User accounts, temporary passwords, facility scoping, RBAC middleware |
-| **P3** | **Master Data + Storage Hierarchy** | Customers, commodity catalog, warehouse layout (`Facility -> Chamber -> Rack -> Level -> Position`) |
+| **P3** | **Master Data** | Customers (name only), commodity catalog, Facility tenancy root, free-text chamber |
 | **P4** | **GRN + Acknowledgement** | Inward Goods Receipt, independent receipt numbers, S/B/S+B bag types, rent terms |
 | **P5** | **Inventory + Rack Allocation** | Put-away workflow, rack allocation, immutable stock ledger |
 | **P6** | **Delivery + Full/Partial + Closure** | Outward orders, partial deliveries, challan issuance, compensating reversals, GRN closure |

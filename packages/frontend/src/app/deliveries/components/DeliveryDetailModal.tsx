@@ -85,7 +85,7 @@ export function DeliveryDetailModal({
 
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Chamber</span>
-              <span className={styles.detailValue}>Chamber {delivery.chamberNumber}</span>
+              <span className={styles.detailValue}>Chamber {delivery.chamber}</span>
             </div>
 
             <div className={styles.detailItem}>
@@ -111,29 +111,9 @@ export function DeliveryDetailModal({
             </div>
           </div>
 
-          <h4 style={{ fontSize: 'var(--text-xs)', fontWeight: 700, textTransform: 'uppercase', marginTop: 'var(--space-4)' }}>
-            Withdrawn Positions ({delivery.items.length})
-          </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-            {delivery.items.map((item) => (
-              <div
-                key={item.positionId}
-                style={{
-                  padding: 'var(--space-2) var(--space-3)',
-                  background: 'var(--color-surface-2)',
-                  borderRadius: 'var(--radius-md)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  fontSize: 'var(--text-xs)',
-                }}
-              >
-                <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>
-                  {item.positionCode}
-                </span>
-                <span style={{ fontWeight: 600 }}>{item.bags} bags withdrawn</span>
-              </div>
-            ))}
+          <div className={styles.detailItem}>
+            <span className={styles.detailLabel}>Bags Delivered</span>
+            <span className={styles.detailValue}>{delivery.bags}</span>
           </div>
         </div>
     </Modal>

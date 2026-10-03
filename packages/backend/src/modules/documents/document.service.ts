@@ -4,10 +4,8 @@ import type {
   ReceiptDocumentDto,
   RentReceiptPreviewDto,
 } from '@cold-storage/contracts';
-import { CustomerModel } from '../../database/models/customer.model.js';
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
-import { PutAwayAllocationModel } from '../../database/models/put-away.model.js';
 import {
   getFacilitySubHeader,
   getVerifiedOrganization,
@@ -42,17 +40,6 @@ export class DocumentService {
 
     const facility = await getFacilitySubHeader(facilityId);
 
-    // Fetch put-away position allocations if available
-    const putAway = await PutAwayAllocationModel.findOne({ grnId: grn.id, facilityId })
-      .lean()
-      .exec();
-    const positions = putAway
-      ? putAway.items.map((i) => ({ positionCode: i.positionCode, bags: i.bags }))
-      : [];
-
-    const customer = await CustomerModel.findOne({ id: grn.customerId }).lean().exec();
-    const customerMobile = customer?.mobile ?? '—';
-
     const dto: GrnDocumentDto = {
       organization,
       facility,
@@ -61,12 +48,11 @@ export class DocumentService {
       inwardReceiptNumber: grn.inwardReceiptNumber,
       date: grn.date,
       customerName: grn.customerName,
-      customerMobile,
       commodityName: grn.commodityName,
-      chamberNumber: grn.chamberNumber,
+      chamber: grn.chamber,
       bags: grn.bags,
       bagType: grn.bagType,
-      rentType: grn.rentType as 'Monthly' | 'Seasonal',
+      rentType: grn.rentType,
       rentAmount: grn.rentAmount,
       rentMonths: grn.rentMonths ?? null,
       nominalUnitWeight: grn.nominalUnitWeight ?? null,
@@ -76,7 +62,6 @@ export class DocumentService {
       gpNumber: grn.gpNumber ?? null,
       marks: grn.marks ?? null,
       status: grn.status,
-      positions,
       generatedAt: new Date(),
       generatedBy: userId,
     };
@@ -106,9 +91,6 @@ export class DocumentService {
 
     const facility = await getFacilitySubHeader(facilityId);
 
-    const customer = await CustomerModel.findOne({ id: grn.customerId }).lean().exec();
-    const customerMobile = customer?.mobile ?? '—';
-
     const dto: ReceiptDocumentDto = {
       organization,
       facility,
@@ -116,12 +98,11 @@ export class DocumentService {
       grnNumber: grn.grnNumber,
       date: grn.date,
       customerName: grn.customerName,
-      customerMobile,
       commodityName: grn.commodityName,
-      chamberNumber: grn.chamberNumber,
+      chamber: grn.chamber,
       bags: grn.bags,
       bagType: grn.bagType,
-      rentType: grn.rentType as 'Monthly' | 'Seasonal',
+      rentType: grn.rentType,
       rentAmount: grn.rentAmount,
       rentMonths: grn.rentMonths ?? null,
       vehicleNumber: grn.vehicleNumber ?? null,
@@ -154,11 +135,6 @@ export class DocumentService {
 
     const facility = await getFacilitySubHeader(facilityId);
 
-    const items = challan.items.map((i) => ({
-      positionCode: i.positionCode,
-      bags: i.bags,
-    }));
-
     const dto: ChallanDocumentDto = {
       organization,
       facility,
@@ -167,9 +143,8 @@ export class DocumentService {
       grnNumber: challan.grnNumber,
       customerName: challan.customerName,
       commodityName: challan.commodityName,
-      chamberNumber: challan.chamberNumber,
-      totalBags: challan.totalBags,
-      items,
+      chamber: challan.chamber,
+      bags: challan.bags,
       vehicleNumber: challan.vehicleNumber ?? null,
       driverName: challan.driverName ?? null,
       issuedBy: challan.issuedBy,
@@ -190,7 +165,6 @@ export class DocumentService {
     userId: string,
     overrides?: {
       customerName?: string;
-      customerMobile?: string;
       amount?: number;
       paymentMode?: 'Cash' | 'UPI';
     },
@@ -209,8 +183,8 @@ export class DocumentService {
       grnNumber: 'GRN-SAMPLE-0001',
       date: new Date(),
       customerName: overrides?.customerName ?? 'Sample Customer (Preview)',
-      customerMobile: overrides?.customerMobile ?? '+91-9876543210',
       commodityName: 'Potato (Preview)',
+      chamber: 'CH-01',
       totalRentObligation,
       amountPaid,
       paymentMode: overrides?.paymentMode === 'UPI' ? 'UPI' : 'Cash',

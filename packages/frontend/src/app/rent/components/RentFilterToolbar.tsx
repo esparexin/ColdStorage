@@ -27,7 +27,7 @@ export function RentFilterToolbar({
         id="rent-search-input"
         value={searchTerm}
         onChange={onSearchChange}
-        placeholder="Search GRN #, Customer, Mobile, Commodity..."
+        placeholder="Search GRN #, Customer, Commodity..."
         ariaLabel="Search rent billing"
         onClear={onReset}
       />

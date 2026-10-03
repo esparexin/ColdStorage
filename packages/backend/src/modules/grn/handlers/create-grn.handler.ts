@@ -2,11 +2,11 @@ import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
   getAuthoritativeWeight,
+  rentMonthsForType,
   type CreateGrnInput,
   type Grn,
   type GrnAcknowledgement,
 } from '@cold-storage/contracts';
-import { ChamberModel } from '../../../database/models/chamber.model.js';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { FacilityModel } from '../../../database/models/facility.model.js';
@@ -51,19 +51,7 @@ export async function createGrn(
     throw new Error(`Commodity '${commodity.name}' is inactive`);
   }
 
-  // 4. Verify Chamber exists in facility and is active
-  const chamber = await ChamberModel.findOne({ id: input.chamberId }).lean().exec();
-  if (!chamber) {
-    throw new Error(`Chamber '${input.chamberId}' not found`);
-  }
-  if (chamber.facilityId !== facilityId) {
-    throw new Error(
-      `Chamber '${chamber.chamberNumber}' does not belong to facility '${facilityId}'`,
-    );
-  }
-  if (!chamber.isActive) {
-    throw new Error(`Chamber '${chamber.chamberNumber}' is inactive`);
-  }
+  // 4. Chamber is free text supplied by the operator, already length-validated by the contract.
 
   // 5. Inward Date and FY validation
   const inwardDate = validateOperationalDate(input.date, { label: 'Inward' });
@@ -108,8 +96,7 @@ export async function createGrn(
             customerName: customer.name,
             commodityId: commodity.id,
             commodityName: commodity.name,
-            chamberId: chamber.id,
-            chamberNumber: chamber.chamberNumber,
+            chamber: input.chamber.trim(),
             bags: input.bags,
             bagType: input.bagType,
             nominalUnitWeight: input.nominalUnitWeight ?? null,
@@ -117,7 +104,7 @@ export async function createGrn(
             actualWeight: input.actualWeight ?? null,
             authoritativeWeight,
             rentType: input.rentType,
-            rentMonths: input.rentType === 'Monthly' ? input.rentMonths! : null,
+            rentMonths: rentMonthsForType(input.rentType) ?? input.rentMonths!,
             rentAmount: input.rentAmount,
             gpNumber: input.gpNumber?.trim() || null,
             marks: input.marks?.trim() || null,
@@ -150,6 +137,7 @@ export async function createGrn(
       grnNumber: grn.grnNumber,
       bags: grn.bags,
       customerId: grn.customerId,
+      chamber: grn.chamber,
     },
   });
 

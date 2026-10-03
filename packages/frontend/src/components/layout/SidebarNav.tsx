@@ -5,7 +5,6 @@ import {
   ArrowUpDown,
   Boxes,
   Database,
-  Layers,
   LayoutDashboard,
   Package,
   Receipt,
@@ -51,7 +50,6 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/customers', label: 'Customers', icon: Users, permission: 'customer:view' },
       { href: '/commodities', label: 'Commodities', icon: Boxes, permission: 'commodity:view' },
-      { href: '/storage', label: 'Storage Hierarchy', icon: Layers, permission: 'storage:view' },
     ],
   },
   {

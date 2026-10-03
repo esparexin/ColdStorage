@@ -1,4 +1,5 @@
 import type { ClientSession } from 'mongoose';
+import { computeRentBalance, type RentBalance } from './rent-balance.js';
 import { RentPaymentModel } from '../../database/models/rent-payment.model.js';
 
 export class RentPaymentRequiredError extends Error {
@@ -29,12 +30,7 @@ export class RentPaymentRequiredError extends Error {
   }
 }
 
-export interface RentGateResult {
-  totalPaid: number;
-  remainingBalance: number;
-  paymentStatus: 'Settled' | 'Not Settled';
-  isPartial: boolean;
-}
+export type RentGateResult = RentBalance;
 
 /**
  * Shared Inward → Rent gate for all outward movement (put-away + delivery).
@@ -52,21 +48,17 @@ export async function assertRentAllowedForOutward(
     { $group: { _id: null, total: { $sum: '$amountPaid' } } },
   ]).session(session ?? null);
 
-  const totalPaid: number = agg[0]?.total ?? 0;
-  const rentAmount = Number(grn.rentAmount ?? 0);
-  const remainingBalance = Math.max(0, Number((rentAmount - totalPaid).toFixed(2)));
-  const paymentStatus = remainingBalance === 0 ? 'Settled' : 'Not Settled';
-  const isPartial = totalPaid > 0 && remainingBalance > 0;
+  const balance = computeRentBalance(grn.rentAmount, agg[0]?.total ?? 0);
 
-  if (rentAmount > 0 && totalPaid === 0) {
+  if (balance.rentAmount > 0 && balance.totalPaid === 0) {
     throw new RentPaymentRequiredError({
       grnId: grn.id,
       grnNumber: grn.grnNumber,
-      rentAmount,
-      totalPaid,
-      remainingBalance,
+      rentAmount: balance.rentAmount,
+      totalPaid: balance.totalPaid,
+      remainingBalance: balance.remainingBalance,
     });
   }
 
-  return { totalPaid, remainingBalance, paymentStatus, isPartial };
+  return balance;
 }

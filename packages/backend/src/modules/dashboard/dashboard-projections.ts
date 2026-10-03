@@ -1,29 +1,12 @@
-import type {
-  ChamberUtilization,
-  CommodityStock,
-  RecentActivityItem,
-} from '@cold-storage/contracts';
+import type { ChamberStock, CommodityStock, RecentActivityItem } from '@cold-storage/contracts';
 
-export function projectChamberUtilization(
-  chambers: Array<{ id: string; chamberNumber: string; isActive: boolean }>,
-  capacityMap: Map<string, number>,
-  chamberStockMap: Map<string, number>,
-): ChamberUtilization[] {
-  return chambers.map((ch) => {
-    const cap = capacityMap.get(ch.id) ?? 0;
-    const occ = chamberStockMap.get(ch.id) ?? 0;
-    const avail = Math.max(0, cap - occ);
-    const rate = cap === 0 ? 0 : Math.min(100, Math.round((occ / cap) * 10000) / 100);
-    return {
-      chamberId: ch.id,
-      chamberNumber: ch.chamberNumber,
-      isActive: ch.isActive,
-      capacityBags: cap,
-      occupiedBags: occ,
-      availableBags: avail,
-      utilizationRate: rate,
-    };
-  });
+export function projectChamberStock(
+  byChamber: Array<{ _id: string; totalBags: number }>,
+): ChamberStock[] {
+  return byChamber
+    .filter((row) => row.totalBags > 0)
+    .map((row) => ({ chamber: row._id, totalBags: row.totalBags }))
+    .sort((a, b) => b.totalBags - a.totalBags);
 }
 
 export function projectCommodityBreakdown(
@@ -43,7 +26,7 @@ export function projectRecentActivity(
     transactionType: string;
     grnNumber: string;
     referenceId: string;
-    positionCode: string;
+    chamber: string;
     createdAt: Date;
     quantity: number;
   }>,
@@ -62,7 +45,7 @@ export function projectRecentActivity(
 
     let summary: string;
     if (t.transactionType === 'INWARD_PUTAWAY') {
-      summary = `Put away ${t.quantity} bags at ${t.positionCode}`;
+      summary = `Put away ${t.quantity} bags in chamber ${t.chamber}`;
     } else if (t.transactionType === 'OUTWARD_DELIVERY') {
       summary = `Delivered ${t.quantity} bags via challan ${referenceNumber}`;
     } else {
@@ -71,9 +54,9 @@ export function projectRecentActivity(
 
     return {
       id: t.id,
-      type: t.transactionType as 'INWARD_PUTAWAY' | 'OUTWARD_DELIVERY' | 'DELIVERY_REVERSAL',
+      type: t.transactionType as RecentActivityItem['type'],
       referenceNumber,
-      positionCode: t.positionCode,
+      chamber: t.chamber,
       date: t.createdAt,
       bags: t.quantity,
       summary,

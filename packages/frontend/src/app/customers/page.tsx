@@ -67,7 +67,7 @@ export default function CustomersPage() {
       <SearchBar
         value={searchTerm}
         onChange={setSearchTerm}
-        placeholder="Search by name, mobile, or GSTIN…"
+        placeholder="Search by name…"
         ariaLabel="Search customers"
       />
 
@@ -102,7 +102,6 @@ export default function CustomersPage() {
         <CustomerFormModal
           customer={editingCustomer}
           selectedFacilityId={selectedFacilityId}
-          userFacilityIds={user?.facilityIds}
           existingCustomers={customers}
           onClose={closeModal}
           onSuccess={() => {

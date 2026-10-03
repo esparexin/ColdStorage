@@ -45,7 +45,7 @@ export function RentHistoryModal({
       isOpen
       onClose={onClose}
       title={`Rent Receipts: ${account.grnNumber}`}
-      subtitle={`Customer: ${account.customerName} (${account.customerMobile})`}
+      subtitle={`Customer: ${account.customerName}`}
       size="lg"
       footer={
         <Button variant="outline" onClick={onClose}>

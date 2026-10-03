@@ -7,7 +7,7 @@ import { ConcurrencyConflictError } from '../modules/inventory/inventory.service
 import { RentPaymentRequiredError } from '../modules/common/rent-gate.service.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
-import { sendServiceError } from '../utils/http-error.js';
+import { sendRentPaymentRequired, sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
 export const deliveryRouter = Router();
@@ -56,17 +56,7 @@ deliveryRouter.post(
         return;
       }
       if (err instanceof RentPaymentRequiredError) {
-        res.status(err.statusCode).json({
-          error: err.message,
-          code: err.code,
-          rent: {
-            grnId: err.grnId,
-            grnNumber: err.grnNumber,
-            rentAmount: err.rentAmount,
-            totalPaid: err.totalPaid,
-            remainingBalance: err.remainingBalance,
-          },
-        });
+        sendRentPaymentRequired(res, err);
         return;
       }
       const message = err instanceof Error ? err.message : 'Delivery creation failed';

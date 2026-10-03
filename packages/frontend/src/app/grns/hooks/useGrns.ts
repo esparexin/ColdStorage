@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type {
-  Chamber,
   Commodity,
   Customer,
   Grn,
@@ -19,7 +18,6 @@ export function useGrns(
   // Lookups
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [commodities, setCommodities] = useState<Commodity[]>([]);
-  const [chambers, setChambers] = useState<Chamber[]>([]);
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,10 +29,9 @@ export function useGrns(
   const fetchLookups = useCallback(async () => {
     if (!selectedFacilityId) return;
     try {
-      const [custRes, commRes, chRes] = await Promise.all([
+      const [custRes, commRes] = await Promise.all([
         requestWithAuth(`/api/customers?facilityId=${encodeURIComponent(selectedFacilityId)}`),
         requestWithAuth('/api/commodities'),
-        requestWithAuth(`/api/facilities/${encodeURIComponent(selectedFacilityId)}/chambers`),
       ]);
 
       if (custRes.ok) {
@@ -44,10 +41,6 @@ export function useGrns(
       if (commRes.ok) {
         const data = (await commRes.json()) as { items?: Commodity[] };
         setCommodities((data.items ?? []).filter((c) => c.isActive));
-      }
-      if (chRes.ok) {
-        const data = (await chRes.json()) as { items?: Chamber[] };
-        setChambers((data.items ?? []).filter((c) => c.isActive));
       }
     } catch {
       // Lookups fail gracefully without halting UI
@@ -131,7 +124,6 @@ export function useGrns(
     error,
     customers,
     commodities,
-    chambers,
     searchTerm,
     setSearchTerm,
     statusFilter,

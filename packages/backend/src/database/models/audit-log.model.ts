@@ -32,6 +32,7 @@ const auditLogSchema = new Schema<AuditLogDoc>(
         'AUTH_LOGOUT',
         'AUTH_PASSWORD_CHANGE',
         'GRN_CREATED',
+        'GRN_CORRECTED',
         'INVENTORY_PUTAWAY',
         'DELIVERY_ISSUED',
         'DELIVERY_REVERSED',

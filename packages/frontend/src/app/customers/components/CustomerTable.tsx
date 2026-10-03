@@ -20,21 +20,6 @@ export function CustomerTable({ customers, canManage, onEdit }: CustomerTablePro
       render: (row) => <strong>{row.name}</strong>,
     },
     {
-      key: 'mobile',
-      header: 'Mobile',
-      render: (row) => <code>+91 {row.mobile}</code>,
-    },
-    {
-      key: 'address',
-      header: 'Address',
-      render: (row) => row.address || '—',
-    },
-    {
-      key: 'gstin',
-      header: 'GSTIN',
-      render: (row) => (row.gstin ? <code>{row.gstin}</code> : '—'),
-    },
-    {
       key: 'status',
       header: 'Status',
       render: (row) => (

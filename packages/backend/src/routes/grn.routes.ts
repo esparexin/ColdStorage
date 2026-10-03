@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express';
-import { createGrnSchema, grnQuerySchema } from '@cold-storage/contracts';
+import { correctGrnSchema, createGrnSchema, grnQuerySchema } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
@@ -112,6 +112,36 @@ grnRouter.get(
       res.status(200).json({ acknowledgement });
     } catch (err: unknown) {
       sendServiceError(res, err, 'Failed to get GRN acknowledgement');
+    }
+  },
+);
+
+// Correct an inward receipt's commodity, bag count or chamber (authorized workflow).
+grnRouter.patch(
+  '/facilities/:facilityId/grns/:grnId',
+  requirePermission('grn:correct'),
+  requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  async (req: Request, res: Response): Promise<void> => {
+    const facilityId = getParamId(req.params.facilityId);
+    const grnId = getParamId(req.params.grnId);
+
+    const grnFacilityId = await grnService.resolveFacilityIdForGrn(grnId);
+    if (!grnFacilityId || grnFacilityId !== facilityId) {
+      res.status(404).json({ error: `GRN '${grnId}' not found in facility '${facilityId}'` });
+      return;
+    }
+
+    const parseResult = correctGrnSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({ error: 'Validation failed', details: parseResult.error.flatten() });
+      return;
+    }
+
+    try {
+      const grn = await grnService.correctGrn(facilityId, grnId, parseResult.data, req.user!.userId);
+      res.status(200).json({ grn });
+    } catch (err: unknown) {
+      sendServiceError(res, err, 'GRN correction failed');
     }
   },
 );

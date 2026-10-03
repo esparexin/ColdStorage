@@ -10,6 +10,7 @@ export const auditEventTypeSchema = z.enum([
   'AUTH_LOGOUT',
   'AUTH_PASSWORD_CHANGE',
   'GRN_CREATED',
+  'GRN_CORRECTED',
   'INVENTORY_PUTAWAY',
   'DELIVERY_ISSUED',
   'DELIVERY_REVERSED',

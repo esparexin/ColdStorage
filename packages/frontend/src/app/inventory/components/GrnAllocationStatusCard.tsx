@@ -27,12 +27,12 @@ export function GrnAllocationStatusCard({
               {grnSummary.grnNumber}
             </h2>
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-              Assigned Chamber: Chamber {grnSummary.chamberNumber}
+              Assigned Chamber: Chamber {grnSummary.chamber}
             </span>
           </div>
           <span
             className={
-              grnSummary.putAwayStatus === 'FULLY_ALLOCATED'
+              grnSummary.putAwayStatus === 'ALLOCATED'
                 ? styles.fullyAllocatedPill
                 : styles.unallocatedPill
             }
@@ -85,26 +85,22 @@ export function GrnAllocationStatusCard({
                 }}
               >
                 <div>
-                  <span style={{ fontWeight: 600 }}>{batch.totalBags} Bags Allocated</span>
+                  <span style={{ fontWeight: 600 }}>{batch.bags} Bags Allocated</span>
                   <span style={{ color: 'var(--color-text-muted)', marginLeft: '8px' }}>
                     by {batch.allocatedBy} on {new Date(batch.allocatedAt).toLocaleDateString('en-IN')}
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                  {batch.items.map((it) => (
-                    <span
-                      key={it.positionId}
-                      style={{
-                        padding: '2px 6px',
-                        background: 'var(--color-surface-3)',
-                        borderRadius: 'var(--radius-sm)',
-                        fontFamily: 'monospace',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {it.positionCode}: {it.bags}b
-                    </span>
-                  ))}
+                  <span
+                    style={{
+                      padding: '2px 6px',
+                      background: 'var(--color-surface-3)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontFamily: 'monospace',
+                    }}
+                  >
+                    {batch.chamber}
+                  </span>
                 </div>
               </div>
             ))}

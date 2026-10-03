@@ -7,20 +7,18 @@ export function renderReceiptTemplate(dto: ReceiptDocumentDto): string {
       <tr>
         <th style="width: 25%;">Customer (Farmer)</th>
         <td style="width: 25%;"><strong>${escapeHtml(dto.customerName)}</strong></td>
-        <th style="width: 25%;">Mobile Number</th>
-        <td style="width: 25%;">${escapeHtml(dto.customerMobile)}</td>
+        <th style="width: 25%;">GRN Reference #</th>
+        <td style="width: 25%;">${escapeHtml(dto.grnNumber)}</td>
       </tr>
       <tr>
         <th>Commodity Deposited</th>
         <td><strong>${escapeHtml(dto.commodityName)}</strong></td>
         <th>Chamber Allocated</th>
-        <td>Chamber ${escapeHtml(dto.chamberNumber)}</td>
+        <td>${escapeHtml(dto.chamber)}</td>
       </tr>
       <tr>
         <th>Total Quantity Deposited</th>
         <td><strong>${escapeHtml(dto.bags)} Bags (${escapeHtml(dto.bagType)})</strong></td>
-        <th>GRN Reference #</th>
-        <td>${escapeHtml(dto.grnNumber)}</td>
       </tr>
       <tr>
         <th>Agreed Rent Terms</th>
