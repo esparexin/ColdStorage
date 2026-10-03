@@ -3,6 +3,15 @@ import { UserModel } from '../../database/models/user.model.js';
 import { hashPassword } from '../../utils/crypto.js';
 import type { UserEntity } from './user.entity.js';
 
+/**
+ * Sanitize a user-supplied identifier before embedding in a MongoDB query.
+ * Strips everything except alphanumeric chars, hyphens and underscores —
+ * the only characters our application-generated IDs ever contain.
+ */
+function sanitizeId(raw: string): string {
+  return raw.replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
 export class UserRepository {
   /**
    * Secure bootstrap helper:
@@ -75,7 +84,7 @@ export class UserRepository {
   }
 
   public async findById(id: string): Promise<UserEntity | null> {
-    const doc = await UserModel.findOne({ id }).lean().exec();
+    const doc = await UserModel.findOne({ id: sanitizeId(id) }).lean().exec();
     return doc ? (doc as unknown as UserEntity) : null;
   }
 
@@ -97,7 +106,7 @@ export class UserRepository {
    * MongoDB, which the architecture lock designates as the single session/identity SSOT.
    */
   public async findActivationStateById(id: string): Promise<UserEntity['status'] | null> {
-    const doc = await UserModel.findOne({ id })
+    const doc = await UserModel.findOne({ id: sanitizeId(id) })
       .select('status')
       .lean()
       .exec();
@@ -127,7 +136,7 @@ export class UserRepository {
     mustChangePassword: boolean,
   ): Promise<UserEntity | null> {
     const doc = await UserModel.findOneAndUpdate(
-      { id: userId },
+      { id: sanitizeId(userId) },
       { passwordHash: newPasswordHash, mustChangePassword, updatedAt: new Date() },
       { new: true },
     )
@@ -137,12 +146,12 @@ export class UserRepository {
   }
 
   public async updateLastLogin(userId: string): Promise<void> {
-    await UserModel.updateOne({ id: userId }, { lastLoginAt: new Date() }).exec();
+    await UserModel.updateOne({ id: sanitizeId(userId) }, { lastLoginAt: new Date() }).exec();
   }
 
   public async updateStatus(userId: string, status: UserEntity['status']): Promise<UserEntity | null> {
     const doc = await UserModel.findOneAndUpdate(
-      { id: userId },
+      { id: sanitizeId(userId) },
       { status, updatedAt: new Date() },
       { new: true },
     )
@@ -162,7 +171,7 @@ export class UserRepository {
     >,
   ): Promise<UserEntity | null> {
     const doc = await UserModel.findOneAndUpdate(
-      { id: userId },
+      { id: sanitizeId(userId) },
       { ...fields, updatedAt: new Date() },
       { new: true, runValidators: true },
     )
