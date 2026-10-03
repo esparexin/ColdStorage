@@ -73,11 +73,12 @@ export async function executeRecordPayment(
       }
 
       // 4. Validate payment date in Asia/Kolkata timezone with +5 min clock skew tolerance.
-      // Rent payments are intentionally exempt from financial-year containment so that an
-      // outstanding balance can still be settled after an FY rollover.
+      // Backdated payment entry rules are explicitly parked in the P0 lock, so no
+      // backdating window or financial-year containment is imposed here.
       const paymentDate = validateOperationalDate(input.paymentDate, {
         label: 'Payment',
         enforceFinancialYear: false,
+        enforceBackdatingWindow: false,
       });
 
       // 5. Allocate independent FY-sequential receipt number inside the session

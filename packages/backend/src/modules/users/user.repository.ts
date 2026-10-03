@@ -8,7 +8,10 @@ import type { UserEntity } from './user.entity.js';
  * Strips everything except alphanumeric chars, hyphens and underscores —
  * the only characters our application-generated IDs ever contain.
  */
-function sanitizeId(raw: string): string {
+function sanitizeId(raw: unknown): string {
+  if (typeof raw !== 'string') {
+    return '';
+  }
   return raw.replace(/[^a-zA-Z0-9_-]/g, '');
 }
 
@@ -84,19 +87,19 @@ export class UserRepository {
   }
 
   public async findById(id: string): Promise<UserEntity | null> {
-    const doc = await UserModel.findOne({ id: sanitizeId(id) }).lean().exec();
+    const doc = await UserModel.findOne({ id: { $eq: sanitizeId(id) } }).lean().exec();
     return doc ? (doc as unknown as UserEntity) : null;
   }
 
   public async findByUsername(username: string): Promise<UserEntity | null> {
-    const normalized = username.trim().toLowerCase();
-    const doc = await UserModel.findOne({ username: normalized }).lean().exec();
+    const normalized = typeof username === 'string' ? username.trim().toLowerCase() : '';
+    const doc = await UserModel.findOne({ username: { $eq: normalized } }).lean().exec();
     return doc ? (doc as unknown as UserEntity) : null;
   }
 
   public async findByEmail(email: string): Promise<UserEntity | null> {
-    const normalized = email.trim().toLowerCase();
-    const doc = await UserModel.findOne({ email: normalized }).lean().exec();
+    const normalized = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const doc = await UserModel.findOne({ email: { $eq: normalized } }).lean().exec();
     return doc ? (doc as unknown as UserEntity) : null;
   }
 
@@ -106,7 +109,7 @@ export class UserRepository {
    * MongoDB, which the architecture lock designates as the single session/identity SSOT.
    */
   public async findActivationStateById(id: string): Promise<UserEntity['status'] | null> {
-    const doc = await UserModel.findOne({ id: sanitizeId(id) })
+    const doc = await UserModel.findOne({ id: { $eq: sanitizeId(id) } })
       .select('status')
       .lean()
       .exec();
@@ -136,7 +139,7 @@ export class UserRepository {
     mustChangePassword: boolean,
   ): Promise<UserEntity | null> {
     const doc = await UserModel.findOneAndUpdate(
-      { id: sanitizeId(userId) },
+      { id: { $eq: sanitizeId(userId) } },
       { passwordHash: newPasswordHash, mustChangePassword, updatedAt: new Date() },
       { new: true },
     )
@@ -146,12 +149,12 @@ export class UserRepository {
   }
 
   public async updateLastLogin(userId: string): Promise<void> {
-    await UserModel.updateOne({ id: sanitizeId(userId) }, { lastLoginAt: new Date() }).exec();
+    await UserModel.updateOne({ id: { $eq: sanitizeId(userId) } }, { lastLoginAt: new Date() }).exec();
   }
 
   public async updateStatus(userId: string, status: UserEntity['status']): Promise<UserEntity | null> {
     const doc = await UserModel.findOneAndUpdate(
-      { id: sanitizeId(userId) },
+      { id: { $eq: sanitizeId(userId) } },
       { status, updatedAt: new Date() },
       { new: true },
     )
@@ -171,7 +174,7 @@ export class UserRepository {
     >,
   ): Promise<UserEntity | null> {
     const doc = await UserModel.findOneAndUpdate(
-      { id: sanitizeId(userId) },
+      { id: { $eq: sanitizeId(userId) } },
       { ...fields, updatedAt: new Date() },
       { new: true, runValidators: true },
     )

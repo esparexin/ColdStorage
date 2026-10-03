@@ -14,8 +14,14 @@ export const MAX_BACKDATE_DAYS = 30;
 export interface OperationalDateOptions {
   /** Human label used in error messages, e.g. 'Inward', 'Delivery'. */
   label: string;
-  /** When false, the financial-year containment check is skipped (rent payments may be backdated within the window across an FY boundary). */
+  /** When false, the financial-year containment check is skipped. */
   enforceFinancialYear?: boolean;
+  /**
+   * When false, only the future-date check is applied. Used by rent payments because
+   * backdated payment entry rules are explicitly parked in the P0 lock and must not be
+   * invented by the implementation.
+   */
+  enforceBackdatingWindow?: boolean;
   now?: Date;
 }
 
@@ -42,6 +48,10 @@ export function validateOperationalDate(
         `${options.label} date belongs to Financial Year '${operationalFy}', but current active FY is '${currentFy}'`,
       );
     }
+  }
+
+  if (options.enforceBackdatingWindow === false) {
+    return operationalDate;
   }
 
   const maxPastAllowed = new Date(

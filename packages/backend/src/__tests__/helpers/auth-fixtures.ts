@@ -55,20 +55,27 @@ export async function seedAuthUser(
   const mustChangePassword = options.mustChangePassword ?? false;
   const status = options.status ?? 'ACTIVE';
 
-  await UserModel.create({
-    id: userId,
-    fullName: options.username,
-    username: options.username,
-    employeeId: `EMP-${userId.slice(-6)}`,
-    mobile: '9876543210',
-    email: `${options.username}@coldstorage.local`,
-    role: options.role,
-    facilityIds,
-    status,
-    passwordHash: await hashPassword('FixturePassword123!'),
-    mustChangePassword,
-    lastLoginAt: null,
-  });
+  // Upsert rather than insert: suites are order-independent and re-runnable against a
+  // database that still holds accounts seeded by an earlier run.
+  await UserModel.findOneAndUpdate(
+    { id: userId },
+    {
+      $set: {
+        fullName: options.username,
+        username: options.username,
+        employeeId: `EMP-${userId.slice(-6)}`,
+        mobile: '9876543210',
+        email: `${options.username}@coldstorage.local`,
+        role: options.role,
+        facilityIds,
+        status,
+        passwordHash: await hashPassword('FixturePassword123!'),
+        mustChangePassword,
+        lastLoginAt: null,
+      },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true },
+  ).exec();
 
   const claims: TokenClaims = {
     userId,
