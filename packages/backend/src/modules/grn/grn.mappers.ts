@@ -20,6 +20,11 @@ export function toGrnEntity(doc: {
   rentType: string;
   rentMonths?: number | null;
   rentAmount: number;
+  bagPrice?: number | null;
+  smallBagPrice?: number | null;
+  bigBagPrice?: number | null;
+  smallBags?: number | null;
+  bigBags?: number | null;
   gpNumber?: string | null;
   marks?: string | null;
   vehicleNumber?: string | null;
@@ -49,6 +54,11 @@ export function toGrnEntity(doc: {
     rentType: doc.rentType as Grn['rentType'],
     rentMonths: doc.rentMonths ?? null,
     rentAmount: doc.rentAmount,
+    bagPrice: doc.bagPrice ?? null,
+    smallBagPrice: doc.smallBagPrice ?? null,
+    bigBagPrice: doc.bigBagPrice ?? null,
+    smallBags: doc.smallBags ?? null,
+    bigBags: doc.bigBags ?? null,
     gpNumber: doc.gpNumber ?? null,
     marks: doc.marks ?? null,
     vehicleNumber: doc.vehicleNumber ?? null,
@@ -81,6 +91,11 @@ export function toGrnAcknowledgement(grn: Grn): GrnAcknowledgement {
     bagAccounting: {
       bags: grn.bags,
       bagType: grn.bagType,
+      bagPrice: grn.bagPrice ?? null,
+      smallBagPrice: grn.smallBagPrice ?? null,
+      bigBagPrice: grn.bigBagPrice ?? null,
+      smallBags: grn.smallBags ?? null,
+      bigBags: grn.bigBags ?? null,
       nominalUnitWeight: grn.nominalUnitWeight,
       nominalTotalWeight: grn.nominalTotalWeight,
       actualWeight: grn.actualWeight,
