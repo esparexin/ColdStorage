@@ -13,10 +13,11 @@ interface PutAwayTabProps {
   putAway: ReturnType<typeof usePutAway>;
   canAllocate: boolean;
   canPayRent: boolean;
+  payLoading: boolean;
   onPayRent: () => void;
 }
 
-export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, onPayRent }: PutAwayTabProps) {
+export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoading, onPayRent }: PutAwayTabProps) {
   return (
     <div className={styles.putAwayLayout}>
       {/* Left Sidebar */}
@@ -82,8 +83,8 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, onPayRe
                     {putAway.rentBlocked.grnNumber}. Complete payment to allocate — you will return here.
                     {canPayRent && (
                       <div style={{ marginTop: 8 }}>
-                        <button type="button" className={styles.primaryBtn} onClick={onPayRent}>
-                          Pay rent now
+                        <button type="button" className={styles.primaryBtn} onClick={onPayRent} disabled={payLoading}>
+                          {payLoading ? 'Loading rent account...' : 'Pay rent now'}
                         </button>
                       </div>
                     )}

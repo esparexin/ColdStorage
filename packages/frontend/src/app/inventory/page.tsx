@@ -6,8 +6,8 @@ import { can, type RentSummaryDto, type Role } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
-import { requestWithAuth } from '@/lib/api-client';
 import { CollectPaymentModal } from '../rent/components/CollectPaymentModal';
+import { useRentGate } from '@/hooks/useRentGate';
 import { HierarchyTab } from './components/HierarchyTab';
 import { InventoryHeader } from './components/InventoryHeader';
 import { LedgerTab } from './components/LedgerTab';
@@ -32,6 +32,7 @@ function InventoryContent() {
   const canPrintRent = can(userRole, 'rent:print');
 
   const [rentPayAccount, setRentPayAccount] = useState<RentSummaryDto | null>(null);
+  const rentGate = useRentGate();
 
   const [activeTab, setActiveTab] = useState<'put-away' | 'hierarchy' | 'ledger'>(() =>
     initialGrnId ? 'put-away' : 'put-away',
@@ -54,20 +55,15 @@ function InventoryContent() {
 
   const handlePayRentForBlockedGrn = async () => {
     if (!selectedFacilityId || !putAway.rentBlocked) return;
-    try {
-      const res = await requestWithAuth(
-        `/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/grn/${encodeURIComponent(putAway.rentBlocked.grnId)}`,
-      );
-      if (res.ok) {
-        setRentPayAccount((await res.json()) as RentSummaryDto);
-      }
-    } catch {
-      // Graceful: banner already explains the pending amount
+    const summary = await rentGate.refreshRentGate(selectedFacilityId, putAway.rentBlocked.grnId);
+    if (summary) {
+      setRentPayAccount(summary);
     }
   };
 
   const handleRentPaidFromPutAway = () => {
     setRentPayAccount(null);
+    rentGate.resetRentGate();
     putAway.clearRentBlock();
     if (putAway.selectedGrnId) {
       void putAway.fetchGrnSummaryAndHistory(putAway.selectedGrnId);
@@ -100,6 +96,7 @@ function InventoryContent() {
           putAway={putAway}
           canAllocate={canAllocate}
           canPayRent={canCollectRent}
+          payLoading={rentGate.rentLoading}
           onPayRent={() => void handlePayRentForBlockedGrn()}
         />
       )}
