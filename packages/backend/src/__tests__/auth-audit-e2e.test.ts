@@ -2,33 +2,12 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
-import { authenticate } from '../middleware/auth.middleware.js';
-import { requireFacilityScope } from '../middleware/facility.middleware.js';
-import { createRateLimiter, MemoryRateLimitStore } from '../middleware/rate-limiter.middleware.js';
-import { requirePermission } from '../middleware/rbac.middleware.js';
+import { FacilityModel } from '../database/models/facility.model.js';
 import { sessionRepository } from '../modules/auth/session.repository.js';
 import { userRepository } from '../modules/users/user.repository.js';
 
 describe('Auth Audit E2E Flow', () => {
   const app = createApp();
-
-  const testLimiter = createRateLimiter({
-    windowMs: 60000,
-    max: 1000,
-    keyPrefix: 'ratelimit:test-audit',
-    store: new MemoryRateLimitStore(),
-  });
-
-  app.get(
-    '/test/facilities/:facilityId/scope-check',
-    testLimiter,
-    authenticate,
-    requirePermission('storage:view'),
-    requireFacilityScope((req) => req.params.facilityId),
-    (req, res) => {
-      res.status(200).json({ status: 'ok', user: req.user?.username });
-    },
-  );
 
   beforeAll(async () => {
     await connectToDatabase('mongodb://127.0.0.1:27017/cold_storage_test');
@@ -41,6 +20,7 @@ describe('Auth Audit E2E Flow', () => {
   beforeEach(async () => {
     await userRepository.resetForTesting();
     await sessionRepository.resetForTesting();
+    await FacilityModel.deleteMany({});
   });
 
   it('passes comprehensive 16-step end-to-end audit verification', async () => {
@@ -107,17 +87,42 @@ describe('Auth Audit E2E Flow', () => {
       .send({ username: 'scoped.operator', password: 'TempPasswordScoped123!' });
     expect(opLoginRes.status).toBe(200);
     const opToken = opLoginRes.body.token;
-    const opCookieHeader = opLoginRes.headers['set-cookie'][0];
+
+    const opChangeRes = await request(app)
+      .post('/api/auth/change-password')
+      .set('Authorization', `Bearer ${opToken}`)
+      .send({ currentPassword: 'TempPasswordScoped123!', newPassword: 'NewScopedPassword123!' });
+    expect(opChangeRes.status).toBe(200);
+
+    const opReLogin = await request(app)
+      .post('/api/auth/login')
+      .send({ username: 'scoped.operator', password: 'NewScopedPassword123!' });
+    expect(opReLogin.status).toBe(200);
+    const activeOpToken = opReLogin.body.token;
+    const opCookieHeader = opReLogin.headers['set-cookie'][0];
     const opRefreshToken = opCookieHeader.split(';')[0].replace('refreshToken=', '');
 
+    await FacilityModel.create({
+      id: 'facility-nashik-cold',
+      name: 'Nashik Cold',
+      code: 'FNC01',
+      isActive: true,
+    });
+    await FacilityModel.create({
+      id: 'facility-pune-cold',
+      name: 'Pune Cold',
+      code: 'FPC01',
+      isActive: true,
+    });
+
     const permitRes = await request(app)
-      .get('/test/facilities/facility-nashik-cold/scope-check')
-      .set('Authorization', `Bearer ${opToken}`);
+      .get('/api/facilities/facility-nashik-cold')
+      .set('Authorization', `Bearer ${activeOpToken}`);
     expect(permitRes.status).toBe(200);
 
     const denyRes = await request(app)
-      .get('/test/facilities/facility-pune-cold/scope-check')
-      .set('Authorization', `Bearer ${opToken}`);
+      .get('/api/facilities/facility-pune-cold')
+      .set('Authorization', `Bearer ${activeOpToken}`);
     expect(denyRes.status).toBe(403);
     expect(denyRes.body.error).toContain('not authorized to access facility');
 
@@ -150,7 +155,7 @@ describe('Auth Audit E2E Flow', () => {
     expect(persistedAdmin?.passwordHash).not.toContain('BootstrapSecretPassword999!');
     expect(persistedAdmin?.passwordHash).toContain('$argon2id$');
     const persistedOp = await userRepository.findByUsername('scoped.operator');
-    expect(persistedOp?.passwordHash).not.toContain('TempPasswordScoped123!');
+    expect(persistedOp?.passwordHash).not.toContain('NewScopedPassword123!');
     expect(persistedOp?.passwordHash).toContain('$argon2id$');
 
     delete process.env.BOOTSTRAP_ADMIN_USERNAME;

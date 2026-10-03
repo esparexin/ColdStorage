@@ -2,34 +2,13 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
-import { authenticate } from '../middleware/auth.middleware.js';
-import { requireFacilityScope } from '../middleware/facility.middleware.js';
-import { createRateLimiter, MemoryRateLimitStore } from '../middleware/rate-limiter.middleware.js';
-import { requirePermission } from '../middleware/rbac.middleware.js';
+import { FacilityModel } from '../database/models/facility.model.js';
 import { sessionRepository } from '../modules/auth/session.repository.js';
 import { userRepository } from '../modules/users/user.repository.js';
 import { hashPassword } from '../utils/crypto.js';
 
 describe('Auth RBAC & Facility Scope Integration', () => {
   const app = createApp();
-
-  const testLimiter = createRateLimiter({
-    windowMs: 60000,
-    max: 1000,
-    keyPrefix: 'ratelimit:test-rbac',
-    store: new MemoryRateLimitStore(),
-  });
-
-  app.get(
-    '/test/facilities/:facilityId/scope-check',
-    testLimiter,
-    authenticate,
-    requirePermission('storage:view'),
-    requireFacilityScope((req) => req.params.facilityId),
-    (req, res) => {
-      res.status(200).json({ status: 'ok', user: req.user?.username });
-    },
-  );
 
   const TEST_ADMIN_USERNAME = 'test.admin';
   const TEST_ADMIN_PASSWORD = 'TestAdminPassword123!';
@@ -45,6 +24,7 @@ describe('Auth RBAC & Facility Scope Integration', () => {
   beforeEach(async () => {
     await userRepository.resetForTesting();
     await sessionRepository.resetForTesting();
+    await FacilityModel.deleteMany({});
 
     await userRepository.createUser({
       id: 'test-admin-id',
@@ -156,19 +136,44 @@ describe('Auth RBAC & Facility Scope Integration', () => {
       .send({ username: 'operator.north', password: 'TempPassword789!' });
     const opToken = opLogin.body.token;
 
+    const changePassRes = await request(app)
+      .post('/api/auth/change-password')
+      .set('Authorization', `Bearer ${opToken}`)
+      .send({ currentPassword: 'TempPassword789!', newPassword: 'NewOperatorPassword123!' });
+    expect(changePassRes.status).toBe(200);
+
+    const opReLogin = await request(app)
+      .post('/api/auth/login')
+      .send({ username: 'operator.north', password: 'NewOperatorPassword123!' });
+    expect(opReLogin.status).toBe(200);
+    const activeOpToken = opReLogin.body.token;
+
+    await FacilityModel.create({
+      id: 'facility-north',
+      name: 'North Facility',
+      code: 'FN01',
+      isActive: true,
+    });
+    await FacilityModel.create({
+      id: 'facility-south',
+      name: 'South Facility',
+      code: 'FS01',
+      isActive: true,
+    });
+
     const permitRes = await request(app)
-      .get('/test/facilities/facility-north/scope-check')
-      .set('Authorization', `Bearer ${opToken}`);
+      .get('/api/facilities/facility-north')
+      .set('Authorization', `Bearer ${activeOpToken}`);
     expect(permitRes.status).toBe(200);
 
     const denyRes = await request(app)
-      .get('/test/facilities/facility-south/scope-check')
-      .set('Authorization', `Bearer ${opToken}`);
+      .get('/api/facilities/facility-south')
+      .set('Authorization', `Bearer ${activeOpToken}`);
     expect(denyRes.status).toBe(403);
     expect(denyRes.body.error).toContain('not authorized to access facility');
 
     const adminPermitRes = await request(app)
-      .get('/test/facilities/facility-south/scope-check')
+      .get('/api/facilities/facility-south')
       .set('Authorization', `Bearer ${adminToken}`);
     expect(adminPermitRes.status).toBe(200);
   });
