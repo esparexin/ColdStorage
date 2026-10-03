@@ -46,7 +46,7 @@ export function OrgIdentitySection({
           <label htmlFor="org-name" className={styles.fieldLabel}>
             Organization / Company Legal Name *
           </label>
-          <input
+          <input aria-label="e.g. Kisan Cold Storage & Warehousing Pvt. Ltd."
             id="org-name"
             required
             maxLength={160}
@@ -61,7 +61,7 @@ export function OrgIdentitySection({
           <label htmlFor="org-gstin" className={styles.fieldLabel}>
             GSTIN Registration Number
           </label>
-          <input
+          <input aria-label="e.g. 09AAACB1234D1Z5"
             id="org-gstin"
             maxLength={15}
             className={styles.fieldInput}
@@ -76,7 +76,7 @@ export function OrgIdentitySection({
         <label htmlFor="org-address" className={styles.fieldLabel}>
           Registered Business Address *
         </label>
-        <input
+        <input aria-label="e.g. Plot No. 42, Industrial Cold Zone, Kanpur Road, Luck..."
           id="org-address"
           required
           maxLength={500}
@@ -92,7 +92,7 @@ export function OrgIdentitySection({
           <label htmlFor="org-contact" className={styles.fieldLabel}>
             Official Contact Numbers / Email *
           </label>
-          <input
+          <input aria-label="e.g. +91 98765 43210, info@kisancoldstorage.in"
             id="org-contact"
             required
             maxLength={200}
@@ -119,7 +119,7 @@ export function OrgIdentitySection({
         <label htmlFor="org-footer" className={styles.fieldLabel}>
           Document Print Footer Notes
         </label>
-        <textarea
+        <textarea aria-label="e.g. Goods stored at owner's risk under standard warehous..."
           id="org-footer"
           rows={2}
           maxLength={500}

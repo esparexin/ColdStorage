@@ -2,13 +2,15 @@
   "name": "cold-storage",
   "version": "0.1.0",
   "private": true,
-  "description": "Cold Storage Management System — Monorepo Foundation (P1 Governance)",
+  "description": "Cold Storage Management System \u2014 Monorepo Foundation (P1 Governance)",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
     "type-check": "npm run build --workspace=@cold-storage/contracts && npm run type-check --workspaces --if-present",
     "lint": "eslint . --max-warnings=0",
+    "format:check": "prettier --check \"**/*.{ts,tsx,css,json,md}\" --ignore-path .gitignore",
+    "format": "prettier --write \"**/*.{ts,tsx,css,json,md}\" --ignore-path .gitignore",
     "test": "npm run build --workspace=@cold-storage/contracts && npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "hygiene": "bash scripts/hygiene-audit.sh",

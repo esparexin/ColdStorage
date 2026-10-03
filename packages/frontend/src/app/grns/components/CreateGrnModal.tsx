@@ -77,7 +77,7 @@ export function CreateGrnModal({
               <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingCustomer(true)}>+ Add</Button>
             </div>
             <div className={styles.comboboxWrapper} ref={customerRef}>
-              <input
+              <input aria-label="Search by name or mobile…"
                 id="create-customer-search" type="text" autoComplete="off"
                 className={`${styles.comboboxInput} ${form.fieldErrors.customer ? styles.inputError : ''}`}
                 value={isCustomerOpen ? customerQuery : (selectedCustomer ? `${selectedCustomer.name} (${selectedCustomer.mobile})` : '')}

@@ -26,7 +26,9 @@
 ## 2. Counting Rules & Exclusions
 
 ### What Is Counted:
-- All source files with `.ts` or `.tsx` extensions located within `packages/*/src/`.
+- All source files with `.ts`, `.tsx` **or `.css`** extensions located within `packages/*/src/`.
+- CSS module files are counted because the feature stylesheets were the largest remaining
+  source of unbounded growth; `scripts/check-line-budget.sh` scans all three extensions.
 - Total lines of code (`wc -l`) are evaluated deterministically.
 
 ### What Is Excluded:

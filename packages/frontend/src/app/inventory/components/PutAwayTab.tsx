@@ -183,7 +183,7 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
                     Add Another Position
                   </button>
 
-                  <input
+                  <input aria-label="Optional put-away notes or lot observations"
                     type="text"
                     placeholder="Optional put-away notes or lot observations"
                     className={styles.fieldInput}

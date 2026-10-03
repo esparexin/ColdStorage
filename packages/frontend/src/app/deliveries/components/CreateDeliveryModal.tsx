@@ -111,7 +111,7 @@ export function CreateDeliveryModal({
                             Available: {w.maxBags} bags
                           </span>
                         </div>
-                        <input
+                        <input aria-label="Bags to withdraw"
                           type="number"
                           min={0}
                           max={w.maxBags}
@@ -154,7 +154,7 @@ export function CreateDeliveryModal({
                     <label htmlFor="delivery-vehicle" className={styles.fieldLabel}>
                       Vehicle Registration
                     </label>
-                    <input
+                    <input aria-label="e.g. UP32AA1111"
                       id="delivery-vehicle"
                       type="text"
                       maxLength={15}
@@ -171,7 +171,7 @@ export function CreateDeliveryModal({
                     <label htmlFor="delivery-driver" className={styles.fieldLabel}>
                       Driver Name
                     </label>
-                    <input
+                    <input aria-label="e.g. Ramesh Singh"
                       id="delivery-driver"
                       type="text"
                       maxLength={100}
@@ -186,7 +186,7 @@ export function CreateDeliveryModal({
                     <label htmlFor="delivery-weight" className={styles.fieldLabel}>
                       Dispatch Weight (kg)
                     </label>
-                    <input
+                    <input aria-label="e.g. 12500"
                       id="delivery-weight"
                       type="number"
                       step="0.01"
@@ -205,7 +205,7 @@ export function CreateDeliveryModal({
                   <label htmlFor="delivery-remarks" className={styles.fieldLabel}>
                     Remarks / Gate Pass Notes
                   </label>
-                  <input
+                  <input aria-label="Optional outward delivery notes"
                     id="delivery-remarks"
                     type="text"
                     maxLength={500}

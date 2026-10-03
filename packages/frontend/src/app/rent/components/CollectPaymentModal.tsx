@@ -105,7 +105,7 @@ export function CollectPaymentModal({
                   </button>
                 )}
               </div>
-              <input
+              <input aria-label="Enter amount"
                 id="collect-amount"
                 type="number"
                 min={1}
@@ -161,7 +161,7 @@ export function CollectPaymentModal({
               <label htmlFor="collect-notes" className={styles.fieldLabel}>
                 Receipt Notes / UPI Reference ID
               </label>
-              <input
+              <input aria-label="Optional notes or bank transaction reference"
                 id="collect-notes"
                 type="text"
                 maxLength={500}

@@ -83,7 +83,7 @@ export function LedgerTab({ ledger, currentFacilityName }: LedgerTabProps) {
       <div className={styles.ledgerToolbar}>
         <div className={styles.searchGroup}>
           <Search size={16} color="var(--color-text-muted)" aria-hidden="true" />
-          <input
+          <input aria-label="Search GRN # or Storage Location..."
             type="text"
             placeholder="Search GRN # or Storage Location..."
             value={ledger.ledgerSearch}
