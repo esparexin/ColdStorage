@@ -1,13 +1,13 @@
 import { parse } from 'csv-parse/sync';
 
-export const CUSTOMER_IMPORT_REQUIRED_HEADERS = ['name', 'mobile'] as const;
-export const CUSTOMER_IMPORT_ALLOWED_HEADERS = ['name', 'mobile', 'address', 'gstin'] as const;
+export const CUSTOMER_IMPORT_REQUIRED_HEADERS = ['name'] as const;
+export const CUSTOMER_IMPORT_ALLOWED_HEADERS = ['name'] as const;
 
 export const GRN_IMPORT_REQUIRED_HEADERS = [
   'date',
   'customerName',
   'commodityName',
-  'chamberNumber',
+  'chamber',
   'bags',
   'bagType',
   'rentType',
@@ -18,7 +18,7 @@ export const GRN_IMPORT_ALLOWED_HEADERS = [
   'date',
   'customerName',
   'commodityName',
-  'chamberNumber',
+  'chamber',
   'bags',
   'bagType',
   'rentType',

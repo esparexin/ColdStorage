@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { chamberTextSchema, rentalAmountSchema } from './common.js';
+import { rentTypeSchema } from './grn.js';
 import { rentReceiptNumberSchema } from './identifiers.js';
 
 export const paymentModeSchema = z.enum(['Cash', 'UPI']);
@@ -53,13 +55,12 @@ export const rentSummaryDtoSchema = z.object({
   facilityId: z.string().min(1),
   customerId: z.string().min(1),
   customerName: z.string().min(1),
-  customerMobile: z.string(),
   commodityName: z.string().min(1),
-  chamberNumber: z.string().min(1),
+  chamber: chamberTextSchema,
   inwardDate: z.coerce.date(),
   totalBags: z.number().int().min(1),
-  rentType: z.enum(['Monthly', 'Seasonal']),
-  rentAmount: z.number().min(0),
+  rentType: rentTypeSchema,
+  rentAmount: rentalAmountSchema,
   rentMonths: z.number().int().nullable().optional(),
   totalPaid: z.number().min(0),
   remainingBalance: z.number().min(0),

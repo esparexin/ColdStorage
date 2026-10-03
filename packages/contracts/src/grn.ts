@@ -1,10 +1,28 @@
 import { z } from 'zod';
 import { bagTypeSchema } from './bags.js';
-import { indianVehicleSchema } from './common.js';
+import { chamberTextSchema, indianVehicleSchema, rentalAmountSchema } from './common.js';
 import { gpNumberSchema, grnNumberSchema, receiptNumberSchema } from './identifiers.js';
 
 export const rentTypeSchema = z.enum(['Monthly', 'Seasonal']);
 export type RentType = z.infer<typeof rentTypeSchema>;
+
+/**
+ * A Seasonal subscription is the complete 10-month rental period. The month count is a fixed
+ * business constant, not operator input, so it is derived here rather than accepted from a
+ * caller that could disagree with this SSOT.
+ */
+export const SEASONAL_RENT_MONTHS = 10;
+
+/** Single derivation point for the rental period implied by a rent type. */
+export function rentMonthsForType(rentType: RentType): number | null {
+  return rentType === 'Seasonal' ? SEASONAL_RENT_MONTHS : null;
+}
+
+/** Operator-facing month input: Monthly requires an explicit count; Seasonal is fixed. */
+export const rentMonthsInputSchema = z
+  .number({ invalid_type_error: 'Rent months must be a number' })
+  .int('Rent months must be a whole number')
+  .min(1, 'Rent months must be at least 1');
 
 export const grnStatusSchema = z.enum(['OPEN', 'CLOSED']);
 export type GrnStatus = z.infer<typeof grnStatusSchema>;
@@ -49,15 +67,15 @@ export const createGrnSchema = z
     date: z.coerce.date().default(() => new Date()),
     customerId: z.string().trim().min(1),
     commodityId: z.string().trim().min(1),
-    chamberId: z.string().trim().min(1),
+    chamber: chamberTextSchema,
     bags: z.number().int().positive().max(100000),
     bagType: bagTypeSchema,
     nominalUnitWeight: z.number().positive().nullish(),
     nominalTotalWeight: z.number().positive().nullish(),
     actualWeight: z.number().positive().nullish(),
     rentType: rentTypeSchema,
-    rentMonths: z.number().int().min(1).nullish(),
-    rentAmount: z.number().min(0),
+    rentMonths: rentMonthsInputSchema.nullish(),
+    rentAmount: rentalAmountSchema,
     gpNumber: gpNumberSchema,
     marks: z.string().trim().max(100).nullish(),
     vehicleNumber: indianVehicleSchema.nullish(),
@@ -71,7 +89,7 @@ export const createGrnSchema = z
       return data.rentMonths === null || data.rentMonths === undefined;
     },
     {
-      message: "rentMonths is required (>= 1) for 'Monthly' rent and must be null for 'Seasonal'",
+      message: "rentMonths (>= 1) is required for 'Monthly' rent and must be omitted for 'Seasonal'",
       path: ['rentMonths'],
     },
   )
@@ -99,8 +117,7 @@ export const grnSchema = z.object({
   customerName: z.string().min(1),
   commodityId: z.string().min(1),
   commodityName: z.string().min(1),
-  chamberId: z.string().min(1),
-  chamberNumber: z.string().min(1),
+  chamber: chamberTextSchema,
   bags: z.number().int().positive(),
   bagType: bagTypeSchema,
   nominalUnitWeight: z.number().nullable().optional(),
@@ -108,8 +125,8 @@ export const grnSchema = z.object({
   actualWeight: z.number().nullable().optional(),
   authoritativeWeight: z.number().nullable().optional(),
   rentType: rentTypeSchema,
-  rentMonths: z.number().nullable().optional(),
-  rentAmount: z.number().min(0),
+  rentMonths: z.number().int().nullable().optional(),
+  rentAmount: rentalAmountSchema,
   gpNumber: z.string().nullable().optional(),
   marks: z.string().nullable().optional(),
   vehicleNumber: z.string().nullable().optional(),
@@ -137,8 +154,7 @@ export const grnAcknowledgementSchema = z.object({
     name: z.string().min(1),
   }),
   storageLocation: z.object({
-    chamberId: z.string().min(1),
-    chamberNumber: z.string().min(1),
+    chamber: chamberTextSchema,
   }),
   bagAccounting: z.object({
     bags: z.number().int().positive(),
@@ -150,8 +166,8 @@ export const grnAcknowledgementSchema = z.object({
   }),
   rentTerms: z.object({
     rentType: rentTypeSchema,
-    rentMonths: z.number().nullable().optional(),
-    rentAmount: z.number().min(0),
+    rentMonths: z.number().int().nullable().optional(),
+    rentAmount: rentalAmountSchema,
   }),
   transport: z.object({
     gpNumber: z.string().nullable().optional(),
@@ -169,7 +185,7 @@ export type GrnAcknowledgement = z.infer<typeof grnAcknowledgementSchema>;
 export const grnQuerySchema = z.object({
   customerId: z.string().optional(),
   commodityId: z.string().optional(),
-  chamberId: z.string().optional(),
+  chamber: z.string().trim().max(20).optional(),
   status: grnStatusSchema.optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),

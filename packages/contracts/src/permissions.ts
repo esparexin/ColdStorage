@@ -11,7 +11,10 @@ export const PERMISSIONS = {
   'grn:create': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
   'grn:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   'grn:close': ['SUPER_ADMIN', 'ADMIN'],
-  'rack:allocate': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
+  /** Authorized correction of an inward receipt's commodity, bag count or chamber. */
+  'grn:correct': ['SUPER_ADMIN', 'ADMIN'],
+  /** Confirms a GRN's remaining bags are on hand in its chamber. */
+  'allocation:manage': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
   'inventory:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   'inventory:correct': ['SUPER_ADMIN', 'ADMIN'],
   'delivery:create': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
@@ -20,8 +23,8 @@ export const PERMISSIONS = {
   'rent:collect': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
   'rent:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   'rent:print': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
-  'storage:manage': ['SUPER_ADMIN', 'ADMIN'],
-  'storage:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
+  /** Chamber is free text; only the tenancy root is a managed entity. */
+  'facility:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   'customer:manage': ['SUPER_ADMIN', 'ADMIN'],
   'customer:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   'commodity:manage': ['SUPER_ADMIN', 'ADMIN'],

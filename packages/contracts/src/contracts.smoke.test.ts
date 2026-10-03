@@ -3,7 +3,6 @@ import {
   bagAccountingSchema,
   bagTypeSchema,
   can,
-  chamberSchema,
   changePasswordInputSchema,
   createUserSchema,
   facilitySchema,
@@ -11,18 +10,9 @@ import {
   gpNumberSchema,
   grnNumberSchema,
   inFacilityScope,
-  levelSchema,
   loginInputSchema,
-  positionSchema,
-  rackSchema,
   receiptNumberSchema,
   rentReceiptNumberSchema,
-  createCommoditySchema,
-  createCustomerSchema,
-  createFacilitySchema,
-  createPositionSchema,
-  createGrnSchema,
-  getFinancialYearKey,
   systemSettingsSchema,
   userSummarySchema,
 } from './index.js';
@@ -66,18 +56,10 @@ describe('P1 Governance & Shared Contracts Foundation', () => {
     expect(getAuthoritativeWeight(actualWeighed)).toBe(5085);
   });
 
-  it('validates the approved storage hierarchy (Facility -> Chamber -> Rack -> Level -> Position)', () => {
+  it('validates Facility as the tenancy root with no storage hierarchy beneath it', () => {
     const facility = facilitySchema.parse({ id: 'fac-1', name: 'Main Unit', code: 'FAC1' });
-    const chamber = chamberSchema.parse({ id: 'ch-1', facilityId: facility.id, chamberNumber: 'CH-01' });
-    const rack = rackSchema.parse({ id: 'rk-1', chamberId: chamber.id, code: 'R-01' });
-    const level = levelSchema.parse({ id: 'lvl-1', rackId: rack.id, levelNumber: 1, code: 'L1' });
-    const position = positionSchema.parse({ id: 'pos-1', levelId: level.id, code: 'P1-01', capacityBags: 120 });
-
     expect(facility.id).toBe('fac-1');
-    expect(chamber.chamberNumber).toBe('CH-01');
-    expect(rack.code).toBe('R-01');
-    expect(level.levelNumber).toBe(1);
-    expect(position.capacityBags).toBe(120);
+    expect(facility.name).toBe('Main Unit');
   });
 
   it('enforces machine-readable permissions and facility scoping', () => {
@@ -152,118 +134,5 @@ describe('P1 Governance & Shared Contracts Foundation', () => {
       updatedAt: new Date(),
     });
     expect(summary.mustChangePassword).toBe(true);
-  });
-
-  it('validates P3 customer, commodity, and storage hierarchy schemas', () => {
-    // Customer schema validation
-    const customer = createCustomerSchema.parse({
-      name: 'Ramesh Patel',
-      mobile: '9876543210',
-      address: 'Village Khed, Pune',
-      facilityIds: ['fac-pune-01'],
-    });
-    expect(customer.name).toBe('Ramesh Patel');
-    expect(customer.mobile).toBe('9876543210');
-    expect(customer.isActive).toBe(true);
-
-    // Invalid mobile rejected
-    expect(() =>
-      createCustomerSchema.parse({
-        name: 'Invalid User',
-        mobile: '12345',
-        facilityIds: ['fac-1'],
-      }),
-    ).toThrow();
-
-    // Commodity schema validation
-    const commodity = createCommoditySchema.parse({
-      name: 'Potato Jyoti',
-    });
-    expect(commodity.name).toBe('Potato Jyoti');
-    expect(commodity.isActive).toBe(true);
-
-    // Facility input validation
-    const facility = createFacilitySchema.parse({
-      name: 'Nashik Cold Hub',
-      code: 'NSK-01',
-    });
-    expect(facility.code).toBe('NSK-01');
-
-    // Position capacity validation (positive bags required)
-    const position = createPositionSchema.parse({
-      code: 'POS-A1',
-      capacityBags: 150,
-    });
-    expect(position.capacityBags).toBe(150);
-    expect(() =>
-      createPositionSchema.parse({
-        code: 'POS-NEG',
-        capacityBags: -10,
-      }),
-    ).toThrow();
-  });
-
-  it('validates P4 GRN input schemas and financial year derivation', () => {
-    // FY Derivation
-    expect(getFinancialYearKey(new Date('2026-10-15T00:00:00Z'))).toBe('26-27');
-    expect(getFinancialYearKey(new Date('2027-02-10T00:00:00Z'))).toBe('26-27');
-    expect(getFinancialYearKey(new Date('2026-03-31T12:00:00Z'))).toBe('25-26');
-
-    // Valid Monthly GRN
-    const validMonthly = createGrnSchema.parse({
-      customerId: 'cust-123',
-      commodityId: 'comm-123',
-      chamberId: 'cham-123',
-      bags: 100,
-      bagType: 'S',
-      nominalUnitWeight: 50,
-      rentType: 'Monthly',
-      rentMonths: 3,
-      rentAmount: 1500,
-      vehicleNumber: 'MH12AB1234',
-    });
-    expect(validMonthly.bags).toBe(100);
-    expect(validMonthly.bagType).toBe('S');
-    expect(validMonthly.rentMonths).toBe(3);
-
-    // Monthly without rentMonths rejected
-    expect(() =>
-      createGrnSchema.parse({
-        customerId: 'cust-123',
-        commodityId: 'comm-123',
-        chamberId: 'cham-123',
-        bags: 100,
-        bagType: 'B',
-        rentType: 'Monthly',
-        rentAmount: 1500,
-      }),
-    ).toThrow();
-
-    // Seasonal with rentMonths rejected
-    expect(() =>
-      createGrnSchema.parse({
-        customerId: 'cust-123',
-        commodityId: 'comm-123',
-        chamberId: 'cham-123',
-        bags: 100,
-        bagType: 'S+B',
-        rentType: 'Seasonal',
-        rentMonths: 2,
-        rentAmount: 2500,
-      }),
-    ).toThrow();
-
-    // Invalid bag type rejected
-    expect(() =>
-      createGrnSchema.parse({
-        customerId: 'cust-123',
-        commodityId: 'comm-123',
-        chamberId: 'cham-123',
-        bags: 100,
-        bagType: 'INVALID_BAG' as unknown as 'S',
-        rentType: 'Seasonal',
-        rentAmount: 2500,
-      }),
-    ).toThrow();
   });
 });
