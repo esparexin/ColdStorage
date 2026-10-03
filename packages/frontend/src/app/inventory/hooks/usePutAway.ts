@@ -174,7 +174,7 @@ export function usePutAway(
 
     try {
       const res = await requestWithAuth(
-        `/api/facilities/${encodeURIComponent(selectedFacilityId)}/grns/${encodeURIComponent(selectedGrnId)}/put-away`,
+        `/api/facilities/${encodeURIComponent(selectedFacilityId)}/grns/${encodeURIComponent(selectedGrnId)}/allocations`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

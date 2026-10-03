@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { Chamber, Level, Position, Rack } from '@cold-storage/contracts';
+import type { Chamber, Level, Position, PositionOccupancy, Rack } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
-import type { PositionOccupancyResponse } from '../types';
 
 export function useStorageBrowser(selectedFacilityId: string | null, canView: boolean) {
   const [chambers, setChambers] = useState<Chamber[]>([]);
@@ -16,7 +15,7 @@ export function useStorageBrowser(selectedFacilityId: string | null, canView: bo
   const [positions, setPositions] = useState<Position[]>([]);
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
 
-  const [positionOccupancy, setPositionOccupancy] = useState<PositionOccupancyResponse | null>(null);
+  const [positionOccupancy, setPositionOccupancy] = useState<PositionOccupancy | null>(null);
   const [loadingOccupancy, setLoadingOccupancy] = useState(false);
 
   const [loadingChambers, setLoadingChambers] = useState(false);
@@ -130,7 +129,7 @@ export function useStorageBrowser(selectedFacilityId: string | null, canView: bo
           `/api/facilities/${selectedFacilityId}/positions/${positionId}/occupancy`,
         );
         if (res.ok) {
-          const data = (await res.json()) as { occupancy?: PositionOccupancyResponse };
+          const data = (await res.json()) as { occupancy?: PositionOccupancy };
           setPositionOccupancy(data.occupancy || null);
         }
       } catch {

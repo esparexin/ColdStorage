@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { AppHeader } from './AppHeader';
 import { SidebarNav } from './SidebarNav';
+import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useAuth } from '@/context/AuthContext';
 import styles from './ResponsiveShell.module.css';
@@ -123,6 +124,7 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
           {children}
         </main>
       </div>
+      {user.mustChangePassword && <ChangePasswordModal isOpen={true} />}
     </div>
   );
 }

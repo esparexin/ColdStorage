@@ -3,12 +3,12 @@
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
-import type { PositionOccupancyResponse } from '../types';
+import type { PositionOccupancy } from '@cold-storage/contracts';
 import styles from '../page.module.css';
 
 interface PositionOccupancyPanelProps {
   positionCode: string | undefined;
-  occupancy: PositionOccupancyResponse | null;
+  occupancy: PositionOccupancy | null;
   loading: boolean;
 }
 
@@ -61,10 +61,8 @@ export function PositionOccupancyPanel({
                 <thead>
                   <tr>
                     <th>GRN #</th>
-                    <th>Commodity</th>
-                    <th>Customer</th>
-                    <th>Bags</th>
-                    <th>Inward Date</th>
+                    <th>Bag Type</th>
+                    <th style={{ textAlign: 'right' }}>Bags</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -73,12 +71,10 @@ export function PositionOccupancyPanel({
                       <td>
                         <strong>{lot.grnNumber}</strong>
                       </td>
-                      <td>{lot.commodityName}</td>
-                      <td>{lot.customerName}</td>
-                      <td>
-                        <strong>{lot.bags}</strong>
+                      <td>{lot.bagType}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <strong>{lot.bags.toLocaleString('en-IN')}</strong>
                       </td>
-                      <td>{new Date(lot.inwardDate).toLocaleDateString('en-IN')}</td>
                     </tr>
                   ))}
                 </tbody>

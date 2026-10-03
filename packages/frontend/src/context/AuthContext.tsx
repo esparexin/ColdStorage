@@ -22,6 +22,17 @@ export interface AuthUser {
   fullName: string;
   role: string;
   facilityIds: string[];
+  mustChangePassword?: boolean;
+}
+
+interface RawAuthUserData {
+  id?: string;
+  userId?: string;
+  username: string;
+  fullName: string;
+  role: string;
+  facilityIds: string[];
+  mustChangePassword?: boolean;
 }
 
 interface AuthContextValue {
@@ -29,6 +40,7 @@ interface AuthContextValue {
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -46,11 +58,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function bootstrap() {
       try {
-        const result = await executeSingleFlightRefresh<AuthUser>();
+        const result = await executeSingleFlightRefresh<RawAuthUserData>();
         if (cancelled) return;
 
         if (result?.user) {
-          setUser(result.user);
+          const raw = result.user;
+          setUser({
+            userId: raw.userId ?? raw.id ?? '',
+            username: raw.username,
+            fullName: raw.fullName,
+            role: raw.role,
+            facilityIds: raw.facilityIds,
+            mustChangePassword: Boolean(raw.mustChangePassword),
+          });
         } else {
           setAccessToken(null);
           setUser(null);
@@ -87,11 +107,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const data = (await res.json()) as {
       token?: string;
       accessToken?: string;
-      user: AuthUser;
+      user: RawAuthUserData;
+      mustChangePassword?: boolean;
     };
     const token = data.token ?? data.accessToken ?? null;
     setAccessToken(token);
-    setUser(data.user);
+    setUser({
+      userId: data.user.userId ?? data.user.id ?? '',
+      username: data.user.username,
+      fullName: data.user.fullName,
+      role: data.user.role,
+      facilityIds: data.user.facilityIds,
+      mustChangePassword: Boolean(data.mustChangePassword ?? data.user.mustChangePassword),
+    });
   }, []);
 
   const logout = useCallback(async () => {
@@ -105,8 +133,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      const res = await requestWithAuth('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        throw new Error(err.error ?? 'Password change failed');
+      }
+
+      if (user) {
+        await login(user.username, newPassword);
+      }
+    },
+    [user, login],
+  );
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, changePassword }}>
       {children}
     </AuthContext.Provider>
   );
