@@ -45,7 +45,7 @@ export async function fetchPhaseAData(
   return Promise.all([
     InventoryTransactionModel.aggregate<{
       _id: null;
-      occupiedBags: number;
+      totalBags: number;
       monthlyInward: number;
       monthlyDelivered: number;
     }>([
@@ -53,7 +53,7 @@ export async function fetchPhaseAData(
       {
         $group: {
           _id: null,
-          occupiedBags: { $sum: ledgerSignedQuantity },
+          totalBags: { $sum: ledgerSignedQuantity },
           monthlyInward: {
             $sum: {
               $cond: [
@@ -100,14 +100,14 @@ export async function fetchPhaseAData(
       },
     ]),
     InventoryTransactionModel.aggregate<{
-      byChamber: Array<{ _id: string; occupiedBags: number }>;
+      byChamber: Array<{ _id: string; totalBags: number }>;
       byCommodity: Array<{ _id: string; totalBags: number }>;
     }>([
       { $match: { facilityId } },
       {
         $facet: {
           byChamber: [
-            { $group: { _id: '$chamber', occupiedBags: { $sum: ledgerSignedQuantity } } },
+            { $group: { _id: '$chamber', totalBags: { $sum: ledgerSignedQuantity } } },
           ],
           byCommodity: [
             { $group: { _id: '$commodityId', totalBags: { $sum: ledgerSignedQuantity } } },

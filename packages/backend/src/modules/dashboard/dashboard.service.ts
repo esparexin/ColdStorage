@@ -61,7 +61,7 @@ export class DashboardService {
 
     return {
       facilityId,
-      totalStockBags: totals?.occupiedBags ?? 0,
+      totalStockBags: totals?.totalBags ?? 0,
       activeGrns,
       closedGrns,
       monthlyInwardBags: Math.max(0, totals?.monthlyInward ?? 0),

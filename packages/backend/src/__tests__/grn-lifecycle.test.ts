@@ -2,33 +2,32 @@ import mongoose from 'mongoose';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
-import { ChamberModel } from '../database/models/chamber.model.js';
+import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
-import { CounterModel } from '../database/models/counter.model.js';
-import { CustomerModel } from '../database/models/customer.model.js';
-import { FacilityModel } from '../database/models/facility.model.js';
-import { GrnModel } from '../database/models/grn.model.js';
-import { UserModel } from '../database/models/user.model.js';
-import { authService } from '../modules/auth/auth.service.js';
-import { hashPassword } from '../utils/crypto.js';
+import { createAuthSeeder } from './helpers/auth-fixtures.js';
+import { SEASONAL_MONTHS, seedCustomer, seedFacility } from './helpers/master-data-fixtures.js';
+import { connectToTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
 
 const app = createApp();
+const seedAuth = createAuthSeeder(config.jwtSecret);
+
+const northFacilityId = 'fac-north-lifecycle';
+const southFacilityId = 'fac-south-lifecycle';
 
 describe('GRN Lifecycle & Sequences Integration', () => {
   let operatorNorthToken: string;
-
-  const northFacilityId = 'fac-north-lifecycle';
-  const southFacilityId = 'fac-south-lifecycle';
-
-  let chamberNorthId: string;
   let customerNorthId: string;
   let commodityId: string;
 
   beforeAll(async () => {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/cold_storage_test';
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri);
-    }
+    await connectToTestDatabase();
+
+    ({ token: operatorNorthToken } = await seedAuth({
+      userId: 'usr-grn-life-op',
+      username: 'life.op.north',
+      role: 'OPERATOR',
+      facilityIds: [northFacilityId],
+    }));
   });
 
   afterAll(async () => {
@@ -38,189 +37,116 @@ describe('GRN Lifecycle & Sequences Integration', () => {
   });
 
   beforeEach(async () => {
-    await UserModel.deleteMany({});
-    await FacilityModel.deleteMany({});
-    await ChamberModel.deleteMany({});
-    await CustomerModel.deleteMany({});
-    await CommodityModel.deleteMany({});
-    await GrnModel.deleteMany({});
-    await CounterModel.deleteMany({});
+    await resetStockCollections();
 
-    await FacilityModel.create({
-      id: northFacilityId,
-      code: 'NORTHL',
-      name: 'North Cold Facility',
-      isActive: true,
-    });
-    await FacilityModel.create({
-      id: southFacilityId,
-      code: 'SOUTH',
-      name: 'South Cold Facility',
-      isActive: true,
-    });
+    await seedFacility({ id: northFacilityId, code: 'NORTHL', name: 'North Cold Facility' });
+    await seedFacility({ id: southFacilityId, code: 'SOUTHL', name: 'South Cold Facility' });
 
-    const chNorth = await ChamberModel.create({
-      id: 'cham-north-life',
-      facilityId: northFacilityId,
-      chamberNumber: 'CH-NORTH-01',
-      isActive: true,
-    });
-    chamberNorthId = chNorth.id;
-
-    const comm = await CommodityModel.create({
-      id: 'comm-potato-life',
-      name: 'Potato Jyoti',
-      normalizedName: 'POTATO JYOTI LIFE',
-      isActive: true,
-    });
-    commodityId = comm.id;
-
-    const cust = await CustomerModel.create({
+    customerNorthId = await seedCustomer({
       id: 'cust-ramesh-life',
+      facilityId: northFacilityId,
       name: 'Ramesh Patel',
-      mobile: '9876500004',
-      facilityIds: [northFacilityId],
+    });
+
+    const commodity = await CommodityModel.create({
+      id: 'cmd-potato-life',
+      name: 'Potato Jyoti',
+      normalizedName: 'potato jyoti life',
       isActive: true,
     });
-    customerNorthId = cust.id;
-
-    const defaultPasswordHash = await hashPassword('StandardPass123!');
-
-    await UserModel.create({
-      id: 'user-op-north',
-      fullName: 'Operator North',
-      employeeId: 'EMP-P4-004',
-      mobile: '9800000014',
-      username: 'op.north',
-      email: 'op.north@coldstorage.local',
-      passwordHash: defaultPasswordHash,
-      role: 'OPERATOR',
-      facilityIds: [northFacilityId],
-      status: 'ACTIVE',
-      mustChangePassword: false,
-    });
-
-    const opNorthLogin = await authService.login({ username: 'op.north', password: 'StandardPass123!' });
-    operatorNorthToken = opNorthLogin.accessToken;
+    commodityId = commodity.id;
   });
 
-  describe('GRN Creation, Independent FY Sequences & Atomicity', () => {
-    it('creates GRN with atomic independent sequences for grnNumber and inwardReceiptNumber', async () => {
-      const res = await request(app)
-        .post(`/api/facilities/${northFacilityId}/grns`)
-        .set('Authorization', `Bearer ${operatorNorthToken}`)
-        .send({
-          customerId: customerNorthId,
-          commodityId,
-          chamberId: chamberNorthId,
-          bags: 250,
-          bagType: 'S',
-          nominalUnitWeight: 50,
-          actualWeight: 12580,
-          rentType: 'Monthly',
-          rentMonths: 4,
-          rentAmount: 3750,
-          gpNumber: 'GP-2026-X8',
-          marks: 'LOT-A-RED',
-          vehicleNumber: 'MH12AB1234',
-          remarks: 'Stored in good condition',
-        });
+  /** Chamber is free text now, so an inbound needs no storage entity seeded beforehand. */
+  function inbound(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      customerId: customerNorthId,
+      commodityId,
+      chamber: 'CH-NORTH-01',
+      bags: 100,
+      bagType: 'S',
+      rentType: 'Seasonal',
+      rentAmount: 1000,
+      ...overrides,
+    };
+  }
 
-      expect(res.status).toBe(201);
-      const { grn, acknowledgement } = res.body;
+  function postInbound(body: Record<string, unknown>) {
+    return request(app)
+      .post(`/api/facilities/${northFacilityId}/grns`)
+      .set('Authorization', `Bearer ${operatorNorthToken}`)
+      .send(body);
+  }
 
-      expect(grn.id).toBeDefined();
-      expect(grn.facilityId).toBe(northFacilityId);
-      expect(grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-0001$/);
-      expect(grn.inwardReceiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0001$/);
-      expect(grn.status).toBe('OPEN');
-      expect(grn.customerName).toBe('Ramesh Patel');
-      expect(grn.commodityName).toBe('Potato Jyoti');
-      expect(grn.chamberNumber).toBe('CH-NORTH-01');
-      expect(grn.bags).toBe(250);
-      expect(grn.nominalTotalWeight).toBe(12500);
-      expect(grn.actualWeight).toBe(12580);
-      expect(grn.authoritativeWeight).toBe(12580);
-      expect(grn.rentType).toBe('Monthly');
-      expect(grn.rentMonths).toBe(4);
-      expect(grn.rentAmount).toBe(3750);
+  it('creates GRN with atomic independent sequences for grnNumber and inwardReceiptNumber', async () => {
+    const res = await postInbound(
+      inbound({
+        bags: 250,
+        nominalUnitWeight: 50,
+        actualWeight: 12580,
+        rentType: 'Monthly',
+        rentMonths: 4,
+        rentAmount: 3750,
+        gpNumber: 'GP-2026-X8',
+        marks: 'LOT-A-RED',
+        vehicleNumber: 'MH12AB1234',
+        remarks: 'Stored in good condition',
+      }),
+    );
 
-      expect(acknowledgement.grnId).toBe(grn.id);
-      expect(acknowledgement.grnNumber).toBe(grn.grnNumber);
-      expect(acknowledgement.inwardReceiptNumber).toBe(grn.inwardReceiptNumber);
-      expect(acknowledgement.customer.name).toBe('Ramesh Patel');
-      expect(acknowledgement.storageLocation.chamberNumber).toBe('CH-NORTH-01');
-      expect(acknowledgement.bagAccounting.authoritativeWeight).toBe(12580);
+    expect(res.status).toBe(201);
+    const { grn, acknowledgement } = res.body;
 
-      const res2 = await request(app)
-        .post(`/api/facilities/${northFacilityId}/grns`)
-        .set('Authorization', `Bearer ${operatorNorthToken}`)
-        .send({
-          customerId: customerNorthId,
-          commodityId,
-          chamberId: chamberNorthId,
-          bags: 100,
-          bagType: 'B',
-          rentType: 'Seasonal',
-          rentAmount: 2000,
-        });
+    expect(grn.id).toBeDefined();
+    expect(grn.facilityId).toBe(northFacilityId);
+    expect(grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-0001$/);
+    expect(grn.inwardReceiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0001$/);
+    expect(grn.status).toBe('OPEN');
+    expect(grn.customerName).toBe('Ramesh Patel');
+    expect(grn.commodityName).toBe('Potato Jyoti');
+    expect(grn.chamber).toBe('CH-NORTH-01');
+    expect(grn.bags).toBe(250);
+    expect(grn.nominalTotalWeight).toBe(12500);
+    expect(grn.actualWeight).toBe(12580);
+    expect(grn.authoritativeWeight).toBe(12580);
+    expect(grn.rentType).toBe('Monthly');
+    expect(grn.rentMonths).toBe(4);
+    expect(grn.rentAmount).toBe(3750);
 
-      expect(res2.status).toBe(201);
-      expect(res2.body.grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-0002$/);
-      expect(res2.body.grn.inwardReceiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0002$/);
-    });
+    expect(acknowledgement.grnId).toBe(grn.id);
+    expect(acknowledgement.grnNumber).toBe(grn.grnNumber);
+    expect(acknowledgement.inwardReceiptNumber).toBe(grn.inwardReceiptNumber);
+    expect(acknowledgement.customer.name).toBe('Ramesh Patel');
+    expect(acknowledgement.storageLocation.chamber).toBe('CH-NORTH-01');
+    expect(acknowledgement.bagAccounting.authoritativeWeight).toBe(12580);
 
-    it('rejects conflicting facilityId in request body', async () => {
-      const res = await request(app)
-        .post(`/api/facilities/${northFacilityId}/grns`)
-        .set('Authorization', `Bearer ${operatorNorthToken}`)
-        .send({
-          facilityId: southFacilityId,
-          customerId: customerNorthId,
-          commodityId,
-          chamberId: chamberNorthId,
-          bags: 100,
-          bagType: 'S',
-          rentType: 'Seasonal',
-          rentAmount: 1000,
-        });
+    const res2 = await postInbound(inbound({ bags: 100, bagType: 'B', rentAmount: 2000 }));
 
-      expect(res.status).toBe(400);
-      expect(res.body.error).toContain('does not match route facilityId');
-    });
+    expect(res2.status).toBe(201);
+    expect(res2.body.grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-0002$/);
+    expect(res2.body.grn.inwardReceiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0002$/);
+    // Seasonal is a fixed 10-month period derived server-side, never operator input.
+    expect(res2.body.grn.rentMonths).toBe(SEASONAL_MONTHS);
+    expect(res2.body.acknowledgement.rentTerms.rentMonths).toBe(SEASONAL_MONTHS);
+  });
 
-    it('rolls back transaction on relational failure with zero sequence gaps', async () => {
-      const failRes = await request(app)
-        .post(`/api/facilities/${northFacilityId}/grns`)
-        .set('Authorization', `Bearer ${operatorNorthToken}`)
-        .send({
-          customerId: customerNorthId,
-          commodityId,
-          chamberId: 'cham-nonexistent',
-          bags: 100,
-          bagType: 'S',
-          rentType: 'Seasonal',
-          rentAmount: 1000,
-        });
+  it('rejects conflicting facilityId in request body', async () => {
+    const res = await postInbound(inbound({ facilityId: southFacilityId }));
 
-      expect(failRes.status).toBe(400);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('does not match route facilityId');
+  });
 
-      const validRes = await request(app)
-        .post(`/api/facilities/${northFacilityId}/grns`)
-        .set('Authorization', `Bearer ${operatorNorthToken}`)
-        .send({
-          customerId: customerNorthId,
-          commodityId,
-          chamberId: chamberNorthId,
-          bags: 100,
-          bagType: 'S',
-          rentType: 'Seasonal',
-          rentAmount: 1000,
-        });
+  it('rolls back transaction on relational failure with zero sequence gaps', async () => {
+    const failRes = await postInbound(inbound({ commodityId: 'cmd-nonexistent' }));
 
-      expect(validRes.status).toBe(201);
-      expect(validRes.body.grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-0001$/);
-      expect(validRes.body.grn.inwardReceiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0001$/);
-    });
+    expect(failRes.status).toBe(400);
+    expect(failRes.body.error).toContain('not found');
+
+    const validRes = await postInbound(inbound());
+
+    expect(validRes.status).toBe(201);
+    expect(validRes.body.grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-0001$/);
+    expect(validRes.body.grn.inwardReceiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0001$/);
   });
 });

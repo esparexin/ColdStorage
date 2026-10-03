@@ -3,21 +3,22 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
-import { ChamberModel } from '../database/models/chamber.model.js';
+import { CustomerModel } from '../database/models/customer.model.js';
 import { FacilityModel } from '../database/models/facility.model.js';
-import { PositionModel } from '../database/models/position.model.js';
+import { GrnModel } from '../database/models/grn.model.js';
+import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { dashboardService } from '../modules/dashboard/dashboard.service.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
+import { seedLedgerEntry } from './helpers/ledger-fixtures.js';
+import { seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 
 /**
  * P7 Dashboard Routes & Authorization Integration Tests
  *
- * Scope: HTTP authentication, RBAC, facility authorization, cross-facility
- * rejection, and verification that DashboardService is not called after an
- * authorization failure.
+ * Scope: HTTP authentication, RBAC (`dashboard:view`), facility authorization, cross-facility
+ * rejection, and verification that DashboardService is not called after an authorization failure.
  *
- * NOT in scope here: KPI calculations, ledger polarity, recent activity
- * projection. Those belong in dashboard.service.test.ts.
+ * NOT in scope here: stock/KPI derivation (dashboard.service.test.ts).
  */
 
 const app = createApp();
@@ -87,30 +88,18 @@ describe('P7 Dashboard Routes & Authorization', () => {
 
   beforeEach(async () => {
     await FacilityModel.deleteMany({});
-    await ChamberModel.deleteMany({});
-    await PositionModel.deleteMany({});
+    await CustomerModel.deleteMany({});
+    await GrnModel.deleteMany({});
+    await InventoryTransactionModel.deleteMany({});
 
-    // Facilities
-    await FacilityModel.create({ id: facilityId, name: 'Main Facility', code: 'MAIN', isActive: true });
-    await FacilityModel.create({ id: otherFacilityId, name: 'Other Facility', code: 'OTHR', isActive: true });
-
-    // Minimal storage hierarchy so the service returns a valid response
-    await ChamberModel.create({ id: 'ch-route-1', facilityId, chamberNumber: 'CH-1', isActive: true });
-    await PositionModel.create({
-      id: 'pos-route-1',
-      facilityId,
-      chamberId: 'ch-route-1',
-      rackId: 'rk-1',
-      levelId: 'lvl-1',
-      code: 'P1',
-      capacityBags: 100,
-      isActive: true,
-    });
+    // No storage hierarchy to seed: chamber is a free-text label on the ledger itself.
+    await seedFacility({ id: facilityId, name: 'Main Facility', code: 'MAIN' });
+    await seedFacility({ id: otherFacilityId, name: 'Other Facility', code: 'OTHR' });
+    await seedGrn({ facilityId, chamber: 'CH-1', bags: 300, status: 'OPEN' });
+    await seedLedgerEntry({ facilityId, chamber: 'CH-1', quantity: 300 });
   });
 
-  // ---------------------------------------------------------------------------
   // 1. Unauthenticated request → 401
-  // ---------------------------------------------------------------------------
   it('returns 401 when no token is provided', async () => {
     const res = await request(app).get(dashboardUrl);
     expect(res.status).toBe(401);
@@ -123,9 +112,7 @@ describe('P7 Dashboard Routes & Authorization', () => {
     expect(res.status).toBe(401);
   });
 
-  // ---------------------------------------------------------------------------
   // 2. Password change gate → 403
-  // ---------------------------------------------------------------------------
   it('returns 403 when mustChangePassword is true', async () => {
     const res = await request(app)
       .get(dashboardUrl)
@@ -133,9 +120,7 @@ describe('P7 Dashboard Routes & Authorization', () => {
     expect(res.status).toBe(403);
   });
 
-  // ---------------------------------------------------------------------------
   // 3. dashboard:view permission — all four roles must be allowed
-  // ---------------------------------------------------------------------------
   it('allows SUPER_ADMIN to access the dashboard', async () => {
     const res = await request(app)
       .get(dashboardUrl)
@@ -160,11 +145,8 @@ describe('P7 Dashboard Routes & Authorization', () => {
     expect(res.body.summary).toBeDefined();
   });
 
-  // ---------------------------------------------------------------------------
   // 4. Cross-facility / unauthorized facility → 403 from requireFacilityScope
-  // ---------------------------------------------------------------------------
   it('returns 403 when user is authorized for a different facility (cross-facility rejection)', async () => {
-    // otherFacilityToken is for otherFacilityId only
     const res = await request(app)
       .get(dashboardUrl) // requesting facilityId
       .set('Authorization', `Bearer ${otherFacilityToken}`);
@@ -172,16 +154,13 @@ describe('P7 Dashboard Routes & Authorization', () => {
   });
 
   it('returns 403 when requesting another facility the user is not assigned to', async () => {
-    const otherFacilityUrl = `/api/facilities/${otherFacilityId}/dashboard/summary`;
     const res = await request(app)
-      .get(otherFacilityUrl)
+      .get(`/api/facilities/${otherFacilityId}/dashboard/summary`)
       .set('Authorization', `Bearer ${operatorToken}`); // operator is only for facilityId
     expect(res.status).toBe(403);
   });
 
-  // ---------------------------------------------------------------------------
   // 5. DashboardService must not be called after authorization failure
-  // ---------------------------------------------------------------------------
   it('does not invoke DashboardService when unauthenticated', async () => {
     const spy = vi.spyOn(dashboardService, 'getSummary');
     await request(app).get(dashboardUrl);
@@ -191,34 +170,61 @@ describe('P7 Dashboard Routes & Authorization', () => {
 
   it('does not invoke DashboardService on cross-facility rejection', async () => {
     const spy = vi.spyOn(dashboardService, 'getSummary');
-    await request(app)
-      .get(dashboardUrl)
-      .set('Authorization', `Bearer ${otherFacilityToken}`);
+    await request(app).get(dashboardUrl).set('Authorization', `Bearer ${otherFacilityToken}`);
     expect(spy).not.toHaveBeenCalled();
     spy.mockRestore();
   });
 
   it('does not invoke DashboardService when mustChangePassword is true', async () => {
     const spy = vi.spyOn(dashboardService, 'getSummary');
-    await request(app)
-      .get(dashboardUrl)
-      .set('Authorization', `Bearer ${mustChangePasswordToken}`);
+    await request(app).get(dashboardUrl).set('Authorization', `Bearer ${mustChangePasswordToken}`);
     expect(spy).not.toHaveBeenCalled();
     spy.mockRestore();
   });
 
-  // ---------------------------------------------------------------------------
-  // 6. Response structure on success
-  // ---------------------------------------------------------------------------
-  it('returns summary with facilityId on success', async () => {
+  // 6. Response structure on success — the current DashboardSummary contract only
+  it('returns a summary carrying exactly the current contract keys on success', async () => {
     const res = await request(app)
       .get(dashboardUrl)
       .set('Authorization', `Bearer ${superAdminToken}`);
     expect(res.status).toBe(200);
-    expect(res.body.summary.facilityId).toBe(facilityId);
-    expect(typeof res.body.summary.totalCapacityBags).toBe('number');
-    expect(typeof res.body.summary.utilizationRate).toBe('number');
-    expect(Array.isArray(res.body.summary.chamberUtilization)).toBe(true);
-    expect(Array.isArray(res.body.summary.recentActivity)).toBe(true);
+
+    const summary = res.body.summary as Record<string, unknown>;
+    expect(summary.facilityId).toBe(facilityId);
+    expect(summary.totalStockBags).toBe(300);
+    expect(summary.activeGrns).toBe(1);
+    expect(summary.closedGrns).toBe(0);
+    expect(typeof summary.monthlyInwardBags).toBe('number');
+    expect(typeof summary.monthlyDeliveredBags).toBe('number');
+    expect(Array.isArray(summary.chamberStock)).toBe(true);
+    expect(Array.isArray(summary.commodityBreakdown)).toBe(true);
+    expect(Array.isArray(summary.recentActivity)).toBe(true);
+    expect(typeof summary.generatedAt).toBe('string');
+
+    // The strict schema rejects these, so the wire payload must not carry them either.
+    expect(summary).not.toHaveProperty('totalCapacityBags');
+    expect(summary).not.toHaveProperty('occupiedBags');
+    expect(summary).not.toHaveProperty('availableBags');
+    expect(summary).not.toHaveProperty('utilizationRate');
+    expect(summary).not.toHaveProperty('chamberUtilization');
+  });
+
+  it('exposes chamberStock grouped by the free-text chamber label', async () => {
+    const res = await request(app)
+      .get(dashboardUrl)
+      .set('Authorization', `Bearer ${operatorToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.summary.chamberStock).toEqual([{ chamber: 'CH-1', totalBags: 300 }]);
+  });
+
+  it('exposes recentActivity with a chamber label and no positionCode', async () => {
+    const res = await request(app)
+      .get(dashboardUrl)
+      .set('Authorization', `Bearer ${operatorToken}`);
+    expect(res.status).toBe(200);
+    const [activity] = res.body.summary.recentActivity as Array<Record<string, unknown>>;
+    expect(activity.type).toBe('INWARD_PUTAWAY');
+    expect(activity.chamber).toBe('CH-1');
+    expect(activity).not.toHaveProperty('positionCode');
   });
 });

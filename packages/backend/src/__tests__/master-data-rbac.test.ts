@@ -2,23 +2,26 @@ import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
+import { config } from '../config.js';
 import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
-import { ChamberModel } from '../database/models/chamber.model.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
 import { CustomerModel } from '../database/models/customer.model.js';
 import { FacilityModel } from '../database/models/facility.model.js';
-import { SessionModel } from '../database/models/session.model.js';
-import { UserModel } from '../database/models/user.model.js';
-import { hashPassword } from '../utils/crypto.js';
+import { createAuthSeeder } from './helpers/auth-fixtures.js';
+import { seedFacility } from './helpers/master-data-fixtures.js';
 
+const app = createApp();
+
+/**
+ * Master-data and facility RBAC.
+ *
+ * Facility is the tenancy root and the only managed master-data entity left, so this suite
+ * covers customer and commodity writes plus the facility read/write split: reads need
+ * `facility:view` (every role, still facility-scoped), writes need `settings:manage`, which
+ * only SUPER_ADMIN holds — ADMIN and OPERATOR are denied.
+ */
 describe('Master Data & Facility Scoping RBAC', () => {
-  const app = createApp();
-
-  const SUPER_ADMIN_USERNAME = 'p3.md.superadmin';
-  const ADMIN_NORTH_USERNAME = 'p3.md.admin.north';
-  const ADMIN_SOUTH_USERNAME = 'p3.md.admin.south';
-  const OPERATOR_NORTH_USERNAME = 'p3.md.operator.north';
-  const COMMON_PASSWORD = 'TestMasterDataPass123!';
+  const seedUser = createAuthSeeder(config.jwtSecret);
 
   let superAdminToken: string;
   let adminNorthToken: string;
@@ -29,219 +32,211 @@ describe('Master Data & Facility Scoping RBAC', () => {
   let southFacilityId: string;
 
   beforeAll(async () => {
-    await connectToDatabase('mongodb://127.0.0.1:27017/cold_storage_test');
-  });
+    await connectToDatabase(
+      process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test',
+    );
+    northFacilityId = `fac-north-${randomUUID().slice(0, 8)}`;
+    southFacilityId = `fac-south-${randomUUID().slice(0, 8)}`;
+    await seedFacility({
+      id: northFacilityId,
+      name: 'North Cold Storage Facility',
+      code: 'FAC-NORTH',
+    });
+    await seedFacility({
+      id: southFacilityId,
+      name: 'South Cold Storage Facility',
+      code: 'FAC-SOUTH',
+    });
 
-  afterAll(async () => {
-    await disconnectDatabase();
-  });
-
-  async function loginUser(username: string): Promise<string> {
-    const loginRes = await request(app)
-      .post('/api/auth/login')
-      .send({ username, password: COMMON_PASSWORD });
-    return loginRes.body.token;
-  }
-
-  beforeEach(async () => {
-    await Promise.all([
-      FacilityModel.deleteMany({}).exec(),
-      ChamberModel.deleteMany({}).exec(),
-      CustomerModel.deleteMany({}).exec(),
-      CommodityModel.deleteMany({}).exec(),
-      UserModel.deleteMany({}).exec(),
-      SessionModel.deleteMany({}).exec(),
-    ]);
-
-    northFacilityId = `fac-north-${randomUUID()}`;
-    southFacilityId = `fac-south-${randomUUID()}`;
-
-    await FacilityModel.create([
-      {
-        id: northFacilityId,
-        code: 'FAC-NORTH',
-        name: 'North Cold Storage Facility',
-        address: 'Sector 5, Industrial Area, Nashik',
-        isActive: true,
-      },
-      {
-        id: southFacilityId,
-        code: 'FAC-SOUTH',
-        name: 'South Cold Storage Facility',
-        address: 'GIDC Estate, Pune',
-        isActive: true,
-      },
-    ]);
-
-    const passwordHash = await hashPassword(COMMON_PASSWORD);
-
-    await UserModel.create([
-      {
-        id: 'usr-md-superadmin',
-        fullName: 'P3 Super Admin',
-        username: SUPER_ADMIN_USERNAME,
-        employeeId: 'EMP-MD-01',
-        mobile: '9800000001',
-        email: 'super@coldstorage.local',
+    [
+      { token: superAdminToken },
+      { token: adminNorthToken },
+      { token: adminSouthToken },
+      { token: operatorNorthToken },
+    ] = await Promise.all([
+      seedUser({
+        userId: 'usr-md-superadmin',
+        username: 'p3.md.superadmin',
         role: 'SUPER_ADMIN',
-        facilityIds: [northFacilityId, southFacilityId],
-        status: 'ACTIVE',
-        passwordHash,
-        mustChangePassword: false,
-      },
-      {
-        id: 'usr-md-admin-north',
-        fullName: 'Admin North',
-        username: ADMIN_NORTH_USERNAME,
-        employeeId: 'EMP-MD-02',
-        mobile: '9800000002',
-        email: 'admin.north@coldstorage.local',
+        facilityIds: [],
+      }),
+      seedUser({
+        userId: 'usr-md-admin-north',
+        username: 'p3.md.admin.north',
         role: 'ADMIN',
         facilityIds: [northFacilityId],
-        status: 'ACTIVE',
-        passwordHash,
-        mustChangePassword: false,
-      },
-      {
-        id: 'usr-md-admin-south',
-        fullName: 'Admin South',
-        username: ADMIN_SOUTH_USERNAME,
-        employeeId: 'EMP-MD-03',
-        mobile: '9800000003',
-        email: 'admin.south@coldstorage.local',
+      }),
+      seedUser({
+        userId: 'usr-md-admin-south',
+        username: 'p3.md.admin.south',
         role: 'ADMIN',
         facilityIds: [southFacilityId],
-        status: 'ACTIVE',
-        passwordHash,
-        mustChangePassword: false,
-      },
-      {
-        id: 'usr-md-op-north',
-        fullName: 'Operator North',
-        username: OPERATOR_NORTH_USERNAME,
-        employeeId: 'EMP-MD-04',
-        mobile: '9800000004',
-        email: 'op.north@coldstorage.local',
+      }),
+      seedUser({
+        userId: 'usr-md-op-north',
+        username: 'p3.md.operator.north',
         role: 'OPERATOR',
         facilityIds: [northFacilityId],
-        status: 'ACTIVE',
-        passwordHash,
-        mustChangePassword: false,
-      },
+      }),
     ]);
+  }, 60000);
 
-    superAdminToken = await loginUser(SUPER_ADMIN_USERNAME);
-    adminNorthToken = await loginUser(ADMIN_NORTH_USERNAME);
-    adminSouthToken = await loginUser(ADMIN_SOUTH_USERNAME);
-    operatorNorthToken = await loginUser(OPERATOR_NORTH_USERNAME);
+  afterAll(async () => {
+    await CustomerModel.deleteMany({});
+    await CommodityModel.deleteMany({});
+    await FacilityModel.deleteMany({ id: { $in: [northFacilityId, southFacilityId] } });
+    await disconnectDatabase();
+  }, 60000);
+
+  beforeEach(async () => {
+    await CustomerModel.deleteMany({});
+    await CommodityModel.deleteMany({});
   });
 
-  it('creates customer with 10-digit India mobile and associates facilities', async () => {
-    const res = await request(app)
+  it('registers a customer for one facility only and keys duplicates on case-insensitive name', async () => {
+    const created = await request(app)
+      .post('/api/customers')
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .send({ name: 'Shivaji Rao Patil', facilityId: northFacilityId });
+
+    expect(created.status).toBe(201);
+    expect(created.body.customer.name).toBe('Shivaji Rao Patil');
+    expect(created.body.customer.isActive).toBe(true);
+    expect(created.body.customer.facilityIds).toEqual([northFacilityId]);
+    expect(created.body.customer.mobile).toBeUndefined();
+
+    const duplicate = await request(app)
+      .post('/api/customers')
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .send({ name: '  shivaji rao patil  ', facilityId: northFacilityId });
+    expect(duplicate.status).toBe(409);
+    expect(duplicate.body.error).toContain('already exists in this facility');
+
+    // Uniqueness is per facility, so the same name is a distinct customer in the other tenant.
+    const southRegistration = await request(app)
+      .post('/api/customers')
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .send({ name: 'Shivaji Rao Patil', facilityId: southFacilityId });
+    expect(southRegistration.status).toBe(201);
+    expect(southRegistration.body.customer.facilityIds).toEqual([southFacilityId]);
+    expect(southRegistration.body.customer.id).not.toBe(created.body.customer.id);
+  });
+
+  it('rejects retired customer columns and out-of-scope facility registration', async () => {
+    const staleClient = await request(app)
       .post('/api/customers')
       .set('Authorization', `Bearer ${superAdminToken}`)
       .send({
-        name: 'Shivaji Rao Patil',
+        name: 'Stale Client Customer',
         mobile: '9822334455',
-        address: 'Plot 12, APMC Market Yard, Nashik',
+        address: 'Plot 12',
         gstin: '27AAAAA0000A1Z5',
-        facilityIds: [northFacilityId],
+        facilityId: northFacilityId,
       });
+    expect(staleClient.status).toBe(400);
 
-    expect(res.status).toBe(201);
-    expect(res.body.customer.name).toBe('Shivaji Rao Patil');
-    expect(res.body.customer.mobile).toBe('9822334455');
-    expect(res.body.customer.isActive).toBe(true);
-
-    const invalidMobileRes = await request(app)
+    const crossFacility = await request(app)
       .post('/api/customers')
-      .set('Authorization', `Bearer ${superAdminToken}`)
-      .send({
-        name: 'Invalid Customer',
-        mobile: '12345',
-        facilityIds: [northFacilityId],
-      });
-    expect(invalidMobileRes.status).toBe(400);
-
-    const appendFacilityRes = await request(app)
-      .post('/api/customers')
-      .set('Authorization', `Bearer ${superAdminToken}`)
-      .send({
-        name: 'Shivaji Rao Patil',
-        mobile: '9822334455',
-        facilityIds: [southFacilityId],
-      });
-    expect(appendFacilityRes.status).toBe(201);
-    expect(appendFacilityRes.body.customer.facilityIds).toContain(northFacilityId);
-    expect(appendFacilityRes.body.customer.facilityIds).toContain(southFacilityId);
+      .set('Authorization', `Bearer ${adminNorthToken}`)
+      .send({ name: 'Cross Facility Customer', facilityId: southFacilityId });
+    expect(crossFacility.status).toBe(403);
+    expect(crossFacility.body.error).toContain('not authorized to register customer');
   });
 
   it('creates commodity and enforces case-insensitive whitespace-normalized uniqueness', async () => {
-    const res = await request(app)
+    const created = await request(app)
       .post('/api/commodities')
-      .set('Authorization', `Bearer ${superAdminToken}`)
+      .set('Authorization', `Bearer ${adminNorthToken}`)
       .send({ name: 'Potato Jyoti' });
 
-    expect(res.status).toBe(201);
-    expect(res.body.commodity.name).toBe('Potato Jyoti');
-    expect(res.body.commodity.isActive).toBe(true);
+    expect(created.status).toBe(201);
+    expect(created.body.commodity.name).toBe('Potato Jyoti');
+    expect(created.body.commodity.isActive).toBe(true);
 
-    const dupRes = await request(app)
+    const duplicate = await request(app)
       .post('/api/commodities')
-      .set('Authorization', `Bearer ${superAdminToken}`)
+      .set('Authorization', `Bearer ${adminNorthToken}`)
       .send({ name: '  potato jyoti  ' });
 
-    expect(dupRes.status).toBe(409);
-    expect(dupRes.body.error).toContain("Commodity with name 'potato jyoti' already exists");
+    expect(duplicate.status).toBe(409);
+    expect(duplicate.body.error).toContain("Commodity with name 'potato jyoti' already exists");
   });
 
-  it('enforces RBAC and facility-scoped authorization for Admin vs Operator', async () => {
-    const chNorthRes = await request(app)
-      .post(`/api/facilities/${northFacilityId}/chambers`)
-      .set('Authorization', `Bearer ${adminNorthToken}`)
-      .send({ chamberNumber: 'CH-NORTH-01' });
-    expect(chNorthRes.status).toBe(201);
-    const northChamberId = chNorthRes.body.chamber.id;
-    expect(northChamberId).toBeDefined();
-
-    const chSouthDenied = await request(app)
-      .post(`/api/facilities/${southFacilityId}/chambers`)
-      .set('Authorization', `Bearer ${adminNorthToken}`)
-      .send({ chamberNumber: 'CH-SOUTH-DENIED' });
-    expect(chSouthDenied.status).toBe(403);
-    expect(chSouthDenied.body.error).toContain('not authorized to access facility');
-
-    const chSouthRes = await request(app)
-      .post(`/api/facilities/${southFacilityId}/chambers`)
-      .set('Authorization', `Bearer ${adminSouthToken}`)
-      .send({ chamberNumber: 'CH-SOUTH-01' });
-    expect(chSouthRes.status).toBe(201);
-    const southChamberId = chSouthRes.body.chamber.id;
-
-    const bypassAttempt = await request(app)
-      .patch(`/api/chambers/${southChamberId}`)
-      .set('Authorization', `Bearer ${adminNorthToken}`)
-      .send({ name: 'Hacked Chamber Name' });
-    expect(bypassAttempt.status).toBe(403);
-    expect(bypassAttempt.body.error).toContain('not authorized to access facility');
-
-    const reciprocalBypass = await request(app)
-      .patch(`/api/chambers/${northChamberId}`)
-      .set('Authorization', `Bearer ${adminSouthToken}`)
-      .send({ name: 'Hacked North Chamber' });
-    expect(reciprocalBypass.status).toBe(403);
-    expect(reciprocalBypass.body.error).toContain('not authorized to access facility');
-
-    const opReadRes = await request(app)
-      .get(`/api/facilities/${northFacilityId}/chambers`)
+  it('scopes facility reads by access, not by write privilege', async () => {
+    const operatorOwnRes = await request(app)
+      .get(`/api/facilities/${northFacilityId}`)
       .set('Authorization', `Bearer ${operatorNorthToken}`);
-    expect(opReadRes.status).toBe(200);
+    expect(operatorOwnRes.status).toBe(200);
+    expect(operatorOwnRes.body.facility.id).toBe(northFacilityId);
 
-    const opWriteRes = await request(app)
-      .post(`/api/facilities/${northFacilityId}/chambers`)
+    const operatorForeignRes = await request(app)
+      .get(`/api/facilities/${southFacilityId}`)
+      .set('Authorization', `Bearer ${operatorNorthToken}`);
+    expect(operatorForeignRes.status).toBe(403);
+    expect(operatorForeignRes.body.error).toContain('not authorized to access facility');
+
+    const adminSouthOwnRes = await request(app)
+      .get(`/api/facilities/${southFacilityId}`)
+      .set('Authorization', `Bearer ${adminSouthToken}`);
+    expect(adminSouthOwnRes.status).toBe(200);
+
+    const superAdminRes = await request(app)
+      .get(`/api/facilities/${northFacilityId}`)
+      .set('Authorization', `Bearer ${superAdminToken}`);
+    expect(superAdminRes.status).toBe(200);
+  });
+
+  it('restricts facility writes to SUPER_ADMIN via settings:manage', async () => {
+    const superAdminUpdate = await request(app)
+      .patch(`/api/facilities/${northFacilityId}`)
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .send({ name: 'North Cold Storage Facility (Renamed)' });
+    expect(superAdminUpdate.status).toBe(200);
+    expect(superAdminUpdate.body.facility.name).toBe('North Cold Storage Facility (Renamed)');
+
+    const adminUpdate = await request(app)
+      .patch(`/api/facilities/${northFacilityId}`)
+      .set('Authorization', `Bearer ${adminNorthToken}`)
+      .send({ name: 'Admin Rename Attempt' });
+    expect(adminUpdate.status).toBe(403);
+    expect(adminUpdate.body.error).toContain("Role 'ADMIN' lacks permission 'settings:manage'");
+
+    const operatorUpdate = await request(app)
+      .patch(`/api/facilities/${northFacilityId}`)
       .set('Authorization', `Bearer ${operatorNorthToken}`)
-      .send({ chamberNumber: 'CH-OP-FAIL' });
-    expect(opWriteRes.status).toBe(403);
-    expect(opWriteRes.body.error).toContain("Role 'OPERATOR' lacks permission 'storage:manage'");
+      .send({ name: 'Operator Rename Attempt' });
+    expect(operatorUpdate.status).toBe(403);
+    expect(operatorUpdate.body.error).toContain(
+      "Role 'OPERATOR' lacks permission 'settings:manage'",
+    );
+  });
+
+  it('denies facility creation to ADMIN and OPERATOR but allows SUPER_ADMIN', async () => {
+    const body = { name: 'Satellite Cold Storage', code: `SAT-${randomUUID().slice(0, 6)}` };
+
+    const adminCreate = await request(app)
+      .post('/api/facilities')
+      .set('Authorization', `Bearer ${adminNorthToken}`)
+      .send(body);
+    expect(adminCreate.status).toBe(403);
+    expect(adminCreate.body.error).toContain("Role 'ADMIN' lacks permission 'settings:manage'");
+
+    const operatorCreate = await request(app)
+      .post('/api/facilities')
+      .set('Authorization', `Bearer ${operatorNorthToken}`)
+      .send(body);
+    expect(operatorCreate.status).toBe(403);
+    expect(operatorCreate.body.error).toContain(
+      "Role 'OPERATOR' lacks permission 'settings:manage'",
+    );
+
+    const superAdminCreate = await request(app)
+      .post('/api/facilities')
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .send(body);
+    expect(superAdminCreate.status).toBe(201);
+    expect(superAdminCreate.body.facility.code).toBe(body.code.toUpperCase());
+
+    await FacilityModel.deleteMany({ id: superAdminCreate.body.facility.id });
   });
 });

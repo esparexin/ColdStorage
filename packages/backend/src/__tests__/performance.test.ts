@@ -1,18 +1,49 @@
 import http from 'node:http';
-import mongoose from 'mongoose';
+import mongoose, { type PipelineStage } from 'mongoose';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { inspectDatabaseIndexesReadOnly, verifyIndexDeclarations } from '../database/indexes.js';
 import { FacilityModel } from '../database/models/facility.model.js';
+import { GrnModel } from '../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
+import { seedFacility } from './helpers/master-data-fixtures.js';
 
 const app = createApp();
 
+const FACILITY_ID = 'fac-perf-test';
+const BENCHMARK_FACILITY_ID = 'fac-perf-bench';
+const BENCHMARK_RECORDS = 1000;
+// Benchmark thresholds: the 200 ms latency ceiling covers Atlas Free Tier round-trip latency,
+// while local MongoDB comfortably meets the original 100 ms plan criterion.
+const MIN_WRITES_PER_SECOND = 250;
+const MAX_MEAN_LATENCY_MS = 200;
+
+/** Synthetic GRN ledger rows; chamber is free text, so the ledger groups by that label. */
+function buildBenchmarkGrns(count: number) {
+  return Array.from({ length: count }, (_, i) => ({
+    id: `grn-bench-${i}`,
+    facilityId: BENCHMARK_FACILITY_ID,
+    grnNumber: `GRN-BENCH-${String(i).padStart(4, '0')}`,
+    inwardReceiptNumber: `RCPT-BENCH-${String(i).padStart(4, '0')}`,
+    date: new Date(Date.now() - i * 60000),
+    customerId: `cust-bench-${i % 25}`,
+    customerName: `Benchmark Customer ${i % 25}`,
+    commodityId: `cmd-bench-${i % 5}`,
+    commodityName: 'Potato',
+    chamber: `CH-${i % 4}`,
+    bags: 100,
+    bagType: 'S' as const,
+    rentType: 'Seasonal' as const,
+    rentAmount: 5000,
+    status: 'OPEN' as const,
+    createdBy: 'benchmark-runner',
+  }));
+}
+
 describe('Phase 11: Performance Optimization, Index Audit & Benchmarking', () => {
-  const facilityId = 'fac-perf-test';
   let adminToken: string;
   let superAdminToken: string;
   let server: http.Server;
@@ -21,27 +52,21 @@ describe('Phase 11: Performance Optimization, Index Audit & Benchmarking', () =>
   const seed = createAuthSeeder(config.jwtSecret);
 
   beforeAll(async () => {
-    const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
     if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri);
+      await mongoose.connect(
+        process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test',
+      );
     }
 
-    await FacilityModel.deleteMany({ id: { $regex: /^fac-perf-/ } });
-    await FacilityModel.create({
-      id: facilityId,
-      name: 'Performance Test Facility',
-      code: 'PERF',
-      address: 'Industrial Area Sector 5',
-      isActive: true,
-      operatingChambers: 2,
-      totalCapacityBags: 100000,
-    });
+    await FacilityModel.deleteMany({ id: { $regex: /^fac-perf/ } });
+    await seedFacility({ id: FACILITY_ID, name: 'Performance Test Facility', code: 'PERF' });
+    await seedFacility({ id: BENCHMARK_FACILITY_ID, name: 'Perf Bench Facility', code: 'PERFB' });
 
     ({ token: adminToken } = await seed({
       userId: 'usr-perf-admin',
       username: 'perf_admin',
       role: 'ADMIN',
-      facilityIds: [facilityId],
+      facilityIds: [FACILITY_ID],
       expiresInSeconds: 3600,
     }));
 
@@ -66,8 +91,9 @@ describe('Phase 11: Performance Optimization, Index Audit & Benchmarking', () =>
     await new Promise<void>((resolve) => {
       server.close(() => resolve());
     });
-    await FacilityModel.deleteMany({ id: { $regex: /^fac-perf-/ } });
-    await InventoryTransactionModel.deleteMany({ facilityId });
+    await FacilityModel.deleteMany({ id: { $regex: /^fac-perf/ } });
+    await GrnModel.deleteMany({ facilityId: BENCHMARK_FACILITY_ID });
+    await InventoryTransactionModel.deleteMany({ facilityId: FACILITY_ID });
     if (mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();
     }
@@ -75,16 +101,12 @@ describe('Phase 11: Performance Optimization, Index Audit & Benchmarking', () =>
 
   it('1. compresses large JSON responses (> 1 KB) with gzip encoding', async () => {
     // Seed 25 facilities to exceed 1 KB payload
-    const batchFacilities = Array.from({ length: 25 }, (_, i) => ({
-      id: `fac-perf-comp-${i}`,
-      name: `Performance Compression Facility ${i} with extended description and long string`,
-      code: `PC${i.toString().padStart(3, '0')}`,
-      address: `Address detail number ${i} for testing compression middleware thresholds`,
-      isActive: true,
-      operatingChambers: 4,
-      totalCapacityBags: 50000,
-    }));
-    await FacilityModel.insertMany(batchFacilities);
+    for (let i = 0; i < 25; i++) {
+      await seedFacility({
+        id: `fac-perf-comp-${i}`,
+        name: `Performance Compression Facility ${i} with extended description and long string`,
+      });
+    }
 
     try {
       // Use raw http.get to prevent superagent from auto-decompressing and stripping Content-Encoding
@@ -115,7 +137,7 @@ describe('Phase 11: Performance Optimization, Index Audit & Benchmarking', () =>
 
   it('2. bypasses compression for chunked streaming CSV export endpoints to prevent buffering', async () => {
     const res = await request(app)
-      .get(`/api/facilities/${facilityId}/export/stock-summary`)
+      .get(`/api/facilities/${FACILITY_ID}/export/stock-summary`)
       .set('Authorization', `Bearer ${adminToken}`)
       .set('Accept-Encoding', 'gzip');
 
@@ -161,7 +183,7 @@ describe('Phase 11: Performance Optimization, Index Audit & Benchmarking', () =>
   });
 
   it('5. verifies client disconnect terminates active streaming cursors without orphan handles', async () => {
-    const cursor = InventoryTransactionModel.find({ facilityId }).cursor();
+    const cursor = InventoryTransactionModel.find({ facilityId: FACILITY_ID }).cursor();
     let isClosed = false;
 
     await new Promise<void>((resolve) => {
@@ -175,49 +197,33 @@ describe('Phase 11: Performance Optimization, Index Audit & Benchmarking', () =>
     expect(isClosed).toBe(true);
   });
 
-  it('6. executes 1,000-record stock ledger aggregation benchmark and verifies average execution latency is sub-100ms', async () => {
-    const benchmarkFacility = 'fac-benchmark';
-    await InventoryTransactionModel.deleteMany({ facilityId: benchmarkFacility });
-
-    // Seed 1,000 records
-    const transactions = Array.from({ length: 1000 }, (_, i) => ({
-      id: `itx-bench-${i}`,
-      facilityId: benchmarkFacility,
-      grnId: `grn-bench-${i % 50}`,
-      grnNumber: `GRN-BENCH-${i % 50}`,
-      chamberId: `ch-bench-${i % 4}`,
-      rackId: `rk-bench-${i % 10}`,
-      levelId: `lvl-bench-${i % 20}`,
-      positionId: `pos-bench-${i % 100}`,
-      positionCode: `P-${i % 100}`,
-      customerId: `cust-bench-${i % 25}`,
-      commodityId: `comm-bench-${i % 5}`,
-      bagType: 'S' as const,
-      transactionType: 'INWARD_PUTAWAY' as const,
-      quantity: 50,
-      referenceType: 'PUT_AWAY' as const,
-      referenceId: `pa-bench-${i}`,
-      notes: null,
-      createdBy: 'benchmark-runner',
-      createdAt: new Date(Date.now() - i * 60000),
-    }));
-
-    await InventoryTransactionModel.insertMany(transactions);
+  it('6. executes 1,000-record GRN ledger write and aggregation benchmark and verifies write throughput plus sub-200ms average read latency', async () => {
+    await GrnModel.deleteMany({ facilityId: BENCHMARK_FACILITY_ID });
 
     try {
-      const runAggregation = async () => {
-        return InventoryTransactionModel.aggregate([
-          { $match: { facilityId: benchmarkFacility } },
-          {
-            $group: {
-              _id: '$positionId',
-              totalQuantity: { $sum: '$quantity' },
-              transactionCount: { $sum: 1 },
-            },
+      // Write throughput: the full 1,000-row GRN ledger must be committed at a usable rate.
+      const writeStart = performance.now();
+      await GrnModel.insertMany(buildBenchmarkGrns(BENCHMARK_RECORDS), { ordered: false });
+      const writeSeconds = (performance.now() - writeStart) / 1000;
+
+      expect(await GrnModel.countDocuments({ facilityId: BENCHMARK_FACILITY_ID })).toBe(
+        BENCHMARK_RECORDS,
+      );
+      expect(BENCHMARK_RECORDS / writeSeconds).toBeGreaterThanOrEqual(MIN_WRITES_PER_SECOND);
+
+      const pipeline: PipelineStage[] = [
+        { $match: { facilityId: BENCHMARK_FACILITY_ID } },
+        {
+          $group: {
+            _id: '$chamber',
+            totalBags: { $sum: '$bags' },
+            totalRent: { $sum: '$rentAmount' },
+            grnCount: { $sum: 1 },
           },
-          { $sort: { totalQuantity: -1 } },
-        ]);
-      };
+        },
+        { $sort: { totalBags: -1 } },
+      ];
+      const runAggregation = async () => GrnModel.aggregate(pipeline);
 
       // 5 Warmup runs
       for (let w = 0; w < 5; w++) {
@@ -225,23 +231,18 @@ describe('Phase 11: Performance Optimization, Index Audit & Benchmarking', () =>
       }
 
       // 10 Measured iterations
-      const iterations = 10;
       let totalElapsedMs = 0;
 
-      for (let i = 0; i < iterations; i++) {
+      for (let i = 0; i < 10; i++) {
         const start = performance.now();
         const results = await runAggregation();
-        const elapsed = performance.now() - start;
-        totalElapsedMs += elapsed;
+        totalElapsedMs += performance.now() - start;
         expect(results.length).toBeGreaterThan(0);
       }
 
-      const meanLatencyMs = totalElapsedMs / iterations;
-      // 200ms threshold accounts for Atlas Free Tier network round-trip latency;
-      // local MongoDB would meet the original 100ms plan criterion.
-      expect(meanLatencyMs).toBeLessThanOrEqual(200);
+      expect(totalElapsedMs / 10).toBeLessThanOrEqual(MAX_MEAN_LATENCY_MS);
     } finally {
-      await InventoryTransactionModel.deleteMany({ facilityId: benchmarkFacility });
+      await GrnModel.deleteMany({ facilityId: BENCHMARK_FACILITY_ID });
     }
   });
 });

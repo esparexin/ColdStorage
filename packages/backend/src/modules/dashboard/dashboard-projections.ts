@@ -1,11 +1,11 @@
 import type { ChamberStock, CommodityStock, RecentActivityItem } from '@cold-storage/contracts';
 
 export function projectChamberStock(
-  byChamber: Array<{ _id: string; occupiedBags: number }>,
+  byChamber: Array<{ _id: string; totalBags: number }>,
 ): ChamberStock[] {
   return byChamber
-    .filter((row) => row.occupiedBags > 0)
-    .map((row) => ({ chamber: row._id, totalBags: row.occupiedBags }))
+    .filter((row) => row.totalBags > 0)
+    .map((row) => ({ chamber: row._id, totalBags: row.totalBags }))
     .sort((a, b) => b.totalBags - a.totalBags);
 }
 

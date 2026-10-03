@@ -102,9 +102,16 @@ export async function correctGrn(
         update.chamber = input.chamber.trim();
       }
 
-      await GrnModel.updateOne({ id: grn.id }, { $set: update }, { session });
-
-      const updated = await GrnModel.findOne({ id: grn.id }).lean().exec();
+      // Read the corrected state back inside the transaction session. Reading without the
+      // session returns the pre-commit document, so the response would echo the old values
+      // even though MongoDB persisted the correction.
+      const updated = await GrnModel.findOneAndUpdate(
+        { id: grn.id },
+        { $set: update },
+        { session, new: true },
+      )
+        .lean()
+        .exec();
       corrected = toGrnEntity(updated!);
       record = {
         grnId: grn.id,

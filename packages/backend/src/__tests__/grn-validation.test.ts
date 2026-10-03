@@ -2,35 +2,47 @@ import mongoose from 'mongoose';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
-import { ChamberModel } from '../database/models/chamber.model.js';
+import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
-import { CustomerModel } from '../database/models/customer.model.js';
-import { FacilityModel } from '../database/models/facility.model.js';
-import { GrnModel } from '../database/models/grn.model.js';
-import { UserModel } from '../database/models/user.model.js';
-import { authService } from '../modules/auth/auth.service.js';
-import { hashPassword } from '../utils/crypto.js';
+import { createAuthSeeder } from './helpers/auth-fixtures.js';
+import { SEASONAL_MONTHS, seedCustomer, seedFacility } from './helpers/master-data-fixtures.js';
+import { connectToTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
 
 const app = createApp();
+const seedAuth = createAuthSeeder(config.jwtSecret);
+
+const northFacilityId = 'fac-north-rel-val';
+const southFacilityId = 'fac-south-rel-val';
 
 describe('GRN Relational Validation & Business Constraints', () => {
   let adminNorthToken: string;
   let adminSouthToken: string;
   let operatorNorthToken: string;
 
-  const northFacilityId = 'fac-north-rel-val';
-  const southFacilityId = 'fac-south-rel-val';
-
-  let chamberNorthId: string;
-  let chamberSouthId: string;
   let customerNorthId: string;
   let commodityId: string;
 
   beforeAll(async () => {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/cold_storage_test';
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri);
-    }
+    await connectToTestDatabase();
+
+    ({ token: adminNorthToken } = await seedAuth({
+      userId: 'usr-val-an',
+      username: 'val.admin.north',
+      role: 'ADMIN',
+      facilityIds: [northFacilityId],
+    }));
+    ({ token: adminSouthToken } = await seedAuth({
+      userId: 'usr-val-as',
+      username: 'val.admin.south',
+      role: 'ADMIN',
+      facilityIds: [southFacilityId],
+    }));
+    ({ token: operatorNorthToken } = await seedAuth({
+      userId: 'usr-val-on',
+      username: 'val.op.north',
+      role: 'OPERATOR',
+      facilityIds: [northFacilityId],
+    }));
   });
 
   afterAll(async () => {
@@ -40,197 +52,156 @@ describe('GRN Relational Validation & Business Constraints', () => {
   });
 
   beforeEach(async () => {
-    await UserModel.deleteMany({});
-    await FacilityModel.deleteMany({});
-    await ChamberModel.deleteMany({});
-    await CustomerModel.deleteMany({});
-    await CommodityModel.deleteMany({});
-    await GrnModel.deleteMany({});
+    await resetStockCollections();
 
-    await FacilityModel.create({
-      id: northFacilityId,
-      code: 'NORTHV',
-      name: 'North Cold Facility',
-      isActive: true,
-    });
-    await FacilityModel.create({
-      id: southFacilityId,
-      code: 'SOUTH',
-      name: 'South Cold Facility',
-      isActive: true,
-    });
+    await seedFacility({ id: northFacilityId, code: 'NORTHV', name: 'North Cold Facility' });
+    await seedFacility({ id: southFacilityId, code: 'SOUTHV', name: 'South Cold Facility' });
 
-    const chNorth = await ChamberModel.create({
-      id: 'cham-north-val',
-      facilityId: northFacilityId,
-      chamberNumber: 'CH-NORTH-01',
-      isActive: true,
-    });
-    chamberNorthId = chNorth.id;
-
-    const chSouth = await ChamberModel.create({
-      id: 'cham-south-01',
-      facilityId: southFacilityId,
-      chamberNumber: 'CH-SOUTH-01',
-      isActive: true,
-    });
-    chamberSouthId = chSouth.id;
-
-    const comm = await CommodityModel.create({
-      id: 'comm-potato-val',
-      name: 'Potato Jyoti',
-      normalizedName: 'POTATO JYOTI VAL',
-      isActive: true,
-    });
-    commodityId = comm.id;
-
-    const cust = await CustomerModel.create({
+    customerNorthId = await seedCustomer({
       id: 'cust-ramesh-val',
+      facilityId: northFacilityId,
       name: 'Ramesh Patel',
-      mobile: '9876500002',
-      facilityIds: [northFacilityId],
+    });
+
+    const commodity = await CommodityModel.create({
+      id: 'cmd-potato-val',
+      name: 'Potato Jyoti',
+      normalizedName: 'potato jyoti val',
       isActive: true,
     });
-    customerNorthId = cust.id;
-
-    const defaultPasswordHash = await hashPassword('StandardPass123!');
-
-    await UserModel.create({
-      id: 'user-admin-north',
-      fullName: 'Admin North',
-      employeeId: 'EMP-P4-002',
-      mobile: '9800000002',
-      username: 'admin.north',
-      email: 'admin.north@coldstorage.local',
-      passwordHash: defaultPasswordHash,
-      role: 'ADMIN',
-      facilityIds: [northFacilityId],
-      status: 'ACTIVE',
-      mustChangePassword: false,
-    });
-
-    await UserModel.create({
-      id: 'user-admin-south',
-      fullName: 'Admin South',
-      employeeId: 'EMP-P4-003',
-      mobile: '9800000003',
-      username: 'admin.south',
-      email: 'admin.south@coldstorage.local',
-      passwordHash: defaultPasswordHash,
-      role: 'ADMIN',
-      facilityIds: [southFacilityId],
-      status: 'ACTIVE',
-      mustChangePassword: false,
-    });
-
-    await UserModel.create({
-      id: 'user-op-north',
-      fullName: 'Operator North',
-      employeeId: 'EMP-P4-004',
-      mobile: '9800000002',
-      username: 'op.north',
-      email: 'op.north@coldstorage.local',
-      passwordHash: defaultPasswordHash,
-      role: 'OPERATOR',
-      facilityIds: [northFacilityId],
-      status: 'ACTIVE',
-      mustChangePassword: false,
-    });
-
-    const adminNorthLogin = await authService.login({ username: 'admin.north', password: 'StandardPass123!' });
-    adminNorthToken = adminNorthLogin.accessToken;
-
-    const adminSouthLogin = await authService.login({ username: 'admin.south', password: 'StandardPass123!' });
-    adminSouthToken = adminSouthLogin.accessToken;
-
-    const opNorthLogin = await authService.login({ username: 'op.north', password: 'StandardPass123!' });
-    operatorNorthToken = opNorthLogin.accessToken;
+    commodityId = commodity.id;
   });
 
-  it('rejects customer not registered for the target facility', async () => {
-    const res = await request(app)
-      .post(`/api/facilities/${southFacilityId}/grns`)
-      .set('Authorization', `Bearer ${adminSouthToken}`)
+  function postInbound(
+    token: string,
+    facilityId: string,
+    overrides: Record<string, unknown> = {},
+  ) {
+    return request(app)
+      .post(`/api/facilities/${facilityId}/grns`)
+      .set('Authorization', `Bearer ${token}`)
       .send({
         customerId: customerNorthId,
         commodityId,
-        chamberId: chamberSouthId,
+        chamber: 'CH-NORTH-01',
         bags: 50,
         bagType: 'S',
         rentType: 'Seasonal',
         rentAmount: 500,
+        ...overrides,
       });
+  }
+
+  it('rejects customer not registered for the target facility', async () => {
+    const res = await postInbound(adminSouthToken, southFacilityId);
 
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('not registered for facility');
   });
 
-  it('rejects chamber belonging to a different facility', async () => {
-    const res = await request(app)
-      .post(`/api/facilities/${northFacilityId}/grns`)
-      .set('Authorization', `Bearer ${adminNorthToken}`)
-      .send({
-        customerId: customerNorthId,
-        commodityId,
-        chamberId: chamberSouthId,
-        bags: 50,
-        bagType: 'S',
-        rentType: 'Seasonal',
-        rentAmount: 500,
-      });
+  it('rejects an inactive customer even when registered for the facility', async () => {
+    const inactiveCustomerId = await seedCustomer({
+      id: 'cust-sita-val',
+      facilityId: northFacilityId,
+      name: 'Sita Devi',
+      isActive: false,
+    });
 
-    expect(res.status).toBe(400);
-    expect(res.body.error).toContain('does not belong to facility');
-  });
-
-  it('rejects inactive commodity or customer', async () => {
-    await CommodityModel.updateOne({ id: commodityId }, { isActive: false });
-
-    const res = await request(app)
-      .post(`/api/facilities/${northFacilityId}/grns`)
-      .set('Authorization', `Bearer ${adminNorthToken}`)
-      .send({
-        customerId: customerNorthId,
-        commodityId,
-        chamberId: chamberNorthId,
-        bags: 50,
-        bagType: 'S',
-        rentType: 'Seasonal',
-        rentAmount: 500,
-      });
+    const res = await postInbound(adminNorthToken, northFacilityId, {
+      customerId: inactiveCustomerId,
+    });
 
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('is inactive');
   });
 
-  it('enforces conditional rent terms: Monthly requires rentMonths, Seasonal requires null', async () => {
-    const res1 = await request(app)
-      .post(`/api/facilities/${northFacilityId}/grns`)
-      .set('Authorization', `Bearer ${operatorNorthToken}`)
-      .send({
-        customerId: customerNorthId,
-        commodityId,
-        chamberId: chamberNorthId,
-        bags: 50,
-        bagType: 'S',
-        rentType: 'Monthly',
-        rentAmount: 500,
-      });
-    expect(res1.status).toBe(400);
+  it('rejects an inactive commodity', async () => {
+    await CommodityModel.updateOne({ id: commodityId }, { isActive: false });
 
-    const res2 = await request(app)
-      .post(`/api/facilities/${northFacilityId}/grns`)
-      .set('Authorization', `Bearer ${operatorNorthToken}`)
-      .send({
-        customerId: customerNorthId,
-        commodityId,
-        chamberId: chamberNorthId,
-        bags: 50,
-        bagType: 'S',
-        rentType: 'Seasonal',
-        rentMonths: 3,
-        rentAmount: 500,
-      });
-    expect(res2.status).toBe(400);
+    const res = await postInbound(adminNorthToken, northFacilityId);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('is inactive');
+  });
+
+  it('rejects an unknown commodity', async () => {
+    const res = await postInbound(adminNorthToken, northFacilityId, {
+      commodityId: 'cmd-does-not-exist',
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('not found');
+  });
+
+  it('enforces conditional rent terms: Monthly needs an explicit count, Seasonal is fixed at 10', async () => {
+    const monthlyMissing = await postInbound(operatorNorthToken, northFacilityId, {
+      rentType: 'Monthly',
+    });
+    expect(monthlyMissing.status).toBe(400);
+    expect(monthlyMissing.body.details.fieldErrors.rentMonths).toBeDefined();
+
+    const monthlyZero = await postInbound(operatorNorthToken, northFacilityId, {
+      rentType: 'Monthly',
+      rentMonths: 0,
+    });
+    expect(monthlyZero.status).toBe(400);
+    expect(monthlyZero.body.details.fieldErrors.rentMonths).toBeDefined();
+
+    const monthlyValid = await postInbound(operatorNorthToken, northFacilityId, {
+      rentType: 'Monthly',
+      rentMonths: 3,
+    });
+    expect(monthlyValid.status).toBe(201);
+    expect(monthlyValid.body.grn.rentMonths).toBe(3);
+
+    const seasonalWithMonths = await postInbound(operatorNorthToken, northFacilityId, {
+      rentType: 'Seasonal',
+      rentMonths: 3,
+    });
+    expect(seasonalWithMonths.status).toBe(400);
+    expect(seasonalWithMonths.body.details.fieldErrors.rentMonths).toBeDefined();
+
+    const seasonalValid = await postInbound(operatorNorthToken, northFacilityId);
+    expect(seasonalValid.status).toBe(201);
+    expect(seasonalValid.body.grn.rentMonths).toBe(SEASONAL_MONTHS);
+  });
+
+  it('rejects a future inward date', async () => {
+    const res = await postInbound(operatorNorthToken, northFacilityId, {
+      date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Validation failed');
+    expect(res.body.details.fieldErrors.date).toBeDefined();
+  });
+
+  it('validates the free-text chamber label instead of resolving a storage entity', async () => {
+    const tooLong = await postInbound(operatorNorthToken, northFacilityId, {
+      chamber: 'C'.repeat(21),
+    });
+    expect(tooLong.status).toBe(400);
+    expect(tooLong.body.details.fieldErrors.chamber).toBeDefined();
+
+    const blank = await postInbound(operatorNorthToken, northFacilityId, { chamber: '   ' });
+    expect(blank.status).toBe(400);
+    expect(blank.body.details.fieldErrors.chamber).toBeDefined();
+
+    const arbitraryLabel = await postInbound(operatorNorthToken, northFacilityId, {
+      chamber: 'A',
+    });
+    expect(arbitraryLabel.status).toBe(201);
+    expect(arbitraryLabel.body.grn.chamber).toBe('A');
+  });
+
+  it('ignores a legacy chamberId payload and stores the free-text chamber', async () => {
+    const res = await postInbound(operatorNorthToken, northFacilityId, {
+      chamber: 'CH-LEGACY-IGNORED',
+      chamberId: 'cham-north-val',
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.grn.chamber).toBe('CH-LEGACY-IGNORED');
+    expect(res.body.grn.chamberId).toBeUndefined();
   });
 });
