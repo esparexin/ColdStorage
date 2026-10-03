@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Printer, X } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import type { DeliveryChallan } from '@cold-storage/contracts';
+import { Badge, Button, Modal } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface DeliveryDetailModalProps {
@@ -21,31 +22,32 @@ export function DeliveryDetailModal({
   onPrintChallan,
 }: DeliveryDetailModalProps) {
   return (
-    <div
-      className={styles.modalBackdrop}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="delivery-detail-title"
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={`Delivery Challan: ${delivery.challanNumber}`}
+      subtitle={`GRN Source: ${delivery.grnNumber}`}
+      size="lg"
+      footer={
+        <>
+          {canPrint && (
+            <Button
+              variant="primary"
+              onClick={() => onPrintChallan(delivery.id)}
+              disabled={printingId === delivery.id}
+              isLoading={printingId === delivery.id}
+              leftIcon={<Printer size={15} aria-hidden="true" />}
+            >
+              Print Delivery Challan
+            </Button>
+          )}
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </>
+      }
     >
-      <div className={styles.modalCard}>
-        <div className={styles.modalHeader}>
-          <div>
-            <h2 id="delivery-detail-title" className={styles.modalTitle}>
-              Delivery Challan: {delivery.challanNumber}
-            </h2>
-            <span className={styles.dateSub}>GRN Source: {delivery.grnNumber}</span>
-          </div>
-          <button
-            type="button"
-            className={styles.modalClose}
-            onClick={onClose}
-            aria-label="Close details"
-          >
-            <X size={20} aria-hidden="true" />
-          </button>
-        </div>
-
-        <div className={styles.modalBody}>
+      <div className={styles.modalBody}>
           <div className={styles.detailGrid}>
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Delivery Date</span>
@@ -61,15 +63,9 @@ export function DeliveryDetailModal({
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Status</span>
               <span className={styles.detailValue}>
-                <span
-                  className={
-                    delivery.status === 'ISSUED'
-                      ? styles.badgeIssued
-                      : styles.badgeReversed
-                  }
-                >
+                <Badge variant={delivery.status === 'ISSUED' ? 'success' : 'neutral'}>
                   {delivery.status}
-                </span>
+                </Badge>
               </span>
             </div>
 
@@ -136,28 +132,6 @@ export function DeliveryDetailModal({
             ))}
           </div>
         </div>
-
-        <div className={styles.modalFooter}>
-          {canPrint && (
-            <button
-              type="button"
-              className={styles.actionBtnPrimary}
-              onClick={() => onPrintChallan(delivery.id)}
-              disabled={printingId === delivery.id}
-            >
-              <Printer size={15} aria-hidden="true" />
-              Print Delivery Challan
-            </button>
-          )}
-          <button
-            type="button"
-            className={styles.cancelBtn}
-            onClick={onClose}
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

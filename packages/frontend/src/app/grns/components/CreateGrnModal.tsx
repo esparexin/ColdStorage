@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { X } from 'lucide-react';
 import type { BagType, Chamber, Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
+import { Button, Modal } from '@/components/ui';
 import { useCreateGrnForm } from '../hooks/useCreateGrnForm';
 import { CustomerFormModal } from '../../customers/components/CustomerFormModal';
 import { CommodityFormModal } from '../../commodities/components/CommodityFormModal';
@@ -43,15 +43,13 @@ export function CreateGrnModal({
 
   return (
     <>
-    <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="create-modal-title">
-      <div className={styles.modalCard}>
-        <div className={styles.modalHeader}>
-          <h2 id="create-modal-title" className={styles.modalTitle}>Inward Goods Receipt Note (GRN)</h2>
-          <button type="button" className={styles.modalClose} onClick={onClose} aria-label="Close modal">
-            <X size={20} aria-hidden="true" />
-          </button>
-        </div>
-        <form onSubmit={form.handleSubmit} className={styles.modalForm}>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Inward Goods Receipt Note (GRN)"
+      size="xl"
+    >
+      <form onSubmit={form.handleSubmit} className={styles.modalForm}>
           <div className={styles.modalBody}>
             {form.modalError && <div className={styles.modalError}>{form.modalError}</div>}
             <h3 className={styles.sectionHeading}>Basic Information</h3>
@@ -220,14 +218,21 @@ export function CreateGrnModal({
             </div>
           </div>
           <div className={styles.modalFooter}>
-            <button type="button" className={styles.cancelBtn} onClick={onClose} disabled={form.submitting}>Cancel</button>
-            <button id="submit-create-grn-btn" type="submit" className={styles.primaryBtn} disabled={form.submitting}>
-              {form.submitting ? 'Creating...' : 'Create Inward GRN'}
-            </button>
+            <Button variant="outline" onClick={onClose} disabled={form.submitting}>
+              Cancel
+            </Button>
+            <Button
+              id="submit-create-grn-btn"
+              type="submit"
+              variant="primary"
+              disabled={form.submitting}
+              isLoading={form.submitting}
+            >
+              Create Inward GRN
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
     {isAddingCustomer && (
       <CustomerFormModal customer={null} selectedFacilityId={facilityId} existingCustomers={customers} onClose={() => setIsAddingCustomer(false)} onSuccess={() => { setIsAddingCustomer(false); onCustomerAdded?.(); }} />
     )}

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ArrowUpDown,
   Boxes,
@@ -15,6 +15,7 @@ import {
   UserCog,
   Users,
   Warehouse,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -65,17 +66,61 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-export function SidebarNav() {
+interface SidebarNavProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function SidebarNav({ isOpen = false, onClose }: SidebarNavProps) {
   const pathname = usePathname();
   const { user } = useAuth();
 
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
 
+  // Close mobile drawer on route change
+  useEffect(() => {
+    onClose?.();
+  }, [pathname, onClose]);
+
+  // Handle Escape key on mobile drawer
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose?.();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   return (
-    <nav className={styles.sidebar} aria-label="Main navigation">
-      <div className={styles.brandArea}>
-        <span className={styles.brandTitle}>❄ Cold Storage</span>
-      </div>
+    <>
+      {isOpen && (
+        <div
+          className={styles.drawerBackdrop}
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+      <nav
+        className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}
+        aria-label="Main navigation"
+        id="sidebar-navigation"
+      >
+        <div className={styles.brandArea}>
+          <span className={styles.brandTitle}>❄ Cold Storage</span>
+          {onClose && (
+            <button
+              type="button"
+              className={styles.mobileCloseBtn}
+              onClick={onClose}
+              aria-label="Close navigation menu"
+            >
+              <X size={20} aria-hidden="true" />
+            </button>
+          )}
+        </div>
 
       {NAV_SECTIONS.map((section) => {
         const allowedItems = section.items.filter((item) => can(userRole, item.permission));
@@ -107,5 +152,6 @@ export function SidebarNav() {
         );
       })}
     </nav>
+    </>
   );
 }

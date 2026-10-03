@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
 import { indianGstinSchema, indianMobileSchema } from '@cold-storage/contracts';
 import type { Customer } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
-import { Button, Input } from '@/components/ui';
+import { Button, Input, Modal } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface CustomerFormModalProps {
@@ -120,28 +119,18 @@ export function CustomerFormModal({
   };
 
   return (
-    <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <div className={styles.modalCard}>
-        <div className={styles.modalHeader}>
-          <h2 id="modal-title" className={styles.modalTitle}>
-            {customer ? 'Edit Customer' : 'Register New Customer'}
-          </h2>
-          <button
-            type="button"
-            className={styles.modalClose}
-            onClick={onClose}
-            aria-label="Close dialog"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className={styles.modalForm}>
-          {modalError && (
-            <div className={styles.modalError} role="alert">
-              {modalError}
-            </div>
-          )}
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={customer ? 'Edit Customer' : 'Register New Customer'}
+      size="md"
+    >
+      <form onSubmit={handleSubmit} className={styles.modalForm}>
+        {modalError && (
+          <div className={styles.modalError} role="alert">
+            {modalError}
+          </div>
+        )}
 
           <Input
             id="customer-name"
@@ -220,7 +209,6 @@ export function CustomerFormModal({
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

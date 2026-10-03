@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
-import { Button, Input } from '@/components/ui';
+import { Button, Input, Modal } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
 import styles from '../page.module.css';
 
@@ -52,23 +51,13 @@ export function CommodityFormModal({ onClose, onSuccess }: CommodityFormModalPro
   };
 
   return (
-    <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <div className={styles.modalCard}>
-        <div className={styles.modalHeader}>
-          <h2 id="modal-title" className={styles.modalTitle}>
-            Register New Commodity
-          </h2>
-          <button
-            type="button"
-            className={styles.modalClose}
-            onClick={onClose}
-            aria-label="Close dialog"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className={styles.modalForm}>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Register New Commodity"
+      size="sm"
+    >
+      <form onSubmit={handleSubmit} className={styles.modalForm}>
           {modalError && (
             <div className={styles.modalError} role="alert">
               {modalError}
@@ -117,7 +106,6 @@ export function CommodityFormModal({ onClose, onSuccess }: CommodityFormModalPro
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

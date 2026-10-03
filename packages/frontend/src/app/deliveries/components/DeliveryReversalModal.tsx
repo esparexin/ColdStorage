@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AlertTriangle, RotateCcw, X } from 'lucide-react';
+import { AlertTriangle, RotateCcw } from 'lucide-react';
 import type { DeliveryChallan } from '@cold-storage/contracts';
+import { Button, Modal } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
 import styles from '../page.module.css';
 
@@ -59,76 +60,66 @@ export function DeliveryReversalModal({
   };
 
   return (
-    <div className={styles.modalBackdrop} role="dialog" aria-modal="true">
-      <div className={styles.modalCard}>
-        <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>
-            Confirm Full Reversal: {delivery.challanNumber}
-          </h2>
-          <button
-            type="button"
-            className={styles.modalClose}
-            onClick={onClose}
-          >
-            <X size={20} aria-hidden="true" />
-          </button>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={`Confirm Full Reversal: ${delivery.challanNumber}`}
+      size="md"
+    >
+      <form onSubmit={handleReverseSubmit}>
+        <div className={styles.modalBody}>
+          {reversalError && <div className={styles.modalError}>{reversalError}</div>}
+
+          <div className={styles.warningBox}>
+            <AlertTriangle size={24} style={{ flexShrink: 0 }} aria-hidden="true" />
+            <div>
+              <strong>Warning: Full Reversal is Irreversible.</strong>
+              <p style={{ marginTop: '4px' }}>
+                Reversing this delivery will restore {delivery.totalBags} bags back
+                into their original storage positions and append an immutable{' '}
+                <code>DELIVERY_REVERSAL</code> event to the stock ledger.
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.fieldGroup}>
+            <label htmlFor="reversal-reason" className={styles.fieldLabel}>
+              Reason for Reversal *
+            </label>
+            <textarea
+              id="reversal-reason"
+              required
+              rows={3}
+              minLength={5}
+              maxLength={500}
+              className={styles.fieldInput}
+              placeholder="Provide a mandatory operational justification (minimum 5 characters)..."
+              value={reversalReason}
+              onChange={(e) => setReversalReason(e.target.value)}
+            />
+          </div>
         </div>
 
-        <form onSubmit={handleReverseSubmit}>
-          <div className={styles.modalBody}>
-            {reversalError && <div className={styles.modalError}>{reversalError}</div>}
-
-            <div className={styles.warningBox}>
-              <AlertTriangle size={24} style={{ flexShrink: 0 }} aria-hidden="true" />
-              <div>
-                <strong>Warning: Full Reversal is Irreversible.</strong>
-                <p style={{ marginTop: '4px' }}>
-                  Reversing this delivery will restore {delivery.totalBags} bags back
-                  into their original storage positions and append an immutable{' '}
-                  <code>DELIVERY_REVERSAL</code> event to the stock ledger.
-                </p>
-              </div>
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label htmlFor="reversal-reason" className={styles.fieldLabel}>
-                Reason for Reversal *
-              </label>
-              <textarea
-                id="reversal-reason"
-                required
-                rows={3}
-                minLength={5}
-                maxLength={500}
-                className={styles.fieldInput}
-                placeholder="Provide a mandatory operational justification (minimum 5 characters)..."
-                value={reversalReason}
-                onChange={(e) => setReversalReason(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className={styles.modalFooter}>
-            <button
-              type="button"
-              className={styles.cancelBtn}
-              onClick={onClose}
-              disabled={reversalSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              id="confirm-reversal-btn"
-              type="submit"
-              className={styles.actionBtnDanger}
-              disabled={reversalSubmitting || reversalReason.trim().length < 5}
-            >
-              <RotateCcw size={15} aria-hidden="true" />
-              {reversalSubmitting ? 'Reversing...' : 'Confirm Full Reversal'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className={styles.modalFooter}>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={reversalSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            id="confirm-reversal-btn"
+            type="submit"
+            variant="danger"
+            disabled={reversalSubmitting || reversalReason.trim().length < 5}
+            isLoading={reversalSubmitting}
+            leftIcon={!reversalSubmitting ? <RotateCcw size={15} aria-hidden="true" /> : undefined}
+          >
+            Confirm Full Reversal
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
