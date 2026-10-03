@@ -5,7 +5,7 @@ import {
   CheckCircle2, ChevronRight, Edit3, Plus, RefreshCw, ShieldAlert, Warehouse,
 } from 'lucide-react';
 import { can, type Role } from '@cold-storage/contracts';
-import { Button } from '@/components/ui';
+import { Button, Select } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { FacilityModal } from './components/FacilityModal';
@@ -85,9 +85,9 @@ export default function StorageHierarchyPage() {
       <div className={styles.facilitySelectCard}>
         <div className={styles.facilitySelectLeft}>
           <Warehouse size={20} color="var(--color-primary)" />
-          <label htmlFor="facility-selector">Warehouse Facility:</label>
-          <select
-            id="facility-selector"
+          <label htmlFor="storage-facility-selector">Warehouse Facility:</label>
+          <Select
+            id="storage-facility-selector"
             className={styles.selectInput}
             value={selectedFacilityId || ''}
             onChange={(e) => setSelectedFacilityId(e.target.value)}
@@ -97,7 +97,7 @@ export default function StorageHierarchyPage() {
                 {fac.name} ({fac.code})
               </option>
             ))}
-          </select>
+          </Select>
           {canManage && (
             <div className={styles.facilityActions}>
               <button

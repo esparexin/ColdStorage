@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import type { BagType, Chamber, Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
-import { Button, Modal } from '@/components/ui';
+import { Button, Modal, Select } from '@/components/ui';
 import { useCreateGrnForm } from '../hooks/useCreateGrnForm';
 import { CustomerFormModal } from '../../customers/components/CustomerFormModal';
 import { CommodityFormModal } from '../../commodities/components/CommodityFormModal';
@@ -74,7 +74,7 @@ export function CreateGrnModal({
           <div className={styles.fieldGroup}>
             <div className={styles.fieldLabelRow}>
               <label htmlFor="create-customer-search" className={styles.fieldLabel}>Customer *</label>
-              <button type="button" className={styles.inlineAddBtn} onClick={() => setIsAddingCustomer(true)}>+ Add</button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingCustomer(true)}>+ Add</Button>
             </div>
             <div className={styles.comboboxWrapper} ref={customerRef}>
               <input
@@ -88,7 +88,7 @@ export function CreateGrnModal({
                 aria-invalid={Boolean(form.fieldErrors.customer)}
               />
               {selectedCustomer && !isCustomerOpen && (
-                <button type="button" className={styles.comboboxClearBtn} onClick={() => { form.setCreateCustomerId(''); setCustomerQuery(''); }} aria-label="Clear customer selection">✕</button>
+                <Button type="button" variant="ghost" size="sm" className={styles.comboboxClearBtn} onClick={() => { form.setCreateCustomerId(''); setCustomerQuery(''); }} aria-label="Clear customer selection">✕</Button>
               )}
               {form.fieldErrors.customer && <span className={styles.fieldErrorText}>{form.fieldErrors.customer}</span>}
               {isCustomerOpen && (
@@ -103,7 +103,7 @@ export function CreateGrnModal({
                   ) : (
                     <div className={styles.comboboxEmpty}>
                       No customers found
-                      <button type="button" className={styles.comboboxAddBtn} onMouseDown={(e) => { e.preventDefault(); setIsAddingCustomer(true); setIsCustomerOpen(false); }}>+ Add Customer</button>
+                      <Button type="button" variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); setIsAddingCustomer(true); setIsCustomerOpen(false); }}>+ Add Customer</Button>
                     </div>
                   )}
                 </div>
@@ -111,33 +111,42 @@ export function CreateGrnModal({
             </div>
           </div>
           <div className={styles.fieldGroup}>
-            <div className={styles.fieldLabelRow}>
-              <label htmlFor="create-commodity" className={styles.fieldLabel}>Commodity *</label>
-              <button type="button" className={styles.inlineAddBtn} onClick={() => setIsAddingCommodity(true)}>+ Add</button>
-            </div>
-            <select id="create-commodity" required value={form.createCommodityId} onChange={(e) => form.setCreateCommodityId(e.target.value)} className={`${styles.fieldSelect} ${form.fieldErrors.commodity ? styles.inputError : ''}`} aria-invalid={Boolean(form.fieldErrors.commodity)}>
+            <Select
+              id="create-commodity"
+              label="Commodity"
+              required
+              value={form.createCommodityId}
+              onChange={(e) => form.setCreateCommodityId(e.target.value)}
+              error={form.fieldErrors.commodity}
+              rightAction={
+                <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingCommodity(true)}>+ Add</Button>
+              }
+            >
               <option value="">Select Commodity</option>
               {commodities.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-            </select>
-            {form.fieldErrors.commodity && <span className={styles.fieldErrorText}>{form.fieldErrors.commodity}</span>}
+            </Select>
           </div>
         </div>
         <div className={styles.formGrid2}>
           <div className={styles.fieldGroup}>
-            <label htmlFor="create-chamber" className={styles.fieldLabel}>Chamber *</label>
-            <select id="create-chamber" required value={form.createChamberId} onChange={(e) => form.setCreateChamberId(e.target.value)} className={`${styles.fieldSelect} ${form.fieldErrors.chamber ? styles.inputError : ''}`} aria-invalid={Boolean(form.fieldErrors.chamber)}>
+            <Select
+              id="create-chamber"
+              label="Chamber"
+              required
+              value={form.createChamberId}
+              onChange={(e) => form.setCreateChamberId(e.target.value)}
+              error={form.fieldErrors.chamber}
+            >
               <option value="">Select Chamber</option>
               {chambers.map((ch) => (<option key={ch.id} value={ch.id}>Chamber {ch.chamberNumber}</option>))}
-            </select>
-            {form.fieldErrors.chamber && <span className={styles.fieldErrorText}>{form.fieldErrors.chamber}</span>}
+            </Select>
           </div>
           <div className={styles.fieldGroup}>
-            <label htmlFor="create-bag-type" className={styles.fieldLabel}>Bag Type *</label>
-            <select id="create-bag-type" required value={form.createBagType} onChange={(e) => form.handleBagTypeChange(e.target.value as BagType)} className={styles.fieldSelect}>
+            <Select id="create-bag-type" label="Bag Type" required value={form.createBagType} onChange={(e) => form.handleBagTypeChange(e.target.value as BagType)}>
               <option value="S">Small Bag (S)</option>
               <option value="B">Big Bag (B)</option>
               <option value="S+B">Mixed (Small + Big)</option>
-            </select>
+            </Select>
           </div>
         </div>
         <h3 className={styles.sectionHeading}>Quantity & Weight Accounting</h3>
@@ -160,8 +169,8 @@ export function CreateGrnModal({
                 <input id="create-bags-total" type="number" readOnly tabIndex={-1} value={form.createBags} className={`${styles.fieldInput} ${styles.calculatedField}`} aria-label="Total Bags (Calculated)" />
               </div>
               <div className={styles.fieldGroup}>
-                <label htmlFor="create-actual-weight" className={styles.fieldLabel}>Weighbridge Weight (kg) (Optional)</label>
-                <input id="create-actual-weight" type="number" step="0.01" min={0} value={form.createActualWeight} onChange={(e) => form.setCreateActualWeight(e.target.value ? parseFloat(e.target.value) : '')} className={styles.fieldInput} />
+                <label htmlFor="create-actual-weight-single" className={styles.fieldLabel}>Weighbridge Weight (kg) (Optional)</label>
+                <input id="create-actual-weight-single" type="number" step="0.01" min={0} value={form.createActualWeight} onChange={(e) => form.setCreateActualWeight(e.target.value ? parseFloat(e.target.value) : '')} className={styles.fieldInput} />
               </div>
             </div>
           </>
@@ -191,11 +200,10 @@ export function CreateGrnModal({
         <h3 className={styles.sectionHeading}>Rent Terms</h3>
         <div className={styles.formGrid3}>
           <div className={styles.fieldGroup}>
-            <label htmlFor="create-rent-type" className={styles.fieldLabel}>Rent Type *</label>
-            <select id="create-rent-type" required value={form.createRentType} onChange={(e) => form.setCreateRentType(e.target.value as RentType)} className={styles.fieldSelect}>
+            <Select id="create-rent-type" label="Rent Type" required value={form.createRentType} onChange={(e) => form.setCreateRentType(e.target.value as RentType)}>
               <option value="Seasonal">Seasonal</option>
               <option value="Monthly">Monthly</option>
-            </select>
+            </Select>
           </div>
           <div className={styles.fieldGroup}>
             <label htmlFor="create-rent-months" className={styles.fieldLabel}>Rent Months {form.createRentType === 'Monthly' ? '*' : ''}</label>

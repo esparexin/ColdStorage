@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { useAuth } from '@/context/AuthContext';
 import styles from './ChangePasswordModal.module.css';
@@ -73,11 +74,11 @@ export function ChangePasswordModal({ isOpen }: ChangePasswordModalProps) {
         )}
 
         <div className={styles.fieldGroup}>
-          <label htmlFor="current-password" className={styles.fieldLabel}>
+          <label htmlFor="force-current-password" className={styles.fieldLabel}>
             Current Temporary Password
           </label>
           <input
-            id="current-password"
+            id="force-current-password"
             name="current-password"
             type="password"
             className={styles.fieldInput}
@@ -130,21 +131,22 @@ export function ChangePasswordModal({ isOpen }: ChangePasswordModalProps) {
         </div>
 
         <div className={styles.actions}>
-          <button
+          <Button
             type="button"
-            className={styles.logoutBtn}
+            variant="outline"
             onClick={handleLogout}
             disabled={isSubmitting}
           >
             Sign Out
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            className={styles.submitBtn}
+            variant="primary"
             disabled={isSubmitting}
+            isLoading={isSubmitting}
           >
             {isSubmitting ? 'Updating…' : 'Update Password'}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

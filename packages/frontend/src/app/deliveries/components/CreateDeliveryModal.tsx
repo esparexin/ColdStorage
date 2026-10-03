@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { Truck } from 'lucide-react';
 import type { DeliveryChallan, DeliverySummary, RentSummaryDto } from '@cold-storage/contracts';
-import { Button, Modal } from '@/components/ui';
+import { Button, Modal, Select } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useCreateDeliveryForm } from '../hooks/useCreateDeliveryForm';
 import styles from '../page.module.css';
@@ -51,13 +51,10 @@ export function CreateDeliveryModal({
             {form.modalError && <div className={styles.modalError}>{form.modalError}</div>}
 
             <div className={styles.fieldGroup}>
-              <label htmlFor="delivery-grn" className={styles.fieldLabel}>
-                Select Inward GRN *
-              </label>
-              <select
+              <Select
                 id="delivery-grn"
+                label="Select Inward GRN"
                 required
-                className={styles.fieldSelect}
                 value={form.createGrnId}
                 onChange={(e) => void form.handleSelectGrn(e.target.value)}
               >
@@ -67,7 +64,7 @@ export function CreateDeliveryModal({
                     {g.grnNumber} — {g.customerName} ({g.commodityName}, Chamber {g.chamberNumber})
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             {form.loadingGrnSummary || form.rentLoading ? (

@@ -3,7 +3,7 @@
 import React from 'react';
 import { Filter } from 'lucide-react';
 import type { Commodity, Customer, GrnStatus } from '@cold-storage/contracts';
-import { Button, SearchBar } from '@/components/ui';
+import { Button, SearchBar, Select } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface GrnFilterToolbarProps {
@@ -49,7 +49,7 @@ export function GrnFilterToolbar({
       />
 
       <div className={styles.filtersGroup}>
-        <select
+        <Select
           id="grn-status-filter"
           aria-label="Filter by GRN Status"
           className={styles.filterSelect}
@@ -59,9 +59,9 @@ export function GrnFilterToolbar({
           <option value="">All Statuses</option>
           <option value="OPEN">Open (Active)</option>
           <option value="CLOSED">Closed (Completed)</option>
-        </select>
+        </Select>
 
-        <select
+        <Select
           id="grn-customer-filter"
           aria-label="Filter by Customer"
           className={styles.filterSelect}
@@ -74,9 +74,9 @@ export function GrnFilterToolbar({
               {c.name}
             </option>
           ))}
-        </select>
+        </Select>
 
-        <select
+        <Select
           id="grn-commodity-filter"
           aria-label="Filter by Commodity"
           className={styles.filterSelect}
@@ -89,7 +89,7 @@ export function GrnFilterToolbar({
               {c.name}
             </option>
           ))}
-        </select>
+        </Select>
 
         {hasActiveFilters && (
           <Button

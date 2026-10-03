@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { AuditEventType, AuditSeverity } from '@cold-storage/contracts';
-import { SearchBar } from '@/components/ui';
+import { SearchBar, Select } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface AuditFilterToolbarProps {
@@ -33,7 +33,7 @@ export function AuditFilterToolbar({
       />
 
       <div className={styles.filtersGroup}>
-        <select
+        <Select
           aria-label="Filter by Severity"
           className={styles.filterSelect}
           value={severityFilter}
@@ -44,9 +44,9 @@ export function AuditFilterToolbar({
           <option value="WARN">WARN</option>
           <option value="SECURITY">SECURITY</option>
           <option value="CRITICAL">CRITICAL</option>
-        </select>
+        </Select>
 
-        <select
+        <Select
           aria-label="Filter by Event Action"
           className={styles.filterSelect}
           value={eventTypeFilter}
@@ -63,7 +63,7 @@ export function AuditFilterToolbar({
           <option value="SETTINGS_UPDATED">SETTINGS_UPDATED</option>
           <option value="BACKUP_TRIGGERED">BACKUP_TRIGGERED</option>
           <option value="ACCESS_DENIED">ACCESS_DENIED</option>
-        </select>
+        </Select>
       </div>
     </div>
   );

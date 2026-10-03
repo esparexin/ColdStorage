@@ -3,6 +3,7 @@
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
+import { Button, Select } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import type { usePutAway } from '../hooks/usePutAway';
 import { GrnAllocationStatusCard } from './GrnAllocationStatusCard';
@@ -83,9 +84,9 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
                     {putAway.rentBlocked.grnNumber}. Complete payment to allocate — you will return here.
                     {canPayRent && (
                       <div style={{ marginTop: 8 }}>
-                        <button type="button" className={styles.primaryBtn} onClick={onPayRent} disabled={payLoading}>
+                        <Button variant="primary" onClick={onPayRent} disabled={payLoading} isLoading={payLoading}>
                           {payLoading ? 'Loading rent account...' : 'Pay rent now'}
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -100,7 +101,7 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                     {putAway.allocRows.map((row) => (
                       <div key={row.id} className={styles.allocRow}>
-                        <select
+                        <Select
                           aria-label="Select Rack"
                           className={styles.fieldSelect}
                           required
@@ -113,9 +114,9 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
                               Rack {rk.code}
                             </option>
                           ))}
-                        </select>
+                        </Select>
 
-                        <select
+                        <Select
                           aria-label="Select Level"
                           className={styles.fieldSelect}
                           required
@@ -129,9 +130,9 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
                               Level {lvl.levelNumber} ({lvl.code})
                             </option>
                           ))}
-                        </select>
+                        </Select>
 
-                        <select
+                        <Select
                           aria-label="Select Position"
                           className={styles.fieldSelect}
                           required
@@ -150,7 +151,7 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
                               {pos.code} (Cap: {pos.capacityBags} bags)
                             </option>
                           ))}
-                        </select>
+                        </Select>
 
                         <input
                           type="number"
@@ -210,18 +211,19 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
                       / {putAway.grnSummary.unallocatedBags} bags
                     </span>
 
-                    <button
+                    <Button
                       id="submit-allocation-btn"
                       type="submit"
-                      className={styles.primaryBtn}
+                      variant="primary"
                       disabled={putAway.allocSubmitting || putAway.totalAllocatingBags <= 0 || !!putAway.rentBlocked}
+                      isLoading={putAway.allocSubmitting}
                     >
                       {putAway.rentBlocked
                         ? 'Rent payment required'
                         : putAway.allocSubmitting
                           ? 'Recording Batch...'
                           : 'Confirm Put-Away Allocation'}
-                    </button>
+                    </Button>
                   </div>
                 </form>
               </div>

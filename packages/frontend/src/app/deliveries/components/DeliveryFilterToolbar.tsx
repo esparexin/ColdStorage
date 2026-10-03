@@ -3,7 +3,7 @@
 import React from 'react';
 import { Filter } from 'lucide-react';
 import type { DeliveryStatus } from '@cold-storage/contracts';
-import { Button, SearchBar } from '@/components/ui';
+import { Button, SearchBar, Select } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface DeliveryFilterToolbarProps {
@@ -35,7 +35,7 @@ export function DeliveryFilterToolbar({
       />
 
       <div className={styles.filtersGroup}>
-        <select
+        <Select
           id="delivery-status-filter"
           aria-label="Filter by Delivery Status"
           className={styles.filterSelect}
@@ -45,7 +45,7 @@ export function DeliveryFilterToolbar({
           <option value="">All Statuses</option>
           <option value="ISSUED">Issued (Active)</option>
           <option value="REVERSED">Reversed</option>
-        </select>
+        </Select>
 
         {hasActiveFilters && (
           <Button

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Building } from 'lucide-react';
+import { Select } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface OrgIdentitySectionProps {
@@ -103,17 +104,14 @@ export function OrgIdentitySection({
         </div>
 
         <div className={styles.fieldGroup}>
-          <label htmlFor="org-timezone" className={styles.fieldLabel}>
-            System Operational Timezone
-          </label>
-          <select
-            id="org-timezone"
-            className={styles.fieldSelect}
-            value={timezone}
-            onChange={(e) => setTimezone(e.target.value)}
-          >
-            <option value="Asia/Kolkata">Asia/Kolkata (IST — UTC+5:30)</option>
-          </select>
+          <Select
+          id="org-timezone"
+          label="System Operational Timezone"
+          value={timezone}
+          onChange={(e) => setTimezone(e.target.value)}
+        >
+          <option value="Asia/Kolkata">Asia/Kolkata (IST — UTC+5:30)</option>
+        </Select>
         </div>
       </div>
 
