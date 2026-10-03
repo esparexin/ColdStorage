@@ -34,8 +34,8 @@ function InventoryContent() {
   const [rentPayAccount, setRentPayAccount] = useState<RentSummaryDto | null>(null);
   const rentGate = useRentGate();
 
-  const [activeTab, setActiveTab] = useState<'put-away' | 'hierarchy' | 'ledger'>(() =>
-    initialGrnId ? 'put-away' : 'put-away',
+  const [activeTab, setActiveTab] = useState<'put-away' | 'hierarchy' | 'ledger'>(
+    'put-away',
   );
 
   const inventoryData = useInventoryData(selectedFacilityId);
