@@ -71,3 +71,43 @@ export function hppGuard(req: Request, res: Response, next: NextFunction): void 
 
   next();
 }
+
+/**
+ * CSRF protection middleware for cookie-authenticated endpoints.
+ * Validates Origin / Referer against CORS_ORIGIN for state-changing requests with cookies.
+ */
+export function csrfProtectionMiddleware(req: Request, res: Response, next: NextFunction): void {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    return next();
+  }
+
+  // If no cookies are attached, the request is not cookie-authenticated (e.g. Bearer token only)
+  if (!req.cookies || Object.keys(req.cookies).length === 0) {
+    return next();
+  }
+
+  const allowedOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
+  const origin = req.headers.origin;
+  const referer = req.headers.referer;
+
+  if (origin && origin !== allowedOrigin) {
+    res.status(403).json({ error: 'CSRF_VALIDATION_FAILED: Invalid origin header' });
+    return;
+  }
+
+  if (!origin && referer) {
+    try {
+      const refererOrigin = new URL(referer).origin;
+      if (refererOrigin !== allowedOrigin) {
+        res.status(403).json({ error: 'CSRF_VALIDATION_FAILED: Invalid referer header' });
+        return;
+      }
+    } catch {
+      res.status(403).json({ error: 'CSRF_VALIDATION_FAILED: Malformed referer header' });
+      return;
+    }
+  }
+
+  next();
+}
+
