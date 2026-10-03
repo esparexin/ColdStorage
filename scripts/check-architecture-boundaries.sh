@@ -58,6 +58,17 @@ if grep -rnE "interface PositionOccupancyResponse" "$ROOT/packages/frontend/src"
   fail "Type SSOT violation: frontend must import PositionOccupancy from @cold-storage/contracts instead of declaring PositionOccupancyResponse."
 fi
 
+# 9. Mongoose Duplicate Schema Index Prevention
+for model in "$ROOT/packages/backend/src/database/models"/*.ts; do
+  [ -f "$model" ] || continue
+  indexed_fields=$(grep -oE "[a-zA-Z0-9_]+:\s*\{[^}]*index:\s*true" "$model" | cut -d: -f1 || true)
+  for f in $indexed_fields; do
+    if grep -E "\.index\(\{\s*$f:\s*1\s*\}\)" "$model" >/dev/null 2>&1; then
+      fail "Duplicate schema index on '$f' in $(basename "$model"): declared via both property index: true and schema.index()."
+    fi
+  done
+done
+
 if [ "$EXIT" -eq 0 ]; then
   echo "[PASS] All architecture boundaries and UI SSOT governance checks passed."
 fi

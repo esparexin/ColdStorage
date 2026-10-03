@@ -70,7 +70,6 @@ grnSchema.index({ facilityId: 1, grnNumber: 1 }, { unique: true });
 grnSchema.index({ facilityId: 1, inwardReceiptNumber: 1 }, { unique: true });
 grnSchema.index({ facilityId: 1, date: -1 });
 grnSchema.index({ customerId: 1, facilityId: 1 });
-grnSchema.index({ chamberId: 1 });
 
 export const GrnModel: Model<GrnDoc> =
   (mongoose.models.Grn as Model<GrnDoc>) || mongoose.model<GrnDoc>('Grn', grnSchema);
