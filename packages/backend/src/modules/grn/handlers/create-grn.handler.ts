@@ -13,7 +13,6 @@ import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { FacilityModel } from '../../../database/models/facility.model.js';
 import { GrnModel, type GrnDoc } from '../../../database/models/grn.model.js';
-import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { counterService } from '../../common/counter.service.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
@@ -150,29 +149,6 @@ export async function createGrn(
       );
 
       createdDoc = docs[0];
-
-      await InventoryTransactionModel.create(
-        [
-          {
-            id: `tx-${randomUUID()}`,
-            facilityId,
-            grnId: id,
-            grnNumber,
-            chamber: input.chamber.trim(),
-            customerId: customer.id,
-            commodityId: commodity.id,
-            bagType: input.bagType,
-            transactionType: 'INWARD_PUTAWAY',
-            quantity: input.bags,
-            referenceType: 'PUT_AWAY',
-            referenceId: id,
-            notes: 'Initial inward entry',
-            createdBy: userId,
-            createdAt: inwardDate,
-          },
-        ],
-        { session },
-      );
     });
   } finally {
     await session.endSession();
