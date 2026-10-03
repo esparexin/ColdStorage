@@ -14,6 +14,7 @@ import {
   type PutAwayAllocationDoc,
 } from '../../../database/models/put-away.model.js';
 import { auditService } from '../../audit/audit.service.js';
+import { assertRentAllowedForOutward } from '../../common/rent-gate.service.js';
 import {
   ConcurrencyConflictError,
   isTransientError,
@@ -82,6 +83,12 @@ async function executePutAwayTransaction(
       if (grn.status !== 'OPEN') {
         throw new Error(`GRN '${grn.grnNumber}' is not OPEN (status: ${grn.status})`);
       }
+
+      await assertRentAllowedForOutward(
+        facilityId,
+        { id: grn.id, grnNumber: grn.grnNumber, rentAmount: grn.rentAmount ?? 0 },
+        session,
+      );
 
       const lockedPositions = await validateAndLockPutAwayPositions(
         facilityId,

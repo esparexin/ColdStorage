@@ -139,7 +139,7 @@ describe('P6 DeliveryService Unit & Concurrency Tests', () => {
       bags: 100,
       bagType: 'B',
       rentType: 'Seasonal',
-      rentAmount: 5000,
+      rentAmount: 0,
       status: 'OPEN',
       createdBy: userId,
     });
@@ -362,7 +362,7 @@ describe('P6 DeliveryService Unit & Concurrency Tests', () => {
       bags: 90,
       bagType: 'B',
       rentType: 'Seasonal',
-      rentAmount: 4500,
+      rentAmount: 0,
       status: 'OPEN',
       createdBy: userId,
     });

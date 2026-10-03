@@ -335,7 +335,7 @@ describe('Phase 11: Multi-Facility End-to-End Operational Lifecycle', () => {
           bags: 100,
           bagType: 'S',
           rentType: 'Seasonal',
-          rentAmount: 150,
+          rentAmount: 0,
         }),
       request(app)
         .post(`/api/facilities/${facilityB}/grns`)
@@ -347,7 +347,7 @@ describe('Phase 11: Multi-Facility End-to-End Operational Lifecycle', () => {
           bags: 200,
           bagType: 'S',
           rentType: 'Seasonal',
-          rentAmount: 160,
+          rentAmount: 0,
         }),
     ]);
 

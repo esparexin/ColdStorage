@@ -1,15 +1,22 @@
 import { useCallback, useMemo, useState } from 'react';
 import type {
   DeliveryChallan,
+  DeliverySummary,
   Grn,
   GrnInventorySummary,
 } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
+import { useRentGate } from '@/hooks/useRentGate';
 import type { PositionWithdrawal } from '../types';
+
+export interface RentRequiredPayload {
+  code: 'RENT_PAYMENT_REQUIRED';
+  rent: { grnId: string; grnNumber: string; rentAmount: number; totalPaid: number; remainingBalance: number };
+}
 
 export function useCreateDeliveryForm(
   facilityId: string,
-  onSuccess: (newDelivery: DeliveryChallan) => void,
+  onSuccess: (newDelivery: DeliveryChallan, summary?: DeliverySummary) => void,
 ) {
   const [availableGrns, setAvailableGrns] = useState<Grn[]>([]);
   const [createGrnId, setCreateGrnId] = useState('');
@@ -23,6 +30,8 @@ export function useCreateDeliveryForm(
   const [createRemarks, setCreateRemarks] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [rentRequired, setRentRequired] = useState<RentRequiredPayload | null>(null);
+  const rentGate = useRentGate();
 
   const fetchAvailableGrns = useCallback(async () => {
     if (!facilityId) return;
@@ -43,16 +52,33 @@ export function useCreateDeliveryForm(
     setCreateGrnId(grnId);
     setGrnSummary(null);
     setWithdrawals([]);
+    setRentRequired(null);
+    rentGate.resetRentGate();
     if (!facilityId || !grnId) return;
 
     setLoadingGrnSummary(true);
     setModalError(null);
     try {
-      const res = await requestWithAuth(
-        `/api/facilities/${encodeURIComponent(facilityId)}/grns/${encodeURIComponent(grnId)}/inventory-summary`,
-      );
-      if (res.ok) {
-        const data = (await res.json()) as { summary: GrnInventorySummary };
+      const [invRes, rentSummary] = await Promise.all([
+        requestWithAuth(
+          `/api/facilities/${encodeURIComponent(facilityId)}/grns/${encodeURIComponent(grnId)}/inventory-summary`,
+        ),
+        rentGate.refreshRentGate(facilityId, grnId),
+      ]);
+      if (rentSummary && rentSummary.rentAmount > 0 && rentSummary.totalPaid === 0) {
+        setRentRequired({
+          code: 'RENT_PAYMENT_REQUIRED',
+          rent: {
+            grnId: rentSummary.grnId,
+            grnNumber: rentSummary.grnNumber,
+            rentAmount: rentSummary.rentAmount,
+            totalPaid: rentSummary.totalPaid,
+            remainingBalance: rentSummary.remainingBalance,
+          },
+        });
+      }
+      if (invRes.ok) {
+        const data = (await invRes.json()) as { summary: GrnInventorySummary };
         setGrnSummary(data.summary);
         const rows: PositionWithdrawal[] = data.summary.positions.map((p) => ({
           positionId: p.positionId,
@@ -146,12 +172,18 @@ export function useCreateDeliveryForm(
       );
 
       if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
+        const data = (await res.json()) as { error?: string; code?: string; rent?: RentRequiredPayload['rent'] };
+        if (res.status === 402 && data.code === 'RENT_PAYMENT_REQUIRED' && data.rent) {
+          setRentRequired({ code: 'RENT_PAYMENT_REQUIRED', rent: data.rent });
+          await rentGate.refreshRentGate(facilityId, createGrnId);
+          throw new Error(data.error ?? 'Rent payment required before issuing delivery challan');
+        }
         throw new Error(data.error ?? `Delivery failed with HTTP ${res.status}`);
       }
 
-      const responseData = (await res.json()) as { delivery: DeliveryChallan };
-      onSuccess(responseData.delivery);
+      const responseData = (await res.json()) as { delivery: DeliveryChallan; summary?: DeliverySummary };
+      setRentRequired(null);
+      onSuccess(responseData.delivery, responseData.summary);
     } catch (err: unknown) {
       setModalError(err instanceof Error ? err.message : 'Failed to issue delivery challan');
     } finally {
@@ -182,5 +214,12 @@ export function useCreateDeliveryForm(
     fetchAvailableGrns,
     handleSelectGrn,
     handleSubmit,
+    rentSummary: rentGate.rentSummary,
+    rentLoading: rentGate.rentLoading,
+    rentBlocked: rentGate.rentBlocked,
+    rentPartial: rentGate.rentPartial,
+    rentRequired,
+    refreshRentGate: rentGate.refreshRentGate,
+    clearRentRequired: useCallback(() => setRentRequired(null), []),
   };
 }

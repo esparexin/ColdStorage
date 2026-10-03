@@ -2,12 +2,13 @@
 
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { can, type DeliveryChallan, type Role } from '@cold-storage/contracts';
+import { can, type DeliveryChallan, type Role, type RentSummaryDto } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { requestWithAuth } from '@/lib/api-client';
+import { CollectPaymentModal } from '../rent/components/CollectPaymentModal';
 import { CreateDeliveryModal } from './components/CreateDeliveryModal';
 import { DeliveryDetailModal } from './components/DeliveryDetailModal';
 import { DeliveryFilterToolbar } from './components/DeliveryFilterToolbar';
@@ -25,11 +26,19 @@ export default function DeliveriesPage() {
   const [printingId, setPrintingId] = useState<string | null>(null);
   const [reversingDelivery, setReversingDelivery] = useState<DeliveryChallan | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [rentPayAccount, setRentPayAccount] = useState<RentSummaryDto | null>(null);
+  const [rentPaidTick, setRentPaidTick] = useState(0);
 
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const canCreate = can(userRole, 'delivery:create');
   const canPrint = can(userRole, 'document:print');
   const canReverse = can(userRole, 'delivery:reversal');
+  const canCollectRent = can(userRole, 'rent:collect');
+
+  const handleRentPaidFromDelivery = () => {
+    setRentPayAccount(null);
+    setRentPaidTick((t) => t + 1);
+  };
 
   const handlePrintChallan = async (challanId: string) => {
     if (!selectedFacilityId) return;
@@ -146,11 +155,25 @@ export default function DeliveriesPage() {
         <CreateDeliveryModal
           facilityId={selectedFacilityId}
           onClose={() => setIsCreateOpen(false)}
-          onSuccess={(newDelivery) => {
+          onSuccess={(newDelivery, summary) => {
             setIsCreateOpen(false);
             void deliveryData.fetchDeliveries();
             setSelectedDelivery(newDelivery);
+            void summary;
           }}
+          onPayRent={setRentPayAccount}
+          rentPaidTick={rentPaidTick}
+          canPayRent={canCollectRent}
+        />
+      )}
+
+      {rentPayAccount && selectedFacilityId && (
+        <CollectPaymentModal
+          account={rentPayAccount}
+          selectedFacilityId={selectedFacilityId}
+          canPrint={canPrint}
+          onClose={() => setRentPayAccount(null)}
+          onPaymentSuccess={handleRentPaidFromDelivery}
         />
       )}
 

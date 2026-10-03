@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { Truck } from 'lucide-react';
-import type { DeliveryChallan } from '@cold-storage/contracts';
+import type { DeliveryChallan, DeliverySummary, RentSummaryDto } from '@cold-storage/contracts';
 import { Button, Modal } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useCreateDeliveryForm } from '../hooks/useCreateDeliveryForm';
@@ -11,19 +11,33 @@ import styles from '../page.module.css';
 interface CreateDeliveryModalProps {
   facilityId: string;
   onClose: () => void;
-  onSuccess: (newDelivery: DeliveryChallan) => void;
+  onSuccess: (newDelivery: DeliveryChallan, summary?: DeliverySummary) => void;
+  onPayRent: (account: RentSummaryDto) => void;
+  rentPaidTick: number;
+  canPayRent: boolean;
 }
 
 export function CreateDeliveryModal({
   facilityId,
   onClose,
   onSuccess,
+  onPayRent,
+  rentPaidTick,
+  canPayRent,
 }: CreateDeliveryModalProps) {
   const form = useCreateDeliveryForm(facilityId, onSuccess);
+  const { createGrnId, clearRentRequired, refreshRentGate } = form;
 
   useEffect(() => {
     void form.fetchAvailableGrns();
   }, [form.fetchAvailableGrns]);
+
+  useEffect(() => {
+    if (rentPaidTick > 0 && createGrnId) {
+      clearRentRequired();
+      void refreshRentGate(facilityId, createGrnId);
+    }
+  }, [rentPaidTick, createGrnId, facilityId, clearRentRequired, refreshRentGate]);
 
   return (
     <Modal
@@ -56,9 +70,28 @@ export function CreateDeliveryModal({
               </select>
             </div>
 
-            {form.loadingGrnSummary ? (
+            {form.loadingGrnSummary || form.rentLoading ? (
               <FeedbackStates.Loading label="Checking stored positions..." />
-            ) : form.grnSummary && (
+            ) : (
+              <>
+                {(form.rentRequired || form.rentBlocked) && form.rentSummary && (
+                  <div className={styles.modalError} role="alert">
+                    Rent ₹{form.rentSummary.remainingBalance.toLocaleString('en-IN')} pending for {form.rentSummary.grnNumber}. Pay to issue challan — you will return here.
+                    {canPayRent ? (
+                      <Button variant="primary" onClick={() => onPayRent(form.rentSummary!)}>
+                        Pay rent now
+                      </Button>
+                    ) : (
+                      <span>Ask an operator to collect rent in Rent Billing.</span>
+                    )}
+                  </div>
+                )}
+                {form.rentPartial && form.rentSummary && !form.rentBlocked && !form.rentRequired && (
+                  <div className={styles.fieldHint} role="status">
+                    Partial rent paid (₹{form.rentSummary.totalPaid.toLocaleString('en-IN')}); ₹{form.rentSummary.remainingBalance.toLocaleString('en-IN')} remains. You may continue.
+                  </div>
+                )}
+                {form.grnSummary && (
               <>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                   <span className={styles.fieldLabel}>Withdraw from Stored Positions *</span>
@@ -187,6 +220,8 @@ export function CreateDeliveryModal({
                 </div>
               </>
             )}
+              </>
+            )}
           </div>
 
           <div className={styles.modalFooter}>
@@ -201,11 +236,11 @@ export function CreateDeliveryModal({
               id="submit-create-delivery-btn"
               type="submit"
               variant="primary"
-              disabled={form.submitting || form.totalWithdrawingBags <= 0}
+              disabled={form.submitting || form.totalWithdrawingBags <= 0 || form.rentBlocked || !!form.rentRequired}
               isLoading={form.submitting}
               leftIcon={!form.submitting ? <Truck size={15} aria-hidden="true" /> : undefined}
             >
-              Issue Delivery Challan
+              {(form.rentBlocked || form.rentRequired) ? 'Rent payment required' : 'Issue Delivery Challan'}
             </Button>
           </div>
         </form>
