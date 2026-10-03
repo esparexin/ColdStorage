@@ -5,6 +5,7 @@ import { authenticate, requirePasswordChanged } from '../middleware/auth.middlew
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { assetService } from '../modules/assets/asset.service.js';
 
+import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
 export const assetRouter = Router();
@@ -121,8 +122,7 @@ assetRouter.delete(
       await assetService.removeLogo(req.user!.userId);
       res.status(200).json({ success: true, message: 'Logo removed successfully' });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to remove logo';
-      res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to remove logo');
     }
   },
 );
@@ -160,7 +160,6 @@ assetRouter.get('/assets/:assetId', async (req: Request, res: Response): Promise
     const arrayBuffer = await response.arrayBuffer();
     res.status(200).send(Buffer.from(arrayBuffer));
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Failed to retrieve asset';
-    res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to retrieve asset');
   }
 });

@@ -110,6 +110,26 @@ if grep -rnE "console\.(log|warn|error)" "$ROOT/packages/backend/src" --include=
   fail "Backend logging hygiene violation: raw console.* calls are prohibited outside utils/logger.ts. Use logger.info/warn/error or auditService."
 fi
 
+# 16. Storage hierarchy routers must stay split per entity.
+if [ -f "$ROOT/packages/backend/src/routes/hierarchy.routes.ts" ]; then
+  fail "Storage hierarchy routes must remain split per entity (chamber/rack/level/position); the monolithic hierarchy.routes.ts has been retired."
+fi
+
+# 17. Frontend document printing must go through the canonical helper.
+PRINT_HITS=$(grep -rn "window.open" "$ROOT/packages/frontend/src" --include="*.ts" --include="*.tsx" \
+  --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null \
+  | grep -v "packages/frontend/src/lib/print-document.ts" || true)
+if [ -n "$PRINT_HITS" ]; then
+  echo "$PRINT_HITS"
+  fail "UI SSOT violation: document printing must go through lib/print-document.printHtmlDocument()."
+fi
+
+# 18. Frontend must not use blocking browser dialogs for errors or confirmations.
+if grep -rnE "[^.a-zA-Z](alert|window\.confirm)\(" "$ROOT/packages/frontend/src" \
+  --include="*.ts" --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null; then
+  fail "UI SSOT violation: alert()/confirm() are prohibited. Surface errors through FeedbackStates or inline role=alert regions."
+fi
+
 if [ "$EXIT" -eq 0 ]; then
   echo "[PASS] All architecture boundaries and UI SSOT governance checks passed."
 fi

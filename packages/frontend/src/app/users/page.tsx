@@ -5,10 +5,8 @@ import { CheckCircle2, Plus, RefreshCw, ShieldAlert } from 'lucide-react';
 import { can, type Role, type UserSummary } from '@cold-storage/contracts';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
-import { EditUserModal } from './components/EditUserModal';
-import { ProvisionUserModal } from './components/ProvisionUserModal';
-import { ResetPasswordModal } from './components/ResetPasswordModal';
 import { UserFilterBar } from './components/UserFilterBar';
+import { UserLifecycleModals } from './components/UserLifecycleModals';
 import { UserTable } from './components/UserTable';
 import { useUserLifecycle, type UserEditDraft } from './hooks/useUserLifecycle';
 import { useUsersData } from './hooks/useUsersData';
@@ -45,13 +43,7 @@ export default function UsersPage() {
   });
 
   const handleEditUser = async (userId: string, draft: UserEditDraft) => {
-    const updated = await lifecycle.patchUser(userId, {
-      fullName: draft.fullName.trim(),
-      mobile: draft.mobile.trim(),
-      email: draft.email.trim(),
-      role: draft.role,
-      facilityIds: draft.facilityIds,
-    });
+    const updated = await lifecycle.submitEdit(userId, draft);
     if (updated) {
       setActionSuccess(`Account "${updated.username}" updated successfully.`);
     }
@@ -163,43 +155,29 @@ export default function UsersPage() {
         />
       </section>
 
-      {showModal && (
-        <ProvisionUserModal
-          availableFacilities={availableFacilities}
-          onClose={() => setShowModal(false)}
-          onSuccess={(msg) => {
-            setActionSuccess(msg);
-            void fetchUsers();
-          }}
-        />
-      )}
-
-      {editingUser && (
-        <EditUserModal
-          user={editingUser}
-          availableFacilities={availableFacilities}
-          saving={lifecycle.saving}
-          error={lifecycle.actionError}
-          onSubmit={handleEditUser}
-          onClose={() => {
-            setEditingUser(null);
-            lifecycle.setActionError(null);
-          }}
-        />
-      )}
-
-      {resettingUser && (
-        <ResetPasswordModal
-          user={resettingUser}
-          saving={lifecycle.saving}
-          error={lifecycle.actionError}
-          onSubmit={handleResetPassword}
-          onClose={() => {
-            setResettingUser(null);
-            lifecycle.setActionError(null);
-          }}
-        />
-      )}
+      <UserLifecycleModals
+        provisioningOpen={showModal}
+        editingUser={editingUser}
+        resettingUser={resettingUser}
+        availableFacilities={availableFacilities}
+        saving={lifecycle.saving}
+        error={lifecycle.actionError}
+        onCloseProvisioning={() => setShowModal(false)}
+        onProvisioned={(msg) => {
+          setActionSuccess(msg);
+          void fetchUsers();
+        }}
+        onCloseEdit={() => {
+          setEditingUser(null);
+          lifecycle.setActionError(null);
+        }}
+        onSubmitEdit={handleEditUser}
+        onCloseReset={() => {
+          setResettingUser(null);
+          lifecycle.setActionError(null);
+        }}
+        onSubmitReset={handleResetPassword}
+      />
     </div>
   );
 }

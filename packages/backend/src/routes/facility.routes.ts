@@ -4,6 +4,7 @@ import { authenticate, requirePasswordChanged } from '../middleware/auth.middlew
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { facilityService } from '../modules/storage/facility.service.js';
+import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
 export const facilityRouter = Router();
@@ -22,9 +23,7 @@ facilityRouter.post('/', requirePermission('storage:manage'), async (req: Reques
     const facility = await facilityService.createFacility(parseResult.data);
     res.status(201).json({ facility });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Facility creation failed';
-    const status = message.includes('already exists') ? 409 : 400;
-    res.status(status).json({ error: message });
+      sendServiceError(res, err, 'Facility creation failed');
   }
 });
 
@@ -34,8 +33,7 @@ facilityRouter.get('/', requirePermission('storage:view'), async (req: Request, 
     const facilities = await facilityService.listFacilities(req.user!.facilityIds, isSuperAdmin);
     res.status(200).json({ items: facilities, total: facilities.length });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Failed to list facilities';
-    res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to list facilities');
   }
 });
 
@@ -53,8 +51,7 @@ facilityRouter.get(
       }
       res.status(200).json({ facility });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to get facility';
-      res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to get facility');
     }
   },
 );
@@ -79,9 +76,7 @@ facilityRouter.patch(
       }
       res.status(200).json({ facility: updated });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Facility update failed';
-      const status = message.includes('active chambers') || message.includes('already exists') ? 409 : 400;
-      res.status(status).json({ error: message });
+      sendServiceError(res, err, 'Facility update failed');
     }
   },
 );

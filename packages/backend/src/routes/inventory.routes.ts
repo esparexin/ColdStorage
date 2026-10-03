@@ -6,6 +6,7 @@ import { requirePermission } from '../middleware/rbac.middleware.js';
 import { ConcurrencyConflictError, inventoryService } from '../modules/inventory/inventory.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
 import { RentPaymentRequiredError } from '../modules/common/rent-gate.service.js';
+import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
 export const inventoryRouter = Router();
@@ -103,8 +104,7 @@ inventoryRouter.get(
       const allocations = await inventoryService.listPutAwayAllocations(facilityId, grnId);
       res.status(200).json({ allocations });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to list put-away allocations';
-      res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to list put-away allocations');
     }
   },
 );
@@ -128,8 +128,7 @@ inventoryRouter.get(
       const summary = await inventoryService.getGrnInventorySummary(facilityId, grnId);
       res.status(200).json({ summary });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to get GRN inventory summary';
-      res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to get GRN inventory summary');
     }
   },
 );
@@ -153,8 +152,7 @@ inventoryRouter.get(
       const occupancy = await inventoryService.getPositionOccupancy(facilityId, positionId);
       res.status(200).json({ occupancy });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to get position occupancy';
-      res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to get position occupancy');
     }
   },
 );
@@ -170,8 +168,7 @@ inventoryRouter.get(
       const summary = await inventoryService.getFacilityInventorySummary(facilityId);
       res.status(200).json({ summary });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to get facility inventory summary';
-      res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to get facility inventory summary');
     }
   },
 );
@@ -193,8 +190,7 @@ inventoryRouter.get(
       const result = await inventoryService.queryStockLedger(facilityId, parseResult.data);
       res.status(200).json(result);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to query stock ledger';
-      res.status(500).json({ error: message });
+      sendServiceError(res, err, 'Failed to query stock ledger');
     }
   },
 );
