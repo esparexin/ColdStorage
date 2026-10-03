@@ -3,7 +3,7 @@
 import React from 'react';
 import { Filter } from 'lucide-react';
 import type { Role } from '@cold-storage/contracts';
-import { Button, SearchBar } from '@/components/ui';
+import { Button, SearchBar, Select } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface UserFilterBarProps {
@@ -35,8 +35,7 @@ export function UserFilterBar({
         ariaLabel="Search users"
         onClear={() => onSearchChange('')}
       />
-      <select
-        className={styles.selectInput}
+      <Select
         value={roleFilter}
         onChange={(e) => onRoleFilterChange(e.target.value as '' | Role)}
         aria-label="Filter by role"
@@ -46,7 +45,7 @@ export function UserFilterBar({
         <option value="ADMIN">ADMIN</option>
         <option value="OPERATOR">OPERATOR</option>
         <option value="READ_ONLY">READ_ONLY</option>
-      </select>
+      </Select>
       {hasActiveFilters && (
         <Button
           variant="secondary"
