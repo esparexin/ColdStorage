@@ -75,7 +75,7 @@ export function CustomerFormModal({
     try {
       if (customer) {
         const res = await requestWithAuth(`/api/customers/${customer.id}`, {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: trimmedName,

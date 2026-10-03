@@ -39,7 +39,7 @@ export function createApp(): Express {
   app.use(hppGuard);
 
   app.get('/health', (_req: Request, res: Response) => {
-    res.status(200).json({ status: 'ok', service: 'cold-storage-backend', phase: 'P4' });
+    res.status(200).json({ status: 'ok', service: 'cold-storage-backend' });
   });
 
   app.use('/api', generalRateLimiter);
@@ -53,7 +53,6 @@ export function createApp(): Express {
   app.use('/api/commodities', commodityRouter);
   app.use('/api', grnRouter);
   app.use('/api', inventoryRouter);
-  app.use('/api/delivery', deliveryRouter);
   app.use('/api', deliveryRouter);
   app.use('/api', dashboardRouter);
   app.use('/api', importExportRouter);
