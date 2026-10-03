@@ -47,9 +47,11 @@ describe('Chamber, Rental & Customer Contracts', () => {
     expect(() => customerNameSchema.parse('n'.repeat(51))).toThrow();
   });
 
-  it('validates a customer from its name alone', () => {
-    const customer = createCustomerSchema.parse({ name: 'Ramesh Patel' });
+  it('validates a customer from its name and target facility only', () => {
+    // facilityId comes from the app's facility selector, never from operator input.
+    const customer = createCustomerSchema.parse({ name: 'Ramesh Patel', facilityId: 'fac-1' });
     expect(customer.name).toBe('Ramesh Patel');
+    expect(customer.facilityId).toBe('fac-1');
     expect(customer.isActive).toBe(true);
 
     // Obsolete identity fields are rejected outright rather than silently dropped.
@@ -60,12 +62,15 @@ describe('Chamber, Rental & Customer Contracts', () => {
       { facilityIds: ['fac-1'] },
     ]) {
       expect(() =>
-        createCustomerSchema.parse({ name: 'Ramesh Patel', ...obsolete }),
+        createCustomerSchema.parse({ name: 'Ramesh Patel', facilityId: 'fac-1', ...obsolete }),
       ).toThrow();
     }
 
-    expect(() => createCustomerSchema.parse({ name: '' })).toThrow();
-    expect(() => createCustomerSchema.parse({ name: 'n'.repeat(51) })).toThrow();
+    expect(() => createCustomerSchema.parse({ name: '', facilityId: 'fac-1' })).toThrow();
+    expect(() =>
+      createCustomerSchema.parse({ name: 'n'.repeat(51), facilityId: 'fac-1' }),
+    ).toThrow();
+    expect(() => createCustomerSchema.parse({ name: 'Ramesh Patel' })).toThrow();
   });
 
   it('validates commodity and facility master data', () => {
