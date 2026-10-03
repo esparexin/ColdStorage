@@ -89,7 +89,7 @@
 
   .sidebarOpen {
     transform: translateX(0);
-    box-shadow: var(--shadow-xl);
+    box-shadow: var(--shadow-lg);
   }
 
   .drawerBackdrop {

@@ -1,81 +1,74 @@
 'use client';
 
 import React from 'react';
-import { Cloud, Lock, Shield } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import type { BackupStatusResponse } from '@cold-storage/contracts';
-import { Badge, Card } from '@/components/ui';
+import { Badge, StatCard, StatGrid } from '@/components/ui';
 import { formatDate } from '../utils';
-import styles from '../page.module.css';
+import styles from './BackupStatusCards.module.css';
 
 interface BackupStatusCardsProps {
   backupStatus: BackupStatusResponse | null;
 }
 
+/**
+ * Reports the encrypted-archive backup subsystem exactly as the backend implements it.
+ * Every tile is derived from an observed field; nothing is asserted about providers,
+ * scheduling or platforms that this codebase does not integrate with.
+ */
 export function BackupStatusCards({ backupStatus }: BackupStatusCardsProps) {
-  const atlas = backupStatus?.atlasManagedBackup;
-  const appBackup = backupStatus?.applicationEncryptedBackup;
+  const archive = backupStatus?.encryptedArchive;
+  const configured = archive?.configured ?? false;
 
   return (
-    <section className={styles.cardsGrid} aria-label="Backup Status Projections">
-      <Card
-        title={
-          <span className={styles.cardHeaderLeft}>
-            <Cloud size={20} color="var(--color-primary)" aria-hidden="true" />
-            Platform Continuous Backup
-          </span>
-        }
-        headerAction={<Badge variant="success">{atlas?.status || 'CONFIGURED'}</Badge>}
-      >
-        <dl className={styles.metricsList}>
-          <div className={styles.metricRow}>
-            <dt className={styles.metricLabel}>Provider</dt>
-            <dd className={styles.metricValue}>{atlas?.provider || 'MongoDB Atlas'}</dd>
-          </div>
-          <div className={styles.metricRow}>
-            <dt className={styles.metricLabel}>Operational Mode</dt>
-            <dd className={styles.metricValue}>{atlas?.mode || 'PLATFORM_MANAGED'}</dd>
-          </div>
-          <div className={styles.metricRow}>
-            <dt className={styles.metricLabel}>Retention Window</dt>
-            <dd className={styles.metricValue}>{atlas?.retentionDays ?? '—'} Days</dd>
-          </div>
-        </dl>
-      </Card>
+    <div className={styles.wrapper}>
+      <div className={styles.header}>
+        <h2 className={styles.title}>Encrypted Database Backups</h2>
+        <Badge variant={configured ? 'success' : 'danger'}>
+          {configured ? 'CONFIGURED' : 'NOT CONFIGURED'}
+        </Badge>
+      </div>
 
-      <Card
-        title={
-          <span className={styles.cardHeaderLeft}>
-            <Shield size={20} color="var(--color-primary)" aria-hidden="true" />
-            Application Encrypted Backups
-          </span>
-        }
-        headerAction={
-          <Badge variant={appBackup?.enabled ? 'success' : 'danger'}>
-            {appBackup?.enabled ? 'ACTIVE' : 'DISABLED'}
-          </Badge>
-        }
-      >
-        <dl className={styles.metricsList}>
-          <div className={styles.metricRow}>
-            <dt className={styles.metricLabel}>Encryption Standard</dt>
-            <dd className={styles.metricValue}>
-              <Lock size={12} aria-hidden="true" /> AES-256-GCM + SHA-256
-            </dd>
-          </div>
-          <div className={styles.metricRow}>
-            <dt className={styles.metricLabel}>Configured Retention</dt>
-            <dd className={styles.metricValue}>{appBackup?.retentionDays ?? '—'} Days</dd>
-          </div>
-          <div className={styles.metricRow}>
-            <dt className={styles.metricLabel}>Last Completed Run</dt>
-            <dd className={styles.metricValue}>{formatDate(appBackup?.lastBackupAt)}</dd>
-          </div>
-          <div className={styles.metricRow}>
-            <dt className={styles.metricLabel}>Lifetime Completed Backups</dt>
-            <dd className={styles.metricValue}>{appBackup?.totalCompletedBackups ?? 0}</dd>
-          </div>
-        </dl>
-      </Card>
-    </section>
+      {!configured && (
+        <p className={styles.notice} role="status">
+          Backups are unavailable. {archive?.enabled === false
+            ? 'Encrypted backups are switched off in System Settings.'
+            : 'BACKUP_ENCRYPTION_KEY is not set on the server.'}{' '}
+          Backup actions stay disabled until this is resolved.
+        </p>
+      )}
+
+      <StatGrid label="Backup configuration and history">
+        <StatCard
+          label="Encryption"
+          value="AES-256-GCM"
+          sub="SHA-256 checksum recorded per archive"
+          icon={ShieldCheck}
+          iconSize={18}
+        />
+        <StatCard
+          label="Retention recorded"
+          value={archive?.retentionDays ?? '—'}
+          sub="Days, stored as the archive expiry date"
+          iconSize={18}
+        />
+        <StatCard
+          label="Last completed run"
+          value={formatDate(archive?.lastBackupAt)}
+          iconSize={18}
+        />
+        <StatCard
+          label="Completed backups"
+          value={archive?.totalCompletedBackups ?? 0}
+          iconSize={18}
+        />
+      </StatGrid>
+
+      <p className={styles.limitations}>
+        Archives are written to the backend's local storage directory. Backups are started
+        manually, expired archives are not deleted automatically, and restoring an archive is
+        not currently available in the application.
+      </p>
+    </div>
   );
 }

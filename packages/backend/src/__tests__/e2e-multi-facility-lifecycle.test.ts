@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
+import { config } from '../config.js';
 import { AuditLogModel } from '../database/models/audit-log.model.js';
 import { BackupLogModel } from '../database/models/backup-log.model.js';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
@@ -35,7 +36,9 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
   let deliveryId: string;
 
   beforeAll(async () => {
-    process.env.BACKUP_ENCRYPTION_KEY =
+    // config is the environment SSOT and snapshots process.env at module load, so a key set
+    // after import has no effect. Tests must therefore seed the config object directly.
+    config.backupEncryptionKey =
       '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
     const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';

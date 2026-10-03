@@ -1,0 +1,97 @@
+.logoLayout {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.logoPreviewWrapper {
+  width: 140px;
+  height: 90px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-2);
+  overflow: hidden;
+  position: relative;
+}
+
+.logoImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: var(--space-1);
+}
+
+.logoPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.logoControls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 240px;
+}
+
+.logoActionsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.uploadLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.uploadLabel:hover {
+  background: var(--color-primary-hover);
+}
+
+.uploadInput {
+  display: none;
+}
+
+.logoHint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* Forms */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}

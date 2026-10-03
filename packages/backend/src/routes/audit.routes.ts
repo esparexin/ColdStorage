@@ -1,5 +1,9 @@
 import { Router, type Request, type Response } from 'express';
-import { auditQuerySchema } from '@cold-storage/contracts';
+import {
+  auditQuerySchema,
+  hasGlobalFacilityScope,
+  inFacilityScope,
+} from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { auditService } from '../modules/audit/audit.service.js';
@@ -29,17 +33,16 @@ auditRouter.get(
     const query = parseResult.data;
     const user = req.user!;
 
-    // Enforce facility scoping for non-SUPER_ADMIN users
-    if (user.role !== 'SUPER_ADMIN') {
-      if (query.facilityId && !user.facilityIds.includes(query.facilityId)) {
-        res.status(403).json({
-          error: `Access denied: User is not authorized to access facility '${query.facilityId}'`,
-        });
-        return;
-      }
+    // Enforce tenancy through the shared scope helper. `null` means unrestricted, which is the
+    // audit service's documented signal for a global-scope reader.
+    if (query.facilityId && !inFacilityScope(user.role, user.facilityIds, query.facilityId)) {
+      res.status(403).json({
+        error: `Access denied: User is not authorized to access facility '${query.facilityId}'`,
+      });
+      return;
     }
 
-    const authorizedFacilityIds = user.role === 'SUPER_ADMIN' ? null : user.facilityIds;
+    const authorizedFacilityIds = hasGlobalFacilityScope(user.role) ? null : user.facilityIds;
     const result = await auditService.queryLogs(query, authorizedFacilityIds);
     res.status(200).json(result);
   },
@@ -57,7 +60,7 @@ auditRouter.get(
   async (req: Request, res: Response): Promise<void> => {
     const id = getParamId(req.params.id);
     const user = req.user!;
-    const authorizedFacilityIds = user.role === 'SUPER_ADMIN' ? null : user.facilityIds;
+    const authorizedFacilityIds = hasGlobalFacilityScope(user.role) ? null : user.facilityIds;
 
     try {
       const log = await auditService.getLogById(id, authorizedFacilityIds);

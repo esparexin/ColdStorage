@@ -1,5 +1,10 @@
 import { Router, type Request, type Response } from 'express';
-import { createCustomerSchema, updateCustomerSchema } from '@cold-storage/contracts';
+import {
+  createCustomerSchema,
+  hasGlobalFacilityScope,
+  inFacilityScope,
+  updateCustomerSchema,
+} from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { customerService } from '../modules/customers/customer.service.js';
@@ -19,7 +24,7 @@ customerRouter.post('/', requirePermission('customer:manage'), async (req: Reque
   }
 
   // The customer is registered for a single facility; it must be inside the caller's scope.
-  if (req.user!.role !== 'SUPER_ADMIN' && !req.user!.facilityIds.includes(parseResult.data.facilityId)) {
+  if (!inFacilityScope(req.user!.role, req.user!.facilityIds, parseResult.data.facilityId)) {
     res.status(403).json({
       error: `Access denied: User is not authorized to register customer for facility '${parseResult.data.facilityId}'`,
     });
@@ -39,7 +44,8 @@ customerRouter.get('/', requirePermission('customer:view'), async (req: Request,
   try {
     const facilityId = typeof req.query.facilityId === 'string' ? req.query.facilityId : undefined;
     const search = typeof req.query.search === 'string' ? req.query.search : undefined;
-    const isSuperAdmin = req.user!.role === 'SUPER_ADMIN';
+    // Global scope is decided by the shared tenancy helper, not an inline role comparison.
+    const isSuperAdmin = hasGlobalFacilityScope(req.user!.role);
 
     const customers = await customerService.listCustomers(
       facilityId,
@@ -66,8 +72,10 @@ customerRouter.get(
       }
 
       // Verify caller is authorized for at least one facility the customer is associated with
-      if (req.user!.role !== 'SUPER_ADMIN') {
-        const hasAccess = customer.facilityIds.some((fid) => req.user!.facilityIds.includes(fid));
+      {
+        const hasAccess = customer.facilityIds.some((fid) =>
+          inFacilityScope(req.user!.role, req.user!.facilityIds, fid),
+        );
         if (!hasAccess) {
           res.status(403).json({ error: 'Access denied: Customer does not belong to your assigned facilities' });
           return;
@@ -99,8 +107,10 @@ customerRouter.patch(
         return;
       }
 
-      if (req.user!.role !== 'SUPER_ADMIN') {
-        const hasAccess = existing.facilityIds.some((fid) => req.user!.facilityIds.includes(fid));
+      {
+        const hasAccess = existing.facilityIds.some((fid) =>
+          inFacilityScope(req.user!.role, req.user!.facilityIds, fid),
+        );
         if (!hasAccess) {
           res.status(403).json({ error: 'Access denied: Customer does not belong to your assigned facilities' });
           return;

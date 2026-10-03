@@ -1,6 +1,7 @@
 import type { BackupQuery, BackupStatusResponse } from '@cold-storage/contracts';
 import { BackupLogModel, type BackupLogDoc } from '../../database/models/backup-log.model.js';
 import { settingsService } from '../settings/settings.service.js';
+import { isEncryptionKeyConfigured } from './backup-crypto.js';
 
 export async function queryBackupHistory(
   queryOrStatus?: BackupQuery | string,
@@ -47,18 +48,16 @@ export async function getBackupStatus(): Promise<BackupStatusResponse> {
 
   const totalCompleted = await BackupLogModel.countDocuments({ status: 'COMPLETED' }).exec();
 
+  const enabled = settings.backupPolicy.backupEnabled ?? true;
+  const keyConfigured = isEncryptionKeyConfigured();
+
   return {
-    atlasManagedBackup: {
-      provider: 'MongoDB Atlas',
-      retentionDays: settings.backupPolicy.atlasRetentionDays ?? 7,
-      mode: 'PLATFORM_MANAGED',
-      status: 'CONFIGURED',
-    },
-    applicationEncryptedBackup: {
-      enabled: settings.backupPolicy.driveBackupEnabled ?? true,
-      retentionDays: settings.backupPolicy.driveRetentionDays ?? 30,
+    encryptedArchive: {
+      enabled,
+      keyConfigured,
+      configured: enabled && keyConfigured,
+      retentionDays: settings.backupPolicy.retentionDays ?? 30,
       lastBackupAt: latestCompleted?.createdAt ?? null,
-      lastBackupStatus: (latestCompleted?.status as 'COMPLETED') ?? null,
       totalCompletedBackups: totalCompleted,
     },
   };

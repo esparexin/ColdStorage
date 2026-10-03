@@ -26,9 +26,8 @@ describe('P9 SettingsService Singleton & SSOT Tests', () => {
     const doc = await settingsService.ensureInitialized();
     expect(doc._id).toBe('SYSTEM_SETTINGS');
     expect(doc.timezone).toBe('Asia/Kolkata');
-    expect(doc.backupPolicy.atlasRetentionDays).toBe(7);
-    expect(doc.backupPolicy.driveRetentionDays).toBe(30);
-    expect(doc.backupPolicy.driveBackupEnabled).toBe(true);
+    expect(doc.backupPolicy.retentionDays).toBe(30);
+    expect(doc.backupPolicy.backupEnabled).toBe(true);
 
     const count = await SystemSettingsModel.countDocuments();
     expect(count).toBe(1);
@@ -73,7 +72,7 @@ describe('P9 SettingsService Singleton & SSOT Tests', () => {
     expect(updated.settings.orgName).toBe('Agro Warehousing Limited');
     expect(updated.settings.gstin).toBe('06AAAAA1234A1Z5');
     expect(updated.settings.logoAssetId).toBe('logo-asset-123');
-    expect(updated.settings.backupPolicy.atlasRetentionDays).toBe(7);
+    expect(updated.settings.backupPolicy.retentionDays).toBe(30);
 
     const recheck = await settingsService.getSettings();
     expect(recheck.isConfigured).toBe(true);
@@ -100,14 +99,11 @@ describe('P9 SettingsService Singleton & SSOT Tests', () => {
     ).rejects.toThrow('SETTINGS_VALIDATION_FAILED');
   });
 
-  // 6. Timezone & Defaults: guarantees Asia/Kolkata is preserved as platform default timezone alongside standard numbering prefixes
-  it('guarantees Asia/Kolkata timezone and standard numbering prefixes as defaults', async () => {
+  // 6. Timezone & Defaults: Asia/Kolkata is the platform default timezone. Document numbering
+  // is intentionally absent: sequence prefixes are owned by modules/common/counter.service.ts.
+  it('guarantees the Asia/Kolkata platform default timezone', async () => {
     const { settings } = await settingsService.getSettings();
     expect(settings.timezone).toBe('Asia/Kolkata');
-    expect(settings.documentNumbering.mode).toBe('FY_SEQUENTIAL');
-    expect(settings.documentNumbering.grnPrefix).toBe('GRN');
-    expect(settings.documentNumbering.receiptPrefix).toBe('RCPT');
-    expect(settings.documentNumbering.challanPrefix).toBe('CHL');
-    expect(settings.documentNumbering.rentReceiptPrefix).toBe('RRCPT');
+    expect(settings).not.toHaveProperty('documentNumbering');
   });
 });

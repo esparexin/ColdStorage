@@ -1,5 +1,8 @@
 import cors from 'cors';
 import express, { type Express, type Request, type Response, type NextFunction } from 'express';
+import type { HealthResponse } from '@cold-storage/contracts';
+import { config } from './config.js';
+import { getDatabaseState } from './database/connection.js';
 import {
   securityHeadersMiddleware,
   noSqlInjectionGuard,
@@ -41,8 +44,24 @@ export function createApp(): Express {
   app.use(noSqlInjectionGuard);
   app.use(hppGuard);
 
+  // Liveness probe. Kept at the root, unauthenticated and datastore-independent so uptime
+  // monitoring never depends on the database being reachable.
   app.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({ status: 'ok', service: 'cold-storage-backend' });
+  });
+
+  // Connectivity probe for the administration UI. Registered under /api so the frontend
+  // rewrite in next.config.mjs (which proxies /api/:path* only) can actually reach it, and
+  // reports the observed datastore state rather than assuming it.
+  app.get('/api/health', (_req: Request, res: Response) => {
+    const database = { state: getDatabaseState(), configured: Boolean(config.mongoUri) };
+    const healthy = database.state === 'connected';
+    res.status(healthy ? 200 : 503).json({
+      status: healthy ? 'ok' : 'degraded',
+      service: 'cold-storage-backend',
+      database,
+      checkedAt: new Date().toISOString(),
+    } satisfies HealthResponse);
   });
 
   app.use('/api', generalRateLimiter);

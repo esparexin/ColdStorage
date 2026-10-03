@@ -67,22 +67,17 @@ test.describe('Critical Application Flows', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          orgName: 'Alpha Cold Storage Facility',
-          address: 'Main Highway, Cold Chain Zone, Hyderabad',
-          contact: '+91 98765 43210',
-          timezone: 'Asia/Kolkata',
-          printFooter: 'System-generated cold chain receipt',
-          documentNumbering: {
-            mode: 'FY_SEQUENTIAL',
-            grnPrefix: 'GRN',
-            receiptPrefix: 'RCPT',
-            challanPrefix: 'CHL',
-            rentReceiptPrefix: 'RRCPT',
-          },
-          backupPolicy: {
-            atlasRetentionDays: 7,
-            driveRetentionDays: 30,
-            driveBackupEnabled: true,
+          isConfigured: true,
+          settings: {
+            orgName: 'Alpha Cold Storage Facility',
+            address: 'Main Highway, Cold Chain Zone, Hyderabad',
+            contact: '+91 98765 43210',
+            timezone: 'Asia/Kolkata',
+            printFooter: 'System-generated cold chain receipt',
+            backupPolicy: {
+              retentionDays: 30,
+              backupEnabled: true,
+            },
           },
         }),
       });
@@ -93,10 +88,13 @@ test.describe('Critical Application Flows', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([
-          { id: 'fac-alpha', name: 'Alpha Cold Storage Facility', code: 'FAC-A' },
-          { id: 'fac-beta', name: 'Beta Cold Storage Facility', code: 'FAC-B' },
-        ]),
+        body: JSON.stringify({
+          items: [
+            { id: 'fac-alpha', name: 'Alpha Cold Storage Facility', code: 'FAC-A', isActive: true },
+            { id: 'fac-beta', name: 'Beta Cold Storage Facility', code: 'FAC-B', isActive: true },
+          ],
+          total: 2,
+        }),
       });
     });
 

@@ -131,7 +131,6 @@ export function useUserLifecycle(onMutated: () => void) {
     saving,
     actionError,
     setActionError,
-    patchUser,
     setUserStatus,
     resetPassword,
     submitEdit,

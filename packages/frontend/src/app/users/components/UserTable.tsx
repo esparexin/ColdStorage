@@ -167,7 +167,7 @@ export function UserTable({
       columns={columns}
       rows={users}
       rowKey={(u) => u.id}
-      caption="User accounts directory"
+      caption="User accounts"
       loading={loading}
       loadingLabel="Loading users..."
       emptyMessage={

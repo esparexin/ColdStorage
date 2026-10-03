@@ -84,6 +84,21 @@ export class UserService {
       return null;
     }
 
+    // A Super Admin must not be able to strip their own Super Admin authority, by demotion or
+    // by deactivation. Without this an admin could lock themselves out of user administration
+    // with a single request. A separate "last Super Admin" rule is unnecessary: `user:manage` is
+    // held only by Super Admins, so any actor performing this change is themselves an active
+    // Super Admin and can never be the last one.
+    const stripsOwnAuthority =
+      existing.role === 'SUPER_ADMIN' &&
+      existing.id === actingUserId &&
+      ((input.role !== undefined && input.role !== 'SUPER_ADMIN') ||
+        input.status === 'DISABLED');
+
+    if (stripsOwnAuthority) {
+      throw new Error('An administrator cannot remove their own Super Admin authority');
+    }
+
     if (input.email && input.email.trim().toLowerCase() !== existing.email) {
       const duplicate = await this.repo.findByEmail(input.email);
       if (duplicate && duplicate.id !== id) {

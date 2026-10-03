@@ -1,10 +1,22 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+import { config } from '../../config.js';
 
 /**
- * Validates that BACKUP_ENCRYPTION_KEY is configured and formatted as exactly 64 hex chars (32 bytes).
+ * Reports whether a usable encryption key is present, without throwing. Used by the status
+ * projection so the UI can disable backup actions instead of surfacing a configuration failure.
+ */
+export function isEncryptionKeyConfigured(overrideKey?: string): boolean {
+  const rawKey = overrideKey ?? config.backupEncryptionKey ?? '';
+  return /^[0-9a-fA-F]{64}$/.test(rawKey.trim());
+}
+
+/**
+ * Validates that the backup encryption key is configured and formatted as exactly 64 hex chars
+ * (32 bytes). The key is read from the canonical configuration singleton; `overrideKey` exists
+ * for tests and for callers that supply a key explicitly.
  */
 export function getValidEncryptionKey(overrideKey?: string): Buffer {
-  const rawKey = overrideKey ?? process.env.BACKUP_ENCRYPTION_KEY ?? '';
+  const rawKey = overrideKey ?? config.backupEncryptionKey ?? '';
   const trimmed = rawKey.trim();
 
   if (!/^[0-9a-fA-F]{64}$/.test(trimmed)) {

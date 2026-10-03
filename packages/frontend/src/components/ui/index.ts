@@ -13,6 +13,7 @@ export {
 export { SearchBar, type SearchBarProps } from './SearchBar';
 export { FilterToolbar, type FilterToolbarProps } from './FilterToolbar';
 export { Modal, type ModalProps, type ModalSize } from './Modal';
+export { ConfirmDialog, type ConfirmDialogProps } from './ConfirmDialog';
 export { Pagination, type PaginationProps } from './Pagination';
 export { DataTable, type DataTableColumn } from './DataTable';
 export { FeedbackStates } from './FeedbackStates';

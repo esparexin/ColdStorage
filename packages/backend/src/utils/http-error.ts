@@ -16,7 +16,12 @@ const UNAUTHORIZED_MARKERS = ['Unauthorized'];
 
 /** Substrings indicating a uniqueness/duplicate-key or referential-integrity conflict. */
 const CONFLICT_MARKERS = [
+  // MongoDB surfaces a lost check-then-insert race as a driver error. Without this marker the
+  // duplicate-key case was reported as 400 while the guarded path returned 409.
+  'duplicate key',
+  'E11000',
   'already exists',
+  'cannot be deleted',
   'already registered',
   'already in use',
   'active chambers',

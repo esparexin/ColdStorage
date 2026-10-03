@@ -14,6 +14,9 @@ describe('Canonical domain error classification', () => {
       'Cannot delete position: active inventory exists',
       'New capacity would reduce capacity below current occupancy',
       'Parent Rack is inactive',
+      // A lost check-then-insert race surfaces the raw driver error rather than a service message.
+      'E11000 duplicate key error collection: cold_storage.facilities index: code_1 dup key: { code: "FAC-N" }',
+      'Facility cannot be deleted: it still has 3 inward receipts',
     ];
 
     for (const message of conflicts) {

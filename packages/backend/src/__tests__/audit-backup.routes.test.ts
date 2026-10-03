@@ -28,7 +28,8 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
   const seed = createAuthSeeder(config.jwtSecret);
 
   beforeAll(async () => {
-    process.env.BACKUP_ENCRYPTION_KEY = validHexKey;
+    // config is the environment SSOT and snapshots process.env at import time.
+    config.backupEncryptionKey = validHexKey;
     const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(mongoUri);
@@ -79,17 +80,9 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
       address: 'Plot 42, Industrial Area, Parwanoo, HP',
       contact: '+91 1792 234567',
       timezone: 'Asia/Kolkata',
-      documentNumbering: {
-        mode: 'FY_SEQUENTIAL',
-        grnPrefix: 'GRN',
-        receiptPrefix: 'RCPT',
-        challanPrefix: 'CHL',
-        rentReceiptPrefix: 'RRCPT',
-      },
       backupPolicy: {
-        atlasRetentionDays: 7,
-        driveRetentionDays: 30,
-        driveBackupEnabled: true,
+        retentionDays: 30,
+        backupEnabled: true,
       },
     });
 
@@ -299,14 +292,36 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
       .get('/api/backups/status')
       .set('Authorization', `Bearer ${superAdminToken}`);
     expect(res.status).toBe(200);
-    expect(res.body.atlasManagedBackup).toEqual({
-      provider: 'MongoDB Atlas',
-      retentionDays: 7,
-      mode: 'PLATFORM_MANAGED',
-      status: 'CONFIGURED',
-    });
-    expect(res.body.applicationEncryptedBackup).toBeDefined();
-    expect(res.body.applicationEncryptedBackup.enabled).toBe(true);
-    expect(res.body.applicationEncryptedBackup.retentionDays).toBe(30);
+    const archive = res.body.encryptedArchive;
+    expect(archive).toBeDefined();
+    expect(archive.enabled).toBe(true);
+    expect(archive.retentionDays).toBe(30);
+    // The projection reports only what this backend implements. There is no platform-managed
+    // backup integration, so no such field is emitted.
+    expect(res.body).not.toHaveProperty('atlasManagedBackup');
+    expect(archive.totalCompletedBackups).toBeGreaterThanOrEqual(0);
+  });
+
+  it('13. reports backups as not configured when the encryption key is absent', async () => {
+    const originalKey = config.backupEncryptionKey;
+    config.backupEncryptionKey = undefined;
+    try {
+      const res = await request(app)
+        .get('/api/backups/status')
+        .set('Authorization', `Bearer ${superAdminToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.encryptedArchive.keyConfigured).toBe(false);
+      expect(res.body.encryptedArchive.configured).toBe(false);
+
+      // The trigger must refuse with a configuration code, not an opaque server error.
+      const trigger = await request(app)
+        .post('/api/backups/trigger')
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .send({ backupType: 'MANUAL' });
+      expect(trigger.status).toBe(503);
+      expect(trigger.body.code).toBe('BACKUP_KEY_INVALID');
+    } finally {
+      config.backupEncryptionKey = originalKey;
+    }
   });
 });
