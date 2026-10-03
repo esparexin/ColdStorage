@@ -33,7 +33,7 @@ function InventoryContent() {
   const [rentPayAccount, setRentPayAccount] = useState<RentSummaryDto | null>(null);
   const rentGate = useRentGate();
 
-  const [activeTab, setActiveTab] = useState<'put-away' | 'hierarchy' | 'ledger'>(
+const [activeTab, setActiveTab] = useState<'put-away' | 'hierarchy' | 'ledger'>(
     'put-away',
   );
 

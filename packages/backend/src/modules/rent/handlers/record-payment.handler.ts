@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
-  getFinancialYearKey,
   type RecordRentPaymentInput,
   type RecordRentPaymentResult,
   type RentPayment,
@@ -81,11 +80,12 @@ export async function executeRecordPayment(
         enforceBackdatingWindow: false,
       });
 
-      // 5. Allocate independent FY-sequential receipt number inside the session
-      const fy = getFinancialYearKey(paymentDate);
-      const seq = await counterService.getNextSequence(facilityId, 'RENT_RECEIPT', fy, session);
-      const padded = String(seq).padStart(4, '0');
-      const receiptNumber = `RCPT-${fy}-${padded}`;
+      // 5. Allocate independent FY-sequential rent receipt number inside the session
+      const receiptNumber = await counterService.generateRentReceiptNumber(
+        facilityId,
+        paymentDate,
+        session,
+      );
 
       // 6. Insert RentPayment document inside the session
       const paymentId = `rp-${randomUUID()}`;

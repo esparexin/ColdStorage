@@ -7,6 +7,12 @@ import type {
   Rack,
 } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
+import {
+  createAllocRow,
+  isAllocValidationFailure,
+  patchAllocRow,
+  validateAllocRows,
+} from '../alloc-rows.helper';
 import type { AllocatingRow } from '../types';
 
 export function usePutAway(
@@ -24,7 +30,7 @@ export function usePutAway(
   const [levelPositions, setLevelPositions] = useState<Record<string, Position[]>>({});
 
   const [allocRows, setAllocRows] = useState<AllocatingRow[]>([
-    { id: 'row-1', rackId: '', levelId: '', positionId: '', bags: '' },
+    createAllocRow('row-1'),
   ]);
   const [allocNotes, setAllocNotes] = useState('');
   const [allocSubmitting, setAllocSubmitting] = useState(false);
@@ -86,16 +92,12 @@ export function usePutAway(
   useEffect(() => {
     if (selectedGrnId) {
       void fetchGrnSummaryAndHistory(selectedGrnId);
-      setAllocRows([
-        { id: 'row-1', rackId: '', levelId: '', positionId: '', bags: '' },
-      ]);
+      setAllocRows([createAllocRow('row-1')]);
     }
   }, [selectedGrnId, fetchGrnSummaryAndHistory]);
 
   const handleAllocRackChange = async (rowId: string, rackId: string) => {
-    setAllocRows((rows) =>
-      rows.map((r) => (r.id === rowId ? { ...r, rackId, levelId: '', positionId: '' } : r)),
-    );
+    setAllocRows((rows) => patchAllocRow(rows, rowId, { rackId, levelId: '', positionId: '' }));
 
     if (rackId && !rackLevels[rackId]) {
       try {
@@ -114,9 +116,7 @@ export function usePutAway(
   };
 
   const handleAllocLevelChange = async (rowId: string, levelId: string) => {
-    setAllocRows((rows) =>
-      rows.map((r) => (r.id === rowId ? { ...r, levelId, positionId: '' } : r)),
-    );
+    setAllocRows((rows) => patchAllocRow(rows, rowId, { levelId, positionId: '' }));
 
     if (levelId && !levelPositions[levelId]) {
       try {
@@ -134,11 +134,18 @@ export function usePutAway(
     }
   };
 
+  const handleAllocPositionChange = (rowId: string, positionId: string) => {
+    setAllocRows((rows) => patchAllocRow(rows, rowId, { positionId }));
+  };
+
+  const handleAllocBagsChange = (rowId: string, bags: string) => {
+    setAllocRows((rows) =>
+      patchAllocRow(rows, rowId, { bags: bags.trim() === '' ? '' : Number.parseInt(bags, 10) }),
+    );
+  };
+
   const handleAddAllocRow = () => {
-    setAllocRows((rows) => [
-      ...rows,
-      { id: `row-${Date.now()}`, rackId: '', levelId: '', positionId: '', bags: '' },
-    ]);
+    setAllocRows((rows) => [...rows, createAllocRow(`row-${Date.now()}`)]);
   };
 
   const handleRemoveAllocRow = (id: string) => {
@@ -153,31 +160,9 @@ export function usePutAway(
     e.preventDefault();
     if (!selectedFacilityId || !selectedGrnId || !grnSummary) return;
 
-    const validItems: Array<{ positionId: string; bags: number }> = [];
-    const usedPositions = new Set<string>();
-
-    for (const row of allocRows) {
-      if (!row.positionId) {
-        setAllocError('Please select a storage position for all rows');
-        return;
-      }
-      if (usedPositions.has(row.positionId)) {
-        setAllocError('Duplicate storage positions selected in allocation rows');
-        return;
-      }
-      usedPositions.add(row.positionId);
-
-      if (typeof row.bags !== 'number' || row.bags <= 0) {
-        setAllocError('Bags allocated must be a positive integer in each row');
-        return;
-      }
-      validItems.push({ positionId: row.positionId, bags: row.bags });
-    }
-
-    if (totalAllocatingBags > grnSummary.unallocatedBags) {
-      setAllocError(
-        `Cannot allocate ${totalAllocatingBags} bags (only ${grnSummary.unallocatedBags} unallocated bags remain for this GRN)`,
-      );
+    const validation = validateAllocRows(allocRows, grnSummary.unallocatedBags);
+    if (isAllocValidationFailure(validation)) {
+      setAllocError(validation.error);
       return;
     }
 
@@ -191,7 +176,7 @@ export function usePutAway(
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            items: validItems,
+            items: validation.items,
             notes: allocNotes.trim() || undefined,
           }),
         },
@@ -211,7 +196,7 @@ export function usePutAway(
 
       setRentBlocked(null);
 
-      setAllocRows([{ id: 'row-1', rackId: '', levelId: '', positionId: '', bags: '' }]);
+      setAllocRows([createAllocRow('row-1')]);
       setAllocNotes('');
       void fetchGrnSummaryAndHistory(selectedGrnId);
       if (onAllocationSuccess) onAllocationSuccess();
@@ -241,6 +226,8 @@ export function usePutAway(
     totalAllocatingBags,
     handleAllocRackChange,
     handleAllocLevelChange,
+    handleAllocPositionChange,
+    handleAllocBagsChange,
     handleAddAllocRow,
     handleRemoveAllocRow,
     handlePutAwaySubmit,

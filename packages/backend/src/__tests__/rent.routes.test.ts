@@ -165,7 +165,7 @@ describe('Suite 3: Rent HTTP API & RBAC Routes — rent.routes.test.ts', () => {
     expect(res.body.payment).toBeDefined();
     expect(res.body.payment.amountPaid).toBe(3000);
     expect(res.body.payment.paymentMode).toBe('Cash');
-    expect(res.body.payment.receiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0001$/);
+    expect(res.body.payment.receiptNumber).toMatch(/^RRCPT-\d{2}-\d{2}-0001$/);
     expect(res.body.summary.remainingBalance).toBe(2000);
     expect(res.body.summary.paymentStatus).toBe('Not Settled');
   });

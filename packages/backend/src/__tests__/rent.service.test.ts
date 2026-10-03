@@ -95,7 +95,7 @@ describe('Suite 2: Rent Service, Immutability & Concurrency — rent.service.tes
 
     expect(result.payment.amountPaid).toBe(5000);
     expect(result.payment.paymentMode).toBe('Cash');
-    expect(result.payment.receiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0001$/);
+    expect(result.payment.receiptNumber).toMatch(/^RRCPT-\d{2}-\d{2}-0001$/);
     expect(result.summary.totalPaid).toBe(5000);
     expect(result.summary.remainingBalance).toBe(0);
     expect(result.summary.paymentStatus).toBe('Settled');
@@ -208,8 +208,8 @@ describe('Suite 2: Rent Service, Immutability & Concurrency — rent.service.tes
       userId,
     );
 
-    expect(res1.payment.receiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0001$/);
-    expect(res2.payment.receiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0002$/);
+    expect(res1.payment.receiptNumber).toMatch(/^RRCPT-\d{2}-\d{2}-0001$/);
+    expect(res2.payment.receiptNumber).toMatch(/^RRCPT-\d{2}-\d{2}-0002$/);
     expect(res1.payment.receiptNumber).not.toBe(res2.payment.receiptNumber);
   });
 

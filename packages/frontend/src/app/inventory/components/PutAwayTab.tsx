@@ -138,12 +138,7 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
                           required
                           disabled={!row.levelId}
                           value={row.positionId}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            putAway.allocRows.map((r) =>
-                              r.id === row.id ? { ...r, positionId: val } : r,
-                            );
-                          }}
+                          onChange={(e) => putAway.handleAllocPositionChange(row.id, e.target.value)}
                         >
                           <option value="">Select Position</option>
                           {(putAway.levelPositions[row.levelId] ?? []).map((pos) => (
@@ -162,12 +157,7 @@ export function PutAwayTab({ openGrns, putAway, canAllocate, canPayRent, payLoad
                           max={putAway.grnSummary?.unallocatedBags ?? 100000}
                           placeholder="Bags"
                           value={row.bags}
-                          onChange={(e) => {
-                            const val = e.target.value ? parseInt(e.target.value, 10) : '';
-                            putAway.allocRows.map((r) =>
-                              r.id === row.id ? { ...r, bags: val } : r,
-                            );
-                          }}
+                          onChange={(e) => putAway.handleAllocBagsChange(row.id, e.target.value)}
                         />
 
                         {putAway.allocRows.length > 1 && (
