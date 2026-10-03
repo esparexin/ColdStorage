@@ -27,8 +27,8 @@ function InventoryContent() {
   const canAllocate = can(userRole, 'rack:allocate');
   const canManageStorage = can(userRole, 'storage:manage');
 
-  const [activeTab, setActiveTab] = useState<'put-away' | 'hierarchy' | 'ledger'>(() =>
-    initialGrnId ? 'put-away' : 'put-away',
+  const [activeTab, setActiveTab] = useState<'put-away' | 'hierarchy' | 'ledger'>(
+    'put-away',
   );
 
   const inventoryData = useInventoryData(selectedFacilityId);
