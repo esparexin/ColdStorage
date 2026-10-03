@@ -5,6 +5,7 @@ import { CheckCircle2, Plus, RefreshCw, ShieldAlert } from 'lucide-react';
 import { can, type Role, type UserSummary } from '@cold-storage/contracts';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
+import { useFacility } from '@/context/FacilityContext';
 import { UserFilterBar } from './components/UserFilterBar';
 import { UserLifecycleModals } from './components/UserLifecycleModals';
 import { UserTable } from './components/UserTable';
@@ -16,6 +17,7 @@ export default function UsersPage() {
   const { user } = useAuth();
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const canManage = can(userRole, 'user:manage');
+  const { availableFacilities } = useFacility();
 
   const {
     totalUsers,
@@ -23,7 +25,6 @@ export default function UsersPage() {
     setPage,
     totalPages,
     loadingUsers,
-    availableFacilities,
     facilityNameMap,
     searchTerm,
     setSearchTerm,

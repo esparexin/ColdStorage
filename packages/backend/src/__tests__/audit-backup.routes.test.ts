@@ -79,17 +79,9 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
       address: 'Plot 42, Industrial Area, Parwanoo, HP',
       contact: '+91 1792 234567',
       timezone: 'Asia/Kolkata',
-      documentNumbering: {
-        mode: 'FY_SEQUENTIAL',
-        grnPrefix: 'GRN',
-        receiptPrefix: 'RCPT',
-        challanPrefix: 'CHL',
-        rentReceiptPrefix: 'RRCPT',
-      },
       backupPolicy: {
-        atlasRetentionDays: 7,
-        driveRetentionDays: 30,
-        driveBackupEnabled: true,
+        retentionDays: 30,
+        backupEnabled: true,
       },
     });
 
@@ -299,14 +291,13 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
       .get('/api/backups/status')
       .set('Authorization', `Bearer ${superAdminToken}`);
     expect(res.status).toBe(200);
-    expect(res.body.atlasManagedBackup).toEqual({
-      provider: 'MongoDB Atlas',
-      retentionDays: 7,
-      mode: 'PLATFORM_MANAGED',
-      status: 'CONFIGURED',
-    });
-    expect(res.body.applicationEncryptedBackup).toBeDefined();
-    expect(res.body.applicationEncryptedBackup.enabled).toBe(true);
-    expect(res.body.applicationEncryptedBackup.retentionDays).toBe(30);
+    const archive = res.body.encryptedArchive;
+    expect(archive).toBeDefined();
+    expect(archive.enabled).toBe(true);
+    expect(archive.retentionDays).toBe(30);
+    // The projection reports only what this backend implements. There is no platform-managed
+    // backup integration, so no such field is emitted.
+    expect(res.body).not.toHaveProperty('atlasManagedBackup');
+    expect(archive.totalCompletedBackups).toBeGreaterThanOrEqual(0);
   });
 });

@@ -8,7 +8,6 @@ import { useAuth } from '@/context/AuthContext';
 import { BackupPolicySection } from './components/BackupPolicySection';
 import { BrandLogoSection } from './components/BrandLogoSection';
 import { ConnectivitySection } from './components/ConnectivitySection';
-import { DocumentNumberingSection } from './components/DocumentNumberingSection';
 import { FacilitySection } from './components/FacilitySection';
 import { OrgIdentitySection } from './components/OrgIdentitySection';
 import { useSettingsForm } from './hooks/useSettingsForm';
@@ -36,20 +35,10 @@ export default function SettingsPage() {
     setPrintFooter,
     timezone,
     setTimezone,
-    grnPrefix,
-    setGrnPrefix,
-    receiptPrefix,
-    setReceiptPrefix,
-    challanPrefix,
-    setChallanPrefix,
-    rentReceiptPrefix,
-    setRentReceiptPrefix,
-    atlasRetentionDays,
-    setAtlasRetentionDays,
-    driveRetentionDays,
-    setDriveRetentionDays,
-    driveBackupEnabled,
-    setDriveBackupEnabled,
+    retentionDays,
+    setRetentionDays,
+    backupEnabled,
+    setBackupEnabled,
     saving,
     saveSuccess,
     saveError,
@@ -145,24 +134,11 @@ export default function SettingsPage() {
           setPrintFooter={setPrintFooter}
         />
 
-        <DocumentNumberingSection
-          grnPrefix={grnPrefix}
-          setGrnPrefix={setGrnPrefix}
-          receiptPrefix={receiptPrefix}
-          setReceiptPrefix={setReceiptPrefix}
-          challanPrefix={challanPrefix}
-          setChallanPrefix={setChallanPrefix}
-          rentReceiptPrefix={rentReceiptPrefix}
-          setRentReceiptPrefix={setRentReceiptPrefix}
-        />
-
         <BackupPolicySection
-          atlasRetentionDays={atlasRetentionDays}
-          setAtlasRetentionDays={setAtlasRetentionDays}
-          driveRetentionDays={driveRetentionDays}
-          setDriveRetentionDays={setDriveRetentionDays}
-          driveBackupEnabled={driveBackupEnabled}
-          setDriveBackupEnabled={setDriveBackupEnabled}
+          retentionDays={retentionDays}
+          setRetentionDays={setRetentionDays}
+          backupEnabled={backupEnabled}
+          setBackupEnabled={setBackupEnabled}
         />
 
         <div className={styles.saveFooter}>

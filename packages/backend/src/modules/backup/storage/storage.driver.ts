@@ -8,7 +8,6 @@ export interface StorageWriteResult {
 
 export interface BackupStorageDriver {
   write(filename: string, content: Buffer): Promise<StorageWriteResult>;
-  read(location: string): Promise<Buffer>;
   delete(location: string): Promise<boolean>;
   verify(location: string, expectedBytes: number): Promise<boolean>;
 }
@@ -38,10 +37,6 @@ export class LocalEncryptedStorageDriver implements BackupStorageDriver {
       location: targetPath,
       sizeBytes: stats.size,
     };
-  }
-
-  public async read(location: string): Promise<Buffer> {
-    return fs.readFile(location);
   }
 
   public async delete(location: string): Promise<boolean> {

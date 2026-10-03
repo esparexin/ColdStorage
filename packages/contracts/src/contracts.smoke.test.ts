@@ -86,10 +86,8 @@ describe('P1 Governance & Shared Contracts Foundation', () => {
     });
 
     expect(settings.timezone).toBe('Asia/Kolkata');
-    expect(settings.backupPolicy.atlasRetentionDays).toBe(7);
-    expect(settings.backupPolicy.driveRetentionDays).toBe(30);
-    expect(settings.documentNumbering.grnPrefix).toBe('GRN');
-    expect(settings.documentNumbering.rentReceiptPrefix).toBe('RRCPT');
+    expect(settings.backupPolicy.retentionDays).toBe(30);
+    expect(settings.backupPolicy.backupEnabled).toBe(true);
   });
 
   it('validates user provisioning and authentication schemas', () => {

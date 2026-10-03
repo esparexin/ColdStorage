@@ -1,76 +1,69 @@
 'use client';
 
 import React from 'react';
-import { Cloud } from 'lucide-react';
-import styles from '../page.module.css';
+import { Input } from '@/components/ui';
+import styles from './BackupPolicySection.module.css';
 
 interface BackupPolicySectionProps {
-  atlasRetentionDays: number;
-  setAtlasRetentionDays: (val: number) => void;
-  driveRetentionDays: number;
-  setDriveRetentionDays: (val: number) => void;
-  driveBackupEnabled: boolean;
-  setDriveBackupEnabled: (val: boolean) => void;
+  retentionDays: number;
+  setRetentionDays: (val: number) => void;
+  backupEnabled: boolean;
+  setBackupEnabled: (val: boolean) => void;
 }
 
+/**
+ * Backup policy.
+ *
+ * The copy describes only what the backend actually performs: an operator-triggered, AES-256-GCM
+ * encrypted archive written to the backend's local storage directory. There is no scheduler and
+ * no cloud integration, so no automation or provider is claimed here.
+ */
 export function BackupPolicySection({
-  atlasRetentionDays,
-  setAtlasRetentionDays,
-  driveRetentionDays,
-  setDriveRetentionDays,
-  driveBackupEnabled,
-  setDriveBackupEnabled,
+  retentionDays,
+  setRetentionDays,
+  backupEnabled,
+  setBackupEnabled,
 }: BackupPolicySectionProps) {
   return (
-    <div className={styles.sectionCard}>
-      <div className={styles.sectionHeader}>
-        <Cloud size={18} color="var(--color-primary)" aria-hidden="true" />
-        <h2 className={styles.sectionTitle}>Database Backup & Snapshot Policy</h2>
-      </div>
+    <section className={styles.section} aria-labelledby="backup-policy-heading">
+      <h2 id="backup-policy-heading" className={styles.title}>
+        Database Backup
+      </h2>
 
-      <div className={styles.formGrid2}>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="atlas-retention" className={styles.fieldLabel}>
-            Atlas Snapshot Retention (Days)
-          </label>
-          <input
-            id="atlas-retention"
+      <div className={styles.row}>
+        <div className={styles.field}>
+          <Input
+            id="retention-days"
+            label="Archive retention (days)"
             type="number"
             min={1}
             max={365}
             required
-            className={styles.fieldInput}
-            value={atlasRetentionDays}
-            onChange={(e) => setAtlasRetentionDays(parseInt(e.target.value, 10) || 7)}
+            value={retentionDays}
+            onChange={(e) => setRetentionDays(parseInt(e.target.value, 10) || 30)}
+            className={styles.narrowInput}
           />
+          <p className={styles.hint}>
+            Recorded as the expiry date on each archive. Expired archives are not deleted
+            automatically.
+          </p>
         </div>
 
-        <div className={styles.fieldGroup}>
-          <label htmlFor="drive-retention" className={styles.fieldLabel}>
-            Google Drive Archive Retention (Days)
-          </label>
+        <label htmlFor="backup-enabled" className={styles.checkboxLabel}>
           <input
-            id="drive-retention"
-            type="number"
-            min={1}
-            max={365}
-            required
-            className={styles.fieldInput}
-            value={driveRetentionDays}
-            onChange={(e) => setDriveRetentionDays(parseInt(e.target.value, 10) || 30)}
+            id="backup-enabled"
+            type="checkbox"
+            checked={backupEnabled}
+            onChange={(e) => setBackupEnabled(e.target.checked)}
           />
-        </div>
+          <span>Enable encrypted database backups</span>
+        </label>
       </div>
 
-      <label htmlFor="drive-backup-enabled" className={styles.checkboxLabel}>
-        <input
-          id="drive-backup-enabled"
-          type="checkbox"
-          checked={driveBackupEnabled}
-          onChange={(e) => setDriveBackupEnabled(e.target.checked)}
-        />
-        <span>Enable Automated Daily Google Drive Backup Exports</span>
-      </label>
-    </div>
+      <p className={styles.note}>
+        Backups are started manually from the Backup page and require a BACKUP_ENCRYPTION_KEY on
+        the server. When they are disabled or the key is missing, backup actions stay unavailable.
+      </p>
+    </section>
   );
 }

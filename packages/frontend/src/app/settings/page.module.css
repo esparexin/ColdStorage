@@ -182,26 +182,6 @@
   display: none;
 }
 
-.deleteLogoBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1-5);
-  padding: var(--space-2) var(--space-3);
-  background: transparent;
-  color: var(--color-danger);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.deleteLogoBtn:hover {
-  background: var(--color-danger-subtle);
-  border-color: var(--color-danger);
-}
-
 .logoHint {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
@@ -211,12 +191,6 @@
 .formGrid2 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-4);
-}
-
-.formGrid3 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-4);
 }
 
@@ -240,23 +214,7 @@
 }
 
 .fieldInput,
-.fieldSelect {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  color: var(--color-text-primary);
-  background: var(--color-surface-1);
-  outline: none;
-  transition: border-color var(--transition-fast);
-  width: 100%;
-}
-
 .fieldInput:focus,
-.fieldSelect:focus {
-  border-color: var(--color-primary);
-}
-
 .checkboxLabel {
   display: flex;
   align-items: center;
@@ -275,27 +233,4 @@
   justify-content: flex-end;
   gap: var(--space-3);
   padding-top: var(--space-4);
-}
-
-.saveBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-6);
-  background: var(--color-primary);
-  color: var(--color-text-on-accent);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-bold);
-  cursor: pointer;
-  transition: background var(--transition-fast);
-}
-
-.saveBtn:hover {
-  background: var(--color-primary-hover);
-}
-
-.saveBtn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }

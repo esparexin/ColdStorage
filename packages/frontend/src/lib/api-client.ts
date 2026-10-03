@@ -28,11 +28,6 @@ export function setAccessToken(token: string | null): void {
   activeAccessToken = token;
 }
 
-/** Used by AuthContext to read current token state. */
-export function getAccessToken(): string | null {
-  return activeAccessToken;
-}
-
 /**
  * Performs an authenticated fetch, automatically refreshing the access token
  * once on a 401 response. Never retries the refresh endpoint itself.

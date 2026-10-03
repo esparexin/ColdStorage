@@ -168,3 +168,14 @@
   gap: var(--space-4);
   text-align: center;
 }
+
+/* Refresh icon rotation while a status or history request is in flight. */
+.spinning {
+  animation: backup-spin 0.8s linear infinite;
+}
+
+@keyframes backup-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

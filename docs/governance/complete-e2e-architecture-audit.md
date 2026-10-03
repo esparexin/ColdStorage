@@ -21,7 +21,8 @@ An exhaustive end-to-end audit was conducted across the Cold Storage management 
 
 ## 2. Evidence-Based Audit Catalog
 
-### Finding 1: Dead Code / Unused Contract Module (`security.ts`)
+**STATUS: RESOLVED** — `packages/contracts/src/security.ts` and its `index.ts` re-export were deleted in commit `3d3d037`. Verified absent.
+### (Historical) Finding 1: Dead Code / Unused Contract Module (`security.ts`)
 1. **Finding:** Unused schema exports and rate-limiting contract specifications.
 2. **File/path:** `packages/contracts/src/security.ts`
 3. **Symbol/function/component:** `rateLimitTierSchema`, `RateLimitTier`, `rateLimitErrorResponseSchema`, `RateLimitErrorResponse`, `rateLimitTierConfigSchema`, `RateLimitTierConfig`, `securityHeadersPolicySchema`, `SecurityHeadersPolicy`.
@@ -38,7 +39,8 @@ An exhaustive end-to-end audit was conducted across the Cold Storage management 
 14. **Risk level:** Low (Zero consumers exist).
 15. **Verification required:** `npm run build`, `npm run type-check`.
 
-### Finding 2: Architecture Governance Regex Bypass for Native `<button>`
+**STATUS: RESOLVED** — rule 12 now matches `<button(\b|[ >])`, so a newline after the tag name is caught. Verified in commit `fe0aed4`. All remaining native buttons sit in the four files the rule names as exemptions.
+### (Historical) Finding 2: Architecture Governance Regex Bypass for Native `<button>`
 1. **Finding:** Rule 12 in `check-architecture-boundaries.sh` fails to detect `<button\n` with a newline, allowing 8 native buttons to bypass the DS primitive.
 2. **File/path:** `scripts/check-architecture-boundaries.sh:100`
 3. **Symbol/function/component:** Rule 12 `grep -rnE "<button[ >]"`
@@ -58,7 +60,8 @@ An exhaustive end-to-end audit was conducted across the Cold Storage management 
 14. **Risk level:** Low.
 15. **Verification required:** `npm run hygiene`, `npm run build`.
 
-### Finding 3: Architecture Governance Regex Bypass for Native `<select>` in `EditUserModal`
+**STATUS: RESOLVED** — `EditUserModal` now renders the shared `Select` primitive, and rule 11 matches `<select(\b|[ >])`. Verified in commit `fe0aed4`.
+### (Historical) Finding 3: Architecture Governance Regex Bypass for Native `<select>` in `EditUserModal`
 1. **Finding:** Rule 11 in `check-architecture-boundaries.sh` fails to detect `<select\n` with a newline, allowing a native select in `EditUserModal`.
 2. **File/path:** `packages/frontend/src/app/users/components/EditUserModal.tsx:95` and `scripts/check-architecture-boundaries.sh:93`
 3. **Symbol/function/component:** `<select id="edit-user-role">` and Rule 11 regex `grep -rnE "<select[ >]"`

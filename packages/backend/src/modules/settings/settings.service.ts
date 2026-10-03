@@ -28,17 +28,9 @@ export class SettingsService {
           logoAssetId: null,
           printFooter: '',
           timezone: 'Asia/Kolkata',
-          documentNumbering: {
-            mode: 'FY_SEQUENTIAL',
-            grnPrefix: 'GRN',
-            receiptPrefix: 'RCPT',
-            challanPrefix: 'CHL',
-            rentReceiptPrefix: 'RRCPT',
-          },
           backupPolicy: {
-            atlasRetentionDays: 7,
-            driveRetentionDays: 30,
-            driveBackupEnabled: true,
+            retentionDays: 30,
+            backupEnabled: true,
           },
         },
       },
@@ -71,19 +63,9 @@ export class SettingsService {
       logoAssetId: doc.logoAssetId ?? null,
       printFooter: doc.printFooter ?? '',
       timezone: doc.timezone ?? 'Asia/Kolkata',
-      documentNumbering: {
-        mode:
-          (doc.documentNumbering?.mode as 'FY_SEQUENTIAL' | 'PENDING_CONFIRMATION') ??
-          'FY_SEQUENTIAL',
-        grnPrefix: doc.documentNumbering?.grnPrefix ?? 'GRN',
-        receiptPrefix: doc.documentNumbering?.receiptPrefix ?? 'RCPT',
-        challanPrefix: doc.documentNumbering?.challanPrefix ?? 'CHL',
-        rentReceiptPrefix: doc.documentNumbering?.rentReceiptPrefix ?? 'RRCPT',
-      },
       backupPolicy: {
-        atlasRetentionDays: doc.backupPolicy?.atlasRetentionDays ?? 7,
-        driveRetentionDays: doc.backupPolicy?.driveRetentionDays ?? 30,
-        driveBackupEnabled: doc.backupPolicy?.driveBackupEnabled ?? true,
+        retentionDays: doc.backupPolicy?.retentionDays ?? 30,
+        backupEnabled: doc.backupPolicy?.backupEnabled ?? true,
       },
     };
 
@@ -117,7 +99,6 @@ export class SettingsService {
           logoAssetId: validatedData.logoAssetId ?? null,
           printFooter: validatedData.printFooter ?? '',
           timezone: validatedData.timezone ?? 'Asia/Kolkata',
-          documentNumbering: validatedData.documentNumbering,
           backupPolicy: validatedData.backupPolicy,
         },
       },
