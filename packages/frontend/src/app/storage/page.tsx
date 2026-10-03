@@ -1,16 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  CheckCircle2,
-  ChevronRight,
-  RefreshCw,
-  ShieldAlert,
-  Warehouse,
+  CheckCircle2, ChevronRight, Edit3, Plus, RefreshCw, ShieldAlert, Warehouse,
 } from 'lucide-react';
 import { can, type Role } from '@cold-storage/contracts';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
+import { FacilityModal } from './components/FacilityModal';
 import { PositionOccupancyPanel } from './components/PositionOccupancyPanel';
 import { StorageColumnsView } from './components/StorageColumnsView';
 import { StorageHierarchyModals } from './components/StorageHierarchyModals';
@@ -20,22 +17,22 @@ import styles from './page.module.css';
 
 export default function StorageHierarchyPage() {
   const { user } = useAuth();
-  const { selectedFacilityId, availableFacilities, setSelectedFacilityId } = useFacility();
+  const { selectedFacilityId, availableFacilities, setSelectedFacilityId, refreshFacilities } =
+    useFacility();
 
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const canView = can(userRole, 'storage:view');
   const canManage = can(userRole, 'storage:manage');
 
+  const [facilityModalOpen, setFacilityModalOpen] = useState(false);
+  const [facilityModalMode, setFacilityModalMode] = useState<'create' | 'edit'>('create');
+
   const browser = useStorageBrowser(selectedFacilityId, canView);
   const mutations = useStorageMutations(
-    selectedFacilityId,
-    browser.selectedChamber,
-    browser.selectedRack,
-    browser.selectedLevel,
-    () => void browser.fetchChambers(),
-    (chId) => void browser.fetchRacks(chId),
-    (rkId) => void browser.fetchLevels(rkId),
-    (lvlId) => void browser.fetchPositions(lvlId),
+    selectedFacilityId, browser.selectedChamber, browser.selectedRack, browser.selectedLevel,
+    browser.racks, browser.levels, browser.positions,
+    () => void browser.fetchChambers(), (chId) => void browser.fetchRacks(chId),
+    (rkId) => void browser.fetchLevels(rkId), (lvlId) => void browser.fetchPositions(lvlId),
   );
 
   if (!canView) {
@@ -60,7 +57,7 @@ export default function StorageHierarchyPage() {
         <div className={styles.titleArea}>
           <h1>Storage Hierarchy & Occupancy</h1>
           <p className={styles.subtitle}>
-            Facility-scoped multi-tier layout: Facility → Chamber → Rack → Level → Position with live
+            Facility-scoped multi-tier layout: Facility → Chamber → Rack → Level → Rack Space with live
             occupancy calculation.
           </p>
         </div>
@@ -101,6 +98,30 @@ export default function StorageHierarchyPage() {
               </option>
             ))}
           </select>
+          {canManage && (
+            <div className={styles.facilityActions}>
+              <button
+                type="button"
+                className={styles.facilityBtn}
+                title="Add Facility"
+                onClick={() => { setFacilityModalMode('create'); setFacilityModalOpen(true); }}
+              >
+                <Plus size={13} />
+                <span>New Facility</span>
+              </button>
+              {currentFacility && (
+                <button
+                  type="button"
+                  className={styles.facilityBtn}
+                  title="Edit Facility"
+                  onClick={() => { setFacilityModalMode('edit'); setFacilityModalOpen(true); }}
+                >
+                  <Edit3 size={13} />
+                  <span>Edit</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
         <div className={styles.breadcrumbs} aria-label="Hierarchy Path">
           <span>{currentFacility?.name || 'Facility'}</span>
@@ -131,7 +152,7 @@ export default function StorageHierarchyPage() {
           {browser.selectedPosition && (
             <>
               <ChevronRight size={14} />
-              <span className={styles.breadcrumbActive}>Pos {browser.selectedPosition.code}</span>
+              <span className={styles.breadcrumbActive}>Space {browser.selectedPosition.code}</span>
             </>
           )}
         </div>
@@ -151,11 +172,15 @@ export default function StorageHierarchyPage() {
         selectedPosition={browser.selectedPosition}
         onSelectPosition={browser.handleSelectPosition}
         canManage={canManage}
-        onOpenModal={(type) => {
-          mutations.setFormError(null);
-          mutations.setActionSuccess(null);
-          mutations.setActiveModal(type);
-        }}
+        onOpenModal={mutations.openCreateModal}
+        onEditChamber={mutations.openEditChamber}
+        onDeactivateChamber={(c) => mutations.handleDeactivate('chamber', c.id, `Chamber ${c.chamberNumber}`)}
+        onEditRack={mutations.openEditRack}
+        onDeactivateRack={(r) => mutations.handleDeactivate('rack', r.id, `Rack ${r.code}`)}
+        onEditLevel={mutations.openEditLevel}
+        onDeactivateLevel={(l) => mutations.handleDeactivate('level', l.id, `Level ${l.code}`)}
+        onEditPosition={mutations.openEditPosition}
+        onDeactivatePosition={(p) => mutations.handleDeactivate('position', p.id, `Rack Space ${p.code}`)}
         loadingChambers={browser.loadingChambers}
         loadingRacks={browser.loadingRacks}
         loadingLevels={browser.loadingLevels}
@@ -170,11 +195,12 @@ export default function StorageHierarchyPage() {
 
       <StorageHierarchyModals
         activeModal={mutations.activeModal}
+        modalMode={mutations.modalMode}
         onClose={() => mutations.setActiveModal(null)}
         selectedChamber={browser.selectedChamber}
         selectedRack={browser.selectedRack}
         selectedLevel={browser.selectedLevel}
-        onSubmit={mutations.handleCreateSubmit}
+        onSubmit={mutations.handleSaveSubmit}
         submitting={mutations.submitting}
         formError={mutations.formError}
         chamberNumber={mutations.chamberNumber}
@@ -191,6 +217,20 @@ export default function StorageHierarchyPage() {
         setPositionCode={mutations.setPositionCode}
         capacityBags={mutations.capacityBags}
         setCapacityBags={mutations.setCapacityBags}
+      />
+
+      <FacilityModal
+        isOpen={facilityModalOpen}
+        mode={facilityModalMode}
+        facilityId={selectedFacilityId}
+        initialCode={currentFacility?.code}
+        initialName={currentFacility?.name}
+        onClose={() => setFacilityModalOpen(false)}
+        onSuccess={async (msg, newFacId) => {
+          mutations.setActionSuccess(msg);
+          await refreshFacilities();
+          if (newFacId) setSelectedFacilityId(newFacId);
+        }}
       />
     </div>
   );

@@ -1,10 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Boxes, ChevronRight, Layers, Package, Plus, Warehouse } from 'lucide-react';
+import { Boxes, Layers, Package, Plus, Warehouse } from 'lucide-react';
 import type { Chamber, Level, Position, Rack } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import type { ModalType } from '../types';
+import { StorageItemCard } from './StorageItemCard';
 import styles from '../page.module.css';
 
 interface StorageColumnsViewProps {
@@ -22,6 +23,14 @@ interface StorageColumnsViewProps {
   onSelectPosition: (p: Position) => void;
   canManage: boolean;
   onOpenModal: (type: ModalType) => void;
+  onEditChamber?: (c: Chamber) => void;
+  onDeactivateChamber?: (c: Chamber) => void;
+  onEditRack?: (r: Rack) => void;
+  onDeactivateRack?: (r: Rack) => void;
+  onEditLevel?: (l: Level) => void;
+  onDeactivateLevel?: (l: Level) => void;
+  onEditPosition?: (p: Position) => void;
+  onDeactivatePosition?: (p: Position) => void;
   loadingChambers: boolean;
   loadingRacks: boolean;
   loadingLevels: boolean;
@@ -43,6 +52,14 @@ export function StorageColumnsView({
   onSelectPosition,
   canManage,
   onOpenModal,
+  onEditChamber,
+  onDeactivateChamber,
+  onEditRack,
+  onDeactivateRack,
+  onEditLevel,
+  onDeactivateLevel,
+  onEditPosition,
+  onDeactivatePosition,
   loadingChambers,
   loadingRacks,
   loadingLevels,
@@ -75,18 +92,17 @@ export function StorageColumnsView({
             <FeedbackStates.Empty message="No chambers found." />
           ) : (
             chambers.map((c) => (
-              <button
+              <StorageItemCard
                 key={c.id}
-                type="button"
-                className={`${styles.itemCard} ${selectedChamber?.id === c.id ? styles.itemCardActive : ''}`}
-                onClick={() => onSelectChamber(c)}
-              >
-                <div className={styles.itemCardMain}>
-                  <strong>Chamber {c.chamberNumber}</strong>
-                  {c.name && <span className={styles.itemSub}>{c.name}</span>}
-                </div>
-                <ChevronRight size={14} />
-              </button>
+                title={`Chamber ${c.chamberNumber}`}
+                subtitle={c.name}
+                isActive={c.isActive}
+                isSelected={selectedChamber?.id === c.id}
+                onSelect={() => onSelectChamber(c)}
+                canManage={canManage}
+                onEdit={onEditChamber ? () => onEditChamber(c) : undefined}
+                onDeactivate={onDeactivateChamber ? () => onDeactivateChamber(c) : undefined}
+              />
             ))
           )}
         </div>
@@ -119,17 +135,16 @@ export function StorageColumnsView({
             <FeedbackStates.Empty message="No racks in this chamber." />
           ) : (
             racks.map((r) => (
-              <button
+              <StorageItemCard
                 key={r.id}
-                type="button"
-                className={`${styles.itemCard} ${selectedRack?.id === r.id ? styles.itemCardActive : ''}`}
-                onClick={() => onSelectRack(r)}
-              >
-                <div className={styles.itemCardMain}>
-                  <strong>Rack {r.code}</strong>
-                </div>
-                <ChevronRight size={14} />
-              </button>
+                title={`Rack ${r.code}`}
+                isActive={r.isActive}
+                isSelected={selectedRack?.id === r.id}
+                onSelect={() => onSelectRack(r)}
+                canManage={canManage}
+                onEdit={onEditRack ? () => onEditRack(r) : undefined}
+                onDeactivate={onDeactivateRack ? () => onDeactivateRack(r) : undefined}
+              />
             ))
           )}
         </div>
@@ -162,36 +177,35 @@ export function StorageColumnsView({
             <FeedbackStates.Empty message="No levels in this rack." />
           ) : (
             levels.map((l) => (
-              <button
+              <StorageItemCard
                 key={l.id}
-                type="button"
-                className={`${styles.itemCard} ${selectedLevel?.id === l.id ? styles.itemCardActive : ''}`}
-                onClick={() => onSelectLevel(l)}
-              >
-                <div className={styles.itemCardMain}>
-                  <strong>Level {l.code}</strong>
-                  <span className={styles.itemSub}>Tier #{l.levelNumber}</span>
-                </div>
-                <ChevronRight size={14} />
-              </button>
+                title={`Level ${l.code}`}
+                subtitle={`Tier #${l.levelNumber}`}
+                isActive={l.isActive}
+                isSelected={selectedLevel?.id === l.id}
+                onSelect={() => onSelectLevel(l)}
+                canManage={canManage}
+                onEdit={onEditLevel ? () => onEditLevel(l) : undefined}
+                onDeactivate={onDeactivateLevel ? () => onDeactivateLevel(l) : undefined}
+              />
             ))
           )}
         </div>
       </div>
 
-      {/* Tier 4: Positions */}
+      {/* Tier 4: Positions (Rack Spaces) */}
       <div className={styles.column}>
         <div className={styles.columnHeader}>
           <div className={styles.columnTitle}>
             <Package size={16} />
-            <span>Positions ({positions.length})</span>
+            <span>Rack Spaces ({positions.length})</span>
           </div>
           {canManage && selectedLevel && (
             <button
               type="button"
               className={styles.columnAddBtn}
               onClick={() => onOpenModal('position')}
-              title="Add Position"
+              title="Add Rack Space"
             >
               <Plus size={14} />
             </button>
@@ -201,23 +215,22 @@ export function StorageColumnsView({
           {!selectedLevel ? (
             <FeedbackStates.Empty message="Select a level." />
           ) : loadingPositions ? (
-            <FeedbackStates.Loading label="Loading positions..." />
+            <FeedbackStates.Loading label="Loading rack spaces..." />
           ) : positions.length === 0 ? (
-            <FeedbackStates.Empty message="No positions on this level." />
+            <FeedbackStates.Empty message="No rack spaces on this level." />
           ) : (
             positions.map((p) => (
-              <button
+              <StorageItemCard
                 key={p.id}
-                type="button"
-                className={`${styles.itemCard} ${selectedPosition?.id === p.id ? styles.itemCardActive : ''}`}
-                onClick={() => onSelectPosition(p)}
-              >
-                <div className={styles.itemCardMain}>
-                  <strong>{p.code}</strong>
-                  <span className={styles.itemSub}>Cap: {p.capacityBags} bags</span>
-                </div>
-                <ChevronRight size={14} />
-              </button>
+                title={p.code}
+                subtitle={`Cap: ${p.capacityBags} bags`}
+                isActive={p.isActive}
+                isSelected={selectedPosition?.id === p.id}
+                onSelect={() => onSelectPosition(p)}
+                canManage={canManage}
+                onEdit={onEditPosition ? () => onEditPosition(p) : undefined}
+                onDeactivate={onDeactivatePosition ? () => onDeactivatePosition(p) : undefined}
+              />
             ))
           )}
         </div>

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { CreatePositionInput, Position, UpdatePositionInput } from '@cold-storage/contracts';
 import { LevelModel } from '../../../database/models/level.model.js';
 import { PositionModel } from '../../../database/models/position.model.js';
+import { getPositionOccupancy } from '../../inventory/queries/stock-summary.queries.js';
 
 export async function createPosition(
   levelId: string,
@@ -87,7 +88,13 @@ export async function updatePosition(
     existing.code = code;
   }
 
-  if (input.capacityBags !== undefined) {
+  if (input.capacityBags !== undefined && input.capacityBags !== existing.capacityBags) {
+    const occupancy = await getPositionOccupancy(existing.facilityId, id);
+    if (input.capacityBags < occupancy.occupiedBags) {
+      throw new Error(
+        `Cannot reduce capacity to ${input.capacityBags} bags: currently holds ${occupancy.occupiedBags} bags`,
+      );
+    }
     existing.capacityBags = input.capacityBags;
   }
 
@@ -96,6 +103,13 @@ export async function updatePosition(
       const level = await LevelModel.findOne({ id: existing.levelId }).lean().exec();
       if (!level || !level.isActive) {
         throw new Error(`Cannot activate position because parent level is inactive`);
+      }
+    } else {
+      const occupancy = await getPositionOccupancy(existing.facilityId, id);
+      if (occupancy.occupiedBags > 0) {
+        throw new Error(
+          `Cannot deactivate rack space while it contains active inventory (${occupancy.occupiedBags} bags stored)`,
+        );
       }
     }
     existing.isActive = input.isActive;

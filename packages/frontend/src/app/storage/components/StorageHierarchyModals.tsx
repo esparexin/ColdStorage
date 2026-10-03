@@ -8,6 +8,7 @@ import styles from '../page.module.css';
 
 interface StorageHierarchyModalsProps {
   activeModal: ModalType;
+  modalMode: 'create' | 'edit';
   onClose: () => void;
   selectedChamber: Chamber | null;
   selectedRack: Rack | null;
@@ -33,6 +34,7 @@ interface StorageHierarchyModalsProps {
 
 export function StorageHierarchyModals({
   activeModal,
+  modalMode,
   onClose,
   selectedChamber,
   selectedRack,
@@ -62,10 +64,20 @@ export function StorageHierarchyModals({
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
           <h3>
-            {activeModal === 'chamber' && 'Add New Chamber'}
-            {activeModal === 'rack' && `Add Rack to Chamber ${selectedChamber?.chamberNumber}`}
-            {activeModal === 'level' && `Add Level to Rack ${selectedRack?.code}`}
-            {activeModal === 'position' && `Add Position to Level ${selectedLevel?.code}`}
+            {activeModal === 'chamber' &&
+              (modalMode === 'edit' ? 'Edit Chamber' : 'Add New Chamber')}
+            {activeModal === 'rack' &&
+              (modalMode === 'edit'
+                ? `Edit Rack ${rackCode}`
+                : `Add Rack to Chamber ${selectedChamber?.chamberNumber}`)}
+            {activeModal === 'level' &&
+              (modalMode === 'edit'
+                ? `Edit Level ${levelCode}`
+                : `Add Level to Rack ${selectedRack?.code}`)}
+            {activeModal === 'position' &&
+              (modalMode === 'edit'
+                ? `Edit Rack Space ${positionCode}`
+                : `Add Rack Space to Level ${selectedLevel?.code}`)}
           </h3>
           <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close modal">
             <X size={18} />
@@ -114,7 +126,7 @@ export function StorageHierarchyModals({
                 id="rackCode"
                 type="text"
                 required
-                placeholder="e.g. R-01, R-02"
+                placeholder="e.g. A, B, C"
                 className={styles.inputField}
                 value={rackCode}
                 onChange={(e) => setRackCode(e.target.value)}
@@ -142,7 +154,7 @@ export function StorageHierarchyModals({
                   id="levelCode"
                   type="text"
                   required
-                  placeholder="e.g. L-01, L-02"
+                  placeholder="e.g. A01, A02"
                   className={styles.inputField}
                   value={levelCode}
                   onChange={(e) => setLevelCode(e.target.value)}
@@ -154,12 +166,12 @@ export function StorageHierarchyModals({
           {activeModal === 'position' && (
             <>
               <div className={styles.formGroup}>
-                <label htmlFor="positionCode">Position Code *</label>
+                <label htmlFor="positionCode">Rack Space Code *</label>
                 <input
                   id="positionCode"
                   type="text"
                   required
-                  placeholder="e.g. P-01, P-02"
+                  placeholder="e.g. A01-01, A01-02"
                   className={styles.inputField}
                   value={positionCode}
                   onChange={(e) => setPositionCode(e.target.value)}
@@ -185,7 +197,13 @@ export function StorageHierarchyModals({
               Cancel
             </button>
             <button type="submit" className={styles.submitBtn} disabled={submitting}>
-              {submitting ? 'Creating...' : 'Create'}
+              {submitting
+                ? modalMode === 'edit'
+                  ? 'Saving...'
+                  : 'Creating...'
+                : modalMode === 'edit'
+                  ? 'Save Changes'
+                  : 'Create'}
             </button>
           </div>
         </form>
