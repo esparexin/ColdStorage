@@ -34,8 +34,9 @@ export function useCreateGrnForm(
   const clearFieldError = (key: string) => {
     setFieldErrors((prev) => {
       if (!prev[key]) return prev;
-      const { [key]: _omitted, ...rest } = prev;
-      return rest;
+      const copy = { ...prev };
+      delete copy[key];
+      return copy;
     });
   };
 
