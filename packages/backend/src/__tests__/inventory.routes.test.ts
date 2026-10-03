@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
@@ -6,7 +5,11 @@ import { config } from '../config.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
-import { connectToTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
+import {
+  connectToTestDatabase,
+  disconnectTestDatabase,
+  resetStockCollections,
+} from './helpers/stock-reset.js';
 
 const app = createApp();
 const seed = createAuthSeeder(config.jwtSecret);
@@ -44,11 +47,7 @@ describe('P5 Inventory Routes & RBAC Integration Tests', () => {
     }));
   });
 
-  afterAll(async () => {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
-  });
+    afterAll(disconnectTestDatabase);
 
   beforeEach(async () => {
     await resetStockCollections();
