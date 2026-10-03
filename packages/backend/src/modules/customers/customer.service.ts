@@ -5,12 +5,23 @@ import { FacilityModel } from '../../database/models/facility.model.js';
 
 export class CustomerService {
   public async createCustomer(input: CreateCustomerInput): Promise<Customer> {
+    const name = input.name.trim();
     const mobile = input.mobile.trim();
 
     // Verify all specified facilityIds exist
     const facilityCount = await FacilityModel.countDocuments({ id: { $in: input.facilityIds } }).exec();
     if (facilityCount !== input.facilityIds.length) {
       throw new Error('One or more specified facility IDs do not exist');
+    }
+
+    // Duplicate prevention: check customer name (case-insensitive) within target facilities
+    const nameRegex = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+    const duplicateName = await CustomerModel.findOne({
+      name: { $regex: nameRegex },
+      facilityIds: { $in: input.facilityIds },
+    }).lean().exec();
+    if (duplicateName && duplicateName.mobile !== mobile) {
+      throw new Error(`Customer with name '${name}' already exists in this facility`);
     }
 
     const existing = await CustomerModel.findOne({ mobile }).exec();
@@ -37,7 +48,7 @@ export class CustomerService {
     const id = `cust-${randomUUID()}`;
     const doc = await CustomerModel.create({
       id,
-      name: input.name.trim(),
+      name,
       mobile,
       address: input.address?.trim() || null,
       gstin: input.gstin?.trim() ? input.gstin.trim().toUpperCase() : null,
@@ -86,8 +97,18 @@ export class CustomerService {
       existing.mobile = mobile;
     }
 
-    if (input.name) {
-      existing.name = input.name.trim();
+    if (input.name && input.name.trim().toLowerCase() !== existing.name.toLowerCase()) {
+      const name = input.name.trim();
+      const nameRegex = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+      const duplicateName = await CustomerModel.findOne({
+        name: { $regex: nameRegex },
+        facilityIds: { $in: existing.facilityIds },
+        id: { $ne: id },
+      }).lean().exec();
+      if (duplicateName) {
+        throw new Error(`Customer with name '${name}' already exists in this facility`);
+      }
+      existing.name = name;
     }
 
     if (input.address !== undefined) {

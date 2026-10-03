@@ -229,7 +229,7 @@ export function CreateGrnModal({
       </div>
     </div>
     {isAddingCustomer && (
-      <CustomerFormModal customer={null} selectedFacilityId={facilityId} onClose={() => setIsAddingCustomer(false)} onSuccess={() => { setIsAddingCustomer(false); onCustomerAdded?.(); }} />
+      <CustomerFormModal customer={null} selectedFacilityId={facilityId} existingCustomers={customers} onClose={() => setIsAddingCustomer(false)} onSuccess={() => { setIsAddingCustomer(false); onCustomerAdded?.(); }} />
     )}
     {isAddingCommodity && (
       <CommodityFormModal onClose={() => setIsAddingCommodity(false)} onSuccess={() => { setIsAddingCommodity(false); onCommodityAdded?.(); }} />
