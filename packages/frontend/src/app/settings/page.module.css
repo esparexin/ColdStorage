@@ -116,17 +116,6 @@
   font-weight: var(--font-medium);
 }
 
-/* Settings Sections */
-/* Logo Management */
-@media (max-width: 640px) {
-  .formGrid2,
-  .formGrid3 {
-    grid-template-columns: 1fr;
-  }
-}
-
-.fieldInput,
-.fieldInput:focus,
 /* Footer Actions */
 .saveFooter {
   position: sticky;

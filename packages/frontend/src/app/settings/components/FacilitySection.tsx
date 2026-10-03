@@ -13,7 +13,6 @@ import {
 } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useFacility } from '@/context/FacilityContext';
-import pageStyles from '../page.module.css';
 import styles from './FacilitySection.module.css';
 import { FacilityFormModal } from './FacilityFormModal';
 
@@ -97,7 +96,7 @@ export function FacilitySection() {
       header: 'Actions',
       align: 'right',
       render: (row) => (
-        <div className={pageStyles.rowActions}>
+        <div className={styles.rowActions}>
           <Button
             variant="ghost"
             size="sm"
@@ -121,9 +120,9 @@ export function FacilitySection() {
   ];
 
   return (
-    <div className={pageStyles.sectionCard}>
-      <div className={pageStyles.sectionHeader}>
-        <h2 className={pageStyles.sectionTitle}>Facilities</h2>
+    <div className={styles.sectionCard}>
+      <div className={styles.sectionHeader}>
+        <h2 className={styles.sectionTitle}>Facilities</h2>
         <div style={{ marginLeft: 'auto' }}>
           <Button
             id="add-facility-btn"

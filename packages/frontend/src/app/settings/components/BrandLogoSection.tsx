@@ -28,11 +28,8 @@ export function BrandLogoSection({
   onCancelDeleteLogo,
 }: BrandLogoSectionProps) {
   return (
-    <div className={pageStyles.sectionCard}>
-      <div className={pageStyles.sectionHeader}>
-        <ImageIcon size={18} color="var(--color-primary)" aria-hidden="true" />
-        <h2 className={pageStyles.sectionTitle}>Brand Logo & Asset Management</h2>
-      </div>
+    <div className={styles.root}>
+      {/* The surrounding disclosure already provides the heading, so no inner header is needed. */}
 
       {logoSuccess && <div className={pageStyles.saveSuccess}>{logoSuccess}</div>}
       {logoError && <div className={pageStyles.saveError}>{logoError}</div>}
