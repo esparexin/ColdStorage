@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Image as ImageIcon, Trash2, UploadCloud } from 'lucide-react';
+import { Button } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface BrandLogoSectionProps {
@@ -67,9 +68,10 @@ export function BrandLogoSection({
             </label>
 
             {logoAssetId && (
-              <button
+              <Button
                 type="button"
-                className={styles.deleteLogoBtn}
+                variant={logoDeleteArmed ? 'danger' : 'outline'}
+                size="sm"
                 onClick={onDeleteLogo}
                 disabled={logoUploading}
                 aria-label={
@@ -77,24 +79,25 @@ export function BrandLogoSection({
                     ? 'Confirm removing the organization logo'
                     : 'Remove the organization logo'
                 }
+                leftIcon={<Trash2 size={15} aria-hidden="true" />}
               >
-                <Trash2 size={15} aria-hidden="true" />
                 {logoDeleteArmed ? 'Confirm Remove' : 'Remove'}
-              </button>
+              </Button>
             )}
           </div>
 
           {logoDeleteArmed && (
             <div className={styles.saveError} role="alert">
               Removing the logo affects all printed documents.{' '}
-              <button
+              <Button
                 type="button"
-                className={styles.deleteLogoBtn}
+                variant="outline"
+                size="sm"
                 onClick={onCancelDeleteLogo}
                 disabled={logoUploading}
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           )}
 

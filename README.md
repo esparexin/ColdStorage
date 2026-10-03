@@ -28,7 +28,7 @@ ColdStorage/
 │   │       ├── common.ts            # Locale and common validators
 │   │       ├── identifiers.ts       # Independent identifier schemas (GRN, Receipt, Challan, Rent Receipt, GP)
 │   │       ├── bags.ts              # Controlled S/B/S+B bag types and dual-weight model
-│   │       ├── storage-hierarchy.ts # Facility -> Chamber -> Rack -> Level -> Position
+│   │       ├── inventory.ts         # Put-away allocations and stock ledger contracts
 │   │       ├── permissions.ts       # Machine-readable permissions matrix and facility scoping
 │   │       ├── settings.ts          # System settings singleton schema
 │   │       ├── user.ts              # User provisioning and summary schemas

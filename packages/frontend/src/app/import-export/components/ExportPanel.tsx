@@ -43,7 +43,7 @@ export function ExportPanel({
             <div className={styles.exportInfo}>
               <span className={styles.exportTitle}>Customer Directory</span>
               <span className={styles.exportSub}>
-                All registered customer accounts, mobile numbers, and GSTIN identifiers.
+                All registered customer accounts, facility associations, and active statuses.
               </span>
             </div>
             <Button

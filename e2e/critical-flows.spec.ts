@@ -67,9 +67,23 @@ test.describe('Critical Application Flows', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          facilityName: 'Alpha Cold Storage Facility',
-          currency: 'INR',
-          defaultBillingCycle: 'MONTHLY',
+          orgName: 'Alpha Cold Storage Facility',
+          address: 'Main Highway, Cold Chain Zone, Hyderabad',
+          contact: '+91 98765 43210',
+          timezone: 'Asia/Kolkata',
+          printFooter: 'System-generated cold chain receipt',
+          documentNumbering: {
+            mode: 'FY_SEQUENTIAL',
+            grnPrefix: 'GRN',
+            receiptPrefix: 'RCPT',
+            challanPrefix: 'CHL',
+            rentReceiptPrefix: 'RRCPT',
+          },
+          backupPolicy: {
+            atlasRetentionDays: 7,
+            driveRetentionDays: 30,
+            driveBackupEnabled: true,
+          },
         }),
       });
     });

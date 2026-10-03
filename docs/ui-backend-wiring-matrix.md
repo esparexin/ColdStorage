@@ -7,7 +7,7 @@
 ## 1. Frontend inventory
 
 - Framework: Next.js 14 App Router, `src/app/*/page.tsx`, `next.config.mjs` rewrites `/api/:path*` → backend `:4000/api/:path*`.
-- Routes (13): `/`, `/grns`, `/inventory?grnId=`, `/deliveries`, `/rent`, `/customers`, `/commodities`, `/storage`, `/settings`, `/import-export`, `/audit`, `/backup`, `/users`.
+- Routes (12): `/`, `/grns`, `/inventory?grnId=`, `/deliveries`, `/rent`, `/customers`, `/commodities`, `/settings`, `/import-export`, `/audit`, `/backup`, `/users`.
 - Primitives (`components/ui/index.ts`, 10): `Button`, `Input`, `Select`, `Badge`, `Card`, `SearchBar`, `Modal`, `Pagination`, `DataTable`, `FeedbackStates`.
 - Client: `lib/api-client.ts` (`requestWithAuth` + single-flight `POST /api/auth/refresh`, Bearer memory-only, `credentials:include`).
 - Contexts: `AuthContext` (login/logout/change-password), `FacilityContext` (`GET /api/facilities`), `SettingsContext` (`GET /api/settings`).
@@ -16,12 +16,12 @@
 
 | Primitive | Status | Evidence |
 |---|---|---|
-| `Button` | ✅ widely used (56 `<Button` hits) | `grns/page.tsx:72`, `deliveries/*`, `rent/*`, `users/page.tsx:63` |
-| `Input` | ⚠️ partial (7 hits, only 3 modals) | `CustomerFormModal:135`, `CommodityFormModal:67`, `FacilityModal:94` |
-| `Select` | ❌ 0 imports outside `ui/` | 23 native `<select>` bypass DS (toolbars, `AppHeader:63`, `ProvisionUserModal:106`) |
-| `Card` | ❌ 0 `<Card` usages | Replaced by `KpiGrid`/`RentKpiCards`/`BackupStatusCards`/`StorageItemCard` |
-| `SearchBar` | ✅ 6 toolbars | `UserFilterBar:31`, `GrnFilterToolbar`, etc. |
-| `Modal/DataTable/Badge/Pagination/FeedbackStates` | ✅ consistent | 16 modals via `Modal`, 12 tables via `DataTable`, status via `Badge` |
+| `Button` | ✅ widely used | Canonical DS Button across all action, form, and modal submits |
+| `Input` | ⚠️ partial | Form modals migrate progressively to DS Input |
+| `Select` | ✅ enforced | Bound by boundary governance Rule 11 (zero native `<select>` outside `ui/Select.tsx`) |
+| `Card` | ❌ 0 `<Card` usages | Specialized domain cards (`KpiGrid`, `RentKpiCards`, `BackupStatusCards`) |
+| `SearchBar` | ✅ toolbars | Canonical search bar primitive across filter toolbars |
+| `Modal/DataTable/Badge/Pagination/FeedbackStates` | ✅ consistent | Modals, tables, status badges, and feedback states unified |
 
 ## 3. Route ↔ API wiring (all verified against `backend/src/routes/*.ts` + `contracts/src/*.ts`)
 
@@ -29,10 +29,9 @@
 |---|---|---|---|---|
 | Login / logout / change-password / bootstrap | `POST /api/auth/login`, `requestWithAuth(/api/auth/logout)`, `(/api/auth/change-password)`, `POST /api/auth/refresh` | `auth.routes.ts` | `loginInputSchema`, `changePasswordInputSchema` | ✅ wired |
 | Facility switch / list / create / patch | `GET /api/facilities`, `POST /api/facilities`, `PATCH /api/facilities/:id` (`FacilityModal:51`) | `facility.routes.ts` | `createFacilitySchema`, `updateFacilitySchema` | ✅ wired |
-| Storage drill (chamber→rack→level→position) | `GET .../chambers`, `GET /api/chambers/:id/racks`, `GET /api/racks/:id/levels`, `GET /api/levels/:id/positions`, `PATCH .../:id` deactivate | `hierarchy.routes.ts` | `create/update*Schema` | ✅ wired (list+patch; single-GETs intentionally unused) |
 | Customers list/create/patch | `GET /api/customers?facilityId=`, `POST /api/customers`, `PATCH /api/customers/:id` (`CustomerFormModal:77`) | `customer.routes.ts` | `createCustomerSchema`, `updateCustomerSchema` (PATCH, not PUT) | ✅ wired |
 | Commodities list/create/patch | `GET /api/commodities`, `POST/PATCH /api/commodities[/:id]` | `commodity.routes.ts` | `create/updateCommoditySchema` | ✅ wired |
-| GRNs list/create/print/put-away link | `GET .../grns?...`, `POST .../grns`, `GET .../documents/grn|receipt/:id` (`grns/page.tsx:36`), `Link /inventory?grnId=` | `grn.routes.ts`, `document.routes.ts` | `createGrnSchema`, `grnQuerySchema`, `documentFormatQuerySchema` | ✅ wired; fixed `Link>Button` nesting + missing `linkButton` class |
+| GRNs list/create/print/put-away link | `GET .../grns?...`, `POST .../grns`, `GET .../documents/grn|receipt/:id` (`grns/page.tsx:36`), `Link /inventory?grnId=` | `grn.routes.ts`, `document.routes.ts` | `createGrnSchema`, `grnQuerySchema`, `documentFormatQuerySchema` | ✅ wired |
 | Put-away allocate / summary / occupancy / ledger | `POST .../grns/:gid/allocations`, `GET .../allocations`, `GET .../inventory-summary`, `GET .../positions/:pid/occupancy`, `GET .../inventory`, `GET .../inventory/ledger` | `inventory.routes.ts` | `createPutAwaySchema`, `stockLedgerQuerySchema` | ✅ wired (`/allocations` canonical, facility-scoped) |
 | Deliveries list/create/detail/reverse/print | `GET .../deliveries?...`, `POST .../deliveries`, `POST .../deliveries/:id/reverse`, `GET .../documents/challan/:id` | `delivery.routes.ts` | `createDeliverySchema`, `reverseDeliverySchema`, `deliveryQuerySchema` | ✅ wired (detail modal prop-based by design) |
 | Rent collect/history/print-preview/print | `POST .../rent/collect`, `GET .../rent/grn/:id`, `GET .../documents/rent-receipt/preview`, `GET .../rent/receipts/:n/print` | `rent.routes.ts`, `document.routes.ts` | `recordRentPaymentInputSchema` | ✅ wired |
@@ -40,14 +39,27 @@
 | Audit list | `GET /api/audit-logs?...` (`useAuditLogs:34`) | `audit.routes.ts` | `auditQuerySchema` | ✅ wired (detail prop-based) |
 | Backup trigger/list/status | `POST /api/backups/trigger`, `GET /api/backups?...`, `GET /api/backups/status` | `backup.routes.ts` | `backupTriggerSchema`, `backupQuerySchema` | ✅ wired |
 | Settings get/put + logo | `GET/PUT /api/settings`, `POST/DELETE /api/settings/logo`, `GET /api/assets/:id` (`AppHeader`, `BrandLogoSection`) | `settings.routes.ts`, `asset.routes.ts` | `systemSettingsSchema` | ✅ wired |
-| Import / Export | `POST .../import/customers|grns` (FormData `file`), `GET .../export/grns|deliveries|inventory-ledger|customers|stock-summary` | `import-export.routes.ts` | `exportDateRangeQuerySchema`, `stockSummaryExportQuerySchema` | ✅ wired; `ExportPanel` now uses DS `Button` |
+| Import / Export | `POST .../import/customers|grns` (FormData `file`), `GET .../export/grns|deliveries|inventory-ledger|customers|stock-summary` | `import-export.routes.ts` | `exportDateRangeQuerySchema`, `stockSummaryExportQuerySchema` | ✅ wired |
 | Dashboard summary | `GET .../dashboard/summary` | `dashboard.routes.ts` | `dashboardSummarySchema` | ✅ wired |
 
-No frontend call targets a non-existent backend prefix (`/api/storage/*`, `/api/inventory/*`, PUT customers, `/put-away`). Dynamic `documents/${type}` constrained to `grn|receipt`; `import/${target}` constrained to `customers|grns`; `export/${endpoint}` callers pass only the 5 canonical types.
+No frontend call targets retired endpoints (`/api/storage/*`, `/api/chambers/*`, PUT customers). Dynamic `documents/${type}` constrained to `grn|receipt`; `import/${target}` constrained to `customers|grns`; `export/${endpoint}` callers pass only the 5 canonical types.
 
-## 4. Backend-only (intentional, no UI added per scope)
+## 4. Headless REST API Endpoints (Retained & Fully Tested)
 
-`GET /api/auth/me`, `GET /api/users/:id`, `GET /api/facilities/:id` single, `GET /api/chambers|racks|levels|positions/:id` singles, `GET /api/customers|commodities/:id` singles, `GET /api/grns/:grnId` + `/acknowledgement`, `GET .../grns/:gid/deliveries`, `GET .../deliveries/:deliveryId` single, `GET /api/audit-logs/:id`. Detail modals reuse list props to avoid extra round-trips. Add a fetch only if a stale-data bug is proven.
+Per architecture governance, 10 fully implemented and tested backend endpoints are intentionally retained as headless REST API capabilities. Detail modals in the web UI reuse list entity props to avoid redundant network round-trips:
+
+| # | Endpoint & Method | Handler / Module | Contract Schema | Capability / Purpose |
+|---|---|---|---|---|
+| 1 | `PATCH /api/facilities/:fid/grns/:gid` | `correct-grn.handler.ts` | `correctGrnSchema` | GRN receipt quantity/weight post-creation administrative correction |
+| 2 | `GET /api/facilities/:fid/grns/:gid/acknowledgement` | `get-grn-ack.handler.ts` | `grnParamsSchema` | Machine-readable JSON acknowledgement of inward receipt |
+| 3 | `GET /api/facilities/:fid/grns/:gid/deliveries` | `get-grn-deliveries.handler.ts` | `grnParamsSchema` | Direct outward delivery history query for a specific GRN |
+| 4 | `GET /api/facilities/:fid/deliveries/:id/gate-pass` | `get-delivery-gate-pass.handler.ts` | `deliveryParamsSchema` | Machine-readable JSON gate-pass issuance payload |
+| 5 | `GET /api/facilities/:fid/documents/rent-receipt/preview` | `preview-rent-receipt.handler.ts` | `documentQuerySchema` | Pre-submission HTML render preview of seasonal cash memo |
+| 6 | `GET /api/users/:id` | `get-user.handler.ts` | `userParamsSchema` | Programmatic single-user account fetch for administrative integrations |
+| 7 | `GET /api/customers/:id` | `get-customer.handler.ts` | `customerParamsSchema` | Programmatic single-customer entity lookup |
+| 8 | `GET /api/commodities/:id` | `get-commodity.handler.ts` | `commodityParamsSchema` | Programmatic single-commodity entity lookup |
+| 9 | `GET /api/facilities/:id` | `get-facility.handler.ts` | `facilityParamsSchema` | Programmatic single-facility entity lookup |
+| 10 | `GET /api/audit-logs/:id` | `get-audit-log.handler.ts` | `auditParamsSchema` | Forensic single audit log entry lookup by immutable ID |
 
 ## 5. Fixed in this branch (no new features)
 
