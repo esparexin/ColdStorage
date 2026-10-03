@@ -26,6 +26,7 @@ export default function ImportExportPage() {
     importResult,
     importError,
     exportingType,
+    exportError,
     handleFileChange,
     handleImportSubmit,
     handleExportDownload,
@@ -65,6 +66,7 @@ export default function ImportExportPage() {
             canExport={canExport}
             selectedFacilityId={selectedFacilityId}
             exportingType={exportingType}
+            exportError={exportError}
             onExport={handleExportDownload}
           />
         </div>

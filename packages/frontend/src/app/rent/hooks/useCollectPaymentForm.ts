@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { PaymentMode, RentSummaryDto } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
+import { printHtmlDocument } from '@/lib/print-document';
 
 interface UseCollectPaymentFormProps {
   account: RentSummaryDto;
@@ -22,6 +23,7 @@ export function useCollectPaymentForm({
   const [collectDate, setCollectDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [collectNotes, setCollectNotes] = useState('');
   const [collectError, setCollectError] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [collectSubmitting, setCollectSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,23 +88,14 @@ export function useCollectPaymentForm({
         amount: String(collectAmount),
         paymentMode: collectMode,
       });
-      const url = `/api/facilities/${encodeURIComponent(selectedFacilityId)}/documents/rent-receipt/preview?${params.toString()}`;
-      const res = await requestWithAuth(url);
-      if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
-        throw new Error(err.error ?? 'Receipt preview failed');
-      }
-      const html = await res.text();
-      const previewWindow = window.open('', '_blank');
-      if (!previewWindow) {
-        alert('Pop-up window was blocked.');
-        return;
-      }
-      previewWindow.document.open();
-      previewWindow.document.write(html);
-      previewWindow.document.close();
+      await printHtmlDocument({
+        url: `/api/facilities/${encodeURIComponent(selectedFacilityId)}/documents/rent-receipt/preview?${params.toString()}`,
+        popupBlockedMessage: 'Pop-up window was blocked. Please allow pop-ups to preview receipts.',
+        failureMessage: 'Failed to preview receipt',
+        autoPrint: false,
+      });
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Failed to preview receipt');
+      setPreviewError(err instanceof Error ? err.message : 'Failed to preview receipt');
     }
   };
 
@@ -116,6 +109,7 @@ export function useCollectPaymentForm({
     collectNotes,
     setCollectNotes,
     collectError,
+    previewError,
     collectSubmitting,
     handleSubmit,
     handlePreviewReceipt,

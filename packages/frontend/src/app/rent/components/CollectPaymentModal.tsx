@@ -32,6 +32,7 @@ export function CollectPaymentModal({
     collectNotes,
     setCollectNotes,
     collectError,
+    previewError,
     collectSubmitting,
     handleSubmit,
     handlePreviewReceipt,
@@ -50,7 +51,17 @@ export function CollectPaymentModal({
     >
       <form onSubmit={handleSubmit}>
           <div className={styles.modalBody}>
-            {collectError && <div className={styles.modalError}>{collectError}</div>}
+            {collectError && (
+              <div className={styles.modalError} role="alert">
+                {collectError}
+              </div>
+            )}
+
+            {previewError && (
+              <div className={styles.modalError} role="alert">
+                {previewError}
+              </div>
+            )}
 
             <div className={styles.infoCard}>
               <div className={styles.infoRow}>

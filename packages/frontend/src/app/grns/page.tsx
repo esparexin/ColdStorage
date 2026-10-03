@@ -7,7 +7,7 @@ import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
-import { requestWithAuth } from '@/lib/api-client';
+import { printHtmlDocument } from '@/lib/print-document';
 import { CreateGrnModal } from './components/CreateGrnModal';
 import { GrnDetailModal } from './components/GrnDetailModal';
 import { GrnFilterToolbar } from './components/GrnFilterToolbar';
@@ -22,6 +22,7 @@ export default function GrnsPage() {
 
   const [selectedGrn, setSelectedGrn] = useState<Grn | null>(null);
   const [printingId, setPrintingId] = useState<string | null>(null);
+  const [printError, setPrintError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
@@ -33,25 +34,14 @@ export default function GrnsPage() {
     if (!selectedFacilityId) return;
     setPrintingId(`${type}-${grnId}`);
     try {
-      const url = `/api/facilities/${encodeURIComponent(selectedFacilityId)}/documents/${type}/${encodeURIComponent(grnId)}`;
-      const res = await requestWithAuth(url);
-      if (!res.ok) {
-        const err = (await res.json()) as { error?: string; message?: string };
-        throw new Error(err.error ?? err.message ?? `Print failed (HTTP ${res.status})`);
-      }
-      const html = await res.text();
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        alert('Pop-up window was blocked. Please allow pop-ups for this site to print documents.');
-        return;
-      }
-      printWindow.document.open();
-      printWindow.document.write(html);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => printWindow.print(), 300);
+      await printHtmlDocument({
+        url: `/api/facilities/${encodeURIComponent(selectedFacilityId)}/documents/${type}/${encodeURIComponent(grnId)}`,
+        popupBlockedMessage:
+          'Pop-up window was blocked. Please allow pop-ups for this site to print documents.',
+        failureMessage: 'Failed to generate document',
+      });
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Failed to generate document');
+      setPrintError(err instanceof Error ? err.message : 'Failed to generate document');
     } finally {
       setPrintingId(null);
     }
@@ -80,6 +70,12 @@ export default function GrnsPage() {
           )}
         </div>
       </div>
+
+      {printError && (
+        <div className={styles.banner} role="alert">
+          <span>{printError}</span>
+        </div>
+      )}
 
       {!selectedFacilityId ? (
         <FeedbackStates.Empty

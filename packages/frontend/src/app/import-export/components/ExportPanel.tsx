@@ -9,6 +9,7 @@ interface ExportPanelProps {
   canExport: boolean;
   selectedFacilityId: string;
   exportingType: string | null;
+  exportError: string | null;
   onExport: (endpoint: string, filename: string) => void;
 }
 
@@ -16,6 +17,7 @@ export function ExportPanel({
   canExport,
   selectedFacilityId,
   exportingType,
+  exportError,
   onExport,
 }: ExportPanelProps) {
   return (
@@ -24,6 +26,12 @@ export function ExportPanel({
         <Download size={18} color="var(--color-primary)" aria-hidden="true" />
         <h2 className={styles.sectionTitle}>Certified CSV Exports</h2>
       </div>
+
+      {exportError && (
+        <div className={styles.modalError} role="alert">
+          {exportError}
+        </div>
+      )}
 
       {!canExport ? (
         <p className={styles.mutedNote}>

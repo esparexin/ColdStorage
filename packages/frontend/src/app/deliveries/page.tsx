@@ -7,7 +7,7 @@ import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
-import { requestWithAuth } from '@/lib/api-client';
+import { printHtmlDocument } from '@/lib/print-document';
 import { CollectPaymentModal } from '../rent/components/CollectPaymentModal';
 import { CreateDeliveryModal } from './components/CreateDeliveryModal';
 import { DeliveryDetailModal } from './components/DeliveryDetailModal';
@@ -24,6 +24,7 @@ export default function DeliveriesPage() {
 
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryChallan | null>(null);
   const [printingId, setPrintingId] = useState<string | null>(null);
+  const [printError, setPrintError] = useState<string | null>(null);
   const [reversingDelivery, setReversingDelivery] = useState<DeliveryChallan | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [rentPayAccount, setRentPayAccount] = useState<RentSummaryDto | null>(null);
@@ -43,26 +44,16 @@ export default function DeliveriesPage() {
   const handlePrintChallan = async (challanId: string) => {
     if (!selectedFacilityId) return;
     setPrintingId(challanId);
+    setPrintError(null);
     try {
-      const url = `/api/facilities/${encodeURIComponent(selectedFacilityId)}/documents/challan/${encodeURIComponent(challanId)}`;
-      const res = await requestWithAuth(url);
-      if (!res.ok) {
-        const err = (await res.json()) as { error?: string; message?: string };
-        throw new Error(err.error ?? err.message ?? `Print failed (HTTP ${res.status})`);
-      }
-      const html = await res.text();
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        alert('Pop-up window was blocked. Please allow pop-ups for this site to print delivery challans.');
-        return;
-      }
-      printWindow.document.open();
-      printWindow.document.write(html);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => printWindow.print(), 300);
+      await printHtmlDocument({
+        url: `/api/facilities/${encodeURIComponent(selectedFacilityId)}/documents/challan/${encodeURIComponent(challanId)}`,
+        popupBlockedMessage:
+          'Pop-up window was blocked. Please allow pop-ups for this site to print delivery challans.',
+        failureMessage: 'Failed to generate delivery challan',
+      });
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Failed to generate delivery challan');
+      setPrintError(err instanceof Error ? err.message : 'Failed to generate delivery challan');
     } finally {
       setPrintingId(null);
     }
@@ -70,6 +61,12 @@ export default function DeliveriesPage() {
 
   return (
     <div className={styles.page}>
+      {printError && (
+        <div className={styles.banner} role="alert">
+          <span>{printError}</span>
+        </div>
+      )}
+
       <div className={styles.headerRow}>
         <div className={styles.titleArea}>
           <h1 className={styles.pageTitle}>Outward Deliveries</h1>

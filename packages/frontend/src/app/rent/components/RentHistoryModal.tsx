@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Printer } from 'lucide-react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
 import { Badge, Button, Modal } from '@/components/ui';
-import { requestWithAuth } from '@/lib/api-client';
+import { printHtmlDocument } from '@/lib/print-document';
 import styles from '../page.module.css';
 
 interface RentHistoryModalProps {
@@ -21,32 +21,20 @@ export function RentHistoryModal({
   onClose,
 }: RentHistoryModalProps) {
   const [printingReceiptNum, setPrintingReceiptNum] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handlePrintReceipt = async (receiptNumber: string) => {
     if (!selectedFacilityId) return;
     setPrintingReceiptNum(receiptNumber);
     try {
-      const url = `/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/receipts/${encodeURIComponent(receiptNumber)}/print`;
-      const res = await requestWithAuth(url);
-      if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
-        throw new Error(err.error ?? `Print failed (HTTP ${res.status})`);
-      }
-      const html = await res.text();
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        alert('Pop-up window was blocked. Please allow pop-ups for this site to print rent receipts.');
-        return;
-      }
-      printWindow.document.open();
-      printWindow.document.write(html);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-      }, 300);
+      await printHtmlDocument({
+        url: `/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/receipts/${encodeURIComponent(receiptNumber)}/print`,
+        popupBlockedMessage:
+          'Pop-up window was blocked. Please allow pop-ups for this site to print rent receipts.',
+        failureMessage: 'Failed to generate rent receipt',
+      });
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Failed to generate rent receipt');
+      setError(err instanceof Error ? err.message : 'Failed to generate rent receipt');
     } finally {
       setPrintingReceiptNum(null);
     }
@@ -105,6 +93,12 @@ export function RentHistoryModal({
           <h4 style={{ fontSize: 'var(--text-xs)', fontWeight: 700, textTransform: 'uppercase' }}>
             Issued Official Receipts ({account.payments.length})
           </h4>
+
+          {error && (
+            <div className={styles.modalError} role="alert">
+              {error}
+            </div>
+          )}
 
           {account.payments.length === 0 ? (
             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
