@@ -11,7 +11,7 @@ interface GrnDetailModalProps {
   grn: Grn;
   onClose: () => void;
   canPrint: boolean;
-  canAllocate: boolean;
+  canAllocate?: boolean;
   printingId: string | null;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
 }
@@ -116,11 +116,16 @@ export function GrnDetailModal({
             </div>
 
             <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Authoritative Weight</span>
+              <span className={styles.detailLabel}>Small Bag Weight</span>
               <span className={styles.detailValue}>
-                {grn.authoritativeWeight
-                  ? `${grn.authoritativeWeight} kg`
-                  : 'Not recorded'}
+                {grn.smallBagWeight ? `${grn.smallBagWeight} kg per bag` : '—'}
+              </span>
+            </div>
+
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Big Bag Weight</span>
+              <span className={styles.detailValue}>
+                {grn.bigBagWeight ? `${grn.bigBagWeight} kg per bag` : '—'}
               </span>
             </div>
 
@@ -129,7 +134,7 @@ export function GrnDetailModal({
               <span className={styles.detailValue}>
                 {grn.rentType}
                 {grn.rentType === 'Monthly' && grn.rentMonths
-                  ? ` (${grn.rentMonths} Months)`
+                  ? ` (${grn.rentMonths} Months, info only)`
                   : ''}{' '}
                 — ₹{grn.rentAmount.toLocaleString('en-IN')}
               </span>

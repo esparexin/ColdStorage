@@ -1,7 +1,6 @@
 import type { DeliveryChallan, DeliveryQuery, DeliverySummary } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
-import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { toChallanEntity } from '../delivery.mappers.js';
 
 export async function getDeliveryById(
@@ -61,21 +60,12 @@ export async function getDeliverySummary(
     throw new Error(`GRN '${grnId}' not found in facility '${facilityId}'`);
   }
 
-  const [outwardAgg, reversalAgg] = await Promise.all([
-    InventoryTransactionModel.aggregate([
-      { $match: { grnId, facilityId, transactionType: 'OUTWARD_DELIVERY' } },
-      { $group: { _id: null, total: { $sum: '$quantity' } } },
-    ]),
-    InventoryTransactionModel.aggregate([
-      { $match: { grnId, facilityId, transactionType: 'DELIVERY_REVERSAL' } },
-      { $group: { _id: null, total: { $sum: '$quantity' } } },
-    ]),
+  const issuedAgg = await DeliveryChallanModel.aggregate([
+    { $match: { grnId, facilityId, status: 'ISSUED' } },
+    { $group: { _id: null, total: { $sum: '$bags' } } },
   ]);
 
-  const totalOutward = outwardAgg[0]?.total ?? 0;
-  const totalReversal = reversalAgg[0]?.total ?? 0;
-
-  const netDeliveredBags = totalOutward - totalReversal;
+  const netDeliveredBags = issuedAgg[0]?.total ?? 0;
   const remainingDeliveryBalance = Math.max(0, grn.bags - netDeliveredBags);
   const physicallyStoredBags = remainingDeliveryBalance;
 

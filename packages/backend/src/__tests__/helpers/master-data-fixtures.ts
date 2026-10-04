@@ -72,6 +72,10 @@ export interface SeedGrnOptions {
   chamber?: string;
   bags?: number;
   bagType?: BagType;
+  smallBags?: number | null;
+  bigBags?: number | null;
+  smallBagWeight?: number | null;
+  bigBagWeight?: number | null;
   rentAmount?: number;
   rentType?: 'Monthly' | 'Seasonal';
   /** Overrides the rent period; Monthly defaults to 1 and Seasonal to SEASONAL_MONTHS. */
@@ -93,6 +97,12 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
   const id = `grn-${randomUUID()}`;
   const rentType = options.rentType ?? 'Seasonal';
   const commodityId = options.commodityId ?? `cmd-${randomUUID()}`;
+  const bagType = options.bagType ?? 'S';
+  // Per-bag weight defaults mirror the form: S needs small, B needs big, S+B needs both.
+  const smallBagWeight =
+    options.smallBagWeight ?? (bagType === 'S' || bagType === 'S+B' ? 50 : null);
+  const bigBagWeight =
+    options.bigBagWeight ?? (bagType === 'B' || bagType === 'S+B' ? 80 : null);
 
   await GrnModel.findOneAndUpdate(
     { id },
@@ -109,11 +119,11 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
         commodityName: options.commodityName ?? 'Potato',
         chamber: options.chamber ?? 'CH-01',
         bags: options.bags ?? 100,
-        bagType: options.bagType ?? 'S',
-        nominalUnitWeight: null,
-        nominalTotalWeight: null,
-        actualWeight: null,
-        authoritativeWeight: null,
+        bagType,
+        smallBags: options.smallBags ?? null,
+        bigBags: options.bigBags ?? null,
+        smallBagWeight,
+        bigBagWeight,
         rentType,
         rentMonths:
           options.rentMonths !== undefined

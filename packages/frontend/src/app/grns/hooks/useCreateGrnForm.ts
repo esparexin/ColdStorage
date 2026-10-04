@@ -20,9 +20,8 @@ export function useCreateGrnForm(
   const [createBagType, setCreateBagType] = useState<BagType>('S');
   const [createSmallBags, setCreateSmallBags] = useState<number | ''>('');
   const [createBigBags, setCreateBigBags] = useState<number | ''>('');
-  const [createNominalUnitWeight, setCreateNominalUnitWeight] = useState<number | ''>('');
-  const [createNominalTotalWeight, setCreateNominalTotalWeight] = useState<number | ''>('');
-  const [createActualWeight, setCreateActualWeight] = useState<number | ''>('');
+  const [createSmallBagWeight, setCreateSmallBagWeight] = useState<number | ''>('');
+  const [createBigBagWeight, setCreateBigBagWeight] = useState<number | ''>('');
   const [createRentType, setCreateRentType] = useState<RentType>('Seasonal');
   const [createRentMonths, setCreateRentMonths] = useState<number | ''>('');
   const [createBagPrice, setCreateBagPrice] = useState<number | ''>('');
@@ -88,17 +87,7 @@ export function useCreateGrnForm(
   const handleBagsChange = (val: number | '') => {
     setCreateBags(val);
     clearFieldError('bags');
-    if (typeof val === 'number' && typeof createNominalUnitWeight === 'number') {
-      setCreateNominalTotalWeight(val * createNominalUnitWeight);
-    }
     autoComputeRent({ bags: val });
-  };
-
-  const handleUnitWeightChange = (val: number | '') => {
-    setCreateNominalUnitWeight(val);
-    if (typeof createBags === 'number' && typeof val === 'number') {
-      setCreateNominalTotalWeight(createBags * val);
-    }
   };
 
   const handleBagTypeChange = (val: BagType) => {
@@ -106,8 +95,9 @@ export function useCreateGrnForm(
     setCreateBags('');
     setCreateSmallBags('');
     setCreateBigBags('');
-    setCreateNominalTotalWeight('');
     clearFieldError('bags');
+    clearFieldError('smallBagWeight');
+    clearFieldError('bigBagWeight');
     autoComputeRent({ bagType: val, bags: '', smallBags: '', bigBags: '' });
   };
 
@@ -118,9 +108,6 @@ export function useCreateGrnForm(
     const big = typeof createBigBags === 'number' ? createBigBags : 0;
     const total: number | '' = small + big > 0 ? small + big : '';
     setCreateBags(total);
-    if (typeof total === 'number' && typeof createNominalUnitWeight === 'number') {
-      setCreateNominalTotalWeight(total * createNominalUnitWeight);
-    }
     autoComputeRent({ smallBags: val, bags: total });
   };
 
@@ -131,10 +118,17 @@ export function useCreateGrnForm(
     const small = typeof createSmallBags === 'number' ? createSmallBags : 0;
     const total: number | '' = small + big > 0 ? small + big : '';
     setCreateBags(total);
-    if (typeof total === 'number' && typeof createNominalUnitWeight === 'number') {
-      setCreateNominalTotalWeight(total * createNominalUnitWeight);
-    }
     autoComputeRent({ bigBags: val, bags: total });
+  };
+
+  const handleSmallBagWeightChange = (val: number | '') => {
+    setCreateSmallBagWeight(val);
+    clearFieldError('smallBagWeight');
+  };
+
+  const handleBigBagWeightChange = (val: number | '') => {
+    setCreateBigBagWeight(val);
+    clearFieldError('bigBagWeight');
   };
 
   const handleRentMonthsChange = (val: number | '') => {
@@ -147,7 +141,8 @@ export function useCreateGrnForm(
     e.preventDefault();
     const { errors, parsedChamber, normalizedVehicle } = validateCreateGrnForm({
       createCustomerId, createCommodityId, createChamber, createBags, createBagType,
-      createSmallBags, createBigBags, createRentType, createRentMonths, createRentAmount,
+      createSmallBags, createBigBags, createSmallBagWeight, createBigBagWeight,
+      createRentType, createRentMonths, createRentAmount,
       createVehicleNumber,
     });
 
@@ -157,6 +152,13 @@ export function useCreateGrnForm(
       const fieldIdMap: Record<string, string> = {
         customer: 'create-customer-search', commodity: 'create-commodity', chamber: 'create-chamber',
         bags: createBagType === 'S+B' ? 'create-small-bags' : 'create-bags',
+        smallBagWeight:
+          createBagType === 'S+B'
+            ? 'create-both-small-bag-weight'
+            : createBagType === 'B'
+              ? 'create-big-bag-weight'
+              : 'create-small-bag-weight',
+        bigBagWeight: createBagType === 'S+B' ? 'create-both-big-bag-weight' : 'create-big-bag-weight',
         rentMonths: 'create-rent-months', rentAmount: 'create-rent-amount', vehicleNumber: 'create-vehicle',
       };
       setModalError(errors[firstKey]);
@@ -182,9 +184,8 @@ export function useCreateGrnForm(
       if (typeof createSmallBags === 'number' && createSmallBags > 0) payload.smallBags = createSmallBags;
       if (typeof createBigBags === 'number' && createBigBags > 0) payload.bigBags = createBigBags;
       if (createRentType === 'Monthly' && typeof createRentMonths === 'number') payload.rentMonths = createRentMonths;
-      if (typeof createNominalUnitWeight === 'number' && createNominalUnitWeight > 0) payload.nominalUnitWeight = createNominalUnitWeight;
-      if (typeof createNominalTotalWeight === 'number' && createNominalTotalWeight > 0) payload.nominalTotalWeight = createNominalTotalWeight;
-      if (typeof createActualWeight === 'number' && createActualWeight > 0) payload.actualWeight = createActualWeight;
+      if (typeof createSmallBagWeight === 'number' && createSmallBagWeight > 0) payload.smallBagWeight = createSmallBagWeight;
+      if (typeof createBigBagWeight === 'number' && createBigBagWeight > 0) payload.bigBagWeight = createBigBagWeight;
       if (createGpNumber.trim()) payload.gpNumber = createGpNumber.trim();
       if (normalizedVehicle) payload.vehicleNumber = normalizedVehicle;
       if (createRemarks.trim()) payload.remarks = createRemarks.trim();
@@ -213,7 +214,7 @@ export function useCreateGrnForm(
 
   const isDirty = Boolean(
     createCustomerId || createCommodityId || createBags || createSmallBags || createBigBags ||
-    createNominalUnitWeight || createActualWeight || createRentAmount || createGpNumber.trim() ||
+    createSmallBagWeight || createBigBagWeight || createRentAmount || createGpNumber.trim() ||
     createVehicleNumber.trim() || createRemarks.trim(),
   );
 
@@ -226,9 +227,8 @@ export function useCreateGrnForm(
     createBags, handleBagsChange,
     createBagType, handleBagTypeChange,
     createSmallBags, createBigBags, handleSmallBagsChange, handleBigBagsChange,
-    createNominalUnitWeight, handleUnitWeightChange,
-    createNominalTotalWeight, setCreateNominalTotalWeight,
-    createActualWeight, setCreateActualWeight,
+    createSmallBagWeight, handleSmallBagWeightChange,
+    createBigBagWeight, handleBigBagWeightChange,
     createRentType, handleRentTypeChange: (val: RentType) => { setCreateRentType(val); autoComputeRent({ rentType: val }); },
     createRentMonths, handleRentMonthsChange,
     createBagPrice, handleBagPriceChange: (val: number | '') => { setCreateBagPrice(val); autoComputeRent({ bagPrice: val }); },

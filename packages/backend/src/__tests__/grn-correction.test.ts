@@ -89,7 +89,7 @@ describe('GRN Correction Workflow (PATCH /api/facilities/:facilityId/grns/:grnId
   it('corrects commodity, bag count and chamber on an OPEN receipt', async () => {
     await GrnModel.updateOne(
       { id: grnId },
-      { $set: { nominalUnitWeight: 50, nominalTotalWeight: 10000, authoritativeWeight: 10000 } },
+      { $set: { smallBagWeight: 50 } },
     );
     await CommodityModel.create({
       id: 'cmd-onion-correct',

@@ -1,9 +1,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import {
-  ArrowRight,
   CheckCircle2,
   Clock,
   Eye,
@@ -19,7 +17,6 @@ interface GrnTableProps {
   grns: Grn[];
   caption: string;
   canPrint: boolean;
-  canAllocate: boolean;
   printingId: string | null;
   onSelectGrn: (grn: Grn) => void;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
@@ -29,7 +26,6 @@ export function GrnTable({
   grns,
   caption,
   canPrint,
-  canAllocate,
   printingId,
   onSelectGrn,
   onPrint,
@@ -173,17 +169,6 @@ export function GrnTable({
                 Ack
               </Button>
             </>
-          )}
-
-          {row.status === 'OPEN' && canAllocate && (
-            <Link
-              href={`/inventory?grnId=${encodeURIComponent(row.id)}`}
-              className={styles.actionBtn}
-              title="Put Away Bags to Racks/Positions"
-            >
-              <ArrowRight size={13} aria-hidden="true" />
-              Put-Away
-            </Link>
           )}
         </div>
       ),

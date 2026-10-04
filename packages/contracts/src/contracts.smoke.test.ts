@@ -6,7 +6,6 @@ import {
   changePasswordInputSchema,
   createUserSchema,
   facilitySchema,
-  getAuthoritativeWeight,
   gpNumberSchema,
   grnNumberSchema,
   inFacilityScope,
@@ -37,23 +36,21 @@ describe('P1 Governance & Shared Contracts Foundation', () => {
     expect(() => bagTypeSchema.parse('OTHER')).toThrow();
   });
 
-  it('derives authoritative weight with actual weighbridge priority', () => {
-    const nominalOnly = bagAccountingSchema.parse({
+  it('captures per-bag weight only (Small / Big), no nominal or weighbridge totals', () => {
+    const smallOnly = bagAccountingSchema.parse({
       bagType: 'S',
       bags: 100,
-      nominalUnitWeight: 50,
-      nominalTotalWeight: 5000,
+      smallBagWeight: 50,
     });
-    expect(getAuthoritativeWeight(nominalOnly)).toBe(5000);
+    expect(smallOnly.smallBagWeight).toBe(50);
 
-    const actualWeighed = bagAccountingSchema.parse({
-      bagType: 'B',
-      bags: 100,
-      nominalUnitWeight: 50,
-      nominalTotalWeight: 5000,
-      actualWeight: 5085,
+    const mixed = bagAccountingSchema.parse({
+      bagType: 'S+B',
+      bags: 120,
+      smallBagWeight: 50,
+      bigBagWeight: 80,
     });
-    expect(getAuthoritativeWeight(actualWeighed)).toBe(5085);
+    expect(mixed.bigBagWeight).toBe(80);
   });
 
   it('validates Facility as the tenancy root with no storage hierarchy beneath it', () => {

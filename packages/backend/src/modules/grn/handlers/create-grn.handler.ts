@@ -3,7 +3,6 @@ import mongoose from 'mongoose';
 import {
   calculateRentAmount,
   deriveBagPrice,
-  getAuthoritativeWeight,
   rentMonthsForType,
   type CreateGrnInput,
   type Grn,
@@ -58,19 +57,13 @@ export async function createGrn(
   // 5. Inward Date and FY validation
   const inwardDate = validateOperationalDate(input.date, { label: 'Inward' });
 
-  // 6. Weight accounting
-  const nominalTotalWeight =
-    input.nominalTotalWeight ??
-    (input.nominalUnitWeight ? input.bags * input.nominalUnitWeight : null);
+  // 6. Per-bag weight accounting (no nominal/weighbridge/total derivation).
+  // Small Bag Weight belongs to the individual small bag; Big Bag Weight to the big bag.
+  const smallBagWeight = input.smallBagWeight ?? null;
+  const bigBagWeight = input.bigBagWeight ?? null;
 
-  const authoritativeWeight = getAuthoritativeWeight({
-    bagType: input.bagType,
-    bags: input.bags,
-    nominalUnitWeight: input.nominalUnitWeight ?? null,
-    nominalTotalWeight,
-    actualWeight: input.actualWeight ?? null,
-  });
-
+  // Rent Months is informational only and is not used to finalize the monthly
+  // subscription/payment logic beyond the established rent-amount rule.
   const rentMonths = rentMonthsForType(input.rentType) ?? input.rentMonths!;
   const derivedBagPrice = deriveBagPrice({
     rentType: input.rentType,
@@ -125,10 +118,8 @@ export async function createGrn(
             chamber: input.chamber.trim(),
             bags: input.bags,
             bagType: input.bagType,
-            nominalUnitWeight: input.nominalUnitWeight ?? null,
-            nominalTotalWeight,
-            actualWeight: input.actualWeight ?? null,
-            authoritativeWeight,
+            smallBagWeight,
+            bigBagWeight,
             rentType: input.rentType,
             rentMonths,
             rentAmount: finalRentAmount,

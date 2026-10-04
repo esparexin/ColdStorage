@@ -36,6 +36,7 @@ function buildBenchmarkGrns(count: number) {
     chamber: `CH-${i % 4}`,
     bags: 100,
     bagType: 'S' as const,
+    smallBagWeight: 50,
     rentType: 'Seasonal' as const,
     rentAmount: 5000,
     status: 'OPEN' as const,
