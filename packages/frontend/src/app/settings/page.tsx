@@ -63,7 +63,7 @@ export default function SettingsPage() {
     return (
       <FeedbackStates.Error
         title="Access Restricted"
-        message="Only Super Administrators have authorization to view and update System Settings."
+        message="System settings require the 'settings:manage' permission."
       />
     );
   }
