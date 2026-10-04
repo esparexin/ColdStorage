@@ -9,6 +9,7 @@ import {
 import { GrnModel, type GrnDoc } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
 import { computeRentBalance } from '../common/rent-balance.js';
+import { calculateGrnMonthlyOccupancyRent } from '../common/occupancy-rent.js';
 import { renderRentReceiptTemplate } from '../documents/templates/rent-receipt.template.js';
 import {
   getFacilitySubHeader,
@@ -179,6 +180,14 @@ export class RentService {
     };
 
     return renderRentReceiptTemplate(docDto);
+  }
+
+  public async getMonthlyOccupancyRent(
+    facilityId: string,
+    grnId: string,
+    options?: { asOfDate?: Date },
+  ) {
+    return calculateGrnMonthlyOccupancyRent(facilityId, grnId, options);
   }
 }
 

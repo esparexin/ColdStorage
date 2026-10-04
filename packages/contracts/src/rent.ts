@@ -76,3 +76,35 @@ export const recordRentPaymentResultSchema = z.object({
 });
 
 export type RecordRentPaymentResult = z.infer<typeof recordRentPaymentResultSchema>;
+
+export const monthlyOccupancyPeriodSchema = z.object({
+  grnId: z.string().min(1),
+  grnNumber: z.string().min(1),
+  inwardDate: z.coerce.date(),
+  outwardDate: z.coerce.date().nullable().optional(),
+  billingPeriod: z.string().min(1),
+  applicableMonth: z.string().min(1),
+  periodIndex: z.number().int().min(1),
+  openingBags: z.number().int().min(0),
+  deliveredBags: z.number().int().min(0),
+  remainingBags: z.number().int().min(0),
+  occupancyBags: z.number().int().min(0),
+  bagRate: z.number().min(0),
+  calculatedCharge: z.number().min(0),
+});
+
+export type MonthlyOccupancyPeriod = z.infer<typeof monthlyOccupancyPeriodSchema>;
+
+export const grnOccupancyRentSummarySchema = z.object({
+  grnId: z.string().min(1),
+  facilityId: z.string().min(1),
+  grnNumber: z.string().min(1),
+  rentType: rentTypeSchema,
+  totalInwardBags: z.number().int().positive(),
+  currentRemainingBags: z.number().int().min(0),
+  bagRate: z.number().min(0),
+  totalOccupancyCharge: z.number().min(0),
+  periods: z.array(monthlyOccupancyPeriodSchema),
+});
+
+export type GrnOccupancyRentSummary = z.infer<typeof grnOccupancyRentSummarySchema>;

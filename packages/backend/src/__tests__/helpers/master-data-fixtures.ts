@@ -83,6 +83,7 @@ export interface SeedGrnOptions {
   marks?: string | null;
   gpNumber?: string | null;
   remarks?: string | null;
+  date?: Date;
 }
 
 /** Seasonal is always the fixed 10-month period. */
@@ -101,7 +102,7 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
         grnNumber: options.grnNumber ?? `GRN-26-27-${id.slice(-4).toUpperCase()}`,
         inwardReceiptNumber:
           options.inwardReceiptNumber ?? `RCPT-26-27-${id.slice(-4).toUpperCase()}`,
-        date: new Date(),
+        date: options.date ?? new Date(),
         customerId: options.customerId ?? (await seedCustomer({ facilityId: options.facilityId })),
         customerName: options.customerName ?? `Customer ${id.slice(-6)}`,
         commodityId,
