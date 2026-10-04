@@ -91,7 +91,7 @@ export function useGrns(
       setTotalGrns(data.total ?? 0);
       setTotalPages(Math.ceil((data.total ?? 0) / GRN_PAGE_SIZE));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load Goods Receipt Notes');
+      setError(e instanceof Error ? e.message : 'Failed to load Acknowledgement of Goods');
     } finally {
       setLoading(false);
     }

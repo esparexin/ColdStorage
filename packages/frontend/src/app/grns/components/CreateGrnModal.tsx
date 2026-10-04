@@ -39,8 +39,8 @@ export function CreateGrnModal({
   return (
     <>
     <Modal
-      isOpen onClose={handleAttemptClose} title="Inward Goods Receipt Note (GRN)" size="lg"
-      footer={<><Button variant="outline" onClick={handleAttemptClose} disabled={form.submitting}>Cancel</Button><Button id="submit-create-grn-btn" form="create-grn-form" type="submit" variant="primary" disabled={form.submitting} isLoading={form.submitting}>Create Inward GRN</Button></>}
+      isOpen onClose={handleAttemptClose} title="Acknowledgement of Goods" size="lg"
+      footer={<><Button variant="outline" onClick={handleAttemptClose} disabled={form.submitting}>Cancel</Button><Button id="submit-create-grn-btn" form="create-grn-form" type="submit" variant="primary" disabled={form.submitting} isLoading={form.submitting}>Create Acknowledgement of Goods</Button></>}
     >
       <form id="create-grn-form" noValidate onSubmit={form.handleSubmit} className={styles.modalForm}>
         {form.modalError && <div id="modal-error-banner" className={styles.modalError} role="alert">{form.modalError}</div>}

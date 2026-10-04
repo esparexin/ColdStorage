@@ -25,7 +25,7 @@ export function GrnDetailModal({
     <Modal
       isOpen
       onClose={onClose}
-      title={`GRN Details: ${grn.grnNumber}`}
+      title={`Acknowledgement Details: ${grn.grnNumber}`}
       subtitle={`Inward Receipt #${grn.inwardReceiptNumber}`}
       size="lg"
       footer={
