@@ -28,6 +28,8 @@ export function useCreateDeliveryForm(
   const [createVehicleNumber, setCreateVehicleNumber] = useState('');
   const [createDriverName, setCreateDriverName] = useState('');
   const [createWeight, setCreateWeight] = useState<number | ''>('');
+  const [createMarks, setCreateMarks] = useState('');
+  const [createGpNumber, setCreateGpNumber] = useState('');
   const [createRemarks, setCreateRemarks] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -135,8 +137,14 @@ export function useCreateDeliveryForm(
       if (createDriverName.trim()) {
         payload.driverName = createDriverName.trim();
       }
-      if (typeof createWeight === 'number' && createWeight > 0) {
+      if (createWeight !== '' && typeof createWeight === 'number' && createWeight > 0) {
         payload.weight = createWeight;
+      }
+      if (createMarks.trim()) {
+        payload.marks = createMarks.trim();
+      }
+      if (createGpNumber.trim()) {
+        payload.gpNumber = createGpNumber.trim();
       }
       if (createRemarks.trim()) {
         payload.remarks = createRemarks.trim();
@@ -186,6 +194,10 @@ export function useCreateDeliveryForm(
     setCreateDriverName,
     createWeight,
     setCreateWeight,
+    createMarks,
+    setCreateMarks,
+    createGpNumber,
+    setCreateGpNumber,
     createRemarks,
     setCreateRemarks,
     modalError,

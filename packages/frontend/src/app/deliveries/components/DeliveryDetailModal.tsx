@@ -89,6 +89,13 @@ export function DeliveryDetailModal({
             </div>
 
             <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Opening Balance</span>
+              <span className={styles.detailValue}>
+                {delivery.openingBags != null ? `${delivery.openingBags.toLocaleString('en-IN')} Bags` : '—'}
+              </span>
+            </div>
+
+            <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Total Delivered Bags</span>
               <span className={styles.detailValue}>
                 {delivery.totalBags.toLocaleString('en-IN')} Bags
@@ -96,24 +103,36 @@ export function DeliveryDetailModal({
             </div>
 
             <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Closing Balance</span>
+              <span className={styles.detailValue}>
+                {delivery.closingBags != null ? `${delivery.closingBags.toLocaleString('en-IN')} Bags` : '—'}
+              </span>
+            </div>
+
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Marks</span>
+              <span className={styles.detailValue}>{delivery.marks || '—'}</span>
+            </div>
+
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>GP Number</span>
+              <span className={styles.detailValue}>{delivery.gpNumber || '—'}</span>
+            </div>
+
+            <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Vehicle Number</span>
-              <span className={styles.detailValue}>{delivery.vehicleNumber || 'None'}</span>
+              <span className={styles.detailValue}>{delivery.vehicleNumber || '—'}</span>
             </div>
 
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Driver Name</span>
-              <span className={styles.detailValue}>{delivery.driverName || 'None'}</span>
+              <span className={styles.detailValue}>{delivery.driverName || '—'}</span>
             </div>
 
             <div className={styles.detailItem} style={{ gridColumn: 'span 2' }}>
               <span className={styles.detailLabel}>Remarks</span>
-              <span className={styles.detailValue}>{delivery.remarks || 'None'}</span>
+              <span className={styles.detailValue}>{delivery.remarks || '—'}</span>
             </div>
-          </div>
-
-          <div className={styles.detailItem}>
-            <span className={styles.detailLabel}>Bags Delivered</span>
-            <span className={styles.detailValue}>{delivery.bags}</span>
           </div>
         </div>
     </Modal>
