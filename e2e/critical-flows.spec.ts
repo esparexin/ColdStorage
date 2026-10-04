@@ -202,6 +202,22 @@ test.describe('Critical Application Flows', () => {
       });
     });
 
+    // Mock facilities: FacilityContext no longer synthesizes placeholders
+    // on load failure, so /inventory renders an empty state with no h1/h2
+    // unless the facility list resolves.
+    await page.route('**/api/facilities', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          items: [
+            { id: 'fac-alpha', name: 'Alpha Cold Storage Facility', code: 'FAC-A', isActive: true },
+          ],
+          total: 1,
+        }),
+      });
+    });
+
     await page.goto('/inventory');
     await expect(page.locator('h1, h2')).toContainText(/Inventory|Stock/i);
   });
