@@ -5,7 +5,7 @@
 }
 
 .title {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
 }
@@ -13,7 +13,7 @@
 .row {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-6);
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
@@ -40,7 +40,7 @@
   font-size: var(--text-sm);
   color: var(--color-text-primary);
   cursor: pointer;
-  padding-top: var(--space-5);
+  padding-top: var(--space-4);
 }
 
 .note {

@@ -1,7 +1,7 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-4);
 }
 
 .headerRow {
@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .titleArea {
@@ -18,7 +18,7 @@
 }
 
 .pageTitle {
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-bold);
   color: var(--color-text-primary);
   letter-spacing: -0.02em;
@@ -33,7 +33,7 @@
 .headerActions {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .linkButton {
@@ -179,13 +179,13 @@
 .modalBody {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .modalForm {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .sectionHeading {
@@ -201,13 +201,13 @@
 .formGrid2 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .formGrid3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 @media (max-width: 768px) {
@@ -266,7 +266,7 @@
 }
 
 .modalError {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   background: var(--color-danger-subtle);
   color: var(--color-danger);
   border-radius: var(--radius-md);
@@ -289,10 +289,10 @@
 .detailGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-4);
+  gap: var(--space-3);
   background: var(--color-surface-2);
-  padding: var(--space-4);
-  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
 
@@ -408,7 +408,7 @@
 }
 
 .comboboxEmpty {
-  padding: var(--space-3);
+  padding: var(--space-2);
   font-size: var(--text-sm);
   color: var(--color-text-muted);
   text-align: center;

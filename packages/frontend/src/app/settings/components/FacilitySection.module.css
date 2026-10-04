@@ -2,14 +2,14 @@
    page stylesheet stays within its line-budget baseline. */
 
 .modalForm {
-  padding: var(--space-6);
+  padding: var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .modalError {
-  padding: var(--space-3);
+  padding: var(--space-2);
   background: var(--color-danger-subtle);
   color: var(--color-danger);
   border-radius: var(--radius-md);
@@ -19,7 +19,7 @@
 .fieldGroup {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .checkboxLabel {
@@ -34,13 +34,13 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-3);
-  padding-top: var(--space-4);
+  gap: var(--space-2);
+  padding-top: var(--space-3);
   border-top: 1px solid var(--color-border);
 }
 
 .sectionHint {
-  margin: 0 0 var(--space-3);
+  margin: 0 0 var(--space-2);
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
@@ -48,8 +48,8 @@
 .sectionCard {
   background: var(--color-surface-1);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);

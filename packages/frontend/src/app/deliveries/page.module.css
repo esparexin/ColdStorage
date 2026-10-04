@@ -1,7 +1,7 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-4);
 }
 
 .headerRow {
@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .titleArea {
@@ -18,7 +18,7 @@
 }
 
 .pageTitle {
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-bold);
   color: var(--color-text-primary);
   letter-spacing: -0.02em;
@@ -33,7 +33,7 @@
 .headerActions {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .primaryBtn {
@@ -179,15 +179,15 @@
 }
 
 .modalBody {
-  padding: var(--space-6);
+  padding: var(--space-5);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .modalError {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   background: var(--color-danger-subtle);
   color: var(--color-danger);
   border-radius: var(--radius-md);
@@ -198,8 +198,8 @@
 .warningBox {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   background: var(--color-warning-subtle);
   border: 1px solid var(--color-warning);
   border-radius: var(--radius-md);
@@ -211,10 +211,10 @@
 .detailGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-4);
+  gap: var(--space-3);
   background: var(--color-surface-2);
-  padding: var(--space-4);
-  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
 
