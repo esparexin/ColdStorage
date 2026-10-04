@@ -1,4 +1,5 @@
 import mongoose, { ConnectionStates } from 'mongoose';
+import { assertSafeDatabaseTarget } from '../../database/connection.js';
 import { CommodityModel } from '../../database/models/commodity.model.js';
 import { CounterModel } from '../../database/models/counter.model.js';
 import { CustomerModel } from '../../database/models/customer.model.js';
@@ -37,12 +38,18 @@ export async function resetStockCollections(): Promise<void> {
  */
 const STOCK_SUITE_DB = 'cold_storage_stock_test';
 
-function stockSuiteUri(): string {
-  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/cold_storage_test';
-  const [withoutQuery, query] = uri.split('?');
+export function stockSuiteUri(): string {
+  // Test isolation: never inherit a live Atlas server. Prefer the explicit
+  // test override, otherwise use localhost. The live `cold_storage` database
+  // (Atlas or local) is never a valid stock-suite target.
+  const candidate =
+    process.env.MONGODB_TEST_URI || 'mongodb://127.0.0.1:27017/cold_storage_test';
+  const [withoutQuery, query] = candidate.split('?');
   const lastSlash = withoutQuery.lastIndexOf('/');
   const server = lastSlash === -1 ? withoutQuery : withoutQuery.slice(0, lastSlash);
-  return `${server}/${STOCK_SUITE_DB}${query ? `?${query}` : ''}`;
+  const resolved = `${server}/${STOCK_SUITE_DB}${query ? `?${query}` : ''}`;
+  assertSafeDatabaseTarget(resolved);
+  return resolved;
 }
 
 /**
@@ -68,9 +75,19 @@ let connectOnce: Promise<void> | null = null;
 const connectionState = (): ConnectionStates => mongoose.connection.readyState;
 
 export async function connectToTestDatabase(): Promise<void> {
-  if (connectionState() === ConnectionStates.connected) return;
+  const target = stockSuiteUri();
+  assertSafeDatabaseTarget(target);
+  if (connectionState() === ConnectionStates.connected) {
+    if (mongoose.connection.name === 'cold_storage') {
+      await mongoose.disconnect();
+      throw new Error(
+        'FATAL SAFETY VIOLATION: Active connection is pointing to live database "cold_storage" during test execution.',
+      );
+    }
+    return;
+  }
 
-  connectOnce ??= mongoose.connect(stockSuiteUri()).then(() => undefined);
+  connectOnce ??= mongoose.connect(target).then(() => undefined);
   try {
     await connectOnce;
   } finally {
@@ -80,6 +97,13 @@ export async function connectToTestDatabase(): Promise<void> {
   // Settle any close that a previous suite kicked off before deciding we are still connected.
   if (connectionState() !== ConnectionStates.connected) {
     await mongoose.connection.asPromise();
+  }
+
+  if (mongoose.connection.name === 'cold_storage') {
+    await mongoose.disconnect();
+    throw new Error(
+      'FATAL SAFETY VIOLATION: Test process connected to live database "cold_storage". Aborting to prevent data corruption.',
+    );
   }
 }
 

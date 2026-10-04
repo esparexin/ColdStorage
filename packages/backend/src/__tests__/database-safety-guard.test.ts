@@ -45,4 +45,33 @@ describe('Database Safety Guard & Environment Isolation', () => {
       /FATAL SAFETY VIOLATION: Test process attempted to target live database "cold_storage"/,
     );
   });
+
+  it('fails closed: NODE_ENV=test + Atlas live URI never resolves to cold_storage', () => {
+    expect(process.env.NODE_ENV).toBe('test');
+    const liveAtlasUri =
+      'mongodb+srv://user:pass@cluster0.nmw9phs.mongodb.net/cold_storage?appName=Cluster0';
+    expect(() => assertSafeDatabaseTarget(liveAtlasUri)).toThrow(/FATAL SAFETY VIOLATION/);
+    // resolveMongoUri() rewrites any inherited live URI to the isolated test DB.
+    expect(resolveMongoUri()).not.toMatch(/\/cold_storage(\?|$)/);
+  });
+
+  it('keeps stock suites on an isolated database even when MONGODB_URI is Atlas', async () => {
+    const { stockSuiteUri } = await import('./helpers/stock-reset.js');
+    const previousTestUri = process.env.MONGODB_TEST_URI;
+    const previousUri = process.env.MONGODB_URI;
+    process.env.MONGODB_URI =
+      'mongodb+srv://user:pass@cluster0.nmw9phs.mongodb.net/cold_storage?appName=Cluster0';
+    delete process.env.MONGODB_TEST_URI;
+    try {
+      const uri = stockSuiteUri();
+      expect(uri).toContain('cold_storage_stock_test');
+      expect(uri).not.toMatch(/\/cold_storage(\?|$)/);
+      expect(() => assertSafeDatabaseTarget(uri)).not.toThrow();
+    } finally {
+      if (previousTestUri === undefined) delete process.env.MONGODB_TEST_URI;
+      else process.env.MONGODB_TEST_URI = previousTestUri;
+      if (previousUri === undefined) delete process.env.MONGODB_URI;
+      else process.env.MONGODB_URI = previousUri;
+    }
+  });
 });
