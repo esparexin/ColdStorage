@@ -114,7 +114,7 @@ export function CreateDeliveryModal({
                   />
                 </div>
 
-                <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>
+                <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>
                   Total Delivering:{' '}
                   <span style={{ color: 'var(--color-primary)' }}>{form.totalWithdrawingBags}</span> bags
                 </div>

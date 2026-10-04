@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { useAuth } from '@/context/AuthContext';
 import styles from './ChangePasswordModal.module.css';
@@ -80,62 +81,47 @@ export function ChangePasswordModal({ isOpen }: ChangePasswordModalProps) {
           </div>
         )}
 
-        <div className={styles.fieldGroup}>
-          <label htmlFor="force-current-password" className={styles.fieldLabel}>
-            Current Temporary Password
-          </label>
-          <input
-            id="force-current-password"
-            name="current-password"
-            type="password"
-            className={styles.fieldInput}
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            autoComplete="current-password"
-            required
-            disabled={isSubmitting}
-            placeholder="Enter temporary password"
-          />
-        </div>
+        <Input
+          id="force-current-password"
+          label="Current Temporary Password"
+          name="current-password"
+          type="password"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          autoComplete="current-password"
+          required
+          disabled={isSubmitting}
+          placeholder="Enter temporary password"
+        />
 
-        <div className={styles.fieldGroup}>
-          <label htmlFor="new-password" className={styles.fieldLabel}>
-            New Password
-          </label>
-          <input
-            id="new-password"
-            name="new-password"
-            type="password"
-            className={styles.fieldInput}
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            autoComplete="new-password"
-            required
-            minLength={8}
-            disabled={isSubmitting}
-            placeholder="Minimum 8 characters"
-          />
-          <span className={styles.hint}>Must be at least 8 characters</span>
-        </div>
+        <Input
+          id="new-password"
+          label="New Password"
+          name="new-password"
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          autoComplete="new-password"
+          required
+          minLength={8}
+          disabled={isSubmitting}
+          placeholder="Minimum 8 characters"
+          helperText="Must be at least 8 characters"
+        />
 
-        <div className={styles.fieldGroup}>
-          <label htmlFor="confirm-password" className={styles.fieldLabel}>
-            Confirm New Password
-          </label>
-          <input
-            id="confirm-password"
-            name="confirm-password"
-            type="password"
-            className={styles.fieldInput}
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            autoComplete="new-password"
-            required
-            minLength={8}
-            disabled={isSubmitting}
-            placeholder="Re-enter new password"
-          />
-        </div>
+        <Input
+          id="confirm-password"
+          label="Confirm New Password"
+          name="confirm-password"
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          autoComplete="new-password"
+          required
+          minLength={8}
+          disabled={isSubmitting}
+          placeholder="Re-enter new password"
+        />
 
         <div className={styles.actions}>
           <Button

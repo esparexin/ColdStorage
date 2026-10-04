@@ -20,12 +20,11 @@
 
 /* ---- Sections ---- */
 
+/* Layout only: each DataTable below draws its own bordered surface, so a
+   wrapper box here would nest one border inside another. */
 .section {
-  background: var(--color-surface-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
 }
 
 .sectionTitle {

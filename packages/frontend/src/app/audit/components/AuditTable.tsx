@@ -47,7 +47,7 @@ export function AuditTable({ logs, onInspect }: AuditTableProps) {
       key: 'eventType',
       header: 'Event Action',
       render: (r) => (
-        <span style={{ fontWeight: 600, fontFamily: 'var(--font-mono, monospace)', fontSize: 'var(--text-xs)' }}>
+        <span style={{ fontWeight: 'var(--font-semibold)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>
           {r.eventType}
         </span>
       ),
@@ -57,7 +57,7 @@ export function AuditTable({ logs, onInspect }: AuditTableProps) {
       header: 'Actor / Role',
       render: (r) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontWeight: 600 }}>{r.username}</span>
+          <span style={{ fontWeight: 'var(--font-semibold)' }}>{r.username}</span>
           <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
             {r.userRole}
           </span>

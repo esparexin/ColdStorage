@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Button } from '@/components/ui';
+import { Button, Card, DataTable, type DataTableColumn } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import styles from './ConnectivitySection.module.css';
 
@@ -111,8 +111,19 @@ export function ConnectivitySection() {
     void check();
   }, [check]);
 
+  const columns: DataTableColumn<ConnectivityRow>[] = [
+    { key: 'label', header: 'Check', render: (row) => row.label },
+    {
+      key: 'value',
+      header: 'Result',
+      render: (row) => (
+        <span className={row.state === 'ok' ? styles.valueOk : styles.valueFail}>{row.value}</span>
+      ),
+    },
+  ];
+
   return (
-    <section className={styles.section} aria-labelledby="connectivity-heading">
+    <Card aria-labelledby="connectivity-heading">
       <div className={styles.header}>
         <h2 id="connectivity-heading" className={styles.title}>
           Connectivity
@@ -136,28 +147,17 @@ export function ConnectivitySection() {
           onRetry={() => void check()}
         />
       ) : (
-        <table className={styles.table}>
-          <caption className={styles.caption}>Frontend to Backend connectivity</caption>
-          <tbody>
-            {state.rows.map((row) => (
-              <tr key={row.label}>
-                <th scope="row" className={styles.rowLabel}>
-                  {row.label}
-                </th>
-                <td className={styles.rowValue}>
-                  <span className={row.state === 'ok' ? styles.valueOk : styles.valueFail}>
-                    {row.value}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          columns={columns}
+          rows={state.rows}
+          rowKey={(row) => row.label}
+          caption="Frontend to Backend connectivity"
+        />
       )}
 
       {state.checkedAt && (
         <p className={styles.checkedAt}>Last checked {new Date(state.checkedAt).toLocaleTimeString()}</p>
       )}
-    </section>
+    </Card>
   );
 }

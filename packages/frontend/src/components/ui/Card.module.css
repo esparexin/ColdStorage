@@ -1,4 +1,11 @@
+/* The single bordered-surface recipe. Feature stylesheets must not restate a
+   background, border, radius or shadow; they compose this and adjust layout
+   only. A DataTable already draws its own surface, so never wrap one in a
+   Card — that would stack two identical borders. */
 .card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   background-color: var(--color-surface-1);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -20,11 +27,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-2);
+  gap: var(--space-3);
 }
 
 .title {
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
 }

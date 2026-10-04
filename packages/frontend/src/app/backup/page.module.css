@@ -62,12 +62,9 @@
   color: var(--color-danger-text);
 }
 
+/* The DataTable below draws its own surface, so this wrapper is layout only.
+   Adding a border here would stack two identical boxes. */
 .tableSection {
-  background: var(--color-surface-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
-  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -119,14 +116,10 @@
   border-radius: var(--radius-sm);
 }
 
-.unauthorizedWrapper {
-  display: flex;
+/* Card supplies the surface; only the row direction is layout. */
+.restrictedRow {
+  flex-direction: row;
   align-items: flex-start;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-1);
 }
 
 .unauthorizedTitle {

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Download } from 'lucide-react';
-import { Button } from '@/components/ui';
+import { Button, Card } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface ExportPanelProps {
@@ -21,7 +21,7 @@ export function ExportPanel({
   onExport,
 }: ExportPanelProps) {
   return (
-    <div className={styles.sectionCard}>
+    <Card>
       <div className={styles.sectionHeader}>
         <h2 className={styles.sectionTitle}>Certified CSV Exports</h2>
       </div>
@@ -134,6 +134,6 @@ export function ExportPanel({
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

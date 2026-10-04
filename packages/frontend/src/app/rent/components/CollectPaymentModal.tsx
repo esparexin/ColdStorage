@@ -85,7 +85,7 @@ export function CollectPaymentModal({
                 </span>
               </div>
               <div className={styles.infoRow} style={{ borderTop: '1px solid var(--color-border)', paddingTop: '8px' }}>
-                <span style={{ fontWeight: 600 }}>Remaining Due</span>
+                <span style={{ fontWeight: 'var(--font-semibold)' }}>Remaining Due</span>
                 <strong style={{ color: 'var(--color-warning)', fontSize: 'var(--text-base)' }}>
                   ₹{account.remainingBalance.toLocaleString('en-IN')}
                 </strong>

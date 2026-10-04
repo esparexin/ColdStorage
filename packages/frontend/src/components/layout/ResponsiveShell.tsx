@@ -5,6 +5,7 @@ import { AppHeader } from './AppHeader';
 import { SidebarNav } from './SidebarNav';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useAuth } from '@/context/AuthContext';
 import styles from './ResponsiveShell.module.css';
@@ -68,43 +69,33 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
           )}
 
           <form className={styles.loginForm} onSubmit={handleSubmit}>
-            <div className={styles.fieldGroup}>
-              <label htmlFor="username" className={styles.fieldLabel}>
-                Username
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                className={styles.fieldInput}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-                autoCapitalize="none"
-                spellCheck="false"
-                required
-                disabled={isSubmitting}
-                placeholder="Enter username"
-              />
-            </div>
+            <Input
+              id="username"
+              name="username"
+              type="text"
+              label="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck="false"
+              required
+              disabled={isSubmitting}
+              placeholder="Enter username"
+            />
 
-            <div className={styles.fieldGroup}>
-              <label htmlFor="current-password" className={styles.fieldLabel}>
-                Password
-              </label>
-              <input
-                id="current-password"
-                name="password"
-                type="password"
-                className={styles.fieldInput}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-                disabled={isSubmitting}
-                placeholder="Enter password"
-              />
-            </div>
+            <Input
+              id="current-password"
+              name="password"
+              type="password"
+              label="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+              disabled={isSubmitting}
+              placeholder="Enter password"
+            />
 
             <Button type="submit" variant="primary" size="lg" disabled={isSubmitting} isLoading={isSubmitting}>
               {isSubmitting ? 'Signing in…' : 'Sign In'}

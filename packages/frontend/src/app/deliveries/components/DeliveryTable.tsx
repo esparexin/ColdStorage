@@ -54,7 +54,7 @@ export function DeliveryTable({
     {
       key: 'grnNumber',
       header: 'GRN Source',
-      render: (row) => <span style={{ fontWeight: 600 }}>{row.grnNumber}</span>,
+      render: (row) => <span style={{ fontWeight: 'var(--font-semibold)' }}>{row.grnNumber}</span>,
     },
     {
       key: 'customerName',
@@ -76,7 +76,7 @@ export function DeliveryTable({
       header: 'Delivered Bags',
       align: 'right',
       render: (row) => (
-        <span style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>
+        <span style={{ fontWeight: 'var(--font-bold)', fontSize: 'var(--text-sm)' }}>
           {row.totalBags.toLocaleString('en-IN')} bags
         </span>
       ),

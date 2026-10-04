@@ -109,9 +109,9 @@
   flex-wrap: wrap;
 }
 
+/* Layout only. Modal's .body already owns the padding and the scroll
+   container; re-declaring them here stacked two layers of padding. */
 .modalBody {
-  padding: var(--space-5);
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);

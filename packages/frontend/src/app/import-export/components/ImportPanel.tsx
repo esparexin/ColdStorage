@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { AlertCircle, CheckCircle2, FileSpreadsheet, Upload } from 'lucide-react';
-import { Button, Select, StatCard, StatGrid } from '@/components/ui';
+import { Button, Card, Select, StatCard, StatGrid } from '@/components/ui';
 import type { ImportSummaryResult } from '../types';
 import styles from '../page.module.css';
 
@@ -40,7 +40,7 @@ export function ImportPanel({
   );
 
   return (
-    <div className={styles.sectionCard}>
+    <Card>
       <div className={styles.sectionHeader}>
         <h2 className={styles.sectionTitle}>Bulk CSV Data Import</h2>
       </div>
@@ -138,6 +138,6 @@ export function ImportPanel({
           )}
         </form>
       )}
-    </div>
+    </Card>
   );
 }
