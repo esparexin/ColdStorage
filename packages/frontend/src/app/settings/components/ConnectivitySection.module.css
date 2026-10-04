@@ -16,7 +16,7 @@
 }
 
 .title {
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
 }
@@ -49,11 +49,11 @@
 }
 
 .valueOk {
-  color: var(--color-success);
+  color: var(--color-success-text);
 }
 
 .valueFail {
-  color: var(--color-danger);
+  color: var(--color-danger-text);
 }
 
 .checkedAt {

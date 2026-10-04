@@ -20,7 +20,7 @@
   font-weight: var(--font-semibold);
   color: var(--color-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-label);
   margin-bottom: var(--space-1);
 }
 
@@ -36,9 +36,9 @@
 }
 
 .textarea:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: var(--focus-ring-width) solid var(--color-primary);
   outline-offset: -1px;
-  border-color: var(--color-primary);
+  border-color: var(--color-primary-text);
 }
 
 @media (max-width: 640px) {

@@ -15,8 +15,8 @@
 }
 
 .button:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline: var(--focus-ring-width) solid var(--color-primary);
+  outline-offset: var(--focus-ring-offset);
 }
 
 .button:disabled,
@@ -30,24 +30,24 @@
 .sm {
   padding: var(--space-1) var(--space-2);
   font-size: var(--text-xs);
-  min-height: 28px;
+  min-height: var(--control-height-sm);
 }
 
 .md {
   padding: var(--space-2) var(--space-3);
   font-size: var(--text-sm);
-  min-height: 32px;
+  min-height: var(--control-height-md);
 }
 
 .lg {
   padding: var(--space-3) var(--space-5);
   font-size: var(--text-sm);
-  min-height: 40px;
+  min-height: var(--control-height-lg);
 }
 
 /* Variants */
 .primary {
-  background-color: var(--color-primary);
+  background-color: var(--color-primary-text);
   color: var(--color-text-on-accent);
 }
 
@@ -68,8 +68,8 @@
 
 .outline {
   background-color: transparent;
-  color: var(--color-primary);
-  border-color: var(--color-primary);
+  color: var(--color-primary-text);
+  border-color: var(--color-primary-text);
 }
 
 .outline:hover:not(:disabled) {
@@ -77,7 +77,7 @@
 }
 
 .danger {
-  background-color: var(--color-danger);
+  background-color: var(--color-danger-text);
   color: var(--color-text-on-accent);
 }
 
@@ -87,8 +87,8 @@
 
 .dangerOutline {
   background-color: transparent;
-  color: var(--color-danger);
-  border-color: var(--color-danger);
+  color: var(--color-danger-text);
+  border-color: var(--color-danger-text);
 }
 
 .dangerOutline:hover:not(:disabled) {

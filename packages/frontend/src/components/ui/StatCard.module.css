@@ -27,22 +27,22 @@
 
 .statCard[data-accent='primary'] .statIcon {
   background: var(--color-primary-subtle);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .statCard[data-accent='success'] .statIcon {
   background: var(--color-success-subtle);
-  color: var(--color-success);
+  color: var(--color-success-text);
 }
 
 .statCard[data-accent='warning'] .statIcon {
   background: var(--color-warning-subtle);
-  color: var(--color-warning);
+  color: var(--color-warning-text);
 }
 
 .statCard[data-accent='danger'] .statIcon {
   background: var(--color-danger-subtle);
-  color: var(--color-danger);
+  color: var(--color-danger-text);
 }
 
 .statBody {
@@ -56,7 +56,7 @@
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-text-muted);
 }
 
@@ -72,15 +72,15 @@
 }
 
 .statCard[data-accent='success'] .statValueAccent {
-  color: var(--color-success);
+  color: var(--color-success-text);
 }
 
 .statCard[data-accent='warning'] .statValueAccent {
-  color: var(--color-warning);
+  color: var(--color-warning-text);
 }
 
 .statCard[data-accent='danger'] .statValueAccent {
-  color: var(--color-danger);
+  color: var(--color-danger-text);
 }
 
 .statSub {

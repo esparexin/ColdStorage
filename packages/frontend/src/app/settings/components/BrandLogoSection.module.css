@@ -8,7 +8,7 @@
 .logoPreviewWrapper {
   width: 120px;
   height: 76px;
-  border: 2px dashed var(--color-border);
+  border: var(--space-0-5) dashed var(--color-border);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;

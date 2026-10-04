@@ -16,7 +16,7 @@
   font-size: var(--text-lg);
   font-weight: var(--font-bold);
   color: var(--color-text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking-tight);
 }
 
 .pageSub {
@@ -44,7 +44,7 @@
 .modalError {
   padding: var(--space-3);
   background: var(--color-danger-subtle);
-  color: var(--color-danger);
+  color: var(--color-danger-text);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
 }
@@ -73,7 +73,7 @@
 }
 
 .fieldInput:focus {
-  border-color: var(--color-primary);
+  border-color: var(--color-primary-text);
 }
 
 .checkboxLabel {
