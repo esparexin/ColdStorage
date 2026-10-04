@@ -109,11 +109,27 @@ export class UserRepository {
    * MongoDB, which the architecture lock designates as the single session/identity SSOT.
    */
   public async findActivationStateById(id: string): Promise<UserEntity['status'] | null> {
+    const gate = await this.findGateStateById(id);
+    return gate ? gate.status : null;
+  }
+
+  /**
+   * Gate state used by authentication guards. Both `status` and `mustChangePassword`
+   * resolve from the canonical MongoDB record so a stale JWT claim can never force
+   * an outdated password-change requirement (or bypass a fresh one).
+   */
+  public async findGateStateById(
+    id: string,
+  ): Promise<Pick<UserEntity, 'status' | 'mustChangePassword'> | null> {
     const doc = await UserModel.findOne({ id: { $eq: sanitizeId(id) } })
-      .select('status')
+      .select('status mustChangePassword')
       .lean()
       .exec();
-    return doc ? ((doc as unknown as UserEntity).status ?? null) : null;
+    if (!doc) {
+      return null;
+    }
+    const entity = doc as unknown as UserEntity;
+    return { status: entity.status, mustChangePassword: entity.mustChangePassword ?? false };
   }
 
   public async listUsers(page = 1, limit = 20): Promise<{ items: UserEntity[]; total: number }> {

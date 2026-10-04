@@ -42,9 +42,16 @@ export function ChangePasswordModal({ isOpen }: ChangePasswordModalProps) {
     setIsSubmitting(true);
     try {
       await changePassword(currentPassword, newPassword);
+      // Success: AuthContext re-logins and clears mustChangePassword, which
+      // unmounts this modal via ResponsiveShell. Reset local state so a
+      // delayed unmount never leaves disabled inputs on screen.
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to change password';
       setError(msg);
+    } finally {
       setIsSubmitting(false);
     }
   };
