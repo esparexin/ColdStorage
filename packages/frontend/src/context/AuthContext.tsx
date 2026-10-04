@@ -133,6 +133,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const refreshUserFromMe = useCallback(async (): Promise<boolean> => {
+    try {
+      const meRes = await requestWithAuth('/api/auth/me');
+      if (!meRes.ok) return false;
+      const meData = (await meRes.json()) as { user: RawAuthUserData };
+      const raw = meData.user;
+      if (!raw) return false;
+      setUser({
+        userId: raw.userId ?? raw.id ?? '',
+        username: raw.username,
+        fullName: raw.fullName,
+        role: raw.role,
+        facilityIds: raw.facilityIds,
+        mustChangePassword: Boolean(raw.mustChangePassword),
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
   const changePassword = useCallback(
     async (currentPassword: string, newPassword: string) => {
       const res = await requestWithAuth('/api/auth/change-password', {
@@ -146,11 +167,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(err.error ?? 'Password change failed');
       }
 
-      if (user) {
-        await login(user.username, newPassword);
+      // DB now holds mustChangePassword=false. Re-login mints a fresh access
+      // token + refresh cookie. If the captured username is stale/missing,
+      // resolve it from the canonical /me record instead of inventing state.
+      const capturedUsername = user?.username;
+      if (capturedUsername) {
+        await login(capturedUsername, newPassword);
+        return;
       }
+      try {
+        const meRes = await requestWithAuth('/api/auth/me');
+        if (meRes.ok) {
+          const meData = (await meRes.json()) as { user: RawAuthUserData };
+          if (meData.user?.username) {
+            await login(meData.user.username, newPassword);
+            return;
+          }
+        }
+      } catch {
+        // fall through to direct state sync below
+      }
+      // Last resort: sync user state from the authoritative record so the
+      // forced-change modal does not render stale mustChangePassword=true.
+      await refreshUserFromMe();
     },
-    [user, login],
+    [user, login, refreshUserFromMe],
   );
 
   return (

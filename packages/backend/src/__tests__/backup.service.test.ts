@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import mongoose from 'mongoose';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { BackupLogModel } from '../database/models/backup-log.model.js';
 import { SystemSettingsModel } from '../database/models/system-settings.model.js';
 import { backupService } from '../modules/backup/backup.service.js';
@@ -12,10 +12,7 @@ describe('Suite 4: Backup Service & Encryption — backup.service.test.ts', () =
   const testStorageDir = path.resolve(process.cwd(), 'storage/test-backups');
 
   beforeAll(async () => {
-    const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri);
-    }
+    await connectToDatabase();
     backupService.setStorageDriver(new LocalEncryptedStorageDriver(testStorageDir));
   });
 
@@ -26,9 +23,7 @@ describe('Suite 4: Backup Service & Encryption — backup.service.test.ts', () =
     } catch {
       // ignore
     }
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
+    await disconnectDatabase();
   });
 
   beforeEach(async () => {

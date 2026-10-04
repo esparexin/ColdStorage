@@ -79,7 +79,7 @@ export default function UsersPage() {
           <div>
             <p className={styles.unauthorizedTitle}>Restricted Access</p>
             <p className={styles.subtitle}>
-              User administration is restricted to Super Admin authority.
+              User administration requires the &lsquo;user:manage&rsquo; permission.
             </p>
           </div>
         </div>

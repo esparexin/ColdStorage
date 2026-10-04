@@ -1,9 +1,17 @@
 import { randomUUID } from 'node:crypto';
-import type { CreateFacilityInput, Facility, UpdateFacilityInput } from '@cold-storage/contracts';
+import {
+  type CreateFacilityInput,
+  type Facility,
+  hasGlobalFacilityScope,
+  type Role,
+  type UpdateFacilityInput,
+} from '@cold-storage/contracts';
 import { FacilityModel } from '../../database/models/facility.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
 import { RentPaymentModel } from '../../database/models/rent-payment.model.js';
+import { UserModel } from '../../database/models/user.model.js';
+import { auditService } from '../audit/audit.service.js';
 
 /**
  * Facility is the tenancy and access-scope root. It owns no storage hierarchy: chambers are
@@ -12,7 +20,7 @@ import { RentPaymentModel } from '../../database/models/rent-payment.model.js';
  * Records are maintained by SUPER_ADMIN only; reads are open to any role scoped to a facility.
  */
 export class FacilityService {
-  public async createFacility(input: CreateFacilityInput): Promise<Facility> {
+  public async createFacility(input: CreateFacilityInput, actingUserId: string): Promise<Facility> {
     const code = input.code.trim().toUpperCase();
     const existing = await FacilityModel.findOne({ code }).lean().exec();
     if (existing) {
@@ -28,12 +36,17 @@ export class FacilityService {
       isActive: input.isActive ?? true,
     });
 
-    return this.toEntity(doc);
-  }
+    await auditService.log({
+      eventType: 'FACILITY_CREATED',
+      severity: 'INFO',
+      userId: actingUserId,
+      facilityId: id,
+      resource: 'facility',
+      resourceId: id,
+      details: { code, name: doc.name },
+    });
 
-  public async getFacilityById(id: string): Promise<Facility | null> {
-    const doc = await FacilityModel.findOne({ id }).lean().exec();
-    return doc ? this.toEntity(doc) : null;
+    return this.toEntity(doc);
   }
 
   /**
@@ -44,10 +57,12 @@ export class FacilityService {
    */
   public async listFacilities(
     userFacilityIds: string[],
-    isSuperAdmin = false,
+    role: Role = 'READ_ONLY',
     includeInactive = false,
   ): Promise<Facility[]> {
-    const filter: Record<string, unknown> = isSuperAdmin ? {} : { id: { $in: userFacilityIds } };
+    const filter: Record<string, unknown> = hasGlobalFacilityScope(role)
+      ? {}
+      : { id: { $in: userFacilityIds } };
     if (!includeInactive) {
       filter.isActive = true;
     }
@@ -63,7 +78,7 @@ export class FacilityService {
    * access-scope root, so it is refused while any operational record still references it. Those
    * records are financial and audit history and must never be cascaded away silently.
    */
-  public async deleteFacility(id: string): Promise<boolean> {
+  public async deleteFacility(id: string, actingUserId: string): Promise<boolean> {
     const existing = await FacilityModel.findOne({ id }).lean().exec();
     if (!existing) {
       return false;
@@ -73,7 +88,7 @@ export class FacilityService {
       GrnModel.countDocuments({ facilityId: id }).exec(),
       InventoryTransactionModel.countDocuments({ facilityId: id }).exec(),
       RentPaymentModel.countDocuments({ facilityId: id }).exec(),
-      FacilityModel.db.collection('users').countDocuments({ facilityIds: id }),
+      UserModel.countDocuments({ facilityIds: id }).exec(),
     ]);
 
     if (grns > 0 || inventory > 0 || rentPayments > 0) {
@@ -91,10 +106,25 @@ export class FacilityService {
     }
 
     await FacilityModel.deleteOne({ id }).exec();
+
+    await auditService.log({
+      eventType: 'FACILITY_DELETED',
+      severity: 'INFO',
+      userId: actingUserId,
+      facilityId: null,
+      resource: 'facility',
+      resourceId: id,
+      details: { code: existing.code, name: existing.name },
+    });
+
     return true;
   }
 
-  public async updateFacility(id: string, input: UpdateFacilityInput): Promise<Facility | null> {
+  public async updateFacility(
+    id: string,
+    input: UpdateFacilityInput,
+    actingUserId: string,
+  ): Promise<Facility | null> {
     const existing = await FacilityModel.findOne({ id }).exec();
     if (!existing) {
       return null;
@@ -122,6 +152,17 @@ export class FacilityService {
     }
 
     await existing.save();
+
+    await auditService.log({
+      eventType: 'FACILITY_UPDATED',
+      severity: 'INFO',
+      userId: actingUserId,
+      facilityId: id,
+      resource: 'facility',
+      resourceId: id,
+      details: { changedFields: Object.keys(input) },
+    });
+
     return this.toEntity(existing);
   }
 

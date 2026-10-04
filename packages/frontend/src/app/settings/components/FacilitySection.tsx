@@ -30,6 +30,7 @@ export function FacilitySection() {
   const [deleting, setDeleting] = useState<Facility | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [deletePending, setDeletePending] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const { refreshFacilities } = useFacility();
 
   const fetchFacilities = useCallback(async () => {
@@ -74,6 +75,28 @@ export function FacilitySection() {
     }
   };
 
+  const handleToggleActive = async (row: Facility) => {
+    setTogglingId(row.id);
+    setActionError(null);
+    try {
+      const res = await requestWithAuth(`/api/facilities/${row.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !row.isActive }),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? `Failed to update facility (HTTP ${res.status})`);
+      }
+      await fetchFacilities();
+      void refreshFacilities();
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : 'Failed to update facility');
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   const columns: DataTableColumn<Facility>[] = [
     { key: 'name', header: 'Facility', render: (row) => <strong>{row.name}</strong> },
     { key: 'code', header: 'Code', render: (row) => <code>{row.code}</code> },
@@ -104,6 +127,14 @@ export function FacilitySection() {
             leftIcon={<Pencil size={13} aria-hidden="true" />}
           >
             Edit
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={togglingId === row.id}
+            onClick={() => void handleToggleActive(row)}
+          >
+            {row.isActive ? 'Deactivate' : 'Activate'}
           </Button>
           <Button
             variant="ghost"

@@ -36,7 +36,7 @@ export default function AuditLogsPage() {
     return (
       <FeedbackStates.Error
         title="Access Restricted"
-        message="Only Administrators and Super Administrators have authorization to inspect audit trails."
+        message="Inspecting audit trails requires the 'audit:view' permission."
       />
     );
   }

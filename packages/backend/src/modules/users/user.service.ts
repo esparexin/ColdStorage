@@ -32,7 +32,7 @@ export class UserService {
     };
   }
 
-  public async createUser(input: CreateUser): Promise<UserSummary> {
+  public async createUser(input: CreateUser, actingUserId: string): Promise<UserSummary> {
     const existingByUsername = await this.repo.findByUsername(input.username);
     if (existingByUsername) {
       throw new Error(`Username '${input.username}' is already in use`);
@@ -66,6 +66,21 @@ export class UserService {
     };
 
     const saved = await this.repo.createUser(entity);
+
+    await auditService.log({
+      eventType: 'USER_CREATED',
+      severity: 'INFO',
+      userId: actingUserId,
+      facilityId: null,
+      resource: 'user',
+      resourceId: id,
+      details: {
+        username: saved.username,
+        role: saved.role,
+        facilityIds: saved.facilityIds,
+      },
+    });
+
     return this.toSummary(saved);
   }
 
@@ -175,11 +190,6 @@ export class UserService {
       items: items.map((u) => this.toSummary(u)),
       total,
     };
-  }
-
-  public async getUserById(id: string): Promise<UserSummary | null> {
-    const user = await this.repo.findById(id);
-    return user ? this.toSummary(user) : null;
   }
 }
 

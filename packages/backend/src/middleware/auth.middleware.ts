@@ -32,33 +32,60 @@ export async function authenticate(
     return;
   }
 
-  // A valid signature proves identity, not authority. Deactivation must take effect
-  // immediately rather than lingering until the access token expires, so activation state
-  // is always resolved from the canonical MongoDB record rather than the token claims.
-  const status = await userRepository.findActivationStateById(payload.userId);
-  if (status === null) {
+  // A valid signature proves identity, not authority. Deactivation and the
+  // forced-password-change flag must take effect immediately rather than lingering
+  // until the access token expires, so both resolve from the canonical MongoDB
+  // record rather than the (potentially stale) token claims.
+  const gate = await userRepository.findGateStateById(payload.userId);
+  if (!gate) {
     res.status(401).json({ error: 'Account no longer exists' });
     return;
   }
-  if (status !== 'ACTIVE') {
+  if (gate.status !== 'ACTIVE') {
     res.status(403).json({ error: 'Account is disabled. Contact an administrator.' });
     return;
   }
 
-  req.user = payload;
+  req.user = { ...payload, mustChangePassword: gate.mustChangePassword };
   next();
 }
 
 /**
  * Guard to ensure users with forced password change cannot execute business routes.
+ *
+ * Database state is authoritative: the JWT `mustChangePassword` claim is stale as
+ * soon as a password change (or admin reset) lands, so this guard re-resolves the
+ * flag from MongoDB. A stale `true` in the token must not block after the DB is
+ * `false`, and a fresh `true` in the DB must block even if the token says `false`.
  */
-export function requirePasswordChanged(req: Request, res: Response, next: NextFunction): void {
-  if (req.user?.mustChangePassword) {
-    res.status(403).json({
-      error: 'Password change is required before proceeding with operations',
-      mustChangePassword: true,
-    });
+export async function requirePasswordChanged(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const userId = req.user?.userId;
+  if (!userId) {
+    res.status(401).json({ error: 'Missing or malformed Authorization header' });
     return;
   }
-  next();
+
+  try {
+    const gate = await userRepository.findGateStateById(userId);
+    if (!gate) {
+      res.status(401).json({ error: 'Account no longer exists' });
+      return;
+    }
+    // Keep downstream handlers consistent with the authoritative value.
+    req.user = { ...req.user!, mustChangePassword: gate.mustChangePassword };
+    if (gate.mustChangePassword) {
+      res.status(403).json({
+        error: 'Password change is required before proceeding with operations',
+        mustChangePassword: true,
+      });
+      return;
+    }
+    next();
+  } catch {
+    res.status(500).json({ error: 'Authorization check failed' });
+  }
 }

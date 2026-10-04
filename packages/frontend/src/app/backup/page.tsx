@@ -47,7 +47,7 @@ export default function BackupPage() {
           <div>
             <p className={styles.unauthorizedTitle}>Restricted Access</p>
             <p className={styles.subtitle}>
-              Backup management requires Super Admin authority.
+              Backup management requires the &lsquo;backup:manage&rsquo; permission.
             </p>
           </div>
         </div>

@@ -1,20 +1,15 @@
-import mongoose from 'mongoose';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { SystemSettingsModel } from '../database/models/system-settings.model.js';
 import { settingsService } from '../modules/settings/settings.service.js';
 
 describe('P9 SettingsService Singleton & SSOT Tests', () => {
   beforeAll(async () => {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/cold_storage_test';
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri);
-    }
+    await connectToDatabase();
   });
 
   afterAll(async () => {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
+    await disconnectDatabase();
   });
 
   beforeEach(async () => {

@@ -27,9 +27,10 @@ const CONFLICT_MARKERS = [
   'active chambers',
   'active inventory',
   'reduce capacity',
-  'inactive',
-  // Broadest marker, evaluated last, matching the original per-router predicates.
-  'active',
+  // Narrowed from bare 'inactive'/'active': every current producer phrases the state as
+  // "<entity> is inactive" (facility/customer/commodity/user/rack), so match that phrase
+  // instead of any message merely containing those substrings.
+  'is inactive',
 ];
 
 /** Substrings indicating the addressed entity does not exist. */

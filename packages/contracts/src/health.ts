@@ -27,6 +27,8 @@ export const healthResponseSchema = z.object({
     state: databaseStateSchema,
     /** True when a datastore URI is configured at all. */
     configured: z.boolean(),
+    /** Active database name (no URI, no secrets) for operational verification. */
+    name: z.string().nullable().optional(),
   }),
   /** ISO-8601 timestamp of the response. */
   checkedAt: z.string(),

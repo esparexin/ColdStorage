@@ -20,8 +20,12 @@ export const auditEventTypeSchema = z.enum([
   'BACKUP_TRIGGERED',
   'ACCESS_DENIED',
   'RENT_PAYMENT_COLLECTED',
+  'USER_CREATED',
   'USER_UPDATED',
   'USER_PASSWORD_RESET',
+  'FACILITY_CREATED',
+  'FACILITY_UPDATED',
+  'FACILITY_DELETED',
 ]);
 
 export type AuditEventType = z.infer<typeof auditEventTypeSchema>;

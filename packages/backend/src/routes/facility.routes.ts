@@ -2,7 +2,6 @@ import { Router, type Request, type Response } from 'express';
 import {
   createFacilitySchema,
   facilityQuerySchema,
-  hasGlobalFacilityScope,
   updateFacilitySchema,
 } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
@@ -25,7 +24,7 @@ facilityRouter.post('/', requirePermission('settings:manage'), async (req: Reque
   }
 
   try {
-    const facility = await facilityService.createFacility(parseResult.data);
+    const facility = await facilityService.createFacility(parseResult.data, req.user!.userId);
     res.status(201).json({ facility });
   } catch (err: unknown) {
       sendServiceError(res, err, 'Facility creation failed');
@@ -36,10 +35,10 @@ facilityRouter.get('/', requirePermission('facility:view'), async (req: Request,
   try {
     const query = facilityQuerySchema.safeParse(req.query);
     const includeInactive = query.success ? (query.data.includeInactive ?? false) : false;
-    // Scope comes from the shared tenancy helper rather than an inline role comparison.
+    // Tenancy scope resolves inside the service via hasGlobalFacilityScope(role).
     const facilities = await facilityService.listFacilities(
       req.user!.facilityIds,
-      hasGlobalFacilityScope(req.user!.role),
+      req.user!.role,
       includeInactive,
     );
     res.status(200).json({ items: facilities, total: facilities.length });
@@ -47,25 +46,6 @@ facilityRouter.get('/', requirePermission('facility:view'), async (req: Request,
       sendServiceError(res, err, 'Failed to list facilities');
   }
 });
-
-facilityRouter.get(
-  '/:facilityId',
-  requirePermission('facility:view'),
-  requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const facilityId = getParamId(req.params.facilityId);
-      const facility = await facilityService.getFacilityById(facilityId);
-      if (!facility) {
-        res.status(404).json({ error: 'Facility not found' });
-        return;
-      }
-      res.status(200).json({ facility });
-    } catch (err: unknown) {
-      sendServiceError(res, err, 'Failed to get facility');
-    }
-  },
-);
 
 facilityRouter.patch(
   '/:facilityId',
@@ -80,7 +60,7 @@ facilityRouter.patch(
 
     try {
       const facilityId = getParamId(req.params.facilityId);
-      const updated = await facilityService.updateFacility(facilityId, parseResult.data);
+      const updated = await facilityService.updateFacility(facilityId, parseResult.data, req.user!.userId);
       if (!updated) {
         res.status(404).json({ error: 'Facility not found' });
         return;
@@ -99,7 +79,7 @@ facilityRouter.delete(
   async (req: Request, res: Response): Promise<void> => {
     try {
       const facilityId = getParamId(req.params.facilityId);
-      const deleted = await facilityService.deleteFacility(facilityId);
+      const deleted = await facilityService.deleteFacility(facilityId, req.user!.userId);
       if (!deleted) {
         res.status(404).json({ error: 'Facility not found' });
         return;

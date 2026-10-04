@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { connectToDatabase, disconnectDatabase } from '../../database/connection.js';
 import { CounterModel } from '../../database/models/counter.model.js';
 import { CustomerModel } from '../../database/models/customer.model.js';
 import { FacilityModel } from '../../database/models/facility.model.js';
@@ -52,16 +53,11 @@ export interface SeedRentScenarioOptions {
 
 /** Resolves once the suite has a live mongoose connection. */
 export async function connectRentSuite(): Promise<void> {
-  const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
-  if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(mongoUri);
-  }
+  await connectToDatabase();
 }
 
 export async function disconnectRentSuite(): Promise<void> {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
+  await disconnectDatabase();
 }
 
 export interface RentResetScope {

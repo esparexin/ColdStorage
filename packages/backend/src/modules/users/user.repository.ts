@@ -20,6 +20,16 @@ export class UserRepository {
    * Secure bootstrap helper:
    * Only seeds initial admin if explicit environment credentials are provided.
    * Never hardcodes default production credentials.
+   *
+   * Recovery contract (disaster recovery only):
+   * - Restart never overwrites an existing account; this returns the stored
+   *   record untouched (password hash, mustChangePassword, updatedAt intact).
+   * - The dangerous sequence is account deletion followed by recreation with a
+   *   stale BOOTSTRAP_ADMIN_PASSWORD. After the first successful login + forced
+   *   password change, clear BOOTSTRAP_ADMIN_PASSWORD from runtime config.
+   * - To recover a lost Super Admin, set the bootstrap vars temporarily, restart
+   *   once (account genuinely absent → recreated with mustChangePassword:true),
+   *   log in, change the password, then clear the vars again.
    */
   public async bootstrapSuperAdminFromEnv(): Promise<UserEntity | null> {
     const username = process.env.BOOTSTRAP_ADMIN_USERNAME;
@@ -31,6 +41,8 @@ export class UserRepository {
 
     const existing = await this.findByUsername(username);
     if (existing) {
+      // Idempotent: existing credential state is authoritative. Never re-hash
+      // or overwrite the stored password from the environment here.
       return existing;
     }
 
@@ -65,6 +77,14 @@ export class UserRepository {
   }
 
   public async resetForTesting(): Promise<void> {
+    if (process.env.NODE_ENV !== 'test') {
+      throw new Error('resetForTesting can only be called in test environment');
+    }
+    if (UserModel.db?.name === 'cold_storage') {
+      throw new Error(
+        'FATAL SAFETY VIOLATION: Cannot reset live database "cold_storage" during test execution.',
+      );
+    }
     await UserModel.deleteMany({}).exec();
   }
 
@@ -104,16 +124,22 @@ export class UserRepository {
   }
 
   /**
-   * Minimal projection used by the authentication guard to confirm an account is still
-   * authoritative. The JWT carries identity only; activation status always resolves from
-   * MongoDB, which the architecture lock designates as the single session/identity SSOT.
+   * Gate state used by authentication guards. Both `status` and `mustChangePassword`
+   * resolve from the canonical MongoDB record so a stale JWT claim can never force
+   * an outdated password-change requirement (or bypass a fresh one).
    */
-  public async findActivationStateById(id: string): Promise<UserEntity['status'] | null> {
+  public async findGateStateById(
+    id: string,
+  ): Promise<Pick<UserEntity, 'status' | 'mustChangePassword'> | null> {
     const doc = await UserModel.findOne({ id: { $eq: sanitizeId(id) } })
-      .select('status')
+      .select('status mustChangePassword')
       .lean()
       .exec();
-    return doc ? ((doc as unknown as UserEntity).status ?? null) : null;
+    if (!doc) {
+      return null;
+    }
+    const entity = doc as unknown as UserEntity;
+    return { status: entity.status, mustChangePassword: entity.mustChangePassword ?? false };
   }
 
   public async listUsers(page = 1, limit = 20): Promise<{ items: UserEntity[]; total: number }> {
@@ -150,17 +176,6 @@ export class UserRepository {
 
   public async updateLastLogin(userId: string): Promise<void> {
     await UserModel.updateOne({ id: { $eq: sanitizeId(userId) } }, { lastLoginAt: new Date() }).exec();
-  }
-
-  public async updateStatus(userId: string, status: UserEntity['status']): Promise<UserEntity | null> {
-    const doc = await UserModel.findOneAndUpdate(
-      { id: { $eq: sanitizeId(userId) } },
-      { status, updatedAt: new Date() },
-      { new: true },
-    )
-      .lean()
-      .exec();
-    return doc ? (doc as unknown as UserEntity) : null;
   }
 
   /**

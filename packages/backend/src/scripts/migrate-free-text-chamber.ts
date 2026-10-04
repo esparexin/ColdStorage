@@ -23,8 +23,21 @@
  * fields from a backup.
  *
  * Idempotent: re-running finds nothing left to do and exits cleanly.
+ *
+ * Database targeting (SSOT: config.resolveMongoUri + database/connection.assertSafeDatabaseTarget):
+ * - Development (`NODE_ENV=development`, default `.env.local`) intentionally uses the live
+ *   Atlas `cold_storage` database verbatim. Any local dev server, script, or bootstrap write
+ *   targets production data. Never run debug `deleteMany`, manual seeds, or this migration
+ *   with `--apply` unless the target database has been verified first.
+ * - Tests (`NODE_ENV=test` exactly) are fail-closed to `cold_storage_test`
+ *   (`cold_storage_stock_test` for stock suites) and must never point `MONGODB_TEST_URI`
+ *   at live `cold_storage`. Never run tests with `NODE_ENV=development/production`.
+ * - This migration requires `--allow-live` together with `--apply` when the target
+ *   database name is `cold_storage`. Take a backup first and verify the pre-flight
+ *   counts below before applying.
  */
 import mongoose from 'mongoose';
+import { assertSafeDatabaseTarget } from '../database/connection.js';
 import { logger } from '../utils/logger.js';
 
 const CHAMBER_COLLECTIONS = [
@@ -36,9 +49,20 @@ const CHAMBER_COLLECTIONS = [
 
 async function main(): Promise<void> {
   const apply = process.argv.includes('--apply');
+  const allowLive = process.argv.includes('--allow-live');
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     throw new Error('MONGODB_URI is required');
+  }
+
+  assertSafeDatabaseTarget(uri);
+  const withoutQuery = uri.split('?')[0];
+  const targetDbName = withoutQuery.slice(withoutQuery.lastIndexOf('/') + 1);
+  if (apply && targetDbName === 'cold_storage' && !allowLive) {
+    throw new Error(
+      'Refusing to apply migration to live database "cold_storage" without --allow-live. ' +
+        'Verify the target, take a backup, then re-run with --apply --allow-live.',
+    );
   }
 
   await mongoose.connect(uri);

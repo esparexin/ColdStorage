@@ -5,6 +5,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
+import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { AssetModel } from '../database/models/asset.model.js';
 import { SystemSettingsModel } from '../database/models/system-settings.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
@@ -47,10 +48,7 @@ describe('Brand Asset & Logo Management Routes & Security Tests', () => {
 
   beforeAll(async () => {
     config.cloudinaryUrl = 'cloudinary://test_key:test_secret@test_cloud';
-    const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri);
-    }
+    await connectToDatabase();
 
     ({ token: superAdminToken } = await seed({
       userId: 'usr-super-admin',
@@ -78,9 +76,7 @@ describe('Brand Asset & Logo Management Routes & Security Tests', () => {
   });
 
   afterAll(async () => {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
+    await disconnectDatabase();
   });
 
   beforeEach(async () => {

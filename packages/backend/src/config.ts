@@ -43,12 +43,37 @@ if (isProduction) {
   }
 }
 
+/**
+ * Resolves the MongoDB URI with strict environment isolation.
+ * In test mode (NODE_ENV === 'test'), tests are strictly forbidden from targeting the live
+ * database ('cold_storage'). If MONGODB_TEST_URI is set, it is used; otherwise, the database
+ * path of MONGODB_URI (or default fallback) is rewritten to 'cold_storage_test'.
+ */
+export function resolveMongoUri(): string | undefined {
+  if (process.env.NODE_ENV === 'test') {
+    if (process.env.MONGODB_TEST_URI) {
+      return process.env.MONGODB_TEST_URI;
+    }
+    const baseUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/cold_storage_test';
+    const [withoutQuery, query] = baseUri.split('?');
+    const lastSlash = withoutQuery.lastIndexOf('/');
+    const server = lastSlash === -1 ? withoutQuery : withoutQuery.slice(0, lastSlash);
+    return `${server}/cold_storage_test${query ? `?${query}` : ''}`;
+  }
+  return process.env.MONGODB_URI;
+}
+
+const resolvedMongoUri = resolveMongoUri();
+if (process.env.NODE_ENV === 'test' && resolvedMongoUri) {
+  process.env.MONGODB_URI = resolvedMongoUri;
+}
+
 export const config: AppConfig = {
   port: Number(process.env.PORT) || 4000,
   jwtSecret: process.env.JWT_SECRET || 'dev-super-secret-jwt-key-cold-storage-2026',
   accessTokenExpirySeconds: Number(process.env.ACCESS_TOKEN_EXPIRY_SECONDS) || 900, // 15m
   refreshTokenExpiryDays: Number(process.env.REFRESH_TOKEN_EXPIRY_DAYS) || 7, // 7d
-  mongoUri: process.env.MONGODB_URI,
+  mongoUri: resolvedMongoUri,
   upstashRedisRestUrl: process.env.UPSTASH_REDIS_REST_URL,
   upstashRedisRestToken: process.env.UPSTASH_REDIS_REST_TOKEN,
   rateLimitWindowMsAuth: Number(process.env.RATE_LIMIT_WINDOW_MS_AUTH) || 15 * 60 * 1000, // 15m
@@ -60,3 +85,4 @@ export const config: AppConfig = {
   cloudinaryUrl: process.env.CLOUDINARY_URL,
   backupEncryptionKey: process.env.BACKUP_ENCRYPTION_KEY,
 };
+

@@ -1,5 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import type { CreateCustomerInput, Customer, UpdateCustomerInput } from '@cold-storage/contracts';
+import {
+  type CreateCustomerInput,
+  type Customer,
+  hasGlobalFacilityScope,
+  type Role,
+  type UpdateCustomerInput,
+} from '@cold-storage/contracts';
 import { CustomerModel } from '../../database/models/customer.model.js';
 import { FacilityModel } from '../../database/models/facility.model.js';
 
@@ -52,17 +58,18 @@ export class CustomerService {
   public async listCustomers(
     facilityId?: string,
     userFacilityIds: string[] = [],
-    isSuperAdmin = false,
+    role: Role = 'READ_ONLY',
     search?: string,
   ): Promise<Customer[]> {
+    const hasGlobalScope = hasGlobalFacilityScope(role);
     let query: Record<string, unknown> = {};
 
     if (facilityId) {
-      if (!isSuperAdmin && !userFacilityIds.includes(facilityId)) {
+      if (!hasGlobalScope && !userFacilityIds.includes(facilityId)) {
         throw new Error(`Unauthorized access to facility '${facilityId}'`);
       }
       query = { facilityIds: facilityId };
-    } else if (!isSuperAdmin) {
+    } else if (!hasGlobalScope) {
       query = { facilityIds: { $in: userFacilityIds } };
     }
 

@@ -14,6 +14,14 @@ export interface SessionEntity {
 
 export class SessionRepository {
   public async resetForTesting(): Promise<void> {
+    if (process.env.NODE_ENV !== 'test') {
+      throw new Error('resetForTesting can only be called in test environment');
+    }
+    if (SessionModel.db?.name === 'cold_storage') {
+      throw new Error(
+        'FATAL SAFETY VIOLATION: Cannot reset live database "cold_storage" during test execution.',
+      );
+    }
     await SessionModel.deleteMany({}).exec();
   }
 

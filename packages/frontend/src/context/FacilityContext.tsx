@@ -24,6 +24,8 @@ interface FacilityContextValue {
   setSelectedFacilityId: (id: string) => void;
   availableFacilities: FacilityOption[];
   isLoadingFacilities: boolean;
+  /** Non-null when the facility list could not be loaded; no synthetic facilities are used. */
+  facilitiesError: string | null;
   refreshFacilities: () => Promise<void>;
 }
 
@@ -34,40 +36,41 @@ export function FacilityProvider({ children }: { children: React.ReactNode }) {
   const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(null);
   const [availableFacilities, setAvailableFacilities] = useState<FacilityOption[]>([]);
   const [isLoadingFacilities, setIsLoadingFacilities] = useState<boolean>(false);
+  const [facilitiesError, setFacilitiesError] = useState<string | null>(null);
 
   const syncFacilities = useCallback(async () => {
     if (!user) {
       setSelectedFacilityId(null);
       setAvailableFacilities([]);
+      setFacilitiesError(null);
       return;
     }
 
     setIsLoadingFacilities(true);
     try {
       const res = await requestWithAuth('/api/facilities');
-      if (res.ok) {
-        const data = (await res.json()) as { items?: FacilityOption[] };
-        const facilities = data.items ?? [];
-        setAvailableFacilities(facilities);
-        const validIds = facilities.map((f) => f.id);
-        const assignedValid = user.facilityIds?.filter((fid) => validIds.includes(fid)) ?? [];
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? `HTTP ${res.status}`);
+      }
+      const data = (await res.json()) as { items?: FacilityOption[] };
+      const facilities = data.items ?? [];
+      setAvailableFacilities(facilities);
+      setFacilitiesError(null);
+      const validIds = facilities.map((f) => f.id);
+      const assignedValid = user.facilityIds?.filter((fid) => validIds.includes(fid)) ?? [];
 
-        setSelectedFacilityId((current) => {
-          if (current && validIds.includes(current)) return current;
-          if (assignedValid.length > 0) return assignedValid[0];
-          return facilities.length > 0 ? facilities[0].id : null;
-        });
-      } else if (user.facilityIds && user.facilityIds.length > 0) {
-        const fallback = user.facilityIds.map((id) => ({ id, name: id, code: id }));
-        setAvailableFacilities(fallback);
-        setSelectedFacilityId((current) => current ?? user.facilityIds[0]);
-      }
-    } catch {
-      if (user.facilityIds && user.facilityIds.length > 0) {
-        const fallback = user.facilityIds.map((id) => ({ id, name: id, code: id }));
-        setAvailableFacilities(fallback);
-        setSelectedFacilityId((current) => current ?? user.facilityIds[0]);
-      }
+      setSelectedFacilityId((current) => {
+        if (current && validIds.includes(current)) return current;
+        if (assignedValid.length > 0) return assignedValid[0];
+        return facilities.length > 0 ? facilities[0].id : null;
+      });
+    } catch (e) {
+      // Explicit error state: never synthesize {id, name:id, code:id} placeholder
+      // facilities. Consumers render an error/empty state instead of raw IDs.
+      setAvailableFacilities([]);
+      setSelectedFacilityId(null);
+      setFacilitiesError(e instanceof Error ? e.message : 'Failed to load facilities');
     } finally {
       setIsLoadingFacilities(false);
     }
@@ -84,6 +87,7 @@ export function FacilityProvider({ children }: { children: React.ReactNode }) {
         setSelectedFacilityId,
         availableFacilities,
         isLoadingFacilities,
+        facilitiesError,
         refreshFacilities: syncFacilities,
       }}
     >

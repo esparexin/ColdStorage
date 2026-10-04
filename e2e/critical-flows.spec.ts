@@ -1,7 +1,16 @@
 import { test, expect } from '@playwright/test';
 
+// Intentional route mocks (not real auth): these bypass the backend to render
+// navigation/dashboard states in isolation. The mocked refresh payload mirrors
+// the production contract — { token, user } where user includes
+// mustChangePassword (false here, so the forced-change modal stays shut) —
+// matching AuthContext bootstrap expectations. Password-gate semantics are
+// covered by backend integration tests (auth-password-gate.test.ts), not here.
+
 test.describe('Critical Application Flows', () => {
-  test('1. Authentication Gate: enforces login credentials on unauthenticated access', async ({ page }) => {
+  test('1. Authentication Gate: enforces login credentials on unauthenticated access', async ({
+    page,
+  }) => {
     // Mock refresh endpoint returning 401 (unauthenticated)
     await page.route('**/api/auth/refresh', async (route) => {
       await route.fulfill({
@@ -43,12 +52,15 @@ test.describe('Critical Application Flows', () => {
     await expect(page.getByText('Invalid credentials provided')).toBeVisible();
   });
 
-  test('2. Authenticated Session & Navigation: loads dashboard with operational controls', async ({ page }) => {
+  test('2. Authenticated Session & Navigation: loads dashboard with operational controls', async ({
+    page,
+  }) => {
     const mockUser = {
       userId: 'usr-admin-001',
       username: 'superadmin',
       fullName: 'System Administrator',
       role: 'SUPER_ADMIN',
+      mustChangePassword: false,
       facilityIds: ['fac-alpha', 'fac-beta'],
     };
 
@@ -101,7 +113,9 @@ test.describe('Critical Application Flows', () => {
     await page.goto('/');
 
     // Verify authenticated user greeting and facility header
-    await expect(page.locator('body')).not.toContainText('Sign in to access your facility dashboard');
+    await expect(page.locator('body')).not.toContainText(
+      'Sign in to access your facility dashboard',
+    );
     await expect(page.locator('header')).toBeVisible();
   });
 
@@ -111,6 +125,7 @@ test.describe('Critical Application Flows', () => {
       username: 'superadmin',
       fullName: 'System Administrator',
       role: 'SUPER_ADMIN',
+      mustChangePassword: false,
       facilityIds: ['fac-alpha'],
     };
 
@@ -141,12 +156,15 @@ test.describe('Critical Application Flows', () => {
     await expect(page.locator('h1, h2')).toContainText(/Goods Receipt|GRN/i);
   });
 
-  test('4. Facility Management Flow: verifies facilities are managed from settings', async ({ page }) => {
+  test('4. Facility Management Flow: verifies facilities are managed from settings', async ({
+    page,
+  }) => {
     const mockUser = {
       userId: 'usr-admin-001',
       username: 'superadmin',
       fullName: 'System Administrator',
       role: 'SUPER_ADMIN',
+      mustChangePassword: false,
       facilityIds: ['fac-alpha'],
     };
 
@@ -172,6 +190,7 @@ test.describe('Critical Application Flows', () => {
       username: 'superadmin',
       fullName: 'System Administrator',
       role: 'SUPER_ADMIN',
+      mustChangePassword: false,
       facilityIds: ['fac-alpha'],
     };
 
@@ -183,11 +202,29 @@ test.describe('Critical Application Flows', () => {
       });
     });
 
+    // Mock facilities: FacilityContext no longer synthesizes placeholders
+    // on load failure, so /inventory renders an empty state with no h1/h2
+    // unless the facility list resolves.
+    await page.route('**/api/facilities', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          items: [
+            { id: 'fac-alpha', name: 'Alpha Cold Storage Facility', code: 'FAC-A', isActive: true },
+          ],
+          total: 1,
+        }),
+      });
+    });
+
     await page.goto('/inventory');
     await expect(page.locator('h1, h2')).toContainText(/Inventory|Stock/i);
   });
 
-  test('6. Mobile Navigation Flow: opens drawer on small viewport, navigates and closes on Escape', async ({ page }) => {
+  test('6. Mobile Navigation Flow: opens drawer on small viewport, navigates and closes on Escape', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 375, height: 667 });
 
     const mockUser = {
@@ -195,6 +232,7 @@ test.describe('Critical Application Flows', () => {
       username: 'superadmin',
       fullName: 'System Administrator',
       role: 'SUPER_ADMIN',
+      mustChangePassword: false,
       facilityIds: ['fac-alpha'],
     };
 
@@ -222,4 +260,3 @@ test.describe('Critical Application Flows', () => {
     await expect(sidebar).not.toHaveClass(/sidebarOpen/);
   });
 });
-

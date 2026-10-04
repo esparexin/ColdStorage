@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
 import { CustomerModel } from '../database/models/customer.model.js';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
@@ -27,16 +27,11 @@ describe('P8 ExportService cross-facility isolation', () => {
   const facilityB = 'fac-exp-iso-b';
 
   beforeAll(async () => {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/cold_storage_test';
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri);
-    }
+    await connectToDatabase();
   });
 
   afterAll(async () => {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
+    await disconnectDatabase();
   });
 
   beforeEach(async () => {

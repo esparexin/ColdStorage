@@ -10,7 +10,7 @@ describe('Auth Audit E2E Flow', () => {
   const app = createApp();
 
   beforeAll(async () => {
-    await connectToDatabase('mongodb://127.0.0.1:27017/cold_storage_test');
+    await connectToDatabase();
   });
 
   afterAll(async () => {
@@ -115,16 +115,13 @@ describe('Auth Audit E2E Flow', () => {
       isActive: true,
     });
 
-    const permitRes = await request(app)
-      .get('/api/facilities/facility-nashik-cold')
+    const scopedListRes = await request(app)
+      .get('/api/facilities')
       .set('Authorization', `Bearer ${activeOpToken}`);
-    expect(permitRes.status).toBe(200);
-
-    const denyRes = await request(app)
-      .get('/api/facilities/facility-pune-cold')
-      .set('Authorization', `Bearer ${activeOpToken}`);
-    expect(denyRes.status).toBe(403);
-    expect(denyRes.body.error).toContain('not authorized to access facility');
+    expect(scopedListRes.status).toBe(200);
+    const scopedIds = (scopedListRes.body.items as Array<{ id: string }>).map((f) => f.id);
+    expect(scopedIds).toContain('facility-nashik-cold');
+    expect(scopedIds).not.toContain('facility-pune-cold');
 
     const refreshRes = await request(app)
       .post('/api/auth/refresh')
