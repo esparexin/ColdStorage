@@ -75,3 +75,35 @@ test('filter change resets to page 1', async ({ page }) => {
   await expect(page.getByRole('navigation', { name:'Pagination' })).toContainText('Showing 1–50 of 260');
   expect(urls.some(u => u.includes('page=1') && u.includes('severity=WARN'))).toBe(true);
 });
+
+test.describe('request batching', () => {
+  test('rent loads the facility in one request, not one per GRN', async ({ page }) => {
+    const urls: string[] = [];
+    page.on('request', r => { if (r.url().includes('/api/')) urls.push(r.url()); });
+
+    await base(page);
+    await page.route('**/api/facilities/*/rent/summaries', r => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ summaries: Array.from({ length: 45 }, (_, i) => ({
+        grnId: `g${i}`, grnNumber: `GRN-${i}`, facilityId: 'fac-alpha',
+        customerId: 'c1', customerName: `Cust ${i}`, commodityName: 'Wheat',
+        chamber: 'A1', inwardDate: new Date().toISOString(), totalBags: 100,
+        rentType: 'Monthly', rentAmount: 1000, rentMonths: 1,
+        totalPaid: i % 2 ? 1000 : 0, remainingBalance: i % 2 ? 0 : 1000,
+        paymentStatus: i % 2 ? 'Settled' : 'Not Settled', payments: [],
+      })) }) }));
+    // A per-GRN call would regress the fix, so fail loudly instead of silently.
+    await page.route('**/api/facilities/*/rent/grn/*', r => r.fulfill({
+      status: 500, contentType: 'application/json',
+      body: JSON.stringify({ error: 'per-GRN endpoint must not back the rent list' }) }));
+
+    await page.goto('/rent');
+    await page.waitForTimeout(1200);
+
+    const rentCalls = urls.filter(u => u.includes('/rent/'));
+    expect(rentCalls, `rent endpoints called: ${JSON.stringify(rentCalls)}`)
+      .toEqual([expect.stringContaining('/rent/summaries')]);
+    await expect(page.getByRole('navigation', { name: 'Pagination' }))
+      .toContainText('Showing 1\u201320 of 45');
+  });
+});

@@ -43,9 +43,16 @@ export class SettingsService {
   /**
    * Retrieves the system settings singleton and reports whether the organization identity
    * has been configured by an administrator.
+   *
+   * This is a read on the hot path: it runs on every page load (the header reads the
+   * org name and logo) and on every rendered document. It previously went through the
+   * $setOnInsert upsert, which turned each of those reads into a MongoDB write. The
+   * upsert now runs only when the singleton is genuinely absent, so first boot
+   * behaves exactly as before.
    */
   public async getSettings(): Promise<SettingsResult> {
-    const doc = await this.ensureInitialized();
+    const existing = await SystemSettingsModel.findById('SYSTEM_SETTINGS').exec();
+    const doc = existing ?? (await this.ensureInitialized());
     const isConfigured = Boolean(
       doc.orgName &&
       doc.orgName.trim().length > 0 &&

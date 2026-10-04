@@ -13,7 +13,7 @@
  * The access token lives exclusively in api-client.ts (browser memory).
  */
 
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { executeSingleFlightRefresh, requestWithAuth, setAccessToken } from '@/lib/api-client';
 
 export interface AuthUser {
@@ -194,8 +194,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user, login, refreshUserFromMe],
   );
 
+  // Memoized so React's context bailout can actually fire. An inline object
+  // literal gives every consumer a new value on every provider render.
+  const contextValue = useMemo(
+    () => ({ user, isLoading, login, logout, changePassword }),
+    [user, isLoading, login, logout, changePassword],
+  );
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, changePassword }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

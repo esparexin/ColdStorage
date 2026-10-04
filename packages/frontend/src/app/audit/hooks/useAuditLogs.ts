@@ -11,6 +11,7 @@ import {
 } from '@cold-storage/contracts';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
+import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
 
 export const AUDIT_PAGE_SIZE = 50;
@@ -25,6 +26,7 @@ export function useAuditLogs(canViewAudit: boolean) {
   const [totalPages, setTotalPages] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const beginRequest = useRequestGuard();
   const [error, setError] = useState<string | null>(null);
 
   const [searchTerm, setSearchTermRaw] = useState('');
@@ -40,6 +42,7 @@ export function useAuditLogs(canViewAudit: boolean) {
     if (!canViewAudit) return;
     setLoading(true);
     setError(null);
+    const isCurrent = beginRequest();
     try {
       const params = new URLSearchParams();
       params.set('page', String(page));
@@ -57,6 +60,7 @@ export function useAuditLogs(canViewAudit: boolean) {
       }
 
       const data = (await res.json()) as AuditLogsResponse;
+      if (!isCurrent()) return;
       setLogs(data.logs ?? []);
       setTotalLogs(data.totalCount ?? 0);
       setTotalPages(data.totalPages ?? 0);

@@ -25,6 +25,39 @@ import {
   toPaymentEntity,
 } from './handlers/record-payment.handler.js';
 import { rentRepository } from './rent.repository.js';
+import type { RentPaymentDoc } from '../../database/models/rent-payment.model.js';
+
+/**
+ * Maps a GRN and its payments to the canonical rent summary DTO.
+ *
+ * Shared by the single-GRN lookup and the batched facility list so both derive
+ * the balance through computeRentBalance and cannot drift apart.
+ */
+function buildRentSummary(grn: GrnDoc, payments: RentPaymentDoc[]): RentSummaryDto {
+  const balance = computeRentBalance(
+    grn.rentAmount,
+    payments.reduce((sum, p) => sum + p.amountPaid, 0),
+  );
+
+  return {
+    grnId: grn.id,
+    grnNumber: grn.grnNumber,
+    facilityId: grn.facilityId,
+    customerId: grn.customerId,
+    customerName: grn.customerName,
+    commodityName: grn.commodityName,
+    chamber: grn.chamber,
+    inwardDate: grn.date,
+    totalBags: grn.bags,
+    rentType: grn.rentType,
+    rentAmount: balance.rentAmount,
+    rentMonths: grn.rentMonths ?? null,
+    totalPaid: balance.totalPaid,
+    remainingBalance: balance.remainingBalance,
+    paymentStatus: balance.paymentStatus,
+    payments: payments.map((p) => toPaymentEntity(p)),
+  };
+}
 
 export class RentService {
   /**
@@ -60,29 +93,29 @@ export class RentService {
   public async getRentSummary(facilityId: string, identifier: string): Promise<RentSummaryDto> {
     const grn = await this.resolveGrn(facilityId, identifier);
     const payments = await rentRepository.findPaymentsByGrnId(facilityId, grn.id);
-    const balance = computeRentBalance(
-      grn.rentAmount,
-      payments.reduce((sum, p) => sum + p.amountPaid, 0),
-    );
+    return buildRentSummary(grn, payments);
+  }
 
-    return {
-      grnId: grn.id,
-      grnNumber: grn.grnNumber,
-      facilityId: grn.facilityId,
-      customerId: grn.customerId,
-      customerName: grn.customerName,
-      commodityName: grn.commodityName,
-      chamber: grn.chamber,
-      inwardDate: grn.date,
-      totalBags: grn.bags,
-      rentType: grn.rentType,
-      rentAmount: balance.rentAmount,
-      rentMonths: grn.rentMonths ?? null,
-      totalPaid: balance.totalPaid,
-      remainingBalance: balance.remainingBalance,
-      paymentStatus: balance.paymentStatus,
-      payments: payments.map((p) => toPaymentEntity(p)),
-    };
+  /**
+   * Derives the rent summary for every GRN in a facility using two queries.
+   *
+   * This replaces the client-side fan-out that fetched the GRN list and then
+   * requested /rent/grn/:id once per GRN. That pattern cost one HTTP request and
+   * four MongoDB round trips per row, so a facility with 100 GRNs spent roughly
+   * 400 remote round trips and well over the per-minute rate limit on a single
+   * page view.
+   *
+   * The balance is still derived through computeRentBalance, so this returns
+   * byte-identical DTOs to getRentSummary and there is exactly one formula
+   * governing rent state.
+   */
+  public async getRentSummariesForFacility(facilityId: string): Promise<RentSummaryDto[]> {
+    const [grns, paymentsByGrn] = await Promise.all([
+      GrnModel.find({ facilityId }).lean<GrnDoc[]>().exec(),
+      rentRepository.findPaymentsByFacilityGrouped(facilityId),
+    ]);
+
+    return grns.map((grn) => buildRentSummary(grn, paymentsByGrn.get(grn.id) ?? []));
   }
 
   /**

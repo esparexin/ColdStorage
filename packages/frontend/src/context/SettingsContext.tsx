@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState, useMemo } from 'react';
 import type { SystemSettings } from '@cold-storage/contracts';
 import { useAuth } from './AuthContext';
 import { requestWithAuth } from '@/lib/api-client';
@@ -51,15 +51,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     void fetchSettings();
   }, [fetchSettings]);
 
+  // Memoized: an inline literal re-renders every settings consumer on every
+  // provider render, including the header on every route change.
+  const contextValue = useMemo(
+    () => ({ settings, isConfigured, isLoadingSettings, refreshSettings: fetchSettings }),
+    [settings, isConfigured, isLoadingSettings, fetchSettings],
+  );
+
   return (
-    <SettingsContext.Provider
-      value={{
-        settings,
-        isConfigured,
-        isLoadingSettings,
-        refreshSettings: fetchSettings,
-      }}
-    >
+    <SettingsContext.Provider value={contextValue}>
       {children}
     </SettingsContext.Provider>
   );

@@ -4,11 +4,23 @@ import { config } from '../config.js';
 import { userRepository } from '../modules/users/user.repository.js';
 import { verifyAccessToken } from '../utils/crypto.js';
 
+/**
+ * Gate state resolved from the canonical MongoDB record for this request.
+ * `authenticate` populates it so `requirePasswordChanged` can enforce the same
+ * database-authoritative value without repeating the query.
+ */
+export interface GateState {
+  status: string;
+  mustChangePassword: boolean;
+}
+
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user?: TokenPayload;
+      /** Request-scoped, populated once by `authenticate`. Never cached across requests. */
+      gateState?: GateState;
     }
   }
 }
@@ -46,6 +58,9 @@ export async function authenticate(
     return;
   }
 
+  // Stash it so requirePasswordChanged, which runs immediately after this on
+  // the same request, does not issue the identical query a second time.
+  req.gateState = { status: gate.status, mustChangePassword: gate.mustChangePassword };
   req.user = { ...payload, mustChangePassword: gate.mustChangePassword };
   next();
 }
@@ -70,7 +85,10 @@ export async function requirePasswordChanged(
   }
 
   try {
-    const gate = await userRepository.findGateStateById(userId);
+    // Reuse the state authenticate already resolved for this request. It is the
+    // same record, read microseconds earlier in the same request, so a second
+    // read cannot disagree; it only costs a round trip to MongoDB.
+    const gate = req.gateState ?? (await userRepository.findGateStateById(userId));
     if (!gate) {
       res.status(401).json({ error: 'Account no longer exists' });
       return;

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DeliveryChallan, DeliveryStatus } from '@cold-storage/contracts';
+import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
 
 export const DELIVERY_PAGE_SIZE = 20;
@@ -13,6 +14,7 @@ export function useDeliveries(
   const [totalPages, setTotalPages] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const beginRequest = useRequestGuard();
   const [error, setError] = useState<string | null>(null);
 
   // Filter states
@@ -31,6 +33,7 @@ export function useDeliveries(
 
     setLoading(true);
     setError(null);
+    const isCurrent = beginRequest();
     try {
       const params = new URLSearchParams();
       params.set('page', String(page));
@@ -44,6 +47,7 @@ export function useDeliveries(
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
       const data = (await res.json()) as { items?: DeliveryChallan[]; total?: number };
+      if (!isCurrent()) return;
       setDeliveries(data.items ?? []);
       setTotalDeliveries(data.total ?? 0);
       setTotalPages(Math.ceil((data.total ?? 0) / DELIVERY_PAGE_SIZE));

@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import zlib from 'node:zlib';
+import { pipeline } from 'node:stream';
 
 /**
  * Response compression middleware.
@@ -16,6 +17,14 @@ export function compressionMiddleware(req: Request, res: Response, next: NextFun
   // 2. Verify client accepts gzip encoding
   const acceptEncoding = req.headers['accept-encoding'];
   if (!acceptEncoding || typeof acceptEncoding !== 'string' || !acceptEncoding.includes('gzip')) {
+    next();
+    return;
+  }
+
+  // Already-compressed payloads (e.g. a PNG served from the asset route) must not
+  // be gzipped again; that costs CPU and grows the response.
+  const contentEncoding = res.getHeader('Content-Encoding');
+  if (typeof contentEncoding === 'string' && contentEncoding !== 'identity') {
     next();
     return;
   }
@@ -46,15 +55,24 @@ export function compressionMiddleware(req: Request, res: Response, next: NextFun
     }
 
     if (payload && payload.length > 1024) {
-      try {
-        const compressed = zlib.gzipSync(payload);
-        res.setHeader('Content-Encoding', 'gzip');
-        res.setHeader('Vary', 'Accept-Encoding');
-        res.removeHeader('Content-Length');
-        return originalSend(compressed);
-      } catch {
-        return originalSend(body);
-      }
+      res.setHeader('Content-Encoding', 'gzip');
+      res.setHeader('Vary', 'Accept-Encoding');
+      res.removeHeader('Content-Length');
+
+      // Stream the compression instead of gzipSync. The synchronous variant
+      // blocks the event loop for the whole payload, so a burst of concurrent
+      // responses queued behind each other instead of being served in parallel.
+      const gzip = zlib.createGzip();
+      gzip.on('error', () => {
+        // The response is already committed; the client sees a truncated body,
+        // which is preferable to an unhandled stream error taking down the process.
+        res.destroy();
+      });
+      pipeline(gzip, res, () => {
+        /* completion and teardown are handled by the pipeline */
+      });
+      gzip.end(payload);
+      return res;
     }
 
     return originalSend(body);

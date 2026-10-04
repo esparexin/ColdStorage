@@ -5,6 +5,7 @@ import type {
   Grn,
   GrnStatus,
 } from '@cold-storage/contracts';
+import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
 
 export const GRN_PAGE_SIZE = 20;
@@ -18,6 +19,7 @@ export function useGrns(
   const [totalPages, setTotalPages] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const beginRequest = useRequestGuard();
   const [error, setError] = useState<string | null>(null);
 
   // Lookups
@@ -68,6 +70,7 @@ export function useGrns(
 
     setLoading(true);
     setError(null);
+    const isCurrent = beginRequest();
     try {
       const params = new URLSearchParams();
       params.set('page', String(page));
@@ -83,6 +86,7 @@ export function useGrns(
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
       const data = (await res.json()) as { items?: Grn[]; total?: number };
+      if (!isCurrent()) return;
       setGrns(data.items ?? []);
       setTotalGrns(data.total ?? 0);
       setTotalPages(Math.ceil((data.total ?? 0) / GRN_PAGE_SIZE));

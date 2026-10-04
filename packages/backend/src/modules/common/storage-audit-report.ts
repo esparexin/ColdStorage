@@ -36,22 +36,32 @@ export async function generateStorageOccupancyReport(
 
   const grns = await GrnModel.find(grnQuery).sort({ date: 1, grnNumber: 1 }).lean<GrnDoc[]>().exec();
 
+  // One grouped aggregate for every GRN in the report instead of one per GRN.
+  // The report is scoped by facility and by the matched GRN ids, so a single
+  // $match/$group returns exactly the totals the loop was computing one at a time.
+  const totalPaidByGrn = new Map<string, number>();
+  if (grns.length > 0) {
+    const paidAgg = await RentPaymentModel.aggregate([
+      { $match: { facilityId, grnId: { $in: grns.map((g) => g.id) } } },
+      { $group: { _id: '$grnId', total: { $sum: '$amountPaid' } } },
+    ]);
+    for (const row of paidAgg) {
+      totalPaidByGrn.set(row._id as string, row.total as number);
+    }
+  }
+
   const reportItems: StorageOccupancyReportItem[] = [];
 
   for (const grn of grns) {
-    const [history, agg, monthlySummary, seasonalSummary] = await Promise.all([
+    const [history, monthlySummary, seasonalSummary] = await Promise.all([
       getGrnMovementHistory(facilityId, grn.id),
-      RentPaymentModel.aggregate([
-        { $match: { facilityId, grnId: grn.id } },
-        { $group: { _id: null, total: { $sum: '$amountPaid' } } },
-      ]),
       calculateGrnMonthlyOccupancyRent(facilityId, grn.id),
       calculateGrnSeasonalOccupancyRent(facilityId, grn.id),
     ]);
 
     if (!history) continue;
 
-    const totalPaid = agg[0]?.total ?? 0;
+    const totalPaid = totalPaidByGrn.get(grn.id) ?? 0;
     const rentBalance = computeRentBalance(grn.rentAmount, totalPaid);
 
     if (view === 'monthly' && monthlySummary) {

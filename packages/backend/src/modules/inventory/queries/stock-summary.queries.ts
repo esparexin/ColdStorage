@@ -14,12 +14,21 @@ export async function getAvailableBags(
   facilityId: string,
   grnId: string,
   session?: mongoose.ClientSession,
+  /**
+   * Inward bag count when the caller has already loaded the GRN. getGrnInventorySummary
+   * has it in hand, and re-reading the same document here doubled the round trips.
+   */
+  knownBags?: number,
 ): Promise<number> {
-  const grn = await GrnModel.findOne({ id: grnId, facilityId }, { bags: 1 })
-    .session(session ?? null)
-    .lean()
-    .exec();
-  if (!grn) return 0;
+  const inboundBags =
+    knownBags ??
+    (
+      await GrnModel.findOne({ id: grnId, facilityId }, { bags: 1 })
+        .session(session ?? null)
+        .lean()
+        .exec()
+    )?.bags;
+  if (inboundBags === undefined) return 0;
 
   const issuedAgg = await DeliveryChallanModel.aggregate(
     [
@@ -29,7 +38,7 @@ export async function getAvailableBags(
     session ? { session } : {},
   );
   const netDelivered = issuedAgg[0]?.bags ?? 0;
-  return Math.max(0, grn.bags - netDelivered);
+  return Math.max(0, inboundBags - netDelivered);
 }
 
 
@@ -42,7 +51,7 @@ export async function getGrnInventorySummary(
     throw new Error(`GRN '${grnId}' not found in facility '${facilityId}'`);
   }
 
-  const onHandBags = await getAvailableBags(facilityId, grnId);
+  const onHandBags = await getAvailableBags(facilityId, grnId, undefined, grn.bags);
   const putAwayStatus: PutAwayStatus = 'ALLOCATED';
 
   return {

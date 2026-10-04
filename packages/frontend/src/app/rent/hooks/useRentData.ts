@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PaymentStatus, RentSummaryDto } from '@cold-storage/contracts';
 import { useFacility } from '@/context/FacilityContext';
+import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
-import type { GrnListItem } from '../types';
 
 export const RENT_PAGE_SIZE = 20;
 
@@ -13,6 +13,7 @@ export function useRentData() {
 
   const [rentSummaries, setRentSummaries] = useState<RentSummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const beginRequest = useRequestGuard();
   const [error, setError] = useState<string | null>(null);
 
   const [page, setPage] = useState(1);
@@ -39,37 +40,21 @@ export function useRentData() {
 
     setLoading(true);
     setError(null);
+    const isCurrent = beginRequest();
     try {
-      const grnRes = await requestWithAuth(
-        `/api/facilities/${encodeURIComponent(selectedFacilityId)}/grns?limit=100`,
+      // One request for the whole facility. This used to fetch the GRN list and
+      // then call /rent/grn/:id once per GRN, which cost ~100 requests and
+      // roughly 400 MongoDB round trips per page view.
+      const res = await requestWithAuth(
+        `/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/summaries`,
       );
-      if (!grnRes.ok) {
-        const err = (await grnRes.json()) as { error?: string };
-        throw new Error(err.error ?? `HTTP ${grnRes.status}`);
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        throw new Error(err.error ?? `HTTP ${res.status}`);
       }
-      const grnData = (await grnRes.json()) as { items?: GrnListItem[] };
-      const grns = grnData.items ?? [];
-
-      const summaries: RentSummaryDto[] = [];
-      const results = await Promise.allSettled(
-        grns.map(async (g) => {
-          const res = await requestWithAuth(
-            `/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/grn/${encodeURIComponent(g.id)}`,
-          );
-          if (res.ok) {
-            return (await res.json()) as RentSummaryDto;
-          }
-          return null;
-        }),
-      );
-
-      for (const res of results) {
-        if (res.status === 'fulfilled' && res.value) {
-          summaries.push(res.value);
-        }
-      }
-
-      setRentSummaries(summaries);
+      const data = (await res.json()) as { summaries?: RentSummaryDto[] };
+            if (!isCurrent()) return;
+setRentSummaries(data.summaries ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load rent billing accounts');
     } finally {

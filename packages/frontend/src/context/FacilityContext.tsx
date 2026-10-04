@@ -8,7 +8,7 @@
  * via requireFacilityScope. This context is for UI routing only.
  */
 
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { requestWithAuth } from '@/lib/api-client';
 
@@ -80,17 +80,22 @@ export function FacilityProvider({ children }: { children: React.ReactNode }) {
     void syncFacilities();
   }, [syncFacilities]);
 
+  // Memoized: the facility list is consumed by the header, the sidebar and
+  // every list screen, so an unmemoized value re-renders all of them.
+  const contextValue = useMemo(
+    () => ({
+      selectedFacilityId,
+      setSelectedFacilityId,
+      availableFacilities,
+      isLoadingFacilities,
+      facilitiesError,
+      refreshFacilities: syncFacilities,
+    }),
+    [selectedFacilityId, availableFacilities, isLoadingFacilities, facilitiesError, syncFacilities],
+  );
+
   return (
-    <FacilityContext.Provider
-      value={{
-        selectedFacilityId,
-        setSelectedFacilityId,
-        availableFacilities,
-        isLoadingFacilities,
-        facilitiesError,
-        refreshFacilities: syncFacilities,
-      }}
-    >
+    <FacilityContext.Provider value={contextValue}>
       {children}
     </FacilityContext.Provider>
   );
