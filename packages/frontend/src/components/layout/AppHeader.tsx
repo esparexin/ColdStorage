@@ -18,10 +18,9 @@ export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHea
   const { selectedFacilityId, setSelectedFacilityId, availableFacilities } = useFacility();
   const { settings } = useSettings();
 
-  const facilities =
-    availableFacilities.length > 0
-      ? availableFacilities
-      : (user?.facilityIds ?? []).map((id) => ({ id, name: id, code: id }));
+  // No synthetic fallback: when the facility list fails to load the selector hides
+  // and pages render their own error/empty states from FacilityContext.facilitiesError.
+  const facilities = availableFacilities;
 
   const orgName = settings?.orgName || 'Cold Storage';
   const logoAssetId = settings?.logoAssetId;
