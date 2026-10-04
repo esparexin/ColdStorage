@@ -80,6 +80,10 @@ export interface SeedGrnOptions {
   grnNumber?: string;
   inwardReceiptNumber?: string;
   vehicleNumber?: string | null;
+  marks?: string | null;
+  gpNumber?: string | null;
+  remarks?: string | null;
+  date?: Date;
 }
 
 /** Seasonal is always the fixed 10-month period. */
@@ -98,7 +102,7 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
         grnNumber: options.grnNumber ?? `GRN-26-27-${id.slice(-4).toUpperCase()}`,
         inwardReceiptNumber:
           options.inwardReceiptNumber ?? `RCPT-26-27-${id.slice(-4).toUpperCase()}`,
-        date: new Date(),
+        date: options.date ?? new Date(),
         customerId: options.customerId ?? (await seedCustomer({ facilityId: options.facilityId })),
         customerName: options.customerName ?? `Customer ${id.slice(-6)}`,
         commodityId,
@@ -118,10 +122,10 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
               ? SEASONAL_MONTHS
               : 1,
         rentAmount: options.rentAmount ?? 0,
-        gpNumber: null,
-        marks: null,
+        gpNumber: options.gpNumber ?? null,
+        marks: options.marks ?? null,
         vehicleNumber: options.vehicleNumber ?? null,
-        remarks: null,
+        remarks: options.remarks ?? null,
         status: options.status ?? 'OPEN',
         createdBy: 'usr-fixture',
       },

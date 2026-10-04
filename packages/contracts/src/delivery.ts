@@ -28,6 +28,8 @@ export const createDeliverySchema = z
       .int('Bags must be a whole number')
       .positive('Delivery bags must be greater than zero')
       .max(100000, 'Bags cannot exceed 100,000'),
+    marks: z.string().trim().max(100).nullish(),
+    gpNumber: z.string().trim().max(100).nullish(),
     vehicleNumber: indianVehicleSchema.nullish(),
     driverName: z.string().trim().max(100).nullish(),
     weight: z.number().positive('weight must be positive').nullish(),
@@ -67,6 +69,10 @@ export const deliveryChallanSchema = z.object({
   chamber: chamberTextSchema,
   bags: z.number().int().positive(),
   totalBags: z.number().int().positive(),
+  openingBags: z.number().int().min(0),
+  closingBags: z.number().int().min(0),
+  marks: z.string().nullable().optional(),
+  gpNumber: z.string().nullable().optional(),
   vehicleNumber: z.string().nullable().optional(),
   driverName: z.string().nullable().optional(),
   weight: z.number().nullable().optional(),

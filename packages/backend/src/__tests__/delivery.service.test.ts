@@ -64,6 +64,8 @@ describe('P6 DeliveryService outward delivery tests', () => {
     expect(res.delivery.challanNumber).toMatch(/^CHL-\d{2}-\d{2}-\d{4}$/);
     expect(res.delivery.bags).toBe(40);
     expect(res.delivery.totalBags).toBe(40);
+    expect(res.delivery.openingBags).toBe(100);
+    expect(res.delivery.closingBags).toBe(60);
     expect(res.delivery.chamber).toBe('CH-01');
     expect(res.delivery.status).toBe('ISSUED');
     expect(res.delivery.issuedBy).toBe(userId);
@@ -114,10 +116,60 @@ describe('P6 DeliveryService outward delivery tests', () => {
     const res = await deliveryService.createDelivery(facilityId, { grnId, bags: 100 }, userId);
 
     expect(res.delivery.totalBags).toBe(100);
+    expect(res.delivery.openingBags).toBe(100);
+    expect(res.delivery.closingBags).toBe(0);
     expect(res.summary.remainingDeliveryBalance).toBe(0);
     expect(res.summary.physicallyStoredBags).toBe(0);
     expect(res.summary.grnStatus).toBe('CLOSED');
     expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('CLOSED');
+  });
+
+  it('correctly records multi-step partial deliveries with exact opening and closing snapshots', async () => {
+    const d1 = await deliveryService.createDelivery(
+      facilityId,
+      { grnId, bags: 40, marks: 'LOT-A', gpNumber: 'GP-001' },
+      userId,
+    );
+    expect(d1.delivery.openingBags).toBe(100);
+    expect(d1.delivery.bags).toBe(40);
+    expect(d1.delivery.closingBags).toBe(60);
+    expect(d1.delivery.marks).toBe('LOT-A');
+    expect(d1.delivery.gpNumber).toBe('GP-001');
+    expect(d1.summary.grnStatus).toBe('OPEN');
+
+    const d2 = await deliveryService.createDelivery(
+      facilityId,
+      { grnId, bags: 30 },
+      userId,
+    );
+    expect(d2.delivery.openingBags).toBe(60);
+    expect(d2.delivery.bags).toBe(30);
+    expect(d2.delivery.closingBags).toBe(30);
+    expect(d2.summary.grnStatus).toBe('OPEN');
+
+    const d3 = await deliveryService.createDelivery(
+      facilityId,
+      { grnId, bags: 30 },
+      userId,
+    );
+    expect(d3.delivery.openingBags).toBe(30);
+    expect(d3.delivery.bags).toBe(30);
+    expect(d3.delivery.closingBags).toBe(0);
+    expect(d3.summary.grnStatus).toBe('CLOSED');
+
+    const grnDoc = await GrnModel.findOne({ id: grnId }).exec();
+    expect(grnDoc?.status).toBe('CLOSED');
+
+    const savedDocs = await DeliveryChallanModel.find({ grnId }).sort({ createdAt: 1 }).exec();
+    expect(savedDocs).toHaveLength(3);
+    expect(savedDocs[0].openingBags).toBe(100);
+    expect(savedDocs[0].closingBags).toBe(60);
+    expect(savedDocs[0].marks).toBe('LOT-A');
+    expect(savedDocs[0].gpNumber).toBe('GP-001');
+    expect(savedDocs[1].openingBags).toBe(60);
+    expect(savedDocs[1].closingBags).toBe(30);
+    expect(savedDocs[2].openingBags).toBe(30);
+    expect(savedDocs[2].closingBags).toBe(0);
   });
 
   it('rejects any delivery attempt targeting an already CLOSED GRN', async () => {

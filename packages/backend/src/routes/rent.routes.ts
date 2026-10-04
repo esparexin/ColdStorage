@@ -1,5 +1,8 @@
 import { Router, type Request, type Response } from 'express';
-import { recordRentPaymentInputSchema } from '@cold-storage/contracts';
+import {
+  recordRentPaymentInputSchema,
+  storageOccupancyFilterSchema,
+} from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
@@ -91,6 +94,31 @@ rentRouter.get(
       res.status(200).send(html);
     } catch (err: unknown) {
       sendServiceError(res, err, 'Receipt rendering failed');
+    }
+  },
+);
+
+// 4. Storage Occupancy Audit & Reporting
+rentRouter.get(
+  '/facilities/:facilityId/rent/occupancy-report',
+  requirePermission('rent:view'),
+  requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  async (req: Request, res: Response): Promise<void> => {
+    const facilityId = getParamId(req.params.facilityId);
+    const parseResult = storageOccupancyFilterSchema.safeParse(req.query);
+    if (!parseResult.success) {
+      res.status(400).json({ error: 'Validation failed', details: parseResult.error.flatten() });
+      return;
+    }
+
+    try {
+      const report = await rentService.getStorageOccupancyAuditReport(
+        facilityId,
+        parseResult.data,
+      );
+      res.status(200).json(report);
+    } catch (err: unknown) {
+      sendServiceError(res, err, 'Failed to generate storage occupancy report');
     }
   },
 );

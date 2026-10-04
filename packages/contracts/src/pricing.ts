@@ -115,3 +115,114 @@ export function deriveBillingCycle(
 
   return `${fmt(cycleStart)} – ${fmt(cycleEnd)}`;
 }
+
+export interface MovementSnapshot {
+  date: Date;
+  type: string;
+  deliveredBags: number;
+  closingBags: number;
+}
+
+export interface OccupancyCalculationInput {
+  grnId: string;
+  grnNumber: string;
+  inwardDate: Date;
+  totalBags: number;
+  bagRate: number;
+  movements: MovementSnapshot[];
+  /** End boundary for calculation; defaults to current date. */
+  asOfDate?: Date;
+  /**
+   * DESIGN BOUNDARY NOTE:
+   * Standard Indian cold storage billing operates on full monthly billing periods based on the
+   * opening occupancy of each cycle ('full_month'). If mid-month daily proration is ever requested,
+   * 'daily_prorate' calculates day-weighted bag occupancy. Defaults to 'full_month'.
+   */
+  prorationMode?: 'full_month' | 'daily_prorate';
+}
+
+/**
+ * Single Authoritative Monthly Occupancy Rent Calculation.
+ *
+ * Breaks down storage rent month-by-month across the lifecycle:
+ * - Period starts on inward date day-of-month.
+ * - Period ends when next cycle begins or when stock is depleted.
+ * - Occupancy is based on opening bags in the period.
+ * - Stops billing once GRN reaches 0 remaining bags.
+ */
+export function calculateMonthlyOccupancy(input: OccupancyCalculationInput) {
+  const { grnId, grnNumber, inwardDate, totalBags, bagRate, movements } = input;
+  if (totalBags <= 0 || bagRate <= 0) return [];
+
+  const inDate = new Date(inwardDate);
+  const asOf = input.asOfDate ? new Date(input.asOfDate) : new Date();
+  const periods = [];
+
+  const sortedMovements = [...movements].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  );
+
+  let currentOpening = totalBags;
+  let cycleStart = new Date(inDate);
+  let periodIndex = 1;
+
+  while (cycleStart <= asOf && currentOpening > 0) {
+    const nextCycleMonth = new Date(cycleStart.getFullYear(), cycleStart.getMonth() + 1, cycleStart.getDate());
+    const cycleEnd = new Date(nextCycleMonth.getTime() - 24 * 60 * 60 * 1000);
+
+    const movementsInCycle = sortedMovements.filter((m) => {
+      const mDate = new Date(m.date);
+      return mDate >= cycleStart && mDate < nextCycleMonth;
+    });
+
+    let deliveredInCycle = 0;
+    let periodOutwardDate: Date | null = null;
+    let endOfCycleRemaining = currentOpening;
+
+    for (const m of movementsInCycle) {
+      if (m.type === 'PARTIAL_OUTWARD' || m.type === 'FINAL_OUTWARD') {
+        deliveredInCycle += m.deliveredBags;
+        endOfCycleRemaining = Math.max(0, endOfCycleRemaining - m.deliveredBags);
+        periodOutwardDate = new Date(m.date);
+      } else if (m.type === 'DELIVERY_REVERSAL') {
+        deliveredInCycle = Math.max(0, deliveredInCycle - m.deliveredBags);
+        endOfCycleRemaining = endOfCycleRemaining + m.deliveredBags;
+      }
+    }
+
+    const fmt = (d: Date) =>
+      d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const billingPeriod = `${fmt(cycleStart)} – ${fmt(cycleEnd)}`;
+    const applicableMonth = cycleStart.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+
+    const occupancyBags = currentOpening;
+    const calculatedCharge = Number((occupancyBags * bagRate).toFixed(2));
+
+    periods.push({
+      grnId,
+      grnNumber,
+      inwardDate: inDate,
+      outwardDate: periodOutwardDate,
+      billingPeriod,
+      applicableMonth,
+      periodIndex,
+      openingBags: currentOpening,
+      deliveredBags: deliveredInCycle,
+      remainingBags: endOfCycleRemaining,
+      occupancyBags,
+      bagRate,
+      calculatedCharge,
+    });
+
+    currentOpening = endOfCycleRemaining;
+    if (currentOpening <= 0) {
+      break;
+    }
+
+    cycleStart = nextCycleMonth;
+    periodIndex++;
+  }
+
+  return periods;
+}
+

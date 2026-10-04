@@ -95,6 +95,11 @@ async function executeDeliveryTransaction(
       );
       const deliveryId = `del-${randomUUID()}`;
 
+      const openingBags = remainingDeliveryBalance;
+      const closingBags = remainingDeliveryBalance - input.bags;
+      const marks = input.marks?.trim() || grn.marks || null;
+      const gpNumber = input.gpNumber?.trim() || grn.gpNumber || null;
+
       const challanDocs = await DeliveryChallanModel.create(
         [
           {
@@ -111,6 +116,10 @@ async function executeDeliveryTransaction(
             chamber: grn.chamber,
             bags: input.bags,
             totalBags: input.bags,
+            openingBags,
+            closingBags,
+            marks,
+            gpNumber,
             vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null,
             driverName: input.driverName?.trim() || null,
             weight: input.weight ?? null,
@@ -147,10 +156,9 @@ async function executeDeliveryTransaction(
         { session, ordered: true },
       );
 
-      const newRemainingDeliveryBalance = remainingDeliveryBalance - input.bags;
       const newPhysicallyStored = physicallyStored - input.bags;
 
-      if (newRemainingDeliveryBalance === 0 && newPhysicallyStored === 0) {
+      if (closingBags === 0 && newPhysicallyStored === 0) {
         await GrnModel.updateOne({ id: grn.id }, { $set: { status: 'CLOSED' } }, { session });
       }
     });

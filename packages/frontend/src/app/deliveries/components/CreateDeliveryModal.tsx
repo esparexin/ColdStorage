@@ -152,10 +152,35 @@ export function CreateDeliveryModal({
 
                 <div className={styles.formGrid2}>
                   <div className={styles.fieldGroup}>
-                    <label htmlFor="delivery-driver" className={styles.fieldLabel}>
-                      Driver Name
-                    </label>
-                    <input aria-label="e.g. Ramesh Singh"
+                    <label htmlFor="delivery-marks" className={styles.fieldLabel}>Marks</label>
+                    <input
+                      id="delivery-marks"
+                      type="text"
+                      maxLength={100}
+                      className={styles.fieldInput}
+                      placeholder="e.g. LOT-A"
+                      value={form.createMarks}
+                      onChange={(e) => form.setCreateMarks(e.target.value)}
+                    />
+                  </div>
+                  <div className={styles.fieldGroup}>
+                    <label htmlFor="delivery-gp" className={styles.fieldLabel}>Gate Pass (GP) #</label>
+                    <input
+                      id="delivery-gp"
+                      type="text"
+                      maxLength={50}
+                      className={styles.fieldInput}
+                      placeholder="e.g. GP-001"
+                      value={form.createGpNumber}
+                      onChange={(e) => form.setCreateGpNumber(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.formGrid2}>
+                  <div className={styles.fieldGroup}>
+                    <label htmlFor="delivery-driver" className={styles.fieldLabel}>Driver Name</label>
+                    <input
                       id="delivery-driver"
                       type="text"
                       maxLength={100}
@@ -165,12 +190,9 @@ export function CreateDeliveryModal({
                       onChange={(e) => form.setCreateDriverName(e.target.value)}
                     />
                   </div>
-
                   <div className={styles.fieldGroup}>
-                    <label htmlFor="delivery-weight" className={styles.fieldLabel}>
-                      Dispatch Weight (kg)
-                    </label>
-                    <input aria-label="e.g. 12500"
+                    <label htmlFor="delivery-weight" className={styles.fieldLabel}>Dispatch Weight (kg)</label>
+                    <input
                       id="delivery-weight"
                       type="number"
                       step="0.01"
@@ -178,18 +200,14 @@ export function CreateDeliveryModal({
                       className={styles.fieldInput}
                       placeholder="e.g. 12500"
                       value={form.createWeight}
-                      onChange={(e) =>
-                        form.setCreateWeight(e.target.value ? parseFloat(e.target.value) : '')
-                      }
+                      onChange={(e) => form.setCreateWeight(e.target.value ? parseFloat(e.target.value) : '')}
                     />
                   </div>
                 </div>
 
                 <div className={styles.fieldGroup}>
-                  <label htmlFor="delivery-remarks" className={styles.fieldLabel}>
-                    Remarks / Gate Pass Notes
-                  </label>
-                  <input aria-label="Optional outward delivery notes"
+                  <label htmlFor="delivery-remarks" className={styles.fieldLabel}>Remarks</label>
+                  <input
                     id="delivery-remarks"
                     type="text"
                     maxLength={500}
@@ -206,11 +224,7 @@ export function CreateDeliveryModal({
           </div>
 
           <div className={styles.modalFooter}>
-            <Button
-              variant="outline"
-              onClick={onClose}
-              disabled={form.submitting}
-            >
+            <Button variant="outline" onClick={onClose} disabled={form.submitting}>
               Cancel
             </Button>
             <Button

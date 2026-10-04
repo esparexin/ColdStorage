@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   calculateMonthlyCharge,
+  calculateMonthlyOccupancy,
   calculateRentAmount,
   deriveBagPrice,
   SEASONAL_RENT_MONTHS,
@@ -83,4 +84,62 @@ describe('Authoritative Bag Pricing & Rental Calculation SSOT', () => {
     // Derived from monthly lump-sum: ₹3,000 / (100 bags × 3 months) = ₹10
     expect(deriveBagPrice({ rentType: 'Monthly', bags: 100, rentMonths: 3, rentAmount: 3000 })).toBe(10);
   });
+
+  it('6. calculates deterministic monthly occupancy periods across partial and final outward lifecycle', () => {
+    const inwardDate = new Date('2026-01-01T00:00:00.000Z');
+    const mar10 = new Date('2026-03-10T10:00:00.000Z');
+    const may10 = new Date('2026-05-10T10:00:00.000Z');
+    const asOfMay31 = new Date('2026-05-31T23:59:59.000Z');
+
+    const periods = calculateMonthlyOccupancy({
+      grnId: 'grn-001',
+      grnNumber: 'GRN-25-26-0001',
+      inwardDate,
+      totalBags: 100,
+      bagRate: 10,
+      movements: [
+        { date: mar10, type: 'PARTIAL_OUTWARD', deliveredBags: 40, closingBags: 60 },
+        { date: may10, type: 'FINAL_OUTWARD', deliveredBags: 60, closingBags: 0 },
+      ],
+      asOfDate: asOfMay31,
+    });
+
+    expect(periods).toHaveLength(5);
+
+    // Month 1 (January): 100 bags
+    expect(periods[0].periodIndex).toBe(1);
+    expect(periods[0].openingBags).toBe(100);
+    expect(periods[0].deliveredBags).toBe(0);
+    expect(periods[0].remainingBags).toBe(100);
+    expect(periods[0].calculatedCharge).toBe(1000);
+
+    // Month 2 (February): 100 bags
+    expect(periods[1].periodIndex).toBe(2);
+    expect(periods[1].openingBags).toBe(100);
+    expect(periods[1].deliveredBags).toBe(0);
+    expect(periods[1].remainingBags).toBe(100);
+    expect(periods[1].calculatedCharge).toBe(1000);
+
+    // Month 3 (March): 40 delivered, 60 remaining
+    expect(periods[2].periodIndex).toBe(3);
+    expect(periods[2].openingBags).toBe(100);
+    expect(periods[2].deliveredBags).toBe(40);
+    expect(periods[2].remainingBags).toBe(60);
+    expect(periods[2].calculatedCharge).toBe(1000);
+
+    // Month 4 (April): 60 bags
+    expect(periods[3].periodIndex).toBe(4);
+    expect(periods[3].openingBags).toBe(60);
+    expect(periods[3].deliveredBags).toBe(0);
+    expect(periods[3].remainingBags).toBe(60);
+    expect(periods[3].calculatedCharge).toBe(600);
+
+    // Month 5 (May): remaining 60 delivered -> 0 remaining
+    expect(periods[4].periodIndex).toBe(5);
+    expect(periods[4].openingBags).toBe(60);
+    expect(periods[4].deliveredBags).toBe(60);
+    expect(periods[4].remainingBags).toBe(0);
+    expect(periods[4].calculatedCharge).toBe(600);
+  });
 });
+
