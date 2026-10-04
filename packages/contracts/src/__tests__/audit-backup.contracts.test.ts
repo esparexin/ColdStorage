@@ -105,22 +105,35 @@ describe('Suite 1: Contracts — audit-backup.contracts.test.ts', () => {
   // 7. Validates backup status projection schema
   it('validates backup status projection schema', () => {
     const validStatus = {
-      atlasManagedBackup: {
-        provider: 'MongoDB Atlas',
-        retentionDays: 7,
-        mode: 'PLATFORM_MANAGED',
-        status: 'CONFIGURED',
-      },
-      applicationEncryptedBackup: {
+      encryptedArchive: {
         enabled: true,
+        keyConfigured: true,
+        configured: true,
         retentionDays: 30,
         lastBackupAt: new Date().toISOString(),
-        lastBackupStatus: 'COMPLETED',
         totalCompletedBackups: 12,
       },
     };
 
     const parsed = backupStatusResponseSchema.safeParse(validStatus);
+    expect(parsed.success).toBe(true);
+  });
+
+  // 7b. A backup that is switched off, or missing its encryption key, must still satisfy the
+  // contract so the UI can render an accurate "not configured" state.
+  it('accepts an unconfigured backup status projection', () => {
+    const unconfigured = {
+      encryptedArchive: {
+        enabled: false,
+        keyConfigured: false,
+        configured: false,
+        retentionDays: 30,
+        lastBackupAt: null,
+        totalCompletedBackups: 0,
+      },
+    };
+
+    const parsed = backupStatusResponseSchema.safeParse(unconfigured);
     expect(parsed.success).toBe(true);
   });
 

@@ -1,9 +1,39 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SystemSettings } from '@cold-storage/contracts';
 import { useSettings } from '@/context/SettingsContext';
 import { requestWithAuth } from '@/lib/api-client';
+import { useLogoUpload } from './useLogoUpload';
+
+/** Server state that the form mirrors. Kept as a primitive so the hook has a single comparison source. */
+interface FormSnapshot {
+  orgName: string;
+  address: string;
+  contact: string;
+  gstin: string;
+  logoAssetId: string | null;
+  printFooter: string;
+  timezone: string;
+  retentionDays: number;
+  backupEnabled: boolean;
+}
+
+function toSnapshot(settings: SystemSettings): FormSnapshot {
+  return {
+    orgName: settings.orgName ?? '',
+    address: settings.address ?? '',
+    contact: settings.contact ?? '',
+    gstin: settings.gstin ?? '',
+    logoAssetId: settings.logoAssetId ?? null,
+    printFooter: settings.printFooter ?? '',
+    timezone: settings.timezone ?? 'Asia/Kolkata',
+    retentionDays: settings.backupPolicy?.retentionDays ?? 30,
+    backupEnabled: settings.backupPolicy?.backupEnabled ?? true,
+  };
+}
+
+const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 
 export function useSettingsForm() {
   const { settings, isConfigured, isLoadingSettings, refreshSettings } = useSettings();
@@ -15,128 +45,80 @@ export function useSettingsForm() {
   const [logoAssetId, setLogoAssetId] = useState<string | null>(null);
   const [printFooter, setPrintFooter] = useState('');
   const [timezone, setTimezone] = useState('Asia/Kolkata');
-
-  const [grnPrefix, setGrnPrefix] = useState('GRN');
-  const [receiptPrefix, setReceiptPrefix] = useState('RCPT');
-  const [challanPrefix, setChallanPrefix] = useState('CHL');
-  const [rentReceiptPrefix, setRentReceiptPrefix] = useState('RRCPT');
-
-  const [atlasRetentionDays, setAtlasRetentionDays] = useState(7);
-  const [driveRetentionDays, setDriveRetentionDays] = useState(30);
-  const [driveBackupEnabled, setDriveBackupEnabled] = useState(true);
+  const [retentionDays, setRetentionDays] = useState(30);
+  const [backupEnabled, setBackupEnabled] = useState(true);
 
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const [logoUploading, setLogoUploading] = useState(false);
-  const [logoError, setLogoError] = useState<string | null>(null);
-  const [logoDeleteArmed, setLogoDeleteArmed] = useState(false);
-  const [logoSuccess, setLogoSuccess] = useState<string | null>(null);
+  // Snapshot of the server state the form currently reflects. In-progress edits are compared
+  // against it to decide whether an incoming server update may overwrite the form.
+  const baselineRef = useRef<FormSnapshot | null>(null);
 
+  const hydrate = useCallback((next: FormSnapshot) => {
+    setOrgName(next.orgName);
+    setAddress(next.address);
+    setContact(next.contact);
+    setGstin(next.gstin);
+    setLogoAssetId(next.logoAssetId);
+    setPrintFooter(next.printFooter);
+    setTimezone(next.timezone);
+    setRetentionDays(next.retentionDays);
+    setBackupEnabled(next.backupEnabled);
+    baselineRef.current = next;
+  }, []);
+
+  /** Keeps the dirty-state baseline aligned when the logo asset changes outside the text fields. */
+  const syncLogoAssetId = useCallback((assetId: string | null) => {
+    setLogoAssetId(assetId);
+    if (baselineRef.current) {
+      baselineRef.current = { ...baselineRef.current, logoAssetId: assetId };
+    }
+  }, []);
+
+  const {
+    logoUploading,
+    logoError,
+    logoSuccess,
+    logoDeleteArmed,
+    setLogoDeleteArmed,
+    handleLogoUpload,
+    handleDeleteLogo,
+  } = useLogoUpload(syncLogoAssetId);
+
+  const currentSnapshot = useMemo<FormSnapshot>(
+    () => ({
+      orgName,
+      address,
+      contact,
+      gstin,
+      logoAssetId,
+      printFooter,
+      timezone,
+      retentionDays,
+      backupEnabled,
+    }),
+    [orgName, address, contact, gstin, logoAssetId, printFooter, timezone, retentionDays, backupEnabled],
+  );
+
+  const isDirty =
+    baselineRef.current !== null && JSON.stringify(currentSnapshot) !== JSON.stringify(baselineRef.current);
+
+  // Adopt server state, but never discard edits the operator has not saved yet. Previously any
+  // settings refetch (a logo upload, a save in another tab) overwrote every field, silently
+  // losing in-progress work elsewhere on the page.
   useEffect(() => {
-    if (settings) {
-      setOrgName(settings.orgName ?? '');
-      setAddress(settings.address ?? '');
-      setContact(settings.contact ?? '');
-      setGstin(settings.gstin ?? '');
-      setLogoAssetId(settings.logoAssetId ?? null);
-      setPrintFooter(settings.printFooter ?? '');
-      setTimezone(settings.timezone ?? 'Asia/Kolkata');
-
-      if (settings.documentNumbering) {
-        setGrnPrefix(settings.documentNumbering.grnPrefix ?? 'GRN');
-        setReceiptPrefix(settings.documentNumbering.receiptPrefix ?? 'RCPT');
-        setChallanPrefix(settings.documentNumbering.challanPrefix ?? 'CHL');
-        setRentReceiptPrefix(settings.documentNumbering.rentReceiptPrefix ?? 'RRCPT');
-      }
-
-      if (settings.backupPolicy) {
-        setAtlasRetentionDays(settings.backupPolicy.atlasRetentionDays ?? 7);
-        setDriveRetentionDays(settings.backupPolicy.driveRetentionDays ?? 30);
-        setDriveBackupEnabled(settings.backupPolicy.driveBackupEnabled ?? true);
-      }
-    }
-  }, [settings]);
-
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 1024 * 1024) {
-      setLogoError('Logo file size exceeds the 1 MB limit.');
+    if (!settings) return;
+    const next = toSnapshot(settings);
+    if (baselineRef.current === null) {
+      hydrate(next);
       return;
     }
-
-    const allowed = ['image/png', 'image/jpeg', 'image/webp'];
-    if (!allowed.includes(file.type)) {
-      setLogoError('Only PNG, JPEG, or WebP images are allowed.');
-      return;
+    if (!isDirty) {
+      hydrate(next);
     }
-
-    setLogoUploading(true);
-    setLogoError(null);
-    setLogoSuccess(null);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const res = await requestWithAuth('/api/settings/logo', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
-        throw new Error(err.error ?? `Upload failed with HTTP ${res.status}`);
-      }
-
-      const data = (await res.json()) as { asset: { id: string } };
-      setLogoAssetId(data.asset.id);
-      setLogoSuccess('Brand logo uploaded and bound to organization settings.');
-      await refreshSettings();
-    } catch (err: unknown) {
-      setLogoError(err instanceof Error ? err.message : 'Logo upload failed');
-    } finally {
-      setLogoUploading(false);
-      e.target.value = '';
-    }
-  };
-
-  const handleDeleteLogo = async () => {
-    // Destructive confirmation is handled in the UI rather than a blocking browser dialog,
-    // so it can be styled, announced to assistive tech, and composed with the section's
-    // existing error/success messaging.
-    if (!logoDeleteArmed) {
-      setLogoDeleteArmed(true);
-      return;
-    }
-
-    setLogoDeleteArmed(false);
-    setLogoUploading(true);
-    setLogoError(null);
-    setLogoSuccess(null);
-
-    try {
-      const res = await requestWithAuth('/api/settings/logo', {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
-        throw new Error(err.error ?? `Deletion failed with HTTP ${res.status}`);
-      }
-
-      setLogoAssetId(null);
-      setLogoSuccess('Logo removed successfully.');
-      await refreshSettings();
-    } catch (err: unknown) {
-      setLogoError(err instanceof Error ? err.message : 'Failed to delete logo');
-    } finally {
-      setLogoUploading(false);
-    }
-  };
+  }, [settings, isDirty, hydrate]);
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,12 +127,9 @@ export function useSettingsForm() {
       return;
     }
 
-    if (gstin.trim()) {
-      const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-      if (!gstinRegex.test(gstin.trim().toUpperCase())) {
-        setSaveError('Invalid Indian GSTIN format (e.g. 09ABCDE1234F1Z5)');
-        return;
-      }
+    if (gstin.trim() && !GSTIN_PATTERN.test(gstin.trim().toUpperCase())) {
+      setSaveError('Invalid Indian GSTIN format (e.g. 09ABCDE1234F1Z5)');
+      return;
     }
 
     setSaving(true);
@@ -165,17 +144,9 @@ export function useSettingsForm() {
       logoAssetId: logoAssetId ?? undefined,
       printFooter: printFooter.trim(),
       timezone: timezone.trim() || 'Asia/Kolkata',
-      documentNumbering: {
-        mode: 'FY_SEQUENTIAL',
-        grnPrefix: grnPrefix.trim() || 'GRN',
-        receiptPrefix: receiptPrefix.trim() || 'RCPT',
-        challanPrefix: challanPrefix.trim() || 'CHL',
-        rentReceiptPrefix: rentReceiptPrefix.trim() || 'RRCPT',
-      },
       backupPolicy: {
-        atlasRetentionDays,
-        driveRetentionDays,
-        driveBackupEnabled,
+        retentionDays,
+        backupEnabled,
       },
     };
 
@@ -191,6 +162,9 @@ export function useSettingsForm() {
         throw new Error(err.error ?? `Save failed with HTTP ${res.status}`);
       }
 
+      // Adopt what was just written before refetching, so the form is clean and the incoming
+      // server state cannot be mistaken for an unsaved edit.
+      hydrate(currentSnapshot);
       setSaveSuccess('System settings and organization details updated successfully.');
       await refreshSettings();
     } catch (err: unknown) {
@@ -217,20 +191,11 @@ export function useSettingsForm() {
     setPrintFooter,
     timezone,
     setTimezone,
-    grnPrefix,
-    setGrnPrefix,
-    receiptPrefix,
-    setReceiptPrefix,
-    challanPrefix,
-    setChallanPrefix,
-    rentReceiptPrefix,
-    setRentReceiptPrefix,
-    atlasRetentionDays,
-    setAtlasRetentionDays,
-    driveRetentionDays,
-    setDriveRetentionDays,
-    driveBackupEnabled,
-    setDriveBackupEnabled,
+    retentionDays,
+    setRetentionDays,
+    backupEnabled,
+    setBackupEnabled,
+    isDirty,
     saving,
     saveSuccess,
     saveError,

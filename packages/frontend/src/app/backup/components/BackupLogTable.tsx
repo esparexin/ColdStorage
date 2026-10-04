@@ -16,7 +16,8 @@ interface BackupLogTableProps {
   statusFilter: '' | BackupStatus;
   onStatusFilterChange: (status: '' | BackupStatus) => void;
   onPageChange: (newPage: number) => void;
-  onTriggerBackup: () => void;
+  /** Omitted when backups are unconfigured, which hides the empty-state action. */
+  onTriggerBackup?: () => void;
 }
 
 export function BackupLogTable({
@@ -91,8 +92,12 @@ export function BackupLogTable({
     },
     {
       key: 'storageLocation',
-      header: 'Storage Driver Path',
-      render: (log) => <span className={styles.codeText}>{log.storageLocation}</span>,
+      header: 'Archive File',
+      // The stored value is an absolute path on the backend host. Only the file name is
+      // meaningful to an operator, and the full path should not be exposed to the browser.
+      render: (log) => (
+        <span className={styles.codeText}>{log.storageLocation.split('/').pop()}</span>
+      ),
     },
     {
       key: 'retentionExpiresAt',
@@ -137,12 +142,16 @@ export function BackupLogTable({
         caption="Encrypted Backup Log Ledger"
         loading={loading}
         loadingLabel="Loading backup logs..."
-        emptyMessage="No backup history recorded yet. You can trigger an on-demand encrypted backup now."
-        emptyAction={{
-          label: 'Trigger Backup Now',
-          onClick: onTriggerBackup,
-          id: 'empty-trigger-backup-btn',
-        }}
+        emptyMessage="No backup history recorded yet."
+        emptyAction={
+          onTriggerBackup
+            ? {
+                label: 'Trigger Backup Now',
+                onClick: onTriggerBackup,
+                id: 'empty-trigger-backup-btn',
+              }
+            : undefined
+        }
         pagination={
           totalPages > 1
             ? {

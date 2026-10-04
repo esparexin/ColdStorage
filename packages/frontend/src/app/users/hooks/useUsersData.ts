@@ -3,60 +3,54 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Role, UserSummary } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
-import type { FacilityOption } from '@/context/FacilityContext';
+import { useFacility } from '@/context/FacilityContext';
+
+const PAGE_SIZE = 20;
 
 export function useUsersData(canManage: boolean) {
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [page, setPage] = useState(1);
-  const limit = 20;
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [availableFacilities, setAvailableFacilities] = useState<FacilityOption[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'' | Role>('');
+
+  // Facility options are already loaded application-wide by FacilityProvider. Fetching them a
+  // second time here produced two independent copies of the same list.
+  const { availableFacilities } = useFacility();
 
   const fetchUsers = useCallback(async () => {
     if (!canManage) return;
     setLoadingUsers(true);
+    setLoadError(null);
     try {
-      const res = await requestWithAuth(`/api/users?page=${page}&limit=${limit}`);
-      if (res.ok) {
-        const data = (await res.json()) as {
-          items: UserSummary[];
-          total: number;
-          page: number;
-          limit: number;
-        };
-        setUsers(data.items || []);
-        setTotalUsers(data.total || 0);
+      const res = await requestWithAuth(`/api/users?page=${page}&limit=${PAGE_SIZE}`);
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? `Failed to load users (HTTP ${res.status})`);
       }
-    } catch {
-      // Handled silently
+      const data = (await res.json()) as {
+        items: UserSummary[];
+        total: number;
+      };
+      setUsers(data.items || []);
+      setTotalUsers(data.total || 0);
+    } catch (err: unknown) {
+      setLoadError(err instanceof Error ? err.message : 'Failed to load users');
+      setUsers([]);
+      setTotalUsers(0);
     } finally {
       setLoadingUsers(false);
     }
-  }, [canManage, page, limit]);
-
-  const fetchFacilities = useCallback(async () => {
-    if (!canManage) return;
-    try {
-      const res = await requestWithAuth('/api/facilities');
-      if (res.ok) {
-        const data = (await res.json()) as { items?: FacilityOption[] };
-        setAvailableFacilities(data.items || []);
-      }
-    } catch {
-      // Handled silently
-    }
-  }, [canManage]);
+  }, [canManage, page]);
 
   useEffect(() => {
     if (canManage) {
       void fetchUsers();
-      void fetchFacilities();
     }
-  }, [canManage, fetchUsers, fetchFacilities]);
+  }, [canManage, fetchUsers]);
 
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
@@ -77,16 +71,15 @@ export function useUsersData(canManage: boolean) {
     return new Map(availableFacilities.map((f) => [f.id, f.name || f.code]));
   }, [availableFacilities]);
 
-  const totalPages = Math.ceil(totalUsers / limit);
+  const totalPages = Math.ceil(totalUsers / PAGE_SIZE);
 
   return {
-    users,
     totalUsers,
     page,
     setPage,
     totalPages,
     loadingUsers,
-    availableFacilities,
+    loadError,
     facilityNameMap,
     searchTerm,
     setSearchTerm,

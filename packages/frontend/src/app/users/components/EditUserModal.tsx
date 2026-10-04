@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AlertCircle, Save } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { indianMobileSchema, type Role, type UserSummary } from '@cold-storage/contracts';
 import { Button, Modal, Select } from '@/components/ui';
 import type { FacilityOption } from '@/context/FacilityContext';
@@ -67,9 +67,30 @@ export function EditUserModal({
   const shownError = localError ?? error;
 
   return (
-    <Modal isOpen onClose={onClose} title={`Edit Account — ${user.fullName}`} size="lg">
-      <form onSubmit={handleSubmit}>
-        <div className={styles.modalBody}>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={`Edit Account — ${user.fullName}`}
+      size="md"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            id="submit-user-edit-btn"
+            type="submit"
+            form="edit-user-form"
+            variant="primary"
+            disabled={saving}
+            isLoading={saving}
+          >
+            Save Changes
+          </Button>
+        </>
+      }
+    >
+      <form id="edit-user-form" onSubmit={handleSubmit}>
           {shownError && (
             <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
               <AlertCircle size={16} />
@@ -149,23 +170,6 @@ export function EditUserModal({
               </div>
             </div>
           </div>
-        </div>
-
-        <div className={styles.modalFooter}>
-          <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancel
-          </Button>
-          <Button
-            id="submit-user-edit-btn"
-            type="submit"
-            variant="primary"
-            disabled={saving}
-            isLoading={saving}
-            leftIcon={!saving ? <Save size={14} /> : undefined}
-          >
-            Save Changes
-          </Button>
-        </div>
       </form>
     </Modal>
   );

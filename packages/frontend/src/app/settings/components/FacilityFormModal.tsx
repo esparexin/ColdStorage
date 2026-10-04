@@ -24,6 +24,9 @@ export function FacilityFormModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // The facility form owns its submission. Without this, the native submit event bubbles to
+    // any ancestor <form> and triggers an unrelated settings write alongside the facility write.
+    e.stopPropagation();
     setModalError(null);
 
     if (!name.trim() || !code.trim()) {

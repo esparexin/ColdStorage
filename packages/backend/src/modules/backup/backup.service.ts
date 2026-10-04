@@ -8,6 +8,7 @@ import {
   decryptBackupArchive,
   encryptBackupPayload,
   getValidEncryptionKey,
+  isEncryptionKeyConfigured,
 } from './backup-crypto.js';
 import { getBackupStatus, queryBackupHistory } from './backup-queries.js';
 import { BackupStorageDriver, LocalEncryptedStorageDriver } from './storage/storage.driver.js';
@@ -22,10 +23,6 @@ export class BackupService {
 
   public setStorageDriver(driver: BackupStorageDriver): void {
     this.storageDriver = driver;
-  }
-
-  public async collectBackupEntities(): Promise<Record<string, unknown>> {
-    return collectBackupEntities();
   }
 
   public decryptBackupArchive(archiveBuffer: Buffer, keyHex: string): Record<string, unknown> {
@@ -43,20 +40,31 @@ export class BackupService {
       throw new Error('BACKUP_ALREADY_IN_PROGRESS: A backup operation is currently executing');
     }
 
+    // The concurrency guard is claimed synchronously, before the first await, so two concurrent
+    // triggers cannot both pass the check.
     this.isBackupInProgress = true;
+
+    // Configuration is validated before the run is registered. A backup that is switched off or
+    // missing its encryption key is a configuration state, not a failed run, so it must not
+    // create a FAILED log row or raise a CRITICAL audit event. `runRegistered` records whether a
+    // log row exists for this attempt, which is what decides if the catch block writes one.
+    let runRegistered = false;
     const backupId = `backup_${Date.now()}_${randomBytes(4).toString('hex')}`;
     const filename = `${backupId}.enc`;
 
     try {
       const { settings } = await settingsService.getSettings();
-      if (!settings.backupPolicy.driveBackupEnabled) {
+      if (!settings.backupPolicy.backupEnabled) {
+        throw new Error('BACKUP_DISABLED: Encrypted backup is disabled in system settings');
+      }
+      if (!isEncryptionKeyConfigured(overrideKey)) {
         throw new Error(
-          'BACKUP_DISABLED: Application-level encrypted backup is disabled in system settings',
+          'BACKUP_KEY_INVALID: BACKUP_ENCRYPTION_KEY must be a 64-character hexadecimal string',
         );
       }
 
+      const retentionDays = settings.backupPolicy.retentionDays ?? 30;
       const keyBuffer = getValidEncryptionKey(overrideKey);
-      const retentionDays = settings.backupPolicy.driveRetentionDays ?? 30;
       const retentionExpiresAt = new Date(Date.now() + retentionDays * 86400 * 1000);
 
       await BackupLogModel.create({
@@ -70,8 +78,9 @@ export class BackupService {
         triggeredBy: userId,
         errorMessage: null,
       });
+      runRegistered = true;
 
-      const entities = await this.collectBackupEntities();
+      const entities = await collectBackupEntities();
       const payload = {
         metadata: {
           format: 'COLD_STORAGE_BACKUP',
@@ -140,32 +149,38 @@ export class BackupService {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
 
-      await BackupLogModel.findOneAndUpdate(
-        { id: backupId },
-        {
-          $set: {
-            status: 'FAILED',
-            errorMessage: message,
+      // Only a run that was actually registered can be marked FAILED. A configuration refusal
+      // happens before any row exists, so it must not manufacture one or escalate the audit
+      // severity for what is an expected, operator-visible state.
+      if (runRegistered) {
+        await BackupLogModel.findOneAndUpdate(
+          { id: backupId },
+          {
+            $set: {
+              status: 'FAILED',
+              errorMessage: message,
+            },
           },
-          $setOnInsert: {
-            backupType: 'MANUAL',
-            sizeBytes: 0,
-            storageLocation: filename,
-            retentionExpiresAt: new Date(),
-            triggeredBy: userId,
-          },
-        },
-        { upsert: true },
-      ).exec();
+        ).exec();
 
-      await auditService.log({
-        eventType: 'BACKUP_TRIGGERED',
-        severity: 'CRITICAL',
-        userId,
-        resource: 'backup',
-        resourceId: backupId,
-        details: { error: message },
-      });
+        await auditService.log({
+          eventType: 'BACKUP_TRIGGERED',
+          severity: 'CRITICAL',
+          userId,
+          resource: 'backup',
+          resourceId: backupId,
+          details: { error: message },
+        });
+      } else {
+        await auditService.log({
+          eventType: 'BACKUP_TRIGGERED',
+          severity: 'INFO',
+          userId,
+          resource: 'backup',
+          resourceId: null,
+          details: { refused: message },
+        });
+      }
 
       throw err;
     } finally {

@@ -201,10 +201,8 @@ describe('P9 Documents & Settings Contracts Tests', () => {
     });
     expect(valid.success).toBe(true);
     if (valid.success) {
-      expect(valid.data.backupPolicy.atlasRetentionDays).toBe(7);
-      expect(valid.data.backupPolicy.driveRetentionDays).toBe(30);
-      expect(valid.data.backupPolicy.driveBackupEnabled).toBe(true);
-      expect(valid.data.documentNumbering.mode).toBe('FY_SEQUENTIAL');
+      expect(valid.data.backupPolicy.retentionDays).toBe(30);
+      expect(valid.data.backupPolicy.backupEnabled).toBe(true);
       expect(valid.data.timezone).toBe('Asia/Kolkata');
     }
   });

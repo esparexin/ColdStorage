@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import type { BagType, Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
-import { Button, Input, Modal, Select } from '@/components/ui';
+import { Button, ConfirmDialog, Input, Modal, Select } from '@/components/ui';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { BagAccountingSection } from './BagAccountingSection';
 import { useCustomerCombobox } from '../hooks/useCustomerCombobox';
 import { parseNumericInput, useCreateGrnForm } from '../hooks/useCreateGrnForm';
@@ -22,7 +23,6 @@ export function CreateGrnModal({
   const form = useCreateGrnForm(facilityId, customers, commodities, onSuccess);
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [isAddingCommodity, setIsAddingCommodity] = useState(false);
-  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const customerBox = useCustomerCombobox(
     customers,
@@ -31,10 +31,10 @@ export function CreateGrnModal({
     () => setIsAddingCustomer(true),
   );
 
-  const handleAttemptClose = () => {
-    if (form.isDirty && !form.submitting) setShowExitConfirm(true);
-    else onClose();
-  };
+  const { attemptExit, isConfirmOpen, confirmExit, cancelExit } = useUnsavedChanges(
+    form.isDirty && !form.submitting,
+  );
+  const handleAttemptClose = () => attemptExit(onClose);
 
   return (
     <>
@@ -232,13 +232,15 @@ export function CreateGrnModal({
         </div>
       </form>
     </Modal>
-    {showExitConfirm && (
-      <Modal isOpen onClose={() => setShowExitConfirm(false)} title="Unsaved Changes" size="sm" footer={<><Button variant="outline" onClick={() => setShowExitConfirm(false)}>Stay</Button><Button variant="danger" onClick={() => { setShowExitConfirm(false); onClose(); }}>Exit</Button></>}>
-        <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)', lineHeight: 1.5 }}>
-          You have entered information that has not been saved. Are you sure you want to exit?
-        </p>
-      </Modal>
-    )}
+    <ConfirmDialog
+      isOpen={isConfirmOpen}
+      title="Unsaved Changes"
+      message="You have entered information that has not been saved. Are you sure you want to exit?"
+      cancelLabel="Stay"
+      confirmLabel="Exit"
+      onCancel={cancelExit}
+      onConfirm={confirmExit}
+    />
     {isAddingCustomer && <CustomerFormModal customer={null} selectedFacilityId={facilityId} existingCustomers={customers} onClose={() => setIsAddingCustomer(false)} onSuccess={() => { setIsAddingCustomer(false); onCustomerAdded?.(); }} />}
     {isAddingCommodity && <CommodityFormModal onClose={() => setIsAddingCommodity(false)} onSuccess={() => { setIsAddingCommodity(false); onCommodityAdded?.(); }} />}
     </>

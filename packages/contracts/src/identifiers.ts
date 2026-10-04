@@ -13,12 +13,3 @@ export const receiptNumberSchema = baseIdentifierSchema;
 export const challanNumberSchema = baseIdentifierSchema;
 export const rentReceiptNumberSchema = baseIdentifierSchema;
 export const gpNumberSchema = z.string().trim().max(40).nullish();
-
-export const documentNumberingModeSchema = z.enum(['FY_SEQUENTIAL', 'PENDING_CONFIRMATION']);
-
-export const fyCounterSchema = z.object({
-  key: z.string().min(1), // e.g. "GRN:2025-26", "RECEIPT:2025-26", "CHALLAN:2025-26", "RENT_RECEIPT:2025-26"
-  lastSequence: z.number().int().min(0),
-});
-
-export type FyCounter = z.infer<typeof fyCounterSchema>;

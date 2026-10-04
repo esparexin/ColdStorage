@@ -13,8 +13,6 @@ export const backupTriggerSchema = z.object({
   backupType: backupTypeSchema.default('MANUAL'),
 });
 
-export type BackupTriggerInput = z.infer<typeof backupTriggerSchema>;
-
 /**
  * Backup log entry DTO schema.
  */
@@ -46,20 +44,23 @@ export const backupQuerySchema = z.object({
 export type BackupQuery = z.infer<typeof backupQuerySchema>;
 
 /**
- * System backup status projection schema (Decision 7).
+ * Backup status projection.
+ *
+ * Every field reports observed state. There is no platform-managed backup integration and no
+ * scheduled automation in this codebase, so no field claims either. `configured` is the single
+ * gate the service enforces, and the UI disables backup actions while it is false.
  */
 export const backupStatusResponseSchema = z.object({
-  atlasManagedBackup: z.object({
-    provider: z.literal('MongoDB Atlas'),
-    retentionDays: z.number().int().min(1),
-    mode: z.literal('PLATFORM_MANAGED'),
-    status: z.literal('CONFIGURED'),
-  }),
-  applicationEncryptedBackup: z.object({
+  encryptedArchive: z.object({
+    /** True when the operator has enabled encrypted backups in system settings. */
     enabled: z.boolean(),
+    /** True only when a 64-hex BACKUP_ENCRYPTION_KEY is available to the backend process. */
+    keyConfigured: z.boolean(),
+    /** True when both the settings gate and the encryption key are present. */
+    configured: z.boolean(),
     retentionDays: z.number().int().min(1),
+    /** ISO timestamp of the most recent completed run, or null when none has completed. */
     lastBackupAt: z.coerce.date().nullable(),
-    lastBackupStatus: backupStatusSchema.nullable(),
     totalCompletedBackups: z.number().int().min(0),
   }),
 });

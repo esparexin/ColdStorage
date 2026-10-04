@@ -34,15 +34,22 @@ export default function BackupPage() {
     handleTriggerBackup,
   } = useBackupData(canManage);
 
+  const backupsConfigured = backupStatus?.encryptedArchive.configured ?? false;
+  const disabledReason = backupsConfigured
+    ? undefined
+    : 'Backups are unavailable until they are enabled in System Settings and the server has a BACKUP_ENCRYPTION_KEY.';
+
   if (!canManage) {
     return (
       <div className={styles.container}>
         <div className={styles.unauthorizedWrapper}>
-          <ShieldAlert size={48} color="var(--color-danger)" />
-          <h2>Restricted Access</h2>
-          <p className={styles.subtitle}>
-            Backup management and triggering encrypted backups requires SUPER_ADMIN authority.
-          </p>
+          <ShieldAlert size={20} color="var(--color-danger)" aria-hidden="true" />
+          <div>
+            <p className={styles.unauthorizedTitle}>Restricted Access</p>
+            <p className={styles.subtitle}>
+              Backup management requires Super Admin authority.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -52,10 +59,9 @@ export default function BackupPage() {
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.titleArea}>
-          <h1>Database Backups & Continuity</h1>
+          <h1>Database Backups</h1>
           <p className={styles.subtitle}>
-            Authoritative platform status, AES-256 encrypted on-demand backups, and immutable
-            operation logs.
+            AES-256-GCM encrypted on-demand backups and their run history.
           </p>
         </div>
         <div className={styles.headerActions}>
@@ -75,11 +81,12 @@ export default function BackupPage() {
             id="trigger-backup-button"
             variant="primary"
             onClick={handleTriggerBackup}
-            disabled={triggering}
+            disabled={triggering || !backupsConfigured}
             isLoading={triggering}
+            title={disabledReason}
             leftIcon={!triggering ? <Play size={16} /> : undefined}
           >
-            {triggering ? 'Encrypting & Writing Backup...' : 'Trigger Manual Backup'}
+            {triggering ? 'Encrypting...' : 'Trigger Manual Backup'}
           </Button>
         </div>
       </header>
@@ -111,7 +118,7 @@ export default function BackupPage() {
           setPage(1);
         }}
         onPageChange={setPage}
-        onTriggerBackup={handleTriggerBackup}
+        onTriggerBackup={backupsConfigured ? handleTriggerBackup : undefined}
       />
     </div>
   );

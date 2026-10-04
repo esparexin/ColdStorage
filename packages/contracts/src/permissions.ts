@@ -10,13 +10,11 @@ export type Role = z.infer<typeof roleSchema>;
 export const PERMISSIONS = {
   'grn:create': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
   'grn:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
-  'grn:close': ['SUPER_ADMIN', 'ADMIN'],
   /** Authorized correction of an inward receipt's commodity, bag count or chamber. */
   'grn:correct': ['SUPER_ADMIN', 'ADMIN'],
   /** Confirms a GRN's remaining bags are on hand in its chamber. */
   'allocation:manage': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
   'inventory:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
-  'inventory:correct': ['SUPER_ADMIN', 'ADMIN'],
   'delivery:create': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
   'delivery:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   'delivery:reversal': ['SUPER_ADMIN', 'ADMIN'],
@@ -30,7 +28,6 @@ export const PERMISSIONS = {
   'commodity:manage': ['SUPER_ADMIN', 'ADMIN'],
   'commodity:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   'user:manage': ['SUPER_ADMIN'],
-  'report:view': ['SUPER_ADMIN', 'ADMIN', 'READ_ONLY'],
   'document:print': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
   'import:execute': ['SUPER_ADMIN', 'ADMIN'],
   'export:execute': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
@@ -51,6 +48,17 @@ export function can(role: Role, permission: PermissionKey): boolean {
 }
 
 /**
+ * Whether a role holds unrestricted tenancy scope.
+ *
+ * Callers that need "all facilities" behaviour previously compared the role against the
+ * SUPER_ADMIN literal inline in six places. Routing every one of them through this predicate
+ * keeps the tenancy rule in a single location, as required by the architecture lock.
+ */
+export function hasGlobalFacilityScope(role: Role): boolean {
+  return role === 'SUPER_ADMIN';
+}
+
+/**
  * Facility-scoped authorization check:
  * - SUPER_ADMIN has global scope across all facilities.
  * - Other roles must have the target facility ID in their assigned facilityIds.
@@ -60,7 +68,7 @@ export function inFacilityScope(
   userFacilityIds: string[],
   targetFacilityId: string,
 ): boolean {
-  if (role === 'SUPER_ADMIN') {
+  if (hasGlobalFacilityScope(role)) {
     return true;
   }
   return userFacilityIds.includes(targetFacilityId);

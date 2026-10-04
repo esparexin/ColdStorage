@@ -28,7 +28,7 @@
 | UI action | Frontend call | Backend route | Contract | Verdict |
 |---|---|---|---|---|
 | Login / logout / change-password / bootstrap | `POST /api/auth/login`, `requestWithAuth(/api/auth/logout)`, `(/api/auth/change-password)`, `POST /api/auth/refresh` | `auth.routes.ts` | `loginInputSchema`, `changePasswordInputSchema` | ✅ wired |
-| Facility switch / list / create / patch | `GET /api/facilities`, `POST /api/facilities`, `PATCH /api/facilities/:id` (`FacilityModal:51`) | `facility.routes.ts` | `createFacilitySchema`, `updateFacilitySchema` | ✅ wired |
+| Facility switch / list / create / patch | `GET /api/facilities`, `POST /api/facilities`, `PATCH /api/facilities/:id` (`FacilityFormModal.tsx:36`) | `facility.routes.ts` | `createFacilitySchema`, `updateFacilitySchema` | ✅ wired |
 | Customers list/create/patch | `GET /api/customers?facilityId=`, `POST /api/customers`, `PATCH /api/customers/:id` (`CustomerFormModal:77`) | `customer.routes.ts` | `createCustomerSchema`, `updateCustomerSchema` (PATCH, not PUT) | ✅ wired |
 | Commodities list/create/patch | `GET /api/commodities`, `POST/PATCH /api/commodities[/:id]` | `commodity.routes.ts` | `create/updateCommoditySchema` | ✅ wired |
 | GRNs list/create/print/put-away link | `GET .../grns?...`, `POST .../grns`, `GET .../documents/grn|receipt/:id` (`grns/page.tsx:36`), `Link /inventory?grnId=` | `grn.routes.ts`, `document.routes.ts` | `createGrnSchema`, `grnQuerySchema`, `documentFormatQuerySchema` | ✅ wired |

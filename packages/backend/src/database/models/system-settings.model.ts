@@ -20,21 +20,9 @@ const systemSettingsSchema = new Schema<SystemSettingsDoc>(
     logoAssetId: { type: String, trim: true, default: null },
     printFooter: { type: String, trim: true, default: '' },
     timezone: { type: String, default: 'Asia/Kolkata' },
-    documentNumbering: {
-      mode: {
-        type: String,
-        enum: ['FY_SEQUENTIAL', 'PENDING_CONFIRMATION'],
-        default: 'FY_SEQUENTIAL',
-      },
-      grnPrefix: { type: String, default: 'GRN' },
-      receiptPrefix: { type: String, default: 'RCPT' },
-      challanPrefix: { type: String, default: 'CHL' },
-      rentReceiptPrefix: { type: String, default: 'RRCPT' },
-    },
     backupPolicy: {
-      atlasRetentionDays: { type: Number, default: 7 },
-      driveRetentionDays: { type: Number, default: 30 },
-      driveBackupEnabled: { type: Boolean, default: true },
+      retentionDays: { type: Number, default: 30 },
+      backupEnabled: { type: Boolean, default: true },
     },
   },
   {

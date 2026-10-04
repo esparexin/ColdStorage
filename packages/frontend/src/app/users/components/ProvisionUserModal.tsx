@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle, UserPlus } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import type { Role } from '@cold-storage/contracts';
 import { Button, Modal, Select } from '@/components/ui';
 import { useProvisionUserForm } from '../hooks/useProvisionUserForm';
@@ -50,10 +50,26 @@ export function ProvisionUserModal({
       isOpen
       onClose={onClose}
       title="Provision New User Account"
-      size="lg"
+      size="md"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose} disabled={creating}>
+            Cancel
+          </Button>
+          <Button
+            id="submit-user-btn"
+            type="submit"
+            form="provision-user-form"
+            variant="primary"
+            disabled={creating}
+            isLoading={creating}
+          >
+            Create Account
+          </Button>
+        </>
+      }
     >
-      <form onSubmit={handleCreateUser}>
-          <div className={styles.modalBody}>
+      <form id="provision-user-form" onSubmit={handleCreateUser}>
             {createError && (
               <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
                 <AlertCircle size={16} />
@@ -174,28 +190,8 @@ export function ProvisionUserModal({
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className={styles.modalFooter}>
-            <Button
-              variant="outline"
-              onClick={onClose}
-              disabled={creating}
-            >
-              Cancel
-            </Button>
-            <Button
-              id="submit-user-btn"
-              type="submit"
-              variant="primary"
-              disabled={creating}
-              isLoading={creating}
-              leftIcon={!creating ? <UserPlus size={14} /> : undefined}
-            >
-              Provision User
-            </Button>
-          </div>
-        </form>
+      </form>
     </Modal>
   );
 }

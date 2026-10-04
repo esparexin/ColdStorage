@@ -15,22 +15,35 @@ export const facilitySchema = z.object({
   isActive: z.boolean().default(true),
 });
 
-export const createFacilitySchema = z.object({
-  name: z.string().trim().min(1).max(120),
-  code: z.string().trim().min(1).max(30),
-  address: z.string().trim().max(300).nullable().optional(),
-  isActive: z.boolean().default(true),
-});
+// `.strict()` so a stale or misspelled client key fails loudly instead of being silently
+// stripped, which previously let a payload appear to save while dropping fields.
+export const createFacilitySchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    code: z.string().trim().min(1).max(30),
+    address: z.string().trim().max(300).nullable().optional(),
+    isActive: z.boolean().default(true),
+  })
+  .strict();
 
-export const updateFacilitySchema = z.object({
-  name: z.string().trim().min(1).max(120).optional(),
-  code: z.string().trim().min(1).max(30).optional(),
-  address: z.string().trim().max(300).nullable().optional(),
-  isActive: z.boolean().optional(),
-});
+export const updateFacilitySchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    code: z.string().trim().min(1).max(30).optional(),
+    address: z.string().trim().max(300).nullable().optional(),
+    isActive: z.boolean().optional(),
+  })
+  .strict();
 
+/**
+ * `includeInactive` is opt-in. Operational callers leave it unset so deactivated facilities stop
+ * appearing in selectors; the settings table sets it to keep showing them for reactivation.
+ */
 export const facilityQuerySchema = z.object({
-  isActive: z.coerce.boolean().optional(),
+  includeInactive: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
 });
 
 export type Facility = z.infer<typeof facilitySchema>;

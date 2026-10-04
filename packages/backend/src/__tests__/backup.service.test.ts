@@ -42,9 +42,8 @@ describe('Suite 4: Backup Service & Encryption — backup.service.test.ts', () =
       address: 'Shimla Highway',
       contact: '9876543210',
       backupPolicy: {
-        atlasRetentionDays: 7,
-        driveRetentionDays: 30,
-        driveBackupEnabled: true,
+        retentionDays: 30,
+        backupEnabled: true,
       },
     });
   });
@@ -88,7 +87,7 @@ describe('Suite 4: Backup Service & Encryption — backup.service.test.ts', () =
     expect(() => backupService.decryptBackupArchive(tampered, testKey)).toThrow();
   });
 
-  // 4. Correctly sets retentionExpiresAt based on SystemSettings.backupPolicy.driveRetentionDays
+  // 4. Correctly sets retentionExpiresAt based on SystemSettings.backupPolicy.retentionDays
   it('correctly sets retentionExpiresAt based on backupPolicy', async () => {
     const before = Date.now();
     const result = await backupService.triggerManualBackup('usr-sa', testKey);
@@ -99,11 +98,11 @@ describe('Suite 4: Backup Service & Encryption — backup.service.test.ts', () =
     expect(Math.abs(expiresAt - expectedApprox)).toBeLessThan(5000);
   });
 
-  // 5. Rejects backup execution when driveBackupEnabled is false
-  it('rejects backup execution when driveBackupEnabled is false', async () => {
+  // 5. Rejects backup execution when backups are disabled in system settings
+  it('rejects backup execution when backupEnabled is false', async () => {
     await SystemSettingsModel.updateOne(
       { _id: 'SYSTEM_SETTINGS' },
-      { $set: { 'backupPolicy.driveBackupEnabled': false } },
+      { $set: { 'backupPolicy.backupEnabled': false } },
     );
 
     await expect(backupService.triggerManualBackup('usr-sa', testKey)).rejects.toThrow(
@@ -127,15 +126,16 @@ describe('Suite 4: Backup Service & Encryption — backup.service.test.ts', () =
     expect(logInDb?.triggeredBy).toBe('usr-sa');
   });
 
-  // 8. Records backup log entry with status FAILED on pipeline error
-  it('records backup log entry with status FAILED on key error', async () => {
+  // 8. A missing or malformed encryption key is a configuration state, not a failed run: it
+  // must raise a clear error without fabricating a FAILED log row.
+  it('rejects an invalid key without recording a failed run', async () => {
     await expect(backupService.triggerManualBackup('usr-sa', 'invalid_short_key')).rejects.toThrow(
       /BACKUP_KEY_INVALID/i,
     );
 
     const failedLog = await BackupLogModel.findOne({ status: 'FAILED' }).lean();
-    expect(failedLog).toBeDefined();
-    expect(failedLog?.errorMessage).toMatch(/BACKUP_KEY_INVALID/i);
+    expect(failedLog).toBeNull();
+    expect(await BackupLogModel.countDocuments({})).toBe(0);
   });
 
   // 9. Rejects concurrent backup trigger with conflict error when a backup is in progress

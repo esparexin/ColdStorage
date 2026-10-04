@@ -1,12 +1,18 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Building2, Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import type { Facility } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
-import { Badge, Button, DataTable, type DataTableColumn } from '@/components/ui';
+import {
+  Badge,
+  Button,
+  ConfirmDialog,
+  DataTable,
+  type DataTableColumn,
+} from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
-import pageStyles from '../page.module.css';
+import { useFacility } from '@/context/FacilityContext';
 import styles from './FacilitySection.module.css';
 import { FacilityFormModal } from './FacilityFormModal';
 
@@ -21,12 +27,16 @@ export function FacilitySection() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Facility | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [deleting, setDeleting] = useState<Facility | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
+  const { refreshFacilities } = useFacility();
 
   const fetchFacilities = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await requestWithAuth('/api/facilities');
+      const res = await requestWithAuth('/api/facilities?includeInactive=true');
       if (!res.ok) {
         const err = (await res.json()) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -43,6 +53,26 @@ export function FacilitySection() {
   useEffect(() => {
     void fetchFacilities();
   }, [fetchFacilities]);
+
+  const handleDelete = async () => {
+    if (!deleting) return;
+    setDeletePending(true);
+    setActionError(null);
+    try {
+      const res = await requestWithAuth(`/api/facilities/${deleting.id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? `Failed to delete facility (HTTP ${res.status})`);
+      }
+      setDeleting(null);
+      await fetchFacilities();
+      void refreshFacilities();
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : 'Failed to delete facility');
+    } finally {
+      setDeletePending(false);
+    }
+  };
 
   const columns: DataTableColumn<Facility>[] = [
     { key: 'name', header: 'Facility', render: (row) => <strong>{row.name}</strong> },
@@ -66,23 +96,33 @@ export function FacilitySection() {
       header: 'Actions',
       align: 'right',
       render: (row) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setEditing(row)}
-          leftIcon={<Pencil size={13} aria-hidden="true" />}
-        >
-          Edit
-        </Button>
+        <div className={styles.rowActions}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setEditing(row)}
+            leftIcon={<Pencil size={13} aria-hidden="true" />}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={!row.isActive}
+            onClick={() => setDeleting(row)}
+            leftIcon={<Trash2 size={13} aria-hidden="true" />}
+          >
+            Delete
+          </Button>
+        </div>
       ),
     },
   ];
 
   return (
-    <div className={pageStyles.sectionCard}>
-      <div className={pageStyles.sectionHeader}>
-        <Building2 size={18} color="var(--color-primary)" aria-hidden="true" />
-        <h2 className={pageStyles.sectionTitle}>Facilities</h2>
+    <div className={styles.sectionCard}>
+      <div className={styles.sectionHeader}>
+        <h2 className={styles.sectionTitle}>Facilities</h2>
         <div style={{ marginLeft: 'auto' }}>
           <Button
             id="add-facility-btn"
@@ -116,6 +156,25 @@ export function FacilitySection() {
         />
       )}
 
+      {actionError && (
+        <FeedbackStates.Error title="Facility action failed" message={actionError} />
+      )}
+
+      <ConfirmDialog
+        isOpen={deleting !== null}
+        title="Delete Facility"
+        message={
+          deleting
+            ? `Delete facility "${deleting.name}" (${deleting.code})? A facility that still has inward receipts, inventory or rent payments cannot be deleted.`
+            : ''
+        }
+        cancelLabel="Cancel"
+        confirmLabel="Delete"
+        isBusy={deletePending}
+        onCancel={() => setDeleting(null)}
+        onConfirm={() => void handleDelete()}
+      />
+
       {(isCreating || editing) && (
         <FacilityFormModal
           facility={editing}
@@ -127,6 +186,9 @@ export function FacilitySection() {
             setIsCreating(false);
             setEditing(null);
             void fetchFacilities();
+            // Keep the app-wide facility selector in step so a newly created facility is
+            // selectable without a full page reload.
+            void refreshFacilities();
           }}
         />
       )}

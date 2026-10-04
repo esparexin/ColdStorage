@@ -77,7 +77,7 @@ describe('P9 Document Routes Authorized Printing & CSP Headers', () => {
     expect(res.status).toBe(200);
     expect(res.body.isConfigured).toBe(true);
     expect(res.body.settings.orgName).toBe('Himalayan Agri Cold Logistics Ltd');
-    expect(res.body.settings.backupPolicy.atlasRetentionDays).toBe(7);
+    expect(res.body.settings.backupPolicy.retentionDays).toBe(30);
   });
 
   // ---------------------------------------------------------------------------
@@ -96,15 +96,14 @@ describe('P9 Document Routes Authorized Printing & CSP Headers', () => {
         printFooter: 'Authorized Commercial Print Copy',
         timezone: 'Asia/Kolkata',
         backupPolicy: {
-          atlasRetentionDays: 14,
-          driveRetentionDays: 60,
-          driveBackupEnabled: true,
+          retentionDays: 14,
+          backupEnabled: true,
         },
       });
     expect(res.status).toBe(200);
     expect(res.body.isConfigured).toBe(true);
     expect(res.body.settings.orgName).toBe('Updated Himalayan Cold Logistics Private Limited');
-    expect(res.body.settings.backupPolicy.atlasRetentionDays).toBe(14);
+    expect(res.body.settings.backupPolicy.retentionDays).toBe(14);
   });
 
   // ---------------------------------------------------------------------------
