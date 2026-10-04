@@ -65,6 +65,7 @@ describe('P7 DashboardService stock derivation', () => {
   // 1. totalStockBags — derived from signed ledger quantities
   describe('totalStockBags (ledgerSignedQuantity applied exactly once)', () => {
     it('reports totalStockBags 0 when the ledger is empty', async () => {
+      await GrnModel.deleteMany({});
       const summary = await dashboardService.getSummary(facilityId);
       expect(summary.totalStockBags).toBe(0);
     });
@@ -105,6 +106,7 @@ describe('P7 DashboardService stock derivation', () => {
     });
 
     it('does not include ledger entries from other facilities', async () => {
+      await GrnModel.deleteMany({});
       await seedLedgerEntry({
         facilityId: otherFacilityId,
         transactionType: 'INWARD_PUTAWAY',
@@ -206,6 +208,7 @@ describe('P7 DashboardService stock derivation', () => {
     });
 
     it('skips the commodity catalog lookup when commodityIds is empty (Phase B short-circuit)', async () => {
+      await GrnModel.deleteMany({});
       const summary = await dashboardService.getSummary(facilityId);
       expect(summary.commodityBreakdown).toHaveLength(0);
     });

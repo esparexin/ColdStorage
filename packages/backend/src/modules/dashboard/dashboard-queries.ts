@@ -153,13 +153,12 @@ export async function fetchPhaseAData(
   startOfMonth: Date,
   startOfNextMonth: Date,
 ) {
-  const hasInwardPutAway = await InventoryTransactionModel.countDocuments({
+  const hasLedgerTxns = await InventoryTransactionModel.countDocuments({
     facilityId,
-    transactionType: 'INWARD_PUTAWAY',
   }).exec();
 
   const [stockData, grnStatusAgg, recentTxns] = await Promise.all([
-    hasInwardPutAway > 0
+    hasLedgerTxns > 0
       ? fetchLedgerStockData(facilityId, startOfMonth, startOfNextMonth)
       : fetchAuthoritativeStockData(facilityId, startOfMonth, startOfNextMonth),
     GrnModel.aggregate<{ _id: string; count: number }>([
@@ -205,4 +204,5 @@ export async function fetchPhaseBData(
           .exec()
       : Promise.resolve([]),
   ]);
+  
 }

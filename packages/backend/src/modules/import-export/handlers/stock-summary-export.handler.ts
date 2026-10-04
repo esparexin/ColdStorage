@@ -25,14 +25,13 @@ export async function exportStockSummary(
     details: { entityType: 'stock_summary' },
   });
 
-  const hasInwardPutAway = await InventoryTransactionModel.countDocuments({
+  const hasLedgerTxns = await InventoryTransactionModel.countDocuments({
     facilityId,
-    transactionType: 'INWARD_PUTAWAY',
   }).exec();
 
   let stockByChamber: Array<{ _id: string; totalBags: number }>;
 
-  if (hasInwardPutAway > 0) {
+  if (hasLedgerTxns > 0) {
     stockByChamber = await InventoryTransactionModel.aggregate<{
       _id: string;
       totalBags: number;
