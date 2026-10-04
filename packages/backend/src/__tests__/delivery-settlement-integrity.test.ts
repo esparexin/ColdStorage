@@ -146,9 +146,7 @@ describe('Phase 5: Payment & Settlement Integrity (delivery-settlement-integrity
   it('final delivery & final closure: transitions GRN to CLOSED only when balance reaches 0', async () => {
     // Pay rent in full
     await rentService.recordPayment(
-      facilityId,
-      { grnId, amountPaid: 5000, paymentMode: 'Cash', paymentDate: new Date() },
-      USER_ID,
+      facilityId, { grnId, amountPaid: 5000, paymentMode: 'Cash', paymentDate: new Date() }, USER_ID,
     );
 
     // Partial delivery: 70 bags -> 30 remaining
@@ -161,13 +159,81 @@ describe('Phase 5: Payment & Settlement Integrity (delivery-settlement-integrity
     expect(finalDel.delivery.openingBags).toBe(30);
     expect(finalDel.delivery.closingBags).toBe(0);
     expect(finalDel.summary.grnStatus).toBe('CLOSED');
-
-    const grn = await GrnModel.findOne({ id: grnId }).exec();
-    expect(grn?.status).toBe('CLOSED');
+    expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('CLOSED');
 
     // Delivery attempt on CLOSED GRN is rejected
     await expect(
       deliveryService.createDelivery(facilityId, { grnId, bags: 1 }, USER_ID),
     ).rejects.toThrow(/is CLOSED/);
+  });
+
+  it('final delivery with outstanding balance: remaining bags reach 0 but GRN remains OPEN', async () => {
+    // 1. Partial payment of ₹2000 out of ₹5000 (leaves ₹3000 outstanding)
+    await rentService.recordPayment(
+      facilityId, { grnId, amountPaid: 2000, paymentMode: 'UPI', paymentDate: new Date() }, USER_ID,
+    );
+
+    // 2. Deliver all 100 bags (final delivery)
+    const finalDel = await deliveryService.createDelivery(facilityId, { grnId, bags: 100 }, USER_ID);
+    expect(finalDel.delivery.closingBags).toBe(0);
+    expect(finalDel.summary.remainingDeliveryBalance).toBe(0);
+    expect(finalDel.summary.physicallyStoredBags).toBe(0);
+
+    // 3. Invariant: GRN must NOT become CLOSED because ₹3000 is still outstanding!
+    expect(finalDel.summary.grnStatus).toBe('OPEN');
+    expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('OPEN');
+
+    // Outstanding balance is preserved
+    const rentSummary = await rentService.getRentSummary(facilityId, grnId);
+    expect(rentSummary.remainingBalance).toBe(3000);
+    expect(rentSummary.paymentStatus).toBe('Not Settled');
+  });
+
+  it('final payment after bags already reached zero: transitions GRN to CLOSED upon settlement', async () => {
+    // 1. Partial payment of ₹2000 out of ₹5000
+    await rentService.recordPayment(
+      facilityId, { grnId, amountPaid: 2000, paymentMode: 'UPI', paymentDate: new Date() }, USER_ID,
+    );
+
+    // 2. Deliver all 100 bags -> 0 bags remaining, but GRN is still OPEN
+    await deliveryService.createDelivery(facilityId, { grnId, bags: 100 }, USER_ID);
+    expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('OPEN');
+
+    // 3. Customer settles the remaining ₹3000 via Cash Memo
+    const paymentResult = await rentService.recordPayment(
+      facilityId,
+      { grnId, amountPaid: 3000, paymentMode: 'Cash', notes: 'Final settlement', paymentDate: new Date() },
+      USER_ID,
+    );
+
+    // Verify Cash Memo receipt was issued
+    expect(paymentResult.payment.receiptNumber).toMatch(/^RRCPT-\d{2}-\d{2}-\d{4}$/);
+    expect(paymentResult.summary.remainingBalance).toBe(0);
+    expect(paymentResult.summary.paymentStatus).toBe('Settled');
+
+    // 4. Invariant: GRN now transitions to CLOSED because bags === 0 AND balance === 0
+    expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('CLOSED');
+  });
+
+  it('payment while bags remain: balance becomes 0 but GRN remains OPEN until all physical bags are delivered', async () => {
+    // 1. Settle rent in full (₹5000) while all 100 bags are still in chamber
+    const paymentResult = await rentService.recordPayment(
+      facilityId, { grnId, amountPaid: 5000, paymentMode: 'UPI', paymentDate: new Date() }, USER_ID,
+    );
+    expect(paymentResult.summary.remainingBalance).toBe(0);
+    expect(paymentResult.summary.paymentStatus).toBe('Settled');
+    expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('OPEN');
+
+    // 2. Partial delivery of 40 bags -> 60 remaining -> GRN remains OPEN
+    const d1 = await deliveryService.createDelivery(facilityId, { grnId, bags: 40 }, USER_ID);
+    expect(d1.delivery.closingBags).toBe(60);
+    expect(d1.summary.grnStatus).toBe('OPEN');
+    expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('OPEN');
+
+    // 3. Final delivery of remaining 60 bags -> now bags === 0 AND balance === 0 -> GRN becomes CLOSED
+    const d2 = await deliveryService.createDelivery(facilityId, { grnId, bags: 60 }, USER_ID);
+    expect(d2.delivery.closingBags).toBe(0);
+    expect(d2.summary.grnStatus).toBe('CLOSED');
+    expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('CLOSED');
   });
 });
