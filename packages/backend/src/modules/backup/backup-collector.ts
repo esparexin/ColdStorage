@@ -8,7 +8,6 @@ import { DeliveryReversalModel } from '../../database/models/delivery-reversal.m
 import { FacilityModel } from '../../database/models/facility.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
-import { PutAwayAllocationModel } from '../../database/models/put-away.model.js';
 import { RentPaymentModel } from '../../database/models/rent-payment.model.js';
 import { SystemSettingsModel } from '../../database/models/system-settings.model.js';
 import { UserModel } from '../../database/models/user.model.js';
@@ -31,7 +30,6 @@ export async function collectBackupEntities(): Promise<Record<string, unknown>> 
     customers,
     commodities,
     grns,
-    putAways,
     inventoryTransactions,
     deliveryChallans,
     deliveryReversals,
@@ -46,7 +44,6 @@ export async function collectBackupEntities(): Promise<Record<string, unknown>> 
     CustomerModel.find().lean().exec(),
     CommodityModel.find().lean().exec(),
     GrnModel.find().lean().exec(),
-    PutAwayAllocationModel.find().lean().exec(),
     InventoryTransactionModel.find().lean().exec(),
     DeliveryChallanModel.find().lean().exec(),
     DeliveryReversalModel.find().lean().exec(),
@@ -63,7 +60,6 @@ export async function collectBackupEntities(): Promise<Record<string, unknown>> 
     customers,
     commodities,
     grns,
-    putAways,
     inventoryTransactions,
     deliveryChallans,
     deliveryReversals,

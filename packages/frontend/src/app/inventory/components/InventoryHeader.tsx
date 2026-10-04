@@ -8,15 +8,11 @@ import styles from '../page.module.css';
 interface InventoryHeaderProps {
   stockSummary: FacilityInventorySummary | null;
   loadingSummary: boolean;
-  activeTab: 'chambers' | 'ledger';
-  onTabChange: (tab: 'chambers' | 'ledger') => void;
 }
 
 export function InventoryHeader({
   stockSummary,
   loadingSummary,
-  activeTab,
-  onTabChange,
 }: InventoryHeaderProps) {
   return (
     <>
@@ -52,28 +48,6 @@ export function InventoryHeader({
           accent="primary"
         />
       </StatGrid>
-
-      <div className={styles.tabsBar} role="tablist" aria-label="Inventory views">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'chambers'}
-          className={`${styles.tabBtn} ${activeTab === 'chambers' ? styles.tabBtnActive : ''}`}
-          onClick={() => onTabChange('chambers')}
-        >
-          Chamber Stock Distribution
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'ledger'}
-          className={`${styles.tabBtn} ${activeTab === 'ledger' ? styles.tabBtnActive : ''}`}
-          onClick={() => onTabChange('ledger')}
-        >
-          Stock Movement Ledger
-        </button>
-      </div>
     </>
   );
 }

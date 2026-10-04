@@ -1,57 +1,37 @@
 import type mongoose from 'mongoose';
 import type {
   GrnInventorySummary,
-  PutAwayAllocation,
   PutAwayStatus,
 } from '@cold-storage/contracts';
+import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
-import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
-import { PutAwayAllocationModel } from '../../../database/models/put-away.model.js';
-import { toPutAwayEntity } from '../inventory.mappers.js';
-import { ledgerSignedQuantity } from '../ledger-polarity.js';
 
-export async function listPutAwayAllocations(
-  facilityId: string,
-  grnId: string,
-): Promise<PutAwayAllocation[]> {
-  const docs = await PutAwayAllocationModel.find({ facilityId, grnId })
-    .sort({ allocatedAt: -1 })
-    .lean()
-    .exec();
-  return docs.map((d) => toPutAwayEntity(d));
-}
-
-/** Sums inward put-away bags for a GRN. Allocation is whole-lot, so this is all-or-nothing. */
-export async function getAllocatedBags(
-  facilityId: string,
-  grnId: string,
-  session?: mongoose.ClientSession,
-): Promise<number> {
-  const agg = await InventoryTransactionModel.aggregate(
-    [
-      { $match: { facilityId, grnId, transactionType: 'INWARD_PUTAWAY' } },
-      { $group: { _id: null, bags: { $sum: '$quantity' } } },
-    ],
-    session ? { session } : {},
-  );
-  return agg[0]?.bags ?? 0;
-}
-
-/** Ledger-derived stock still on hand for a GRN after outward movement and reversals. */
+/**
+ * Available bags still on hand for a GRN after outward movement and reversals.
+ * Derived directly from authoritative GRN inward bags minus active delivery challans.
+ */
 export async function getAvailableBags(
   facilityId: string,
   grnId: string,
   session?: mongoose.ClientSession,
 ): Promise<number> {
-  const agg = await InventoryTransactionModel.aggregate(
+  const grn = await GrnModel.findOne({ id: grnId, facilityId }, { bags: 1 })
+    .session(session ?? null)
+    .lean()
+    .exec();
+  if (!grn) return 0;
+
+  const issuedAgg = await DeliveryChallanModel.aggregate(
     [
-      { $match: { facilityId, grnId } },
-      { $group: { _id: null, bags: { $sum: ledgerSignedQuantity } } },
+      { $match: { facilityId, grnId, status: 'ISSUED' } },
+      { $group: { _id: null, bags: { $sum: '$bags' } } },
     ],
     session ? { session } : {},
   );
-  return Math.max(0, agg[0]?.bags ?? 0);
+  const netDelivered = issuedAgg[0]?.bags ?? 0;
+  return Math.max(0, grn.bags - netDelivered);
 }
+
 
 export async function getGrnInventorySummary(
   facilityId: string,
@@ -62,9 +42,8 @@ export async function getGrnInventorySummary(
     throw new Error(`GRN '${grnId}' not found in facility '${facilityId}'`);
   }
 
-  const allocatedBags = await getAllocatedBags(facilityId, grnId);
-  const unallocatedBags = Math.max(0, grn.bags - allocatedBags);
-  const putAwayStatus: PutAwayStatus = unallocatedBags === 0 ? 'ALLOCATED' : 'UNALLOCATED';
+  const onHandBags = await getAvailableBags(facilityId, grnId);
+  const putAwayStatus: PutAwayStatus = 'ALLOCATED';
 
   return {
     grnId: grn.id,
@@ -72,8 +51,8 @@ export async function getGrnInventorySummary(
     grnNumber: grn.grnNumber,
     chamber: grn.chamber,
     totalBags: grn.bags,
-    allocatedBags,
-    unallocatedBags,
+    allocatedBags: onHandBags,
+    unallocatedBags: 0,
     putAwayStatus,
   };
 }

@@ -4,7 +4,6 @@ import { createApp } from '../app.js';
 import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { AuditLogModel } from '../database/models/audit-log.model.js';
 import { CounterModel } from '../database/models/counter.model.js';
-import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { SEASONAL_MONTHS } from './helpers/master-data-fixtures.js';
 import {
   cleanupMultiFacilityScenario,
@@ -178,50 +177,23 @@ describe('Phase 11: Multi-Facility End-to-End — cross-facility isolation', () 
     expect(ownListRes.body.items.map((g: { id: string }) => g.id)).not.toContain(grnIdB);
   });
 
-  it('5. Put-away is whole-lot per GRN and ledger transactions stay facility-isolated', async () => {
-    // Allocation takes no per-position item breakdown any more.
-    const legacyItemsRes = await request(app)
-      .post(`/api/facilities/${scenario.facilityA}/grns/${grnIdA}/allocations`)
-      .set('Authorization', `Bearer ${scenario.tokens.operatorA}`)
-      .send({ items: [{ positionId: 'pos-a1', bags: 100 }] });
-    expect(legacyItemsRes.status).toBe(400);
-
-    const [paA, paB] = await Promise.all([
+  it('5. GRN stock is derived from inward receipt and inventory summaries stay facility-isolated', async () => {
+    const [sumA, sumB] = await Promise.all([
       request(app)
-        .post(`/api/facilities/${scenario.facilityA}/grns/${grnIdA}/allocations`)
-        .set('Authorization', `Bearer ${scenario.tokens.operatorA}`)
-        .send({ notes: 'Full put-away Alpha' }),
+        .get(`/api/facilities/${scenario.facilityA}/grns/${grnIdA}/inventory-summary`)
+        .set('Authorization', `Bearer ${scenario.tokens.operatorA}`),
       request(app)
-        .post(`/api/facilities/${scenario.facilityB}/grns/${grnIdB}/allocations`)
-        .set('Authorization', `Bearer ${scenario.tokens.operatorB}`)
-        .send({ notes: 'Full put-away Beta' }),
+        .get(`/api/facilities/${scenario.facilityB}/grns/${grnIdB}/inventory-summary`)
+        .set('Authorization', `Bearer ${scenario.tokens.operatorB}`),
     ]);
 
-    expect(paA.status).toBe(201);
-    expect(paB.status).toBe(201);
-    expect(paA.body.putAway.bags).toBe(100);
-    expect(paB.body.putAway.bags).toBe(200);
-    expect(paA.body.putAway.chamber).toBe(CHAMBER_A);
-    expect(paB.body.summary.putAwayStatus).toBe('ALLOCATED');
-    expect(paB.body.summary.unallocatedBags).toBe(0);
-
-    const txA = await InventoryTransactionModel.find({
-      facilityId: scenario.facilityA,
-      grnId: grnIdA,
-      transactionType: 'INWARD_PUTAWAY',
-    });
-    expect(txA).toHaveLength(1);
-    expect(txA[0].quantity).toBe(100);
-    expect(txA[0].chamber).toBe(CHAMBER_A);
-
-    const txB = await InventoryTransactionModel.find({
-      facilityId: scenario.facilityB,
-      grnId: grnIdB,
-      transactionType: 'INWARD_PUTAWAY',
-    });
-    expect(txB).toHaveLength(1);
-    expect(txB[0].quantity).toBe(200);
-    expect(txB[0].chamber).toBe(CHAMBER_B);
+    expect(sumA.status).toBe(200);
+    expect(sumB.status).toBe(200);
+    expect(sumA.body.summary.chamber).toBe(CHAMBER_A);
+    expect(sumA.body.summary.allocatedBags).toBe(100);
+    expect(sumB.body.summary.chamber).toBe(CHAMBER_B);
+    expect(sumB.body.summary.allocatedBags).toBe(200);
+    expect(sumB.body.summary.putAwayStatus).toBe('ALLOCATED');
   });
 
   it('6. Cross-facility outward denial: Alpha operator cannot move Beta stock and is audited', async () => {

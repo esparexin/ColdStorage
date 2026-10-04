@@ -29,71 +29,6 @@
   color: var(--color-text-muted);
   margin-top: var(--space-1);
 }
-
-/* Tab Navigation */
-.tabsBar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: var(--space-1);
-  overflow-x: auto;
-}
-
-.tabBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-text-muted);
-  border-radius: var(--radius-md);
-  background: transparent;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
-}
-
-.tabBtn:hover {
-  color: var(--color-text-primary);
-  background: var(--color-surface-2);
-}
-
-.tabBtnActive {
-  color: var(--color-primary);
-  background: var(--color-primary-subtle);
-  font-weight: var(--font-semibold);
-}
-
-.searchGroup {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-1-5) var(--space-3);
-  min-width: 260px;
-  max-width: 400px;
-  flex: 1;
-}
-
-.searchInput {
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: var(--text-sm);
-  color: var(--color-text-primary);
-  width: 100%;
-}
-
-.filtersGroup .filterSelect {
-  width: auto;
-  min-width: 200px;
-}
-
-/* Put Away Work Area */
-
 .summaryCard {
   background: var(--color-surface-1);
   border: 1px solid var(--color-border);
@@ -110,7 +45,6 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--space-2);
 }
 
 .progressBarTrack {
@@ -126,56 +60,4 @@
   background: var(--color-primary);
   border-radius: var(--radius-full);
   transition: width 0.3s ease;
-}
-
-.fieldInput {
-  width: 100%;
-}
-
-.fieldInput {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  color: var(--color-text-primary);
-  background: var(--color-surface-1);
-  outline: none;
-}
-
-.fieldInput:disabled {
-  background: var(--color-surface-2);
-  color: var(--color-text-muted);
-}
-
-.modalBody {
-  padding: var(--space-5);
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.modalError {
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-danger-subtle);
-  color: var(--color-danger);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  border: 1px solid var(--color-danger);
-}
-
-/* Transaction Types */
-.typePutAway {
-  color: var(--color-success);
-  font-weight: var(--font-semibold);
-}
-
-.typeDelivery {
-  color: var(--color-warning);
-  font-weight: var(--font-semibold);
-}
-
-.typeReversal {
-  color: var(--color-primary);
-  font-weight: var(--font-semibold);
 }

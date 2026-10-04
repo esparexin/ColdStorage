@@ -7,13 +7,11 @@ import { DeliveryChallanModel } from '../database/models/delivery-challan.model.
 import { FacilityModel } from '../database/models/facility.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
-import { PutAwayAllocationModel } from '../database/models/put-away.model.js';
 import {
   RentPaymentRequiredError,
   assertRentAllowedForOutward,
 } from '../modules/common/rent-gate.service.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
-import { inventoryService } from '../modules/inventory/inventory.service.js';
 import { rentService } from '../modules/rent/rent.service.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 
@@ -46,7 +44,6 @@ describe('Rent gate for outward movement — rent-gate.service.test.ts', () => {
     await CustomerModel.deleteMany({});
     await GrnModel.deleteMany({});
     await CounterModel.deleteMany({});
-    await PutAwayAllocationModel.deleteMany({});
     await InventoryTransactionModel.deleteMany({});
     await DeliveryChallanModel.deleteMany({});
     // RentPayment is immutable by design, so the reset goes through the raw collection.
@@ -126,10 +123,7 @@ describe('Rent gate for outward movement — rent-gate.service.test.ts', () => {
     expect(gate.isPartial).toBe(false);
   });
 
-  it('blocks put-away and delivery until rent is paid, then completes the 100→40 flow', async () => {
-    await expect(
-      inventoryService.createPutAway(FACILITY_ID, grnId, { notes: 'Whole lot' }, USER_ID),
-    ).rejects.toBeInstanceOf(RentPaymentRequiredError);
+  it('blocks delivery until rent is paid, then completes the 100→40 flow', async () => {
     await expect(
       deliveryService.createDelivery(FACILITY_ID, { grnId, bags: 40 }, USER_ID),
     ).rejects.toBeInstanceOf(RentPaymentRequiredError);
@@ -139,16 +133,6 @@ describe('Rent gate for outward movement — rent-gate.service.test.ts', () => {
       { grnId, amountPaid: RENT_AMOUNT, paymentMode: 'Cash', paymentDate: new Date() },
       USER_ID,
     );
-
-    const putAway = await inventoryService.createPutAway(
-      FACILITY_ID,
-      grnId,
-      { notes: 'Whole lot' },
-      USER_ID,
-    );
-    expect(putAway.putAway.bags).toBe(100);
-    expect(putAway.putAway.chamber).toBe('CH-01');
-    expect(putAway.summary.putAwayStatus).toBe('ALLOCATED');
 
     const res = await deliveryService.createDelivery(FACILITY_ID, { grnId, bags: 40 }, USER_ID);
     expect(res.delivery.totalBags).toBe(40);

@@ -95,9 +95,9 @@ export function CreateDeliveryModal({
                     Bags to Deliver *
                   </label>
                   <span className={styles.fieldHint}>
-                    {form.grnSummary.allocatedBags - form.grnSummary.unallocatedBags > 0
-                      ? `${form.grnSummary.allocatedBags - form.grnSummary.unallocatedBags} bags of ${form.grnSummary.totalBags} received are in stock in chamber ${form.grnSummary.chamber}.`
-                      : 'No bags of this GRN are in stock yet.'}
+                    {form.grnSummary.allocatedBags > 0
+                      ? `${form.grnSummary.allocatedBags} bags of ${form.grnSummary.totalBags} received are in stock in chamber ${form.grnSummary.chamber}.`
+                      : 'All received bags have been delivered from this GRN.'}
                   </span>
                   <input
                     id="delivery-bags"

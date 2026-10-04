@@ -8,7 +8,6 @@ import { DeliveryReversalModel } from '../../database/models/delivery-reversal.m
 import { FacilityModel } from '../../database/models/facility.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
-import { PutAwayAllocationModel } from '../../database/models/put-away.model.js';
 
 /**
  * Clears every collection the put-away / delivery suites write to.
@@ -22,7 +21,6 @@ export async function resetStockCollections(): Promise<void> {
   await CustomerModel.deleteMany({});
   await CommodityModel.deleteMany({});
   await GrnModel.deleteMany({});
-  await PutAwayAllocationModel.deleteMany({});
   await InventoryTransactionModel.deleteMany({});
   await DeliveryChallanModel.deleteMany({});
   await DeliveryReversalModel.deleteMany({});

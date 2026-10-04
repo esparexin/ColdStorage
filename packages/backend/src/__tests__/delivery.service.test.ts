@@ -4,7 +4,6 @@ import { GrnModel } from '../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { RentPaymentRequiredError } from '../modules/common/rent-gate.service.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
-import { inventoryService } from '../modules/inventory/inventory.service.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import {
   connectToTestDatabase,
@@ -39,10 +38,8 @@ describe('P6 DeliveryService outward delivery tests', () => {
     });
   });
 
-  /** Put-away is whole-lot, so a fully allocated GRN is a single call. */
-  async function allocateWholeLot(): Promise<void> {
-    await inventoryService.createPutAway(facilityId, grnId, { notes: 'Whole lot' }, userId);
-  }
+  /** GRN is authoritative inward stock; allocation is automatic. */
+  async function allocateWholeLot(): Promise<void> {}
 
   it('delivers a single bag count and reports the derived summary', async () => {
     await allocateWholeLot();

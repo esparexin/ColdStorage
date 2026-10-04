@@ -72,13 +72,12 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
     expect(grnRes.status).toBe(201);
     grnId = grnRes.body.grn.id;
 
-    const putAwayRes = await request(app)
-      .post(`/api/facilities/${scenario.facilityA}/grns/${grnId}/allocations`)
-      .set('Authorization', `Bearer ${scenario.tokens.operatorA}`)
-      .send({ notes: 'Confirmed on hand in chamber' });
-    expect(putAwayRes.status).toBe(201);
-    expect(putAwayRes.body.summary.putAwayStatus).toBe('ALLOCATED');
-    expect(putAwayRes.body.summary.chamber).toBe(CHAMBER);
+    const invRes = await request(app)
+      .get(`/api/facilities/${scenario.facilityA}/grns/${grnId}/inventory-summary`)
+      .set('Authorization', `Bearer ${scenario.tokens.operatorA}`);
+    expect(invRes.status).toBe(200);
+    expect(invRes.body.summary.putAwayStatus).toBe('ALLOCATED');
+    expect(invRes.body.summary.chamber).toBe(CHAMBER);
 
     const partialRes = await request(app)
       .post(`/api/facilities/${scenario.facilityA}/deliveries`)
@@ -183,7 +182,6 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
     expect(superRes.body.totalCount).toBeGreaterThan(0);
     const eventTypes = superRes.body.logs.map((item: { eventType: string }) => item.eventType);
     expect(eventTypes).toContain('GRN_CREATED');
-    expect(eventTypes).toContain('INVENTORY_PUTAWAY');
     expect(eventTypes).toContain('DELIVERY_ISSUED');
     expect(eventTypes).toContain('DELIVERY_REVERSED');
 

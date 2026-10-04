@@ -117,6 +117,7 @@ describe('P7 DashboardService monthly window (IST)', () => {
   });
 
   it('reports 0 for both monthly windows when the ledger is empty', async () => {
+    await GrnModel.deleteMany({});
     const summary = await dashboardService.getSummary(facilityId);
     expect(summary.monthlyInwardBags).toBe(0);
     expect(summary.monthlyDeliveredBags).toBe(0);

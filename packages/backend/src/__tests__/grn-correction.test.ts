@@ -1,14 +1,11 @@
-import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
-import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
-import { PutAwayAllocationModel } from '../database/models/put-away.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
-import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
+import { seedChallan, seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import {
   connectToTestDatabase,
   disconnectTestDatabase,
@@ -153,69 +150,24 @@ describe('GRN Correction Workflow (PATCH /api/facilities/:facilityId/grns/:grnId
     expect(res.body.error).toContain('it is CLOSED');
   });
 
-  it('refuses to correct a receipt whose stock has already been allocated', async () => {
-    await PutAwayAllocationModel.create({
-      id: `pa-${randomUUID()}`,
+  it('refuses to correct a receipt whose stock has already been delivered', async () => {
+    await seedChallan({
       facilityId,
+      customerId,
       grnId,
       grnNumber: 'GRN-26-27-0001',
       chamber: 'CH-01',
-      bags: 200,
-      notes: null,
-      allocatedBy: 'usr-correct-admin',
-      allocatedAt: new Date(),
+      bags: 40,
+      status: 'ISSUED',
     });
 
-    const res = await correct({ bags: 180, reason: 'Re-counting after allocation' });
+    const res = await correct({ bags: 180, reason: 'Re-counting after delivery' });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toContain('stock has already been allocated or delivered');
+    expect(res.body.error).toContain('stock has already been delivered');
   });
 
-  it('refuses to correct a receipt with any non-inward inventory movement', async () => {
-    await InventoryTransactionModel.create({
-      id: `it-${randomUUID()}`,
-      facilityId,
-      grnId,
-      grnNumber: 'GRN-26-27-0001',
-      chamber: 'CH-01',
-      customerId,
-      commodityId,
-      bagType: 'S',
-      transactionType: 'OUTWARD_DELIVERY',
-      quantity: 60,
-      referenceType: 'DELIVERY',
-      referenceId: 'chl-correct-1',
-      notes: null,
-      createdBy: 'usr-correct-admin',
-      createdAt: new Date(),
-    });
-
-    const res = await correct({ chamber: 'CH-09', reason: 'Relabelling after a delivery' });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toContain('stock has already been allocated or delivered');
-  });
-
-  it('still corrects a receipt whose only movement is the original inward put-away', async () => {
-    await InventoryTransactionModel.create({
-      id: `it-${randomUUID()}`,
-      facilityId,
-      grnId,
-      grnNumber: 'GRN-26-27-0001',
-      chamber: 'CH-01',
-      customerId,
-      commodityId,
-      bagType: 'S',
-      transactionType: 'INWARD_PUTAWAY',
-      quantity: 200,
-      referenceType: 'PUT_AWAY',
-      referenceId: 'pa-correct-1',
-      notes: null,
-      createdBy: 'usr-correct-admin',
-      createdAt: new Date(),
-    });
-
+  it('still corrects an open receipt before any delivery', async () => {
     const res = await correct({ chamber: 'CH-09', reason: 'Relabelling before any outward' });
     expect(res.status).toBe(200);
 

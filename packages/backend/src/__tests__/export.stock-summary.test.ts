@@ -88,6 +88,7 @@ describe('P8 Stock Summary Export', () => {
   });
 
   it('emits only the header row when the facility holds no stock', async () => {
+    await GrnModel.deleteMany({});
     const capture = await captureCsv((res) => exportService.exportStockSummary(facilityId, res));
 
     expect(capture.rows).toEqual(['chamber,totalBags']);

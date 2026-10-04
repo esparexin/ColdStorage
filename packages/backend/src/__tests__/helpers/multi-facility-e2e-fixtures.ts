@@ -8,7 +8,6 @@ import { DeliveryReversalModel } from '../../database/models/delivery-reversal.m
 import { FacilityModel } from '../../database/models/facility.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
-import { PutAwayAllocationModel } from '../../database/models/put-away.model.js';
 import { UserModel } from '../../database/models/user.model.js';
 import { config } from '../../config.js';
 import { createAuthSeeder } from './auth-fixtures.js';
@@ -126,7 +125,6 @@ export async function cleanupMultiFacilityScenario(scenario: MultiFacilityScenar
   await CustomerModel.deleteMany({ id: { $in: [scenario.customerA, scenario.customerB] } });
   await CommodityModel.deleteMany({ id: scenario.commodityId });
   await GrnModel.deleteMany({ facilityId: { $in: facilityIds } });
-  await PutAwayAllocationModel.deleteMany({ facilityId: { $in: facilityIds } });
   await InventoryTransactionModel.deleteMany({ facilityId: { $in: facilityIds } });
   await DeliveryChallanModel.deleteMany({ facilityId: { $in: facilityIds } });
   await DeliveryReversalModel.deleteMany({ facilityId: { $in: facilityIds } });
