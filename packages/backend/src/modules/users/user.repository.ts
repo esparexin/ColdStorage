@@ -20,6 +20,16 @@ export class UserRepository {
    * Secure bootstrap helper:
    * Only seeds initial admin if explicit environment credentials are provided.
    * Never hardcodes default production credentials.
+   *
+   * Recovery contract (disaster recovery only):
+   * - Restart never overwrites an existing account; this returns the stored
+   *   record untouched (password hash, mustChangePassword, updatedAt intact).
+   * - The dangerous sequence is account deletion followed by recreation with a
+   *   stale BOOTSTRAP_ADMIN_PASSWORD. After the first successful login + forced
+   *   password change, clear BOOTSTRAP_ADMIN_PASSWORD from runtime config.
+   * - To recover a lost Super Admin, set the bootstrap vars temporarily, restart
+   *   once (account genuinely absent → recreated with mustChangePassword:true),
+   *   log in, change the password, then clear the vars again.
    */
   public async bootstrapSuperAdminFromEnv(): Promise<UserEntity | null> {
     const username = process.env.BOOTSTRAP_ADMIN_USERNAME;
@@ -31,6 +41,8 @@ export class UserRepository {
 
     const existing = await this.findByUsername(username);
     if (existing) {
+      // Idempotent: existing credential state is authoritative. Never re-hash
+      // or overwrite the stored password from the environment here.
       return existing;
     }
 

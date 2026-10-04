@@ -86,4 +86,29 @@ describe('Password-change gate is database authoritative', () => {
     expect(gated.status).toBe(403);
     expect(gated.body.mustChangePassword).toBe(true);
   });
+
+  it('restart bootstrap never overwrites an existing changed password', async () => {
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username: USERNAME, password: TEMP_PASSWORD });
+    const token = loginRes.body.token as string;
+    await request(app)
+      .post('/api/auth/change-password')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ currentPassword: TEMP_PASSWORD, newPassword: NEW_PASSWORD });
+
+    const before = await userRepository.findByUsername(USERNAME);
+    process.env.BOOTSTRAP_ADMIN_USERNAME = USERNAME;
+    process.env.BOOTSTRAP_ADMIN_PASSWORD = 'StaleBootstrapPassword999!';
+    try {
+      const second = await userRepository.bootstrapSuperAdminFromEnv();
+      expect(second?.id).toBe(before?.id);
+      const after = await userRepository.findByUsername(USERNAME);
+      expect(after?.passwordHash).toBe(before?.passwordHash);
+      expect(after?.mustChangePassword).toBe(false);
+    } finally {
+      delete process.env.BOOTSTRAP_ADMIN_USERNAME;
+      delete process.env.BOOTSTRAP_ADMIN_PASSWORD;
+    }
+  });
 });
