@@ -71,3 +71,22 @@ All verification gates passed before modifying any code:
 
 ## 4. Baseline Gate Verification
 - Commit: `chore(grn): establish storage occupancy audit baseline`
+
+---
+
+## 5. Phase 9 SSOT & Full Code Quality Verification Sign-Off
+
+### Architecture Verification: 6 Canonical SSOT Pillars
+1. **Canonical GRN Balance**: `validateStockAndBalances()` in `delivery-validation.helper.ts` derives remaining stock directly from the ledger.
+2. **Canonical Movement History**: `getGrnMovementHistory()` in `modules/common/grn-movement-history.ts` reconstructs all chronological inward/outward events.
+3. **Canonical Monthly Occupancy**: `calculateMonthlyOccupancy()` in contracts `pricing.ts` + `calculateGrnMonthlyOccupancyRent()` in backend `occupancy-rent.ts`.
+4. **Canonical Seasonal Occupancy**: `calculateSeasonalOccupancy()` in contracts `rent.ts` + `calculateGrnSeasonalOccupancyRent()` in backend `occupancy-rent.ts`.
+5. **Canonical Payment Balance**: `computeRentBalance()` in `modules/common/rent-balance.ts` governs all rent readers and mutators.
+6. **Canonical Storage Audit Report**: `generateStorageOccupancyReport()` in `modules/common/storage-audit-report.ts` derives read-only reporting purely from existing records with zero duplicate writes.
+
+### Security, Performance & Hygiene
+- **Facility Isolation & Scoping**: Verified across all routes and services via `requireFacilityScope` and `facilityId` query constraints.
+- **Strict Over-Delivery Prevention**: Verified via in-transaction write locks and `validateStockAndBalances`.
+- **Payment Integrity & Idempotency**: Verified via transaction write-lock on GRN and append-only `RentPaymentModel`.
+- **Index Coverage**: Verified all queried fields (`facilityId`, `grnId`, `date`, `receiptNumber`, `challanNumber`) have compound indexes.
+- **Line Budget**: All 29 files strictly comply with the <= 250 lines ratchet.
