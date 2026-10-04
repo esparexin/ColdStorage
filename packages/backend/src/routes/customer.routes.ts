@@ -1,7 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import {
   createCustomerSchema,
-  hasGlobalFacilityScope,
   inFacilityScope,
   updateCustomerSchema,
 } from '@cold-storage/contracts';
@@ -44,13 +43,11 @@ customerRouter.get('/', requirePermission('customer:view'), async (req: Request,
   try {
     const facilityId = typeof req.query.facilityId === 'string' ? req.query.facilityId : undefined;
     const search = typeof req.query.search === 'string' ? req.query.search : undefined;
-    // Global scope is decided by the shared tenancy helper, not an inline role comparison.
-    const isSuperAdmin = hasGlobalFacilityScope(req.user!.role);
-
+    // Tenancy scope resolves inside the service via hasGlobalFacilityScope(role).
     const customers = await customerService.listCustomers(
       facilityId,
       req.user!.facilityIds,
-      isSuperAdmin,
+      req.user!.role,
       search,
     );
     res.status(200).json({ items: customers, total: customers.length });

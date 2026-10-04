@@ -1,5 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import type { CreateFacilityInput, Facility, UpdateFacilityInput } from '@cold-storage/contracts';
+import {
+  type CreateFacilityInput,
+  type Facility,
+  hasGlobalFacilityScope,
+  type Role,
+  type UpdateFacilityInput,
+} from '@cold-storage/contracts';
 import { FacilityModel } from '../../database/models/facility.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
@@ -44,10 +50,12 @@ export class FacilityService {
    */
   public async listFacilities(
     userFacilityIds: string[],
-    isSuperAdmin = false,
+    role: Role = 'READ_ONLY',
     includeInactive = false,
   ): Promise<Facility[]> {
-    const filter: Record<string, unknown> = isSuperAdmin ? {} : { id: { $in: userFacilityIds } };
+    const filter: Record<string, unknown> = hasGlobalFacilityScope(role)
+      ? {}
+      : { id: { $in: userFacilityIds } };
     if (!includeInactive) {
       filter.isActive = true;
     }

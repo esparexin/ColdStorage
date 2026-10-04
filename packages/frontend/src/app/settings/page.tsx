@@ -19,7 +19,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
-  const isSuperAdmin = can(userRole, 'settings:manage');
+  const canManageSettings = can(userRole, 'settings:manage');
 
   const {
     settings,
@@ -59,7 +59,7 @@ export default function SettingsPage() {
   const { attemptExit, isConfirmOpen, confirmExit, cancelExit } = useUnsavedChanges(isDirty);
   const handleLeavePage = useCallback(() => router.push('/'), [router]);
 
-  if (!isSuperAdmin) {
+  if (!canManageSettings) {
     return (
       <FeedbackStates.Error
         title="Access Restricted"

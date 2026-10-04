@@ -2,7 +2,6 @@ import { Router, type Request, type Response } from 'express';
 import {
   createFacilitySchema,
   facilityQuerySchema,
-  hasGlobalFacilityScope,
   updateFacilitySchema,
 } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
@@ -36,10 +35,10 @@ facilityRouter.get('/', requirePermission('facility:view'), async (req: Request,
   try {
     const query = facilityQuerySchema.safeParse(req.query);
     const includeInactive = query.success ? (query.data.includeInactive ?? false) : false;
-    // Scope comes from the shared tenancy helper rather than an inline role comparison.
+    // Tenancy scope resolves inside the service via hasGlobalFacilityScope(role).
     const facilities = await facilityService.listFacilities(
       req.user!.facilityIds,
-      hasGlobalFacilityScope(req.user!.role),
+      req.user!.role,
       includeInactive,
     );
     res.status(200).json({ items: facilities, total: facilities.length });
