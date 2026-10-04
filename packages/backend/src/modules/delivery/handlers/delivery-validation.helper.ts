@@ -1,13 +1,18 @@
 import type mongoose from 'mongoose';
 import type { CreateDeliveryInput } from '@cold-storage/contracts';
-import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
+import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
+import { GrnModel } from '../../../database/models/grn.model.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
-import { ledgerSignedQuantity } from '../../inventory/ledger-polarity.js';
 
 /**
- * Delivery withdrawal is validated against the GRN's ledger-derived stock, not against any
- * storage position. Concurrency is serialised by the caller bumping the GRN row inside the
- * transaction (the same mechanism put-away uses), so there is nothing to lock by position.
+ * Delivery withdrawal is validated against the GRN's active delivery challans, not against any
+ * separate stock transaction ledger. Concurrency is serialised by the caller bumping the GRN row inside the
+ * transaction.
+ *
+ * Final-delivery rule: only bags on final delivery challans (those bringing the
+ * remaining balance to zero) determine the final delivered quantity for
+ * delivery/settlement. GRN opening bags, intermediate/partial delivery bags,
+ * rent months, and weight values are never treated as final delivery quantity.
  */
 export async function validateStockAndBalances(
   facilityId: string,
@@ -15,21 +20,12 @@ export async function validateStockAndBalances(
   bags: CreateDeliveryInput['bags'],
   session: mongoose.ClientSession,
 ): Promise<{ remainingDeliveryBalance: number; physicallyStored: number }> {
-  const [outwardAgg, reversalAgg] = await Promise.all([
-    InventoryTransactionModel.aggregate([
-      { $match: { grnId: grn.id, facilityId, transactionType: 'OUTWARD_DELIVERY' } },
-      { $group: { _id: null, total: { $sum: '$quantity' } } },
-    ]).session(session),
-    InventoryTransactionModel.aggregate([
-      { $match: { grnId: grn.id, facilityId, transactionType: 'DELIVERY_REVERSAL' } },
-      { $group: { _id: null, total: { $sum: '$quantity' } } },
-    ]).session(session),
-  ]);
+  const issuedAgg = await DeliveryChallanModel.aggregate([
+    { $match: { grnId: grn.id, facilityId, status: 'ISSUED' } },
+    { $group: { _id: null, total: { $sum: '$bags' } } },
+  ]).session(session);
 
-  const totalOutward = outwardAgg[0]?.total ?? 0;
-  const totalReversal = reversalAgg[0]?.total ?? 0;
-
-  const netDelivered = totalOutward - totalReversal;
+  const netDelivered = issuedAgg[0]?.total ?? 0;
   const remainingDeliveryBalance = grn.bags - netDelivered;
   const physicallyStored = remainingDeliveryBalance;
 
@@ -47,9 +43,8 @@ export function validateDeliveryDate(inputDate?: string | Date): Date {
 }
 
 /**
- * A reversal returns bags to the GRN's own stock. There is no capacity ceiling to check, so
- * the guard is simply that the reversal does not exceed the bags originally delivered on the
- * challan being reversed.
+ * A reversal returns bags to the GRN's own stock. Validated directly against the
+ * delivery challan's issued status and original bags.
  */
 export async function validateReversalBags(
   facilityId: string,
@@ -57,22 +52,12 @@ export async function validateReversalBags(
   bags: number,
   session: mongoose.ClientSession,
 ): Promise<{ remainingOnChallan: number }> {
-  const agg = await InventoryTransactionModel.aggregate([
-    { $match: { facilityId, referenceId: deliveryId, transactionType: 'OUTWARD_DELIVERY' } },
-    {
-      $group: {
-        _id: null,
-        delivered: { $sum: '$quantity' },
-        reversed: {
-          $sum: {
-            $cond: [{ $eq: ['$transactionType', 'DELIVERY_REVERSAL'] }, '$quantity', 0],
-          },
-        },
-      },
-    },
-  ]).session(session);
+  const challan = await DeliveryChallanModel.findOne({ id: deliveryId, facilityId })
+    .session(session)
+    .lean()
+    .exec();
 
-  const remainingOnChallan = (agg[0]?.delivered ?? 0) - (agg[0]?.reversed ?? 0);
+  const remainingOnChallan = challan && challan.status === 'ISSUED' ? challan.bags : 0;
 
   if (bags > remainingOnChallan) {
     throw new Error(
@@ -83,18 +68,26 @@ export async function validateReversalBags(
   return { remainingOnChallan };
 }
 
-/** Ledger-derived stock currently on hand for a GRN inside a transaction. */
+/** Stock currently on hand for a GRN inside a transaction, derived from GRN bags minus active challans. */
 export async function readAvailableBags(
   facilityId: string,
   grnId: string,
   session: mongoose.ClientSession,
 ): Promise<number> {
-  const agg = await InventoryTransactionModel.aggregate(
+  const grn = await GrnModel.findOne({ id: grnId, facilityId }, { bags: 1 })
+    .session(session)
+    .lean()
+    .exec();
+  if (!grn) return 0;
+
+  const issuedAgg = await DeliveryChallanModel.aggregate(
     [
-      { $match: { facilityId, grnId } },
-      { $group: { _id: null, bags: { $sum: ledgerSignedQuantity } } },
+      { $match: { facilityId, grnId, status: 'ISSUED' } },
+      { $group: { _id: null, bags: { $sum: '$bags' } } },
     ],
     { session },
   );
-  return Math.max(0, agg[0]?.bags ?? 0);
+
+  const netDelivered = issuedAgg[0]?.bags ?? 0;
+  return Math.max(0, grn.bags - netDelivered);
 }

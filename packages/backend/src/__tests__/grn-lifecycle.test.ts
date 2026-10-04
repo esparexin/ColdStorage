@@ -64,6 +64,7 @@ describe('GRN Lifecycle & Sequences Integration', () => {
       chamber: 'CH-NORTH-01',
       bags: 100,
       bagType: 'S',
+      smallBagWeight: 50,
       rentType: 'Seasonal',
       rentAmount: 1000,
       ...overrides,
@@ -81,8 +82,7 @@ describe('GRN Lifecycle & Sequences Integration', () => {
     const res = await postInbound(
       inbound({
         bags: 250,
-        nominalUnitWeight: 50,
-        actualWeight: 12580,
+        smallBagWeight: 50,
         rentType: 'Monthly',
         rentMonths: 4,
         rentAmount: 3750,
@@ -105,9 +105,7 @@ describe('GRN Lifecycle & Sequences Integration', () => {
     expect(grn.commodityName).toBe('Potato Jyoti');
     expect(grn.chamber).toBe('CH-NORTH-01');
     expect(grn.bags).toBe(250);
-    expect(grn.nominalTotalWeight).toBe(12500);
-    expect(grn.actualWeight).toBe(12580);
-    expect(grn.authoritativeWeight).toBe(12580);
+    expect(grn.smallBagWeight).toBe(50);
     expect(grn.rentType).toBe('Monthly');
     expect(grn.rentMonths).toBe(4);
     expect(grn.rentAmount).toBe(3750);
@@ -117,9 +115,11 @@ describe('GRN Lifecycle & Sequences Integration', () => {
     expect(acknowledgement.inwardReceiptNumber).toBe(grn.inwardReceiptNumber);
     expect(acknowledgement.customer.name).toBe('Ramesh Patel');
     expect(acknowledgement.storageLocation.chamber).toBe('CH-NORTH-01');
-    expect(acknowledgement.bagAccounting.authoritativeWeight).toBe(12580);
+    expect(acknowledgement.bagAccounting.smallBagWeight).toBe(50);
 
-    const res2 = await postInbound(inbound({ bags: 100, bagType: 'B', rentAmount: 2000 }));
+    const res2 = await postInbound(
+      inbound({ bags: 100, bagType: 'B', bigBagWeight: 80, rentAmount: 2000 }),
+    );
 
     expect(res2.status).toBe(201);
     expect(res2.body.grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-0002$/);

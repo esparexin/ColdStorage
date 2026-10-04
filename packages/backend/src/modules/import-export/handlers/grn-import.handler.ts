@@ -48,9 +48,8 @@ export async function executeGrnImport(
   const rentTypeIdx = headers.indexOf('rentType');
   const rentMonthsIdx = headers.indexOf('rentMonths');
   const rentAmountIdx = headers.indexOf('rentAmount');
-  const nominalUnitWeightIdx = headers.indexOf('nominalUnitWeight');
-  const nominalTotalWeightIdx = headers.indexOf('nominalTotalWeight');
-  const actualWeightIdx = headers.indexOf('actualWeight');
+  const smallBagWeightIdx = headers.indexOf('smallBagWeight');
+  const bigBagWeightIdx = headers.indexOf('bigBagWeight');
   const vehicleNumberIdx = headers.indexOf('vehicleNumber');
   const gpNumberIdx = headers.indexOf('gpNumber');
   const marksIdx = headers.indexOf('marks');
@@ -67,12 +66,10 @@ export async function executeGrnImport(
     rentType: cols[rentTypeIdx]?.trim() ?? '',
     rentMonthsStr: rentMonthsIdx !== -1 ? cols[rentMonthsIdx]?.trim() || undefined : undefined,
     rentAmountStr: cols[rentAmountIdx]?.trim() ?? '',
-    nominalUnitWeightStr:
-      nominalUnitWeightIdx !== -1 ? cols[nominalUnitWeightIdx]?.trim() || undefined : undefined,
-    nominalTotalWeightStr:
-      nominalTotalWeightIdx !== -1 ? cols[nominalTotalWeightIdx]?.trim() || undefined : undefined,
-    actualWeightStr:
-      actualWeightIdx !== -1 ? cols[actualWeightIdx]?.trim() || undefined : undefined,
+    smallBagWeightStr:
+      smallBagWeightIdx !== -1 ? cols[smallBagWeightIdx]?.trim() || undefined : undefined,
+    bigBagWeightStr:
+      bigBagWeightIdx !== -1 ? cols[bigBagWeightIdx]?.trim() || undefined : undefined,
     vehicleNumber:
       vehicleNumberIdx !== -1 ? cols[vehicleNumberIdx]?.trim() || undefined : undefined,
     gpNumber: gpNumberIdx !== -1 ? cols[gpNumberIdx]?.trim() || undefined : undefined,
@@ -133,9 +130,8 @@ export async function executeGrnImport(
       chamber: row.chamber,
       bags: parseInt(row.bagsStr, 10),
       bagType: bagTypeSchema.safeParse(row.bagType).data ?? row.bagType,
-      nominalUnitWeight: parseOptionalFloat(row.nominalUnitWeightStr),
-      nominalTotalWeight: parseOptionalFloat(row.nominalTotalWeightStr),
-      actualWeight: parseOptionalFloat(row.actualWeightStr),
+      smallBagWeight: parseOptionalFloat(row.smallBagWeightStr),
+      bigBagWeight: parseOptionalFloat(row.bigBagWeightStr),
       rentType: rentTypeSchema.safeParse(row.rentType).data ?? row.rentType,
       rentMonths,
       rentAmount: parseFloat(row.rentAmountStr),

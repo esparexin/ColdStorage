@@ -20,6 +20,8 @@ export interface CreateGrnState {
   createBagType: BagType;
   createSmallBags: number | '';
   createBigBags: number | '';
+  createSmallBagWeight: number | '';
+  createBigBagWeight: number | '';
   createRentType: RentType;
   createRentMonths: number | '';
   createRentAmount: number | '';
@@ -46,6 +48,18 @@ export function validateCreateGrnForm(state: CreateGrnState): {
     if (small + big <= 0) errors.bags = 'Enter at least one bag count (Small or Big) for Mixed bag type';
   } else if (typeof state.createBags !== 'number' || state.createBags <= 0) {
     errors.bags = `${state.createBagType === 'S' ? 'Small' : 'Big'} bags count must be a positive integer`;
+  }
+
+  // Per-bag weight only: S requires Small, B requires Big, S+B requires both.
+  if (state.createBagType === 'S' || state.createBagType === 'S+B') {
+    if (typeof state.createSmallBagWeight !== 'number' || state.createSmallBagWeight <= 0) {
+      errors.smallBagWeight = 'Small Bag Weight (kg per bag) is required';
+    }
+  }
+  if (state.createBagType === 'B' || state.createBagType === 'S+B') {
+    if (typeof state.createBigBagWeight !== 'number' || state.createBigBagWeight <= 0) {
+      errors.bigBagWeight = 'Big Bag Weight (kg per bag) is required';
+    }
   }
 
   if (state.createRentType === 'Monthly' && (typeof state.createRentMonths !== 'number' || state.createRentMonths < 1)) {

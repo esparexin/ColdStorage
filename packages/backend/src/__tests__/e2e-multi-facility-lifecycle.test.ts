@@ -70,6 +70,7 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
         chamber: CHAMBER,
         bags: 100,
         bagType: 'S',
+        smallBagWeight: 50,
         rentType: 'Seasonal',
         rentAmount: 0,
       });

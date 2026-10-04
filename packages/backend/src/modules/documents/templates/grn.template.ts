@@ -35,10 +35,10 @@ export function renderGrnTemplate(dto: GrnDocumentDto): string {
         <td>${escapeHtml(dto.gpNumber ?? '—')}</td>
       </tr>
       <tr>
-        <th>Nominal Unit / Total Wt</th>
-        <td>${dto.nominalUnitWeight ? `${escapeHtml(dto.nominalUnitWeight)} kg / unit` : '—'} (${dto.nominalTotalWeight ? `${escapeHtml(dto.nominalTotalWeight)} kg` : '—'})</td>
-        <th>Actual Net Weight</th>
-        <td>${dto.actualWeight ? `<strong>${escapeHtml(dto.actualWeight)} kg</strong>` : '—'}</td>
+        <th>Small Bag Weight</th>
+        <td>${dto.smallBagWeight ? `<strong>${escapeHtml(dto.smallBagWeight)} kg per bag</strong>` : '—'}</td>
+        <th>Big Bag Weight</th>
+        <td>${dto.bigBagWeight ? `<strong>${escapeHtml(dto.bigBagWeight)} kg per bag</strong>` : '—'}</td>
       </tr>
       ${dto.marks ? `<tr><th>Lot / Identification Marks</th><td colspan="3">${escapeHtml(dto.marks)}</td></tr>` : ''}
     </table>

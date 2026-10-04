@@ -2,15 +2,12 @@ import type { GrnMovementEntry, GrnMovementHistory } from '@cold-storage/contrac
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
 import { DeliveryReversalModel } from '../../database/models/delivery-reversal.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
-import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
 
 /**
- * Reconstructs the canonical movement history for a GRN from the immutable ledger.
- *
- * Source of truth:
+ * Reconstructs the canonical movement history for a GRN directly from authoritative documents:
  * - GrnModel (Inward event, initial stock)
- * - InventoryTransactionModel (OUTWARD_DELIVERY & DELIVERY_REVERSAL events)
- * - DeliveryChallanModel / DeliveryReversalModel (enriching audit fields: marks, GP, challan number)
+ * - DeliveryChallanModel (Outward delivery events)
+ * - DeliveryReversalModel (Delivery reversal events)
  */
 export async function getGrnMovementHistory(
   facilityId: string,
@@ -19,33 +16,33 @@ export async function getGrnMovementHistory(
   const grn = await GrnModel.findOne({ id: grnId, facilityId }).lean().exec();
   if (!grn) return null;
 
-  const transactions = await InventoryTransactionModel.find({
-    facilityId,
-    grnId,
-    transactionType: { $in: ['OUTWARD_DELIVERY', 'DELIVERY_REVERSAL'] },
-  })
-    .sort({ createdAt: 1, _id: 1 })
-    .lean()
-    .exec();
-
-  const deliveryIds = transactions
-    .filter((tx) => tx.referenceType === 'DELIVERY')
-    .map((tx) => tx.referenceId);
-  const reversalIds = transactions
-    .filter((tx) => tx.referenceType === 'DELIVERY_REVERSAL')
-    .map((tx) => tx.referenceId);
-
   const [challans, reversals] = await Promise.all([
-    deliveryIds.length > 0
-      ? DeliveryChallanModel.find({ id: { $in: deliveryIds }, facilityId }).lean().exec()
-      : [],
-    reversalIds.length > 0
-      ? DeliveryReversalModel.find({ id: { $in: reversalIds }, facilityId }).lean().exec()
-      : [],
+    DeliveryChallanModel.find({ grnId, facilityId }).lean().exec(),
+    DeliveryReversalModel.find({ grnId, facilityId }).lean().exec(),
   ]);
 
   const challanMap = new Map(challans.map((c) => [c.id, c]));
-  const reversalMap = new Map(reversals.map((r) => [r.id, r]));
+
+  type MovementItem =
+    | { kind: 'CHALLAN'; date: Date; createdAt: Date; challan: (typeof challans)[0] }
+    | { kind: 'REVERSAL'; date: Date; createdAt: Date; reversal: (typeof reversals)[0] };
+
+  const timeline: MovementItem[] = [
+    ...challans.map((c) => ({
+      kind: 'CHALLAN' as const,
+      date: c.date,
+      createdAt: c.createdAt,
+      challan: c,
+    })),
+    ...reversals.map((r) => ({
+      kind: 'REVERSAL' as const,
+      date: r.reversedAt,
+      createdAt: r.reversedAt,
+      reversal: r,
+    })),
+  ];
+
+  timeline.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
   const entries: GrnMovementEntry[] = [
     {
@@ -67,54 +64,55 @@ export async function getGrnMovementHistory(
   let runningBalance = grn.bags;
   let netDelivered = 0;
 
-  for (const tx of transactions) {
-    if (tx.transactionType === 'OUTWARD_DELIVERY') {
-      const challan = challanMap.get(tx.referenceId);
-      const deliveredCount = tx.quantity;
+  for (const item of timeline) {
+    if (item.kind === 'CHALLAN') {
+      const c = item.challan;
+      const deliveredCount = c.bags;
       const opening = runningBalance;
       const closing = Math.max(0, runningBalance - deliveredCount);
       runningBalance = closing;
       netDelivered += deliveredCount;
 
       entries.push({
-        date: tx.createdAt,
+        date: c.date,
         grnId: grn.id,
         grnNumber: grn.grnNumber,
         type: closing === 0 ? 'FINAL_OUTWARD' : 'PARTIAL_OUTWARD',
         openingBags: opening,
         deliveredBags: deliveredCount,
         closingBags: closing,
-        challanNumber: challan?.challanNumber ?? null,
-        deliveryId: tx.referenceId,
-        marks: challan?.marks ?? grn.marks ?? null,
-        gpNumber: challan?.gpNumber ?? grn.gpNumber ?? null,
-        vehicleNumber: challan?.vehicleNumber ?? null,
-        driverName: challan?.driverName ?? null,
-        remarks: challan?.remarks ?? tx.notes ?? null,
-        performedBy: tx.createdBy,
+        challanNumber: c.challanNumber ?? null,
+        deliveryId: c.id,
+        marks: c.marks ?? grn.marks ?? null,
+        gpNumber: c.gpNumber ?? grn.gpNumber ?? null,
+        vehicleNumber: c.vehicleNumber ?? null,
+        driverName: c.driverName ?? null,
+        remarks: c.remarks ?? null,
+        performedBy: c.issuedBy,
       });
-    } else if (tx.transactionType === 'DELIVERY_REVERSAL') {
-      const reversal = reversalMap.get(tx.referenceId);
-      const returnedCount = tx.quantity;
+    } else {
+      const r = item.reversal;
+      const originalChallan = challanMap.get(r.deliveryId);
+      const returnedCount = originalChallan?.bags ?? 0;
       const opening = runningBalance;
       const closing = runningBalance + returnedCount;
       runningBalance = closing;
       netDelivered -= returnedCount;
 
       entries.push({
-        date: tx.createdAt,
+        date: r.reversedAt,
         grnId: grn.id,
         grnNumber: grn.grnNumber,
         type: 'DELIVERY_REVERSAL',
         openingBags: opening,
         deliveredBags: returnedCount,
         closingBags: closing,
-        challanNumber: reversal?.challanNumber ?? null,
-        reversalId: tx.referenceId,
+        challanNumber: r.challanNumber ?? null,
+        reversalId: r.id,
         marks: grn.marks ?? null,
         gpNumber: grn.gpNumber ?? null,
-        remarks: reversal?.reason ?? tx.notes ?? null,
-        performedBy: tx.createdBy,
+        remarks: r.reason ?? null,
+        performedBy: r.reversedBy,
       });
     }
   }

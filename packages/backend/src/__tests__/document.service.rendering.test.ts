@@ -45,6 +45,7 @@ describe('P9 DocumentService Record Resolution & Preview Boundary Tests', () => 
       chamber: 'CH-02',
       bags: 120,
       bagType: 'B',
+      bigBagWeight: 80,
       rentType: 'Monthly',
       rentMonths: 3,
       rentAmount: 24000,
