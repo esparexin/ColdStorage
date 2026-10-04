@@ -24,12 +24,6 @@
   letter-spacing: var(--tracking-tight);
 }
 
-.pageSub {
-  font-size: var(--text-base);
-  color: var(--color-text-muted);
-  margin-top: var(--space-1);
-}
-
 .layoutGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));

@@ -90,11 +90,6 @@
   margin: 0;
 }
 
-.tableCount {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-}
-
 .filterControls {
   display: flex;
   align-items: center;

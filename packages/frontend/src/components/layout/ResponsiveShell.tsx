@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useAuth } from '@/context/AuthContext';
+import { PRODUCT_NAME } from '@/lib/branding';
 import styles from './ResponsiveShell.module.css';
 
 interface ResponsiveShellProps {
@@ -58,7 +59,7 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
       <div className={styles.loginContainer}>
         <div className={styles.loginCard}>
           <div className={styles.loginHeader}>
-            <h1 className={styles.loginTitle}>Cold Storage Management</h1>
+            <h1 className={styles.loginTitle}>{PRODUCT_NAME}</h1>
             <p className={styles.loginSubtitle}>Sign in to access your facility dashboard</p>
           </div>
 

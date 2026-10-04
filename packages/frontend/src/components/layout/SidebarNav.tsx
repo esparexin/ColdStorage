@@ -19,6 +19,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { can, type PermissionKey, type Role } from '@cold-storage/contracts';
 import { useAuth } from '@/context/AuthContext';
+import { useSettings } from '@/context/SettingsContext';
+import { ORG_NAME_FALLBACK } from '@/lib/branding';
 import styles from './SidebarNav.module.css';
 
 interface NavItem {
@@ -70,6 +72,9 @@ interface SidebarNavProps {
 export function SidebarNav({ isOpen = false, onClose }: SidebarNavProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  // Same source as the header, so the two cannot show different names.
+  const { settings } = useSettings();
+  const orgName = settings?.orgName || ORG_NAME_FALLBACK;
 
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
 
@@ -105,7 +110,7 @@ export function SidebarNav({ isOpen = false, onClose }: SidebarNavProps) {
         id="sidebar-navigation"
       >
         <div className={styles.brandArea}>
-          <span className={styles.brandTitle}>Cold Storage</span>
+          <span className={styles.brandTitle}>{orgName}</span>
           {onClose && (
             <button
               type="button"

@@ -2,16 +2,16 @@
 
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { can, type DeliveryChallan, type Role, type RentSummaryDto } from '@cold-storage/contracts';
+import { can, type DeliveryChallan, type DeliveryStatus,
+  type Role, type RentSummaryDto } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
-import { Button } from '@/components/ui';
+import { Button, FilterToolbar } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { printHtmlDocument } from '@/lib/print-document';
 import { CollectPaymentModal } from '../rent/components/CollectPaymentModal';
 import { CreateDeliveryModal } from './components/CreateDeliveryModal';
 import { DeliveryDetailModal } from './components/DeliveryDetailModal';
-import { DeliveryFilterToolbar } from './components/DeliveryFilterToolbar';
 import { DeliveryReversalModal } from './components/DeliveryReversalModal';
 import { DeliveryTable } from './components/DeliveryTable';
 import { useDeliveries } from './hooks/useDeliveries';
@@ -90,12 +90,27 @@ export default function DeliveriesPage() {
         <FeedbackStates.Empty message="Please select a facility from the top header to manage deliveries." />
       ) : (
         <>
-          <DeliveryFilterToolbar
-            searchTerm={deliveryData.searchTerm}
+          <FilterToolbar
+            searchValue={deliveryData.searchTerm}
             onSearchChange={deliveryData.setSearchTerm}
-            statusFilter={deliveryData.statusFilter}
-            onStatusChange={deliveryData.setStatusFilter}
+            searchPlaceholder="Search Challan #, GRN #, Customer, Vehicle..."
+            searchAriaLabel="Search deliveries"
+            searchInputId="delivery-search-input"
+            selects={[
+              {
+                id: 'delivery-status-filter',
+                ariaLabel: 'Filter by Delivery Status',
+                value: deliveryData.statusFilter,
+                onChange: (v) => deliveryData.setStatusFilter(v as '' | DeliveryStatus),
+                options: [
+                  { value: '', label: 'All Statuses' },
+                  { value: 'ISSUED', label: 'Issued (Active)' },
+                  { value: 'REVERSED', label: 'Reversed' },
+                ],
+              },
+            ]}
             onReset={deliveryData.resetFilters}
+            hasActiveFilters={Boolean(deliveryData.statusFilter || deliveryData.searchTerm)}
           />
 
           {deliveryData.loading ? (
