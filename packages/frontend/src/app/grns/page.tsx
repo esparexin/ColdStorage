@@ -69,7 +69,7 @@ export default function GrnsPage() {
       </div>
 
       {printError && (
-        <div className={styles.banner} role="alert">
+        <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
           <span>{printError}</span>
         </div>
       )}

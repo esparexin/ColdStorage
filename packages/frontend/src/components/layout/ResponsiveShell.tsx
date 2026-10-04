@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { AppHeader } from './AppHeader';
 import { SidebarNav } from './SidebarNav';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
@@ -28,6 +28,11 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Stable identities: SidebarNav's route-change effect depends on `onClose`, so an
+  // inline arrow would re-fire on every parent render and instantly close the drawer.
+  const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
+  const toggleMobileNav = useCallback(() => setMobileNavOpen((prev) => !prev), []);
 
   if (isLoading) {
     return <FeedbackStates.Loading fullPage label="Checking authentication…" />;
@@ -112,14 +117,11 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
 
   return (
     <div className={styles.shell}>
-      <SidebarNav
-        isOpen={mobileNavOpen}
-        onClose={() => setMobileNavOpen(false)}
-      />
+      <SidebarNav isOpen={mobileNavOpen} onClose={closeMobileNav} />
       <div className={styles.main}>
         <AppHeader
           isMobileNavOpen={mobileNavOpen}
-          onToggleMobileNav={() => setMobileNavOpen((prev) => !prev)}
+          onToggleMobileNav={toggleMobileNav}
         />
         <main className={styles.content} id="main-content">
           {children}

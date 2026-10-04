@@ -62,7 +62,7 @@ export default function DeliveriesPage() {
   return (
     <div className={styles.page}>
       {printError && (
-        <div className={styles.banner} role="alert">
+        <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
           <span>{printError}</span>
         </div>
       )}

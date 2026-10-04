@@ -113,7 +113,7 @@ export function SidebarNav({ isOpen = false, onClose }: SidebarNavProps) {
               type="button"
               className={styles.mobileCloseBtn}
               onClick={onClose}
-              aria-label="Close navigation menu"
+              aria-label="Dismiss navigation menu"
             >
               <X size={20} aria-hidden="true" />
             </button>

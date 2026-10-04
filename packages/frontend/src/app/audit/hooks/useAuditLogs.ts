@@ -5,6 +5,7 @@ import {
   hasGlobalFacilityScope,
   type AuditEventType,
   type AuditLogRecord,
+  type AuditLogsResponse,
   type AuditSeverity,
   type Role,
 } from '@cold-storage/contracts';
@@ -44,8 +45,8 @@ export function useAuditLogs(canViewAudit: boolean) {
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
 
-      const data = (await res.json()) as { items?: AuditLogRecord[] };
-      setLogs(data.items ?? []);
+      const data = (await res.json()) as AuditLogsResponse;
+      setLogs(data.logs ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load audit logs');
     } finally {

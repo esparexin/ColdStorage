@@ -47,6 +47,12 @@
   flex-wrap: wrap;
 }
 
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
 .progressBarTrack {
   height: 8px;
   background: var(--color-surface-2);
