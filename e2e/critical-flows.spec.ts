@@ -184,7 +184,7 @@ test.describe('Critical Application Flows', () => {
     await expect(page.getByRole('button', { name: /Add Facility/i })).toBeVisible();
   });
 
-  test('5. Inventory Flow: verifies inventory ledger view', async ({ page }) => {
+  test('5. Stock Overview Flow: verifies chamber and commodity stock view on dashboard', async ({ page }) => {
     const mockUser = {
       userId: 'usr-admin-001',
       username: 'superadmin',
@@ -202,9 +202,6 @@ test.describe('Critical Application Flows', () => {
       });
     });
 
-    // Mock facilities: FacilityContext no longer synthesizes placeholders
-    // on load failure, so /inventory renders an empty state with no h1/h2
-    // unless the facility list resolves.
     await page.route('**/api/facilities', async (route) => {
       await route.fulfill({
         status: 200,
@@ -218,8 +215,30 @@ test.describe('Critical Application Flows', () => {
       });
     });
 
-    await page.goto('/inventory');
-    await expect(page.locator('h1, h2')).toContainText(/Inventory|Stock/i);
+    await page.route('**/api/facilities/**/dashboard/summary', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          summary: {
+            facilityId: 'fac-alpha',
+            totalStockBags: 300,
+            chamberStock: [{ chamber: 'Chamber A', totalBags: 300 }],
+            commodityBreakdown: [{ commodityId: 'cmd-1', commodityName: 'Black Gram', totalBags: 300 }],
+            monthlyInwardBags: 300,
+            monthlyDeliveredBags: 0,
+            activeGrns: 1,
+            closedGrns: 0,
+            recentActivity: [],
+          },
+        }),
+      });
+    });
+
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: 'Operational Dashboard' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Stock by Chamber' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Commodity Stock' })).toBeVisible();
   });
 
   test('6. Mobile Navigation Flow: opens drawer on small viewport, navigates and closes on Escape', async ({

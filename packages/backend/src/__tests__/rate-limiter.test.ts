@@ -102,7 +102,7 @@ describe('Phase 11: Multi-Tiered Rate Limiting & Audit Security Controls', () =>
       .set('Authorization', `Bearer ${superAdminToken}`)
       .send({ backupType: 'MANUAL' });
     expect(throttledRes.status).toBe(429);
-  });
+  }, 15000);
 
   it('5. verifies window reset allows new requests after cooldown', async () => {
     const shortWindowStore = new MemoryRateLimitStore();

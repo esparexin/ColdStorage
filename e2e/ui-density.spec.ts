@@ -27,7 +27,7 @@ async function mockAll(page: import('@playwright/test').Page) {
   }
 }
 
-const ROUTES = ['/', '/grns', '/deliveries', '/rent', '/inventory', '/customers',
+const ROUTES = ['/', '/grns', '/deliveries', '/rent', '/customers',
   '/commodities', '/audit', '/users', '/backup', '/import-export', '/settings'];
 
 const SIZES = [

@@ -6,7 +6,6 @@ import {
   Boxes,
   Database,
   LayoutDashboard,
-  Package,
   Receipt,
   Settings,
   ShieldCheck,
@@ -40,7 +39,6 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard:view' },
       { href: '/grns', label: 'Inward GRNs', icon: Warehouse, permission: 'grn:view' },
-      { href: '/inventory', label: 'Inventory & Stock', icon: Package, permission: 'inventory:view' },
       { href: '/deliveries', label: 'Deliveries', icon: Truck, permission: 'delivery:view' },
       { href: '/rent', label: 'Rent Billing', icon: Receipt, permission: 'rent:view' },
     ],
