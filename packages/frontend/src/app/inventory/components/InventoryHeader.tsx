@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Archive, Boxes, Clock, Package, Warehouse } from 'lucide-react';
-import type { FacilityInventorySummary, Grn } from '@cold-storage/contracts';
+import { Boxes, Clock, Package, Warehouse } from 'lucide-react';
+import type { FacilityInventorySummary } from '@cold-storage/contracts';
 import { StatCard, StatGrid } from '@/components/ui';
 import styles from '../page.module.css';
 
