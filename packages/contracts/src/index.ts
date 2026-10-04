@@ -20,3 +20,4 @@ export * from './rent.js';
 export * from './pricing.js';
 export * from './health.js';
 export * from './movement.js';
+export * from './storage-audit.js';

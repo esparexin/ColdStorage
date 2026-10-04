@@ -94,3 +94,30 @@ rentRouter.get(
     }
   },
 );
+
+// 4. Storage Occupancy Audit & Reporting
+rentRouter.get(
+  '/facilities/:facilityId/rent/occupancy-report',
+  requirePermission('rent:view'),
+  requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  async (req: Request, res: Response): Promise<void> => {
+    const facilityId = getParamId(req.params.facilityId);
+    const filter = {
+      view: (req.query.view as 'monthly' | 'seasonal' | 'movement') || undefined,
+      grnId: (req.query.grnId as string) || undefined,
+      inwardDate: (req.query.inwardDate as string) || undefined,
+      outwardDate: (req.query.outwardDate as string) || undefined,
+      closingBalance:
+        req.query.closingBalance !== undefined ? Number(req.query.closingBalance) : undefined,
+      fromDate: (req.query.fromDate as string) || undefined,
+      toDate: (req.query.toDate as string) || undefined,
+    };
+
+    try {
+      const report = await rentService.getStorageOccupancyAuditReport(facilityId, filter);
+      res.status(200).json(report);
+    } catch (err: unknown) {
+      sendServiceError(res, err, 'Failed to generate storage occupancy report');
+    }
+  },
+);
