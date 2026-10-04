@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { FacilityInventorySummary, Grn } from '@cold-storage/contracts';
+import type { FacilityInventorySummary } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 
 export function useInventoryData(selectedFacilityId: string | null) {
   const [stockSummary, setStockSummary] = useState<FacilityInventorySummary | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
-  const [openGrns, setOpenGrns] = useState<Grn[]>([]);
 
   const fetchStockSummary = useCallback(async () => {
     if (!selectedFacilityId) return;
@@ -25,31 +24,13 @@ export function useInventoryData(selectedFacilityId: string | null) {
     }
   }, [selectedFacilityId]);
 
-  const fetchOpenGrns = useCallback(async () => {
-    if (!selectedFacilityId) return;
-    try {
-      const res = await requestWithAuth(
-        `/api/facilities/${encodeURIComponent(selectedFacilityId)}/grns?status=OPEN&limit=100`,
-      );
-      if (res.ok) {
-        const data = (await res.json()) as { items?: Grn[] };
-        setOpenGrns(data.items ?? []);
-      }
-    } catch {
-      // Graceful fallback
-    }
-  }, [selectedFacilityId]);
-
   useEffect(() => {
     void fetchStockSummary();
-    void fetchOpenGrns();
-  }, [fetchStockSummary, fetchOpenGrns]);
+  }, [fetchStockSummary]);
 
   return {
     stockSummary,
     loadingSummary,
-    openGrns,
     fetchStockSummary,
-    fetchOpenGrns,
   };
 }

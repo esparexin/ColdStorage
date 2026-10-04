@@ -13,7 +13,7 @@ export const inventoryRouter = Router();
 inventoryRouter.use(authenticate);
 inventoryRouter.use(requirePasswordChanged);
 
-// 3. Get derived GRN inventory allocation summary
+// 1. Get derived GRN inventory summary
 inventoryRouter.get(
   '/facilities/:facilityId/grns/:grnId/inventory-summary',
   requirePermission('inventory:view'),
@@ -37,8 +37,7 @@ inventoryRouter.get(
   },
 );
 
-
-// 4. Get facility inventory stock summary
+// 2. Get facility inventory stock summary
 inventoryRouter.get(
   '/facilities/:facilityId/inventory',
   requirePermission('inventory:view'),
@@ -54,7 +53,7 @@ inventoryRouter.get(
   },
 );
 
-// 6. Query filtered, paginated immutable stock ledger
+// 3. Query filtered, paginated stock ledger
 inventoryRouter.get(
   '/facilities/:facilityId/inventory/ledger',
   requirePermission('inventory:view'),

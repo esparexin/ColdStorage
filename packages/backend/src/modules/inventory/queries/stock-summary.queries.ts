@@ -32,17 +32,6 @@ export async function getAvailableBags(
   return Math.max(0, grn.bags - netDelivered);
 }
 
-/**
- * Chamber-allocated bags on hand for a GRN.
- * Inward GRN receipt is the authoritative record confirming chamber storage.
- */
-export async function getAllocatedBags(
-  facilityId: string,
-  grnId: string,
-  session?: mongoose.ClientSession,
-): Promise<number> {
-  return getAvailableBags(facilityId, grnId, session);
-}
 
 export async function getGrnInventorySummary(
   facilityId: string,
