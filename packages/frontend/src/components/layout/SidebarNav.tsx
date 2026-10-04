@@ -107,7 +107,7 @@ export function SidebarNav({ isOpen = false, onClose }: SidebarNavProps) {
         id="sidebar-navigation"
       >
         <div className={styles.brandArea}>
-          <span className={styles.brandTitle}>❄ Cold Storage</span>
+          <span className={styles.brandTitle}>Cold Storage</span>
           {onClose && (
             <button
               type="button"
@@ -139,7 +139,7 @@ export function SidebarNav({ isOpen = false, onClose }: SidebarNavProps) {
                       className={`${styles.navItem} ${isActive ? styles.active : ''}`}
                       aria-current={isActive ? 'page' : undefined}
                     >
-                      <Icon size={18} aria-hidden="true" />
+                      <Icon size={16} aria-hidden="true" />
                       <span>{label}</span>
                     </Link>
                   </li>

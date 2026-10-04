@@ -53,7 +53,6 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
         <div className={styles.loginCard}>
           <div className={styles.loginHeader}>
             <h1 className={styles.loginTitle}>Cold Storage Management</h1>
-            <p className={styles.loginSubtitle}>Sign in to access your facility dashboard</p>
           </div>
 
           {error && (

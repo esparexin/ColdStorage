@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-6);
+  padding: 0 var(--space-4);
   z-index: 100;
   box-shadow: var(--shadow-sm);
 }
@@ -17,25 +17,25 @@
 .left {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .orgLogo {
-  height: 34px;
-  max-width: 140px;
+  height: 28px;
+  max-width: 120px;
   object-fit: contain;
   border-radius: var(--radius-sm);
 }
 
 .orgName {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
   letter-spacing: -0.01em;
 }
 
 .logo {
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   font-weight: var(--font-semibold);
   color: var(--color-primary);
   letter-spacing: -0.02em;
@@ -44,7 +44,7 @@
 .right {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .facilitySelector {
@@ -55,12 +55,12 @@
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-1) var(--space-2);
 }
 
 .facilitySelector .facilitySelect {
   width: auto;
-  min-width: 170px;
+  min-width: 150px;
   background: transparent;
   border: none;
   font-size: var(--text-sm);
@@ -76,8 +76,8 @@
 }
 
 .avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius-full);
   background: var(--color-primary);
   color: var(--color-text-on-accent);
@@ -127,10 +127,10 @@
   display: none;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
   background: transparent;

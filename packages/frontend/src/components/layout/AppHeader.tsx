@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Building2, LogOut, Menu } from 'lucide-react';
+import { LogOut, Menu } from 'lucide-react';
 import { Select } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
@@ -51,7 +51,7 @@ export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHea
             <span className={styles.orgName}>{orgName}</span>
           </div>
         ) : (
-          <span className={styles.logo}>❄ {orgName}</span>
+          <span className={styles.logo}>{orgName}</span>
         )}
       </div>
 
@@ -59,7 +59,6 @@ export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHea
         {/* Facility selector — UI state only; not authorization */}
         {facilities.length > 1 && (
           <div className={styles.facilitySelector}>
-            <Building2 size={16} aria-hidden="true" />
             <Select
               id="facility-selector"
               className={styles.facilitySelect}

@@ -13,7 +13,7 @@
 
 .content {
   margin-top: var(--header-height);
-  padding: var(--space-8);
+  padding: var(--space-5);
   flex: 1;
 }
 
@@ -22,7 +22,7 @@
     margin-left: 0;
   }
   .content {
-    padding: var(--space-4);
+    padding: var(--space-3);
   }
 }
 
@@ -41,29 +41,24 @@
 
 .loginCard {
   width: 100%;
-  max-width: 400px;
+  max-width: 380px;
   background: var(--color-surface-1);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
-  padding: var(--space-8);
+  padding: var(--space-6);
 }
 
 .loginHeader {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
   text-align: center;
 }
 
 .loginTitle {
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-bold);
   color: var(--color-text-primary);
   margin-bottom: var(--space-1);
-}
-
-.loginSubtitle {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
 }
 
 .loginError {
@@ -71,15 +66,15 @@
   color: var(--color-danger);
   border: 1px solid var(--color-danger);
   border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   font-size: var(--text-sm);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 .loginForm {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .fieldGroup {
@@ -96,8 +91,9 @@
 
 .fieldInput {
   width: 100%;
+  min-height: 32px;
   padding: var(--space-2) var(--space-3);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface-1);
@@ -116,6 +112,3 @@
   color: var(--color-text-muted);
   cursor: not-allowed;
 }
-
-
-
