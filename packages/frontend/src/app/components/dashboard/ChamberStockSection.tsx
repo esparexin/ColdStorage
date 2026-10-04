@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Warehouse } from 'lucide-react';
 import type { ChamberStock } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import styles from '@/app/page.module.css';
@@ -27,10 +26,7 @@ export function ChamberStockSection({ items }: { items: ChamberStock[] }) {
 
   return (
     <section className={styles.section} aria-label="Stock by chamber">
-      <h2 className={styles.sectionTitle}>
-        <Warehouse size={18} aria-hidden="true" />
-        Stock by Chamber
-      </h2>
+      <h2 className={styles.sectionTitle}>Stock by Chamber</h2>
       <DataTable
         columns={columns}
         rows={items}

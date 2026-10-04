@@ -50,7 +50,6 @@ export default function CustomersPage() {
       <div className={styles.headerRow}>
         <div>
           <h1 className={styles.pageTitle}>Customers</h1>
-          <p className={styles.pageSub}>Directory of registered farmers, traders, and institutional clients</p>
         </div>
         {canManage && (
           <Button

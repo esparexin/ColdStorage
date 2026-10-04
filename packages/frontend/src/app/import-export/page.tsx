@@ -12,7 +12,7 @@ import styles from './page.module.css';
 
 export default function ImportExportPage() {
   const { user } = useAuth();
-  const { selectedFacilityId, availableFacilities } = useFacility();
+  const { selectedFacilityId } = useFacility();
 
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const canImport = can(userRole, 'import:execute');
@@ -32,17 +32,11 @@ export default function ImportExportPage() {
     handleExportDownload,
   } = useImportExport(selectedFacilityId);
 
-  const currentFacilityName =
-    availableFacilities.find((f) => f.id === selectedFacilityId)?.name ?? selectedFacilityId;
-
   return (
     <div className={styles.page}>
       <div className={styles.headerRow}>
         <div className={styles.titleArea}>
           <h1 className={styles.pageTitle}>Bulk Import & Export</h1>
-          <p className={styles.pageSub}>
-            Standardized CSV data ingestion and certified exports for {currentFacilityName}.
-          </p>
         </div>
       </div>
 

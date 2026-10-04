@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { ShieldCheck } from 'lucide-react';
 import type { BackupStatusResponse } from '@cold-storage/contracts';
 import { Badge, StatCard, StatGrid } from '@/components/ui';
 import { formatDate } from '../utils';
@@ -43,24 +42,19 @@ export function BackupStatusCards({ backupStatus }: BackupStatusCardsProps) {
           label="Encryption"
           value="AES-256-GCM"
           sub="SHA-256 checksum recorded per archive"
-          icon={ShieldCheck}
-          iconSize={18}
         />
         <StatCard
           label="Retention recorded"
           value={archive?.retentionDays ?? '—'}
           sub="Days, stored as the archive expiry date"
-          iconSize={18}
         />
         <StatCard
           label="Last completed run"
           value={formatDate(archive?.lastBackupAt)}
-          iconSize={18}
         />
         <StatCard
           label="Completed backups"
           value={archive?.totalCompletedBackups ?? 0}
-          iconSize={18}
         />
       </StatGrid>
 

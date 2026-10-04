@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Activity } from 'lucide-react';
 import type { RecentActivityItem } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
@@ -61,10 +60,7 @@ export function RecentActivitySection({ items }: { items: RecentActivityItem[] }
 
   return (
     <section className={styles.section} aria-label="Recent activity">
-      <h2 className={styles.sectionTitle}>
-        <Activity size={18} aria-hidden="true" />
-        Recent Activity
-      </h2>
+      <h2 className={styles.sectionTitle}>Recent Activity</h2>
       {items.length === 0 ? (
         <FeedbackStates.Empty message="No recent activity." />
       ) : (

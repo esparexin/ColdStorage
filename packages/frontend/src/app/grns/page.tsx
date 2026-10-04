@@ -52,9 +52,6 @@ export default function GrnsPage() {
       <div className={styles.headerRow}>
         <div className={styles.titleArea}>
           <h1 className={styles.pageTitle}>Goods Receipt Notes (GRN)</h1>
-          <p className={styles.pageSub}>
-            Inward stock recording, weight accounting, storage allocation & official documentation.
-          </p>
         </div>
 
         <div className={styles.headerActions}>

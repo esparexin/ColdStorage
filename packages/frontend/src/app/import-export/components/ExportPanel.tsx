@@ -23,7 +23,6 @@ export function ExportPanel({
   return (
     <div className={styles.sectionCard}>
       <div className={styles.sectionHeader}>
-        <Download size={18} color="var(--color-primary)" aria-hidden="true" />
         <h2 className={styles.sectionTitle}>Certified CSV Exports</h2>
       </div>
 

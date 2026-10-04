@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Boxes, Warehouse } from 'lucide-react';
 import type { FacilityInventorySummary } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import styles from '../page.module.css';
@@ -35,29 +34,24 @@ export function ChamberStockTab({
 
   return (
     <div className={styles.tabContent}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 'var(--space-5)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--space-4)' }}>
         {/* Chamber Distribution Card */}
         <div className={styles.summaryCard}>
           <div className={styles.summaryHeader}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <Warehouse size={18} color="var(--color-primary)" aria-hidden="true" />
-              <h2 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>
-                Stock by Chamber
-              </h2>
-            </div>
+            <h2 style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Stock by Chamber</h2>
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
               {byChamber.length} {byChamber.length === 1 ? 'Chamber' : 'Chambers'}
             </span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginTop: 'var(--space-3)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
             {byChamber.map((item) => {
               const pct = totalBags > 0 ? Math.round((item.totalBags / totalBags) * 100) : 0;
               return (
                 <div
                   key={item.chamber}
                   style={{
-                    padding: 'var(--space-3)',
+                    padding: 'var(--space-2)',
                     background: 'var(--color-surface-2)',
                     borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--color-border)',
@@ -89,12 +83,7 @@ export function ChamberStockTab({
         {/* Commodity Distribution Card */}
         <div className={styles.summaryCard}>
           <div className={styles.summaryHeader}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <Boxes size={18} color="var(--color-primary)" aria-hidden="true" />
-              <h2 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>
-                Stock by Commodity
-              </h2>
-            </div>
+            <h2 style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Stock by Commodity</h2>
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
               {byCommodity.length} {byCommodity.length === 1 ? 'Commodity' : 'Commodities'}
             </span>

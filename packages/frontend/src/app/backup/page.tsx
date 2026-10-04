@@ -60,9 +60,6 @@ export default function BackupPage() {
       <header className={styles.header}>
         <div className={styles.titleArea}>
           <h1>Database Backups</h1>
-          <p className={styles.subtitle}>
-            AES-256-GCM encrypted on-demand backups and their run history.
-          </p>
         </div>
         <div className={styles.headerActions}>
           <Button

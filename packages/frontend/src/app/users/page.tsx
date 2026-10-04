@@ -92,10 +92,6 @@ export default function UsersPage() {
       <header className={styles.header}>
         <div className={styles.titleArea}>
           <h1>User Management & Access Control</h1>
-          <p className={styles.subtitle}>
-            Provision authorized personnel, enforce role-based access control, and manage facility
-            assignments.
-          </p>
         </div>
         <div className={styles.headerActions}>
           <Button

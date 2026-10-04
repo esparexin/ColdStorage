@@ -26,7 +26,6 @@ export default function AuditLogsPage() {
     eventTypeFilter,
     setEventTypeFilter,
     filteredLogs,
-    currentFacilityName,
     fetchLogs,
   } = useAuditLogs(canViewAudit);
 
@@ -46,9 +45,6 @@ export default function AuditLogsPage() {
       <div className={styles.headerRow}>
         <div className={styles.titleArea}>
           <h1 className={styles.pageTitle}>Immutable Audit Logs</h1>
-          <p className={styles.pageSub}>
-            Security events, sensitive transactions, and access logs for {currentFacilityName}.
-          </p>
         </div>
       </div>
 

@@ -61,6 +61,11 @@
   margin-bottom: var(--space-1);
 }
 
+.loginSubtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
 .loginError {
   background-color: var(--color-danger-subtle);
   color: var(--color-danger);
