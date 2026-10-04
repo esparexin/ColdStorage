@@ -77,9 +77,6 @@ export default function SettingsPage() {
       <div className={styles.headerRow}>
         <div className={styles.titleArea}>
           <h1 className={styles.pageTitle}>System Settings</h1>
-          <p className={styles.pageSub}>
-            Organization metadata, brand asset management, document templates & backup policies.
-          </p>
         </div>
 
         <div>

@@ -78,8 +78,8 @@ export default function UsersPage() {
           <ShieldAlert size={20} color="var(--color-danger)" aria-hidden="true" />
           <div>
             <p className={styles.unauthorizedTitle}>Restricted Access</p>
-            <p className={styles.subtitle}>
-              User administration requires the &lsquo;user:manage&rsquo; permission.
+            <p className={styles.unauthorizedHint}>
+              Requires the &lsquo;user:manage&rsquo; permission.
             </p>
           </div>
         </div>
@@ -92,10 +92,6 @@ export default function UsersPage() {
       <header className={styles.header}>
         <div className={styles.titleArea}>
           <h1>User Management & Access Control</h1>
-          <p className={styles.subtitle}>
-            Provision authorized personnel, enforce role-based access control, and manage facility
-            assignments.
-          </p>
         </div>
         <div className={styles.headerActions}>
           <Button

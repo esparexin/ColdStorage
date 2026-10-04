@@ -72,7 +72,7 @@ export function CommodityFormModal({ onClose, onSuccess }: CommodityFormModalPro
             maxLength={100}
             value={formName}
             onChange={(e) => setFormName(e.target.value)}
-            placeholder="e.g. Potato (Kufri Jyoti), Apples, Garlic"
+            placeholder="e.g. Potato, Apples"
             disabled={submitting}
           />
 

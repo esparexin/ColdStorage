@@ -23,7 +23,7 @@ function Loading({ label = 'Loading…', fullPage = false }: LoadingProps) {
       aria-live="polite"
       aria-label={label}
     >
-      <Loader2 className={styles.spinner} size={32} aria-hidden="true" />
+      <Loader2 className={styles.spinner} size={20} aria-hidden="true" />
       <span className={styles.label}>{label}</span>
     </div>
   );
@@ -42,8 +42,8 @@ interface ErrorProps {
 function ErrorState({ title = 'Something went wrong', message, onRetry }: ErrorProps) {
   return (
     <div className={`${styles.feedbackWrapper} ${styles.error}`} role="alert">
-      <AlertCircle size={32} className={styles.errorIcon} aria-hidden="true" />
-      <h3 className={styles.title}>{title}</h3>
+      <AlertCircle size={20} className={styles.errorIcon} aria-hidden="true" />
+      {title && <h3 className={styles.title}>{title}</h3>}
       <p className={styles.message}>{message}</p>
       {onRetry && (
         <button id="retry-button" className={styles.retryBtn} onClick={onRetry}>

@@ -41,7 +41,6 @@ export default function CommoditiesPage() {
       <div className={styles.headerRow}>
         <div>
           <h1 className={styles.pageTitle}>Commodities</h1>
-          <p className={styles.pageSub}>Master catalog of acceptable agricultural and perishable goods</p>
         </div>
         {canManage && (
           <Button

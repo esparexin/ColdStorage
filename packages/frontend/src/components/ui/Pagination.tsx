@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './Button';
 import styles from './Pagination.module.css';
 
@@ -35,7 +34,6 @@ export function Pagination({
           size="sm"
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page <= 1}
-          leftIcon={<ChevronLeft size={14} aria-hidden="true" />}
           aria-label="Previous page"
         >
           Previous
@@ -45,7 +43,6 @@ export function Pagination({
           size="sm"
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
-          rightIcon={<ChevronRight size={14} aria-hidden="true" />}
           aria-label="Next page"
         >
           Next

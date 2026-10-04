@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Filter } from 'lucide-react';
 import { Button } from './Button';
 import { SearchBar } from './SearchBar';
 import styles from './FilterToolbar.module.css';
@@ -55,7 +54,6 @@ export function FilterToolbar({
               variant="secondary"
               size="sm"
               onClick={onReset}
-              leftIcon={<Filter size={12} aria-hidden="true" />}
             >
               Reset
             </Button>

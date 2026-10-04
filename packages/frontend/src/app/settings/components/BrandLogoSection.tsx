@@ -100,8 +100,7 @@ export function BrandLogoSection({
           )}
 
           <span className={styles.logoHint}>
-            PNG, JPEG, or WebP up to 1 MB. Dynamically embedded into official print templates and
-            navigation header.
+            PNG, JPEG or WebP, up to 1 MB.
           </span>
         </div>
       </div>

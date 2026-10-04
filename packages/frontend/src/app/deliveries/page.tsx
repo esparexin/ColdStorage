@@ -70,10 +70,6 @@ export default function DeliveriesPage() {
       <div className={styles.headerRow}>
         <div className={styles.titleArea}>
           <h1 className={styles.pageTitle}>Outward Deliveries</h1>
-          <p className={styles.pageSub}>
-            Delivery Challan issuance, position-level bag withdrawals, and gate pass management for{' '}
-            {deliveryData.currentFacilityName}.
-          </p>
         </div>
 
         <div className={styles.headerActions}>

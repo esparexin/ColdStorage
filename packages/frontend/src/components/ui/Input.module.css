@@ -31,6 +31,7 @@
 
 .input {
   width: 100%;
+  min-height: 32px;
   padding: var(--space-2) var(--space-3);
   font-size: var(--text-sm);
   font-family: inherit;

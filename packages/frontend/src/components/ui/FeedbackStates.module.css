@@ -3,8 +3,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4);
-  padding: var(--space-10);
+  gap: var(--space-3);
+  padding: var(--space-6);
   text-align: center;
   color: var(--color-text-secondary);
 }
@@ -39,7 +39,7 @@
 }
 
 .title {
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
 }
@@ -51,8 +51,8 @@
 }
 
 .retryBtn {
-  margin-top: var(--space-2);
-  padding: var(--space-2) var(--space-5);
+  margin-top: var(--space-1);
+  padding: var(--space-2) var(--space-4);
   background: var(--color-primary);
   color: var(--color-text-on-accent);
   border-radius: var(--radius-md);

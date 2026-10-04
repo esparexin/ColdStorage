@@ -112,9 +112,8 @@ export function Modal({
             onClick={onClose}
             className={styles.closeButton}
             aria-label="Close dialog"
-            title="Close dialog"
           >
-            <X size={18} aria-hidden="true" />
+            <X size={16} aria-hidden="true" />
           </button>
         </div>
 

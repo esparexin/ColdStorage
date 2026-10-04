@@ -21,7 +21,7 @@ export function StatCard({
   value,
   sub,
   icon: Icon,
-  iconSize = 24,
+  iconSize = 20,
   accent = 'primary',
   accentValue = false,
 }: StatCardProps) {
@@ -51,7 +51,7 @@ export interface StatGridProps {
   minTileWidth?: number;
 }
 
-export function StatGrid({ label, children, minTileWidth = 200 }: StatGridProps) {
+export function StatGrid({ label, children, minTileWidth = 180 }: StatGridProps) {
   return (
     <section
       className={styles.statGrid}

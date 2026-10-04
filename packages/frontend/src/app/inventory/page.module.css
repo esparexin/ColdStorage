@@ -1,7 +1,7 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-4);
 }
 
 .headerRow {
@@ -18,7 +18,7 @@
 }
 
 .pageTitle {
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-bold);
   color: var(--color-text-primary);
   letter-spacing: -0.02em;
@@ -29,22 +29,15 @@
   color: var(--color-text-muted);
   margin-top: var(--space-1);
 }
-
-.tabContent {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
-
 .summaryCard {
   background: var(--color-surface-1);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .summaryHeader {
@@ -52,7 +45,6 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--space-3);
 }
 
 .progressBarTrack {
