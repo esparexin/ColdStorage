@@ -133,6 +133,16 @@ export function GrnDetailModal({
             </div>
 
             <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Storage Mark</span>
+              <span className={styles.detailValue}>{grn.storageMark || 'None'}</span>
+            </div>
+
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Party Mark</span>
+              <span className={styles.detailValue}>{grn.partyMark || 'None'}</span>
+            </div>
+
+            <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Vehicle Registration</span>
               <span className={styles.detailValue}>
                 {grn.vehicleNumber || 'None'}

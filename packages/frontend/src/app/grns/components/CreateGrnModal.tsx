@@ -5,6 +5,7 @@ import type { BagType, Commodity, Customer, Grn, RentType } from '@cold-storage/
 import { Button, ConfirmDialog, Input, Modal, Select } from '@/components/ui';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { BagAccountingSection } from './BagAccountingSection';
+import { TransportLogisticsSection } from './TransportLogisticsSection';
 import { useCustomerCombobox } from '../hooks/useCustomerCombobox';
 import { parseNumericInput, useCreateGrnForm } from '../hooks/useCreateGrnForm';
 import { CustomerFormModal } from '../../customers/components/CustomerFormModal';
@@ -107,17 +108,9 @@ export function CreateGrnModal({
         </div>
         <div className={styles.formGrid2}>
           <div className={styles.fieldGroup}>
-            <Input
-              id="create-chamber"
-              label="Chamber"
-              type="text"
-              required
-              maxLength={20}
-              value={form.createChamber}
-              onChange={(e) => form.setCreateChamber(e.target.value)}
-              error={form.fieldErrors.chamber}
-              placeholder="e.g. A or CH-01"
-            />
+            <Input id="create-chamber" label="Chamber" type="text" required maxLength={20}
+              value={form.createChamber} onChange={(e) => form.setCreateChamber(e.target.value)}
+              error={form.fieldErrors.chamber} placeholder="e.g. A or CH-01" />
           </div>
           <div className={styles.fieldGroup}>
             <Select id="create-bag-type" label="Bag Type" required value={form.createBagType} onChange={(e) => form.handleBagTypeChange(e.target.value as BagType)}>
@@ -215,22 +208,21 @@ export function CreateGrnModal({
             {form.fieldErrors.rentAmount && <span className={styles.fieldErrorText}>{form.fieldErrors.rentAmount}</span>}
           </div>
         </div>
-        <h3 className={styles.sectionHeading}>Transport & Logistics</h3>
-        <div className={styles.formGrid2}>
-          <div className={styles.fieldGroup}>
-            <label htmlFor="create-gp" className={styles.fieldLabel}>Gate Pass (GP) #</label>
-            <input id="create-gp" type="text" maxLength={40} value={form.createGpNumber} onChange={(e) => form.setCreateGpNumber(e.target.value)} placeholder="e.g. GP-2026-09" className={styles.fieldInput} />
-          </div>
-          <div className={styles.fieldGroup}>
-            <label htmlFor="create-vehicle" className={styles.fieldLabel}>Vehicle Registration</label>
-            <input id="create-vehicle" type="text" maxLength={15} value={form.createVehicleNumber} onChange={(e) => form.setCreateVehicleNumber(e.target.value.toUpperCase())} placeholder="e.g. UP32AA1111" className={`${styles.fieldInput} ${form.fieldErrors.vehicleNumber ? styles.inputError : ''}`} aria-invalid={Boolean(form.fieldErrors.vehicleNumber)} />
-            {form.fieldErrors.vehicleNumber && <span className={styles.fieldErrorText}>{form.fieldErrors.vehicleNumber}</span>}
-          </div>
-        </div>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="create-remarks" className={styles.fieldLabel}>Remarks / Notes</label>
-          <textarea id="create-remarks" rows={2} maxLength={500} value={form.createRemarks} onChange={(e) => form.setCreateRemarks(e.target.value)} placeholder="Optional inward inspection notes or quality observations" className={styles.fieldInput} />
-        </div>
+        <TransportLogisticsSection
+          gpNumber={form.createGpNumber}
+          onGpNumberChange={form.setCreateGpNumber}
+          vehicleNumber={form.createVehicleNumber}
+          onVehicleNumberChange={form.setCreateVehicleNumber}
+          vehicleError={form.fieldErrors.vehicleNumber}
+          storageMark={form.createStorageMark}
+          onStorageMarkChange={form.setCreateStorageMark}
+          storageMarkError={form.fieldErrors.storageMark}
+          partyMark={form.createPartyMark}
+          onPartyMarkChange={form.setCreatePartyMark}
+          partyMarkError={form.fieldErrors.partyMark}
+          remarks={form.createRemarks}
+          onRemarksChange={form.setCreateRemarks}
+        />
       </form>
     </Modal>
     <ConfirmDialog

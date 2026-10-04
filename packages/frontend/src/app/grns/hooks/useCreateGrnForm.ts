@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { calculateRentAmount, SEASONAL_RENT_MONTHS } from '@cold-storage/contracts';
 import type { BagType, Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
-import { parseNumericInput, validateCreateGrnForm } from './createGrnForm.helper';
+import { buildCreateGrnPayload, parseNumericInput, validateCreateGrnForm } from './createGrnForm.helper';
 
 export { parseNumericInput };
 
@@ -29,6 +29,8 @@ export function useCreateGrnForm(
   const [createBigBagPrice, setCreateBigBagPrice] = useState<number | ''>('');
   const [createRentAmount, setCreateRentAmount] = useState<number | ''>('');
   const [createGpNumber, setCreateGpNumber] = useState('');
+  const [createStorageMark, setCreateStorageMark] = useState('');
+  const [createPartyMark, setCreatePartyMark] = useState('');
   const [createVehicleNumber, setCreateVehicleNumber] = useState('');
   const [createRemarks, setCreateRemarks] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
@@ -143,7 +145,7 @@ export function useCreateGrnForm(
       createCustomerId, createCommodityId, createChamber, createBags, createBagType,
       createSmallBags, createBigBags, createSmallBagWeight, createBigBagWeight,
       createRentType, createRentMonths, createRentAmount,
-      createVehicleNumber,
+      createStorageMark, createPartyMark, createVehicleNumber,
     });
 
     if (Object.keys(errors).length > 0) {
@@ -151,6 +153,7 @@ export function useCreateGrnForm(
       const firstKey = Object.keys(errors)[0];
       const fieldIdMap: Record<string, string> = {
         customer: 'create-customer-search', commodity: 'create-commodity', chamber: 'create-chamber',
+        storageMark: 'create-storage-mark', partyMark: 'create-party-mark',
         bags: createBagType === 'S+B' ? 'create-small-bags' : 'create-bags',
         smallBagWeight:
           createBagType === 'S+B'
@@ -173,22 +176,16 @@ export function useCreateGrnForm(
     try {
       const todayStr = new Date().toISOString().split('T')[0];
       const inwardDate = createDate === todayStr ? new Date() : new Date(`${createDate}T00:00:00`);
-      const payload: Record<string, unknown> = {
-        facilityId, date: inwardDate, customerId: createCustomerId, commodityId: createCommodityId,
-        chamber: parsedChamber, bags: createBags, bagType: createBagType,
-        rentType: createRentType, rentAmount: createRentAmount,
-      };
-      if (typeof createBagPrice === 'number' && createBagPrice > 0) payload.bagPrice = createBagPrice;
-      if (typeof createSmallBagPrice === 'number' && createSmallBagPrice > 0) payload.smallBagPrice = createSmallBagPrice;
-      if (typeof createBigBagPrice === 'number' && createBigBagPrice > 0) payload.bigBagPrice = createBigBagPrice;
-      if (typeof createSmallBags === 'number' && createSmallBags > 0) payload.smallBags = createSmallBags;
-      if (typeof createBigBags === 'number' && createBigBags > 0) payload.bigBags = createBigBags;
-      if (createRentType === 'Monthly' && typeof createRentMonths === 'number') payload.rentMonths = createRentMonths;
-      if (typeof createSmallBagWeight === 'number' && createSmallBagWeight > 0) payload.smallBagWeight = createSmallBagWeight;
-      if (typeof createBigBagWeight === 'number' && createBigBagWeight > 0) payload.bigBagWeight = createBigBagWeight;
-      if (createGpNumber.trim()) payload.gpNumber = createGpNumber.trim();
-      if (normalizedVehicle) payload.vehicleNumber = normalizedVehicle;
-      if (createRemarks.trim()) payload.remarks = createRemarks.trim();
+      const payload = buildCreateGrnPayload({
+        facilityId, inwardDate, customerId: createCustomerId, commodityId: createCommodityId,
+        chamber: parsedChamber ?? createChamber, bags: Number(createBags), bagType: createBagType,
+        rentType: createRentType, rentAmount: Number(createRentAmount),
+        bagPrice: createBagPrice, smallBagPrice: createSmallBagPrice, bigBagPrice: createBigBagPrice,
+        smallBags: createSmallBags, bigBags: createBigBags, rentMonths: createRentMonths,
+        smallBagWeight: createSmallBagWeight, bigBagWeight: createBigBagWeight,
+        gpNumber: createGpNumber, storageMark: createStorageMark, partyMark: createPartyMark,
+        vehicleNumber: normalizedVehicle, remarks: createRemarks,
+      });
 
       const res = await requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns`, {
         method: 'POST',
@@ -215,7 +212,7 @@ export function useCreateGrnForm(
   const isDirty = Boolean(
     createCustomerId || createCommodityId || createBags || createSmallBags || createBigBags ||
     createSmallBagWeight || createBigBagWeight || createRentAmount || createGpNumber.trim() ||
-    createVehicleNumber.trim() || createRemarks.trim(),
+    createStorageMark.trim() || createPartyMark.trim() || createVehicleNumber.trim() || createRemarks.trim(),
   );
 
   return {
@@ -236,6 +233,8 @@ export function useCreateGrnForm(
     createBigBagPrice, handleBigBagPriceChange: (val: number | '') => { setCreateBigBagPrice(val); autoComputeRent({ bigBagPrice: val }); },
     createRentAmount, setCreateRentAmount: (val: number | '') => { setCreateRentAmount(val); clearFieldError('rentAmount'); },
     createGpNumber, setCreateGpNumber,
+    createStorageMark, setCreateStorageMark: (val: string) => { setCreateStorageMark(val); clearFieldError('storageMark'); },
+    createPartyMark, setCreatePartyMark: (val: string) => { setCreatePartyMark(val); clearFieldError('partyMark'); },
     createVehicleNumber, setCreateVehicleNumber: (val: string) => { setCreateVehicleNumber(val); clearFieldError('vehicleNumber'); },
     createRemarks, setCreateRemarks,
     modalError, fieldErrors, submitting, isDirty, handleSubmit,
