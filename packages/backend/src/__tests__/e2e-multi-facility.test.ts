@@ -60,17 +60,21 @@ describe('Phase 11: Multi-Facility End-to-End — cross-facility isolation', () 
   });
 
   it('2. Master-data scoping: Beta operator cannot read Alpha master data or register into Beta', async () => {
-    const ownRes = await request(app)
-      .get(`/api/facilities/${scenario.facilityA}`)
+    const ownListRes = await request(app)
+      .get('/api/facilities')
       .set('Authorization', `Bearer ${scenario.tokens.operatorA}`);
-    expect(ownRes.status).toBe(200);
-    expect(ownRes.body.facility.id).toBe(scenario.facilityA);
+    expect(ownListRes.status).toBe(200);
+    const ownIds = ownListRes.body.items.map((f: { id: string }) => f.id);
+    expect(ownIds).toContain(scenario.facilityA);
+    expect(ownIds).not.toContain(scenario.facilityB);
 
-    const deniedRes = await request(app)
-      .get(`/api/facilities/${scenario.facilityA}`)
+    const deniedListRes = await request(app)
+      .get('/api/facilities')
       .set('Authorization', `Bearer ${scenario.tokens.operatorB}`);
-    expect(deniedRes.status).toBe(403);
-    expect(deniedRes.body.error).toContain('not authorized to access facility');
+    expect(deniedListRes.status).toBe(200);
+    const deniedIds = deniedListRes.body.items.map((f: { id: string }) => f.id);
+    expect(deniedIds).toContain(scenario.facilityB);
+    expect(deniedIds).not.toContain(scenario.facilityA);
 
     // Customer listing is facility-derived, so an unscoped caller only ever sees its own tenant.
     const listRes = await request(app)

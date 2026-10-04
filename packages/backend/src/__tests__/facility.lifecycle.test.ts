@@ -99,9 +99,11 @@ describe('Facility Lifecycle', () => {
     expect(res.body.deleted).toBe(true);
 
     const after = await request(app)
-      .get(`/api/facilities/${facility.id}`)
+      .get('/api/facilities?includeInactive=true')
       .set('Authorization', `Bearer ${superAdminToken}`);
-    expect(after.status).toBe(404);
+    expect(after.status).toBe(200);
+    const afterIds = (after.body.items as Array<{ id: string }>).map((f) => f.id);
+    expect(afterIds).not.toContain(facility.id);
   });
 
   it('refuses to delete a facility that still has inward receipts', async () => {
@@ -115,9 +117,11 @@ describe('Facility Lifecycle', () => {
     expect(res.body.error).toContain('inward receipts');
 
     const still = await request(app)
-      .get(`/api/facilities/${facility.id}`)
+      .get('/api/facilities?includeInactive=true')
       .set('Authorization', `Bearer ${superAdminToken}`);
     expect(still.status).toBe(200);
+    const stillIds = (still.body.items as Array<{ id: string }>).map((f) => f.id);
+    expect(stillIds).toContain(facility.id);
   });
 
   it('refuses deletion for a role without settings:manage and returns 404 for unknown ids', async () => {

@@ -176,11 +176,6 @@ export class UserService {
       total,
     };
   }
-
-  public async getUserById(id: string): Promise<UserSummary | null> {
-    const user = await this.repo.findById(id);
-    return user ? this.toSummary(user) : null;
-  }
 }
 
 export const userService = new UserService();

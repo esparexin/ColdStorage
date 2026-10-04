@@ -162,26 +162,30 @@ describe('Master Data & Facility Scoping RBAC', () => {
 
   it('scopes facility reads by access, not by write privilege', async () => {
     const operatorOwnRes = await request(app)
-      .get(`/api/facilities/${northFacilityId}`)
+      .get('/api/facilities')
       .set('Authorization', `Bearer ${operatorNorthToken}`);
     expect(operatorOwnRes.status).toBe(200);
-    expect(operatorOwnRes.body.facility.id).toBe(northFacilityId);
-
-    const operatorForeignRes = await request(app)
-      .get(`/api/facilities/${southFacilityId}`)
-      .set('Authorization', `Bearer ${operatorNorthToken}`);
-    expect(operatorForeignRes.status).toBe(403);
-    expect(operatorForeignRes.body.error).toContain('not authorized to access facility');
+    const operatorIds = (operatorOwnRes.body.items as Array<{ id: string }>).map((f) => f.id);
+    expect(operatorIds).toContain(northFacilityId);
+    expect(operatorIds).not.toContain(southFacilityId);
 
     const adminSouthOwnRes = await request(app)
-      .get(`/api/facilities/${southFacilityId}`)
+      .get('/api/facilities')
       .set('Authorization', `Bearer ${adminSouthToken}`);
     expect(adminSouthOwnRes.status).toBe(200);
+    const adminSouthIds = (adminSouthOwnRes.body.items as Array<{ id: string }>).map(
+      (f) => f.id,
+    );
+    expect(adminSouthIds).toContain(southFacilityId);
+    expect(adminSouthIds).not.toContain(northFacilityId);
 
     const superAdminRes = await request(app)
-      .get(`/api/facilities/${northFacilityId}`)
+      .get('/api/facilities')
       .set('Authorization', `Bearer ${superAdminToken}`);
     expect(superAdminRes.status).toBe(200);
+    const superIds = (superAdminRes.body.items as Array<{ id: string }>).map((f) => f.id);
+    expect(superIds).toContain(northFacilityId);
+    expect(superIds).toContain(southFacilityId);
   });
 
   it('restricts facility writes to SUPER_ADMIN via settings:manage', async () => {

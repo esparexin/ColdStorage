@@ -47,20 +47,6 @@ userRouter.get('/', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-userRouter.get('/:id', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const user = await userService.getUserById(getParamId(req.params.id));
-    if (!user) {
-      res.status(404).json({ error: 'User not found' });
-      return;
-    }
-    res.status(200).json({ user });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'User retrieval failed';
-    res.status(500).json({ error: message });
-  }
-});
-
 /**
  * Partial lifecycle update (profile, role, facility scope, and status).
  * Deactivation is expressed via `status: 'DISABLED'` rather than record deletion so the

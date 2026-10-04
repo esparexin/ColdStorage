@@ -161,20 +161,19 @@ describe('Auth RBAC & Facility Scope Integration', () => {
       isActive: true,
     });
 
-    const permitRes = await request(app)
-      .get('/api/facilities/facility-north')
+    const operatorListRes = await request(app)
+      .get('/api/facilities')
       .set('Authorization', `Bearer ${activeOpToken}`);
-    expect(permitRes.status).toBe(200);
+    expect(operatorListRes.status).toBe(200);
+    const operatorIds = (operatorListRes.body.items as Array<{ id: string }>).map((f) => f.id);
+    expect(operatorIds).toContain('facility-north');
+    expect(operatorIds).not.toContain('facility-south');
 
-    const denyRes = await request(app)
-      .get('/api/facilities/facility-south')
-      .set('Authorization', `Bearer ${activeOpToken}`);
-    expect(denyRes.status).toBe(403);
-    expect(denyRes.body.error).toContain('not authorized to access facility');
-
-    const adminPermitRes = await request(app)
-      .get('/api/facilities/facility-south')
+    const adminListRes = await request(app)
+      .get('/api/facilities')
       .set('Authorization', `Bearer ${adminToken}`);
-    expect(adminPermitRes.status).toBe(200);
+    expect(adminListRes.status).toBe(200);
+    const adminIds = (adminListRes.body.items as Array<{ id: string }>).map((f) => f.id);
+    expect(adminIds).toContain('facility-south');
   });
 });

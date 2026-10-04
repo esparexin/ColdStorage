@@ -38,11 +38,6 @@ export class FacilityService {
     return this.toEntity(doc);
   }
 
-  public async getFacilityById(id: string): Promise<Facility | null> {
-    const doc = await FacilityModel.findOne({ id }).lean().exec();
-    return doc ? this.toEntity(doc) : null;
-  }
-
   /**
    * Lists facilities visible to the caller.
    *

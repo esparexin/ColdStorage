@@ -47,25 +47,6 @@ facilityRouter.get('/', requirePermission('facility:view'), async (req: Request,
   }
 });
 
-facilityRouter.get(
-  '/:facilityId',
-  requirePermission('facility:view'),
-  requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const facilityId = getParamId(req.params.facilityId);
-      const facility = await facilityService.getFacilityById(facilityId);
-      if (!facility) {
-        res.status(404).json({ error: 'Facility not found' });
-        return;
-      }
-      res.status(200).json({ facility });
-    } catch (err: unknown) {
-      sendServiceError(res, err, 'Failed to get facility');
-    }
-  },
-);
-
 facilityRouter.patch(
   '/:facilityId',
   requirePermission('settings:manage'),
