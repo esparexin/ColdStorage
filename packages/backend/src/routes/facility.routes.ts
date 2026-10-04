@@ -24,7 +24,7 @@ facilityRouter.post('/', requirePermission('settings:manage'), async (req: Reque
   }
 
   try {
-    const facility = await facilityService.createFacility(parseResult.data);
+    const facility = await facilityService.createFacility(parseResult.data, req.user!.userId);
     res.status(201).json({ facility });
   } catch (err: unknown) {
       sendServiceError(res, err, 'Facility creation failed');
@@ -60,7 +60,7 @@ facilityRouter.patch(
 
     try {
       const facilityId = getParamId(req.params.facilityId);
-      const updated = await facilityService.updateFacility(facilityId, parseResult.data);
+      const updated = await facilityService.updateFacility(facilityId, parseResult.data, req.user!.userId);
       if (!updated) {
         res.status(404).json({ error: 'Facility not found' });
         return;
@@ -79,7 +79,7 @@ facilityRouter.delete(
   async (req: Request, res: Response): Promise<void> => {
     try {
       const facilityId = getParamId(req.params.facilityId);
-      const deleted = await facilityService.deleteFacility(facilityId);
+      const deleted = await facilityService.deleteFacility(facilityId, req.user!.userId);
       if (!deleted) {
         res.status(404).json({ error: 'Facility not found' });
         return;
