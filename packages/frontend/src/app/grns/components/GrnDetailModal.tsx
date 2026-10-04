@@ -10,7 +10,6 @@ interface GrnDetailModalProps {
   grn: Grn;
   onClose: () => void;
   canPrint: boolean;
-  canAllocate?: boolean;
   printingId: string | null;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
 }
@@ -19,7 +18,6 @@ export function GrnDetailModal({
   grn,
   onClose,
   canPrint,
-  canAllocate,
   printingId,
   onPrint,
 }: GrnDetailModalProps) {

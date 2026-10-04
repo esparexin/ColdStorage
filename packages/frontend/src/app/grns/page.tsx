@@ -28,7 +28,6 @@ export default function GrnsPage() {
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const canCreate = can(userRole, 'grn:create');
   const canPrint = can(userRole, 'document:print');
-  const canAllocate = can(userRole, 'allocation:manage');
 
   const handlePrint = async (type: 'grn' | 'receipt', grnId: string) => {
     if (!selectedFacilityId) return;
@@ -133,7 +132,6 @@ export default function GrnsPage() {
           grn={selectedGrn}
           onClose={() => setSelectedGrn(null)}
           canPrint={canPrint}
-          canAllocate={canAllocate}
           printingId={printingId}
           onPrint={handlePrint}
         />

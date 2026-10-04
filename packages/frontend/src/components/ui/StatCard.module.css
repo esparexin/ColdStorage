@@ -1,55 +1,24 @@
 .statGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(var(--stat-min, 180px), 100%), 1fr));
-  gap: var(--space-3);
-}
-
-.statCard {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-surface-1);
+  grid-template-columns: repeat(auto-fit, minmax(min(var(--stat-min, 150px), 100%), 1fr));
+  /* Tiles are borderless. The 1px gap shows the border colour through, which
+     draws a hairline divider between neighbours at every wrap position
+     without needing to know where a row ends. auto-fit collapses empty
+     tracks, so the tiles stretch to use the full available width. */
+  gap: 1px;
+  background: var(--color-border);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
-.statIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-}
-
-.statCard[data-accent='primary'] .statIcon {
-  background: var(--color-primary-subtle);
-  color: var(--color-primary-text);
-}
-
-.statCard[data-accent='success'] .statIcon {
-  background: var(--color-success-subtle);
-  color: var(--color-success-text);
-}
-
-.statCard[data-accent='warning'] .statIcon {
-  background: var(--color-warning-subtle);
-  color: var(--color-warning-text);
-}
-
-.statCard[data-accent='danger'] .statIcon {
-  background: var(--color-danger-subtle);
-  color: var(--color-danger-text);
-}
-
-.statBody {
+.statItem {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-0-5);
   min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-1);
 }
 
 .statLabel {
@@ -58,32 +27,21 @@
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
   color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .statValue {
   font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-  line-height: 1.1;
+  font-weight: var(--font-semibold);
+  line-height: 1.15;
   color: var(--color-text-primary);
+  /* Keeps digits from shifting as values refresh. */
+  font-variant-numeric: tabular-nums;
 }
 
-.statValueAccent {
-  color: var(--color-text-primary);
-}
-
-.statCard[data-accent='success'] .statValueAccent {
-  color: var(--color-success-text);
-}
-
-.statCard[data-accent='warning'] .statValueAccent {
-  color: var(--color-warning-text);
-}
-
-.statCard[data-accent='danger'] .statValueAccent {
-  color: var(--color-danger-text);
-}
-
-.statSub {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-}
+.statItem[data-accent='primary'] .statValue { color: var(--color-primary-text); }
+.statItem[data-accent='success'] .statValue { color: var(--color-success-text); }
+.statItem[data-accent='warning'] .statValue { color: var(--color-warning-text); }
+.statItem[data-accent='danger'] .statValue  { color: var(--color-danger-text); }

@@ -195,3 +195,43 @@
   border-radius: var(--radius-md);
   font-size: var(--text-xs);
 }
+
+.paymentHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.receiptNumber {
+  font-size: var(--text-sm);
+}
+
+.paymentMeta {
+  display: block;
+  color: var(--color-text-muted);
+}
+
+.paymentNotes {
+  display: block;
+  margin-top: var(--space-0-5);
+  color: var(--color-text-secondary);
+}
+
+.paymentActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.paymentAmount {
+  font-size: var(--text-base);
+  color: var(--color-success-text);
+}
+
+.sectionLabel {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  color: var(--color-text-muted);
+}

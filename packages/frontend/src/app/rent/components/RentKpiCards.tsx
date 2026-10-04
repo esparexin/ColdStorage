@@ -11,28 +11,21 @@ interface RentKpiCardsProps {
   };
 }
 
+const inr = (amount: number) => `₹${amount.toLocaleString('en-IN')}`;
+
 export function RentKpiCards({ metrics }: RentKpiCardsProps) {
   return (
-    <StatGrid label="Rent billing key metrics" minTileWidth={180}>
+    <StatGrid label="Rent billing totals">
+      <StatCard label="Total Billed" value={inr(metrics.totalBilled)} />
       <StatCard
-        label="Total Rent Billed"
-        value={`₹${metrics.totalBilled.toLocaleString('en-IN')}`}
-        sub="Contractual obligations"
-        accent="primary"
-      />
-      <StatCard
-        label="Total Rent Collected"
-        value={`₹${metrics.totalCollected.toLocaleString('en-IN')}`}
-        sub="Realized payments received"
+        label="Total Collected"
+        value={inr(metrics.totalCollected)}
         accent="success"
-        accentValue
       />
       <StatCard
         label="Outstanding Dues"
-        value={`₹${metrics.totalOutstanding.toLocaleString('en-IN')}`}
-        sub="Pending balance to be collected"
+        value={inr(metrics.totalOutstanding)}
         accent="warning"
-        accentValue
       />
     </StatGrid>
   );

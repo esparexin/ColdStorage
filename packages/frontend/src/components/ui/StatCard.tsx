@@ -6,40 +6,27 @@ import styles from './StatCard.module.css';
 export type StatAccent = 'primary' | 'success' | 'warning' | 'danger';
 
 export interface StatCardProps {
+  /** Uppercase micro-label describing the metric. */
   label: string;
   value: React.ReactNode;
-  sub?: string;
-  icon?: React.ElementType;
-  iconSize?: number;
+  /**
+   * Semantic colour for the value, e.g. success for a collected total or
+   * warning for an outstanding balance. Omit for the default text colour.
+   */
   accent?: StatAccent;
-  /** Renders the value in the accent colour (used for semantic totals). */
-  accentValue?: boolean;
 }
 
-export function StatCard({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  iconSize = 20,
-  accent = 'primary',
-  accentValue = false,
-}: StatCardProps) {
+/**
+ * One metric inside a StatGrid. The grid draws the surrounding surface and the
+ * hairline dividers, so a tile carries no border, shadow or decorative chrome.
+ * Supporting prose belongs outside the tile; the label alone states the metric.
+ */
+export function StatCard({ label, value, accent }: StatCardProps) {
   return (
-    <article className={styles.statCard} data-accent={accent}>
-      {Icon && (
-        <span className={styles.statIcon} aria-hidden="true">
-          <Icon size={iconSize} />
-        </span>
-      )}
-      <span className={styles.statBody}>
-        <span className={styles.statLabel}>{label}</span>
-        <span className={`${styles.statValue} ${accentValue ? styles.statValueAccent : ''}`}>
-          {value}
-        </span>
-        {sub && <span className={styles.statSub}>{sub}</span>}
-      </span>
-    </article>
+    <div className={styles.statItem} data-accent={accent ?? 'default'}>
+      <span className={styles.statLabel}>{label}</span>
+      <span className={styles.statValue}>{value}</span>
+    </div>
   );
 }
 
@@ -51,7 +38,7 @@ export interface StatGridProps {
   minTileWidth?: number;
 }
 
-export function StatGrid({ label, children, minTileWidth = 180 }: StatGridProps) {
+export function StatGrid({ label, children, minTileWidth = 150 }: StatGridProps) {
   return (
     <section
       className={styles.statGrid}

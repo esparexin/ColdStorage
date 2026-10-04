@@ -67,20 +67,6 @@ export function useRentData() {
     void fetchRentAccounts();
   }, [fetchRentAccounts]);
 
-  const metrics = useMemo(() => {
-    let totalBilled = 0;
-    let totalCollected = 0;
-    let totalOutstanding = 0;
-
-    for (const acc of rentSummaries) {
-      totalBilled += acc.rentAmount;
-      totalCollected += acc.totalPaid;
-      totalOutstanding += acc.remainingBalance;
-    }
-
-    return { totalBilled, totalCollected, totalOutstanding };
-  }, [rentSummaries]);
-
   const filteredAccounts = useMemo(() => {
     return rentSummaries.filter((acc) => {
       const matchSearch =
@@ -93,6 +79,22 @@ export function useRentData() {
       return matchSearch && matchStatus;
     });
   }, [rentSummaries, searchTerm, statusFilter]);
+
+  // Derived from the filtered set so the totals always describe exactly the
+  // rows in the table below them, rather than the unfiltered facility totals.
+  const metrics = useMemo(() => {
+    let totalBilled = 0;
+    let totalCollected = 0;
+    let totalOutstanding = 0;
+
+    for (const acc of filteredAccounts) {
+      totalBilled += acc.rentAmount;
+      totalCollected += acc.totalPaid;
+      totalOutstanding += acc.remainingBalance;
+    }
+
+    return { totalBilled, totalCollected, totalOutstanding };
+  }, [filteredAccounts]);
 
   const currentFacilityName = useMemo(() => {
     return availableFacilities.find((f) => f.id === selectedFacilityId)?.name ?? selectedFacilityId;
