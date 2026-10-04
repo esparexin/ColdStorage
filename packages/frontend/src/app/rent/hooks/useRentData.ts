@@ -6,6 +6,8 @@ import { useFacility } from '@/context/FacilityContext';
 import { requestWithAuth } from '@/lib/api-client';
 import type { GrnListItem } from '../types';
 
+export const RENT_PAGE_SIZE = 20;
+
 export function useRentData() {
   const { selectedFacilityId, availableFacilities } = useFacility();
 
@@ -13,8 +15,20 @@ export function useRentData() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'' | PaymentStatus>('');
+  const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTermRaw] = useState('');
+
+  // Search and status narrow the client-side set, so page 1 is the only valid page.
+  const setSearchTerm = useCallback((v: string) => {
+    setSearchTermRaw(v);
+    setPage(1);
+  }, []);
+  const [statusFilter, setStatusFilterRaw] = useState<'' | PaymentStatus>('');
+
+  const setStatusFilter = useCallback((v: '' | PaymentStatus) => {
+    setStatusFilterRaw(v);
+    setPage(1);
+  }, []);
 
   const fetchRentAccounts = useCallback(async () => {
     if (!selectedFacilityId) {
@@ -96,6 +110,13 @@ export function useRentData() {
     return { totalBilled, totalCollected, totalOutstanding };
   }, [filteredAccounts]);
 
+  const totalPages = Math.ceil(filteredAccounts.length / RENT_PAGE_SIZE);
+
+  const pagedAccounts = filteredAccounts.slice(
+    (page - 1) * RENT_PAGE_SIZE,
+    page * RENT_PAGE_SIZE,
+  );
+
   const currentFacilityName = useMemo(() => {
     return availableFacilities.find((f) => f.id === selectedFacilityId)?.name ?? selectedFacilityId;
   }, [availableFacilities, selectedFacilityId]);
@@ -112,6 +133,12 @@ export function useRentData() {
     setStatusFilter,
     metrics,
     filteredAccounts,
+    pagedAccounts,
+    totalAccounts: filteredAccounts.length,
+    totalPages,
+    page,
+    setPage,
+    pageSize: RENT_PAGE_SIZE,
     fetchRentAccounts,
   };
 }

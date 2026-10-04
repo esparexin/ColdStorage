@@ -8,10 +8,23 @@ import { Badge, Button } from '@/components/ui';
 
 interface AuditTableProps {
   logs: AuditLogRecord[];
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalLogs: number;
+  onPageChange: (page: number) => void;
   onInspect: (record: AuditLogRecord) => void;
 }
 
-export function AuditTable({ logs, onInspect }: AuditTableProps) {
+export function AuditTable({
+  logs,
+  page,
+  pageSize,
+  totalPages,
+  totalLogs,
+  onPageChange,
+  onInspect,
+}: AuditTableProps) {
   const columns: DataTableColumn<AuditLogRecord>[] = [
     {
       key: 'timestamp',
@@ -105,6 +118,7 @@ export function AuditTable({ logs, onInspect }: AuditTableProps) {
       rows={logs}
       rowKey={(r) => r.id}
       caption="Audit Log Events"
+      pagination={{ page, pageSize, totalPages, totalRecords: totalLogs, onPageChange }}
     />
   );
 }

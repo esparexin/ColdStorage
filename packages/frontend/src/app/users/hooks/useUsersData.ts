@@ -5,7 +5,7 @@ import type { Role, UserSummary } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { useFacility } from '@/context/FacilityContext';
 
-const PAGE_SIZE = 20;
+export const PAGE_SIZE = 20;
 
 export function useUsersData(canManage: boolean) {
   const [users, setUsers] = useState<UserSummary[]>([]);
@@ -14,8 +14,20 @@ export function useUsersData(canManage: boolean) {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'' | Role>('');
+  const [searchTerm, setSearchTermRaw] = useState('');
+  const [roleFilter, setRoleFilterRaw] = useState<'' | Role>('');
+
+  // Any filter change invalidates the current page number; without this the
+  // table can land on an empty page of a shorter result set.
+  const setRoleFilter = useCallback((role: '' | Role) => {
+    setRoleFilterRaw(role);
+    setPage(1);
+  }, []);
+
+  const setSearchTerm = useCallback((term: string) => {
+    setSearchTermRaw(term);
+    setPage(1);
+  }, []);
 
   // Facility options are already loaded application-wide by FacilityProvider. Fetching them a
   // second time here produced two independent copies of the same list.

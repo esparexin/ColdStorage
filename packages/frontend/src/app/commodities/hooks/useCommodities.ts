@@ -4,11 +4,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Commodity } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 
+export const COMMODITY_PAGE_SIZE = 20;
+
 export function useCommodities() {
   const [commodities, setCommodities] = useState<Commodity[]>([]);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTermRaw] = useState('');
+
+  // Search narrows the client-side set, so page 1 is the only valid page.
+  const setSearchTerm = useCallback((v: string) => {
+    setSearchTermRaw(v);
+    setPage(1);
+  }, []);
 
   const fetchCommodities = useCallback(async () => {
     setLoading(true);
@@ -59,8 +68,18 @@ export function useCommodities() {
     }
   };
 
+  const totalPages = Math.ceil(filteredCommodities.length / COMMODITY_PAGE_SIZE);
+
   return {
-    commodities,
+    commodities: filteredCommodities.slice(
+      (page - 1) * COMMODITY_PAGE_SIZE,
+      page * COMMODITY_PAGE_SIZE,
+    ),
+    totalCommodities: filteredCommodities.length,
+    totalPages,
+    page,
+    setPage,
+    pageSize: COMMODITY_PAGE_SIZE,
     loading,
     error,
     searchTerm,

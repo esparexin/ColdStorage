@@ -25,7 +25,12 @@ export default function RentPage() {
     statusFilter,
     setStatusFilter,
     metrics,
-    filteredAccounts,
+    pagedAccounts,
+    totalAccounts,
+    totalPages,
+    page,
+    setPage,
+    pageSize,
     fetchRentAccounts,
   } = useRentData();
 
@@ -83,9 +88,14 @@ export default function RentPage() {
             />
           ) : (
             <RentTable
-              accounts={filteredAccounts}
+              accounts={pagedAccounts}
               facilityName={currentFacilityName ?? ''}
               canCollect={canCollect}
+              page={page}
+              pageSize={pageSize}
+              totalPages={totalPages}
+              totalAccounts={totalAccounts}
+              onPageChange={setPage}
               onOpenCollect={setCollectAccount}
               onOpenHistory={setHistoryAccount}
             />

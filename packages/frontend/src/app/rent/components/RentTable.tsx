@@ -11,6 +11,11 @@ interface RentTableProps {
   accounts: RentSummaryDto[];
   facilityName: string;
   canCollect: boolean;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalAccounts: number;
+  onPageChange: (page: number) => void;
   onOpenCollect: (acc: RentSummaryDto) => void;
   onOpenHistory: (acc: RentSummaryDto) => void;
 }
@@ -19,6 +24,11 @@ export function RentTable({
   accounts,
   facilityName,
   canCollect,
+  page,
+  pageSize,
+  totalPages,
+  totalAccounts,
+  onPageChange,
   onOpenCollect,
   onOpenHistory,
 }: RentTableProps) {
@@ -149,6 +159,7 @@ export function RentTable({
       rows={accounts}
       rowKey={(r) => r.grnId}
       caption={`Rent Accounts for ${facilityName}`}
+      pagination={{ page, pageSize, totalPages, totalRecords: totalAccounts, onPageChange }}
     />
   );
 }

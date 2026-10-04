@@ -126,6 +126,11 @@ export default function DeliveriesPage() {
               canPrint={canPrint}
               canReverse={canReverse}
               printingId={printingId}
+              page={deliveryData.page}
+              pageSize={deliveryData.pageSize}
+              totalPages={deliveryData.totalPages}
+              totalDeliveries={deliveryData.totalDeliveries}
+              onPageChange={deliveryData.setPage}
               onSelectDelivery={setSelectedDelivery}
               onPrintChallan={handlePrintChallan}
               onStartReversal={setReversingDelivery}

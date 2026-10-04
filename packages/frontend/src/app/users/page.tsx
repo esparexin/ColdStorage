@@ -129,12 +129,6 @@ export default function UsersPage() {
       />
 
       <section className={styles.tableSection}>
-        <div className={styles.tableHeader}>
-          <h2>
-            Authorized Accounts ({filteredUsers.length} shown, {totalUsers} total)
-          </h2>
-        </div>
-
         <UserTable
           users={filteredUsers}
           totalUsers={totalUsers}

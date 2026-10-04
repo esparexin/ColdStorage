@@ -5,6 +5,7 @@ import { KeyRound, UserCheck } from 'lucide-react';
 import type { UserSummary } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { PAGE_SIZE } from '../hooks/useUsersData';
 import { UserRowActions } from './UserRowActions';
 import styles from '../page.module.css';
 
@@ -186,6 +187,7 @@ export function UserTable({
       }
       pagination={{
         page,
+        pageSize: PAGE_SIZE,
         totalPages,
         totalRecords: totalUsers,
         onPageChange,

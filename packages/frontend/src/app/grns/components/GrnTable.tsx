@@ -18,6 +18,11 @@ interface GrnTableProps {
   caption: string;
   canPrint: boolean;
   printingId: string | null;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalGrns: number;
+  onPageChange: (page: number) => void;
   onSelectGrn: (grn: Grn) => void;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
 }
@@ -27,6 +32,11 @@ export function GrnTable({
   caption,
   canPrint,
   printingId,
+  page,
+  pageSize,
+  totalPages,
+  totalGrns,
+  onPageChange,
   onSelectGrn,
   onPrint,
 }: GrnTableProps) {
@@ -181,6 +191,7 @@ export function GrnTable({
       rows={grns}
       rowKey={(r) => r.id}
       caption={caption}
+      pagination={{ page, pageSize, totalPages, totalRecords: totalGrns, onPageChange }}
     />
   );
 }

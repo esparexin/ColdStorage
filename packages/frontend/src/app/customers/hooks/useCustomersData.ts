@@ -5,12 +5,21 @@ import type { Customer } from '@cold-storage/contracts';
 import { useFacility } from '@/context/FacilityContext';
 import { requestWithAuth } from '@/lib/api-client';
 
+export const CUSTOMER_PAGE_SIZE = 20;
+
 export function useCustomersData() {
   const { selectedFacilityId } = useFacility();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTermRaw] = useState('');
+
+  // Search narrows the client-side set, so page 1 is the only valid page.
+  const setSearchTerm = useCallback((v: string) => {
+    setSearchTermRaw(v);
+    setPage(1);
+  }, []);
 
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
@@ -43,8 +52,18 @@ export function useCustomersData() {
     return customers.filter((c) => c.name.toLowerCase().includes(term));
   }, [customers, searchTerm]);
 
+  const totalPages = Math.ceil(filteredCustomers.length / CUSTOMER_PAGE_SIZE);
+
   return {
-    customers,
+    customers: filteredCustomers.slice(
+      (page - 1) * CUSTOMER_PAGE_SIZE,
+      page * CUSTOMER_PAGE_SIZE,
+    ),
+    totalCustomers: filteredCustomers.length,
+    totalPages,
+    page,
+    setPage,
+    pageSize: CUSTOMER_PAGE_SIZE,
     loading,
     error,
     searchTerm,

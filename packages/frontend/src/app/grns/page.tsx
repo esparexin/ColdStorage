@@ -120,6 +120,11 @@ export default function GrnsPage() {
               caption={`Goods Receipt Notes for ${grnData.currentFacilityName}`}
               canPrint={canPrint}
               printingId={printingId}
+              page={grnData.page}
+              pageSize={grnData.pageSize}
+              totalPages={grnData.totalPages}
+              totalGrns={grnData.totalGrns}
+              onPageChange={grnData.setPage}
               onSelectGrn={setSelectedGrn}
               onPrint={handlePrint}
             />

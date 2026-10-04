@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import type { BackupLogRecord, BackupStatus, BackupStatusResponse } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 
+export const BACKUP_PAGE_SIZE = 15;
+
 export function useBackupData(canManage: boolean) {
   const [backupStatus, setBackupStatus] = useState<BackupStatusResponse | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -11,13 +13,19 @@ export function useBackupData(canManage: boolean) {
   const [logs, setLogs] = useState<BackupLogRecord[]>([]);
   const [totalLogs, setTotalLogs] = useState(0);
   const [page, setPage] = useState(1);
-  const limit = 15;
-  const [statusFilter, setStatusFilter] = useState<'' | BackupStatus>('');
+  const limit = BACKUP_PAGE_SIZE;
+  const [statusFilter, setStatusFilterRaw] = useState<'' | BackupStatus>('');
   const [loadingLogs, setLoadingLogs] = useState(true);
 
   const [triggering, setTriggering] = useState(false);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // A narrower filter can leave the current page number past the end.
+  const setStatusFilter = useCallback((status: '' | BackupStatus) => {
+    setStatusFilterRaw(status);
+    setPage(1);
+  }, []);
 
   const fetchStatus = useCallback(async () => {
     if (!canManage) return;

@@ -17,6 +17,11 @@ export default function AuditLogsPage() {
 
   const {
     logs,
+    totalLogs,
+    totalPages,
+    page,
+    setPage,
+    pageSize,
     loading,
     error,
     searchTerm,
@@ -70,6 +75,11 @@ export default function AuditLogsPage() {
       ) : (
         <AuditTable
           logs={filteredLogs}
+          page={page}
+          pageSize={pageSize}
+          totalPages={totalPages}
+          totalLogs={totalLogs}
+          onPageChange={setPage}
           onInspect={setSelectedLog}
         />
       )}

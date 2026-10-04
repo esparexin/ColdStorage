@@ -9,10 +9,24 @@ import { Badge, Button } from '@/components/ui';
 interface CustomerTableProps {
   customers: Customer[];
   canManage: boolean;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalCustomers: number;
+  onPageChange: (page: number) => void;
   onEdit: (customer: Customer) => void;
 }
 
-export function CustomerTable({ customers, canManage, onEdit }: CustomerTableProps) {
+export function CustomerTable({
+  customers,
+  canManage,
+  page,
+  pageSize,
+  totalPages,
+  totalCustomers,
+  onPageChange,
+  onEdit,
+}: CustomerTableProps) {
   const columns: DataTableColumn<Customer>[] = [
     {
       key: 'name',
@@ -55,6 +69,7 @@ export function CustomerTable({ customers, canManage, onEdit }: CustomerTablePro
       columns={columns}
       rows={customers}
       rowKey={(row) => row.id}
+      pagination={{ page, pageSize, totalPages, totalRecords: totalCustomers, onPageChange }}
       caption="Registered customer directory"
     />
   );

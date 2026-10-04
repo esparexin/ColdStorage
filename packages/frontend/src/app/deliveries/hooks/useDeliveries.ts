@@ -2,17 +2,25 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DeliveryChallan, DeliveryStatus } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 
+export const DELIVERY_PAGE_SIZE = 20;
+
 export function useDeliveries(
   selectedFacilityId: string | null,
   availableFacilities: Array<{ id: string; name: string }>,
 ) {
   const [deliveries, setDeliveries] = useState<DeliveryChallan[]>([]);
+  const [totalDeliveries, setTotalDeliveries] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'' | DeliveryStatus>('');
+  const [statusFilter, setStatusFilterRaw] = useState<'' | DeliveryStatus>('');
+
+  // A narrower filter can leave the current page number past the end.
+  const setStatusFilter = useCallback((v: '' | DeliveryStatus) => { setStatusFilterRaw(v); setPage(1); }, []);
 
   const fetchDeliveries = useCallback(async () => {
     if (!selectedFacilityId) {
@@ -25,7 +33,8 @@ export function useDeliveries(
     setError(null);
     try {
       const params = new URLSearchParams();
-      params.set('limit', '100');
+      params.set('page', String(page));
+      params.set('limit', String(DELIVERY_PAGE_SIZE));
       if (statusFilter) params.set('status', statusFilter);
 
       const url = `/api/facilities/${encodeURIComponent(selectedFacilityId)}/deliveries?${params.toString()}`;
@@ -34,14 +43,16 @@ export function useDeliveries(
         const err = (await res.json()) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
-      const data = (await res.json()) as { items?: DeliveryChallan[] };
+      const data = (await res.json()) as { items?: DeliveryChallan[]; total?: number };
       setDeliveries(data.items ?? []);
+      setTotalDeliveries(data.total ?? 0);
+      setTotalPages(Math.ceil((data.total ?? 0) / DELIVERY_PAGE_SIZE));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load deliveries');
     } finally {
       setLoading(false);
     }
-  }, [selectedFacilityId, statusFilter]);
+  }, [selectedFacilityId, page, statusFilter]);
 
   useEffect(() => {
     void fetchDeliveries();
@@ -77,6 +88,11 @@ export function useDeliveries(
   return {
     deliveries,
     filteredDeliveries,
+    totalDeliveries,
+    totalPages,
+    page,
+    setPage,
+    pageSize: DELIVERY_PAGE_SIZE,
     loading,
     error,
     searchTerm,
