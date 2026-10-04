@@ -34,12 +34,6 @@
   font-size: var(--text-sm);
 }
 
-.fieldGroup {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
 .checkboxGroup {
   margin-top: var(--space-3);
 }

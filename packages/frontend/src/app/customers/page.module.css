@@ -40,10 +40,6 @@
   gap: var(--space-1);
 }
 
-.checkboxGroup {
-  margin-top: var(--space-3);
-}
-
 .checkboxLabel {
   display: flex;
   align-items: center;
