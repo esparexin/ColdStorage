@@ -6,6 +6,8 @@ import {
   recordRentPaymentInputSchema,
   rentPaymentSchema,
   rentSummaryDtoSchema,
+  calculateSeasonalOccupancy,
+  seasonalOccupancySummarySchema,
 } from '../rent.js';
 
 describe('Phase 12: Rent Collection & Billing Contracts', () => {
@@ -155,5 +157,38 @@ describe('Phase 12: Rent Collection & Billing Contracts', () => {
     };
 
     expect(rentReceiptDocumentDtoSchema.safeParse(validDocDto).success).toBe(true);
+  });
+
+  it('7. calculates seasonal storage occupancy consuming canonical movement history', () => {
+    const inwardDate = new Date('2026-04-15T00:00:00.000Z');
+    const jul10 = new Date('2026-07-10T10:00:00.000Z');
+    const nov10 = new Date('2026-11-10T10:00:00.000Z');
+
+    const summary = calculateSeasonalOccupancy({
+      grnId: 'grn-season-1',
+      facilityId: 'fac-alpha',
+      grnNumber: 'GRN-26-27-0099',
+      inwardDate,
+      totalBags: 100,
+      bagRate: 15,
+      seasonName: 'Season 2026-2027',
+      seasonStart: new Date('2026-04-01'),
+      seasonEnd: new Date('2027-01-31'),
+      movements: [
+        { date: jul10, type: 'PARTIAL_OUTWARD', deliveredBags: 40, closingBags: 60 },
+        { date: nov10, type: 'FINAL_OUTWARD', deliveredBags: 60, closingBags: 0 },
+      ],
+    });
+
+    expect(summary.grnId).toBe('grn-season-1');
+    expect(summary.seasonName).toBe('Season 2026-2027');
+    expect(summary.totalInwardBags).toBe(100);
+    expect(summary.netDeliveredBags).toBe(100);
+    expect(summary.remainingBags).toBe(0);
+    expect(summary.status).toBe('CLOSED');
+    expect(summary.finalOutwardDate).toEqual(nov10);
+    // 100 bags × ₹15/bag/mo × 10 months = ₹15,000
+    expect(summary.calculatedCharge).toBe(15000);
+    expect(seasonalOccupancySummarySchema.safeParse(summary).success).toBe(true);
   });
 });

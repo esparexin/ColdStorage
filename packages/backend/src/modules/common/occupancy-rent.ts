@@ -1,8 +1,10 @@
 import {
   calculateMonthlyOccupancy,
+  calculateSeasonalOccupancy,
   deriveBagPrice,
   type GrnOccupancyRentSummary,
   type MovementSnapshot,
+  type SeasonalOccupancySummary,
 } from '@cold-storage/contracts';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { getGrnMovementHistory } from './grn-movement-history.js';
@@ -72,3 +74,53 @@ export async function calculateGrnMonthlyOccupancyRent(
     periods,
   };
 }
+
+/**
+ * Canonical service for calculating seasonal occupancy-based rent.
+ * Consumes the exact same getGrnMovementHistory() SSOT.
+ */
+export async function calculateGrnSeasonalOccupancyRent(
+  facilityId: string,
+  grnId: string,
+  options?: { seasonName?: string; seasonStart?: Date; seasonEnd?: Date },
+): Promise<SeasonalOccupancySummary | null> {
+  const grn = await GrnModel.findOne({ id: grnId, facilityId }).lean().exec();
+  if (!grn) return null;
+
+  const history = await getGrnMovementHistory(facilityId, grnId);
+  if (!history) return null;
+
+  const effectiveBagRate =
+    grn.bagPrice ??
+    deriveBagPrice({
+      rentType: grn.rentType,
+      bags: grn.bags,
+      bagPrice: grn.bagPrice,
+      rentMonths: grn.rentMonths,
+      rentAmount: grn.rentAmount,
+    }) ??
+    0;
+
+  const movementSnapshots: MovementSnapshot[] = history.entries
+    .filter((e) => e.type !== 'INWARD')
+    .map((e) => ({
+      date: e.date,
+      type: e.type,
+      deliveredBags: e.deliveredBags,
+      closingBags: e.closingBags,
+    }));
+
+  return calculateSeasonalOccupancy({
+    grnId: grn.id,
+    facilityId: grn.facilityId,
+    grnNumber: grn.grnNumber,
+    inwardDate: grn.date,
+    totalBags: grn.bags,
+    bagRate: effectiveBagRate,
+    movements: movementSnapshots,
+    seasonName: options?.seasonName,
+    seasonStart: options?.seasonStart,
+    seasonEnd: options?.seasonEnd,
+  });
+}
+

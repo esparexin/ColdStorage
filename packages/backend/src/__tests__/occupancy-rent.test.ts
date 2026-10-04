@@ -113,4 +113,42 @@ describe('Monthly Storage Rent Occupancy Calculation Tests', () => {
     const lastPeriod = summary!.periods[summary!.periods.length - 1];
     expect(lastPeriod.remainingBags).toBe(0);
   });
+
+  it('calculates seasonal storage occupancy reusing canonical movement history', async () => {
+    const seasonalGrnId = await seedGrn({
+      facilityId,
+      customerId,
+      chamber: 'CH-05',
+      bags: 200,
+      commodityName: 'Potatoes',
+      rentType: 'Seasonal',
+      rentAmount: 20000,
+      grnNumber: 'GRN-26-27-0202',
+      date: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000),
+    });
+
+    await rentService.recordPayment(
+      facilityId,
+      { grnId: seasonalGrnId, amountPaid: 5000, paymentMode: 'Cash', paymentDate: new Date() },
+      userId,
+    );
+    await deliveryService.createDelivery(
+      facilityId,
+      {
+        grnId: seasonalGrnId,
+        date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        bags: 50,
+      },
+      userId,
+    );
+
+    const seasonalSummary = await rentService.getSeasonalOccupancyRent(facilityId, seasonalGrnId);
+    expect(seasonalSummary).not.toBeNull();
+    expect(seasonalSummary!.totalInwardBags).toBe(200);
+    expect(seasonalSummary!.netDeliveredBags).toBe(50);
+    expect(seasonalSummary!.remainingBags).toBe(150);
+    expect(seasonalSummary!.status).toBe('OPEN');
+    expect(seasonalSummary!.finalOutwardDate).toBeNull();
+    expect(seasonalSummary!.calculatedCharge).toBe(20000);
+  });
 });
