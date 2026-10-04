@@ -40,13 +40,13 @@ export async function queryBackupHistory(
 }
 
 export async function getBackupStatus(): Promise<BackupStatusResponse> {
-  const { settings } = await settingsService.getSettings();
-  const latestCompleted = await BackupLogModel.findOne({ status: 'COMPLETED' })
-    .sort({ createdAt: -1 })
-    .lean()
-    .exec();
-
-  const totalCompleted = await BackupLogModel.countDocuments({ status: 'COMPLETED' }).exec();
+  // The two backup-log reads are independent of each other and of the settings
+  // read, so they no longer run as three sequential round trips.
+  const [{ settings }, latestCompleted, totalCompleted] = await Promise.all([
+    settingsService.getSettings(),
+    BackupLogModel.findOne({ status: 'COMPLETED' }).sort({ createdAt: -1 }).lean().exec(),
+    BackupLogModel.countDocuments({ status: 'COMPLETED' }).exec(),
+  ]);
 
   const enabled = settings.backupPolicy.backupEnabled ?? true;
   const keyConfigured = isEncryptionKeyConfigured();

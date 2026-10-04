@@ -1,17 +1,16 @@
+/* Layout only: width and gutter come from the shell's .content. */
 .container {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  padding: var(--space-4);
-  max-width: 1200px;
-  margin: 0 auto;
   width: 100%;
 }
 
-.header {
+/* Same page-header bar as every other screen (.headerRow). */
+.headerRow {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
   flex-wrap: wrap;
   gap: var(--space-3);
 }
@@ -56,13 +55,13 @@
 .bannerSuccess {
   background: var(--color-success-subtle);
   border: 1px solid var(--color-success);
-  color: var(--color-success);
+  color: var(--color-success-text);
 }
 
 .bannerError {
   background: var(--color-danger-subtle);
   border: 1px solid var(--color-danger);
-  color: var(--color-danger);
+  color: var(--color-danger-text);
 }
 
 .tableSection {
@@ -71,23 +70,10 @@
   gap: var(--space-2);
 }
 
-.tableHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.tableHeader h2 {
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
-  color: var(--color-text-primary);
-  margin: 0;
-}
-
 .userInfo {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0-5);
 }
 
 .userName {
@@ -106,10 +92,10 @@
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding: 1px 6px;
+  padding: 1px var(--space-1-5);
   font-size: var(--text-xs);
-  margin-right: 4px;
-  margin-bottom: 2px;
+  margin-right: var(--space-1);
+  margin-bottom: var(--space-0-5);
 }
 
 .codeText {
@@ -148,7 +134,7 @@
   font-weight: var(--font-semibold);
   color: var(--color-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-label);
 }
 
 .formInput {
@@ -162,7 +148,7 @@
 
 .formInput:focus {
   outline: none;
-  border-color: var(--color-primary);
+  border-color: var(--color-primary-text);
 }
 
 .checkboxGrid {
@@ -185,14 +171,10 @@
   cursor: pointer;
 }
 
-.unauthorizedWrapper {
-  display: flex;
+/* Card supplies the surface; only the row direction is layout. */
+.restrictedRow {
+  flex-direction: row;
   align-items: flex-start;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-1);
 }
 
 .unauthorizedTitle {

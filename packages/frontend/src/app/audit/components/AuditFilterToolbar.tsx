@@ -21,13 +21,20 @@ export function AuditFilterToolbar({
   eventTypeFilter,
   onEventTypeChange,
 }: AuditFilterToolbarProps) {
+  const resetFilters = () => {
+    onSearchChange('');
+    onSeverityChange('');
+    onEventTypeChange('');
+  };
+
   return (
     <FilterToolbar
       searchValue={searchTerm}
       onSearchChange={onSearchChange}
       searchPlaceholder="Search Actor, Event, Resource, IP..."
       searchAriaLabel="Search audit logs"
-      onReset={() => onSearchChange('')}
+      onReset={resetFilters}
+      hasActiveFilters={Boolean(searchTerm || severityFilter || eventTypeFilter)}
     >
       <Select
         aria-label="Filter by Severity"

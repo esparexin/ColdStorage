@@ -6,6 +6,7 @@ import { Select } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { useSettings } from '@/context/SettingsContext';
+import { ORG_NAME_FALLBACK } from '@/lib/branding';
 import styles from './AppHeader.module.css';
 
 interface AppHeaderProps {
@@ -22,7 +23,7 @@ export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHea
   // and pages render their own error/empty states from FacilityContext.facilitiesError.
   const facilities = availableFacilities;
 
-  const orgName = settings?.orgName || 'Cold Storage';
+  const orgName = settings?.orgName || ORG_NAME_FALLBACK;
   const logoAssetId = settings?.logoAssetId;
 
   return (
@@ -42,7 +43,7 @@ export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHea
           </button>
         )}
         {logoAssetId ? (
-          <div className={styles.left}>
+          <div className={styles.brand}>
             <img
               src={`/api/assets/${encodeURIComponent(logoAssetId)}`}
               alt={orgName}

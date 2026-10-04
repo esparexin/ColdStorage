@@ -6,43 +6,23 @@ import { StatCard, StatGrid } from '@/components/ui';
 
 export function KpiGrid({ summary }: { summary: DashboardSummary }) {
   return (
-    <StatGrid label="Key performance indicators" minTileWidth={180}>
+    <StatGrid label="Key performance indicators">
       <StatCard
         label="Stock on Hand"
-        value={summary.totalStockBags.toLocaleString('en-IN')}
-        sub="bags currently stored"
-        accent="primary"
-      />
-      <StatCard
-        label="Chambers in Use"
-        value={summary.chamberStock.length}
-        sub="chamber labels holding stock"
-        accent="primary"
+        value={`${summary.totalStockBags.toLocaleString('en-IN')} bags`}
       />
       <StatCard
         label="Monthly Inward"
-        value={summary.monthlyInwardBags.toLocaleString('en-IN')}
-        sub="bags received this month"
+        value={`${summary.monthlyInwardBags.toLocaleString('en-IN')} bags`}
         accent="success"
       />
       <StatCard
         label="Monthly Delivered"
-        value={summary.monthlyDeliveredBags.toLocaleString('en-IN')}
-        sub="net bags delivered this month"
-        accent="warning"
-      />
-      <StatCard
-        label="Open GRNs"
-        value={summary.activeGrns}
-        sub="active inward receipts"
+        value={`${summary.monthlyDeliveredBags.toLocaleString('en-IN')} bags`}
         accent="primary"
       />
-      <StatCard
-        label="Closed GRNs"
-        value={summary.closedGrns}
-        sub="completed receipts"
-        accent="success"
-      />
+      <StatCard label="Open GRNs" value={summary.activeGrns} accent="warning" />
+      <StatCard label="Closed GRNs" value={summary.closedGrns} />
     </StatGrid>
   );
 }

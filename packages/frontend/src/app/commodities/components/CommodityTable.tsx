@@ -9,10 +9,24 @@ import { Badge, Button } from '@/components/ui';
 interface CommodityTableProps {
   commodities: Commodity[];
   canManage: boolean;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalCommodities: number;
+  onPageChange: (page: number) => void;
   onToggleActive: (commodity: Commodity) => void;
 }
 
-export function CommodityTable({ commodities, canManage, onToggleActive }: CommodityTableProps) {
+export function CommodityTable({
+  commodities,
+  canManage,
+  page,
+  pageSize,
+  totalPages,
+  totalCommodities,
+  onPageChange,
+  onToggleActive,
+}: CommodityTableProps) {
   const columns: DataTableColumn<Commodity>[] = [
     {
       key: 'name',
@@ -61,6 +75,13 @@ export function CommodityTable({ commodities, canManage, onToggleActive }: Commo
       columns={columns}
       rows={commodities}
       rowKey={(row) => row.id}
+      pagination={{
+        page,
+        pageSize,
+        totalPages,
+        totalRecords: totalCommodities,
+        onPageChange,
+      }}
       caption="Commodity catalog"
     />
   );

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { CheckCircle2, Plus, RefreshCw, ShieldAlert } from 'lucide-react';
 import { can, type Role, type UserSummary } from '@cold-storage/contracts';
-import { Button } from '@/components/ui';
+import { Button, Card } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { UserFilterBar } from './components/UserFilterBar';
@@ -74,7 +74,7 @@ export default function UsersPage() {
   if (!canManage) {
     return (
       <div className={styles.container}>
-        <div className={styles.unauthorizedWrapper}>
+        <Card className={styles.restrictedRow}>
           <ShieldAlert size={20} color="var(--color-danger)" aria-hidden="true" />
           <div>
             <p className={styles.unauthorizedTitle}>Restricted Access</p>
@@ -82,14 +82,14 @@ export default function UsersPage() {
               Requires the &lsquo;user:manage&rsquo; permission.
             </p>
           </div>
-        </div>
+      </Card>
       </div>
     );
   }
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
+      <header className={styles.headerRow}>
         <div className={styles.titleArea}>
           <h1>User Management & Access Control</h1>
         </div>
@@ -129,12 +129,6 @@ export default function UsersPage() {
       />
 
       <section className={styles.tableSection}>
-        <div className={styles.tableHeader}>
-          <h2>
-            Authorized Accounts ({filteredUsers.length} shown, {totalUsers} total)
-          </h2>
-        </div>
-
         <UserTable
           users={filteredUsers}
           totalUsers={totalUsers}

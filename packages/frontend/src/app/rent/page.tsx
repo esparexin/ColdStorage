@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { can, type Role, type RentSummaryDto } from '@cold-storage/contracts';
+import { can, type PaymentStatus,
+  type Role, type RentSummaryDto } from '@cold-storage/contracts';
+import { FilterToolbar } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useAuth } from '@/context/AuthContext';
 import { CollectPaymentModal } from './components/CollectPaymentModal';
-import { RentFilterToolbar } from './components/RentFilterToolbar';
 import { RentHistoryModal } from './components/RentHistoryModal';
 import { RentKpiCards } from './components/RentKpiCards';
 import { RentTable } from './components/RentTable';
@@ -25,7 +26,12 @@ export default function RentPage() {
     statusFilter,
     setStatusFilter,
     metrics,
-    filteredAccounts,
+    pagedAccounts,
+    totalAccounts,
+    totalPages,
+    page,
+    setPage,
+    pageSize,
     fetchRentAccounts,
   } = useRentData();
 
@@ -57,16 +63,30 @@ export default function RentPage() {
       ) : (
         <>
           <RentKpiCards metrics={metrics} />
-
-          <RentFilterToolbar
-            searchTerm={searchTerm}
+          <FilterToolbar
+            searchValue={searchTerm}
             onSearchChange={setSearchTerm}
-            statusFilter={statusFilter}
-            onStatusChange={setStatusFilter}
+            searchPlaceholder="Search GRN #, Customer, Mobile, Commodity..."
+            searchAriaLabel="Search rent billing"
+            searchInputId="rent-search-input"
+            selects={[
+              {
+                id: 'rent-status-filter',
+                ariaLabel: 'Filter by Payment Status',
+                value: statusFilter,
+                onChange: (v) => setStatusFilter(v as '' | PaymentStatus),
+                options: [
+                  { value: '', label: 'All Payment Statuses' },
+                  { value: 'Not Settled', label: 'Not Settled (Pending Dues)' },
+                  { value: 'Settled', label: 'Settled (Fully Paid)' },
+                ],
+              },
+            ]}
             onReset={() => {
               setStatusFilter('');
               setSearchTerm('');
             }}
+            hasActiveFilters={Boolean(statusFilter || searchTerm)}
           />
 
           {loading ? (
@@ -83,9 +103,14 @@ export default function RentPage() {
             />
           ) : (
             <RentTable
-              accounts={filteredAccounts}
+              accounts={pagedAccounts}
               facilityName={currentFacilityName ?? ''}
               canCollect={canCollect}
+              page={page}
+              pageSize={pageSize}
+              totalPages={totalPages}
+              totalAccounts={totalAccounts}
+              onPageChange={setPage}
               onOpenCollect={setCollectAccount}
               onOpenHistory={setHistoryAccount}
             />

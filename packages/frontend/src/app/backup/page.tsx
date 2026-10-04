@@ -3,7 +3,7 @@
 import React from 'react';
 import { AlertCircle, CheckCircle2, Play, RefreshCw, ShieldAlert } from 'lucide-react';
 import { can, type BackupStatus, type Role } from '@cold-storage/contracts';
-import { Button } from '@/components/ui';
+import { Button, Card } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { BackupLogTable } from './components/BackupLogTable';
 import { BackupStatusCards } from './components/BackupStatusCards';
@@ -42,7 +42,7 @@ export default function BackupPage() {
   if (!canManage) {
     return (
       <div className={styles.container}>
-        <div className={styles.unauthorizedWrapper}>
+        <Card className={styles.restrictedRow}>
           <ShieldAlert size={20} color="var(--color-danger)" aria-hidden="true" />
           <div>
             <p className={styles.unauthorizedTitle}>Restricted Access</p>
@@ -50,14 +50,14 @@ export default function BackupPage() {
               Backup management requires the &lsquo;backup:manage&rsquo; permission.
             </p>
           </div>
-        </div>
+      </Card>
       </div>
     );
   }
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
+      <header className={styles.headerRow}>
         <div className={styles.titleArea}>
           <h1>Database Backups</h1>
         </div>

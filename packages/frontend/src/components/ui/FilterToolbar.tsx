@@ -3,7 +3,16 @@
 import React from 'react';
 import { Button } from './Button';
 import { SearchBar } from './SearchBar';
+import { Select } from './Select';
 import styles from './FilterToolbar.module.css';
+
+export interface FilterToolbarSelect {
+  id: string;
+  ariaLabel: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
+}
 
 export interface FilterToolbarProps {
   /** Current search text (drives the Reset button visibility). */
@@ -19,7 +28,13 @@ export interface FilterToolbarProps {
   onReset: () => void;
   /** Omit to render no Reset button (read-only filter sets). */
   hasActiveFilters?: boolean;
-  /** Filter controls (typically `Select` primitives). */
+  /**
+   * Dropdown filters. Screens whose filters vary only by label declare them
+   * here instead of wrapping this component in a per-feature toolbar that
+   * would differ only in strings.
+   */
+  selects?: FilterToolbarSelect[];
+  /** Arbitrary filter controls for screens that need more than a Select. */
   children?: React.ReactNode;
 }
 
@@ -31,8 +46,30 @@ export function FilterToolbar({
   searchInputId,
   onReset,
   hasActiveFilters,
+  selects,
   children,
 }: FilterToolbarProps) {
+  const filters = (
+    <>
+      {selects?.map((select) => (
+        <Select
+          key={select.id}
+          id={select.id}
+          aria-label={select.ariaLabel}
+          value={select.value}
+          onChange={(e) => select.onChange(e.target.value)}
+        >
+          {select.options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
+      ))}
+      {children}
+    </>
+  );
+
   return (
     <div className={styles.toolbar}>
       <div className={styles.searchSlot}>
@@ -46,15 +83,11 @@ export function FilterToolbar({
         />
       </div>
 
-      {children && (
+      {(selects?.length || children) && (
         <div className={styles.filterSlot}>
-          {children}
+          {filters}
           {hasActiveFilters && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={onReset}
-            >
+            <Button variant="secondary" size="sm" onClick={onReset}>
               Reset
             </Button>
           )}

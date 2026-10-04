@@ -18,6 +18,11 @@ interface GrnTableProps {
   caption: string;
   canPrint: boolean;
   printingId: string | null;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalGrns: number;
+  onPageChange: (page: number) => void;
   onSelectGrn: (grn: Grn) => void;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
 }
@@ -27,6 +32,11 @@ export function GrnTable({
   caption,
   canPrint,
   printingId,
+  page,
+  pageSize,
+  totalPages,
+  totalGrns,
+  onPageChange,
   onSelectGrn,
   onPrint,
 }: GrnTableProps) {
@@ -71,13 +81,13 @@ export function GrnTable({
         const closing = row.closingBags ?? 0;
         return (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-            <span style={{ fontWeight: 600 }}>{row.bags.toLocaleString('en-IN')} in</span>
+            <span style={{ fontWeight: 'var(--font-semibold)' }}>{row.bags.toLocaleString('en-IN')} in</span>
             {row.netDeliveredBags != null && row.netDeliveredBags > 0 && (
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
                 Del: {row.netDeliveredBags.toLocaleString('en-IN')}
               </span>
             )}
-            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: closing === 0 ? 'var(--color-text-muted)' : 'var(--color-primary)' }}>
+            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: closing === 0 ? 'var(--color-text-muted)' : 'var(--color-primary)' }}>
               Bal: {closing.toLocaleString('en-IN')}
             </span>
           </div>
@@ -181,6 +191,7 @@ export function GrnTable({
       rows={grns}
       rowKey={(r) => r.id}
       caption={caption}
+      pagination={{ page, pageSize, totalPages, totalRecords: totalGrns, onPageChange }}
     />
   );
 }

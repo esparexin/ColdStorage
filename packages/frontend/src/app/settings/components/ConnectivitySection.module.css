@@ -1,12 +1,4 @@
-.section {
-  background: var(--color-surface-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
+/* Removed: the bordered surface now comes from the Card primitive. */
 
 .header {
   display: flex;
@@ -16,44 +8,17 @@
 }
 
 .title {
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-}
-
-.caption {
-  caption-side: top;
-  text-align: left;
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-  padding-bottom: var(--space-2);
-}
-
-.rowLabel {
-  text-align: left;
-  font-weight: var(--font-medium);
-  color: var(--color-text-secondary);
-  padding: var(--space-1) var(--space-3) var(--space-1) 0;
-  white-space: nowrap;
-}
-
-.rowValue {
-  padding: var(--space-1) 0;
-  word-break: break-all;
-}
-
 .valueOk {
-  color: var(--color-success);
+  color: var(--color-success-text);
 }
 
 .valueFail {
-  color: var(--color-danger);
+  color: var(--color-danger-text);
 }
 
 .checkedAt {

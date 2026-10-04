@@ -13,6 +13,34 @@ export class RentRepository {
       .exec();
   }
 
+  /**
+   * Every payment for a facility in a single round trip, grouped by GRN.
+   *
+   * The rent list previously called findPaymentsByGrnId once per GRN, which
+   * turned one page view into ~100 sequential MongoDB queries. Grouping in the
+   * database returns the same rows in one pass; the caller reassembles them per
+   * GRN using the same ordering as findPaymentsByGrnId.
+   */
+  public async findPaymentsByFacilityGrouped(
+    facilityId: string,
+  ): Promise<Map<string, RentPaymentDoc[]>> {
+    const docs = await RentPaymentModel.find({ facilityId }, null, { lean: true })
+      .sort({ paymentDate: -1, _id: -1 })
+      .lean<RentPaymentDoc[]>()
+      .exec();
+
+    const grouped = new Map<string, RentPaymentDoc[]>();
+    for (const doc of docs) {
+      const existing = grouped.get(doc.grnId);
+      if (existing) {
+        existing.push(doc);
+      } else {
+        grouped.set(doc.grnId, [doc]);
+      }
+    }
+    return grouped;
+  }
+
   public async getTotalPaidForGrn(
     facilityId: string,
     grnId: string,

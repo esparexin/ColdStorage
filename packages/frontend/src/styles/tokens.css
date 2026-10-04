@@ -6,21 +6,28 @@
 
 :root {
   /* ---- Brand palette ---- */
+  /* Each hue has two roles with different contrast requirements:
+       --color-*        fill / border  (button background, progress bar, outline)
+       --color-*-text   foreground     (links, badge labels, alerts, inline text)
+     The -text variants are darkened to clear WCAG AA 4.5:1 as normal text on
+     their own -subtle surface and on --color-surface-1. */
   --color-primary:        hsl(220, 90%, 56%);
   --color-primary-hover:  hsl(220, 90%, 48%);
   --color-primary-subtle: hsl(220, 90%, 96%);
+  --color-primary-text:   hsl(220, 90%, 52%);
 
   --color-success:        hsl(145, 65%, 42%);
   --color-success-subtle: hsl(145, 65%, 95%);
+  --color-success-text:   hsl(145, 65%, 29.5%);
 
   --color-warning:        hsl(38, 92%, 50%);
   --color-warning-subtle: hsl(38, 92%, 96%);
+  --color-warning-text:   hsl(38, 92%, 31%);
 
   --color-danger:         hsl(0, 72%, 51%);
   --color-danger-hover:  hsl(0, 72%, 44%);
   --color-danger-subtle:  hsl(0, 72%, 96%);
-
-  --color-inactive:       hsl(0, 0%, 60%);
+  --color-danger-text:    hsl(0, 72%, 48%);
 
   /* ---- Neutral surface scale ---- */
   --color-surface-0:      hsl(220, 20%, 98%);   /* page bg */
@@ -28,11 +35,15 @@
   --color-surface-2:      hsl(220, 14%, 95%);   /* subtle bg */
   --color-border:         hsl(220, 14%, 90%);
   --color-border-strong:  hsl(220, 14%, 80%);
+  /* Modal scrim / drawer scrim. One token so both dim identically. */
+  --color-scrim:          hsla(220, 20%, 12%, 0.55);
 
   /* ---- Text ---- */
   --color-text-primary:   hsl(220, 20%, 12%);
   --color-text-secondary: hsl(220, 14%, 40%);
-  --color-text-muted:     hsl(220, 14%, 60%);
+  /* Muted is still body-weight readable: 5.2:1 on surface-1, 4.6:1 on surface-2,
+     so table headers and 12px micro-labels clear AA. */
+  --color-text-muted:     hsl(220, 14%, 45%);
   --color-text-on-accent: hsl(0, 0%, 100%);
 
   /* ---- Sidebar ---- */
@@ -41,39 +52,42 @@
   --color-sidebar-active: hsl(220, 90%, 56%);
   --color-sidebar-hover:  hsl(222, 30%, 18%);
 
-  /* ---- Typography ---- */
+  /* ---- Typography ----
+     Compact admin density. Each step has exactly one role; do not add steps
+     without a role. All sizes keep >= 4.5:1 against --color-surface-1. */
   --font-sans: var(--font-inter, 'Inter', system-ui, -apple-system, sans-serif);
   --font-mono: ui-monospace, 'Cascadia Code', monospace;
 
-  --text-xs:   0.75rem;
-  --text-sm:   0.875rem;
-  --text-base: 1rem;
-  --text-lg:   1.125rem;
-  --text-xl:   1.25rem;
-  --text-2xl:  1.5rem;
-  --text-3xl:  1.875rem;
+  --text-xs:   0.75rem;   /* 12px — micro-label, table header, badge */
+  --text-sm:   0.875rem;  /* 14px — body, table cell, control text (default) */
+  --text-base: 1rem;      /* 16px — section title (h2), dialog title */
+  --text-lg:   1.125rem;  /* 18px — page title (h1) */
+  --text-xl:   1.25rem;   /* 20px — KPI value (focal data point) */
 
   --font-normal:   400;
   --font-medium:   500;
   --font-semibold: 600;
   --font-bold:     700;
 
+  /* Tracking. Two roles only: tightened headings, wide uppercase micro-labels. */
+  --tracking-tight:  -0.02em;
+  --tracking-label:  0.05em;
+
   /* ---- Spacing ---- */
+  --space-0-5: 0.125rem;
   --space-1: 0.25rem;
+  --space-1-5: 0.375rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
   --space-4: 1rem;
   --space-5: 1.25rem;
   --space-6: 1.5rem;
   --space-8: 2rem;
-  --space-10: 2.5rem;
-  --space-12: 3rem;
 
   /* ---- Radius ---- */
   --radius-sm:  0.25rem;
   --radius-md:  0.5rem;
   --radius-lg:  0.75rem;
-  --radius-xl:  1rem;
   --radius-full: 9999px;
 
   /* ---- Shadow ---- */
@@ -85,12 +99,21 @@
 
   /* ---- Transitions ---- */
   --transition-fast: 120ms ease;
-  --transition-base: 200ms ease;
-  --transition-slow: 300ms ease;
+
+  /* ---- Focus ring (WCAG 2.4.11 / 2.4.13) ----
+     Single recipe for every focusable control. The ring is drawn with
+     outline so it never shifts layout, and uses --color-primary
+     (hsl(220 90% 56%)) which clears 3:1 against both surfaces. */
+  --focus-ring-width:  2px;
+  --focus-ring-offset: 2px;
+
+  /* ---- Control sizing ---- */
+  --control-height-sm: 28px;
+  --control-height-md: 32px;
+  --control-height-lg: 40px;
 
   /* ---- Layout ---- */
   --sidebar-width:         216px;
-  --sidebar-width-mobile:  240px;
   --header-height:         56px;
 }
 
@@ -120,7 +143,7 @@ body {
 }
 
 a {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   text-decoration: none;
 }
 

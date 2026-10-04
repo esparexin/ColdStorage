@@ -55,24 +55,27 @@ export async function getDeliverySummary(
   facilityId: string,
   grnId: string,
 ): Promise<DeliverySummary> {
-  const grn = await GrnModel.findOne({ id: grnId, facilityId }).lean().exec();
+  // Every read below keys only on (facilityId, grnId), both of which the caller
+  // already supplied, so they run concurrently rather than in sequence.
+  const [grn, issuedAgg, challanDocs] = await Promise.all([
+    GrnModel.findOne({ id: grnId, facilityId }).lean().exec(),
+    DeliveryChallanModel.aggregate([
+      { $match: { grnId, facilityId, status: 'ISSUED' } },
+      { $group: { _id: null, total: { $sum: '$bags' } } },
+    ]),
+    DeliveryChallanModel.find({ facilityId, grnId })
+      .sort({ date: -1, createdAt: -1 })
+      .lean()
+      .exec(),
+  ]);
+
   if (!grn) {
     throw new Error(`GRN '${grnId}' not found in facility '${facilityId}'`);
   }
 
-  const issuedAgg = await DeliveryChallanModel.aggregate([
-    { $match: { grnId, facilityId, status: 'ISSUED' } },
-    { $group: { _id: null, total: { $sum: '$bags' } } },
-  ]);
-
   const netDeliveredBags = issuedAgg[0]?.total ?? 0;
   const remainingDeliveryBalance = Math.max(0, grn.bags - netDeliveredBags);
   const physicallyStoredBags = remainingDeliveryBalance;
-
-  const challanDocs = await DeliveryChallanModel.find({ facilityId, grnId })
-    .sort({ date: -1, createdAt: -1 })
-    .lean()
-    .exec();
 
   return {
     grnId: grn.id,

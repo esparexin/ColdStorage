@@ -17,13 +17,18 @@ export function UserFilterBar({
   roleFilter,
   onRoleFilterChange,
 }: UserFilterBarProps) {
+  const resetFilters = () => {
+    onSearchChange('');
+    onRoleFilterChange('');
+  };
+
   return (
     <FilterToolbar
       searchValue={searchTerm}
       onSearchChange={onSearchChange}
       searchPlaceholder="Search by name, username, employee ID, mobile, or email..."
       searchAriaLabel="Search users"
-      onReset={() => onSearchChange('')}
+      onReset={resetFilters}
       hasActiveFilters={Boolean(searchTerm || roleFilter)}
     >
       <Select

@@ -7,7 +7,7 @@
 ## 1. Frontend inventory
 
 - Framework: Next.js 14 App Router, `src/app/*/page.tsx`, `next.config.mjs` rewrites `/api/:path*` → backend `:4000/api/:path*`.
-- Routes (12): `/`, `/grns`, `/inventory?grnId=`, `/deliveries`, `/rent`, `/customers`, `/commodities`, `/settings`, `/import-export`, `/audit`, `/backup`, `/users`.
+- Routes (11): `/`, `/grns`, `/deliveries`, `/rent`, `/customers`, `/commodities`, `/settings`, `/import-export`, `/audit`, `/backup`, `/users`. (`/inventory` was consolidated into the dashboard.)
 - Primitives (`components/ui/index.ts`, 10): `Button`, `Input`, `Select`, `Badge`, `Card`, `SearchBar`, `Modal`, `Pagination`, `DataTable`, `FeedbackStates`.
 - Client: `lib/api-client.ts` (`requestWithAuth` + single-flight `POST /api/auth/refresh`, Bearer memory-only, `credentials:include`).
 - Contexts: `AuthContext` (login/logout/change-password), `FacilityContext` (`GET /api/facilities`), `SettingsContext` (`GET /api/settings`).
@@ -17,9 +17,9 @@
 | Primitive | Status | Evidence |
 |---|---|---|
 | `Button` | ✅ widely used | Canonical DS Button across all action, form, and modal submits |
-| `Input` | ⚠️ partial | Form modals migrate progressively to DS Input |
+| `Input` | ⚠️ partial | Login form and forced password-change modal migrated; feature-stylesheet `.fieldInput` copies remain and migrate progressively |
 | `Select` | ✅ enforced | Bound by boundary governance Rule 11 (zero native `<select>` outside `ui/Select.tsx`) |
-| `Card` | ❌ 0 `<Card` usages | Specialized domain cards (`KpiGrid`, `RentKpiCards`, `BackupStatusCards`) |
+| `Card` | ✅ single surface | The one bordered-surface recipe. Wraps content groups in import-export and Settings; deliberately never wraps a `DataTable`, which already draws its own surface |
 | `SearchBar` | ✅ toolbars | Canonical search bar primitive across filter toolbars |
 | `Modal/DataTable/Badge/Pagination/FeedbackStates` | ✅ consistent | Modals, tables, status badges, and feedback states unified |
 
@@ -71,7 +71,6 @@ Per architecture governance, 8 fully implemented and tested backend endpoints ar
 ## 6. Remaining tracked (not in this PR to avoid size/duplication)
 
 - Migrate remaining 22 native `<select>`s and tab/combobox/icon `<button>`s to `Select`/`Button` one route at a time.
-- Unify 3 KPI card systems and 5 filter toolbars into single canonical components.
 - Add `loading.tsx`/`error.tsx` only if App Router gaps proven; add `eslint-plugin-jsx-a11y` as lint enforcement.
 - Extend `e2e/critical-flows.spec.ts` beyond mocks (rent collect/print, reversal, put-away→ledger).
 

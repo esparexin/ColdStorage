@@ -10,11 +10,6 @@ interface BackupStatusCardsProps {
   backupStatus: BackupStatusResponse | null;
 }
 
-/**
- * Reports the encrypted-archive backup subsystem exactly as the backend implements it.
- * Every tile is derived from an observed field; nothing is asserted about providers,
- * scheduling or platforms that this codebase does not integrate with.
- */
 export function BackupStatusCards({ backupStatus }: BackupStatusCardsProps) {
   const archive = backupStatus?.encryptedArchive;
   const configured = archive?.configured ?? false;
@@ -37,32 +32,14 @@ export function BackupStatusCards({ backupStatus }: BackupStatusCardsProps) {
         </p>
       )}
 
-      <StatGrid label="Backup configuration and history">
+      <StatGrid label="Backup status">
         <StatCard
-          label="Encryption"
-          value="AES-256-GCM"
-          sub="SHA-256 checksum recorded per archive"
-        />
-        <StatCard
-          label="Retention recorded"
+          label="Retention"
           value={archive?.retentionDays ?? '—'}
-          sub="Days, stored as the archive expiry date"
+          accent="primary"
         />
-        <StatCard
-          label="Last completed run"
-          value={formatDate(archive?.lastBackupAt)}
-        />
-        <StatCard
-          label="Completed backups"
-          value={archive?.totalCompletedBackups ?? 0}
-        />
+        <StatCard label="Last Completed Run" value={formatDate(archive?.lastBackupAt)} />
       </StatGrid>
-
-      <p className={styles.limitations}>
-        Archives are written to the backend's local storage directory. Backups are started
-        manually, expired archives are not deleted automatically, and restoring an archive is
-        not currently available in the application.
-      </p>
     </div>
   );
 }

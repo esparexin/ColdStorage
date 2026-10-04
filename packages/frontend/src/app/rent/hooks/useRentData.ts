@@ -3,18 +3,33 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PaymentStatus, RentSummaryDto } from '@cold-storage/contracts';
 import { useFacility } from '@/context/FacilityContext';
+import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
-import type { GrnListItem } from '../types';
+
+export const RENT_PAGE_SIZE = 20;
 
 export function useRentData() {
   const { selectedFacilityId, availableFacilities } = useFacility();
 
   const [rentSummaries, setRentSummaries] = useState<RentSummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const beginRequest = useRequestGuard();
   const [error, setError] = useState<string | null>(null);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'' | PaymentStatus>('');
+  const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTermRaw] = useState('');
+
+  // Search and status narrow the client-side set, so page 1 is the only valid page.
+  const setSearchTerm = useCallback((v: string) => {
+    setSearchTermRaw(v);
+    setPage(1);
+  }, []);
+  const [statusFilter, setStatusFilterRaw] = useState<'' | PaymentStatus>('');
+
+  const setStatusFilter = useCallback((v: '' | PaymentStatus) => {
+    setStatusFilterRaw(v);
+    setPage(1);
+  }, []);
 
   const fetchRentAccounts = useCallback(async () => {
     if (!selectedFacilityId) {
@@ -25,37 +40,21 @@ export function useRentData() {
 
     setLoading(true);
     setError(null);
+    const isCurrent = beginRequest();
     try {
-      const grnRes = await requestWithAuth(
-        `/api/facilities/${encodeURIComponent(selectedFacilityId)}/grns?limit=100`,
+      // One request for the whole facility. This used to fetch the GRN list and
+      // then call /rent/grn/:id once per GRN, which cost ~100 requests and
+      // roughly 400 MongoDB round trips per page view.
+      const res = await requestWithAuth(
+        `/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/summaries`,
       );
-      if (!grnRes.ok) {
-        const err = (await grnRes.json()) as { error?: string };
-        throw new Error(err.error ?? `HTTP ${grnRes.status}`);
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        throw new Error(err.error ?? `HTTP ${res.status}`);
       }
-      const grnData = (await grnRes.json()) as { items?: GrnListItem[] };
-      const grns = grnData.items ?? [];
-
-      const summaries: RentSummaryDto[] = [];
-      const results = await Promise.allSettled(
-        grns.map(async (g) => {
-          const res = await requestWithAuth(
-            `/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/grn/${encodeURIComponent(g.id)}`,
-          );
-          if (res.ok) {
-            return (await res.json()) as RentSummaryDto;
-          }
-          return null;
-        }),
-      );
-
-      for (const res of results) {
-        if (res.status === 'fulfilled' && res.value) {
-          summaries.push(res.value);
-        }
-      }
-
-      setRentSummaries(summaries);
+      const data = (await res.json()) as { summaries?: RentSummaryDto[] };
+            if (!isCurrent()) return;
+setRentSummaries(data.summaries ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load rent billing accounts');
     } finally {
@@ -66,20 +65,6 @@ export function useRentData() {
   useEffect(() => {
     void fetchRentAccounts();
   }, [fetchRentAccounts]);
-
-  const metrics = useMemo(() => {
-    let totalBilled = 0;
-    let totalCollected = 0;
-    let totalOutstanding = 0;
-
-    for (const acc of rentSummaries) {
-      totalBilled += acc.rentAmount;
-      totalCollected += acc.totalPaid;
-      totalOutstanding += acc.remainingBalance;
-    }
-
-    return { totalBilled, totalCollected, totalOutstanding };
-  }, [rentSummaries]);
 
   const filteredAccounts = useMemo(() => {
     return rentSummaries.filter((acc) => {
@@ -93,6 +78,29 @@ export function useRentData() {
       return matchSearch && matchStatus;
     });
   }, [rentSummaries, searchTerm, statusFilter]);
+
+  // Derived from the filtered set so the totals always describe exactly the
+  // rows in the table below them, rather than the unfiltered facility totals.
+  const metrics = useMemo(() => {
+    let totalBilled = 0;
+    let totalCollected = 0;
+    let totalOutstanding = 0;
+
+    for (const acc of filteredAccounts) {
+      totalBilled += acc.rentAmount;
+      totalCollected += acc.totalPaid;
+      totalOutstanding += acc.remainingBalance;
+    }
+
+    return { totalBilled, totalCollected, totalOutstanding };
+  }, [filteredAccounts]);
+
+  const totalPages = Math.ceil(filteredAccounts.length / RENT_PAGE_SIZE);
+
+  const pagedAccounts = filteredAccounts.slice(
+    (page - 1) * RENT_PAGE_SIZE,
+    page * RENT_PAGE_SIZE,
+  );
 
   const currentFacilityName = useMemo(() => {
     return availableFacilities.find((f) => f.id === selectedFacilityId)?.name ?? selectedFacilityId;
@@ -110,6 +118,12 @@ export function useRentData() {
     setStatusFilter,
     metrics,
     filteredAccounts,
+    pagedAccounts,
+    totalAccounts: filteredAccounts.length,
+    totalPages,
+    page,
+    setPage,
+    pageSize: RENT_PAGE_SIZE,
     fetchRentAccounts,
   };
 }

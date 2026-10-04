@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { PRODUCT_NAME } from '@/lib/branding';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/context/AuthContext';
 import { FacilityProvider } from '@/context/FacilityContext';
@@ -13,7 +14,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Cold Storage Management',
+  title: PRODUCT_NAME,
   description: 'Operational dashboard for cold storage facility management.',
 };
 

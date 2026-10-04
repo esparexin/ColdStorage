@@ -19,6 +19,11 @@ interface DeliveryTableProps {
   canPrint: boolean;
   canReverse: boolean;
   printingId: string | null;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalDeliveries: number;
+  onPageChange: (page: number) => void;
   onSelectDelivery: (delivery: DeliveryChallan) => void;
   onPrintChallan: (challanId: string) => void;
   onStartReversal: (delivery: DeliveryChallan) => void;
@@ -30,6 +35,11 @@ export function DeliveryTable({
   canPrint,
   canReverse,
   printingId,
+  page,
+  pageSize,
+  totalPages,
+  totalDeliveries,
+  onPageChange,
   onSelectDelivery,
   onPrintChallan,
   onStartReversal,
@@ -54,7 +64,7 @@ export function DeliveryTable({
     {
       key: 'grnNumber',
       header: 'GRN Source',
-      render: (row) => <span style={{ fontWeight: 600 }}>{row.grnNumber}</span>,
+      render: (row) => <span style={{ fontWeight: 'var(--font-semibold)' }}>{row.grnNumber}</span>,
     },
     {
       key: 'customerName',
@@ -76,7 +86,7 @@ export function DeliveryTable({
       header: 'Delivered Bags',
       align: 'right',
       render: (row) => (
-        <span style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>
+        <span style={{ fontWeight: 'var(--font-bold)', fontSize: 'var(--text-sm)' }}>
           {row.totalBags.toLocaleString('en-IN')} bags
         </span>
       ),
@@ -162,6 +172,13 @@ export function DeliveryTable({
       rows={deliveries}
       rowKey={(r) => r.id}
       caption={caption}
+      pagination={{
+        page,
+        pageSize,
+        totalPages,
+        totalRecords: totalDeliveries,
+        onPageChange,
+      }}
     />
   );
 }

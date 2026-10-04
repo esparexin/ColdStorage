@@ -5,14 +5,21 @@ import type {
   Grn,
   GrnStatus,
 } from '@cold-storage/contracts';
+import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
+
+export const GRN_PAGE_SIZE = 20;
 
 export function useGrns(
   selectedFacilityId: string | null,
   availableFacilities: Array<{ id: string; name: string }>,
 ) {
   const [grns, setGrns] = useState<Grn[]>([]);
+  const [totalGrns, setTotalGrns] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const beginRequest = useRequestGuard();
   const [error, setError] = useState<string | null>(null);
 
   // Lookups
@@ -21,9 +28,15 @@ export function useGrns(
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'' | GrnStatus>('');
-  const [customerFilter, setCustomerFilter] = useState('');
-  const [commodityFilter, setCommodityFilter] = useState('');
+  const [statusFilter, setStatusFilterRaw] = useState<'' | GrnStatus>('');
+  const [customerFilter, setCustomerFilterRaw] = useState('');
+  const [commodityFilter, setCommodityFilterRaw] = useState('');
+
+  // Server-side filters narrow the result set, so the current page number is
+  // no longer valid once one changes.
+  const setStatusFilter = useCallback((v: '' | GrnStatus) => { setStatusFilterRaw(v); setPage(1); }, []);
+  const setCustomerFilter = useCallback((v: string) => { setCustomerFilterRaw(v); setPage(1); }, []);
+  const setCommodityFilter = useCallback((v: string) => { setCommodityFilterRaw(v); setPage(1); }, []);
 
   // Fetch Lookups
   const fetchLookups = useCallback(async () => {
@@ -57,9 +70,11 @@ export function useGrns(
 
     setLoading(true);
     setError(null);
+    const isCurrent = beginRequest();
     try {
       const params = new URLSearchParams();
-      params.set('limit', '100');
+      params.set('page', String(page));
+      params.set('limit', String(GRN_PAGE_SIZE));
       if (statusFilter) params.set('status', statusFilter);
       if (customerFilter) params.set('customerId', customerFilter);
       if (commodityFilter) params.set('commodityId', commodityFilter);
@@ -70,14 +85,17 @@ export function useGrns(
         const err = (await res.json()) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
-      const data = (await res.json()) as { items?: Grn[] };
+      const data = (await res.json()) as { items?: Grn[]; total?: number };
+      if (!isCurrent()) return;
       setGrns(data.items ?? []);
+      setTotalGrns(data.total ?? 0);
+      setTotalPages(Math.ceil((data.total ?? 0) / GRN_PAGE_SIZE));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load Goods Receipt Notes');
     } finally {
       setLoading(false);
     }
-  }, [selectedFacilityId, statusFilter, customerFilter, commodityFilter]);
+  }, [selectedFacilityId, page, statusFilter, customerFilter, commodityFilter]);
 
   useEffect(() => {
     void fetchLookups();
@@ -120,6 +138,11 @@ export function useGrns(
   return {
     grns,
     filteredGrns,
+    totalGrns,
+    totalPages,
+    page,
+    setPage,
+    pageSize: GRN_PAGE_SIZE,
     loading,
     error,
     customers,

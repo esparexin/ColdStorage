@@ -11,6 +11,11 @@ interface RentTableProps {
   accounts: RentSummaryDto[];
   facilityName: string;
   canCollect: boolean;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalAccounts: number;
+  onPageChange: (page: number) => void;
   onOpenCollect: (acc: RentSummaryDto) => void;
   onOpenHistory: (acc: RentSummaryDto) => void;
 }
@@ -19,6 +24,11 @@ export function RentTable({
   accounts,
   facilityName,
   canCollect,
+  page,
+  pageSize,
+  totalPages,
+  totalAccounts,
+  onPageChange,
   onOpenCollect,
   onOpenHistory,
 }: RentTableProps) {
@@ -28,7 +38,7 @@ export function RentTable({
       header: 'GRN # / Date',
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontWeight: 600 }}>{row.grnNumber}</span>
+          <span style={{ fontWeight: 'var(--font-semibold)' }}>{row.grnNumber}</span>
           <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
             {new Date(row.inwardDate).toLocaleDateString('en-IN', {
               day: '2-digit',
@@ -65,7 +75,7 @@ export function RentTable({
             {row.rentType}
             {row.rentType === 'Monthly' && row.rentMonths ? ` (${row.rentMonths}m)` : ''}
           </span>
-          <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600 }}>
+          <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)' }}>
             ₹{row.rentAmount.toLocaleString('en-IN')}
           </span>
         </div>
@@ -77,13 +87,13 @@ export function RentTable({
       align: 'right',
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-          <span style={{ fontWeight: 600, color: 'var(--color-success)' }}>
+          <span style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-success)' }}>
             Paid: ₹{row.totalPaid.toLocaleString('en-IN')}
           </span>
           <span
             style={{
               fontSize: 'var(--text-xs)',
-              fontWeight: 600,
+              fontWeight: 'var(--font-semibold)',
               color: row.remainingBalance > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)',
             }}
           >
@@ -149,6 +159,7 @@ export function RentTable({
       rows={accounts}
       rowKey={(r) => r.grnId}
       caption={`Rent Accounts for ${facilityName}`}
+      pagination={{ page, pageSize, totalPages, totalRecords: totalAccounts, onPageChange }}
     />
   );
 }

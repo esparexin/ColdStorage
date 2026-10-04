@@ -16,26 +16,11 @@
   font-size: var(--text-lg);
   font-weight: var(--font-bold);
   color: var(--color-text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking-tight);
 }
 
-.pageSub {
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-  margin-top: var(--space-1);
-}
-
-.searchInput {
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: var(--text-sm);
-  color: var(--color-text-primary);
-  width: 100%;
-}
-
+/* Layout only: Modal's .body already owns the padding and the scroll container. */
 .modalForm {
-  padding: var(--space-5);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -44,36 +29,13 @@
 .modalError {
   padding: var(--space-3);
   background: var(--color-danger-subtle);
-  color: var(--color-danger);
+  color: var(--color-danger-text);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
 }
 
-.fieldGroup {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.fieldLabel {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-text-primary);
-}
-
-.fieldInput {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  color: var(--color-text-primary);
-  background: var(--color-surface-1);
-  outline: none;
-  transition: border-color var(--transition-fast);
-}
-
-.fieldInput:focus {
-  border-color: var(--color-primary);
+.checkboxGroup {
+  margin-top: var(--space-3);
 }
 
 .checkboxLabel {
@@ -85,11 +47,14 @@
   cursor: pointer;
 }
 
+/* Form-scoped action row. It sits inside the <form> in the modal body, so it
+   cannot use Modal's footer slot; mirrors the Modal footer separator. */
 .modalFooter {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-3);
-  padding-top: var(--space-4);
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  margin-top: var(--space-1);
   border-top: 1px solid var(--color-border);
 }

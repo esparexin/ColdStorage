@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { AppHeader } from './AppHeader';
 import { SidebarNav } from './SidebarNav';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useAuth } from '@/context/AuthContext';
+import { PRODUCT_NAME } from '@/lib/branding';
 import styles from './ResponsiveShell.module.css';
 
 interface ResponsiveShellProps {
@@ -28,6 +30,11 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Stable identities: SidebarNav's route-change effect depends on `onClose`, so an
+  // inline arrow would re-fire on every parent render and instantly close the drawer.
+  const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
+  const toggleMobileNav = useCallback(() => setMobileNavOpen((prev) => !prev), []);
 
   if (isLoading) {
     return <FeedbackStates.Loading fullPage label="Checking authentication…" />;
@@ -52,7 +59,7 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
       <div className={styles.loginContainer}>
         <div className={styles.loginCard}>
           <div className={styles.loginHeader}>
-            <h1 className={styles.loginTitle}>Cold Storage Management</h1>
+            <h1 className={styles.loginTitle}>{PRODUCT_NAME}</h1>
             <p className={styles.loginSubtitle}>Sign in to access your facility dashboard</p>
           </div>
 
@@ -63,43 +70,33 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
           )}
 
           <form className={styles.loginForm} onSubmit={handleSubmit}>
-            <div className={styles.fieldGroup}>
-              <label htmlFor="username" className={styles.fieldLabel}>
-                Username
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                className={styles.fieldInput}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-                autoCapitalize="none"
-                spellCheck="false"
-                required
-                disabled={isSubmitting}
-                placeholder="Enter username"
-              />
-            </div>
+            <Input
+              id="username"
+              name="username"
+              type="text"
+              label="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck="false"
+              required
+              disabled={isSubmitting}
+              placeholder="Enter username"
+            />
 
-            <div className={styles.fieldGroup}>
-              <label htmlFor="current-password" className={styles.fieldLabel}>
-                Password
-              </label>
-              <input
-                id="current-password"
-                name="password"
-                type="password"
-                className={styles.fieldInput}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-                disabled={isSubmitting}
-                placeholder="Enter password"
-              />
-            </div>
+            <Input
+              id="current-password"
+              name="password"
+              type="password"
+              label="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+              disabled={isSubmitting}
+              placeholder="Enter password"
+            />
 
             <Button type="submit" variant="primary" size="lg" disabled={isSubmitting} isLoading={isSubmitting}>
               {isSubmitting ? 'Signing in…' : 'Sign In'}
@@ -112,14 +109,11 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
 
   return (
     <div className={styles.shell}>
-      <SidebarNav
-        isOpen={mobileNavOpen}
-        onClose={() => setMobileNavOpen(false)}
-      />
+      <SidebarNav isOpen={mobileNavOpen} onClose={closeMobileNav} />
       <div className={styles.main}>
         <AppHeader
           isMobileNavOpen={mobileNavOpen}
-          onToggleMobileNav={() => setMobileNavOpen((prev) => !prev)}
+          onToggleMobileNav={toggleMobileNav}
         />
         <main className={styles.content} id="main-content">
           {children}

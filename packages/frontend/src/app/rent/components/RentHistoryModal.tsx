@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Printer } from 'lucide-react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
-import { Badge, Button, Modal } from '@/components/ui';
+import { Badge, Button, FeedbackStates, Modal, StatCard, StatGrid } from '@/components/ui';
 import { printHtmlDocument } from '@/lib/print-document';
 import styles from '../page.module.css';
 
@@ -54,43 +54,24 @@ export function RentHistoryModal({
       }
     >
       <div className={styles.modalBody}>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 'var(--space-3)',
-              padding: 'var(--space-3)',
-              background: 'var(--color-surface-2)',
-              borderRadius: 'var(--radius-lg)',
-            }}
-          >
-            <div>
-              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                Total Billed
-              </span>
-              <div style={{ fontWeight: 700 }}>
-                ₹{account.rentAmount.toLocaleString('en-IN')}
-              </div>
-            </div>
-            <div>
-              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                Total Paid
-              </span>
-              <div style={{ fontWeight: 700, color: 'var(--color-success)' }}>
-                ₹{account.totalPaid.toLocaleString('en-IN')}
-              </div>
-            </div>
-            <div>
-              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                Remaining Due
-              </span>
-              <div style={{ fontWeight: 700, color: 'var(--color-warning)' }}>
-                ₹{account.remainingBalance.toLocaleString('en-IN')}
-              </div>
-            </div>
-          </div>
+          <StatGrid label={`Rent summary for ${account.grnNumber}`}>
+            <StatCard
+              label="Total Billed"
+              value={`₹${account.rentAmount.toLocaleString('en-IN')}`}
+            />
+            <StatCard
+              label="Total Paid"
+              value={`₹${account.totalPaid.toLocaleString('en-IN')}`}
+              accent="success"
+            />
+            <StatCard
+              label="Remaining Due"
+              value={`₹${account.remainingBalance.toLocaleString('en-IN')}`}
+              accent="warning"
+            />
+          </StatGrid>
 
-          <h4 style={{ fontSize: 'var(--text-xs)', fontWeight: 700, textTransform: 'uppercase' }}>
+          <h4 className={styles.sectionLabel}>
             Issued Official Cash Memos ({account.payments.length})
           </h4>
 
@@ -101,35 +82,27 @@ export function RentHistoryModal({
           )}
 
           {account.payments.length === 0 ? (
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-              No cash memos issued yet for this account.
-            </p>
+            <FeedbackStates.Empty message="No cash memos issued yet for this account." />
           ) : (
             <div className={styles.paymentsList}>
               {account.payments.map((p) => (
                 <div key={p.id} className={styles.paymentItem}>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <strong style={{ fontSize: 'var(--text-sm)' }}>
-                        {p.receiptNumber}
-                      </strong>
+                    <div className={styles.paymentHead}>
+                      <strong className={styles.receiptNumber}>{p.receiptNumber}</strong>
                       <Badge variant={p.paymentMode === 'Cash' ? 'primary' : 'success'}>
                         {p.paymentMode}
                       </Badge>
                     </div>
-                    <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
+                    <span className={styles.paymentMeta}>
                       {new Date(p.paymentDate).toLocaleDateString('en-IN')} • Received by{' '}
                       {p.createdBy}
                     </span>
-                    {p.notes && (
-                      <span style={{ display: 'block', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-                        Notes: {p.notes}
-                      </span>
-                    )}
+                    {p.notes && <span className={styles.paymentNotes}>Notes: {p.notes}</span>}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                    <strong style={{ fontSize: 'var(--text-base)', color: 'var(--color-success)' }}>
+                  <div className={styles.paymentActions}>
+                    <strong className={styles.paymentAmount}>
                       ₹{p.amountPaid.toLocaleString('en-IN')}
                     </strong>
 

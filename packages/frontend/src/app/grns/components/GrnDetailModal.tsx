@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import { ArrowRight, FileText, Printer } from 'lucide-react';
+import { FileText, Printer } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
 import { Badge, Button, Modal } from '@/components/ui';
 import styles from '../page.module.css';
@@ -11,7 +10,6 @@ interface GrnDetailModalProps {
   grn: Grn;
   onClose: () => void;
   canPrint: boolean;
-  canAllocate?: boolean;
   printingId: string | null;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
 }
@@ -20,7 +18,6 @@ export function GrnDetailModal({
   grn,
   onClose,
   canPrint,
-  canAllocate,
   printingId,
   onPrint,
 }: GrnDetailModalProps) {
@@ -54,16 +51,6 @@ export function GrnDetailModal({
                 Print Inward Receipt
               </Button>
             </>
-          )}
-          {grn.status === 'OPEN' && canAllocate && (
-            <Link
-              href={`/inventory?grnId=${encodeURIComponent(grn.id)}`}
-              className={styles.linkButton}
-              aria-label={`Put away bags for ${grn.grnNumber}`}
-            >
-              <ArrowRight size={15} aria-hidden="true" />
-              Put-Away Bags
-            </Link>
           )}
           <Button variant="outline" onClick={onClose}>
             Close

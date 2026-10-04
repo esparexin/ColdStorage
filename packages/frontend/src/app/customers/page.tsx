@@ -21,6 +21,11 @@ export default function CustomersPage() {
     searchTerm,
     setSearchTerm,
     filteredCustomers,
+    totalCustomers,
+    totalPages,
+    page,
+    setPage,
+    pageSize,
     fetchCustomers,
   } = useCustomersData();
 
@@ -91,8 +96,13 @@ export default function CustomersPage() {
         <FeedbackStates.Empty message={`No customers matching "${searchTerm}".`} />
       ) : (
         <CustomerTable
-          customers={filteredCustomers}
+          customers={customers}
           canManage={canManage}
+          page={page}
+          pageSize={pageSize}
+          totalPages={totalPages}
+          totalCustomers={totalCustomers}
+          onPageChange={setPage}
           onEdit={openEditModal}
         />
       )}

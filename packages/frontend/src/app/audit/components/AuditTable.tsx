@@ -8,10 +8,23 @@ import { Badge, Button } from '@/components/ui';
 
 interface AuditTableProps {
   logs: AuditLogRecord[];
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalLogs: number;
+  onPageChange: (page: number) => void;
   onInspect: (record: AuditLogRecord) => void;
 }
 
-export function AuditTable({ logs, onInspect }: AuditTableProps) {
+export function AuditTable({
+  logs,
+  page,
+  pageSize,
+  totalPages,
+  totalLogs,
+  onPageChange,
+  onInspect,
+}: AuditTableProps) {
   const columns: DataTableColumn<AuditLogRecord>[] = [
     {
       key: 'timestamp',
@@ -47,7 +60,7 @@ export function AuditTable({ logs, onInspect }: AuditTableProps) {
       key: 'eventType',
       header: 'Event Action',
       render: (r) => (
-        <span style={{ fontWeight: 600, fontFamily: 'var(--font-mono, monospace)', fontSize: 'var(--text-xs)' }}>
+        <span style={{ fontWeight: 'var(--font-semibold)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>
           {r.eventType}
         </span>
       ),
@@ -57,7 +70,7 @@ export function AuditTable({ logs, onInspect }: AuditTableProps) {
       header: 'Actor / Role',
       render: (r) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontWeight: 600 }}>{r.username}</span>
+          <span style={{ fontWeight: 'var(--font-semibold)' }}>{r.username}</span>
           <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
             {r.userRole}
           </span>
@@ -105,6 +118,7 @@ export function AuditTable({ logs, onInspect }: AuditTableProps) {
       rows={logs}
       rowKey={(r) => r.id}
       caption="Audit Log Events"
+      pagination={{ page, pageSize, totalPages, totalRecords: totalLogs, onPageChange }}
     />
   );
 }

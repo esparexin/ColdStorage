@@ -21,15 +21,7 @@
   font-size: var(--text-lg);
   font-weight: var(--font-bold);
   color: var(--color-text-primary);
-  letter-spacing: -0.02em;
-}
-
-.modalBody {
-  padding: var(--space-5);
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+  letter-spacing: var(--tracking-tight);
 }
 
 .jsonBox {

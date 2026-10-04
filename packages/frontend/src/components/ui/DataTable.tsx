@@ -16,8 +16,10 @@ export interface DataTableColumn<T> {
 
 export interface DataTablePagination {
   page: number;
+  /** Rows per page; drives the "Showing X-Y of Z" range. */
+  pageSize: number;
   totalPages: number;
-  totalRecords?: number;
+  totalRecords: number;
   onPageChange: (newPage: number) => void;
 }
 
@@ -118,6 +120,7 @@ export function DataTable<T>({
       {pagination && (
         <Pagination
           page={pagination.page}
+          pageSize={pagination.pageSize}
           totalPages={pagination.totalPages}
           totalRecords={pagination.totalRecords}
           onPageChange={pagination.onPageChange}

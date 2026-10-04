@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { AlertCircle, CheckCircle2, FileSpreadsheet, Upload } from 'lucide-react';
-import { Button, Select } from '@/components/ui';
+import { Button, Card, Select, StatCard, StatGrid } from '@/components/ui';
 import type { ImportSummaryResult } from '../types';
 import styles from '../page.module.css';
 
@@ -29,8 +29,18 @@ export function ImportPanel({
   onFileChange,
   onSubmit,
 }: ImportPanelProps) {
+  // The server reports per-row outcomes; flatten the rejected rows into the
+  // single validation-error list the operator reads.
+  const rejectedRows = React.useMemo(
+    () =>
+      (importResult?.results ?? [])
+        .filter((r) => r.status === 'rejected')
+        .map((r) => `Row ${r.row}: ${(r.errors ?? ['Import failed']).join('; ')}`),
+    [importResult],
+  );
+
   return (
-    <div className={styles.sectionCard}>
+    <Card>
       <div className={styles.sectionHeader}>
         <h2 className={styles.sectionTitle}>Bulk CSV Data Import</h2>
       </div>
@@ -90,47 +100,36 @@ export function ImportPanel({
 
           {importResult && (
             <div className={styles.summaryBox}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-success)' }}>
+              <p className={styles.summaryStatus}>
                 <CheckCircle2 size={16} aria-hidden="true" />
                 Import Execution Completed
-              </div>
+              </p>
 
-              <div className={styles.summaryGrid}>
-                <div className={styles.summaryMetric}>
-                  <span className={styles.metricValue}>{importResult.totalRows}</span>
-                  <span className={styles.metricLabel}>Total Rows</span>
-                </div>
-                <div className={styles.summaryMetric}>
-                  <span className={styles.metricValue} style={{ color: 'var(--color-success)' }}>
-                    {importResult.inserted}
-                  </span>
-                  <span className={styles.metricLabel}>Inserted</span>
-                </div>
-                <div className={styles.summaryMetric}>
-                  <span className={styles.metricValue} style={{ color: 'var(--color-primary)' }}>
-                    {importResult.updated}
-                  </span>
-                  <span className={styles.metricLabel}>Updated</span>
-                </div>
-                <div className={styles.summaryMetric}>
-                  <span className={styles.metricValue} style={{ color: 'var(--color-warning)' }}>
-                    {importResult.skipped}
-                  </span>
-                  <span className={styles.metricLabel}>Skipped</span>
-                </div>
-              </div>
+              <StatGrid label="Import result summary">
+                <StatCard label="Rows Processed" value={importResult.totalRows} />
+                <StatCard
+                  label="Committed"
+                  value={importResult.committed}
+                  accent="success"
+                />
+                <StatCard
+                  label="Rejected"
+                  value={importResult.rejected}
+                  accent={importResult.rejected > 0 ? 'danger' : undefined}
+                />
+              </StatGrid>
 
-              {importResult.errors.length > 0 && (
-                <div style={{ marginTop: '8px' }}>
-                  <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--color-danger)' }}>
-                    Row Validation Errors ({importResult.errors.length}):
+              {rejectedRows.length > 0 && (
+                <div>
+                  <span className={styles.errorHeading}>
+                    Row Validation Errors ({rejectedRows.length})
                   </span>
                   <ul className={styles.errorList}>
-                    {importResult.errors.slice(0, 10).map((err, i) => (
+                    {rejectedRows.slice(0, 10).map((err, i) => (
                       <li key={i}>{err}</li>
                     ))}
-                    {importResult.errors.length > 10 && (
-                      <li>...and {importResult.errors.length - 10} more errors</li>
+                    {rejectedRows.length > 10 && (
+                      <li>...and {rejectedRows.length - 10} more errors</li>
                     )}
                   </ul>
                 </div>
@@ -139,6 +138,6 @@ export function ImportPanel({
           )}
         </form>
       )}
-    </div>
+    </Card>
   );
 }

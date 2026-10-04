@@ -6,7 +6,6 @@ import {
   Boxes,
   Database,
   LayoutDashboard,
-  Package,
   Receipt,
   Settings,
   ShieldCheck,
@@ -20,6 +19,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { can, type PermissionKey, type Role } from '@cold-storage/contracts';
 import { useAuth } from '@/context/AuthContext';
+import { useSettings } from '@/context/SettingsContext';
+import { ORG_NAME_FALLBACK } from '@/lib/branding';
 import styles from './SidebarNav.module.css';
 
 interface NavItem {
@@ -40,7 +41,6 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard:view' },
       { href: '/grns', label: 'Inward GRNs', icon: Warehouse, permission: 'grn:view' },
-      { href: '/inventory', label: 'Inventory & Stock', icon: Package, permission: 'inventory:view' },
       { href: '/deliveries', label: 'Deliveries', icon: Truck, permission: 'delivery:view' },
       { href: '/rent', label: 'Rent Billing', icon: Receipt, permission: 'rent:view' },
     ],
@@ -72,6 +72,9 @@ interface SidebarNavProps {
 export function SidebarNav({ isOpen = false, onClose }: SidebarNavProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  // Same source as the header, so the two cannot show different names.
+  const { settings } = useSettings();
+  const orgName = settings?.orgName || ORG_NAME_FALLBACK;
 
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
 
@@ -107,13 +110,13 @@ export function SidebarNav({ isOpen = false, onClose }: SidebarNavProps) {
         id="sidebar-navigation"
       >
         <div className={styles.brandArea}>
-          <span className={styles.brandTitle}>Cold Storage</span>
+          <span className={styles.brandTitle}>{orgName}</span>
           {onClose && (
             <button
               type="button"
               className={styles.mobileCloseBtn}
               onClick={onClose}
-              aria-label="Close navigation menu"
+              aria-label="Dismiss navigation menu"
             >
               <X size={20} aria-hidden="true" />
             </button>

@@ -57,7 +57,24 @@ rentRouter.post(
   },
 );
 
-// 2. Canonical Rent Summary & Payment History Lookup
+// 2. Batched Rent Summary List — one request for the whole facility
+rentRouter.get(
+  '/facilities/:facilityId/rent/summaries',
+  requirePermission('rent:view'),
+  requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  async (req: Request, res: Response): Promise<void> => {
+    const facilityId = getParamId(req.params.facilityId);
+
+    try {
+      const summaries = await rentService.getRentSummariesForFacility(facilityId);
+      res.status(200).json({ summaries });
+    } catch (err: unknown) {
+      sendServiceError(res, err, 'Failed to retrieve rent summaries');
+    }
+  },
+);
+
+// 3. Canonical Rent Summary & Payment History Lookup (single GRN)
 rentRouter.get(
   '/facilities/:facilityId/rent/grn/:identifier',
   requirePermission('rent:view'),
@@ -75,7 +92,7 @@ rentRouter.get(
   },
 );
 
-// 3. Render Printable Official Rent Receipt HTML
+// 4. Render Printable Official Rent Receipt HTML
 rentRouter.get(
   '/facilities/:facilityId/rent/receipts/:receiptNumber/print',
   requirePermission('rent:print'),
@@ -98,7 +115,7 @@ rentRouter.get(
   },
 );
 
-// 4. Storage Occupancy Audit & Reporting
+// 5. Storage Occupancy Audit & Reporting
 rentRouter.get(
   '/facilities/:facilityId/rent/occupancy-report',
   requirePermission('rent:view'),

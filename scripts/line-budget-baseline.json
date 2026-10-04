@@ -4,7 +4,6 @@
   "packages/backend/src/__tests__/audit.service.test.ts": 287,
   "packages/backend/src/modules/documents/templates/base.layout.ts": 253,
   "packages/backend/src/routes/import-export.routes.ts": 252,
-  "packages/frontend/src/app/inventory/page.module.css": 678,
   "packages/frontend/src/app/grns/page.module.css": 538,
   "packages/frontend/src/app/rent/page.module.css": 415,
   "packages/frontend/src/app/deliveries/page.module.css": 363

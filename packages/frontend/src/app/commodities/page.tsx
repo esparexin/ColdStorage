@@ -19,6 +19,11 @@ export default function CommoditiesPage() {
     searchTerm,
     setSearchTerm,
     filteredCommodities,
+    totalCommodities,
+    totalPages,
+    page,
+    setPage,
+    pageSize,
     fetchCommodities,
     handleToggleActive,
   } = useCommodities();
@@ -82,8 +87,13 @@ export default function CommoditiesPage() {
         <FeedbackStates.Empty message={`No commodities matching "${searchTerm}".`} />
       ) : (
         <CommodityTable
-          commodities={filteredCommodities}
+          commodities={commodities}
           canManage={canManage}
+          page={page}
+          pageSize={pageSize}
+          totalPages={totalPages}
+          totalCommodities={totalCommodities}
+          onPageChange={setPage}
           onToggleActive={handleToggleActive}
         />
       )}

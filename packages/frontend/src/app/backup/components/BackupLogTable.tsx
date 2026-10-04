@@ -4,6 +4,7 @@ import React from 'react';
 import type { BackupLogRecord, BackupStatus } from '@cold-storage/contracts';
 import { Badge, Select } from '@/components/ui';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { BACKUP_PAGE_SIZE } from '../hooks/useBackupData';
 import { formatBytes, formatDate } from '../utils';
 import styles from '../page.module.css';
 
@@ -116,7 +117,6 @@ export function BackupLogTable({
       <div className={styles.tableHeader}>
         <div className={styles.tableTitleArea}>
           <h2>Encrypted Backup Log Ledger</h2>
-          <span className={styles.tableCount}>({totalLogs} total entries)</span>
         </div>
         <div className={styles.filterControls}>
           <Select
@@ -152,16 +152,13 @@ export function BackupLogTable({
               }
             : undefined
         }
-        pagination={
-          totalPages > 1
-            ? {
-                page,
-                totalPages,
-                totalRecords: totalLogs,
-                onPageChange,
-              }
-            : undefined
-        }
+        pagination={{
+          page,
+          pageSize: BACKUP_PAGE_SIZE,
+          totalPages,
+          totalRecords: totalLogs,
+          onPageChange,
+        }}
       />
     </section>
   );

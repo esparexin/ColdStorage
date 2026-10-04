@@ -21,13 +21,7 @@
   font-size: var(--text-lg);
   font-weight: var(--font-bold);
   color: var(--color-text-primary);
-  letter-spacing: -0.02em;
-}
-
-.pageSub {
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-  margin-top: var(--space-1);
+  letter-spacing: var(--tracking-tight);
 }
 
 .layoutGrid {
@@ -36,16 +30,7 @@
   gap: var(--space-4);
 }
 
-.sectionCard {
-  background: var(--color-surface-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
+/* Removed: the bordered surface now comes from the Card primitive. */
 
 .sectionHeader {
   display: flex;
@@ -56,13 +41,13 @@
 }
 
 .sectionTitle {
-  font-size: var(--text-sm);
-  font-weight: var(--font-bold);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
   color: var(--color-text-primary);
 }
 
 .dropzone {
-  border: 2px dashed var(--color-border);
+  border: var(--space-0-5) dashed var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-5);
   display: flex;
@@ -77,7 +62,7 @@
 }
 
 .dropzone:hover {
-  border-color: var(--color-primary);
+  border-color: var(--color-primary-text);
   background: var(--color-primary-subtle);
 }
 
@@ -135,6 +120,15 @@
   color: var(--color-text-muted);
 }
 
+.modalError {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-danger-subtle);
+  color: var(--color-danger-text);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-danger);
+}
+
 /* Summary Box */
 .summaryBox {
   background: var(--color-surface-2);
@@ -145,33 +139,26 @@
   gap: var(--space-2);
 }
 
-.summaryGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-2);
-  text-align: center;
-}
-
-.summaryMetric {
+.summaryStatus {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-success-text);
 }
 
-.metricValue {
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-}
-
-.metricLabel {
+.errorHeading {
   font-size: var(--text-xs);
-  color: var(--color-text-muted);
+  font-weight: var(--font-bold);
+  color: var(--color-danger-text);
 }
 
 .errorList {
   font-size: var(--text-xs);
-  color: var(--color-danger);
+  color: var(--color-danger-text);
   padding-left: var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0-5);
 }

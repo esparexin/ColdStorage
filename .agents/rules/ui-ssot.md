@@ -15,10 +15,10 @@
    - `Select`: Accessible dropdown selection components
    - `Badge`: Status, badge, and counter indicators
    - `Card`: Container and grouping surfaces
-   - `StatCard` / `StatGrid`: Metric tiles (icon + label + value + supporting text) and their responsive grid
+   - `StatCard` / `StatGrid`: Metric tiles (label + value, optional semantic accent) and their responsive divider strip. The grid owns the surface; a tile carries no border, shadow, icon chip, or supporting prose
    - `SearchBar`: Unified search input fields
    - `FilterToolbar`: Canonical search + filter-select + reset toolbar used by every list screen
-   - `Pagination`: Table and list navigation controls
+   - `Pagination`: The only table and list navigation control, rendered solely by `DataTable` via its `pagination` prop
    - `DataTable`: Tabular data display with loading and empty states
    - `FeedbackStates`: Standardized Loading, Empty, and Error widgets
 
@@ -26,7 +26,13 @@
    - Colors, spacing, typography, radii, and shadows must strictly consume CSS variables defined in `packages/frontend/src/styles/tokens.css`.
    - Hardcoded arbitrary hex values, ad-hoc font families, or external utility frameworks (e.g., Tailwind) must never be introduced unless explicitly commanded.
 
-3. **No Duplicate UI Primitive Classes**:
+3. **One Bordered Surface**:
+   `Card` is the single bordered-surface recipe. Feature stylesheets must not
+   restate a background, border, radius or shadow for a content group. A
+   `DataTable` already draws its own surface, so it must never be wrapped in
+   a `Card` or a bordered container — that stacks two identical borders.
+
+4. **No Duplicate UI Primitive Classes**:
    Feature stylesheets (`*.module.css`) are strictly prohibited from declaring competing primitive classes (enforced by `scripts/check-architecture-boundaries.sh` Rule 3):
    - `.modalBackdrop`
    - `.modalCard`
@@ -34,5 +40,5 @@
    - `.paginationButtons`
    - `.searchBarContainer`
 
-4. **External Skill Override Protection**:
+5. **External Skill Override Protection**:
    Generic web recommendations or skills (such as `modern-web-guidance`) must never override the repository's established UI primitives, design tokens, and CSS Modules conventions.
