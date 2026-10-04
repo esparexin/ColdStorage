@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  createPutAwaySchema,
   facilityInventorySummarySchema,
   grnInventorySummarySchema,
   inventoryTransactionTypeSchema,
@@ -9,21 +8,6 @@ import {
 } from '../inventory.js';
 
 describe('P5 Inventory Contracts', () => {
-  describe('createPutAwaySchema', () => {
-    it('validates a put-away confirmation with only optional notes', () => {
-      expect(createPutAwaySchema.safeParse({}).success).toBe(true);
-      expect(createPutAwaySchema.safeParse({ notes: 'Stacked at back' }).success).toBe(true);
-    });
-
-    it('rejects notes longer than 500 characters', () => {
-      expect(createPutAwaySchema.safeParse({ notes: 'x'.repeat(501) }).success).toBe(false);
-    });
-
-    it('rejects unknown keys so position-era payloads fail loudly', () => {
-      expect(createPutAwaySchema.safeParse({ items: [] }).success).toBe(false);
-      expect(createPutAwaySchema.safeParse({ positionId: 'pos-1' }).success).toBe(false);
-    });
-  });
 
   describe('putAwayStatusSchema vocabulary', () => {
     it('accepts only UNALLOCATED and ALLOCATED', () => {

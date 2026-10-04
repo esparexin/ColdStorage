@@ -1,24 +1,10 @@
 import type mongoose from 'mongoose';
 import type {
   GrnInventorySummary,
-  PutAwayAllocation,
   PutAwayStatus,
 } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
-import { PutAwayAllocationModel } from '../../../database/models/put-away.model.js';
-import { toPutAwayEntity } from '../inventory.mappers.js';
-
-export async function listPutAwayAllocations(
-  facilityId: string,
-  grnId: string,
-): Promise<PutAwayAllocation[]> {
-  const docs = await PutAwayAllocationModel.find({ facilityId, grnId })
-    .sort({ allocatedAt: -1 })
-    .lean()
-    .exec();
-  return docs.map((d) => toPutAwayEntity(d));
-}
 
 /**
  * Available bags still on hand for a GRN after outward movement and reversals.

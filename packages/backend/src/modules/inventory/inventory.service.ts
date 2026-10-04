@@ -1,12 +1,9 @@
 import type {
-  CreatePutAwayInput,
   FacilityInventorySummary,
   GrnInventorySummary,
   InventoryTransaction,
-  PutAwayAllocation,
   StockLedgerQuery,
 } from '@cold-storage/contracts';
-import { createPutAwayWithRetry } from './handlers/allocate-stock.handler.js';
 import { ConcurrencyConflictError } from './inventory.mappers.js';
 import {
   getFacilityInventorySummary,
@@ -15,27 +12,11 @@ import {
 import {
   getAvailableBags,
   getGrnInventorySummary,
-  listPutAwayAllocations,
 } from './queries/stock-summary.queries.js';
 
 export { ConcurrencyConflictError };
 
 export class InventoryService {
-  public async createPutAway(
-    facilityId: string,
-    grnId: string,
-    input: CreatePutAwayInput,
-    userId: string,
-  ): Promise<{ putAway: PutAwayAllocation; summary: GrnInventorySummary }> {
-    return createPutAwayWithRetry(facilityId, grnId, input, userId);
-  }
-
-  public async listPutAwayAllocations(
-    facilityId: string,
-    grnId: string,
-  ): Promise<PutAwayAllocation[]> {
-    return listPutAwayAllocations(facilityId, grnId);
-  }
 
   public async getGrnInventorySummary(
     facilityId: string,

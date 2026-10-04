@@ -10,7 +10,6 @@ import { DeliveryReversalModel } from './models/delivery-reversal.model.js';
 import { FacilityModel } from './models/facility.model.js';
 import { GrnModel } from './models/grn.model.js';
 import { InventoryTransactionModel } from './models/inventory-transaction.model.js';
-import { PutAwayAllocationModel } from './models/put-away.model.js';
 import { RentPaymentModel } from './models/rent-payment.model.js';
 import { SessionModel } from './models/session.model.js';
 import { SystemSettingsModel } from './models/system-settings.model.js';
@@ -36,7 +35,6 @@ const MONITORED_MODELS: Array<{ name: string; model: Model<unknown> }> = [
   { name: 'Facility', model: FacilityModel as unknown as Model<unknown> },
   { name: 'GRN', model: GrnModel as unknown as Model<unknown> },
   { name: 'InventoryTransaction', model: InventoryTransactionModel as unknown as Model<unknown> },
-  { name: 'PutAwayAllocation', model: PutAwayAllocationModel as unknown as Model<unknown> },
   { name: 'RentPayment', model: RentPaymentModel as unknown as Model<unknown> },
   { name: 'Session', model: SessionModel as unknown as Model<unknown> },
   { name: 'SystemSettings', model: SystemSettingsModel as unknown as Model<unknown> },

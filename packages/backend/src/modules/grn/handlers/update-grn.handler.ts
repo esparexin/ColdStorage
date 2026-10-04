@@ -3,8 +3,6 @@ import type { CorrectGrnInput, Grn } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
-import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
-import { PutAwayAllocationModel } from '../../../database/models/put-away.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../grn.mappers.js';
 
@@ -54,21 +52,14 @@ export async function correctGrn(
         );
       }
 
-      const [putAways, movements, activeChallans] = await Promise.all([
-        PutAwayAllocationModel.countDocuments({ facilityId, grnId }, { session }).exec(),
-        InventoryTransactionModel.countDocuments(
-          { facilityId, grnId, transactionType: { $ne: 'INWARD_PUTAWAY' } },
-          { session },
-        ).exec(),
-        DeliveryChallanModel.countDocuments(
-          { facilityId, grnId, status: 'ISSUED' },
-          { session },
-        ).exec(),
-      ]);
+      const activeChallans = await DeliveryChallanModel.countDocuments(
+        { facilityId, grnId, status: 'ISSUED' },
+        { session },
+      ).exec();
 
-      if (putAways > 0 || movements > 0 || activeChallans > 0) {
+      if (activeChallans > 0) {
         throw new Error(
-          `Cannot correct GRN '${grn.grnNumber}': stock has already been allocated or delivered. Use the delivery reversal workflow instead.`,
+          `Cannot correct GRN '${grn.grnNumber}': stock has already been delivered. Use the delivery reversal workflow instead.`,
         );
       }
 

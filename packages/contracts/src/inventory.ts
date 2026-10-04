@@ -20,18 +20,6 @@ export type InventoryTransactionType = z.infer<typeof inventoryTransactionTypeSc
 export const inventoryReferenceTypeSchema = z.enum(['PUT_AWAY', 'DELIVERY', 'DELIVERY_REVERSAL']);
 export type InventoryReferenceType = z.infer<typeof inventoryReferenceTypeSchema>;
 
-/**
- * Put-away confirms that a GRN's remaining bags are on hand in its chamber. A single GRN holds
- * one commodity in one chamber, so allocation is whole-lot and needs no item breakdown.
- */
-export const createPutAwaySchema = z
-  .object({
-    notes: z.string().trim().max(500, 'notes cannot exceed 500 characters').nullish(),
-  })
-  .strict();
-
-export type CreatePutAwayInput = z.infer<typeof createPutAwaySchema>;
-
 export const inventoryTransactionSchema = z.object({
   id: z.string().min(1),
   facilityId: z.string().min(1),
@@ -51,20 +39,6 @@ export const inventoryTransactionSchema = z.object({
 });
 
 export type InventoryTransaction = z.infer<typeof inventoryTransactionSchema>;
-
-export const putAwayAllocationSchema = z.object({
-  id: z.string().min(1),
-  facilityId: z.string().min(1),
-  grnId: z.string().min(1),
-  grnNumber: z.string().min(1),
-  chamber: chamberTextSchema,
-  bags: z.number().int().positive(),
-  notes: z.string().nullable().optional(),
-  allocatedBy: z.string().min(1),
-  allocatedAt: z.date(),
-});
-
-export type PutAwayAllocation = z.infer<typeof putAwayAllocationSchema>;
 
 export const putAwayStatusSchema = z.enum(['UNALLOCATED', 'ALLOCATED']);
 export type PutAwayStatus = z.infer<typeof putAwayStatusSchema>;

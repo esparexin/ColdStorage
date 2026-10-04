@@ -39,7 +39,6 @@ describe('P6 DeliveryService reversal tests', () => {
       commodityName: 'Apples',
       grnNumber: 'GRN-25-26-0001',
     });
-    await inventoryService.createPutAway(facilityId, grnId, { notes: 'Whole lot' }, userId);
   });
 
   it('executes a full delivery reversal, restoring exact stock', async () => {

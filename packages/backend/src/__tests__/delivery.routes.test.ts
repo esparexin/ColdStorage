@@ -2,7 +2,6 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
-import { inventoryService } from '../modules/inventory/inventory.service.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import {
@@ -67,8 +66,6 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
       bags: 80,
       commodityName: 'Onions',
     });
-    // Put-away is whole-lot, so one call makes the full 80 bags deliverable.
-    await inventoryService.createPutAway(facilityId, grnId, {}, 'usr-del-op');
   });
 
   it('allows OPERATOR to issue outward delivery challan for a single bag count', async () => {
