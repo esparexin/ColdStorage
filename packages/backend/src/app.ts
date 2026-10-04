@@ -2,7 +2,7 @@ import cors from 'cors';
 import express, { type Express, type Request, type Response, type NextFunction } from 'express';
 import type { HealthResponse } from '@cold-storage/contracts';
 import { config } from './config.js';
-import { getDatabaseState } from './database/connection.js';
+import { getDatabaseName, getDatabaseState } from './database/connection.js';
 import {
   securityHeadersMiddleware,
   noSqlInjectionGuard,
@@ -54,7 +54,11 @@ export function createApp(): Express {
   // rewrite in next.config.mjs (which proxies /api/:path* only) can actually reach it, and
   // reports the observed datastore state rather than assuming it.
   app.get('/api/health', (_req: Request, res: Response) => {
-    const database = { state: getDatabaseState(), configured: Boolean(config.mongoUri) };
+    const database = {
+      state: getDatabaseState(),
+      configured: Boolean(config.mongoUri),
+      name: getDatabaseName(),
+    };
     const healthy = database.state === 'connected';
     res.status(healthy ? 200 : 503).json({
       status: healthy ? 'ok' : 'degraded',

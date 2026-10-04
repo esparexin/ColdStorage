@@ -81,3 +81,12 @@ export function getDatabaseState(): DatabaseState {
   }
 }
 
+/**
+ * Active database name without secrets (e.g. `cold_storage`). Null when no
+ * connection has been established yet. Exposed via /api/health so operators
+ * can verify the backend talks to the intended database.
+ */
+export function getDatabaseName(): string | null {
+  return mongoose.connection.name || null;
+}
+

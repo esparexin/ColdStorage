@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import { connectToDatabase, disconnectDatabase } from '../../database/connection.js';
 import { CommodityModel } from '../../database/models/commodity.model.js';
 import { CounterModel } from '../../database/models/counter.model.js';
 import { CustomerModel } from '../../database/models/customer.model.js';
@@ -29,16 +29,11 @@ export interface ImportHarness {
 }
 
 export async function connectImportDatabase(): Promise<void> {
-  const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
-  if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(mongoUri);
-  }
+  await connectToDatabase();
 }
 
 export async function disconnectImportDatabase(): Promise<void> {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
+  await disconnectDatabase();
 }
 
 /** Wipes every collection the import path can touch so each test starts from a known state. */

@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { CounterModel } from '../database/models/counter.model.js';
 import { CustomerModel } from '../database/models/customer.model.js';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
@@ -33,16 +34,11 @@ describe('Rent gate for outward movement — rent-gate.service.test.ts', () => {
   let grnId: string;
 
   beforeAll(async () => {
-    const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri);
-    }
+    await connectToDatabase();
   });
 
   afterAll(async () => {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
+    await disconnectDatabase();
   });
 
   beforeEach(async () => {
