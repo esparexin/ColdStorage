@@ -35,7 +35,7 @@
 | Put-away allocate / summary / occupancy / ledger | `POST .../grns/:gid/allocations`, `GET .../allocations`, `GET .../inventory-summary`, `GET .../positions/:pid/occupancy`, `GET .../inventory`, `GET .../inventory/ledger` | `inventory.routes.ts` | `createPutAwaySchema`, `stockLedgerQuerySchema` | ✅ wired (`/allocations` canonical, facility-scoped) |
 | Deliveries list/create/detail/reverse/print | `GET .../deliveries?...`, `POST .../deliveries`, `POST .../deliveries/:id/reverse`, `GET .../documents/challan/:id` | `delivery.routes.ts` | `createDeliverySchema`, `reverseDeliverySchema`, `deliveryQuerySchema` | ✅ wired (detail modal prop-based by design) |
 | Rent collect/history/print-preview/print | `POST .../rent/collect`, `GET .../rent/grn/:id`, `GET .../documents/rent-receipt/preview`, `GET .../rent/receipts/:n/print` | `rent.routes.ts`, `document.routes.ts` | `recordRentPaymentInputSchema` | ✅ wired |
-| Users provision/list | `GET /api/users?page&limit`, `POST /api/users` (`useUsersData:23`, `useProvisionUserForm:57`) | `user.routes.ts` (SUPER_ADMIN only) | `createUserSchema`, `paginationSchema` | ✅ wired |
+| Users provision/list/update/reset | `GET /api/users?page&limit`, `POST /api/users` (`useUsersData:23`, `useProvisionUserForm:57`), `PATCH /api/users/:id` + `POST /api/users/:id/reset-password` (`useUserLifecycle:54,92`) | `user.routes.ts` (SUPER_ADMIN only) | `createUserSchema`, `paginationSchema`, `updateUserSchema`, `resetUserPasswordSchema` | ✅ wired |
 | Audit list | `GET /api/audit-logs?...` (`useAuditLogs:34`) | `audit.routes.ts` | `auditQuerySchema` | ✅ wired (detail prop-based) |
 | Backup trigger/list/status | `POST /api/backups/trigger`, `GET /api/backups?...`, `GET /api/backups/status` | `backup.routes.ts` | `backupTriggerSchema`, `backupQuerySchema` | ✅ wired |
 | Settings get/put + logo | `GET/PUT /api/settings`, `POST/DELETE /api/settings/logo`, `GET /api/assets/:id` (`AppHeader`, `BrandLogoSection`) | `settings.routes.ts`, `asset.routes.ts` | `systemSettingsSchema` | ✅ wired |
@@ -46,7 +46,7 @@ No frontend call targets retired endpoints (`/api/storage/*`, `/api/chambers/*`,
 
 ## 4. Headless REST API Endpoints (Retained & Fully Tested)
 
-Per architecture governance, 10 fully implemented and tested backend endpoints are intentionally retained as headless REST API capabilities. Detail modals in the web UI reuse list entity props to avoid redundant network round-trips:
+Per architecture governance, 8 fully implemented and tested backend endpoints are intentionally retained as headless REST API capabilities. Detail modals in the web UI reuse list entity props to avoid redundant network round-trips. (`GET /api/users/:id` and `GET /api/facilities/:facilityId` were removed as unused orphan reads; scope is covered by list filtering plus `requireFacilityScope` on write routes.)
 
 | # | Endpoint & Method | Handler / Module | Contract Schema | Capability / Purpose |
 |---|---|---|---|---|
@@ -55,11 +55,9 @@ Per architecture governance, 10 fully implemented and tested backend endpoints a
 | 3 | `GET /api/facilities/:fid/grns/:gid/deliveries` | `get-grn-deliveries.handler.ts` | `grnParamsSchema` | Direct outward delivery history query for a specific GRN |
 | 4 | `GET /api/facilities/:fid/deliveries/:id/gate-pass` | `get-delivery-gate-pass.handler.ts` | `deliveryParamsSchema` | Machine-readable JSON gate-pass issuance payload |
 | 5 | `GET /api/facilities/:fid/documents/rent-receipt/preview` | `preview-rent-receipt.handler.ts` | `documentQuerySchema` | Pre-submission HTML render preview of seasonal cash memo |
-| 6 | `GET /api/users/:id` | `get-user.handler.ts` | `userParamsSchema` | Programmatic single-user account fetch for administrative integrations |
-| 7 | `GET /api/customers/:id` | `get-customer.handler.ts` | `customerParamsSchema` | Programmatic single-customer entity lookup |
-| 8 | `GET /api/commodities/:id` | `get-commodity.handler.ts` | `commodityParamsSchema` | Programmatic single-commodity entity lookup |
-| 9 | `GET /api/facilities/:id` | `get-facility.handler.ts` | `facilityParamsSchema` | Programmatic single-facility entity lookup |
-| 10 | `GET /api/audit-logs/:id` | `get-audit-log.handler.ts` | `auditParamsSchema` | Forensic single audit log entry lookup by immutable ID |
+| 6 | `GET /api/customers/:id` | `get-customer.handler.ts` | `customerParamsSchema` | Programmatic single-customer entity lookup |
+| 7 | `GET /api/commodities/:id` | `get-commodity.handler.ts` | `commodityParamsSchema` | Programmatic single-commodity entity lookup |
+| 8 | `GET /api/audit-logs/:id` | `get-audit-log.handler.ts` | `auditParamsSchema` | Forensic single audit log entry lookup by immutable ID |
 
 ## 5. Fixed in this branch (no new features)
 

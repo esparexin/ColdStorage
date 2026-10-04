@@ -79,17 +79,15 @@ An exhaustive end-to-end audit was conducted across the Cold Storage management 
 15. **Verification required:** `npm run hygiene`, `npm run build`.
 
 ### Finding 4: Headless / Zombie Backend Endpoints without UI Consumers
-1. **Finding:** Backend exposes 10 endpoints that have zero callers in the frontend application.
+1. **Finding:** Backend exposes 8 endpoints that have zero callers in the frontend application (`GET /api/users/:id` and `GET /api/facilities/:facilityId` were removed as unused orphan reads; scope is covered by list filtering plus `requireFacilityScope` on write routes).
 2. **File/path:**
    - `packages/backend/src/routes/grn.routes.ts`: `PATCH /facilities/:facilityId/grns/:grnId` (GRN Receipt Correction via `correctGrnSchema`)
    - `packages/backend/src/routes/grn.routes.ts`: `GET /facilities/:facilityId/grns/:grnId/acknowledgement`
    - `packages/backend/src/routes/grn.routes.ts`: `GET /facilities/:facilityId/grns/:grnId/deliveries`
    - `packages/backend/src/routes/delivery.routes.ts`: `GET /facilities/:facilityId/deliveries/:deliveryId/gate-pass`
    - `packages/backend/src/routes/document.routes.ts`: `GET /facilities/:facilityId/documents/rent-receipt/preview`
-   - `packages/backend/src/routes/user.routes.ts`: `GET /api/users/:id`
    - `packages/backend/src/routes/customer.routes.ts`: `GET /api/customers/:id`
    - `packages/backend/src/routes/commodity.routes.ts`: `GET /api/commodities/:id`
-   - `packages/backend/src/routes/facility.routes.ts`: `GET /api/facilities/:id`
    - `packages/backend/src/routes/audit.routes.ts`: `GET /api/audit-logs/:id`
 3. **Symbol/function/component:** Headless API route handlers.
 4. **Category:** Zombie / Headless API endpoints.

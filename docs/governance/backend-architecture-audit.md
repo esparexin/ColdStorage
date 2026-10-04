@@ -54,8 +54,8 @@ Every user interface element, form submission, table action, modal trigger, and 
 | **18** | **Settings** (`/settings`) | "Save System Settings" Submit | `PUT /api/settings` `{ organization, documentNumbering, backupPolicy }` | `settingsRouter.put` (`settings:manage`, SUPER_ADMIN) | `settingsService.updateSettings` -> `SystemSettingsModel` | **CONNECTED** | Singleton configuration persistence. |
 | **19** | **Settings** (`/settings`) | Logo Upload / Logo Remove | `POST /api/settings/logo` & `DELETE /api/settings/logo` | `assetRouter` (`settings:manage`, SUPER_ADMIN) | `assetService.uploadLogo` / `deleteLogo` -> Cloudinary & `AssetModel` | **CONNECTED** | Magic byte validation; rollback on DB failure. Mounted in `assetRouter`. |
 | **20** | **Users** (`/users`) | "Provision User" Modal Submit | `POST /api/users` `{ fullName, username, employeeId, mobile, email, role, facilityIds, temporaryPassword }` | `userRouter.post` (`user:manage`) | `userService.createUser` -> `UserModel` | **CONNECTED** | Temporary password hash generated; `mustChangePassword: true` set. |
-| **21** | **Users** (`/users`) | **User Edit / Deactivate / Reset** | **No frontend UI controls exist** | **No backend endpoints exist** (`PATCH /api/users/:id` missing) | None | **DISCONNECTED** | **ORPHAN WORKFLOW**: Users cannot be updated or disabled after creation. |
-| **22** | **Authentication** | **Forced Password Change** | `POST /api/auth/change-password` `{ currentPassword, newPassword }` | `authRouter.post('/change-password')` (`authenticate`) | `authService.changePassword` -> `UserModel` | **BROKEN UX** | **CULPRIT 3**: Backend enforces `mustChangePassword`, but frontend has NO UI or modal to change password. |
+| **21** | **Users** (`/users`) | User Edit / Deactivate / Reset | `PATCH /api/users/:id` + `POST /api/users/:id/reset-password` (`useUserLifecycle.ts`, `UserRowActions.tsx`, `EditUserModal.tsx`, `ResetPasswordModal.tsx`) | `userRouter.patch` + `userRouter.post` (`user:manage`) | `userService.updateUser` / `resetUserPassword` -> `UserModel` (+ session revoke + audit) | **CONNECTED** | Lifecycle update, disable/enable via `status`, and temporary-password reset. |
+| **22** | **Authentication** | Forced Password Change | `POST /api/auth/change-password` `{ currentPassword, newPassword }` (`ChangePasswordModal.tsx`, `AuthContext.tsx`, `ResponsiveShell.tsx` gate) | `authRouter.post('/change-password')` (`authenticate`) | `authService.changePassword` -> `UserModel` | **CONNECTED** | `mustChangePassword` captured at login; modal blocks business routes until changed. |
 | **23** | **Backup** (`/backup`) | Manual Backup Trigger Button | `POST /api/backups/trigger` | `backupRouter.post` (`backup:manage`, SUPER_ADMIN) | `backupService.triggerManualBackup` -> AES-256-GCM encrypted local archive & `BackupLogModel` | **CONNECTED** | Mutex guard prevents concurrent runs. |
 | **24** | **Audit Trail** (`/audit`) | Audit Log Query & Detail View | `GET /api/audit-logs` & `GET /api/audit-logs/:id` | `auditRouter.get` (`audit:view`, facility-scoped) | `auditService.queryLogs` / `getLogById` -> `AuditLogModel` | **CONNECTED** | Paginated with strict facility isolation for non-SUPER_ADMIN users. |
 | **25** | **Import / Export** (`/import-export`) | Bulk CSV Upload | `POST /api/facilities/:facilityId/import/:target` | `importExportRouter.post` (`import:execute`) | `importService.importCustomers` / `importGrns` | **CONNECTED** | Multer memory storage; stream-safe parsing; transaction rollback. |
@@ -120,11 +120,11 @@ Every user interface element, form submission, table action, modal trigger, and 
    - **Impact**: Clicking a position in the Hierarchy Tab fails with 404.
    - **Remediation**: Pass `selectedFacilityId` in URL route.
 
-3. **CULPRIT-3: Authentication Lockout on Temporary Password**
+3. **CULPRIT-3: Authentication Lockout on Temporary Password — RESOLVED**
    - **File**: [`packages/frontend/src/context/AuthContext.tsx:87-95`](file:///Users/admin/Desktop/ColdStorage/packages/frontend/src/context/AuthContext.tsx#L87-L95)
-   - **Defect**: Frontend login handler ignores `mustChangePassword: true` from `/api/auth/login`. There is no change-password modal or route in frontend.
-   - **Impact**: Backend middleware [`requirePasswordChanged`](file:///Users/admin/Desktop/ColdStorage/packages/backend/src/middleware/auth.middleware.ts) rejects all operational requests with HTTP 403. New users provisioned by Admin cannot use the system or change password.
-   - **Remediation**: Capture `mustChangePassword` in `AuthContext` and display modal to call `POST /api/auth/change-password`.
+   - **Defect (historical)**: Frontend login handler ignored `mustChangePassword: true` from `/api/auth/login`. There was no change-password modal or route in frontend.
+   - **Impact (historical)**: Backend middleware [`requirePasswordChanged`](file:///Users/admin/Desktop/ColdStorage/packages/backend/src/middleware/auth.middleware.ts) rejected all operational requests with HTTP 403. New users provisioned by Admin could not use the system or change password.
+   - **Remediation (applied)**: `mustChangePassword` captured in `AuthContext` with `ChangePasswordModal` calling `POST /api/auth/change-password`, gated in `ResponsiveShell`.
 
 4. **CULPRIT-4: Duplicate Mongoose Schema Index on `chamberId`**
    - **File**: [`packages/backend/src/database/models/grn.model.ts:46, 73`](file:///Users/admin/Desktop/ColdStorage/packages/backend/src/database/models/grn.model.ts#L46-L73)
@@ -171,10 +171,10 @@ Every user interface element, form submission, table action, modal trigger, and 
 
 ### 4.4 Orphan Code & Workflows
 
-1. **ORPHAN-1: User Lifecycle Modification (Edit/Deactivate/Reset)**
+1. **ORPHAN-1: User Lifecycle Modification (Edit/Deactivate/Reset) — RESOLVED**
    - **Location**: [`packages/backend/src/routes/user.routes.ts`](file:///Users/admin/Desktop/ColdStorage/packages/backend/src/routes/user.routes.ts) & [`UserTable.tsx`](file:///Users/admin/Desktop/ColdStorage/packages/frontend/src/app/users/components/UserTable.tsx)
-   - **Defect**: The UI displays user `status` and `mustChangePassword`, but has zero action controls. The backend has no `PATCH /api/users/:id` endpoint.
-   - **Status**: Identified as an uncompleted lifecycle capability.
+   - **Defect (historical)**: The UI displayed user `status` and `mustChangePassword`, but had zero action controls. The backend had no `PATCH /api/users/:id` endpoint.
+   - **Status (current)**: Lifecycle capability completed — `PATCH /api/users/:id` + `POST /api/users/:id/reset-password` with `UserRowActions`/`UserLifecycleModals` controls.
 
 ---
 
