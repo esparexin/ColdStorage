@@ -80,6 +80,9 @@ export interface SeedGrnOptions {
   grnNumber?: string;
   inwardReceiptNumber?: string;
   vehicleNumber?: string | null;
+  marks?: string | null;
+  gpNumber?: string | null;
+  remarks?: string | null;
 }
 
 /** Seasonal is always the fixed 10-month period. */
@@ -118,10 +121,10 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
               ? SEASONAL_MONTHS
               : 1,
         rentAmount: options.rentAmount ?? 0,
-        gpNumber: null,
-        marks: null,
+        gpNumber: options.gpNumber ?? null,
+        marks: options.marks ?? null,
         vehicleNumber: options.vehicleNumber ?? null,
-        remarks: null,
+        remarks: options.remarks ?? null,
         status: options.status ?? 'OPEN',
         createdBy: 'usr-fixture',
       },
