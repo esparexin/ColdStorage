@@ -124,16 +124,6 @@ export class UserRepository {
   }
 
   /**
-   * Minimal projection used by the authentication guard to confirm an account is still
-   * authoritative. The JWT carries identity only; activation status always resolves from
-   * MongoDB, which the architecture lock designates as the single session/identity SSOT.
-   */
-  public async findActivationStateById(id: string): Promise<UserEntity['status'] | null> {
-    const gate = await this.findGateStateById(id);
-    return gate ? gate.status : null;
-  }
-
-  /**
    * Gate state used by authentication guards. Both `status` and `mustChangePassword`
    * resolve from the canonical MongoDB record so a stale JWT claim can never force
    * an outdated password-change requirement (or bypass a fresh one).
@@ -186,17 +176,6 @@ export class UserRepository {
 
   public async updateLastLogin(userId: string): Promise<void> {
     await UserModel.updateOne({ id: { $eq: sanitizeId(userId) } }, { lastLoginAt: new Date() }).exec();
-  }
-
-  public async updateStatus(userId: string, status: UserEntity['status']): Promise<UserEntity | null> {
-    const doc = await UserModel.findOneAndUpdate(
-      { id: { $eq: sanitizeId(userId) } },
-      { status, updatedAt: new Date() },
-      { new: true },
-    )
-      .lean()
-      .exec();
-    return doc ? (doc as unknown as UserEntity) : null;
   }
 
   /**
