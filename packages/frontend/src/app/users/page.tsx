@@ -89,7 +89,7 @@ export default function UsersPage() {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
+      <header className={styles.headerRow}>
         <div className={styles.titleArea}>
           <h1>User Management & Access Control</h1>
         </div>

@@ -57,7 +57,7 @@ export default function BackupPage() {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
+      <header className={styles.headerRow}>
         <div className={styles.titleArea}>
           <h1>Database Backups</h1>
         </div>

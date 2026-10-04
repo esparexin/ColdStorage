@@ -147,3 +147,32 @@ test.describe('density + a11y audit', () => {
     expect(text).not.toContain('❄');
   });
 });
+
+test.describe('full-width data screens', () => {
+  const DATA_ROUTES = ['/', '/grns', '/deliveries', '/rent', '/customers',
+    '/commodities', '/audit', '/users', '/backup'];
+
+  for (const width of [1440, 1920]) {
+    for (const route of DATA_ROUTES) {
+      test(`${route} fills the available width at ${width}px`, async ({ page }) => {
+        await mockAll(page);
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(route);
+        await page.waitForTimeout(600);
+
+        const gutter = await page.evaluate(() => {
+          const m = document.querySelector('main');
+          return m ? parseFloat(getComputedStyle(m).paddingLeft) : 0;
+        });
+        // Sidebar (216px) plus one shell gutter on each side; the page root
+        // must claim everything that is left, with no cap of its own.
+        const expected = width - 216 - gutter * 2;
+        const box = await page.locator('main > div').first().boundingBox();
+        expect(box, `page root missing on ${route}`).not.toBeNull();
+        expect(Math.abs(box!.width - expected),
+          `${route} at ${width}px should fill ${expected}px but was ${Math.round(box!.width)}px`)
+          .toBeLessThanOrEqual(2);
+      });
+    }
+  }
+});
