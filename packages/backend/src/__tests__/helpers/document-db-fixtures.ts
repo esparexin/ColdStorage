@@ -137,6 +137,7 @@ export async function seedDocumentScenario(
     chamber,
     bags,
     bagType: 'B',
+    bigBagWeight: 80,
     rentType: 'Monthly',
     rentMonths: 1,
     rentAmount: 20000,

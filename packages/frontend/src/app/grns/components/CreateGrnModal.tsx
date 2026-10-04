@@ -133,18 +133,18 @@ export function CreateGrnModal({
             bags: form.createBags,
             smallBags: form.createSmallBags,
             bigBags: form.createBigBags,
-            nominalUnitWeight: form.createNominalUnitWeight,
-            nominalTotalWeight: form.createNominalTotalWeight,
-            actualWeight: form.createActualWeight,
+            smallBagWeight: form.createSmallBagWeight,
+            bigBagWeight: form.createBigBagWeight,
             bagError: form.fieldErrors.bags,
+            smallBagWeightError: form.fieldErrors.smallBagWeight,
+            bigBagWeightError: form.fieldErrors.bigBagWeight,
           }}
           handlers={{
             onBagsChange: form.handleBagsChange,
             onSmallBagsChange: form.handleSmallBagsChange,
             onBigBagsChange: form.handleBigBagsChange,
-            onUnitWeightChange: form.handleUnitWeightChange,
-            onTotalWeightChange: form.setCreateNominalTotalWeight,
-            onActualWeightChange: form.setCreateActualWeight,
+            onSmallBagWeightChange: form.handleSmallBagWeightChange,
+            onBigBagWeightChange: form.handleBigBagWeightChange,
           }}
         />
         <h3 className={styles.sectionHeading}>Rent Terms &amp; Bag Pricing</h3>
@@ -176,7 +176,7 @@ export function CreateGrnModal({
           </div>
           <div className={styles.fieldGroup}>
             <label htmlFor="create-rent-months" className={styles.fieldLabel}>
-              Rent Months {form.createRentType === 'Monthly' ? '*' : ''}
+              Rent Months {form.createRentType === 'Monthly' ? '*' : ''} (info only)
             </label>
             <input
               id="create-rent-months"
@@ -190,8 +190,9 @@ export function CreateGrnModal({
               readOnly={form.createRentType === 'Seasonal'}
               className={`${styles.fieldInput} ${form.fieldErrors.rentMonths ? styles.inputError : ''}`}
               aria-invalid={Boolean(form.fieldErrors.rentMonths)}
-              aria-label={form.createRentType === 'Seasonal' ? `Rent Months (fixed at ${form.seasonalRentMonths} for Seasonal)` : 'Rent Months'}
+              aria-label={form.createRentType === 'Seasonal' ? `Rent Months (fixed at ${form.seasonalRentMonths} for Seasonal, informational only)` : 'Rent Months (informational only)'}
             />
+            <span className={styles.fieldHint}>Informational only — monthly rent is finalized per subscription/rent rules.</span>
             {form.fieldErrors.rentMonths && <span className={styles.fieldErrorText}>{form.fieldErrors.rentMonths}</span>}
           </div>
           <div className={styles.fieldGroup}>

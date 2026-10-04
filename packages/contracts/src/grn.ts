@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { bagTypeSchema } from './bags.js';
+import { bagTypeSchema, perBagWeightSchema } from './bags.js';
 import { chamberTextSchema, indianVehicleSchema, rentalAmountSchema } from './common.js';
 import { gpNumberSchema, grnNumberSchema, receiptNumberSchema } from './identifiers.js';
 import { bagPriceSchema } from './pricing.js';
@@ -7,11 +7,7 @@ import { bagPriceSchema } from './pricing.js';
 export const rentTypeSchema = z.enum(['Monthly', 'Seasonal']);
 export type RentType = z.infer<typeof rentTypeSchema>;
 
-/**
- * A Seasonal subscription is the complete 10-month rental period. The month count is a fixed
- * business constant, not operator input, so it is derived here rather than accepted from a
- * caller that could disagree with this SSOT.
- */
+/** Complete 10-month rental period business constant for Seasonal subscriptions. */
 export const SEASONAL_RENT_MONTHS = 10;
 
 /** Single derivation point for the rental period implied by a rent type. */
@@ -31,36 +27,17 @@ export type GrnStatus = z.infer<typeof grnStatusSchema>;
 export const inwardReceiptNumberSchema = receiptNumberSchema;
 export type InwardReceiptNumber = z.infer<typeof inwardReceiptNumberSchema>;
 
-/**
- * Calculates Indian Financial Year string from a date in Asia/Kolkata (IST).
- * Financial Year starts on April 1.
- * e.g., Oct 2026 -> "26-27", Jan 2027 -> "26-27".
- */
+/** Calculates Indian Financial Year string from a date in Asia/Kolkata (IST). Starts April 1. */
 export function getFinancialYearKey(date: Date): string {
-  // Use Intl.DateTimeFormat to reliably extract year and month in Asia/Kolkata timezone
-  const formatter = new Intl.DateTimeFormat('en-US', {
+  const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Kolkata',
     year: 'numeric',
     month: 'numeric',
-  });
-  const parts = formatter.formatToParts(new Date(date));
-  const yearPart = parts.find((p) => p.type === 'year')?.value;
-  const monthPart = parts.find((p) => p.type === 'month')?.value;
-
-  const year = parseInt(yearPart ?? String(new Date(date).getFullYear()), 10);
-  const month = parseInt(monthPart ?? String(new Date(date).getMonth() + 1), 10);
-
-  let startYear = year;
-  let endYear = year + 1;
-
-  if (month < 4) {
-    startYear = year - 1;
-    endYear = year;
-  }
-
-  const startShort = String(startYear).slice(-2);
-  const endShort = String(endYear).slice(-2);
-  return `${startShort}-${endShort}`;
+  }).formatToParts(new Date(date));
+  const year = parseInt(parts.find((p) => p.type === 'year')?.value ?? String(new Date(date).getFullYear()), 10);
+  const month = parseInt(parts.find((p) => p.type === 'month')?.value ?? String(new Date(date).getMonth() + 1), 10);
+  const startYear = month < 4 ? year - 1 : year;
+  return `${String(startYear).slice(-2)}-${String(startYear + 1).slice(-2)}`;
 }
 
 export const createGrnSchema = z
@@ -71,10 +48,19 @@ export const createGrnSchema = z
     chamber: chamberTextSchema,
     bags: z.number().int().positive().max(100000),
     bagType: bagTypeSchema,
-    nominalUnitWeight: z.number().positive().nullish(),
-    nominalTotalWeight: z.number().positive().nullish(),
-    actualWeight: z.number().positive().nullish(),
+    /**
+     * Per-bag weight only (kg per individual bag).
+     * - S requires smallBagWeight; B requires bigBagWeight; S+B requires both.
+     * - No nominal / weighbridge / total-weight fields exist.
+     */
+    smallBagWeight: perBagWeightSchema.nullish(),
+    bigBagWeight: perBagWeightSchema.nullish(),
     rentType: rentTypeSchema,
+    /**
+     * Rent Months is informational only. It does not determine, modify, or finalize
+     * the monthly subscription/payment logic, which is finalized independently per
+     * the applicable subscription/rent rules (see pricing.calculateRentAmount).
+     */
     rentMonths: rentMonthsInputSchema.nullish(),
     rentAmount: rentalAmountSchema.nullish(),
     bagPrice: bagPriceSchema.nullish(),
@@ -97,6 +83,22 @@ export const createGrnSchema = z
     {
       message: "rentMonths (>= 1) is required for 'Monthly' rent and must be omitted for 'Seasonal'",
       path: ['rentMonths'],
+    },
+  )
+  .refine(
+    (data) => {
+      if (data.bagType === 'S' || data.bagType === 'S+B') {
+        if (typeof data.smallBagWeight !== 'number' || data.smallBagWeight <= 0) return false;
+      }
+      if (data.bagType === 'B' || data.bagType === 'S+B') {
+        if (typeof data.bigBagWeight !== 'number' || data.bigBagWeight <= 0) return false;
+      }
+      return true;
+    },
+    {
+      message:
+        'Per-bag weight is required: Small Bag Weight for S, Big Bag Weight for B, both for S+B',
+      path: ['smallBagWeight'],
     },
   )
   .refine(
@@ -126,11 +128,10 @@ export const grnSchema = z.object({
   chamber: chamberTextSchema,
   bags: z.number().int().positive(),
   bagType: bagTypeSchema,
-  nominalUnitWeight: z.number().nullable().optional(),
-  nominalTotalWeight: z.number().nullable().optional(),
-  actualWeight: z.number().nullable().optional(),
-  authoritativeWeight: z.number().nullable().optional(),
+  smallBagWeight: z.number().positive().nullable().optional(),
+  bigBagWeight: z.number().positive().nullable().optional(),
   rentType: rentTypeSchema,
+  /** Informational only; monthly subscription/rent is finalized per subscription/rent rules. */
   rentMonths: z.number().int().nullable().optional(),
   rentAmount: rentalAmountSchema,
   bagPrice: z.number().nullable().optional(),
@@ -206,13 +207,12 @@ export const grnAcknowledgementSchema = z.object({
     bigBagPrice: z.number().nullable().optional(),
     smallBags: z.number().int().nullable().optional(),
     bigBags: z.number().int().nullable().optional(),
-    nominalUnitWeight: z.number().nullable().optional(),
-    nominalTotalWeight: z.number().nullable().optional(),
-    actualWeight: z.number().nullable().optional(),
-    authoritativeWeight: z.number().nullable().optional(),
+    smallBagWeight: z.number().positive().nullable().optional(),
+    bigBagWeight: z.number().positive().nullable().optional(),
   }),
   rentTerms: z.object({
     rentType: rentTypeSchema,
+    /** Informational only; not used to finalize monthly subscription/payment. */
     rentMonths: z.number().int().nullable().optional(),
     rentAmount: rentalAmountSchema,
   }),

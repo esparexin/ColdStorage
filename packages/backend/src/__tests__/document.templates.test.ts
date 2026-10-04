@@ -46,7 +46,7 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).toContain('GOODS RECEIPT NOTE (STORAGE RECORD)');
     expect(html).toContain('Sardar Singh');
     expect(html).toContain('300');
-    expect(html).toContain('14950 kg');
+    expect(html).toContain('50 kg per bag');
     expect(html).toContain('HR-10-XY-9999');
   });
 

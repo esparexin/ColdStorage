@@ -16,7 +16,7 @@ import {
   type ImportHarness,
 } from './helpers/import-fixtures.js';
 
-const GRN_HEADER = 'date,customerName,commodityName,chamber,bags,bagType,rentType,rentAmount';
+const GRN_HEADER = 'date,customerName,commodityName,chamber,bags,bagType,smallBagWeight,bigBagWeight,rentType,rentAmount';
 
 /**
  * GRN CSV import.
@@ -52,7 +52,7 @@ describe('ImportService — GRN CSV import', () => {
     const startSessionSpy = vi.spyOn(mongoose, 'startSession');
     const grnServiceSpy = vi.spyOn(harness.grnService, 'createGrn');
 
-    const csv = [GRN_HEADER, '2026-10-01,Farmer 1,Potato,CH-01,50,S,Seasonal,500'].join('\n');
+    const csv = [GRN_HEADER, '2026-10-01,Farmer 1,Potato,CH-01,50,S,50,80,Seasonal,500'].join('\n');
     await harness.importService.importGrns(IMPORT_FACILITY_ID, csv, IMPORT_USER_ID);
 
     expect(grnServiceSpy).toHaveBeenCalledTimes(1);
@@ -68,8 +68,8 @@ describe('ImportService — GRN CSV import', () => {
 
     const csv = [
       GRN_HEADER,
-      '2026-10-01,Farmer 1,Potato,CH-01,100,S,Seasonal,1000',
-      '2026-10-02,Farmer 1,Potato,CH-02,120,S,Seasonal,1200',
+      '2026-10-01,Farmer 1,Potato,CH-01,100,S,50,80,Seasonal,1000',
+      '2026-10-02,Farmer 1,Potato,CH-02,120,S,50,80,Seasonal,1200',
     ].join('\n');
 
     const summary = await harness.importService.importGrns(IMPORT_FACILITY_ID, csv, IMPORT_USER_ID);
@@ -83,7 +83,7 @@ describe('ImportService — GRN CSV import', () => {
   });
 
   it('passes the chamber column through as free text with no existence check', async () => {
-    const csv = [GRN_HEADER, '2026-10-01,Farmer 1,Potato,UNLISTED-9,100,S,Seasonal,1000'].join(
+    const csv = [GRN_HEADER, '2026-10-01,Farmer 1,Potato,UNLISTED-9,100,S,50,80,Seasonal,1000'].join(
       '\n',
     );
 
@@ -96,7 +96,7 @@ describe('ImportService — GRN CSV import', () => {
   });
 
   it('rejects a row referencing an unknown customer and writes nothing', async () => {
-    const csv = [GRN_HEADER, '2026-10-01,Ghost Farmer,Potato,CH-01,100,S,Seasonal,1000'].join('\n');
+    const csv = [GRN_HEADER, '2026-10-01,Ghost Farmer,Potato,CH-01,100,S,50,80,Seasonal,1000'].join('\n');
 
     const summary = await harness.importService.importGrns(IMPORT_FACILITY_ID, csv, IMPORT_USER_ID);
 
@@ -116,7 +116,7 @@ describe('ImportService — GRN CSV import', () => {
       isActive: false,
     });
 
-    const csv = [GRN_HEADER, '2026-10-01,Dormant Farmer,Potato,CH-01,100,S,Seasonal,1000'].join(
+    const csv = [GRN_HEADER, '2026-10-01,Dormant Farmer,Potato,CH-01,100,S,50,80,Seasonal,1000'].join(
       '\n',
     );
 
@@ -132,8 +132,8 @@ describe('ImportService — GRN CSV import', () => {
   it('identical operational rows are both committed with distinct sequential grnNumbers', async () => {
     const csv = [
       `${GRN_HEADER},vehicleNumber`,
-      '2026-10-01,Farmer 1,Potato,CH-01,100,S,Seasonal,1000,MH12AB1234',
-      '2026-10-01,Farmer 1,Potato,CH-01,100,S,Seasonal,1000,MH12AB1234',
+      '2026-10-01,Farmer 1,Potato,CH-01,100,S,50,80,Seasonal,1000,MH12AB1234',
+      '2026-10-01,Farmer 1,Potato,CH-01,100,S,50,80,Seasonal,1000,MH12AB1234',
     ].join('\n');
 
     const summary = await harness.importService.importGrns(IMPORT_FACILITY_ID, csv, IMPORT_USER_ID);
@@ -147,15 +147,15 @@ describe('ImportService — GRN CSV import', () => {
   it('counter gapless rollback: a rejected row burns no GRN sequence number', async () => {
     const csv = [
       GRN_HEADER,
-      '2026-10-01,Farmer 1,Potato,CH-01,100,S,Seasonal,1000',
-      '2026-10-01,Farmer 1,Potato,CH-01,0,S,Seasonal,1000',
+      '2026-10-01,Farmer 1,Potato,CH-01,100,S,50,80,Seasonal,1000',
+      '2026-10-01,Farmer 1,Potato,CH-01,0,S,50,80,Seasonal,1000',
     ].join('\n');
 
     const summary = await harness.importService.importGrns(IMPORT_FACILITY_ID, csv, IMPORT_USER_ID);
     expect(summary.committed).toBe(1);
     expect(summary.rejected).toBe(1);
 
-    const nextCsv = [GRN_HEADER, '2026-10-01,Farmer 1,Potato,CH-01,150,S,Seasonal,1500'].join('\n');
+    const nextCsv = [GRN_HEADER, '2026-10-01,Farmer 1,Potato,CH-01,150,S,50,80,Seasonal,1500'].join('\n');
     const nextSummary = await harness.importService.importGrns(
       IMPORT_FACILITY_ID,
       nextCsv,
@@ -170,7 +170,7 @@ describe('ImportService — GRN CSV import', () => {
   });
 
   it('atomic counter allocation: GRN creation reuses the canonical counter service', async () => {
-    const csv = [GRN_HEADER, '2026-10-01,Farmer 1,Potato,CH-01,100,S,Seasonal,1000'].join('\n');
+    const csv = [GRN_HEADER, '2026-10-01,Farmer 1,Potato,CH-01,100,S,50,80,Seasonal,1000'].join('\n');
 
     const summary = await harness.importService.importGrns(IMPORT_FACILITY_ID, csv, IMPORT_USER_ID);
     expect(summary.committed).toBe(1);

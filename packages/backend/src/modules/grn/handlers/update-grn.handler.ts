@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import type { CorrectGrnInput, Grn } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
+import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { PutAwayAllocationModel } from '../../../database/models/put-away.model.js';
@@ -53,15 +54,19 @@ export async function correctGrn(
         );
       }
 
-      const [putAways, movements] = await Promise.all([
+      const [putAways, movements, activeChallans] = await Promise.all([
         PutAwayAllocationModel.countDocuments({ facilityId, grnId }, { session }).exec(),
         InventoryTransactionModel.countDocuments(
           { facilityId, grnId, transactionType: { $ne: 'INWARD_PUTAWAY' } },
           { session },
         ).exec(),
+        DeliveryChallanModel.countDocuments(
+          { facilityId, grnId, status: 'ISSUED' },
+          { session },
+        ).exec(),
       ]);
 
-      if (putAways > 0 || movements > 0) {
+      if (putAways > 0 || movements > 0 || activeChallans > 0) {
         throw new Error(
           `Cannot correct GRN '${grn.grnNumber}': stock has already been allocated or delivered. Use the delivery reversal workflow instead.`,
         );
@@ -92,10 +97,8 @@ export async function correctGrn(
 
       if (input.bags !== undefined) {
         update.bags = input.bags;
-        // Bag accounting derives from the bag count, so a corrected count invalidates any
-        // previously captured nominal total and authoritative weight.
-        update.nominalTotalWeight = grn.nominalUnitWeight ?? null;
-        update.authoritativeWeight = grn.actualWeight ?? null;
+        // Per-bag weights are independent of the bag count, so a corrected count
+        // does not invalidate or recalculate any weight field.
       }
 
       if (input.chamber !== undefined) {

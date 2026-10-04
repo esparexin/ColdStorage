@@ -100,7 +100,6 @@ fi
 NATIVE_BUTTON_HITS=$(grep -rnE "<button(\b|[ >])" "$ROOT/packages/frontend/src/app" "$ROOT/packages/frontend/src/components/layout" "$ROOT/packages/frontend/src/components/auth" \
   --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null \
   | grep -v "InventoryHeader.tsx" \
-  | grep -v "PutAwayTab.tsx" \
   | grep -v "AppHeader.tsx" \
   | grep -v "SidebarNav.tsx" || true)
 if [ -n "$NATIVE_BUTTON_HITS" ]; then

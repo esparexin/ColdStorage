@@ -85,6 +85,8 @@ describe('GRN Relational Validation & Business Constraints', () => {
         chamber: 'CH-NORTH-01',
         bags: 50,
         bagType: 'S',
+        smallBagWeight: 50,
+        bigBagWeight: 80,
         rentType: 'Seasonal',
         rentAmount: 500,
         ...overrides,
