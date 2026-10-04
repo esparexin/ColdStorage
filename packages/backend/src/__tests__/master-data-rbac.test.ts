@@ -32,9 +32,7 @@ describe('Master Data & Facility Scoping RBAC', () => {
   let southFacilityId: string;
 
   beforeAll(async () => {
-    await connectToDatabase(
-      process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test',
-    );
+    await connectToDatabase();
     northFacilityId = `fac-north-${randomUUID().slice(0, 8)}`;
     southFacilityId = `fac-south-${randomUUID().slice(0, 8)}`;
     await seedFacility({

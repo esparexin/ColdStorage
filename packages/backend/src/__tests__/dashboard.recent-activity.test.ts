@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { CustomerModel } from '../database/models/customer.model.js';

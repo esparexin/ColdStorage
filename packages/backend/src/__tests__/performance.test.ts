@@ -4,6 +4,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
+import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { inspectDatabaseIndexesReadOnly, verifyIndexDeclarations } from '../database/indexes.js';
 import { FacilityModel } from '../database/models/facility.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
@@ -53,11 +54,7 @@ describe('Phase 11: Performance Optimization, Index Audit & Benchmarking', () =>
   const seed = createAuthSeeder(config.jwtSecret);
 
   beforeAll(async () => {
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(
-        process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test',
-      );
-    }
+    await connectToDatabase();
 
     await FacilityModel.deleteMany({ id: { $regex: /^fac-perf/ } });
     await seedFacility({ id: FACILITY_ID, name: 'Performance Test Facility', code: 'PERF' });
@@ -95,9 +92,7 @@ describe('Phase 11: Performance Optimization, Index Audit & Benchmarking', () =>
     await FacilityModel.deleteMany({ id: { $regex: /^fac-perf/ } });
     await GrnModel.deleteMany({ facilityId: BENCHMARK_FACILITY_ID });
     await InventoryTransactionModel.deleteMany({ facilityId: FACILITY_ID });
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
+    await disconnectDatabase();
   });
 
   it('1. compresses large JSON responses (> 1 KB) with gzip encoding', async () => {

@@ -77,6 +77,14 @@ export class UserRepository {
   }
 
   public async resetForTesting(): Promise<void> {
+    if (process.env.NODE_ENV !== 'test') {
+      throw new Error('resetForTesting can only be called in test environment');
+    }
+    if (UserModel.db?.name === 'cold_storage') {
+      throw new Error(
+        'FATAL SAFETY VIOLATION: Cannot reset live database "cold_storage" during test execution.',
+      );
+    }
     await UserModel.deleteMany({}).exec();
   }
 

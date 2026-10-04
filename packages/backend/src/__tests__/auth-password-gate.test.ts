@@ -14,7 +14,7 @@ describe('Password-change gate is database authoritative', () => {
   const NEW_PASSWORD = 'GateNewPassword456!';
 
   beforeAll(async () => {
-    await connectToDatabase('mongodb://127.0.0.1:27017/cold_storage_test');
+    await connectToDatabase();
   });
 
   afterAll(async () => {
