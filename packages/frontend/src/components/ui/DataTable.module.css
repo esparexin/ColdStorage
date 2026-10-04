@@ -8,7 +8,7 @@
 .tableWrapper {
   width: 100%;
   overflow-x: auto;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
 
@@ -21,14 +21,14 @@
 .caption {
   caption-side: top;
   text-align: left;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
-  padding: var(--space-4) var(--space-4) var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-2);
 }
 
 .th {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
   text-transform: uppercase;
@@ -53,13 +53,13 @@
 }
 
 .td {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   color: var(--color-text-primary);
   vertical-align: middle;
 }
 
 .emptyCell {
-  padding: var(--space-10) var(--space-4);
+  padding: var(--space-8) var(--space-4);
   text-align: center;
   color: var(--color-text-muted);
   font-size: var(--text-sm);

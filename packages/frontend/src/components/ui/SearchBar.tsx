@@ -49,7 +49,6 @@ export function SearchBar({
           onClick={handleClear}
           className={styles.clearButton}
           aria-label={`Clear ${ariaLabel}`}
-          title="Clear search"
         >
           <X size={14} aria-hidden="true" />
         </button>

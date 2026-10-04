@@ -168,8 +168,8 @@ export function FacilitySection() {
       </div>
 
       <p className={styles.sectionHint}>
-        Facilities define tenant and access scope. Chambers are recorded as free text on each
-        inward receipt, so there is no storage layout to configure here.
+        Chambers are recorded as free text on each inward receipt, so there is no storage layout to
+        configure here.
       </p>
 
       {loading ? (

@@ -36,7 +36,6 @@ function InventoryContent() {
   return (
     <div className={styles.page}>
       <InventoryHeader
-        currentFacilityName={currentFacilityName}
         stockSummary={inventoryData.stockSummary}
         loadingSummary={inventoryData.loadingSummary}
         activeTab={activeTab}

@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Package } from 'lucide-react';
 import type { CommodityStock } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
@@ -40,10 +39,7 @@ export function CommodityStockSection({
 
   return (
     <section className={styles.section} aria-label="Commodity stock breakdown">
-      <h2 className={styles.sectionTitle}>
-        <Package size={18} aria-hidden="true" />
-        Commodity Stock
-      </h2>
+      <h2 className={styles.sectionTitle}>Commodity Stock</h2>
       {items.length === 0 ? (
         <FeedbackStates.Empty message="No commodity stock on hand." />
       ) : (

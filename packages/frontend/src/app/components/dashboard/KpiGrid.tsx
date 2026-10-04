@@ -1,59 +1,46 @@
 'use client';
 
 import React from 'react';
-import { Archive, BarChart3, Box, CheckCircle2, TrendingDown, TrendingUp } from 'lucide-react';
 import type { DashboardSummary } from '@cold-storage/contracts';
 import { StatCard, StatGrid } from '@/components/ui';
 
 export function KpiGrid({ summary }: { summary: DashboardSummary }) {
   return (
-    <StatGrid label="Key performance indicators" minTileWidth={200}>
+    <StatGrid label="Key performance indicators" minTileWidth={180}>
       <StatCard
         label="Stock on Hand"
         value={summary.totalStockBags.toLocaleString('en-IN')}
         sub="bags currently stored"
-        icon={Archive}
-        iconSize={20}
         accent="primary"
       />
       <StatCard
         label="Chambers in Use"
         value={summary.chamberStock.length}
         sub="chamber labels holding stock"
-        icon={BarChart3}
-        iconSize={20}
         accent="primary"
       />
       <StatCard
         label="Monthly Inward"
         value={summary.monthlyInwardBags.toLocaleString('en-IN')}
         sub="bags received this month"
-        icon={TrendingUp}
-        iconSize={20}
         accent="success"
       />
       <StatCard
         label="Monthly Delivered"
         value={summary.monthlyDeliveredBags.toLocaleString('en-IN')}
         sub="net bags delivered this month"
-        icon={TrendingDown}
-        iconSize={20}
         accent="warning"
       />
       <StatCard
         label="Open GRNs"
         value={summary.activeGrns}
         sub="active inward receipts"
-        icon={Box}
-        iconSize={20}
         accent="primary"
       />
       <StatCard
         label="Closed GRNs"
         value={summary.closedGrns}
         sub="completed receipts"
-        icon={CheckCircle2}
-        iconSize={20}
         accent="success"
       />
     </StatGrid>

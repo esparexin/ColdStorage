@@ -89,9 +89,9 @@
   --transition-slow: 300ms ease;
 
   /* ---- Layout ---- */
-  --sidebar-width:         240px;
-  --sidebar-width-mobile:  280px;
-  --header-height:         60px;
+  --sidebar-width:         216px;
+  --sidebar-width-mobile:  240px;
+  --header-height:         56px;
 }
 
 /* ============================================================
@@ -111,9 +111,9 @@ html {
 
 body {
   font-family: var(--font-sans);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-normal);
-  line-height: 1.6;
+  line-height: 1.5;
   color: var(--color-text-primary);
   background-color: var(--color-surface-0);
   -webkit-font-smoothing: antialiased;

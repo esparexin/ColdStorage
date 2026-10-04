@@ -32,7 +32,6 @@ export function ImportPanel({
   return (
     <div className={styles.sectionCard}>
       <div className={styles.sectionHeader}>
-        <Upload size={18} color="var(--color-primary)" aria-hidden="true" />
         <h2 className={styles.sectionTitle}>Bulk CSV Data Import</h2>
       </div>
 
@@ -41,9 +40,9 @@ export function ImportPanel({
           Your role does not have authorization to execute bulk data imports.
         </p>
       ) : (
-        <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           {importError && (
-            <div style={{ display: 'flex', gap: '8px', padding: '12px', background: 'var(--color-danger-subtle)', color: 'var(--color-danger)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-xs)' }}>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', padding: 'var(--space-2)', background: 'var(--color-danger-subtle)', color: 'var(--color-danger)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-xs)' }}>
               <AlertCircle size={16} aria-hidden="true" />
               <span>{importError}</span>
             </div>
@@ -61,14 +60,14 @@ export function ImportPanel({
             </Select>
 
           <label className={styles.dropzone}>
-            <FileSpreadsheet size={32} color="var(--color-primary)" aria-hidden="true" />
+            <FileSpreadsheet size={24} color="var(--color-primary)" aria-hidden="true" />
             <span className={styles.dropzoneTitle}>
               {selectedFile ? selectedFile.name : 'Choose a .csv file or drag & drop'}
             </span>
             <span className={styles.dropzoneSub}>
               {selectedFile
                 ? `${(selectedFile.size / 1024).toFixed(1)} KB`
-                : 'Max file size 2 MB. Must be standard comma-separated CSV format.'}
+                : 'Max file size 2 MB. Comma-separated CSV.'}
             </span>
             <input
               type="file"
