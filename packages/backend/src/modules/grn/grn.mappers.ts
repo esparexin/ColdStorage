@@ -43,6 +43,7 @@ export function toGrnEntity(doc: {
     facilityId: doc.facilityId,
     grnNumber: doc.grnNumber,
     inwardReceiptNumber: doc.inwardReceiptNumber,
+    billNumber: doc.inwardReceiptNumber,
     date: doc.date,
     customerId: doc.customerId,
     customerName: doc.customerName,

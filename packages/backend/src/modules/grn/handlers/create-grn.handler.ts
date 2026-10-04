@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import {
   calculateRentAmount,
   deriveBagPrice,
+  getFinancialYearKey,
   rentMonthsForType,
   type CreateGrnInput,
   type Grn,
@@ -13,7 +14,7 @@ import { CustomerModel } from '../../../database/models/customer.model.js';
 import { FacilityModel } from '../../../database/models/facility.model.js';
 import { GrnModel, type GrnDoc } from '../../../database/models/grn.model.js';
 import { auditService } from '../../audit/audit.service.js';
-import { counterService } from '../../common/counter.service.js';
+import { counterService, DOCUMENT_PREFIXES } from '../../common/counter.service.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
 import { toGrnAcknowledgement, toGrnEntity } from '../grn.mappers.js';
 
@@ -97,11 +98,34 @@ export async function createGrn(
   try {
     await session.withTransaction(async () => {
       const grnNumber = await counterService.generateGrnNumber(facilityId, inwardDate, session);
-      const inwardReceiptNumber = await counterService.generateInwardReceiptNumber(
-        facilityId,
-        inwardDate,
-        session,
-      );
+      let inwardReceiptNumber: string;
+      const customBill = input.billNumber?.trim();
+      if (customBill) {
+        const isNumeric = /^\d+$/.test(customBill);
+        const fy = getFinancialYearKey(inwardDate);
+        inwardReceiptNumber = isNumeric
+          ? `${DOCUMENT_PREFIXES.inwardReceipt}-${fy}-${customBill.padStart(4, '0')}`
+          : customBill;
+
+        const existing = await GrnModel.findOne({ facilityId, inwardReceiptNumber }, null, { session });
+        if (existing) {
+          throw new Error(`Bill Number '${inwardReceiptNumber}' already exists for this facility.`);
+        }
+
+        const seqMatch = inwardReceiptNumber.match(/(\d+)$/);
+        if (seqMatch) {
+          const seqNum = parseInt(seqMatch[1], 10);
+          if (seqNum > 0) {
+            await counterService.syncInwardReceiptSequence(facilityId, inwardDate, seqNum, session);
+          }
+        }
+      } else {
+        inwardReceiptNumber = await counterService.generateInwardReceiptNumber(
+          facilityId,
+          inwardDate,
+          session,
+        );
+      }
 
       const docs = await GrnModel.create(
         [

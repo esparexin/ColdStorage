@@ -148,4 +148,38 @@ describe('GRN Lifecycle & Sequences Integration', () => {
     expect(validRes.body.grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-0001$/);
     expect(validRes.body.grn.inwardReceiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0001$/);
   });
+  it('supports previewing next bill number and given custom bill number', async () => {
+    const previewRes = await request(app)
+      .get(`/api/facilities/${northFacilityId}/grns/next-bill-number`)
+      .set('Authorization', `Bearer ${operatorNorthToken}`);
+
+    expect(previewRes.status).toBe(200);
+    expect(previewRes.body.nextBillNumber).toMatch(/^RCPT-\d{2}-\d{2}-0001$/);
+
+    // Create GRN with custom operator-given bill number (e.g. RCPT-26-27-0050)
+    const customRes = await postInbound(
+      inbound({
+        billNumber: 'RCPT-26-27-0050',
+        storageMark: 'STRG-2026',
+        partyMark: 'PRTY-ALPHA',
+      }),
+    );
+    expect(customRes.status).toBe(201);
+    expect(customRes.body.grn.billNumber).toBe('RCPT-26-27-0050');
+    expect(customRes.body.grn.inwardReceiptNumber).toBe('RCPT-26-27-0050');
+    expect(customRes.body.grn.storageMark).toBe('STRG-2026');
+    expect(customRes.body.grn.partyMark).toBe('PRTY-ALPHA');
+
+    // Duplicate bill number in same facility is rejected
+    const dupRes = await postInbound(inbound({ billNumber: 'RCPT-26-27-0050' }));
+    expect(dupRes.status).toBe(409);
+    expect(dupRes.body.error).toContain('already exists');
+
+    // Next auto-sequence should continue from 51
+    const nextPreviewRes = await request(app)
+      .get(`/api/facilities/${northFacilityId}/grns/next-bill-number`)
+      .set('Authorization', `Bearer ${operatorNorthToken}`);
+    expect(nextPreviewRes.status).toBe(200);
+    expect(nextPreviewRes.body.nextBillNumber).toMatch(/^RCPT-\d{2}-\d{2}-0051$/);
+  });
 });

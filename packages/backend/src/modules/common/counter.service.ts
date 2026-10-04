@@ -54,6 +54,32 @@ export class CounterService {
     return `${DOCUMENT_PREFIXES.inwardReceipt}-${fy}-${padded}`;
   }
 
+  public async previewNextInwardReceiptNumber(
+    facilityId: string,
+    date: Date,
+    padLength = 4,
+  ): Promise<string> {
+    const fy = getFinancialYearKey(date);
+    const counter = await CounterModel.findOne({ facilityId, counterType: 'INWARD_RECEIPT', financialYear: fy }).exec();
+    const nextSeq = (counter?.lastSequence ?? 0) + 1;
+    const padded = String(nextSeq).padStart(padLength, '0');
+    return `${DOCUMENT_PREFIXES.inwardReceipt}-${fy}-${padded}`;
+  }
+
+  public async syncInwardReceiptSequence(
+    facilityId: string,
+    date: Date,
+    sequenceNumber: number,
+    session?: ClientSession,
+  ): Promise<void> {
+    const fy = getFinancialYearKey(date);
+    await CounterModel.findOneAndUpdate(
+      { facilityId, counterType: 'INWARD_RECEIPT', financialYear: fy, lastSequence: { $lt: sequenceNumber } },
+      { $set: { lastSequence: sequenceNumber } },
+      { session, upsert: true },
+    ).exec();
+  }
+
   public async generateDeliveryChallanNumber(
     facilityId: string,
     date: Date,

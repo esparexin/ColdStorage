@@ -27,6 +27,7 @@ export interface CreateGrnState {
   createRentAmount: number | '';
   createStorageMark?: string;
   createPartyMark?: string;
+  createBillNumber?: string;
   createVehicleNumber: string;
 }
 
@@ -84,6 +85,9 @@ export function validateCreateGrnForm(state: CreateGrnState): {
   if (state.createPartyMark && state.createPartyMark.trim().length > 20) {
     errors.partyMark = 'Party mark cannot exceed 20 characters';
   }
+  if (state.createBillNumber && state.createBillNumber.trim().length > 40) {
+    errors.billNumber = 'Bill number cannot exceed 40 characters';
+  }
 
   return {
     errors,
@@ -98,7 +102,7 @@ export function buildCreateGrnPayload(params: {
   bagPrice?: number | ''; smallBagPrice?: number | ''; bigBagPrice?: number | '';
   smallBags?: number | ''; bigBags?: number | ''; rentMonths?: number | '';
   smallBagWeight?: number | ''; bigBagWeight?: number | '';
-  gpNumber?: string; storageMark?: string; partyMark?: string;
+  gpNumber?: string; storageMark?: string; partyMark?: string; billNumber?: string;
   vehicleNumber?: string; remarks?: string;
 }): Record<string, unknown> {
   const p: Record<string, unknown> = {
@@ -117,6 +121,7 @@ export function buildCreateGrnPayload(params: {
   if (params.gpNumber?.trim()) p.gpNumber = params.gpNumber.trim();
   if (params.storageMark?.trim()) p.storageMark = params.storageMark.trim();
   if (params.partyMark?.trim()) p.partyMark = params.partyMark.trim();
+  if (params.billNumber?.trim()) p.billNumber = params.billNumber.trim();
   if (params.vehicleNumber) p.vehicleNumber = params.vehicleNumber;
   if (params.remarks?.trim()) p.remarks = params.remarks.trim();
   return p;

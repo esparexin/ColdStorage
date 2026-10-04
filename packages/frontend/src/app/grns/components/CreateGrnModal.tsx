@@ -106,7 +106,23 @@ export function CreateGrnModal({
             </Select>
           </div>
         </div>
-        <div className={styles.formGrid2}>
+        <div className={styles.formGrid3}>
+          <div className={styles.fieldGroup}>
+            <label htmlFor="create-bill-number" className={styles.fieldLabel}>
+              Bill Number {form.suggestedBillNumber ? `(Next: ${form.suggestedBillNumber})` : ''}
+            </label>
+            <input
+              id="create-bill-number"
+              type="text"
+              maxLength={40}
+              value={form.createBillNumber}
+              onChange={(e) => form.setCreateBillNumber(e.target.value)}
+              placeholder={form.suggestedBillNumber ? `Auto (${form.suggestedBillNumber})` : 'Auto / given #'}
+              className={`${styles.fieldInput} ${form.fieldErrors.billNumber ? styles.inputError : ''}`}
+              aria-invalid={Boolean(form.fieldErrors.billNumber)}
+            />
+            {form.fieldErrors.billNumber && <span className={styles.fieldErrorText}>{form.fieldErrors.billNumber}</span>}
+          </div>
           <div className={styles.fieldGroup}>
             <Input id="create-chamber" label="Chamber" type="text" required maxLength={20}
               value={form.createChamber} onChange={(e) => form.setCreateChamber(e.target.value)}
@@ -122,21 +138,16 @@ export function CreateGrnModal({
         </div>
         <BagAccountingSection
           values={{
-            bagType: form.createBagType,
-            bags: form.createBags,
-            smallBags: form.createSmallBags,
-            bigBags: form.createBigBags,
-            smallBagWeight: form.createSmallBagWeight,
-            bigBagWeight: form.createBigBagWeight,
+            bagType: form.createBagType, bags: form.createBags,
+            smallBags: form.createSmallBags, bigBags: form.createBigBags,
+            smallBagWeight: form.createSmallBagWeight, bigBagWeight: form.createBigBagWeight,
             bagError: form.fieldErrors.bags,
             smallBagWeightError: form.fieldErrors.smallBagWeight,
             bigBagWeightError: form.fieldErrors.bigBagWeight,
           }}
           handlers={{
-            onBagsChange: form.handleBagsChange,
-            onSmallBagsChange: form.handleSmallBagsChange,
-            onBigBagsChange: form.handleBigBagsChange,
-            onSmallBagWeightChange: form.handleSmallBagWeightChange,
+            onBagsChange: form.handleBagsChange, onSmallBagsChange: form.handleSmallBagsChange,
+            onBigBagsChange: form.handleBigBagsChange, onSmallBagWeightChange: form.handleSmallBagWeightChange,
             onBigBagWeightChange: form.handleBigBagWeightChange,
           }}
         />
@@ -226,13 +237,9 @@ export function CreateGrnModal({
       </form>
     </Modal>
     <ConfirmDialog
-      isOpen={isConfirmOpen}
-      title="Unsaved Changes"
+      isOpen={isConfirmOpen} title="Unsaved Changes"
       message="You have entered information that has not been saved. Are you sure you want to exit?"
-      cancelLabel="Stay"
-      confirmLabel="Exit"
-      onCancel={cancelExit}
-      onConfirm={confirmExit}
+      cancelLabel="Stay" confirmLabel="Exit" onCancel={cancelExit} onConfirm={confirmExit}
     />
     {isAddingCustomer && <CustomerFormModal customer={null} selectedFacilityId={facilityId} existingCustomers={customers} onClose={() => setIsAddingCustomer(false)} onSuccess={() => { setIsAddingCustomer(false); onCustomerAdded?.(); }} />}
     {isAddingCommodity && <CommodityFormModal onClose={() => setIsAddingCommodity(false)} onSuccess={() => { setIsAddingCommodity(false); onCommodityAdded?.(); }} />}
