@@ -201,17 +201,6 @@
   border: 1px solid var(--color-danger);
 }
 
-.modalFooter {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-6);
-  border-top: 1px solid var(--color-border);
-  background: var(--color-surface-1);
-  flex-shrink: 0;
-}
-
 /* Detail View Modal Grid */
 .detailGrid {
   display: grid;

@@ -34,7 +34,7 @@ export function ExportPanel({
 
       {!canExport ? (
         <p className={styles.mutedNote}>
-          Your role does not have authorization to download certified data exports.
+          Your role cannot download data exports.
         </p>
       ) : (
         <div className={styles.exportList}>

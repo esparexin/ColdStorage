@@ -29,12 +29,6 @@
   margin: 0;
 }
 
-.subtitle {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  margin: 0;
-}
-
 .headerActions {
   display: flex;
   align-items: center;
@@ -205,6 +199,12 @@
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
+}
+
+.unauthorizedHint,
+.warningNote {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
 /* Per-row action group: keeps the compact buttons on one line without stretching the cell. */

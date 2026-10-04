@@ -47,7 +47,7 @@ export function OrgIdentitySection({
         label="Organization / Company Legal Name"
         required
         maxLength={160}
-        placeholder="e.g. Kisan Cold Storage & Warehousing Pvt. Ltd."
+        placeholder="e.g. Kisan Cold Storage"
         value={orgName}
         onChange={(e) => setOrgName(e.target.value)}
       />
@@ -67,7 +67,7 @@ export function OrgIdentitySection({
         label="Registered Business Address"
         required
         maxLength={500}
-        placeholder="e.g. Plot No. 42, Industrial Cold Zone, Kanpur Road, Lucknow, UP - 226012"
+        placeholder="e.g. Plot 42, Cold Zone, Lucknow"
         value={address}
         onChange={(e) => setAddress(e.target.value)}
         className={styles.fullWidth}
@@ -78,7 +78,7 @@ export function OrgIdentitySection({
         label="Official Contact Numbers / Email"
         required
         maxLength={200}
-        placeholder="e.g. +91 98765 43210, info@kisancoldstorage.in"
+        placeholder="e.g. +91 98765 43210"
         value={contact}
         onChange={(e) => setContact(e.target.value)}
         className={styles.fullWidth}
@@ -103,7 +103,7 @@ export function OrgIdentitySection({
           rows={2}
           maxLength={500}
           className={styles.textarea}
-          placeholder="e.g. Goods stored at owner's risk under standard warehousing terms."
+          placeholder="e.g. Goods stored at owner's risk."
           value={printFooter}
           onChange={(e) => setPrintFooter(e.target.value)}
         />

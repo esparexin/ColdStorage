@@ -106,9 +106,9 @@ export function ResetPasswordModal({
             />
           </div>
 
-          <p className={styles.subtitle}>
-            All active sessions for @{user.username} will be revoked immediately. The user must
-            change this password at first login.
+          <p className={styles.warningNote}>
+            All sessions for @{user.username} are revoked. They must set a new password at first
+            login.
           </p>
       </form>
     </Modal>
