@@ -85,11 +85,17 @@ async function executePutAwayTransaction(
         session,
       );
 
-      const alreadyAllocated = await getAllocatedBags(facilityId, grn.id, session);
-      const remainingBags = grn.bags - alreadyAllocated;
-      if (remainingBags <= 0) {
+      const existingAllocation = await PutAwayAllocationModel.findOne(
+        { facilityId, grnId: grn.id },
+        null,
+        { session },
+      )
+        .lean()
+        .exec();
+      if (existingAllocation) {
         throw new Error(`GRN '${grn.grnNumber}' is already fully allocated`);
       }
+      const remainingBags = grn.bags;
 
       const putAwayId = `pa-${randomUUID()}`;
       const allocatedAt = new Date();

@@ -37,62 +37,91 @@ export const APPROVED_RECENT_TYPES = [
   'DELIVERY_REVERSAL',
 ] as const;
 
-export async function fetchPhaseAData(
+function monthlyLedgerCond(type: string, start: Date, end: Date, mult = 1) {
+  return {
+    $cond: [
+      { $and: [{ $eq: ['$transactionType', type] }, { $gte: ['$createdAt', start] }, { $lt: ['$createdAt', end] }] },
+      mult === 1 ? '$quantity' : { $multiply: ['$quantity', mult] },
+      0,
+    ],
+  };
+}
+
+const monthlyBagsExpr = (start: Date, end: Date) => ({
+  $sum: { $cond: [{ $and: [{ $gte: ['$date', start] }, { $lt: ['$date', end] }] }, '$bags', 0] },
+});
+
+async function fetchAuthoritativeStockData(
   facilityId: string,
   startOfMonth: Date,
   startOfNextMonth: Date,
 ) {
-  return Promise.all([
-    InventoryTransactionModel.aggregate<{
-      _id: null;
-      totalBags: number;
-      monthlyInward: number;
-      monthlyDelivered: number;
-    }>([
+  const [inwardAgg, deliveryAgg] = await Promise.all([
+    GrnModel.aggregate<{ _id: { commodityId: string; chamber: string }; totalBags: number; monthlyBags: number }>([
+      { $match: { facilityId } },
+      { $group: { _id: { commodityId: '$commodityId', chamber: '$chamber' }, totalBags: { $sum: '$bags' }, monthlyBags: monthlyBagsExpr(startOfMonth, startOfNextMonth) } },
+    ]),
+    DeliveryChallanModel.aggregate<{ _id: { commodityId: string; chamber: string }; totalBags: number; monthlyBags: number }>([
+      { $match: { facilityId, status: 'ISSUED' } },
+      { $group: { _id: { commodityId: '$commodityId', chamber: '$chamber' }, totalBags: { $sum: '$bags' }, monthlyBags: monthlyBagsExpr(startOfMonth, startOfNextMonth) } },
+    ]),
+  ]);
+
+  const netStockMap = new Map<string, { commodityId: string; chamber: string; bags: number }>();
+  let monthlyInward = 0;
+  for (const row of inwardAgg) {
+    const key = `${row._id.commodityId}::${row._id.chamber}`;
+    netStockMap.set(key, { commodityId: String(row._id.commodityId), chamber: String(row._id.chamber), bags: row.totalBags });
+    monthlyInward += row.monthlyBags;
+  }
+
+  let monthlyDelivered = 0;
+  for (const row of deliveryAgg) {
+    const key = `${row._id.commodityId}::${row._id.chamber}`;
+    const existing = netStockMap.get(key);
+    if (existing) existing.bags -= row.totalBags;
+    monthlyDelivered += row.monthlyBags;
+  }
+
+  const byChamberMap = new Map<string, number>();
+  const byCommodityMap = new Map<string, number>();
+  let totalBags = 0;
+
+  for (const item of netStockMap.values()) {
+    if (item.bags > 0) {
+      totalBags += item.bags;
+      byChamberMap.set(item.chamber, (byChamberMap.get(item.chamber) ?? 0) + item.bags);
+      byCommodityMap.set(item.commodityId, (byCommodityMap.get(item.commodityId) ?? 0) + item.bags);
+    }
+  }
+
+  const byChamber = [...byChamberMap.entries()].map(([chamber, totalBags]) => ({ _id: chamber, totalBags })).sort((a, b) => b.totalBags - a.totalBags);
+  const byCommodity = [...byCommodityMap.entries()].map(([commodityId, totalBags]) => ({ _id: commodityId, totalBags })).sort((a, b) => b.totalBags - a.totalBags);
+
+  return {
+    totalAgg: [{ _id: null, totalBags, monthlyInward, monthlyDelivered }],
+    chamberCommodityAgg: [{ byChamber, byCommodity }],
+  };
+}
+
+async function fetchLedgerStockData(
+  facilityId: string,
+  startOfMonth: Date,
+  startOfNextMonth: Date,
+) {
+  const [totalAgg, chamberCommodityAgg] = await Promise.all([
+    InventoryTransactionModel.aggregate<{ _id: null; totalBags: number; monthlyInward: number; monthlyDelivered: number }>([
       { $match: { facilityId } },
       {
         $group: {
           _id: null,
           totalBags: { $sum: ledgerSignedQuantity },
-          monthlyInward: {
-            $sum: {
-              $cond: [
-                {
-                  $and: [
-                    { $eq: ['$transactionType', 'INWARD_PUTAWAY'] },
-                    { $gte: ['$createdAt', startOfMonth] },
-                    { $lt: ['$createdAt', startOfNextMonth] },
-                  ],
-                },
-                '$quantity',
-                0,
-              ],
-            },
-          },
+          monthlyInward: { $sum: monthlyLedgerCond('INWARD_PUTAWAY', startOfMonth, startOfNextMonth) },
           monthlyDelivered: {
             $sum: {
-              $cond: [
-                {
-                  $and: [
-                    { $eq: ['$transactionType', 'OUTWARD_DELIVERY'] },
-                    { $gte: ['$createdAt', startOfMonth] },
-                    { $lt: ['$createdAt', startOfNextMonth] },
-                  ],
-                },
-                '$quantity',
-                {
-                  $cond: [
-                    {
-                      $and: [
-                        { $eq: ['$transactionType', 'DELIVERY_REVERSAL'] },
-                        { $gte: ['$createdAt', startOfMonth] },
-                        { $lt: ['$createdAt', startOfNextMonth] },
-                      ],
-                    },
-                    { $multiply: ['$quantity', -1] },
-                    0,
-                  ],
-                },
+              $add: [
+                monthlyLedgerCond('OUTWARD_DELIVERY', startOfMonth, startOfNextMonth),
+                monthlyLedgerCond('DELIVERY_REVERSAL', startOfMonth, startOfNextMonth, -1),
               ],
             },
           },
@@ -106,9 +135,7 @@ export async function fetchPhaseAData(
       { $match: { facilityId } },
       {
         $facet: {
-          byChamber: [
-            { $group: { _id: '$chamber', totalBags: { $sum: ledgerSignedQuantity } } },
-          ],
+          byChamber: [{ $group: { _id: '$chamber', totalBags: { $sum: ledgerSignedQuantity } } }],
           byCommodity: [
             { $group: { _id: '$commodityId', totalBags: { $sum: ledgerSignedQuantity } } },
             { $match: { totalBags: { $gt: 0 } } },
@@ -116,6 +143,25 @@ export async function fetchPhaseAData(
         },
       },
     ]),
+  ]);
+
+  return { totalAgg, chamberCommodityAgg };
+}
+
+export async function fetchPhaseAData(
+  facilityId: string,
+  startOfMonth: Date,
+  startOfNextMonth: Date,
+) {
+  const hasInwardPutAway = await InventoryTransactionModel.countDocuments({
+    facilityId,
+    transactionType: 'INWARD_PUTAWAY',
+  }).exec();
+
+  const [stockData, grnStatusAgg, recentTxns] = await Promise.all([
+    hasInwardPutAway > 0
+      ? fetchLedgerStockData(facilityId, startOfMonth, startOfNextMonth)
+      : fetchAuthoritativeStockData(facilityId, startOfMonth, startOfNextMonth),
     GrnModel.aggregate<{ _id: string; count: number }>([
       { $match: { facilityId } },
       { $group: { _id: '$status', count: { $sum: 1 } } },
@@ -129,6 +175,8 @@ export async function fetchPhaseAData(
       .lean()
       .exec(),
   ]);
+
+  return [stockData.totalAgg, stockData.chamberCommodityAgg, grnStatusAgg, recentTxns] as const;
 }
 
 export async function fetchPhaseBData(
