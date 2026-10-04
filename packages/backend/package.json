@@ -7,7 +7,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "type-check": "tsc --noEmit -p tsconfig.json",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "test": "vitest run --fileParallelism=false",
     "migrate:free-text-chamber": "node --experimental-strip-types dist/scripts/migrate-free-text-chamber.js"
   },
