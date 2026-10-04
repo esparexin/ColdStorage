@@ -49,7 +49,6 @@ export class BackupService {
     // create a FAILED log row or raise a CRITICAL audit event. `runRegistered` records whether a
     // log row exists for this attempt, which is what decides if the catch block writes one.
     let runRegistered = false;
-    let retentionDays = 30;
     const backupId = `backup_${Date.now()}_${randomBytes(4).toString('hex')}`;
     const filename = `${backupId}.enc`;
 
@@ -63,8 +62,8 @@ export class BackupService {
           'BACKUP_KEY_INVALID: BACKUP_ENCRYPTION_KEY must be a 64-character hexadecimal string',
         );
       }
-      retentionDays = settings.backupPolicy.retentionDays ?? 30;
 
+      const retentionDays = settings.backupPolicy.retentionDays ?? 30;
       const keyBuffer = getValidEncryptionKey(overrideKey);
       const retentionExpiresAt = new Date(Date.now() + retentionDays * 86400 * 1000);
 
