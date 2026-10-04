@@ -73,7 +73,7 @@ async function executeDeliveryTransaction(
         throw new Error(`Cannot create delivery: GRN '${grn.grnNumber}' is CLOSED`);
       }
 
-      await assertRentAllowedForOutward(
+      const rentGateResult = await assertRentAllowedForOutward(
         facilityId,
         { id: grn.id, grnNumber: grn.grnNumber, rentAmount: grn.rentAmount ?? 0 },
         session,
@@ -158,7 +158,8 @@ async function executeDeliveryTransaction(
 
       const newPhysicallyStored = physicallyStored - input.bags;
 
-      if (closingBags === 0 && newPhysicallyStored === 0) {
+      // Closure invariant: A GRN is CLOSED only when both remainingBags === 0 AND remainingBalance === 0
+      if (closingBags === 0 && newPhysicallyStored === 0 && rentGateResult.remainingBalance === 0) {
         await GrnModel.updateOne({ id: grn.id }, { $set: { status: 'CLOSED' } }, { session });
       }
     });

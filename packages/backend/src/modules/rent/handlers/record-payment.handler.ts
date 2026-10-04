@@ -12,6 +12,7 @@ import { auditService } from '../../audit/audit.service.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
 import { counterService } from '../../common/counter.service.js';
 import { computeRentBalance } from '../../common/rent-balance.js';
+import { readAvailableBags } from '../../delivery/handlers/delivery-validation.helper.js';
 import { rentRepository } from '../rent.repository.js';
 
 export function toPaymentEntity(doc: RentPaymentDoc): RentPayment {
@@ -111,6 +112,14 @@ export async function executeRecordPayment(
         0,
         Number((remainingBalance - input.amountPaid).toFixed(2)),
       );
+
+      // Closure invariant: A GRN is CLOSED only when both remainingBags === 0 AND remainingBalance === 0
+      if (computedRemainingBalance === 0) {
+        const remainingBags = await readAvailableBags(facilityId, grn.id, session);
+        if (remainingBags === 0) {
+          await GrnModel.updateOne({ id: grn.id }, { $set: { status: 'CLOSED' } }, { session });
+        }
+      }
     });
   } finally {
     await session.endSession();
