@@ -5,6 +5,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
+import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { AuditLogModel } from '../database/models/audit-log.model.js';
 import { BackupLogModel } from '../database/models/backup-log.model.js';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
@@ -41,10 +42,7 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
     config.backupEncryptionKey =
       '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
-    const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri);
-    }
+    await connectToDatabase();
 
     await SystemSettingsModel.deleteMany({});
     await settingsService.ensureInitialized();
@@ -55,9 +53,7 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
     await cleanupMultiFacilityScenario(scenario);
     await SystemSettingsModel.deleteMany({});
     await fs.rm(path.resolve(process.cwd(), 'storage'), { recursive: true, force: true });
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
+    await disconnectDatabase();
   }, 60000);
 
   it('1. Whole-lot put-away then partial delivery: GRN stays OPEN with 60 bags outstanding', async () => {

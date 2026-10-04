@@ -10,7 +10,7 @@ describe('Auth Audit E2E Flow', () => {
   const app = createApp();
 
   beforeAll(async () => {
-    await connectToDatabase('mongodb://127.0.0.1:27017/cold_storage_test');
+    await connectToDatabase();
   });
 
   afterAll(async () => {

@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
+import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { AuditLogModel } from '../database/models/audit-log.model.js';
 import { CounterModel } from '../database/models/counter.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
@@ -32,18 +33,13 @@ describe('Phase 11: Multi-Facility End-to-End — cross-facility isolation', () 
   let grnNumberB: string;
 
   beforeAll(async () => {
-    const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri);
-    }
+    await connectToDatabase();
     scenario = await seedMultiFacilityScenario('e2eiso');
   }, 60000);
 
   afterAll(async () => {
     await cleanupMultiFacilityScenario(scenario);
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
+    await disconnectDatabase();
   }, 60000);
 
   it('1. Bootstrap isolation: Super Admin sees both facilities; each tenant sees only its own', async () => {

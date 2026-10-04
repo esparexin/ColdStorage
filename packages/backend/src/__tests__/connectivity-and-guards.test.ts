@@ -18,9 +18,7 @@ describe('Connectivity Endpoints', () => {
   const app = createApp();
 
   beforeAll(async () => {
-    await connectToDatabase(
-      process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test',
-    );
+    await connectToDatabase();
   });
 
   afterAll(async () => {
@@ -67,9 +65,7 @@ describe('Super Admin Tenancy Guards', () => {
   let operatorToken: string;
 
   beforeAll(async () => {
-    await connectToDatabase(
-      process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test',
-    );
+    await connectToDatabase();
 
     [{ token: adminA }, , { token: operatorToken }] = await Promise.all([
       seedUser({

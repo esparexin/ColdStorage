@@ -1,8 +1,8 @@
-import mongoose from 'mongoose';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
+import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { CustomerModel } from '../database/models/customer.model.js';
 import { FacilityModel } from '../database/models/facility.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
@@ -38,10 +38,7 @@ describe('P7 Dashboard Routes & Authorization', () => {
   const seed = createAuthSeeder(config.jwtSecret);
 
   beforeAll(async () => {
-    const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri);
-    }
+    await connectToDatabase();
 
     ({ token: superAdminToken } = await seed({
       userId: 'usr-dash-sa',
@@ -81,9 +78,7 @@ describe('P7 Dashboard Routes & Authorization', () => {
   });
 
   afterAll(async () => {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
+    await disconnectDatabase();
   });
 
   beforeEach(async () => {

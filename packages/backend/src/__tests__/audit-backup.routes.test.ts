@@ -5,6 +5,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
+import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { AuditLogModel } from '../database/models/audit-log.model.js';
 import { BackupLogModel } from '../database/models/backup-log.model.js';
 import { FacilityModel } from '../database/models/facility.model.js';
@@ -30,10 +31,7 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
   beforeAll(async () => {
     // config is the environment SSOT and snapshots process.env at import time.
     config.backupEncryptionKey = validHexKey;
-    const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri);
-    }
+    await connectToDatabase();
   });
 
   afterAll(async () => {
@@ -43,9 +41,7 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
     } catch {
       // ignore
     }
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
+    await disconnectDatabase();
   });
 
   beforeEach(async () => {

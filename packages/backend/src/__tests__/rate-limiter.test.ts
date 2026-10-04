@@ -4,6 +4,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
+import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { AuditLogModel } from '../database/models/audit-log.model.js';
 import {
   clearRateLimiterStore,
@@ -21,10 +22,7 @@ describe('Phase 11: Multi-Tiered Rate Limiting & Audit Security Controls', () =>
   const seed = createAuthSeeder(config.jwtSecret);
 
   beforeAll(async () => {
-    const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri);
-    }
+    await connectToDatabase();
 
     ({ token: superAdminToken } = await seed({
       userId: 'usr-rate-superadmin',
@@ -38,9 +36,7 @@ describe('Phase 11: Multi-Tiered Rate Limiting & Audit Security Controls', () =>
   afterAll(async () => {
     // Clear rate-limit store so subsequent test files start clean
     clearRateLimiterStore();
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
+    await disconnectDatabase();
   });
 
   beforeEach(async () => {

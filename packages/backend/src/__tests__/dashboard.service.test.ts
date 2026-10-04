@@ -1,6 +1,6 @@
-import mongoose from 'mongoose';
 import { dashboardSummarySchema } from '@cold-storage/contracts';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
 import { CustomerModel } from '../database/models/customer.model.js';
 import { FacilityModel } from '../database/models/facility.model.js';
@@ -30,16 +30,11 @@ describe('P7 DashboardService stock derivation', () => {
   const wheat: SeedLedgerOptions = { facilityId, commodityId: wheatId, chamber: 'CH-1' };
 
   beforeAll(async () => {
-    const mongoUri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/cold_storage_test';
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(mongoUri);
-    }
+    await connectToDatabase();
   });
 
   afterAll(async () => {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
+    await disconnectDatabase();
   });
 
   beforeEach(async () => {

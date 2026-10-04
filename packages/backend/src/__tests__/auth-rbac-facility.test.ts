@@ -14,7 +14,7 @@ describe('Auth RBAC & Facility Scope Integration', () => {
   const TEST_ADMIN_PASSWORD = 'TestAdminPassword123!';
 
   beforeAll(async () => {
-    await connectToDatabase('mongodb://127.0.0.1:27017/cold_storage_test');
+    await connectToDatabase();
   });
 
   afterAll(async () => {
