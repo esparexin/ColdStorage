@@ -156,10 +156,9 @@ async function executeDeliveryTransaction(
         { session, ordered: true },
       );
 
-      const newRemainingDeliveryBalance = remainingDeliveryBalance - input.bags;
       const newPhysicallyStored = physicallyStored - input.bags;
 
-      if (newRemainingDeliveryBalance === 0 && newPhysicallyStored === 0) {
+      if (closingBags === 0 && newPhysicallyStored === 0) {
         await GrnModel.updateOne({ id: grn.id }, { $set: { status: 'CLOSED' } }, { session });
       }
     });
