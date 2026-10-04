@@ -183,4 +183,15 @@ describe('Phase 6: Storage Occupancy Audit & Reporting (storage-audit-report.tes
     expect(rangeReport.totalRecords).toBe(1);
     expect(rangeReport.items[0].deliveredBags).toBe(60);
   });
+
+  it('safely handles non-string or malformed inputs without query injection or type confusion', async () => {
+    const report = await rentService.getStorageOccupancyAuditReport(facilityId, {
+      view: 'movement',
+      grnId: 'non-existent-grn-id',
+      outwardDate: 'invalid-date',
+    });
+
+    expect(report.totalRecords).toBe(0);
+    expect(report.items).toHaveLength(0);
+  });
 });

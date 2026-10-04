@@ -5,13 +5,44 @@ export const storageOccupancyViewSchema = z.enum(['monthly', 'seasonal', 'moveme
 export type StorageOccupancyView = z.infer<typeof storageOccupancyViewSchema>;
 
 export const storageOccupancyFilterSchema = z.object({
-  view: storageOccupancyViewSchema.default('movement'),
-  grnId: z.string().optional(),
-  inwardDate: z.string().optional(),
-  outwardDate: z.string().optional(),
-  closingBalance: z.coerce.number().int().nonnegative().optional(),
-  fromDate: z.string().optional(),
-  toDate: z.string().optional(),
+  view: z
+    .enum(['monthly', 'seasonal', 'movement'])
+    .or(z.literal(''))
+    .optional()
+    .transform((val) => (val ? val : 'movement')),
+  grnId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
+  inwardDate: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
+  outwardDate: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
+  closingBalance: z
+    .union([z.coerce.number().int().nonnegative(), z.literal('').transform(() => undefined)])
+    .optional(),
+  fromDate: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
+  toDate: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
 });
 export type StorageOccupancyFilter = z.infer<typeof storageOccupancyFilterSchema>;
 

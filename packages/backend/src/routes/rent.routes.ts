@@ -1,5 +1,8 @@
 import { Router, type Request, type Response } from 'express';
-import { recordRentPaymentInputSchema } from '@cold-storage/contracts';
+import {
+  recordRentPaymentInputSchema,
+  storageOccupancyFilterSchema,
+} from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
@@ -102,19 +105,17 @@ rentRouter.get(
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
   async (req: Request, res: Response): Promise<void> => {
     const facilityId = getParamId(req.params.facilityId);
-    const filter = {
-      view: (req.query.view as 'monthly' | 'seasonal' | 'movement') || undefined,
-      grnId: (req.query.grnId as string) || undefined,
-      inwardDate: (req.query.inwardDate as string) || undefined,
-      outwardDate: (req.query.outwardDate as string) || undefined,
-      closingBalance:
-        req.query.closingBalance !== undefined ? Number(req.query.closingBalance) : undefined,
-      fromDate: (req.query.fromDate as string) || undefined,
-      toDate: (req.query.toDate as string) || undefined,
-    };
+    const parseResult = storageOccupancyFilterSchema.safeParse(req.query);
+    if (!parseResult.success) {
+      res.status(400).json({ error: 'Validation failed', details: parseResult.error.flatten() });
+      return;
+    }
 
     try {
-      const report = await rentService.getStorageOccupancyAuditReport(facilityId, filter);
+      const report = await rentService.getStorageOccupancyAuditReport(
+        facilityId,
+        parseResult.data,
+      );
       res.status(200).json(report);
     } catch (err: unknown) {
       sendServiceError(res, err, 'Failed to generate storage occupancy report');

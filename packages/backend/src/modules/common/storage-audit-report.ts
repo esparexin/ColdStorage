@@ -1,3 +1,4 @@
+import type { FilterQuery } from 'mongoose';
 import {
   type StorageOccupancyFilter,
   type StorageOccupancyReport,
@@ -17,16 +18,20 @@ export async function generateStorageOccupancyReport(
   filter?: StorageOccupancyFilter,
 ): Promise<StorageOccupancyReport> {
   const view = filter?.view ?? 'movement';
-  const grnQuery: Record<string, unknown> = { facilityId };
+  const grnQuery: FilterQuery<GrnDoc> = {
+    facilityId: { $eq: String(facilityId) },
+  };
 
-  if (filter?.grnId) {
-    grnQuery.id = filter.grnId;
+  if (typeof filter?.grnId === 'string' && filter.grnId.trim()) {
+    grnQuery.id = { $eq: filter.grnId.trim() };
   }
-  if (filter?.inwardDate) {
+  if (typeof filter?.inwardDate === 'string' && filter.inwardDate.trim()) {
     const start = new Date(filter.inwardDate);
-    const end = new Date(filter.inwardDate);
-    end.setUTCDate(end.getUTCDate() + 1);
-    grnQuery.date = { $gte: start, $lt: end };
+    if (!isNaN(start.getTime())) {
+      const end = new Date(start);
+      end.setUTCDate(end.getUTCDate() + 1);
+      grnQuery.date = { $gte: start, $lt: end };
+    }
   }
 
   const grns = await GrnModel.find(grnQuery).sort({ date: 1, grnNumber: 1 }).lean<GrnDoc[]>().exec();
@@ -142,18 +147,25 @@ export async function generateStorageOccupancyReport(
     if (filter?.closingBalance !== undefined && item.closingBags !== filter.closingBalance) {
       return false;
     }
-    if (filter?.outwardDate) {
+    if (typeof filter?.outwardDate === 'string' && filter.outwardDate.trim()) {
       if (!item.outwardDate) return false;
       const dStr = item.outwardDate.toISOString().slice(0, 10);
-      if (!dStr.startsWith(filter.outwardDate.slice(0, 10))) return false;
+      const targetStr = filter.outwardDate.trim().slice(0, 10);
+      if (!dStr.startsWith(targetStr)) return false;
     }
-    if (filter?.fromDate) {
-      const cmpDate = item.outwardDate ?? item.inwardDate;
-      if (cmpDate < new Date(filter.fromDate)) return false;
+    if (typeof filter?.fromDate === 'string' && filter.fromDate.trim()) {
+      const from = new Date(filter.fromDate);
+      if (!isNaN(from.getTime())) {
+        const cmpDate = item.outwardDate ?? item.inwardDate;
+        if (cmpDate < from) return false;
+      }
     }
-    if (filter?.toDate) {
-      const cmpDate = item.outwardDate ?? item.inwardDate;
-      if (cmpDate > new Date(filter.toDate)) return false;
+    if (typeof filter?.toDate === 'string' && filter.toDate.trim()) {
+      const to = new Date(filter.toDate);
+      if (!isNaN(to.getTime())) {
+        const cmpDate = item.outwardDate ?? item.inwardDate;
+        if (cmpDate > to) return false;
+      }
     }
     return true;
   });
