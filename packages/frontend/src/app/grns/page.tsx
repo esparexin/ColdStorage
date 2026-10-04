@@ -123,7 +123,6 @@ export default function GrnsPage() {
               grns={grnData.filteredGrns}
               caption={`Goods Receipt Notes for ${grnData.currentFacilityName}`}
               canPrint={canPrint}
-              canAllocate={canAllocate}
               printingId={printingId}
               onSelectGrn={setSelectedGrn}
               onPrint={handlePrint}

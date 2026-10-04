@@ -17,7 +17,6 @@ interface GrnTableProps {
   grns: Grn[];
   caption: string;
   canPrint: boolean;
-  canAllocate?: boolean;
   printingId: string | null;
   onSelectGrn: (grn: Grn) => void;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
@@ -27,7 +26,6 @@ export function GrnTable({
   grns,
   caption,
   canPrint,
-  canAllocate,
   printingId,
   onSelectGrn,
   onPrint,
