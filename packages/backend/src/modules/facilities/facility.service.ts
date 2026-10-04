@@ -10,6 +10,7 @@ import { FacilityModel } from '../../database/models/facility.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
 import { RentPaymentModel } from '../../database/models/rent-payment.model.js';
+import { UserModel } from '../../database/models/user.model.js';
 
 /**
  * Facility is the tenancy and access-scope root. It owns no storage hierarchy: chambers are
@@ -81,7 +82,7 @@ export class FacilityService {
       GrnModel.countDocuments({ facilityId: id }).exec(),
       InventoryTransactionModel.countDocuments({ facilityId: id }).exec(),
       RentPaymentModel.countDocuments({ facilityId: id }).exec(),
-      FacilityModel.db.collection('users').countDocuments({ facilityIds: id }),
+      UserModel.countDocuments({ facilityIds: id }).exec(),
     ]);
 
     if (grns > 0 || inventory > 0 || rentPayments > 0) {
