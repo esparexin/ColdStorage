@@ -72,7 +72,7 @@ export function GrnTable({
       header: 'Bags & Closing',
       align: 'right',
       render: (row) => {
-        const closing = row.closingBags ?? Math.max(0, row.bags - (row.netDeliveredBags ?? 0));
+        const closing = row.closingBags ?? 0;
         return (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
             <span style={{ fontWeight: 600 }}>{row.bags.toLocaleString('en-IN')} in</span>

@@ -4,6 +4,7 @@ import {
   reverseDeliverySchema,
   deliveryStatusSchema,
   deliveryQuerySchema,
+  deliveryChallanSchema,
 } from '../delivery.js';
 
 describe('P6 Delivery Contracts', () => {
@@ -97,6 +98,41 @@ describe('P6 Delivery Contracts', () => {
     if (parsed.success) {
       expect(parsed.data.page).toBe(1);
       expect(parsed.data.limit).toBe(20);
+    }
+  });
+
+  it('validates deliveryChallanSchema with movement balance snapshots and transport markers', () => {
+    const now = new Date();
+    const challan = {
+      id: 'del-1',
+      facilityId: 'fac-1',
+      challanNumber: 'CHL-25-26-0001',
+      date: now,
+      grnId: 'grn-1',
+      grnNumber: 'GRN-25-26-0001',
+      customerId: 'cust-1',
+      customerName: 'Kisan Agro',
+      commodityId: 'comm-1',
+      commodityName: 'Potato',
+      chamber: 'CH-01',
+      bags: 40,
+      totalBags: 40,
+      openingBags: 100,
+      closingBags: 60,
+      marks: 'LOT-A',
+      gpNumber: 'GP-999',
+      status: 'ISSUED',
+      issuedBy: 'usr-1',
+      createdAt: now,
+      updatedAt: now,
+    };
+    const parsed = deliveryChallanSchema.safeParse(challan);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.openingBags).toBe(100);
+      expect(parsed.data.closingBags).toBe(60);
+      expect(parsed.data.marks).toBe('LOT-A');
+      expect(parsed.data.gpNumber).toBe('GP-999');
     }
   });
 });

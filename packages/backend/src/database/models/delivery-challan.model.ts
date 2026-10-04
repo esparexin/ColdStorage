@@ -16,6 +16,10 @@ export interface DeliveryChallanDoc extends Document {
   chamber: string;
   bags: number;
   totalBags: number;
+  openingBags: number;
+  closingBags: number;
+  marks: string | null;
+  gpNumber: string | null;
   vehicleNumber: string | null;
   driverName: string | null;
   weight: number | null;
@@ -41,6 +45,10 @@ const deliveryChallanSchema = new Schema<DeliveryChallanDoc>(
     chamber: { type: String, required: true, trim: true, maxlength: 20 },
     bags: { type: Number, required: true, min: 1 },
     totalBags: { type: Number, required: true, min: 1 },
+    openingBags: { type: Number, required: true, default: 0, min: 0 },
+    closingBags: { type: Number, required: true, default: 0, min: 0 },
+    marks: { type: String, trim: true, default: null },
+    gpNumber: { type: String, trim: true, default: null },
     vehicleNumber: { type: String, trim: true, uppercase: true, default: null },
     driverName: { type: String, trim: true, default: null },
     weight: { type: Number, default: null },
