@@ -1,6 +1,6 @@
 .statGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(var(--stat-min, 180px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(var(--stat-min, 180px), 100%), 1fr));
   gap: var(--space-3);
 }
 

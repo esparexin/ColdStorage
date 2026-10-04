@@ -5,6 +5,10 @@
 
 .main {
   flex: 1;
+  /* Without this a flex item defaults to min-width:auto, so wide descendants
+     (tab strips, KPI grids, the facility selector) inflate the column past the
+     viewport and force horizontal page scroll instead of shrinking locally. */
+  min-width: 0;
   margin-left: var(--sidebar-width);
   display: flex;
   flex-direction: column;
@@ -15,6 +19,7 @@
   margin-top: var(--header-height);
   padding: var(--space-5);
   flex: 1;
+  min-width: 0;
 }
 
 @media (max-width: 768px) {
