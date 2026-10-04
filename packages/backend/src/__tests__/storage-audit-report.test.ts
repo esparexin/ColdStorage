@@ -31,6 +31,7 @@ describe('Phase 6: Storage Occupancy Audit & Reporting (storage-audit-report.tes
       customerId,
       chamber: 'CH-01',
       bags: 100,
+      smallBags: 100, bigBags: 0,
       commodityName: 'Apples',
       grnNumber: 'GRN-26-27-0040',
       date: new Date('2026-09-15T10:00:00Z'),
@@ -51,7 +52,7 @@ describe('Phase 6: Storage Occupancy Audit & Reporting (storage-audit-report.tes
       facilityId,
       {
         grnId,
-        bags: 40,
+        smallBags: 40, bigBags: 0,
         date: new Date('2026-09-20T10:00:00Z'),
         marks: 'LOT-40-A',
         gpNumber: 'GP-40-1',
@@ -65,7 +66,7 @@ describe('Phase 6: Storage Occupancy Audit & Reporting (storage-audit-report.tes
       facilityId,
       {
         grnId,
-        bags: 60,
+        smallBags: 60, bigBags: 0,
         date: new Date('2026-09-25T10:00:00Z'),
         marks: 'LOT-40-B',
         gpNumber: 'GP-40-2',

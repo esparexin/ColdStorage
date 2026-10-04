@@ -98,6 +98,10 @@ export type ReceiptDocumentDto = z.infer<typeof receiptDocumentDtoSchema>;
 
 /**
  * 3. Delivery Challan Document DTO
+ *
+ * The challan is the gate-pass document a driver signs against, so it must state the quantity
+ * actually dispatched. It states the bag composition alongside the derived total; the template
+ * renders all three.
  */
 export const challanDocumentDtoSchema = z.object({
   organization: organizationHeaderSchema,
@@ -108,7 +112,9 @@ export const challanDocumentDtoSchema = z.object({
   customerName: z.string(),
   commodityName: z.string(),
   chamber: chamberTextSchema,
-  bags: z.number().int().min(1),
+  smallBags: z.number().int().min(0),
+  bigBags: z.number().int().min(0),
+  totalBags: z.number().int().positive(),
   vehicleNumber: z.string().nullable().optional(),
   driverName: z.string().nullable().optional(),
   issuedBy: z.string(),

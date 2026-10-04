@@ -82,7 +82,7 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
     const partialRes = await request(app)
       .post(`/api/facilities/${scenario.facilityA}/deliveries`)
       .set('Authorization', `Bearer ${scenario.tokens.operatorA}`)
-      .send({ grnId, bags: 40 });
+      .send({ grnId, smallBags: 40, bigBags: 0 });
     expect(partialRes.status).toBe(201);
     deliveryId = partialRes.body.delivery.id;
     expect(partialRes.body.delivery.totalBags).toBe(40);
@@ -98,7 +98,7 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
       grnId,
       transactionType: 'OUTWARD_DELIVERY',
     });
-    expect(outTx?.quantity).toBe(40);
+    expect(outTx?.smallQuantity).toBe(40);
     expect(outTx?.chamber).toBe(CHAMBER);
   });
 
@@ -106,7 +106,7 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
     const finalRes = await request(app)
       .post(`/api/facilities/${scenario.facilityA}/deliveries`)
       .set('Authorization', `Bearer ${scenario.tokens.operatorA}`)
-      .send({ grnId, bags: 60 });
+      .send({ grnId, smallBags: 60, bigBags: 0 });
     expect(finalRes.status).toBe(201);
     expect(finalRes.body.summary.grnStatus).toBe('CLOSED');
     expect(finalRes.body.summary.remainingDeliveryBalance).toBe(0);
@@ -119,7 +119,7 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
       grnId,
       transactionType: 'OUTWARD_DELIVERY',
     });
-    expect(outward.reduce((sum, t) => sum + t.quantity, 0)).toBe(100);
+    expect(outward.reduce((sum, t) => sum + t.smallQuantity, 0)).toBe(100);
   });
 
   it('3. Compensating reversal: Admin reverses the first challan and the GRN reopens', async () => {
@@ -147,7 +147,7 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
       grnId,
       transactionType: 'DELIVERY_REVERSAL',
     });
-    expect(reversalTx?.quantity).toBe(40);
+    expect(reversalTx?.smallQuantity).toBe(40);
 
     const challans = await DeliveryChallanModel.find({ facilityId: scenario.facilityA, grnId });
     expect(challans.map((c) => c.status).sort()).toEqual(['ISSUED', 'REVERSED']);

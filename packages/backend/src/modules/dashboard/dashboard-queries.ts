@@ -3,7 +3,8 @@ import { DeliveryChallanModel } from '../../database/models/delivery-challan.mod
 import { DeliveryReversalModel } from '../../database/models/delivery-reversal.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
-import { ledgerSignedQuantity } from '../inventory/ledger-polarity.js';
+import { ledgerBagQuantity, ledgerSignedQuantity } from '../inventory/ledger-polarity.js';
+import { challanBagQuantity } from '../common/bag-composition.js';
 
 export function getIstMonthlyWindow(date: Date = new Date()): {
   startOfMonth: Date;
@@ -41,14 +42,18 @@ function monthlyLedgerCond(type: string, start: Date, end: Date, mult = 1) {
   return {
     $cond: [
       { $and: [{ $eq: ['$transactionType', type] }, { $gte: ['$createdAt', start] }, { $lt: ['$createdAt', end] }] },
-      mult === 1 ? '$quantity' : { $multiply: ['$quantity', mult] },
+      mult === 1 ? ledgerBagQuantity : { $multiply: [ledgerBagQuantity, mult] },
       0,
     ],
   };
 }
 
-const monthlyBagsExpr = (start: Date, end: Date) => ({
-  $sum: { $cond: [{ $and: [{ $gte: ['$date', start] }, { $lt: ['$date', end] }] }, '$bags', 0] },
+/**
+ * Sums one collection's bag total within a window. GRNs store a single `bags` figure while
+ * challans store a composition, so the caller states which shape it is aggregating.
+ */
+const monthlyBagsExpr = (start: Date, end: Date, quantity: unknown) => ({
+  $sum: { $cond: [{ $and: [{ $gte: ['$date', start] }, { $lt: ['$date', end] }] }, quantity, 0] },
 });
 
 async function fetchAuthoritativeStockData(
@@ -59,11 +64,11 @@ async function fetchAuthoritativeStockData(
   const [inwardAgg, deliveryAgg] = await Promise.all([
     GrnModel.aggregate<{ _id: { commodityId: string; chamber: string }; totalBags: number; monthlyBags: number }>([
       { $match: { facilityId } },
-      { $group: { _id: { commodityId: '$commodityId', chamber: '$chamber' }, totalBags: { $sum: '$bags' }, monthlyBags: monthlyBagsExpr(startOfMonth, startOfNextMonth) } },
+      { $group: { _id: { commodityId: '$commodityId', chamber: '$chamber' }, totalBags: { $sum: '$bags' }, monthlyBags: monthlyBagsExpr(startOfMonth, startOfNextMonth, '$bags') } },
     ]),
     DeliveryChallanModel.aggregate<{ _id: { commodityId: string; chamber: string }; totalBags: number; monthlyBags: number }>([
       { $match: { facilityId, status: 'ISSUED' } },
-      { $group: { _id: { commodityId: '$commodityId', chamber: '$chamber' }, totalBags: { $sum: '$bags' }, monthlyBags: monthlyBagsExpr(startOfMonth, startOfNextMonth) } },
+      { $group: { _id: { commodityId: '$commodityId', chamber: '$chamber' }, totalBags: { $sum: challanBagQuantity }, monthlyBags: monthlyBagsExpr(startOfMonth, startOfNextMonth, challanBagQuantity) } },
     ]),
   ]);
 

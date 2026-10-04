@@ -73,7 +73,7 @@ describe('P9 DocumentService Record Resolution & Preview Boundary Tests', () => 
       customerName: 'Harpreet Singh',
       commodityName: 'Apple',
       chamber: 'Block C2',
-      bags: 50,
+      smallBags: 50, bigBags: 0,
       vehicleNumber: 'PB-02-BB-1122',
       driverName: 'Sohan Lal',
       issuedBy: 'Operator Deep',

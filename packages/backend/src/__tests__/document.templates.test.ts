@@ -112,6 +112,14 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).toContain('Karamjit Singh');
     expect(html).toContain('Officer Verma');
     expect(html).toContain('Gate Pass Declaration');
+    // The gate-pass document a driver signs against must state the dispatched quantity. It
+    // previously carried a declaration referring to a bag count it never printed.
+    expect(html).toContain('Dispatched Bags by Type');
+    expect(html).toContain('Small Bags');
+    expect(html).toContain('Big Bags');
+    expect(html).toContain('Total Bags Dispatched');
+    expect(html).toContain('60 small, 40 big');
+    expect(html).not.toContain('Storage Position');
   });
 
   it('rejects the removed challan item breakdown and chamberNumber', () => {
@@ -123,9 +131,10 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     });
 
     expect(parsed.chamber).toBe('CH-03');
-    expect(parsed.bags).toBe(100);
+    expect(parsed.smallBags).toBe(60);
+    expect(parsed.bigBags).toBe(40);
+    expect(parsed.totalBags).toBe(100);
     expect(parsed).not.toHaveProperty('items');
-    expect(parsed).not.toHaveProperty('totalBags');
     expect(parsed).not.toHaveProperty('chamberNumber');
   });
 

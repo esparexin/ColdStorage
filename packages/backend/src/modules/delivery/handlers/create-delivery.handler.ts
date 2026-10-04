@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
-import type { CreateDeliveryInput, DeliveryChallan, DeliverySummary } from '@cold-storage/contracts';
+import type {
+  BagComposition,
+  CreateDeliveryInput,
+  DeliveryChallan,
+  DeliverySummary,
+} from '@cold-storage/contracts';
 import { ConcurrencyConflictError } from '../../inventory/inventory.service.js';
 import { counterService } from '../../common/counter.service.js';
 import {
@@ -79,12 +84,13 @@ async function executeDeliveryTransaction(
         session,
       );
 
-      const { remainingDeliveryBalance, physicallyStored } = await validateStockAndBalances(
-        facilityId,
-        grn,
-        input.bags,
-        session,
-      );
+      const withdrawal: BagComposition = {
+        smallBags: input.smallBags,
+        bigBags: input.bigBags,
+      };
+      const withdrawnTotal = input.smallBags + input.bigBags;
+
+      const available = await validateStockAndBalances(facilityId, grn, withdrawal, session);
 
       const deliveryDate = validateDeliveryDate(input.date);
 
@@ -95,8 +101,6 @@ async function executeDeliveryTransaction(
       );
       const deliveryId = `del-${randomUUID()}`;
 
-      const openingBags = remainingDeliveryBalance;
-      const closingBags = remainingDeliveryBalance - input.bags;
       const marks = input.marks?.trim() || grn.marks || null;
       const gpNumber = input.gpNumber?.trim() || grn.gpNumber || null;
 
@@ -114,10 +118,8 @@ async function executeDeliveryTransaction(
             commodityId: grn.commodityId,
             commodityName: grn.commodityName,
             chamber: grn.chamber,
-            bags: input.bags,
-            totalBags: input.bags,
-            openingBags,
-            closingBags,
+            smallBags: input.smallBags,
+            bigBags: input.bigBags,
             marks,
             gpNumber,
             vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null,
@@ -141,11 +143,11 @@ async function executeDeliveryTransaction(
             grnId: grn.id,
             grnNumber: grn.grnNumber,
             chamber: grn.chamber,
-            customerId: grn.customerId,
             commodityId: grn.commodityId,
             bagType: grn.bagType,
             transactionType: 'OUTWARD_DELIVERY' as const,
-            quantity: input.bags,
+            smallQuantity: input.smallBags,
+            bigQuantity: input.bigBags,
             referenceType: 'DELIVERY' as const,
             referenceId: deliveryId,
             notes: input.remarks?.trim() || null,
@@ -156,10 +158,10 @@ async function executeDeliveryTransaction(
         { session, ordered: true },
       );
 
-      const newPhysicallyStored = physicallyStored - input.bags;
+      const closingTotal = available.total - withdrawnTotal;
 
       // Closure invariant: A GRN is CLOSED only when both remainingBags === 0 AND remainingBalance === 0
-      if (closingBags === 0 && newPhysicallyStored === 0 && rentGateResult.remainingBalance === 0) {
+      if (closingTotal === 0 && rentGateResult.remainingBalance === 0) {
         await GrnModel.updateOne({ id: grn.id }, { $set: { status: 'CLOSED' } }, { session });
       }
     });
@@ -179,6 +181,8 @@ async function executeDeliveryTransaction(
     resourceId: delivery.id,
     details: {
       challanNumber: delivery.challanNumber,
+      smallBags: delivery.smallBags,
+      bigBags: delivery.bigBags,
       totalBags: delivery.totalBags,
       grnId: delivery.grnId,
       customerId: delivery.customerId,

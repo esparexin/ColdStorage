@@ -123,7 +123,7 @@ describe('P9 DocumentService Read-Only Composition & Boundary Tests', () => {
       facilityId: facilityB,
       customerName: 'Farmer One',
       chamber: 'CH-01',
-      bags: 20,
+      smallBags: 20, bigBags: 0,
       issuedBy: 'Officer',
       challanNumber: 'CHL-FAC-B',
     });
@@ -171,7 +171,7 @@ describe('P9 DocumentService Read-Only Composition & Boundary Tests', () => {
       facilityId: facilityA,
       customerName: 'Farmer One',
       chamber: 'CH-01',
-      bags: 10,
+      smallBags: 10, bigBags: 0,
       issuedBy: 'Officer',
       challanNumber: 'CHL-2026-0018',
     });

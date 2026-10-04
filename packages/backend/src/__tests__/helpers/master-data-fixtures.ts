@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { BagType, DeliveryStatus } from '@cold-storage/contracts';
+import { normalizeBagComposition, type BagType, type DeliveryStatus } from '@cold-storage/contracts';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { CustomerModel } from '../../database/models/customer.model.js';
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
@@ -72,8 +72,9 @@ export interface SeedGrnOptions {
   chamber?: string;
   bags?: number;
   bagType?: BagType;
-  smallBags?: number | null;
-  bigBags?: number | null;
+  /** Only meaningful for 'S+B'; otherwise the composition is derived from bagType + bags. */
+  smallBags?: number;
+  bigBags?: number;
   smallBagWeight?: number | null;
   bigBagWeight?: number | null;
   rentAmount?: number;
@@ -98,6 +99,15 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
   const rentType = options.rentType ?? 'Seasonal';
   const commodityId = options.commodityId ?? `cmd-${randomUUID()}`;
   const bagType = options.bagType ?? 'S';
+  const bags = options.bags ?? 100;
+  // Every GRN carries a fully-populated composition, so a fixture can never seed a receipt the
+  // production validator would reject.
+  const composition = normalizeBagComposition({
+    bagType,
+    bags,
+    smallBags: options.smallBags,
+    bigBags: options.bigBags,
+  });
   // Per-bag weight defaults mirror the form: S needs small, B needs big, S+B needs both.
   const smallBagWeight =
     options.smallBagWeight ?? (bagType === 'S' || bagType === 'S+B' ? 50 : null);
@@ -118,10 +128,10 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
         commodityId,
         commodityName: options.commodityName ?? 'Potato',
         chamber: options.chamber ?? 'CH-01',
-        bags: options.bags ?? 100,
+        bags,
         bagType,
-        smallBags: options.smallBags ?? null,
-        bigBags: options.bigBags ?? null,
+        smallBags: composition.smallBags,
+        bigBags: composition.bigBags,
         smallBagWeight,
         bigBagWeight,
         rentType,
@@ -158,19 +168,20 @@ export interface SeedChallanOptions {
   commodityName?: string;
   /** Free-text chamber label copied from the owning GRN. */
   chamber?: string;
-  bags?: number;
-  /** Whole-lot put-away means a challan starts by dispatching everything; defaults to `bags`. */
-  totalBags?: number;
+  /** Dispatched composition. Defaults to a small-bag-only challan of 100 bags. */
+  smallBags?: number;
+  bigBags?: number;
   vehicleNumber?: string | null;
   driverName?: string | null;
   issuedBy?: string;
   status?: DeliveryStatus;
 }
 
-/** Outward gate pass. With no storage positions left there is one bag count, not an item list. */
+/** Outward gate pass. The dispatched composition is stored; the total is always their sum. */
 export async function seedChallan(options: SeedChallanOptions): Promise<string> {
   const id = options.id ?? `chl-${randomUUID()}`;
-  const bags = options.bags ?? 100;
+  const smallBags = options.smallBags ?? 100;
+  const bigBags = options.bigBags ?? 0;
 
   await DeliveryChallanModel.findOneAndUpdate(
     { id },
@@ -186,8 +197,8 @@ export async function seedChallan(options: SeedChallanOptions): Promise<string> 
         commodityId: options.commodityId ?? `cmd-${randomUUID()}`,
         commodityName: options.commodityName ?? 'Potato',
         chamber: options.chamber ?? 'CH-01',
-        bags,
-        totalBags: options.totalBags ?? bags,
+        smallBags,
+        bigBags,
         vehicleNumber: options.vehicleNumber ?? null,
         driverName: options.driverName ?? null,
         weight: null,

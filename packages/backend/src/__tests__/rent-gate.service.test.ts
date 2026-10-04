@@ -125,7 +125,7 @@ describe('Rent gate for outward movement — rent-gate.service.test.ts', () => {
 
   it('blocks delivery until rent is paid, then completes the 100→40 flow', async () => {
     await expect(
-      deliveryService.createDelivery(FACILITY_ID, { grnId, bags: 40 }, USER_ID),
+      deliveryService.createDelivery(FACILITY_ID, { grnId, smallBags: 40, bigBags: 0 }, USER_ID),
     ).rejects.toBeInstanceOf(RentPaymentRequiredError);
 
     await rentService.recordPayment(
@@ -134,7 +134,7 @@ describe('Rent gate for outward movement — rent-gate.service.test.ts', () => {
       USER_ID,
     );
 
-    const res = await deliveryService.createDelivery(FACILITY_ID, { grnId, bags: 40 }, USER_ID);
+    const res = await deliveryService.createDelivery(FACILITY_ID, { grnId, smallBags: 40, bigBags: 0 }, USER_ID);
     expect(res.delivery.totalBags).toBe(40);
     expect(res.delivery.chamber).toBe('CH-01');
     expect(res.summary.netDeliveredBags).toBe(40);

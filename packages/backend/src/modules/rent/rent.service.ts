@@ -9,6 +9,7 @@ import {
 } from '@cold-storage/contracts';
 import { GrnModel, type GrnDoc } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
+import { ledgerBagQuantity } from '../inventory/ledger-polarity.js';
 import { computeRentBalance } from '../common/rent-balance.js';
 import {
   calculateGrnMonthlyOccupancyRent,
@@ -169,7 +170,7 @@ export class RentService {
             _id: null,
             netDelivered: {
               $sum: {
-                $cond: [{ $eq: ['$transactionType', 'OUTWARD_DELIVERY'] }, '$quantity', { $multiply: ['$quantity', -1] }],
+                $cond: [{ $eq: ['$transactionType', 'OUTWARD_DELIVERY'] }, ledgerBagQuantity, { $multiply: [ledgerBagQuantity, -1] }],
               },
             },
           },

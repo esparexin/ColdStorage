@@ -7,6 +7,7 @@ import type {
 } from '@cold-storage/contracts';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
+import { ledgerBagQuantity } from '../inventory/ledger-polarity.js';
 import { counterService } from '../common/counter.service.js';
 import { toGrnAcknowledgement, toGrnEntity } from './grn.mappers.js';
 import { createGrn } from './handlers/create-grn.handler.js';
@@ -46,7 +47,7 @@ export class GrnService {
           _id: null,
           netDelivered: {
             $sum: {
-              $cond: [{ $eq: ['$transactionType', 'OUTWARD_DELIVERY'] }, '$quantity', { $multiply: ['$quantity', -1] }],
+              $cond: [{ $eq: ['$transactionType', 'OUTWARD_DELIVERY'] }, ledgerBagQuantity, { $multiply: [ledgerBagQuantity, -1] }],
             },
           },
         },
@@ -109,7 +110,7 @@ export class GrnService {
           _id: '$grnId',
           netDelivered: {
             $sum: {
-              $cond: [{ $eq: ['$transactionType', 'OUTWARD_DELIVERY'] }, '$quantity', { $multiply: ['$quantity', -1] }],
+              $cond: [{ $eq: ['$transactionType', 'OUTWARD_DELIVERY'] }, ledgerBagQuantity, { $multiply: [ledgerBagQuantity, -1] }],
             },
           },
         },

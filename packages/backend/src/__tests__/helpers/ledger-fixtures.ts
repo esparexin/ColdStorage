@@ -24,7 +24,9 @@ export interface SeedLedgerOptions {
   commodityId?: string;
   bagType?: BagType;
   transactionType?: InventoryTransactionType;
-  quantity?: number;
+  /** Bag composition of the movement. Defaults to a small-bag-only movement. */
+  smallQuantity?: number;
+  bigQuantity?: number;
   referenceId?: string;
   createdAt?: Date;
 }
@@ -49,7 +51,8 @@ export async function seedLedgerEntry(options: SeedLedgerOptions): Promise<strin
     commodityId: options.commodityId ?? `cmd-${randomUUID()}`,
     bagType: options.bagType ?? 'S',
     transactionType,
-    quantity: options.quantity ?? 100,
+    smallQuantity: options.smallQuantity ?? 100,
+    bigQuantity: options.bigQuantity ?? 0,
     referenceType: REFERENCE_BY_TYPE[transactionType],
     referenceId: options.referenceId ?? `ref-${randomUUID()}`,
     notes: null,

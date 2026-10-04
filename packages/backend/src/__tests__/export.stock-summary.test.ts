@@ -48,7 +48,7 @@ describe('P8 Stock Summary Export', () => {
   });
 
   it('reports a single chamber row from the canonical signed ledger sum', async () => {
-    await seedLedgerEntry({ facilityId, chamber: 'CH-01', quantity: 200 });
+    await seedLedgerEntry({ facilityId, chamber: 'CH-01', smallQuantity: 200, bigQuantity: 0 });
     const capture = await captureCsv((res) => exportService.exportStockSummary(facilityId, res));
 
     expect(capture.rows).toEqual(['chamber,totalBags', 'CH-01,200']);
@@ -56,9 +56,9 @@ describe('P8 Stock Summary Export', () => {
 
   it('nets deliveries and reversals into the chamber total', async () => {
     await seedLedgerEntries([
-      { facilityId, chamber: 'CH-01', transactionType: 'INWARD_PUTAWAY', quantity: 300 },
-      { facilityId, chamber: 'CH-01', transactionType: 'OUTWARD_DELIVERY', quantity: 50 },
-      { facilityId, chamber: 'CH-01', transactionType: 'DELIVERY_REVERSAL', quantity: 20 },
+      { facilityId, chamber: 'CH-01', transactionType: 'INWARD_PUTAWAY', smallQuantity: 300, bigQuantity: 0 },
+      { facilityId, chamber: 'CH-01', transactionType: 'OUTWARD_DELIVERY', smallQuantity: 50, bigQuantity: 0 },
+      { facilityId, chamber: 'CH-01', transactionType: 'DELIVERY_REVERSAL', smallQuantity: 20, bigQuantity: 0 },
     ]);
     const capture = await captureCsv((res) => exportService.exportStockSummary(facilityId, res));
 
@@ -67,9 +67,9 @@ describe('P8 Stock Summary Export', () => {
 
   it('omits chamber labels whose net stock is not positive', async () => {
     await seedLedgerEntries([
-      { facilityId, chamber: 'CH-01', transactionType: 'INWARD_PUTAWAY', quantity: 100 },
-      { facilityId, chamber: 'CH-02', transactionType: 'INWARD_PUTAWAY', quantity: 40 },
-      { facilityId, chamber: 'CH-02', transactionType: 'OUTWARD_DELIVERY', quantity: 40 },
+      { facilityId, chamber: 'CH-01', transactionType: 'INWARD_PUTAWAY', smallQuantity: 100, bigQuantity: 0 },
+      { facilityId, chamber: 'CH-02', transactionType: 'INWARD_PUTAWAY', smallQuantity: 40, bigQuantity: 0 },
+      { facilityId, chamber: 'CH-02', transactionType: 'OUTWARD_DELIVERY', smallQuantity: 40, bigQuantity: 0 },
     ]);
     const capture = await captureCsv((res) => exportService.exportStockSummary(facilityId, res));
 
@@ -78,9 +78,9 @@ describe('P8 Stock Summary Export', () => {
 
   it('orders chamber rows by descending totalBags', async () => {
     await seedLedgerEntries([
-      { facilityId, chamber: 'CH-01', quantity: 100 },
-      { facilityId, chamber: 'CH-02', quantity: 300 },
-      { facilityId, chamber: 'CH-03', quantity: 200 },
+      { facilityId, chamber: 'CH-01', smallQuantity: 100, bigQuantity: 0 },
+      { facilityId, chamber: 'CH-02', smallQuantity: 300, bigQuantity: 0 },
+      { facilityId, chamber: 'CH-03', smallQuantity: 200, bigQuantity: 0 },
     ]);
     const capture = await captureCsv((res) => exportService.exportStockSummary(facilityId, res));
 
@@ -96,10 +96,10 @@ describe('P8 Stock Summary Export', () => {
 
   it('P7 / P8 Stock Summary reconciliation: sum of exported chamber bags equals the dashboard totalStockBags', async () => {
     await seedLedgerEntries([
-      { facilityId, chamber: 'CH-01', transactionType: 'INWARD_PUTAWAY', quantity: 300 },
-      { facilityId, chamber: 'CH-01', transactionType: 'OUTWARD_DELIVERY', quantity: 50 },
-      { facilityId, chamber: 'CH-02', transactionType: 'INWARD_PUTAWAY', quantity: 100 },
-      { facilityId, chamber: 'CH-02', transactionType: 'DELIVERY_REVERSAL', quantity: 25 },
+      { facilityId, chamber: 'CH-01', transactionType: 'INWARD_PUTAWAY', smallQuantity: 300, bigQuantity: 0 },
+      { facilityId, chamber: 'CH-01', transactionType: 'OUTWARD_DELIVERY', smallQuantity: 50, bigQuantity: 0 },
+      { facilityId, chamber: 'CH-02', transactionType: 'INWARD_PUTAWAY', smallQuantity: 100, bigQuantity: 0 },
+      { facilityId, chamber: 'CH-02', transactionType: 'DELIVERY_REVERSAL', smallQuantity: 25, bigQuantity: 0 },
     ]);
 
     const p7Summary = await dashboardService.getSummary(facilityId);

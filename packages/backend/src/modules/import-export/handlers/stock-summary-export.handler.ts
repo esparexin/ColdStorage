@@ -3,6 +3,7 @@ import { DeliveryChallanModel } from '../../../database/models/delivery-challan.
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { auditService } from '../../audit/audit.service.js';
+import { challanBagQuantity } from '../../common/bag-composition.js';
 import { ledgerSignedQuantity } from '../../inventory/ledger-polarity.js';
 import { CsvSerializer } from '../csv.serializer.js';
 
@@ -49,7 +50,7 @@ export async function exportStockSummary(
       ]),
       DeliveryChallanModel.aggregate<{ _id: string; totalBags: number }>([
         { $match: { facilityId, status: 'ISSUED' } },
-        { $group: { _id: '$chamber', totalBags: { $sum: '$bags' } } },
+        { $group: { _id: '$chamber', totalBags: { $sum: challanBagQuantity } } },
       ]),
     ]);
 

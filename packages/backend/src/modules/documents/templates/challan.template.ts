@@ -31,13 +31,28 @@ export function renderChallanTemplate(dto: ChallanDocumentDto): string {
     </table>
 
     <div style="margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 13px;">
-      Dispatched Items by Storage Position
+      Dispatched Bags by Type
     </div>
+
+    <table class="data-table">
+      <tr>
+        <th style="width: 34%;">Small Bags</th>
+        <td style="width: 32%;"><strong>${dto.smallBags}</strong></td>
+        <th style="width: 34%;">Big Bags</th>
+        <td style="width: 32%;"><strong>${dto.bigBags}</strong></td>
+      </tr>
+      <tr>
+        <th>Total Bags Dispatched</th>
+        <td><strong>${dto.totalBags}</strong></td>
+        <th>Challan Number</th>
+        <td>${escapeHtml(dto.challanNumber)}</td>
+      </tr>
+    </table>
 
     <div style="margin-top: 20px; font-size: 11px; color: #444; border: 1px dashed #999; padding: 10px;">
       <strong>Gate Pass Declaration:</strong>
       <p style="margin-top: 4px;">
-        Certified that the above mentioned goods have been checked, inspected, and released from the cold storage facility in good condition. The driver/transporter acknowledges receipt of the full count of bags as stated.
+        Certified that the above mentioned goods have been checked, inspected, and released from the cold storage facility in good condition. The driver/transporter acknowledges receipt of the full count of bags as stated above: ${dto.totalBags} bags in total (${dto.smallBags} small, ${dto.bigBags} big).
       </p>
     </div>
   `;

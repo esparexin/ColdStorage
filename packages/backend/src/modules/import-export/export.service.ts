@@ -6,6 +6,14 @@ import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
 import { auditService } from '../audit/audit.service.js';
 import { buildDateFilter, streamCursor } from './csv-stream.helper.js';
+import {
+  DELIVERY_EXPORT_HEADERS,
+  GRN_EXPORT_HEADERS,
+  LEDGER_EXPORT_HEADERS,
+  mapDeliveryToCells,
+  mapGrnToCells,
+  mapLedgerToCells,
+} from './export-columns.js';
 import { exportStockSummary } from './handlers/stock-summary-export.handler.js';
 
 export class ExportService {
@@ -40,46 +48,10 @@ export class ExportService {
     });
     const filter = { facilityId, ...buildDateFilter('date', query) };
     const cursor = GrnModel.find(filter).sort({ createdAt: -1 }).lean().cursor({ batchSize: 500 });
-    const headers = [
-      'grnNumber',
-      'inwardReceiptNumber',
-      'date',
-      'customerName',
-      'commodityName',
-      'chamber',
-      'bags',
-      'bagType',
-      'rentType',
-      'rentMonths',
-      'rentAmount',
-      'gpNumber',
-      'vehicleNumber',
-      'remarks',
-      'status',
-      'createdAt',
-    ];
-
     await streamCursor(
       cursor,
-      headers,
-      (doc) => [
-        doc.grnNumber,
-        doc.inwardReceiptNumber,
-        doc.date instanceof Date ? doc.date.toISOString().split('T')[0] : doc.date,
-        doc.customerName,
-        doc.commodityName,
-        doc.chamber,
-        doc.bags,
-        doc.bagType,
-        doc.rentType,
-        doc.rentMonths ?? '',
-        doc.rentAmount,
-        doc.gpNumber ?? '',
-        doc.vehicleNumber ?? '',
-        doc.remarks ?? '',
-        doc.status,
-        doc.createdAt,
-      ],
+      [...GRN_EXPORT_HEADERS],
+      mapGrnToCells,
       res,
       `grns-${facilityId}.csv`,
     );
@@ -105,40 +77,10 @@ export class ExportService {
       .sort({ createdAt: -1 })
       .lean()
       .cursor({ batchSize: 500 });
-    const headers = [
-      'challanNumber',
-      'date',
-      'grnNumber',
-      'customerName',
-      'commodityName',
-      'chamber',
-      'totalBags',
-      'vehicleNumber',
-      'driverName',
-      'weight',
-      'remarks',
-      'status',
-      'createdAt',
-    ];
-
     await streamCursor(
       cursor,
-      headers,
-      (doc) => [
-        doc.challanNumber,
-        doc.date instanceof Date ? doc.date.toISOString().split('T')[0] : doc.date,
-        doc.grnNumber,
-        doc.customerName,
-        doc.commodityName,
-        doc.chamber,
-        doc.totalBags,
-        doc.vehicleNumber ?? '',
-        doc.driverName ?? '',
-        doc.weight ?? '',
-        doc.remarks ?? '',
-        doc.status,
-        doc.createdAt,
-      ],
+      [...DELIVERY_EXPORT_HEADERS],
+      mapDeliveryToCells,
       res,
       `deliveries-${facilityId}.csv`,
     );
@@ -164,34 +106,10 @@ export class ExportService {
       .sort({ createdAt: -1 })
       .lean()
       .cursor({ batchSize: 500 });
-    const headers = [
-      'createdAt',
-      'transactionType',
-      'grnNumber',
-      'chamber',
-      'commodityId',
-      'bagType',
-      'quantity',
-      'referenceType',
-      'referenceId',
-      'createdBy',
-    ];
-
     await streamCursor(
       cursor,
-      headers,
-      (doc) => [
-        doc.createdAt,
-        doc.transactionType,
-        doc.grnNumber,
-        doc.chamber,
-        doc.commodityId,
-        doc.bagType,
-        doc.quantity,
-        doc.referenceType,
-        doc.referenceId,
-        doc.createdBy,
-      ],
+      [...LEDGER_EXPORT_HEADERS],
+      mapLedgerToCells,
       res,
       `inventory-ledger-${facilityId}.csv`,
     );

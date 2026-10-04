@@ -71,15 +71,15 @@ describe('P7 DashboardService stock derivation', () => {
     });
 
     it('INWARD_PUTAWAY adds bags (+quantity)', async () => {
-      await seedLedgerEntry({ ...wheat, transactionType: 'INWARD_PUTAWAY', quantity: 200 });
+      await seedLedgerEntry({ ...wheat, transactionType: 'INWARD_PUTAWAY', smallQuantity: 200, bigQuantity: 0 });
       const summary = await dashboardService.getSummary(facilityId);
       expect(summary.totalStockBags).toBe(200);
     });
 
     it('OUTWARD_DELIVERY removes bags (−quantity)', async () => {
       await seedLedgerEntries([
-        { ...wheat, transactionType: 'INWARD_PUTAWAY', quantity: 300 },
-        { ...wheat, transactionType: 'OUTWARD_DELIVERY', quantity: 100 },
+        { ...wheat, transactionType: 'INWARD_PUTAWAY', smallQuantity: 300, bigQuantity: 0 },
+        { ...wheat, transactionType: 'OUTWARD_DELIVERY', smallQuantity: 100, bigQuantity: 0 },
       ]);
       const summary = await dashboardService.getSummary(facilityId);
       expect(summary.totalStockBags).toBe(200); // 300 − 100
@@ -87,9 +87,9 @@ describe('P7 DashboardService stock derivation', () => {
 
     it('DELIVERY_REVERSAL restores bags (+quantity)', async () => {
       await seedLedgerEntries([
-        { ...wheat, transactionType: 'INWARD_PUTAWAY', quantity: 300 },
-        { ...wheat, transactionType: 'OUTWARD_DELIVERY', quantity: 100 },
-        { ...wheat, transactionType: 'DELIVERY_REVERSAL', quantity: 100 },
+        { ...wheat, transactionType: 'INWARD_PUTAWAY', smallQuantity: 300, bigQuantity: 0 },
+        { ...wheat, transactionType: 'OUTWARD_DELIVERY', smallQuantity: 100, bigQuantity: 0 },
+        { ...wheat, transactionType: 'DELIVERY_REVERSAL', smallQuantity: 100, bigQuantity: 0 },
       ]);
       const summary = await dashboardService.getSummary(facilityId);
       expect(summary.totalStockBags).toBe(300); // 300 − 100 + 100
@@ -97,9 +97,9 @@ describe('P7 DashboardService stock derivation', () => {
 
     it('does not double-count quantity (sum applied once)', async () => {
       await seedLedgerEntries([
-        { ...wheat, transactionType: 'INWARD_PUTAWAY', quantity: 100 },
-        { ...wheat, transactionType: 'OUTWARD_DELIVERY', quantity: 40 },
-        { ...wheat, transactionType: 'DELIVERY_REVERSAL', quantity: 40 },
+        { ...wheat, transactionType: 'INWARD_PUTAWAY', smallQuantity: 100, bigQuantity: 0 },
+        { ...wheat, transactionType: 'OUTWARD_DELIVERY', smallQuantity: 40, bigQuantity: 0 },
+        { ...wheat, transactionType: 'DELIVERY_REVERSAL', smallQuantity: 40, bigQuantity: 0 },
       ]);
       const summary = await dashboardService.getSummary(facilityId);
       expect(summary.totalStockBags).toBe(100);
@@ -110,7 +110,8 @@ describe('P7 DashboardService stock derivation', () => {
       await seedLedgerEntry({
         facilityId: otherFacilityId,
         transactionType: 'INWARD_PUTAWAY',
-        quantity: 999,
+        smallQuantity: 999,
+        bigQuantity: 0,
       });
       const summary = await dashboardService.getSummary(facilityId);
       expect(summary.totalStockBags).toBe(0);
@@ -118,7 +119,7 @@ describe('P7 DashboardService stock derivation', () => {
     });
 
     it('reports no capacity or utilization keys (removed fields fail the strict schema)', async () => {
-      await seedLedgerEntry({ ...wheat, quantity: 120 });
+      await seedLedgerEntry({ ...wheat, smallQuantity: 120, bigQuantity: 0 });
       const summary = await dashboardService.getSummary(facilityId);
 
       expect(dashboardSummarySchema.safeParse(summary).success).toBe(true);
@@ -139,9 +140,9 @@ describe('P7 DashboardService stock derivation', () => {
   describe('chamberStock grouping', () => {
     it('groups signed quantities by the free-text chamber label', async () => {
       await seedLedgerEntries([
-        { ...wheat, chamber: 'CH-1', quantity: 100 },
-        { ...wheat, chamber: 'CH-1', quantity: 50 },
-        { ...wheat, chamber: 'Block B', quantity: 25 },
+        { ...wheat, chamber: 'CH-1', smallQuantity: 100, bigQuantity: 0 },
+        { ...wheat, chamber: 'CH-1', smallQuantity: 50, bigQuantity: 0 },
+        { ...wheat, chamber: 'Block B', smallQuantity: 25, bigQuantity: 0 },
       ]);
       const summary = await dashboardService.getSummary(facilityId);
       expect(summary.chamberStock).toEqual([
@@ -152,8 +153,8 @@ describe('P7 DashboardService stock derivation', () => {
 
     it('nets outward deliveries out of the chamber they were dispatched from', async () => {
       await seedLedgerEntries([
-        { ...wheat, chamber: 'CH-1', transactionType: 'INWARD_PUTAWAY', quantity: 300 },
-        { ...wheat, chamber: 'CH-1', transactionType: 'OUTWARD_DELIVERY', quantity: 50 },
+        { ...wheat, chamber: 'CH-1', transactionType: 'INWARD_PUTAWAY', smallQuantity: 300, bigQuantity: 0 },
+        { ...wheat, chamber: 'CH-1', transactionType: 'OUTWARD_DELIVERY', smallQuantity: 50, bigQuantity: 0 },
       ]);
       const summary = await dashboardService.getSummary(facilityId);
       expect(summary.chamberStock).toEqual([{ chamber: 'CH-1', totalBags: 250 }]);
@@ -161,10 +162,10 @@ describe('P7 DashboardService stock derivation', () => {
 
     it('omits labels whose net stock is not positive', async () => {
       await seedLedgerEntries([
-        { ...wheat, chamber: 'CH-1', transactionType: 'INWARD_PUTAWAY', quantity: 100 },
-        { ...wheat, chamber: 'CH-9', transactionType: 'OUTWARD_DELIVERY', quantity: 100 },
-        { ...wheat, chamber: 'CH-8', transactionType: 'INWARD_PUTAWAY', quantity: 40 },
-        { ...wheat, chamber: 'CH-8', transactionType: 'OUTWARD_DELIVERY', quantity: 40 },
+        { ...wheat, chamber: 'CH-1', transactionType: 'INWARD_PUTAWAY', smallQuantity: 100, bigQuantity: 0 },
+        { ...wheat, chamber: 'CH-9', transactionType: 'OUTWARD_DELIVERY', smallQuantity: 100, bigQuantity: 0 },
+        { ...wheat, chamber: 'CH-8', transactionType: 'INWARD_PUTAWAY', smallQuantity: 40, bigQuantity: 0 },
+        { ...wheat, chamber: 'CH-8', transactionType: 'OUTWARD_DELIVERY', smallQuantity: 40, bigQuantity: 0 },
       ]);
       const summary = await dashboardService.getSummary(facilityId);
       expect(summary.chamberStock).toEqual([{ chamber: 'CH-1', totalBags: 100 }]);
@@ -172,9 +173,9 @@ describe('P7 DashboardService stock derivation', () => {
 
     it('reconciles: sum of chamberStock totalBags equals facility totalStockBags', async () => {
       await seedLedgerEntries([
-        { ...wheat, chamber: 'CH-1', quantity: 100 },
-        { ...wheat, chamber: 'Block B', quantity: 50 },
-        { ...wheat, chamber: 'Block B', transactionType: 'OUTWARD_DELIVERY', quantity: 20 },
+        { ...wheat, chamber: 'CH-1', smallQuantity: 100, bigQuantity: 0 },
+        { ...wheat, chamber: 'Block B', smallQuantity: 50, bigQuantity: 0 },
+        { ...wheat, chamber: 'Block B', transactionType: 'OUTWARD_DELIVERY', smallQuantity: 20, bigQuantity: 0 },
       ]);
       const summary = await dashboardService.getSummary(facilityId);
       const chamberSum = summary.chamberStock.reduce((s, c) => s + c.totalBags, 0);
@@ -185,14 +186,14 @@ describe('P7 DashboardService stock derivation', () => {
   // 3. Commodity stock
   describe('commodity stock', () => {
     it('resolves commodity name from the CommodityModel catalog', async () => {
-      await seedLedgerEntry({ ...wheat, quantity: 200 });
+      await seedLedgerEntry({ ...wheat, smallQuantity: 200, bigQuantity: 0 });
       const summary = await dashboardService.getSummary(facilityId);
       const stock = summary.commodityBreakdown.find((c) => c.commodityId === wheatId);
       expect(stock).toEqual({ commodityId: wheatId, commodityName: 'Wheat', totalBags: 200 });
     });
 
     it('falls back to the commodity id when the catalog lookup finds nothing', async () => {
-      await seedLedgerEntry({ ...wheat, commodityId: 'cmd-unknown', quantity: 10 });
+      await seedLedgerEntry({ ...wheat, commodityId: 'cmd-unknown', smallQuantity: 10, bigQuantity: 0 });
       const summary = await dashboardService.getSummary(facilityId);
       const stock = summary.commodityBreakdown.find((c) => c.commodityId === 'cmd-unknown');
       expect(stock?.commodityName).toBe('cmd-unknown');
@@ -200,8 +201,8 @@ describe('P7 DashboardService stock derivation', () => {
 
     it('only reports commodities with positive stock', async () => {
       await seedLedgerEntries([
-        { ...wheat, transactionType: 'INWARD_PUTAWAY', quantity: 100 },
-        { ...wheat, transactionType: 'OUTWARD_DELIVERY', quantity: 100 },
+        { ...wheat, transactionType: 'INWARD_PUTAWAY', smallQuantity: 100, bigQuantity: 0 },
+        { ...wheat, transactionType: 'OUTWARD_DELIVERY', smallQuantity: 100, bigQuantity: 0 },
       ]);
       const summary = await dashboardService.getSummary(facilityId);
       expect(summary.commodityBreakdown).toHaveLength(0);

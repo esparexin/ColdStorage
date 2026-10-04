@@ -91,7 +91,7 @@ describe('P7 Dashboard Routes & Authorization', () => {
     await seedFacility({ id: facilityId, name: 'Main Facility', code: 'MAIN' });
     await seedFacility({ id: otherFacilityId, name: 'Other Facility', code: 'OTHR' });
     await seedGrn({ facilityId, chamber: 'CH-1', bags: 300, status: 'OPEN' });
-    await seedLedgerEntry({ facilityId, chamber: 'CH-1', quantity: 300 });
+    await seedLedgerEntry({ facilityId, chamber: 'CH-1', smallQuantity: 300, bigQuantity: 0 });
   });
 
   // 1. Unauthenticated request → 401

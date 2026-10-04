@@ -148,7 +148,8 @@ export async function seedDocumentScenario(
     customerName,
     commodityName: 'Apple (Royal Delicious)',
     chamber,
-    bags: Math.floor(bags / 5),
+    // The GRN above is a big-bag-only receipt, so the challan dispatches big bags.
+    bigBags: Math.floor(bags / 5),
     vehicleNumber: 'PB-01-AA-1122',
     driverName: 'Gurdeep Singh',
     issuedBy: 'Operator',

@@ -148,6 +148,23 @@ if grep -rnE "[^.a-zA-Z](alert|window\.confirm)\(" "$ROOT/packages/frontend/src"
   fail "UI SSOT violation: alert()/confirm() are prohibited. Surface errors through FeedbackStates or inline role=alert regions."
 fi
 
+# 19. Bag composition SSOT. A receipt, challan or ledger row stores smallBags + bigBags; the total is
+# their sum. Reintroducing a stored `quantity`/`totalBags` alongside the parts is how a total and its
+# components drift apart, so both are rejected outright.
+if grep -rnE "^\s*(quantity|totalBags):\s*\{[^}]*type:\s*Number" \
+  "$ROOT/packages/backend/src/database/models" \
+  --include="*.ts" --exclude-dir=__tests__ 2>/dev/null; then
+  fail "Bag composition SSOT violation: store smallBags + bigBags and derive the total at read time; a stored quantity/totalBags column must not be reintroduced."
+fi
+
+# 20. Balance-snapshot SSOT. A challan's opening/closing balance were write-time snapshots that went
+# stale on reversal. Balances are derived from the ledger, so the fields must not come back.
+if grep -rnE "(openingBags|closingBags):\s*\{[^}]*type:\s*Number" \
+  "$ROOT/packages/backend/src/database/models" \
+  --include="*.ts" --exclude-dir=__tests__ 2>/dev/null; then
+  fail "Balance SSOT violation: stock balances are ledger-derived; stored openingBags/closingBags snapshots must not be reintroduced."
+fi
+
 if [ "$EXIT" -eq 0 ]; then
   echo "[PASS] All architecture boundaries and UI SSOT governance checks passed."
 fi

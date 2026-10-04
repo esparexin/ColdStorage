@@ -4,6 +4,7 @@ import {
   calculateRentAmount,
   deriveBagPrice,
   getFinancialYearKey,
+  normalizeBagComposition,
   rentMonthsForType,
   type CreateGrnInput,
   type Grn,
@@ -58,7 +59,17 @@ export async function createGrn(
   // 5. Inward Date and FY validation
   const inwardDate = validateOperationalDate(input.date, { label: 'Inward' });
 
-  // 6. Per-bag weight accounting (no nominal/weighbridge/total derivation).
+  // 6. Bag composition is resolved once, here, and stored as the authoritative split. `bags` is
+  // already the sum of these two parts by contract validation, so the total is never a third
+  // independent figure that can drift from them.
+  const composition = normalizeBagComposition({
+    bagType: input.bagType,
+    bags: input.bags,
+    smallBags: input.smallBags,
+    bigBags: input.bigBags,
+  });
+
+  // Per-bag weight accounting (no nominal/weighbridge/total derivation).
   // Small Bag Weight belongs to the individual small bag; Big Bag Weight to the big bag.
   const smallBagWeight = input.smallBagWeight ?? null;
   const bigBagWeight = input.bigBagWeight ?? null;
@@ -81,8 +92,8 @@ export async function createGrn(
           bags: input.bags,
           bagType: input.bagType,
           bagPrice: input.bagPrice ?? derivedBagPrice,
-          smallBags: input.smallBags,
-          bigBags: input.bigBags,
+          smallBags: composition.smallBags,
+          bigBags: composition.bigBags,
           smallBagPrice: input.smallBagPrice,
           bigBagPrice: input.bigBagPrice,
           rentMonths,
@@ -142,6 +153,8 @@ export async function createGrn(
             chamber: input.chamber.trim(),
             bags: input.bags,
             bagType: input.bagType,
+            smallBags: composition.smallBags,
+            bigBags: composition.bigBags,
             smallBagWeight,
             bigBagWeight,
             rentType: input.rentType,
@@ -150,8 +163,6 @@ export async function createGrn(
             bagPrice: input.bagPrice ?? derivedBagPrice ?? null,
             smallBagPrice: input.smallBagPrice ?? null,
             bigBagPrice: input.bigBagPrice ?? null,
-            smallBags: input.smallBags ?? null,
-            bigBags: input.bigBags ?? null,
             gpNumber: input.gpNumber?.trim() || null,
             storageMark: input.storageMark?.trim() || null,
             partyMark: input.partyMark?.trim() || null,

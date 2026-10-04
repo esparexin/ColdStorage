@@ -75,9 +75,10 @@ export function DeliveryReversalModal({
             <div>
               <strong>Warning: Full Reversal is Irreversible.</strong>
               <p style={{ marginTop: '4px' }}>
-                Reversing this delivery will restore {delivery.totalBags} bags back
-                into their original storage positions and append an immutable{' '}
-                <code>DELIVERY_REVERSAL</code> event to the stock ledger.
+                Reversing this delivery will restore {delivery.totalBags} bags (
+                {delivery.smallBags} small, {delivery.bigBags} big) to this GRN&apos;s
+                balance and append an immutable <code>DELIVERY_REVERSAL</code> event to the
+                stock ledger.
               </p>
             </div>
           </div>

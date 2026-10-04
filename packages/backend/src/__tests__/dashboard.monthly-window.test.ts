@@ -47,7 +47,8 @@ describe('P7 DashboardService monthly window (IST)', () => {
     await seedLedgerEntry({
       ...ledger,
       transactionType: 'INWARD_PUTAWAY',
-      quantity: 150,
+      smallQuantity: 150,
+      bigQuantity: 0,
       createdAt: new Date(),
     });
     const summary = await dashboardService.getSummary(facilityId);
@@ -58,7 +59,8 @@ describe('P7 DashboardService monthly window (IST)', () => {
     await seedLedgerEntry({
       ...ledger,
       transactionType: 'INWARD_PUTAWAY',
-      quantity: 999,
+      smallQuantity: 999,
+      bigQuantity: 0,
       createdAt: previousMonthDate(),
     });
     const summary = await dashboardService.getSummary(facilityId);
@@ -68,19 +70,21 @@ describe('P7 DashboardService monthly window (IST)', () => {
 
   it('excludes another facility ledger from both monthly windows', async () => {
     await seedLedgerEntries([
-      { ...ledger, transactionType: 'INWARD_PUTAWAY', quantity: 500, createdAt: new Date() },
+      { ...ledger, transactionType: 'INWARD_PUTAWAY', smallQuantity: 500, bigQuantity: 0, createdAt: new Date() },
       {
         ...ledger,
         facilityId: 'fac-dash-monthly-other',
         transactionType: 'INWARD_PUTAWAY',
-        quantity: 400,
+        smallQuantity: 400,
+        bigQuantity: 0,
         createdAt: new Date(),
       },
       {
         ...ledger,
         facilityId: 'fac-dash-monthly-other',
         transactionType: 'OUTWARD_DELIVERY',
-        quantity: 300,
+        smallQuantity: 300,
+        bigQuantity: 0,
         createdAt: new Date(),
       },
     ]);
@@ -92,9 +96,9 @@ describe('P7 DashboardService monthly window (IST)', () => {
   it('computes monthlyDeliveredBags = OUTWARD_DELIVERY − DELIVERY_REVERSAL in the current month', async () => {
     const now = new Date();
     await seedLedgerEntries([
-      { ...ledger, transactionType: 'INWARD_PUTAWAY', quantity: 500, createdAt: now },
-      { ...ledger, transactionType: 'OUTWARD_DELIVERY', quantity: 80, createdAt: now },
-      { ...ledger, transactionType: 'DELIVERY_REVERSAL', quantity: 20, createdAt: now },
+      { ...ledger, transactionType: 'INWARD_PUTAWAY', smallQuantity: 500, bigQuantity: 0, createdAt: now },
+      { ...ledger, transactionType: 'OUTWARD_DELIVERY', smallQuantity: 80, bigQuantity: 0, createdAt: now },
+      { ...ledger, transactionType: 'DELIVERY_REVERSAL', smallQuantity: 20, bigQuantity: 0, createdAt: now },
     ]);
     const summary = await dashboardService.getSummary(facilityId);
     expect(summary.monthlyDeliveredBags).toBe(60); // 80 − 20
@@ -104,11 +108,12 @@ describe('P7 DashboardService monthly window (IST)', () => {
   it('does not net reversals from a previous month into the current month', async () => {
     const now = new Date();
     await seedLedgerEntries([
-      { ...ledger, transactionType: 'OUTWARD_DELIVERY', quantity: 80, createdAt: now },
+      { ...ledger, transactionType: 'OUTWARD_DELIVERY', smallQuantity: 80, bigQuantity: 0, createdAt: now },
       {
         ...ledger,
         transactionType: 'DELIVERY_REVERSAL',
-        quantity: 20,
+        smallQuantity: 20,
+        bigQuantity: 0,
         createdAt: previousMonthDate(now),
       },
     ]);

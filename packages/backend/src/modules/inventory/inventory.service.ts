@@ -10,7 +10,7 @@ import {
   queryStockLedger,
 } from './queries/facility-stock.queries.js';
 import {
-  getAvailableBags,
+  getAvailableComposition,
   getGrnInventorySummary,
 } from './queries/stock-summary.queries.js';
 
@@ -25,8 +25,12 @@ export class InventoryService {
     return getGrnInventorySummary(facilityId, grnId);
   }
 
-  public async getAvailableBags(facilityId: string, grnId: string): Promise<number> {
-    return getAvailableBags(facilityId, grnId);
+  /** Available stock as a bag composition, so callers can reason per bag type. */
+  public async getAvailableBags(
+    facilityId: string,
+    grnId: string,
+  ): Promise<{ bags: number; smallBags: number; bigBags: number }> {
+    return getAvailableComposition(facilityId, grnId);
   }
 
   public async getFacilityInventorySummary(facilityId: string): Promise<FacilityInventorySummary> {

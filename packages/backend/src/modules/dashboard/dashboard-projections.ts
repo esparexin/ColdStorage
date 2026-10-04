@@ -28,7 +28,8 @@ export function projectRecentActivity(
     referenceId: string;
     chamber: string;
     createdAt: Date;
-    quantity: number;
+    smallQuantity: number;
+    bigQuantity: number;
   }>,
   challanMap: Map<string, string>,
   reversalMap: Map<string, string>,
@@ -43,13 +44,19 @@ export function projectRecentActivity(
       referenceNumber = reversalMap.get(t.referenceId) ?? t.referenceId;
     }
 
+    // The stored composition is summed for display. Sign is carried by the transaction type, so
+    // the activity feed always shows a positive quantity.
+    const bags = (t.smallQuantity ?? 0) + (t.bigQuantity ?? 0);
+    const breakdown =
+      t.bigQuantity > 0 ? ` (${t.smallQuantity} small, ${t.bigQuantity} big)` : '';
+
     let summary: string;
     if (t.transactionType === 'INWARD_PUTAWAY') {
-      summary = `Put away ${t.quantity} bags in chamber ${t.chamber}`;
+      summary = `Put away ${bags} bags${breakdown} in chamber ${t.chamber}`;
     } else if (t.transactionType === 'OUTWARD_DELIVERY') {
-      summary = `Delivered ${t.quantity} bags via challan ${referenceNumber}`;
+      summary = `Delivered ${bags} bags${breakdown} via challan ${referenceNumber}`;
     } else {
-      summary = `Reversed delivery ${referenceNumber} — ${t.quantity} bags returned`;
+      summary = `Reversed delivery ${referenceNumber} — ${bags} bags${breakdown} returned`;
     }
 
     return {
@@ -58,7 +65,7 @@ export function projectRecentActivity(
       referenceNumber,
       chamber: t.chamber,
       date: t.createdAt,
-      bags: t.quantity,
+      bags,
       summary,
     };
   });

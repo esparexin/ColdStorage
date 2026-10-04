@@ -85,9 +85,16 @@ export function DeliveryDetailModal({
             </div>
 
             <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Opening Balance</span>
+              <span className={styles.detailLabel}>Small Bags Dispatched</span>
               <span className={styles.detailValue}>
-                {delivery.openingBags != null ? `${delivery.openingBags.toLocaleString('en-IN')} Bags` : '—'}
+                {delivery.smallBags.toLocaleString('en-IN')} Bags
+              </span>
+            </div>
+
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Big Bags Dispatched</span>
+              <span className={styles.detailValue}>
+                {delivery.bigBags.toLocaleString('en-IN')} Bags
               </span>
             </div>
 
@@ -95,13 +102,6 @@ export function DeliveryDetailModal({
               <span className={styles.detailLabel}>Total Delivered Bags</span>
               <span className={styles.detailValue}>
                 {delivery.totalBags.toLocaleString('en-IN')} Bags
-              </span>
-            </div>
-
-            <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Closing Balance</span>
-              <span className={styles.detailValue}>
-                {delivery.closingBags != null ? `${delivery.closingBags.toLocaleString('en-IN')} Bags` : '—'}
               </span>
             </div>
 

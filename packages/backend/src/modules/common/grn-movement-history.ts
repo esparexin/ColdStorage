@@ -17,6 +17,10 @@ export async function getGrnMovementHistory(
   if (!grn) return null;
 
   const [challans, reversals] = await Promise.all([
+    // Reversed challans stay on the timeline, and they DO move the running balance: the goods
+    // physically left the chamber and then came back, and occupancy is charged for that. Their
+    // own reversal entry restores them, which is what makes the totals reconcile. What must not
+    // happen is a reversed challan being labelled a final outward movement.
     DeliveryChallanModel.find({ grnId, facilityId }).lean().exec(),
     DeliveryReversalModel.find({ grnId, facilityId }).lean().exec(),
   ]);
@@ -67,17 +71,20 @@ export async function getGrnMovementHistory(
   for (const item of timeline) {
     if (item.kind === 'CHALLAN') {
       const c = item.challan;
-      const deliveredCount = c.bags;
+      const deliveredCount = c.smallBags + c.bigBags;
       const opening = runningBalance;
       const closing = Math.max(0, runningBalance - deliveredCount);
       runningBalance = closing;
       netDelivered += deliveredCount;
+      const isLive = c.status === 'ISSUED';
 
       entries.push({
         date: c.date,
         grnId: grn.id,
         grnNumber: grn.grnNumber,
-        type: closing === 0 ? 'FINAL_OUTWARD' : 'PARTIAL_OUTWARD',
+        // A reversed challan emptied the balance but did not settle it, so it is never the
+        // final outward movement.
+        type: isLive && closing === 0 ? 'FINAL_OUTWARD' : 'PARTIAL_OUTWARD',
         openingBags: opening,
         deliveredBags: deliveredCount,
         closingBags: closing,
@@ -93,7 +100,7 @@ export async function getGrnMovementHistory(
     } else {
       const r = item.reversal;
       const originalChallan = challanMap.get(r.deliveryId);
-      const returnedCount = originalChallan?.bags ?? 0;
+      const returnedCount = originalChallan ? originalChallan.smallBags + originalChallan.bigBags : 0;
       const opening = runningBalance;
       const closing = runningBalance + returnedCount;
       runningBalance = closing;

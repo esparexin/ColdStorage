@@ -6,6 +6,7 @@ import type { DeliveryChallan, DeliverySummary, RentSummaryDto } from '@cold-sto
 import { Button, Modal, Select } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useCreateDeliveryForm } from '../hooks/useCreateDeliveryForm';
+import { DeliveryBagCompositionFields } from './DeliveryBagCompositionFields';
 import styles from '../page.module.css';
 
 interface CreateDeliveryModalProps {
@@ -90,34 +91,12 @@ export function CreateDeliveryModal({
                 )}
                 {form.grnSummary && (
               <>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                  <label htmlFor="delivery-bags" className={styles.fieldLabel}>
-                    Bags to Deliver *
-                  </label>
-                  <span className={styles.fieldHint}>
-                    {form.grnSummary.allocatedBags > 0
-                      ? `${form.grnSummary.allocatedBags} bags of ${form.grnSummary.totalBags} received are in stock in chamber ${form.grnSummary.chamber}.`
-                      : 'All received bags have been delivered from this GRN.'}
-                  </span>
-                  <input
-                    id="delivery-bags"
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    max={form.grnSummary.allocatedBags}
-                    placeholder="Bags to deliver"
-                    className={styles.fieldInput}
-                    value={form.withdrawal.bags}
-                    onChange={(e) =>
-                      form.setWithdrawalBags(e.target.value ? parseInt(e.target.value, 10) : '')
-                    }
-                  />
-                </div>
-
-                <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>
-                  Total Delivering:{' '}
-                  <span style={{ color: 'var(--color-primary)' }}>{form.totalWithdrawingBags}</span> bags
-                </div>
+                <DeliveryBagCompositionFields
+                  summary={form.grnSummary}
+                  withdrawal={form.withdrawal}
+                  onSmallBagsChange={form.setWithdrawalSmallBags}
+                  onBigBagsChange={form.setWithdrawalBigBags}
+                />
 
                 <div className={styles.formGrid2}>
                   <div className={styles.fieldGroup}>

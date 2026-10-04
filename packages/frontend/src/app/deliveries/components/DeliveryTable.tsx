@@ -88,6 +88,17 @@ export function DeliveryTable({
       render: (row) => (
         <span style={{ fontWeight: 'var(--font-bold)', fontSize: 'var(--text-sm)' }}>
           {row.totalBags.toLocaleString('en-IN')} bags
+          <span
+            style={{
+              display: 'block',
+              fontWeight: 'var(--font-normal)',
+              fontSize: 'var(--text-xs)',
+              color: 'var(--color-text-muted)',
+            }}
+          >
+            {row.smallBags.toLocaleString('en-IN')} small / {row.bigBags.toLocaleString('en-IN')}{' '}
+            big
+          </span>
         </span>
       ),
     },
@@ -155,7 +166,7 @@ export function DeliveryTable({
               variant="dangerOutline"
               size="sm"
               onClick={() => onStartReversal(row)}
-              title="Reverse Delivery (Restores stock to positions)"
+              title="Reverse Delivery (Restores the dispatched bags to this GRN's balance)"
               leftIcon={<RotateCcw size={13} aria-hidden="true" />}
             >
               Reverse

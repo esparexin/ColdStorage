@@ -200,13 +200,13 @@ describe('Phase 11: Multi-Facility End-to-End — cross-facility isolation', () 
     const crossRes = await request(app)
       .post(`/api/facilities/${scenario.facilityA}/deliveries`)
       .set('Authorization', `Bearer ${scenario.tokens.operatorA}`)
-      .send({ grnId: grnIdB, bags: 10 });
+      .send({ grnId: grnIdB, smallBags: 10, bigBags: 0 });
     expect(crossRes.status).toBe(404);
 
     const deniedScopeRes = await request(app)
       .post(`/api/facilities/${scenario.facilityB}/deliveries`)
       .set('Authorization', `Bearer ${scenario.tokens.operatorA}`)
-      .send({ grnId: grnIdB, bags: 10 });
+      .send({ grnId: grnIdB, smallBags: 10, bigBags: 0 });
     expect(deniedScopeRes.status).toBe(403);
 
     // Audit writes are fire-and-forget; allow the async write to settle.

@@ -14,17 +14,21 @@ export class ConcurrencyConflictError extends Error {
 
 export function toLedgerEntity(doc: unknown): InventoryTransaction {
   const d = doc as Record<string, unknown>;
+  const smallQuantity = Number(d.smallQuantity ?? 0);
+  const bigQuantity = Number(d.bigQuantity ?? 0);
   return {
     id: String(d.id),
     facilityId: String(d.facilityId),
     grnId: String(d.grnId),
     grnNumber: String(d.grnNumber),
     chamber: String(d.chamber),
-    customerId: String(d.customerId),
     commodityId: String(d.commodityId),
     bagType: d.bagType as InventoryTransaction['bagType'],
     transactionType: (d.transactionType as InventoryTransaction['transactionType']) ?? 'INWARD_PUTAWAY',
-    quantity: Number(d.quantity),
+    smallQuantity,
+    bigQuantity,
+    // Derived for transport only. The database stores the composition and nothing else.
+    quantity: smallQuantity + bigQuantity,
     referenceType: (d.referenceType as InventoryTransaction['referenceType']) ?? 'PUT_AWAY',
     referenceId: String(d.referenceId),
     notes: d.notes ? String(d.notes) : null,

@@ -1,4 +1,5 @@
 import {
+  bagCompositionIssue,
   chamberTextSchema,
   indianVehicleSchema,
   rentalAmountSchema,
@@ -45,12 +46,22 @@ export function validateCreateGrnForm(state: CreateGrnState): {
     errors.chamber = parsedChamber.error.issues[0]?.message ?? 'Chamber is required';
   }
 
-  if (state.createBagType === 'S+B') {
-    const small = typeof state.createSmallBags === 'number' ? state.createSmallBags : 0;
-    const big = typeof state.createBigBags === 'number' ? state.createBigBags : 0;
-    if (small + big <= 0) errors.bags = 'Enter at least one bag count (Small or Big) for Mixed bag type';
-  } else if (typeof state.createBags !== 'number' || state.createBags <= 0) {
-    errors.bags = `${state.createBagType === 'S' ? 'Small' : 'Big'} bags count must be a positive integer`;
+  // The same composition rule the server enforces, so the form cannot submit a receipt the
+  // create-GRN contract would reject with a different message.
+  const compositionError = bagCompositionIssue({
+    bagType: state.createBagType,
+    bags:
+      state.createBagType === 'S+B'
+        ? (typeof state.createSmallBags === 'number' ? state.createSmallBags : 0) +
+          (typeof state.createBigBags === 'number' ? state.createBigBags : 0)
+        : typeof state.createBags === 'number'
+          ? state.createBags
+          : 0,
+    smallBags: typeof state.createSmallBags === 'number' ? state.createSmallBags : null,
+    bigBags: typeof state.createBigBags === 'number' ? state.createBigBags : null,
+  });
+  if (compositionError) {
+    errors.bags = compositionError;
   }
 
   // Per-bag weight only: S requires Small, B requires Big, S+B requires both.
