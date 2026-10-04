@@ -47,7 +47,7 @@ Every user interface element, form submission, table action, modal trigger, and 
 | **11** | **Inventory** (`/inventory`) | **Hierarchy Tab Position Inspect** | `GET /api/positions/:posId/occupancy` (Frontend calls) | Backend ONLY defines `/api/facilities/:facilityId/positions/:positionId/occupancy` | `inventoryService.getPositionOccupancy` | **BROKEN / 404** | **CULPRIT 2**: Frontend omits `:facilityId` route scope; inspection modal fails with 404. |
 | **12** | **Inventory** (`/inventory`) | Stock Ledger Table / Filter | `GET /api/facilities/:facilityId/inventory/ledger` | `inventoryRouter.get` (`inventory:view`, `requireFacilityScope`) | `inventoryService.queryStockLedger` -> `InventoryTransactionModel` | **CONNECTED** | Immutable ledger queries with IST interval filtering. |
 | **13** | **Deliveries** (`/deliveries`) | "Issue Delivery Challan" Submit | `POST /api/facilities/:facilityId/deliveries` `{ grnId, bags, vehicleNumber, driverName, ... }` | `deliveryRouter.post` (`delivery:create`, `requireFacilityScope`) | `deliveryService.createDelivery` -> `DeliveryChallanModel`, `InventoryTransactionModel` | **CONNECTED** | Atomic stock availability check; auto-transitions GRN to `CLOSED` when balance = 0. |
-| **14** | **Deliveries** (`/deliveries`) | "Reverse Delivery" Submit | `POST /api/facilities/:facilityId/deliveries/:deliveryId/reverse` `{ reason }` | `deliveryRouter.post` (`delivery:reverse`, SUPER_ADMIN) | `deliveryService.reverseDelivery` -> `DeliveryReversalModel` | **CONNECTED** | Atomic compensating stock ledger transaction; reopens GRN if closed. |
+| **14** | **Deliveries** (`/deliveries`) | "Reverse Delivery" Submit | `POST /api/facilities/:facilityId/deliveries/:deliveryId/reverse` `{ reason }` | `deliveryRouter.post` (`delivery:reversal`, SUPER_ADMIN, ADMIN) | `deliveryService.reverseDelivery` -> `DeliveryReversalModel` | **CONNECTED** | Atomic compensating stock ledger transaction; reopens GRN if closed. |
 | **15** | **Rent Collection** (`/rent`) | "Collect Payment" Modal Submit | `POST /api/facilities/:facilityId/rent/collect` `{ grnId, amountPaid, paymentMode, paymentDate }` | `rentRouter.post` (`rent:collect`, `requireFacilityScope`) | `rentService.recordPayment` -> `RentPaymentModel`, `CounterModel` | **CONNECTED** | Enforces overpayment guard; auto-derives `Settled` / `Not Settled` status. |
 | **16** | **Rent Collection** (`/rent`) | "Preview Receipt" Modal Action | `GET /api/facilities/:facilityId/documents/rent-receipt/preview?...` | `documentRouter.get` (`document:print`, `requireFacilityScope`) | `documentService.renderRentReceiptPreview` | **CONNECTED** | Strictly zero-database-write preview with watermark. |
 | **17** | **Rent Collection** (`/rent`) | "Print Receipt" (from History) | `GET /api/facilities/:facilityId/rent/receipts/:receiptNumber/print` | `rentRouter.get` (`rent:print`, `requireFacilityScope`) | `rentService.renderReceipt` | **CONNECTED** | Official receipt HTML rendering. |
@@ -98,7 +98,7 @@ Every user interface element, form submission, table action, modal trigger, and 
 ### 3.4 Performance & Testing Under Load
 - **Cryptographic Test Bottleneck**:
   - In [`packages/backend/src/__tests__/dashboard.routes.test.ts`](file:///Users/admin/Desktop/ColdStorage/packages/backend/src/__tests__/dashboard.routes.test.ts#L71-L154), the `beforeEach` hook executes `hashPassword` and 5 full `authService.login()` routines for every test case.
-  - Across 12 tests, this performs 72 bcrypt computations in a single file. Under CPU load, this hook timed out at 10,000ms, failing 3 test cases.
+  - Across 12 tests, this performs 72 Argon2id computations in a single file. Under CPU load, this hook timed out at 10,000ms, failing 3 test cases.
 
 ---
 
@@ -134,7 +134,7 @@ Every user interface element, form submission, table action, modal trigger, and 
 
 5. **CULPRIT-5: Cryptographic Hashing in Test `beforeEach`**
    - **File**: [`packages/backend/src/__tests__/dashboard.routes.test.ts:140-154`](file:///Users/admin/Desktop/ColdStorage/packages/backend/src/__tests__/dashboard.routes.test.ts#L140-L154)
-   - **Defect**: Re-authenticates 5 users with bcrypt hashing before each of 12 tests.
+   - **Defect**: Re-authenticates 5 users with Argon2id hashing before each of 12 tests.
    - **Impact**: Test suite times out at 10,000ms.
    - **Remediation**: Move static token generation to `beforeAll` or pre-generate test JWTs.
 
@@ -198,10 +198,10 @@ Every user interface element, form submission, table action, modal trigger, and 
 | **Storage** | `storage:view`, `storage:manage` | SUPER_ADMIN, ADMIN | Tree loading spinner | Empty chamber message | Modal error banner | Cannot delete chamber/rack/level/position with active inventory. |
 | **GRNs** | `grn:view`, `grn:create` | SUPER_ADMIN, ADMIN, OPERATOR | `FeedbackStates.Loading` | `FeedbackStates.Empty` | Error alert banner | FY-sequential numbering; bags > 0; authoritative weight recorded. |
 | **Inventory** | `inventory:view`, `rack:allocate` | SUPER_ADMIN, ADMIN, OPERATOR | Tab skeleton loader | Unallocated bags prompt | Validation error message | Cannot allocate more bags than unallocated balance; concurrency guard. |
-| **Deliveries** | `delivery:view`, `delivery:create`, `delivery:reverse` | Create: OPERATOR+; Reverse: SUPER_ADMIN | `FeedbackStates.Loading` | `FeedbackStates.Empty` | Modal error alert | Atomic balance check; cannot over-deliver; GRN auto-closed on 0 balance. |
+| **Deliveries** | `delivery:view`, `delivery:create`, `delivery:reversal` | Create: OPERATOR+; Reversal: SUPER_ADMIN, ADMIN | `FeedbackStates.Loading` | `FeedbackStates.Empty` | Modal error alert | Atomic balance check; cannot over-deliver; GRN auto-closed on 0 balance. |
 | **Rent** | `rent:view`, `rent:collect`, `rent:print` | SUPER_ADMIN, ADMIN, OPERATOR | `FeedbackStates.Loading` | `FeedbackStates.Empty` | Modal error alert | Overpayment rejected; negative balance strictly prohibited; append-only ledger. |
 | **Settings** | `settings:manage` | SUPER_ADMIN | `FeedbackStates.Loading` | System default fallback | Inline error message | 1MB logo limit; magic bytes verification; rollback on error. |
-| **Users** | `user:manage` | SUPER_ADMIN, ADMIN | `DataTable` loading | `FeedbackStates.Empty` | Form error alert | Forced password reset flag on temporary password. |
+| **Users** | `user:manage` | SUPER_ADMIN only (canonical permissions matrix) | `DataTable` loading | `FeedbackStates.Empty` | Form error alert | Forced password reset flag on temporary password. |
 | **Backup** | `backup:manage` | SUPER_ADMIN | Button spinner | Table empty message | Status error banner | Mutex lock prevents concurrent backup jobs. |
 | **Audit** | `audit:view` | SUPER_ADMIN, ADMIN | `DataTable` loading | `FeedbackStates.Empty` | Error banner | Facility-filtered audit records; immutable trail. |
 | **Import-Export** | `import:execute`, `export:execute` | SUPER_ADMIN, ADMIN | Progress indicator | No records warning | Error log breakdown | 2MB CSV limit; transaction abort on row validation error. |
@@ -283,7 +283,7 @@ In strict compliance with user global rules:
 
 ### PR 3: Test Suite Cryptographic Load Optimization (Problem: Dashboard Route Vitest Timeout)
 - **Scope**:
-  - Optimize `packages/backend/src/__tests__/dashboard.routes.test.ts` by generating authentication tokens in `beforeAll` instead of re-hashing bcrypt passwords in `beforeEach`.
+  - Optimize `packages/backend/src/__tests__/dashboard.routes.test.ts` by generating authentication tokens in `beforeAll` instead of re-hashing Argon2id passwords in `beforeEach`.
 - **Verification**: `npm test` runs all 44 test suites with 100% pass rate and zero timeouts.
 
 ### PR 4: Forced Password Change Flow (Problem: Provisioned User Lockout)
