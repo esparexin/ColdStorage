@@ -1,10 +1,8 @@
-import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
-import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedChallan, seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
