@@ -40,7 +40,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'Operations',
     items: [
       { href: '/', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard:view' },
-      { href: '/grns', label: 'Inward GRNs', icon: Warehouse, permission: 'grn:view' },
+      { href: '/grns', label: 'Acknowledgement of Goods', icon: Warehouse, permission: 'grn:view' },
       { href: '/deliveries', label: 'Deliveries', icon: Truck, permission: 'delivery:view' },
       { href: '/rent', label: 'Rent Billing', icon: Receipt, permission: 'rent:view' },
     ],

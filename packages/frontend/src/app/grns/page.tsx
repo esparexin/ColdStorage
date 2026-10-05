@@ -50,7 +50,7 @@ export default function GrnsPage() {
     <div className={styles.page}>
       <div className={styles.headerRow}>
         <div className={styles.titleArea}>
-          <h1 className={styles.pageTitle}>Goods Receipt Notes (GRN)</h1>
+          <h1 className={styles.pageTitle}>Acknowledgement of Goods</h1>
         </div>
 
         <div className={styles.headerActions}>
@@ -61,7 +61,7 @@ export default function GrnsPage() {
               onClick={() => setIsCreateOpen(true)}
               leftIcon={<Plus size={16} aria-hidden="true" />}
             >
-              Create Inward GRN
+              Create Acknowledgement of Goods
             </Button>
           )}
         </div>
@@ -75,7 +75,7 @@ export default function GrnsPage() {
 
       {!selectedFacilityId ? (
         <FeedbackStates.Empty
-          message="Please select a facility from the top header to manage Goods Receipt Notes."
+          message="Please select a facility from the top header to manage Acknowledgement of Goods."
         />
       ) : (
         <>
@@ -94,20 +94,20 @@ export default function GrnsPage() {
           />
 
           {grnData.loading ? (
-            <FeedbackStates.Loading label="Loading Goods Receipt Notes..." />
+            <FeedbackStates.Loading label="Loading Acknowledgement of Goods..." />
           ) : grnData.error ? (
             <FeedbackStates.Error
-              title="Error loading GRNs"
+              title="Error loading Acknowledgement of Goods"
               message={grnData.error}
               onRetry={() => void grnData.fetchGrns()}
             />
           ) : grnData.grns.length === 0 ? (
             <FeedbackStates.Empty
-              message={`No Goods Receipt Notes recorded for ${grnData.currentFacilityName} yet.`}
+              message={`No Acknowledgement of Goods recorded for ${grnData.currentFacilityName} yet.`}
               action={
                 canCreate
                   ? {
-                      label: '+ Create Inward GRN',
+                      label: '+ Create Acknowledgement of Goods',
                       onClick: () => setIsCreateOpen(true),
                       id: 'create-grn-empty-btn',
                     }
@@ -117,7 +117,7 @@ export default function GrnsPage() {
           ) : (
             <GrnTable
               grns={grnData.filteredGrns}
-              caption={`Goods Receipt Notes for ${grnData.currentFacilityName}`}
+              caption={`Acknowledgement of Goods for ${grnData.currentFacilityName}`}
               canPrint={canPrint}
               printingId={printingId}
               page={grnData.page}

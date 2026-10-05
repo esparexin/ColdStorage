@@ -24,6 +24,8 @@ export function toGrnEntity(doc: {
   smallBags?: number | null;
   bigBags?: number | null;
   gpNumber?: string | null;
+  storageMark?: string | null;
+  partyMark?: string | null;
   marks?: string | null;
   vehicleNumber?: string | null;
   remarks?: string | null;
@@ -41,6 +43,7 @@ export function toGrnEntity(doc: {
     facilityId: doc.facilityId,
     grnNumber: doc.grnNumber,
     inwardReceiptNumber: doc.inwardReceiptNumber,
+    billNumber: doc.inwardReceiptNumber,
     date: doc.date,
     customerId: doc.customerId,
     customerName: doc.customerName,
@@ -60,6 +63,8 @@ export function toGrnEntity(doc: {
     smallBags: doc.smallBags ?? null,
     bigBags: doc.bigBags ?? null,
     gpNumber: doc.gpNumber ?? null,
+    storageMark: doc.storageMark ?? null,
+    partyMark: doc.partyMark ?? null,
     marks: doc.marks ?? null,
     vehicleNumber: doc.vehicleNumber ?? null,
     remarks: doc.remarks ?? null,
@@ -108,6 +113,8 @@ export function toGrnAcknowledgement(grn: Grn): GrnAcknowledgement {
     },
     transport: {
       gpNumber: grn.gpNumber,
+      storageMark: grn.storageMark,
+      partyMark: grn.partyMark,
       marks: grn.marks,
       vehicleNumber: grn.vehicleNumber,
     },

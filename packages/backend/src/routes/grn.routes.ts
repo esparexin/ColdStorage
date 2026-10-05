@@ -38,6 +38,13 @@ grnRouter.post(
       const { grn, acknowledgement } = await grnService.createGrn(facilityId, parseResult.data, req.user!.userId);
       res.status(201).json({ grn, acknowledgement });
     } catch (err: unknown) {
+      const isDuplicate =
+        (typeof err === 'object' && err !== null && 'code' in err && (err as { code: number }).code === 11000) ||
+        (err instanceof Error && err.message.includes('already exists'));
+      if (isDuplicate) {
+        res.status(409).json({ error: err instanceof Error ? err.message : 'Bill Number already exists' });
+        return;
+      }
       const message = err instanceof Error ? err.message : 'GRN creation failed';
       const status =
         message.includes('not found') ||
@@ -72,6 +79,22 @@ grnRouter.get(
       res.status(200).json(result);
     } catch (err: unknown) {
       sendServiceError(res, err, 'Failed to list GRNs');
+    }
+  },
+);
+
+// Preview next Bill Number for facility
+grnRouter.get(
+  '/facilities/:facilityId/grns/next-bill-number',
+  requirePermission('grn:view'),
+  requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  async (req: Request, res: Response): Promise<void> => {
+    const facilityId = getParamId(req.params.facilityId);
+    try {
+      const nextBillNumber = await grnService.getNextBillNumber(facilityId);
+      res.status(200).json({ nextBillNumber });
+    } catch (err: unknown) {
+      sendServiceError(res, err, 'Failed to preview next bill number');
     }
   },
 );

@@ -7,10 +7,8 @@ import { bagPriceSchema } from './pricing.js';
 export const rentTypeSchema = z.enum(['Monthly', 'Seasonal']);
 export type RentType = z.infer<typeof rentTypeSchema>;
 
-/** Complete 10-month rental period business constant for Seasonal subscriptions. */
+// Complete 10-month rental period business constant for Seasonal subscriptions.
 export const SEASONAL_RENT_MONTHS = 10;
-
-/** Single derivation point for the rental period implied by a rent type. */
 export function rentMonthsForType(rentType: RentType): number | null {
   return rentType === 'Seasonal' ? SEASONAL_RENT_MONTHS : null;
 }
@@ -69,7 +67,10 @@ export const createGrnSchema = z
     smallBagPrice: bagPriceSchema.nullish(),
     bigBagPrice: bagPriceSchema.nullish(),
     gpNumber: gpNumberSchema,
+    storageMark: z.string().trim().max(20, 'Storage mark cannot exceed 20 characters').nullish(),
+    partyMark: z.string().trim().max(20, 'Party mark cannot exceed 20 characters').nullish(),
     marks: z.string().trim().max(100).nullish(),
+    billNumber: z.string().trim().min(1).max(40).nullish(),
     vehicleNumber: indianVehicleSchema.nullish(),
     remarks: z.string().trim().max(500).nullish(),
   })
@@ -95,11 +96,7 @@ export const createGrnSchema = z
       }
       return true;
     },
-    {
-      message:
-        'Per-bag weight is required: Small Bag Weight for S, Big Bag Weight for B, both for S+B',
-      path: ['smallBagWeight'],
-    },
+    { message: 'Per-bag weight is required: Small Bag Weight for S, Big Bag Weight for B, both for S+B', path: ['smallBagWeight'] },
   )
   .refine(
     (data) => {
@@ -120,6 +117,7 @@ export const grnSchema = z.object({
   facilityId: z.string().min(1),
   grnNumber: grnNumberSchema,
   inwardReceiptNumber: inwardReceiptNumberSchema,
+  billNumber: z.string().nullable().optional(),
   date: z.date(),
   customerId: z.string().min(1),
   customerName: z.string().min(1),
@@ -140,6 +138,8 @@ export const grnSchema = z.object({
   smallBags: z.number().int().nullable().optional(),
   bigBags: z.number().int().nullable().optional(),
   gpNumber: z.string().nullable().optional(),
+  storageMark: z.string().nullable().optional(),
+  partyMark: z.string().nullable().optional(),
   marks: z.string().nullable().optional(),
   vehicleNumber: z.string().nullable().optional(),
   remarks: z.string().nullable().optional(),
@@ -218,6 +218,8 @@ export const grnAcknowledgementSchema = z.object({
   }),
   transport: z.object({
     gpNumber: z.string().nullable().optional(),
+    storageMark: z.string().nullable().optional(),
+    partyMark: z.string().nullable().optional(),
     marks: z.string().nullable().optional(),
     vehicleNumber: z.string().nullable().optional(),
   }),

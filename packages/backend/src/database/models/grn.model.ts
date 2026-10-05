@@ -27,6 +27,8 @@ export interface GrnDoc extends Document {
   smallBags: number | null;
   bigBags: number | null;
   gpNumber: string | null;
+  storageMark: string | null;
+  partyMark: string | null;
   marks: string | null;
   vehicleNumber: string | null;
   remarks: string | null;
@@ -62,6 +64,8 @@ const grnSchema = new Schema<GrnDoc>(
     smallBags: { type: Number, default: null },
     bigBags: { type: Number, default: null },
     gpNumber: { type: String, trim: true, default: null },
+    storageMark: { type: String, trim: true, maxlength: 20, default: null },
+    partyMark: { type: String, trim: true, maxlength: 20, default: null },
     marks: { type: String, trim: true, default: null },
     vehicleNumber: { type: String, trim: true, uppercase: true, default: null },
     remarks: { type: String, trim: true, default: null },

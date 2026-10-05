@@ -59,7 +59,7 @@ export function ExportPanel({
 
           <div className={styles.exportCard}>
             <div className={styles.exportInfo}>
-              <span className={styles.exportTitle}>Inward Goods Receipt Notes</span>
+              <span className={styles.exportTitle}>Acknowledgement of Goods</span>
               <span className={styles.exportSub}>
                 All GRN records, bag accounting, weighbridge weights, and rent structures.
               </span>

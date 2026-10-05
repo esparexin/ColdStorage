@@ -7,6 +7,7 @@ import type {
 } from '@cold-storage/contracts';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
+import { counterService } from '../common/counter.service.js';
 import { toGrnAcknowledgement, toGrnEntity } from './grn.mappers.js';
 import { createGrn } from './handlers/create-grn.handler.js';
 import { correctGrn } from './handlers/update-grn.handler.js';
@@ -131,6 +132,10 @@ export class GrnService {
   public async resolveFacilityIdForGrn(grnId: string): Promise<string | null> {
     const doc = await GrnModel.findOne({ id: grnId }).select('facilityId').lean().exec();
     return doc ? doc.facilityId : null;
+  }
+
+  public async getNextBillNumber(facilityId: string): Promise<string> {
+    return counterService.previewNextInwardReceiptNumber(facilityId, new Date());
   }
 }
 

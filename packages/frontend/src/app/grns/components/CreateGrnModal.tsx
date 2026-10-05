@@ -5,6 +5,7 @@ import type { BagType, Commodity, Customer, Grn, RentType } from '@cold-storage/
 import { Button, ConfirmDialog, Input, Modal, Select } from '@/components/ui';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { BagAccountingSection } from './BagAccountingSection';
+import { TransportLogisticsSection } from './TransportLogisticsSection';
 import { useCustomerCombobox } from '../hooks/useCustomerCombobox';
 import { parseNumericInput, useCreateGrnForm } from '../hooks/useCreateGrnForm';
 import { CustomerFormModal } from '../../customers/components/CustomerFormModal';
@@ -39,8 +40,8 @@ export function CreateGrnModal({
   return (
     <>
     <Modal
-      isOpen onClose={handleAttemptClose} title="Inward Goods Receipt Note (GRN)" size="lg"
-      footer={<><Button variant="outline" onClick={handleAttemptClose} disabled={form.submitting}>Cancel</Button><Button id="submit-create-grn-btn" form="create-grn-form" type="submit" variant="primary" disabled={form.submitting} isLoading={form.submitting}>Create Inward GRN</Button></>}
+      isOpen onClose={handleAttemptClose} title="Acknowledgement of Goods" size="lg"
+      footer={<><Button variant="outline" onClick={handleAttemptClose} disabled={form.submitting}>Cancel</Button><Button id="submit-create-grn-btn" form="create-grn-form" type="submit" variant="primary" disabled={form.submitting} isLoading={form.submitting}>Create Acknowledgement of Goods</Button></>}
     >
       <form id="create-grn-form" noValidate onSubmit={form.handleSubmit} className={styles.modalForm}>
         {form.modalError && <div id="modal-error-banner" className={styles.modalError} role="alert">{form.modalError}</div>}
@@ -105,19 +106,27 @@ export function CreateGrnModal({
             </Select>
           </div>
         </div>
-        <div className={styles.formGrid2}>
+        <div className={styles.formGrid3}>
           <div className={styles.fieldGroup}>
-            <Input
-              id="create-chamber"
-              label="Chamber"
+            <label htmlFor="create-bill-number" className={styles.fieldLabel}>
+              Bill Number {form.suggestedBillNumber ? `(Next: ${form.suggestedBillNumber})` : ''}
+            </label>
+            <input
+              id="create-bill-number"
               type="text"
-              required
-              maxLength={20}
-              value={form.createChamber}
-              onChange={(e) => form.setCreateChamber(e.target.value)}
-              error={form.fieldErrors.chamber}
-              placeholder="e.g. A or CH-01"
+              maxLength={40}
+              value={form.createBillNumber}
+              onChange={(e) => form.setCreateBillNumber(e.target.value)}
+              placeholder={form.suggestedBillNumber ? `Auto (${form.suggestedBillNumber})` : 'Auto / given #'}
+              className={`${styles.fieldInput} ${form.fieldErrors.billNumber ? styles.inputError : ''}`}
+              aria-invalid={Boolean(form.fieldErrors.billNumber)}
             />
+            {form.fieldErrors.billNumber && <span className={styles.fieldErrorText}>{form.fieldErrors.billNumber}</span>}
+          </div>
+          <div className={styles.fieldGroup}>
+            <Input id="create-chamber" label="Chamber" type="text" required maxLength={20}
+              value={form.createChamber} onChange={(e) => form.setCreateChamber(e.target.value)}
+              error={form.fieldErrors.chamber} placeholder="e.g. A or CH-01" />
           </div>
           <div className={styles.fieldGroup}>
             <Select id="create-bag-type" label="Bag Type" required value={form.createBagType} onChange={(e) => form.handleBagTypeChange(e.target.value as BagType)}>
@@ -129,21 +138,16 @@ export function CreateGrnModal({
         </div>
         <BagAccountingSection
           values={{
-            bagType: form.createBagType,
-            bags: form.createBags,
-            smallBags: form.createSmallBags,
-            bigBags: form.createBigBags,
-            smallBagWeight: form.createSmallBagWeight,
-            bigBagWeight: form.createBigBagWeight,
+            bagType: form.createBagType, bags: form.createBags,
+            smallBags: form.createSmallBags, bigBags: form.createBigBags,
+            smallBagWeight: form.createSmallBagWeight, bigBagWeight: form.createBigBagWeight,
             bagError: form.fieldErrors.bags,
             smallBagWeightError: form.fieldErrors.smallBagWeight,
             bigBagWeightError: form.fieldErrors.bigBagWeight,
           }}
           handlers={{
-            onBagsChange: form.handleBagsChange,
-            onSmallBagsChange: form.handleSmallBagsChange,
-            onBigBagsChange: form.handleBigBagsChange,
-            onSmallBagWeightChange: form.handleSmallBagWeightChange,
+            onBagsChange: form.handleBagsChange, onSmallBagsChange: form.handleSmallBagsChange,
+            onBigBagsChange: form.handleBigBagsChange, onSmallBagWeightChange: form.handleSmallBagWeightChange,
             onBigBagWeightChange: form.handleBigBagWeightChange,
           }}
         />
@@ -215,32 +219,27 @@ export function CreateGrnModal({
             {form.fieldErrors.rentAmount && <span className={styles.fieldErrorText}>{form.fieldErrors.rentAmount}</span>}
           </div>
         </div>
-        <h3 className={styles.sectionHeading}>Transport & Logistics</h3>
-        <div className={styles.formGrid2}>
-          <div className={styles.fieldGroup}>
-            <label htmlFor="create-gp" className={styles.fieldLabel}>Gate Pass (GP) #</label>
-            <input id="create-gp" type="text" maxLength={40} value={form.createGpNumber} onChange={(e) => form.setCreateGpNumber(e.target.value)} placeholder="e.g. GP-2026-09" className={styles.fieldInput} />
-          </div>
-          <div className={styles.fieldGroup}>
-            <label htmlFor="create-vehicle" className={styles.fieldLabel}>Vehicle Registration</label>
-            <input id="create-vehicle" type="text" maxLength={15} value={form.createVehicleNumber} onChange={(e) => form.setCreateVehicleNumber(e.target.value.toUpperCase())} placeholder="e.g. UP32AA1111" className={`${styles.fieldInput} ${form.fieldErrors.vehicleNumber ? styles.inputError : ''}`} aria-invalid={Boolean(form.fieldErrors.vehicleNumber)} />
-            {form.fieldErrors.vehicleNumber && <span className={styles.fieldErrorText}>{form.fieldErrors.vehicleNumber}</span>}
-          </div>
-        </div>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="create-remarks" className={styles.fieldLabel}>Remarks / Notes</label>
-          <textarea id="create-remarks" rows={2} maxLength={500} value={form.createRemarks} onChange={(e) => form.setCreateRemarks(e.target.value)} placeholder="Optional inward inspection notes or quality observations" className={styles.fieldInput} />
-        </div>
+        <TransportLogisticsSection
+          gpNumber={form.createGpNumber}
+          onGpNumberChange={form.setCreateGpNumber}
+          vehicleNumber={form.createVehicleNumber}
+          onVehicleNumberChange={form.setCreateVehicleNumber}
+          vehicleError={form.fieldErrors.vehicleNumber}
+          storageMark={form.createStorageMark}
+          onStorageMarkChange={form.setCreateStorageMark}
+          storageMarkError={form.fieldErrors.storageMark}
+          partyMark={form.createPartyMark}
+          onPartyMarkChange={form.setCreatePartyMark}
+          partyMarkError={form.fieldErrors.partyMark}
+          remarks={form.createRemarks}
+          onRemarksChange={form.setCreateRemarks}
+        />
       </form>
     </Modal>
     <ConfirmDialog
-      isOpen={isConfirmOpen}
-      title="Unsaved Changes"
+      isOpen={isConfirmOpen} title="Unsaved Changes"
       message="You have entered information that has not been saved. Are you sure you want to exit?"
-      cancelLabel="Stay"
-      confirmLabel="Exit"
-      onCancel={cancelExit}
-      onConfirm={confirmExit}
+      cancelLabel="Stay" confirmLabel="Exit" onCancel={cancelExit} onConfirm={confirmExit}
     />
     {isAddingCustomer && <CustomerFormModal customer={null} selectedFacilityId={facilityId} existingCustomers={customers} onClose={() => setIsAddingCustomer(false)} onSuccess={() => { setIsAddingCustomer(false); onCustomerAdded?.(); }} />}
     {isAddingCommodity && <CommodityFormModal onClose={() => setIsAddingCommodity(false)} onSuccess={() => { setIsAddingCommodity(false); onCommodityAdded?.(); }} />}

@@ -198,4 +198,49 @@ describe('Chamber, Rental & Customer Contracts', () => {
       }),
     ).toThrow();
   });
+
+  it('validates storageMark and partyMark up to 20 characters on a GRN', () => {
+    const valid = createGrnSchema.parse({
+      customerId: 'cust-123',
+      commodityId: 'comm-123',
+      chamber: 'CH-01',
+      bags: 100,
+      bagType: 'S',
+      smallBagWeight: 50,
+      rentType: 'Seasonal',
+      rentAmount: 2500,
+      storageMark: '  ST-01  ',
+      partyMark: 'KSN-99',
+    });
+    expect(valid.storageMark).toBe('ST-01');
+    expect(valid.partyMark).toBe('KSN-99');
+
+    expect(() =>
+      createGrnSchema.parse({
+        customerId: 'cust-123',
+        commodityId: 'comm-123',
+        chamber: 'CH-01',
+        bags: 100,
+        bagType: 'S',
+        smallBagWeight: 50,
+        rentType: 'Seasonal',
+        rentAmount: 2500,
+        storageMark: 'm'.repeat(21),
+      }),
+    ).toThrow(/Storage mark cannot exceed 20 characters/);
+
+    expect(() =>
+      createGrnSchema.parse({
+        customerId: 'cust-123',
+        commodityId: 'comm-123',
+        chamber: 'CH-01',
+        bags: 100,
+        bagType: 'S',
+        smallBagWeight: 50,
+        rentType: 'Seasonal',
+        rentAmount: 2500,
+        partyMark: 'p'.repeat(21),
+      }),
+    ).toThrow(/Party mark cannot exceed 20 characters/);
+  });
 });
