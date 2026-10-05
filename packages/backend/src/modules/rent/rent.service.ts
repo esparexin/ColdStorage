@@ -8,8 +8,7 @@ import {
   type StorageOccupancyFilter,
 } from '@cold-storage/contracts';
 import { GrnModel, type GrnDoc } from '../../database/models/grn.model.js';
-import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
-import { ledgerBagQuantity } from '../inventory/ledger-polarity.js';
+import { readLedgerNetDelivered } from '../inventory/ledger-balance.js';
 import { computeRentBalance } from '../common/rent-balance.js';
 import {
   calculateGrnMonthlyOccupancyRent,
@@ -156,31 +155,13 @@ export class RentService {
 
     const summary = await this.getRentSummary(facilityId, grn.id);
 
-    const [deliveryAgg, organization, facility] = await Promise.all([
-      InventoryTransactionModel.aggregate([
-        {
-          $match: {
-            facilityId,
-            grnId: grn.id,
-            transactionType: { $in: ['OUTWARD_DELIVERY', 'DELIVERY_REVERSAL'] },
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            netDelivered: {
-              $sum: {
-                $cond: [{ $eq: ['$transactionType', 'OUTWARD_DELIVERY'] }, ledgerBagQuantity, { $multiply: [ledgerBagQuantity, -1] }],
-              },
-            },
-          },
-        },
-      ]),
+    const [netDelivered, organization, facility] = await Promise.all([
+      readLedgerNetDelivered(facilityId, grn.id),
       getVerifiedOrganization(),
       getFacilitySubHeader(facilityId),
     ]);
 
-    const netDeliveredBags = deliveryAgg[0]?.netDelivered ?? 0;
+    const netDeliveredBags = netDelivered.total;
     const remainingBags = Math.max(0, grn.bags - netDeliveredBags);
     const billingCyclePeriod = deriveBillingCycle(grn.date, grn.rentType, payment.paymentDate);
     const previousPaidAmount = Math.max(0, summary.totalPaid - payment.amountPaid);

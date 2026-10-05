@@ -49,6 +49,10 @@ describe('P7 DashboardService recentActivity projection', () => {
     await DeliveryReversalModel.deleteMany({});
     await seedFacility({ id: facilityId, code: 'ACT' });
     await seedGrn({ facilityId, grnNumber, chamber: 'CH-1' });
+    // The fixture receipt's own inward leg is removed: this suite builds its ledger scenarios
+    // by hand, so totals reflect only the seeded movements. The GRN-implies-inward-row invariant
+    // itself is covered by the grn-lifecycle and inventory suites.
+    await InventoryTransactionModel.deleteMany({ facilityId });
   });
 
   it('limits recent activity to at most 10 records', async () => {

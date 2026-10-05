@@ -14,6 +14,7 @@ import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { FacilityModel } from '../../../database/models/facility.model.js';
 import { GrnModel, type GrnDoc } from '../../../database/models/grn.model.js';
+import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { counterService, DOCUMENT_PREFIXES } from '../../common/counter.service.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
@@ -177,6 +178,35 @@ export async function createGrn(
       );
 
       createdDoc = docs[0];
+
+      // The inward leg of the stock ledger, written in the same transaction as the receipt it
+      // describes. Without this row the ledger holds only outward movements and reversal, so any
+      // balance summed from it is one-sided and goes negative the moment a facility records its
+      // first delivery. Same transaction, so a receipt can never exist without its inward stock.
+      await InventoryTransactionModel.create(
+        [
+          {
+            id: `tx-${randomUUID()}`,
+            facilityId,
+            grnId: id,
+            grnNumber,
+            chamber: input.chamber.trim(),
+            commodityId: commodity.id,
+            bagType: input.bagType,
+            transactionType: 'INWARD_PUTAWAY' as const,
+            smallQuantity: composition.smallBags,
+            bigQuantity: composition.bigBags,
+            referenceType: 'PUT_AWAY' as const,
+            referenceId: id,
+            notes: null,
+            createdBy: userId,
+            // The movement happened at inward, not when this row happened to be written, so the
+            // ledger timeline and the monthly inward report both agree with the receipt date.
+            createdAt: inwardDate,
+          },
+        ],
+        { session, ordered: true },
+      );
     });
   } finally {
     await session.endSession();

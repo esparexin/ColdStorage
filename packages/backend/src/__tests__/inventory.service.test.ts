@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { inventoryService } from '../modules/inventory/inventory.service.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
@@ -132,9 +133,15 @@ describe('InventoryService GRN Chamber SSOT tests', () => {
     );
   });
 
-  it('6. Legacy protection: stock calculations do not require PutAwayAllocationModel or INWARD_PUTAWAY', async () => {
-    // Assert directly that with NO put-away allocation or INWARD_PUTAWAY ledger rows,
-    // stock is immediately, authoritatively available from the GRN itself.
+  it('6. Ledger authority: available stock equals the signed ledger balance, not the receipt', async () => {
+    // The receipt states what arrived; the ledger states what remains. With no outward movement
+    // the two agree, and the agreement comes from the inward leg, not from reading the receipt.
+    const inwardRows = await InventoryTransactionModel.countDocuments({
+      grnId,
+      transactionType: 'INWARD_PUTAWAY',
+    });
+    expect(inwardRows).toBe(1);
+
     const available = await inventoryService.getAvailableBags(facilityId, grnId);
     expect(available.bags).toBe(100);
 
@@ -147,6 +154,49 @@ describe('InventoryService GRN Chamber SSOT tests', () => {
   it('7. Throws an error when getting summary for non-existent GRN', async () => {
     await expect(
       inventoryService.getGrnInventorySummary(facilityId, 'grn-missing'),
+    ).rejects.toThrow(/not found in facility/);
+  });
+
+  it('8. Customer rollup aggregates receipts at read time without storing a balance', async () => {
+    const secondGrnId = await seedGrn({
+      facilityId,
+      customerId,
+      commodityId: 'cmd-onions',
+      chamber: 'Chamber 2',
+      bags: 200,
+      bagType: 'S+B',
+      smallBags: 100,
+      bigBags: 100,
+      commodityName: 'Onions',
+      grnNumber: 'GRN-25-26-0002',
+    });
+    await deliveryService.createDelivery(
+      facilityId,
+      { grnId: secondGrnId, smallBags: 20, bigBags: 30 },
+      userId,
+    );
+
+    const rollup = await inventoryService.getCustomerStockSummary(facilityId, customerId);
+    expect(rollup).toEqual({
+      customerId,
+      customerName: 'Ramesh Agro Traders',
+      facilityId,
+      grnCount: 2,
+      openGrns: 2,
+      closedGrns: 0,
+      totalReceivedBags: 300,
+      receivedSmallBags: 200,
+      receivedBigBags: 100,
+      netDeliveredBags: 50,
+      remainingBags: 250,
+      remainingSmallBags: 180,
+      remainingBigBags: 70,
+    });
+  });
+
+  it('9. Customer rollup reports an unknown customer as not found', async () => {
+    await expect(
+      inventoryService.getCustomerStockSummary(facilityId, 'cust-missing'),
     ).rejects.toThrow(/not found in facility/);
   });
 });
