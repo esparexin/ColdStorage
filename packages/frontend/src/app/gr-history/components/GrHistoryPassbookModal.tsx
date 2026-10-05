@@ -9,7 +9,7 @@ import { printHtmlString } from '@/lib/print-document';
 import { renderPassbookHtml } from '../utils/renderPassbookHtml';
 import styles from '../page.module.css';
 
-interface BondPassbookModalProps {
+interface GrHistoryPassbookModalProps {
   selectedGrn: Grn;
   history: GrnMovementHistory | null;
   rentSummary: RentSummaryDto | null;
@@ -19,7 +19,7 @@ interface BondPassbookModalProps {
   onRetry: () => void;
 }
 
-export function BondPassbookModal({
+export function GrHistoryPassbookModal({
   selectedGrn,
   history,
   rentSummary,
@@ -27,7 +27,7 @@ export function BondPassbookModal({
   ledgerError,
   onClose,
   onRetry,
-}: BondPassbookModalProps) {
+}: GrHistoryPassbookModalProps) {
   const handlePrint = () => {
     if (!history) return;
     const html = renderPassbookHtml(history, rentSummary);
@@ -38,7 +38,7 @@ export function BondPassbookModal({
     <Modal
       isOpen
       onClose={onClose}
-      title={selectedGrn.bondNumber ? `Bond Movement Ledger: ${selectedGrn.bondNumber}` : `GRN Movement Ledger: ${selectedGrn.grnNumber}`}
+      title={selectedGrn.bondNumber ? `GR Movement History: ${selectedGrn.grnNumber} (Bond ${selectedGrn.bondNumber})` : `GR Movement History: ${selectedGrn.grnNumber}`}
       subtitle={`${selectedGrn.customerName} — ${selectedGrn.commodityName} (Chamber ${selectedGrn.chamber})`}
       size={history ? 'lg' : 'md'}
       className={styles.ledgerModal}
@@ -55,11 +55,11 @@ export function BondPassbookModal({
     >
       <div className={styles.modalBody}>
         {loadingLedger ? (
-          <FeedbackStates.Loading label="Loading outward movement ledger passbook..." />
+          <FeedbackStates.Loading label="Loading GR movement history passbook..." />
         ) : ledgerError ? (
-          <FeedbackStates.Error title="Error loading ledger" message={ledgerError} onRetry={onRetry} />
+          <FeedbackStates.Error title="Error loading movement history" message={ledgerError} onRetry={onRetry} />
         ) : !history ? (
-          <FeedbackStates.Empty message="No movement history available for this bond." />
+          <FeedbackStates.Empty message="No movement history available for this GRN." />
         ) : (
           <div className={styles.passbookCard}>
             <div className={styles.passbookHeader}>
@@ -151,7 +151,7 @@ export function BondPassbookModal({
             </div>
 
             <div className={styles.tableWrapper}>
-              <table className={styles.ledgerTable} aria-label="Bond Outward Movement Ledger">
+              <table className={styles.ledgerTable} aria-label="GR Outward Movement History">
                 <thead>
                   <tr>
                     <th scope="col">Date</th>

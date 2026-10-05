@@ -43,7 +43,7 @@ const NAV_SECTIONS: NavSection[] = [
       { href: '/', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard:view' },
       { href: '/grns', label: 'Inward of Goods', icon: Warehouse, permission: 'grn:view' },
       { href: '/deliveries', label: 'Outward of Goods', icon: Truck, permission: 'delivery:view' },
-      { href: '/bond-ledger', label: 'Bond Ledger', icon: BookOpen, permission: 'grn:view' },
+      { href: '/gr-history', label: 'GR History', icon: BookOpen, permission: 'grn:view' },
       { href: '/rent', label: 'Rent Billing', icon: Receipt, permission: 'rent:view' },
     ],
   },

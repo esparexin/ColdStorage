@@ -8,11 +8,11 @@ import { DataTable } from '@/components/ui/DataTable';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { requestWithAuth } from '@/lib/api-client';
 import { useFacility } from '@/context/FacilityContext';
-import { BondPassbookModal } from './components/BondPassbookModal';
-import { createBondLedgerColumns } from './components/bondLedgerColumns';
+import { GrHistoryPassbookModal } from './components/GrHistoryPassbookModal';
+import { createGrHistoryColumns } from './components/grHistoryColumns';
 import styles from './page.module.css';
 
-export default function BondLedgerPage() {
+export default function GrHistoryPage() {
   const { selectedFacilityId, availableFacilities } = useFacility();
 
   const [grns, setGrns] = useState<Grn[]>([]);
@@ -128,7 +128,7 @@ export default function BondLedgerPage() {
     availableFacilities.find((f) => f.id === selectedFacilityId)?.name || 'Cold Storage Facility';
 
   const columns = useMemo(
-    () => createBondLedgerColumns({ onOpenLedger: handleOpenLedger }),
+    () => createGrHistoryColumns({ onOpenLedger: handleOpenLedger }),
     [selectedFacilityId],
   );
 
@@ -136,17 +136,17 @@ export default function BondLedgerPage() {
     <div className={styles.page}>
       <div className={styles.headerRow}>
         <div className={styles.titleArea}>
-          <h1 className={styles.pageTitle}>Bond Ledger</h1>
+          <h1 className={styles.pageTitle}>GR History</h1>
           <span className={styles.pageSubtitle}>
-            Outward movement passbook per Bond & Customer ({currentFacilityName})
+            Outward movement passbook per GRN & Customer ({currentFacilityName})
           </span>
         </div>
       </div>
 
-      {error && <Banner message={error} id="bond-ledger-error" />}
+      {error && <Banner message={error} id="gr-history-error" />}
 
       {!selectedFacilityId ? (
-        <FeedbackStates.Empty message="Please select a facility from the header to view Bond Ledgers." />
+        <FeedbackStates.Empty message="Please select a facility from the header to view GR History." />
       ) : (
         <>
           <FilterToolbar
@@ -155,12 +155,12 @@ export default function BondLedgerPage() {
               setSearchTerm(v);
               setPage(1);
             }}
-            searchPlaceholder="Search Customer, Bond #, GRN #, Commodity, Chamber..."
-            searchAriaLabel="Search Bond Ledgers"
-            searchInputId="bond-search-input"
+            searchPlaceholder="Search Customer, GRN / Bond #, Commodity, Chamber..."
+            searchAriaLabel="Search GR History"
+            searchInputId="gr-history-search-input"
             selects={[
               {
-                id: 'bond-status-filter',
+                id: 'gr-history-status-filter',
                 ariaLabel: 'Filter by Status',
                 value: statusFilter,
                 onChange: (v) => {
@@ -186,13 +186,13 @@ export default function BondLedgerPage() {
             columns={columns}
             rows={pagedGrns}
             rowKey={(row) => row.id}
-            caption={`Bond Ledgers for ${currentFacilityName}`}
+            caption={`GR History for ${currentFacilityName}`}
             loading={loading}
-            loadingLabel="Loading customer bonds..."
+            loadingLabel="Loading GR history records..."
             emptyMessage={
               searchTerm || statusFilter
-                ? 'No customer bonds match the current search filters.'
-                : `No customer bonds recorded for ${currentFacilityName} yet.`
+                ? 'No GR records match the current search filters.'
+                : `No GR history recorded for ${currentFacilityName} yet.`
             }
             pagination={{
               page,
@@ -206,7 +206,7 @@ export default function BondLedgerPage() {
       )}
 
       {selectedGrn && (
-        <BondPassbookModal
+        <GrHistoryPassbookModal
           selectedGrn={selectedGrn}
           history={history}
           rentSummary={rentSummary}

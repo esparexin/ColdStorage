@@ -74,9 +74,9 @@ export default function DashboardPage() {
             variant="secondary"
             size="sm"
             leftIcon={<BookOpen size={15} />}
-            onClick={() => router.push('/bond-ledger')}
+            onClick={() => router.push('/gr-history')}
           >
-            Bond Ledger
+            GR History
           </Button>
           <Button
             variant="secondary"
