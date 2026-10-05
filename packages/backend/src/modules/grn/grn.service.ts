@@ -81,15 +81,16 @@ export class GrnService {
       filter.status = query.status;
     }
     if (query.search && query.search.trim()) {
+      // grnNumber is the sole business key and therefore the only identifier searched.
+      // inwardReceiptNumber and bondNumber are reference-only: they may be printed on
+      // documents but must never become a business lookup key.
       const regex = { $regex: escapeRegExp(query.search.trim()), $options: 'i' };
       filter.$or = [
         { grnNumber: regex },
-        { inwardReceiptNumber: regex },
         { customerName: regex },
         { commodityName: regex },
         { gpNumber: regex },
         { vehicleNumber: regex },
-        { bondNumber: regex },
       ];
     }
 

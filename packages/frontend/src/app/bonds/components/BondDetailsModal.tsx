@@ -38,7 +38,7 @@ export function BondDetailsModal({
     <Modal
       isOpen
       onClose={onClose}
-      title={selectedGrn.bondNumber ? `Bond — ${selectedGrn.bondNumber}` : `Bond — ${selectedGrn.grnNumber}`}
+      title={`Bond — ${selectedGrn.grnNumber}`}
       subtitle={`${selectedGrn.customerName} · ${selectedGrn.commodityName}`}
       size="md"
       footer={
@@ -65,9 +65,6 @@ export function BondDetailsModal({
                 <dt>Commodity</dt>
                 <dd>{selectedGrn.commodityName}</dd>
 
-                <dt>Chamber</dt>
-                <dd>{selectedGrn.chamber}</dd>
-
                 <dt>Inward Date</dt>
                 <dd>
                   {new Date(selectedGrn.date).toLocaleDateString('en-IN', {
@@ -84,16 +81,12 @@ export function BondDetailsModal({
               <dl className={styles.bondDl}>
                 <dt>Bond #</dt>
                 <dd style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-primary-text)' }}>
-                  {selectedGrn.bondNumber || '—'}
+                  {/* Bond # is not a stored duplicate: the GR Number is displayed here. */}
+                  {selectedGrn.grnNumber}
                 </dd>
 
-                <dt>Lien Holder</dt>
-                <dd style={{ fontWeight: 'var(--font-medium)' }}>
-                  {selectedGrn.loanBankName || '—'}
-                </dd>
-
-                <dt>Reference No.</dt>
-                <dd>{selectedGrn.loanReferenceNumber || '—'}</dd>
+                <dt>Chamber</dt>
+                <dd>{selectedGrn.chamber}</dd>
               </dl>
             </div>
 

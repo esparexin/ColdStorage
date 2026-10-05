@@ -62,16 +62,13 @@ export function GrnTable({
     },
     {
       key: 'grnNumber',
-      header: 'GRN / Receipt #',
+      header: 'GRN #',
       render: (row) => (
+        // The GR Number is the sole business key and leads the column. The inward receipt
+        // number stays as secondary reference text only.
         <div className={styles.grnCell} style={{ fontSize: 'var(--text-xs)' }}>
           <span className={styles.grnNumber}>{row.grnNumber}</span>
           <span className={styles.receiptNumber}>Receipt: {row.inwardReceiptNumber}</span>
-          {row.bondNumber && (
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}>
-              Bond: {row.bondNumber}
-            </span>
-          )}
         </div>
       ),
     },

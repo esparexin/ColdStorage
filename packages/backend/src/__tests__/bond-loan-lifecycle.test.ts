@@ -152,21 +152,17 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
     expect(inwardRes.body.grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-\d{4}$/);
     const grnId = inwardRes.body.grn.id;
 
-    // 2. Operator updates loan status to TAKEN (party has availed loan against this bond)
+    // 2. Operator updates loan status to TAKEN (party has availed loan against this GRN).
+    // The lender name / pledge account / notes trio is retired: settlement is the only
+    // place loan payment details and notes are captured.
     const updateTakenRes = await request(app)
       .patch(`/api/facilities/${testFacilityId}/grns/${grnId}/loan-status`)
       .set('Authorization', `Bearer ${operatorToken}`)
-      .send({
-        loanStatus: 'TAKEN',
-        bankName: 'State Bank of India',
-        referenceNumber: 'LN-2026-999',
-        remarks: 'Produce pledged for agricultural credit',
-      });
+      .send({ loanStatus: 'TAKEN' });
 
     expect(updateTakenRes.status).toBe(200);
     expect(updateTakenRes.body.grn.loanStatus).toBe('TAKEN');
-    expect(updateTakenRes.body.grn.loanBankName).toBe('State Bank of India');
-    expect(updateTakenRes.body.grn.loanReferenceNumber).toBe('LN-2026-999');
+    expect(updateTakenRes.body.grn.loanTakenAt).toBeDefined();
 
     // Verify audit log recorded
     const auditRecord = await AuditLogModel.findOne({

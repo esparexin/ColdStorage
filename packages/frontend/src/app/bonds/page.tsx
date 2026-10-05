@@ -69,8 +69,9 @@ export default function BondsPage() {
       if (statusFilter === 'OPEN' && g.status !== 'OPEN') return false;
       if (statusFilter === 'CLOSED' && g.status !== 'CLOSED') return false;
       if (!term) return true;
+      // grnNumber is the sole business key, so it leads the search. Bond # is
+      // reference-only and deliberately excluded as a search key.
       return (
-        (Boolean(g.bondNumber) && g.bondNumber!.toLowerCase().includes(term)) ||
         g.grnNumber.toLowerCase().includes(term) ||
         g.customerName.toLowerCase().includes(term) ||
         (Boolean(g.loanBankName) && g.loanBankName!.toLowerCase().includes(term)) ||

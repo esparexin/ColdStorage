@@ -215,8 +215,9 @@ export function GrnDetailModal({
             </div>
 
             <div className={styles.detailItem}>
+              {/* Storage Mark is not a stored duplicate; the GR Number is displayed instead. */}
               <span className={styles.detailLabel}>Storage Mark</span>
-              <span className={styles.detailValue}>{grn.storageMark || 'None'}</span>
+              <span className={styles.detailValue}>{grn.grnNumber}</span>
             </div>
 
             <div className={styles.detailItem}>

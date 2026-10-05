@@ -181,7 +181,23 @@ if grep -rn "hasLedgerTxns" "$ROOT/packages/backend/src" \
   fail "Single-formula violation: balances come from the ledger for every facility; a hasLedgerTxns source switch must not be reintroduced."
 fi
 
-# 23. Compact action overrides. Table actions use DS Button size=sm directly; a competing
+# 23. GR Number business-key SSOT. grnNumber is the sole business key across the lifecycle.
+# inwardReceiptNumber (RCPT) and bondNumber (BND) may still be minted and printed as reference
+# text, but neither may become a lookup, search or sort key, and neither may be minted per
+# receipt. Storage Mark and Bond # must not be stored as copies of the GR Number either.
+if grep -rnE "(inwardReceiptNumber|bondNumber)\s*:\s*regex" \
+  "$ROOT/packages/backend/src/modules" --include="*.ts" --exclude-dir=__tests__ 2>/dev/null; then
+  fail "Business-key SSOT violation: inwardReceiptNumber/bondNumber must not be a GRN search key. grnNumber is the sole business key."
+fi
+if grep -rnE "\{ (inwardReceiptNumber|bondNumber): regex \}" \
+  "$ROOT/packages/backend/src/modules" --include="*.ts" --exclude-dir=__tests__ 2>/dev/null; then
+  fail "Business-key SSOT violation: inwardReceiptNumber/bondNumber must not appear in a GRN \$or search clause."
+fi
+if grep -rn "generateBondNumber" "$ROOT/packages/backend/src" --include="*.ts" --exclude-dir=__tests__ 2>/dev/null; then
+  fail "Business-key SSOT violation: no BND- bond number may be minted per receipt; the GR Number is displayed as Bond #."
+fi
+
+# 24. Compact action overrides. Table actions use DS Button size=sm directly; a competing
 # .actionBtn class that re-imposes 11px/24px via !important is how compact tables drifted
 # off the type scale. Keep the scale in tokens.css, not in feature overrides.
 if grep -rnE "\.actionBtn\b" "$ROOT/packages/frontend/src/app" \
@@ -193,7 +209,7 @@ if grep -rnE "styles\.actionBtn" "$ROOT/packages/frontend/src" \
   fail "UI SSOT violation: styles.actionBtn usage found. Render DS Button size=sm without the legacy class."
 fi
 
-# 24. Token typography/spacing. Screen UI must consume the type scale (var(--text-*)),
+# 25. Token typography/spacing. Screen UI must consume the type scale (var(--text-*)),
 # spacing scale (var(--space-*)) and color roles (var(--color-*-text) for text). Hardcoded
 # 11px/10px cell text, hex fallbacks inside var(), and references to tokens that do not
 # exist (surface-3, danger-border, space-2-5) are how this audit's drift re-entered.
