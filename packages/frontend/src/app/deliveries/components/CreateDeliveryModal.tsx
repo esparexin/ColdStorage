@@ -62,11 +62,39 @@ export function CreateDeliveryModal({
                 <option value="">Select an active GRN with stored stock</option>
                 {form.availableGrns.map((g) => (
                   <option key={g.id} value={g.id}>
+                    {g.loanStatus === 'TAKEN' ? '🔒 [LOAN HOLD] ' : ''}
                     {g.grnNumber} — {g.customerName} ({g.commodityName}, Chamber {g.chamber})
+                    {g.loanStatus === 'TAKEN' ? ` [Pledged: ${g.loanBankName || 'Bank'}]` : ''}
                   </option>
                 ))}
               </Select>
             </div>
+
+            {form.isLoanHoldActive && form.selectedGrn && (
+              <div
+                id="loan-hold-banner"
+                style={{
+                  padding: 'var(--space-2) var(--space-3)',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--color-danger-subtle, #fef2f2)',
+                  border: '1px solid var(--color-danger-border, #fca5a5)',
+                  color: 'var(--color-danger, #b91c1c)',
+                  fontSize: 'var(--text-xs)',
+                  lineHeight: 1.5,
+                  marginBottom: 'var(--space-3)',
+                }}
+                role="alert"
+              >
+                <strong>⚠️ Outward Blocked — Active Loan Hold Against This Bond</strong>
+                <div>
+                  This commodity is pledged under Bond {form.selectedGrn.grnNumber}
+                  {form.selectedGrn.loanBankName ? ` (${form.selectedGrn.loanBankName}` : ''}
+                  {form.selectedGrn.loanReferenceNumber ? ` · Ref: ${form.selectedGrn.loanReferenceNumber}` : ''}
+                  {form.selectedGrn.loanBankName ? ')' : ''}.
+                  Delivery challan generation is strictly blocked until the loan is marked as Cleared.
+                </div>
+              </div>
+            )}
 
             {form.loadingGrnSummary || form.rentLoading ? (
               <FeedbackStates.Loading label="Checking stored positions..." />
@@ -204,12 +232,12 @@ export function CreateDeliveryModal({
             <Button
               id="submit-create-delivery-btn"
               type="submit"
-              variant="primary"
-              disabled={form.submitting || form.totalWithdrawingBags <= 0}
+              variant={form.isLoanHoldActive ? 'danger' : 'primary'}
+              disabled={form.submitting || form.totalWithdrawingBags <= 0 || form.isLoanHoldActive}
               isLoading={form.submitting}
               leftIcon={!form.submitting ? <Truck size={15} aria-hidden="true" /> : undefined}
             >
-              Issue Delivery Challan
+              {form.isLoanHoldActive ? 'Outward Blocked (Loan Active)' : 'Issue Delivery Challan'}
             </Button>
           </div>
         </form>
