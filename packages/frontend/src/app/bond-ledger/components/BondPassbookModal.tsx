@@ -38,7 +38,7 @@ export function BondPassbookModal({
     <Modal
       isOpen
       onClose={onClose}
-      title={`Bond Outward Movement Ledger: ${selectedGrn.grnNumber}`}
+      title={selectedGrn.bondNumber ? `Bond Movement Ledger: ${selectedGrn.bondNumber}` : `GRN Movement Ledger: ${selectedGrn.grnNumber}`}
       subtitle={`${selectedGrn.customerName} — ${selectedGrn.commodityName} (Chamber ${selectedGrn.chamber})`}
       size="xl"
       className={styles.ledgerModal}
@@ -64,10 +64,17 @@ export function BondPassbookModal({
           <div className={styles.passbookCard}>
             <div className={styles.passbookHeader}>
               <h2 className={styles.passbookHeading}>
-                {history.customerName} — {history.grnNumber} ({history.commodityName})
+                {history.customerName} — {history.bondNumber ? `Bond #${history.bondNumber} • ` : ''}GRN #{history.grnNumber} ({history.commodityName})
               </h2>
 
               <div className={styles.metaRow}>
+                {history.bondNumber && (
+                  <span className={styles.metaItem}>
+                    <span className={styles.metaLabel}>Bond #:</span>
+                    <strong className={styles.metaValue} style={{ color: 'var(--color-primary)' }}>{history.bondNumber}</strong>
+                  </span>
+                )}
+                <span className={styles.metaItem}><span className={styles.metaLabel}>GRN #:</span> <span className={styles.metaValue}>{history.grnNumber}</span></span>
                 <span className={styles.metaItem}>
                   <span className={styles.metaLabel}>Inward Date:</span>
                   <span className={styles.metaValue}>
