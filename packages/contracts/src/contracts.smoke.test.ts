@@ -15,6 +15,9 @@ import {
   rentReceiptNumberSchema,
   systemSettingsSchema,
   userSummarySchema,
+  loanPaymentModeSchema,
+  loanSettlementInputSchema,
+  updateGrnLoanStatusSchema,
 } from './index.js';
 
 describe('P1 Governance & Shared Contracts Foundation', () => {
@@ -132,4 +135,68 @@ describe('P1 Governance & Shared Contracts Foundation', () => {
     });
     expect(summary.mustChangePassword).toBe(true);
   });
+
+  it('validates loan settlement payment modes (Cash, UPI, Bank Transfer) and required fields', () => {
+    expect(loanPaymentModeSchema.parse('Cash')).toBe('Cash');
+    expect(loanPaymentModeSchema.parse('UPI')).toBe('UPI');
+    expect(loanPaymentModeSchema.parse('Bank Transfer')).toBe('Bank Transfer');
+    expect(() => loanPaymentModeSchema.parse('Crypto')).toThrow();
+
+    // Cash settlement
+    const cashSettlement = loanSettlementInputSchema.parse({
+      amountPaid: 50000,
+      paymentMode: 'Cash',
+      receiverName: 'Ramesh Patel',
+      receiverAadhaar: '123456789012',
+    });
+    expect(cashSettlement.amountPaid).toBe(50000);
+    expect(cashSettlement.paymentMode).toBe('Cash');
+
+    // UPI settlement requires UTR
+    expect(() =>
+      loanSettlementInputSchema.parse({
+        amountPaid: 25000,
+        paymentMode: 'UPI',
+        receiverName: 'Suresh Kumar',
+      }),
+    ).toThrow(/UTR/i);
+
+    const upiSettlement = loanSettlementInputSchema.parse({
+      amountPaid: 25000,
+      paymentMode: 'UPI',
+      utrNumber: 'UPI-UTR-998877',
+      upiId: 'customer@okaxis',
+      receiverName: 'Suresh Kumar',
+    });
+    expect(upiSettlement.utrNumber).toBe('UPI-UTR-998877');
+
+    // Bank transfer requires IFSC, Bank, Account, UTR
+    expect(() =>
+      loanSettlementInputSchema.parse({
+        amountPaid: 100000,
+        paymentMode: 'Bank Transfer',
+        receiverName: 'Vikram Singh',
+      }),
+    ).toThrow(/Bank Transfer/i);
+
+    const bankSettlement = loanSettlementInputSchema.parse({
+      amountPaid: 100000,
+      paymentMode: 'Bank Transfer',
+      bankName: 'State Bank of India',
+      accountNumber: '112233445566',
+      ifscCode: 'SBIN0001234',
+      utrNumber: 'UTR-BANK-123456',
+      receiverName: 'Vikram Singh',
+    });
+    expect(bankSettlement.ifscCode).toBe('SBIN0001234');
+
+    // Update loan status schema accepting settlement
+    const updateInput = updateGrnLoanStatusSchema.parse({
+      loanStatus: 'CLEARED',
+      settlement: cashSettlement,
+    });
+    expect(updateInput.loanStatus).toBe('CLEARED');
+    expect(updateInput.settlement?.amountPaid).toBe(50000);
+  });
 });
+
