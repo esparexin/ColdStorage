@@ -75,7 +75,7 @@ export function DeliveryReversalModal({
             <AlertTriangle size={24} style={{ flexShrink: 0 }} aria-hidden="true" />
             <div>
               <strong>Warning: Full Reversal is Irreversible.</strong>
-              <p style={{ marginTop: '4px' }}>
+              <p style={{ marginTop: 'var(--space-1)' }}>
                 Reversing this delivery will restore {delivery.totalBags} bags (
                 {delivery.smallBags} small, {delivery.bigBags} big) to this GRN&apos;s
                 balance and append an immutable <code>DELIVERY_REVERSAL</code> event to the

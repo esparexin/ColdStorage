@@ -59,10 +59,6 @@ export async function disconnectDatabase(): Promise<void> {
   }
 }
 
-export function isDatabaseConnected(): boolean {
-  return mongoose.connection.readyState === 1;
-}
-
 /**
  * Reports the observed datastore state for the connectivity endpoint. Mongoose's readyState is
  * mapped onto the contract's vocabulary here so the wire shape is owned by @cold-storage/contracts.

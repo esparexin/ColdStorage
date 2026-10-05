@@ -22,13 +22,13 @@ async function mockAll(page: import('@playwright/test').Page) {
   const emptyList = async (r: import('@playwright/test').Route) =>
     r.fulfill({ status: 200, contentType: 'application/json',
       body: JSON.stringify({ data: [], items: [], total: 0, page: 1, limit: 20 }) });
-  for (const p of ['grns','deliveries','rent','customers','commodities','audit','inventory','users','backup']) {
+  for (const p of ['facilities', 'audit-logs', 'backups', 'customers', 'commodities', 'users']) {
     await page.route(`**/api/${p}*`, emptyList);
   }
 }
 
 const ROUTES = ['/', '/grns', '/deliveries', '/rent', '/customers',
-  '/commodities', '/audit', '/users', '/backup', '/import-export', '/settings'];
+  '/commodities', '/bond-ledger', '/audit', '/users', '/backup', '/import-export', '/settings'];
 
 const SIZES = [
   { name: '360', width: 360, height: 780 },

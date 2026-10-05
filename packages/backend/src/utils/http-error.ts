@@ -28,7 +28,7 @@ const CONFLICT_MARKERS = [
   'active inventory',
   'reduce capacity',
   // Narrowed from bare 'inactive'/'active': every current producer phrases the state as
-  // "<entity> is inactive" (facility/customer/commodity/user/rack), so match that phrase
+  // "<entity> is inactive" (facility/customer/commodity/user), so match that phrase
   // instead of any message merely containing those substrings.
   'is inactive',
 ];

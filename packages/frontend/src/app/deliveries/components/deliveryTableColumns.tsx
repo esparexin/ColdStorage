@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, Clock, Eye, IndianRupee, Printer } from 'lucide-react';
+import { CheckCircle2, Clock, Eye, IndianRupee, Printer, RotateCcw } from 'lucide-react';
 import type { DeliveryChallan } from '@cold-storage/contracts';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { Badge, Button } from '@/components/ui';
@@ -8,19 +8,23 @@ import styles from '../page.module.css';
 interface CreateDeliveryColumnsParams {
   canPrint: boolean;
   canCollectRent?: boolean;
+  canReverse?: boolean;
   printingId: string | null;
   onSelectDelivery: (delivery: DeliveryChallan) => void;
   onPrintChallan: (challanId: string) => void;
   onCollectRent?: (delivery: DeliveryChallan) => void;
+  onReverse?: (delivery: DeliveryChallan) => void;
 }
 
 export function createDeliveryColumns({
   canPrint,
   canCollectRent,
+  canReverse,
   printingId,
   onSelectDelivery,
   onPrintChallan,
   onCollectRent,
+  onReverse,
 }: CreateDeliveryColumnsParams): DataTableColumn<DeliveryChallan>[] {
   return [
     {
@@ -211,6 +215,17 @@ export function createDeliveryColumns({
                 leftIcon={<IndianRupee size={12} aria-hidden="true" />}
               >
                 Collect Rent
+              </Button>
+            )}
+            {canReverse && onReverse && row.status === 'ISSUED' && (
+              <Button
+                variant="dangerOutline"
+                size="sm"
+                onClick={() => onReverse(row)}
+                title="Reverse this delivery (restores bags to GRN balance)"
+                leftIcon={<RotateCcw size={12} aria-hidden="true" />}
+              >
+                Reverse
               </Button>
             )}
           </div>

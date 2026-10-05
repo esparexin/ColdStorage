@@ -16,7 +16,7 @@ export interface RentGateState {
 }
 
 /**
- * Shared Inward → Rent gate state for outward flows (delivery + put-away).
+ * Shared Inward → Rent gate state for outward delivery flows.
  * Single canonical reader of GET /rent/grn/:id; derives blocked/partial
  * from the SSOT RentSummaryDto. No payment logic lives here.
  */
@@ -51,7 +51,11 @@ export function useRentGate(): RentGateState {
 
   const resetRentGate = useCallback(() => setRentSummary(null), []);
 
-  const rentBlocked = false;
+  const rentBlocked =
+    rentSummary !== null &&
+    rentSummary.rentAmount > 0 &&
+    rentSummary.totalPaid === 0 &&
+    rentSummary.remainingBalance > 0;
   const rentPartial =
     rentSummary !== null && rentSummary.totalPaid > 0 && rentSummary.remainingBalance > 0;
 

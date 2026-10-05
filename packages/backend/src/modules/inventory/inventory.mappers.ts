@@ -1,7 +1,5 @@
 import type { InventoryTransaction } from '@cold-storage/contracts';
 
-export { isTransientError } from '../common/mongo-retry.helper.js';
-
 export class ConcurrencyConflictError extends Error {
   public readonly statusCode = 409;
   public readonly code = 'CONCURRENCY_CONFLICT';

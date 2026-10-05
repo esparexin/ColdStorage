@@ -10,6 +10,7 @@ interface DeliveryTableProps {
   caption: string;
   canPrint: boolean;
   canCollectRent?: boolean;
+  canReverse?: boolean;
   printingId: string | null;
   page: number;
   pageSize: number;
@@ -19,6 +20,7 @@ interface DeliveryTableProps {
   onSelectDelivery: (delivery: DeliveryChallan) => void;
   onPrintChallan: (challanId: string) => void;
   onCollectRent?: (delivery: DeliveryChallan) => void;
+  onReverse?: (delivery: DeliveryChallan) => void;
 }
 
 export function DeliveryTable({
@@ -26,6 +28,7 @@ export function DeliveryTable({
   caption,
   canPrint,
   canCollectRent,
+  canReverse,
   printingId,
   page,
   pageSize,
@@ -35,18 +38,21 @@ export function DeliveryTable({
   onSelectDelivery,
   onPrintChallan,
   onCollectRent,
+  onReverse,
 }: DeliveryTableProps) {
   const columns = useMemo(
     () =>
       createDeliveryColumns({
         canPrint,
         canCollectRent,
+        canReverse,
         printingId,
         onSelectDelivery,
         onPrintChallan,
         onCollectRent,
+        onReverse,
       }),
-    [canPrint, canCollectRent, printingId, onSelectDelivery, onPrintChallan, onCollectRent],
+    [canPrint, canCollectRent, canReverse, printingId, onSelectDelivery, onPrintChallan, onCollectRent, onReverse],
   );
 
   return (

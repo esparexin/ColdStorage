@@ -53,7 +53,7 @@ function handleDocumentError(err: unknown, res: Response): void {
 
 /**
  * GET /facilities/:facilityId/documents/grn/:grnId
- * Renders HTML Goods Receipt Note with allocated positions.
+ * Renders HTML Goods Receipt Note with free-text chamber label (no positions).
  */
 documentRouter.get(
   '/facilities/:facilityId/documents/grn/:grnId',
