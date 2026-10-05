@@ -35,7 +35,7 @@ export function GrnFilterToolbar({
     <FilterToolbar
       searchValue={searchTerm}
       onSearchChange={onSearchChange}
-      searchPlaceholder="Search GRN #, Receipt, Customer, Vehicle..."
+      searchPlaceholder="Search GRN #, Bill #, Customer, Commodity, Vehicle, Bond #..."
       searchAriaLabel="Search GRNs"
       searchInputId="grn-search-input"
       onReset={onReset}
