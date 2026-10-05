@@ -60,6 +60,10 @@ describe('P7 DashboardService stock derivation', () => {
       bags: 500,
       status: 'OPEN',
     });
+    // The fixture receipt's own inward leg is removed: this suite builds its ledger scenarios
+    // by hand, so totals reflect only the seeded movements. The GRN-implies-inward-row invariant
+    // itself is covered by the grn-lifecycle and inventory suites.
+    await InventoryTransactionModel.deleteMany({ facilityId });
   });
 
   // 1. totalStockBags — derived from signed ledger quantities

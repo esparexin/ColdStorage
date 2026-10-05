@@ -165,6 +165,13 @@ if grep -rnE "(openingBags|closingBags):\s*\{[^}]*type:\s*Number" \
   fail "Balance SSOT violation: stock balances are ledger-derived; stored openingBags/closingBags snapshots must not be reintroduced."
 fi
 
+# 21. Ledger self-sufficiency. The inward leg must be written inside the create-GRN transaction:
+# without it the ledger holds only outward movements and every summed balance goes one-sided.
+# This is a positive guard — the write must be present, not merely not-forbidden.
+if ! grep -q "INWARD_PUTAWAY" "$ROOT/packages/backend/src/modules/grn/handlers/create-grn.handler.ts" 2>/dev/null; then
+  fail "Ledger self-sufficiency violation: create-grn.handler.ts must write the INWARD_PUTAWAY row in the same transaction as the receipt."
+fi
+
 if [ "$EXIT" -eq 0 ]; then
   echo "[PASS] All architecture boundaries and UI SSOT governance checks passed."
 fi

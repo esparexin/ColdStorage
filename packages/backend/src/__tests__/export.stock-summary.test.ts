@@ -45,6 +45,10 @@ describe('P8 Stock Summary Export', () => {
     await DeliveryReversalModel.deleteMany({});
     await seedFacility({ id: facilityId, code: 'STK' });
     await seedGrn({ facilityId, chamber: 'CH-01' });
+    // The fixture receipt's own inward leg is removed: this suite builds its ledger scenarios
+    // by hand, so totals reflect only the seeded movements. The GRN-implies-inward-row invariant
+    // itself is covered by the grn-lifecycle and inventory suites.
+    await InventoryTransactionModel.deleteMany({ facilityId });
   });
 
   it('reports a single chamber row from the canonical signed ledger sum', async () => {

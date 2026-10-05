@@ -4,6 +4,7 @@ import { GrnModel } from '../../database/models/grn.model.js';
 import { CustomerModel } from '../../database/models/customer.model.js';
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
 import { FacilityModel } from '../../database/models/facility.model.js';
+import { seedInwardPutAway } from './inward-ledger-fixtures.js';
 
 /**
  * Shared master-data fixtures for route and service tests.
@@ -100,6 +101,9 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
   const commodityId = options.commodityId ?? `cmd-${randomUUID()}`;
   const bagType = options.bagType ?? 'S';
   const bags = options.bags ?? 100;
+  const grnNumber = options.grnNumber ?? `GRN-26-27-${id.slice(-4).toUpperCase()}`;
+  const chamber = options.chamber ?? 'CH-01';
+  const grnDate = options.date ?? new Date();
   // Every GRN carries a fully-populated composition, so a fixture can never seed a receipt the
   // production validator would reject.
   const composition = normalizeBagComposition({
@@ -119,15 +123,15 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
     {
       $set: {
         facilityId: options.facilityId,
-        grnNumber: options.grnNumber ?? `GRN-26-27-${id.slice(-4).toUpperCase()}`,
+        grnNumber,
         inwardReceiptNumber:
           options.inwardReceiptNumber ?? `RCPT-26-27-${id.slice(-4).toUpperCase()}`,
-        date: options.date ?? new Date(),
+        date: grnDate,
         customerId: options.customerId ?? (await seedCustomer({ facilityId: options.facilityId })),
         customerName: options.customerName ?? `Customer ${id.slice(-6)}`,
         commodityId,
         commodityName: options.commodityName ?? 'Potato',
-        chamber: options.chamber ?? 'CH-01',
+        chamber,
         bags,
         bagType,
         smallBags: composition.smallBags,
@@ -152,6 +156,18 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
     },
     { upsert: true, new: true, setDefaultsOnInsert: true },
   ).exec();
+
+  await seedInwardPutAway({
+    facilityId: options.facilityId,
+    grnId: id,
+    grnNumber: grnNumber,
+    chamber,
+    commodityId,
+    bagType,
+    smallBags: composition.smallBags,
+    bigBags: composition.bigBags,
+    createdAt: grnDate,
+  });
 
   return id;
 }

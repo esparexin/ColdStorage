@@ -91,6 +91,10 @@ describe('P7 Dashboard Routes & Authorization', () => {
     await seedFacility({ id: facilityId, name: 'Main Facility', code: 'MAIN' });
     await seedFacility({ id: otherFacilityId, name: 'Other Facility', code: 'OTHR' });
     await seedGrn({ facilityId, chamber: 'CH-1', bags: 300, status: 'OPEN' });
+    // The fixture receipt's own inward leg is removed: this suite builds its ledger scenarios
+    // by hand, so totals reflect only the seeded movements. The GRN-implies-inward-row invariant
+    // itself is covered by the grn-lifecycle and inventory suites.
+    await InventoryTransactionModel.deleteMany({ facilityId });
     await seedLedgerEntry({ facilityId, chamber: 'CH-1', smallQuantity: 300, bigQuantity: 0 });
   });
 
