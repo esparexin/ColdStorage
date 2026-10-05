@@ -12,6 +12,8 @@ export interface SearchBarProps {
   ariaLabel: string;
   className?: string;
   onClear?: () => void;
+  onFocus?: () => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
 export function SearchBar({
@@ -22,6 +24,8 @@ export function SearchBar({
   ariaLabel,
   className,
   onClear,
+  onFocus,
+  onKeyDown,
 }: SearchBarProps) {
   const generatedId = React.useId();
   const searchId = id || generatedId;
@@ -39,6 +43,8 @@ export function SearchBar({
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onFocus={onFocus}
+        onKeyDown={onKeyDown}
         placeholder={placeholder}
         aria-label={ariaLabel}
         className={styles.searchInput}

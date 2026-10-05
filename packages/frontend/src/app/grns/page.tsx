@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { can, type Grn, type Role } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
@@ -16,6 +16,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { printHtmlDocument } from '@/lib/print-document';
+import { requestWithAuth } from '@/lib/api-client';
 import { CreateGrnModal } from './components/CreateGrnModal';
 import { GrnDetailModal } from './components/GrnDetailModal';
 import { GrnFilterToolbar } from './components/GrnFilterToolbar';
@@ -34,6 +35,30 @@ export default function GrnsPage() {
   const [printingId, setPrintingId] = useState<string | null>(null);
   const [printError, setPrintError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  useEffect(() => {
+    const handleSelectEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<Grn>;
+      if (customEvent.detail) setSelectedGrn(customEvent.detail);
+    };
+    window.addEventListener('select-grn', handleSelectEvent);
+
+    const params = new URLSearchParams(window.location.search);
+    const targetGrnId = params.get('selectedGrnId');
+    if (targetGrnId) {
+      const match = grnData.grns.find((g) => g.id === targetGrnId);
+      if (match) {
+        setSelectedGrn(match);
+      } else {
+        void requestWithAuth(`/api/grns/${encodeURIComponent(targetGrnId)}`)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data: { grn?: Grn } | null) => {
+            if (data?.grn) setSelectedGrn(data.grn);
+          });
+      }
+    }
+    return () => window.removeEventListener('select-grn', handleSelectEvent);
+  }, [grnData.grns]);
 
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const canCreate = can(userRole, 'grn:create');
