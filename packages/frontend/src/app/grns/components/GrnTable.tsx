@@ -62,7 +62,7 @@ export function GrnTable({
           <span className={styles.grnNumber}>{row.grnNumber}</span>
           <span className={styles.receiptNumber}>Receipt: {row.inwardReceiptNumber}</span>
           {row.bondNumber && (
-            <span style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 'var(--font-semibold)' }}>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}>
               Bond: {row.bondNumber}
             </span>
           )}
@@ -82,7 +82,7 @@ export function GrnTable({
       key: 'commodityName',
       header: 'Commodity & Chamber',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: 'var(--text-xs)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
           <span>{row.commodityName}</span>
           <span className={styles.tagChamber}>Chamber {row.chamber}</span>
         </div>
@@ -93,10 +93,10 @@ export function GrnTable({
       header: 'Bags',
       align: 'right',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1px', fontSize: 'var(--text-xs)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
           <span style={{ fontWeight: 'var(--font-semibold)' }}>{row.bags.toLocaleString('en-IN')} in</span>
           {row.netDeliveredBags != null && row.netDeliveredBags > 0 && (
-            <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
               Del: {row.netDeliveredBags.toLocaleString('en-IN')}
             </span>
           )}
@@ -110,11 +110,11 @@ export function GrnTable({
       render: (row) => {
         const closing = row.closingBags ?? 0;
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1px', fontSize: 'var(--text-xs)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
             <span
               style={{
                 fontWeight: 'var(--font-bold)',
-                color: closing === 0 ? 'var(--color-text-muted)' : 'var(--color-primary)',
+                color: closing === 0 ? 'var(--color-text-muted)' : 'var(--color-primary-text)',
               }}
             >
               {closing.toLocaleString('en-IN')}
@@ -122,11 +122,11 @@ export function GrnTable({
             {closing === 0 && (
               <span
                 style={{
-                  fontSize: '10px',
+                  fontSize: 'var(--text-xs)',
                   fontWeight: 'var(--font-bold)',
                   color: 'var(--color-text-muted)',
-                  background: 'var(--color-surface-3)',
-                  padding: '0 4px',
+                  background: 'var(--color-surface-2)',
+                  padding: '0 var(--space-1)',
                   borderRadius: 'var(--radius-sm)',
                 }}
               >
@@ -141,7 +141,7 @@ export function GrnTable({
       key: 'rent',
       header: 'Rent Terms',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', fontSize: 'var(--text-xs)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
           <span>
             {row.rentType}
             {row.rentType === 'Monthly' && row.rentMonths ? ` (${row.rentMonths}m)` : ''}
@@ -156,7 +156,7 @@ export function GrnTable({
       key: 'identifiers',
       header: 'GP / Vehicle',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', fontSize: 'var(--text-xs)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
           <span>GP: {row.gpNumber || '—'}</span>
           <span>Veh: {row.vehicleNumber || '—'}</span>
         </div>
@@ -167,7 +167,7 @@ export function GrnTable({
       header: 'Status',
       align: 'center',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-1)' }}>
           <Badge
             variant={row.status === 'OPEN' ? 'warning' : 'neutral'}
             icon={row.status === 'OPEN' ? <Clock size={11} aria-hidden="true" /> : <CheckCircle2 size={11} aria-hidden="true" />}
@@ -175,13 +175,13 @@ export function GrnTable({
             {row.status}
           </Badge>
           {row.loanStatus === 'TAKEN' && (
-            <Badge variant="danger" style={{ fontSize: '10px' }}>Loan Hold</Badge>
+            <Badge variant="danger">Loan Hold</Badge>
           )}
           {row.loanStatus === 'CLEARED' && (
-            <Badge variant="success" style={{ fontSize: '10px' }}>Loan Cleared</Badge>
+            <Badge variant="success">Loan Cleared</Badge>
           )}
           {row.loanStatus === 'NOT_TAKEN' && (
-            <Badge variant="neutral" style={{ fontSize: '10px' }}>Pledged</Badge>
+            <Badge variant="neutral">Pledged</Badge>
           )}
         </div>
       ),
@@ -195,7 +195,6 @@ export function GrnTable({
           <Button
             variant="outline"
             size="sm"
-            className={styles.actionBtn}
             onClick={() => onSelectGrn(row)}
             title="View Details"
             leftIcon={<Eye size={12} aria-hidden="true" />}
@@ -208,7 +207,6 @@ export function GrnTable({
               <Button
                 variant="primary"
                 size="sm"
-                className={styles.actionBtn}
                 onClick={() => onPrint('grn', row.id)}
                 disabled={printingId === `grn-${row.id}`}
                 isLoading={printingId === `grn-${row.id}`}
@@ -220,7 +218,6 @@ export function GrnTable({
               <Button
                 variant="secondary"
                 size="sm"
-                className={styles.actionBtn}
                 onClick={() => onPrint('receipt', row.id)}
                 disabled={printingId === `receipt-${row.id}`}
                 isLoading={printingId === `receipt-${row.id}`}

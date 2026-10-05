@@ -89,7 +89,7 @@ export function UserTable({
         u.role === 'SUPER_ADMIN' ? (
           <span className={styles.facilityTag}>Global (All Facilities)</span>
         ) : u.facilityIds && u.facilityIds.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)' }}>
             {u.facilityIds.map((fId) => (
               <span key={fId} className={styles.facilityTag}>
                 {facilityNameMap.get(fId) || fId}

@@ -62,7 +62,7 @@ export function RentTable({
       key: 'commodity',
       header: 'Commodity & Chamber',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)' }}>
           <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)' }}>
             {row.commodityName}
           </span>
@@ -110,7 +110,7 @@ export function RentTable({
       key: 'structure',
       header: 'Rent Structure',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)' }}>
           <span style={{ fontSize: 'var(--text-xs)' }}>
             {row.rentType}
             {row.rentType === 'Monthly' && row.rentMonths ? ` (${row.rentMonths}m)` : ''}
@@ -126,12 +126,12 @@ export function RentTable({
       header: 'Paid / Due',
       align: 'right',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--space-0-5)' }}>
           <span
             style={{
               fontSize: 'var(--text-xs)',
               fontWeight: 'var(--font-semibold)',
-              color: 'var(--color-success)',
+              color: 'var(--color-success-text)',
             }}
           >
             Paid: ₹{row.totalPaid.toLocaleString('en-IN')}
@@ -140,7 +140,7 @@ export function RentTable({
             style={{
               fontSize: 'var(--text-xs)',
               fontWeight: 'var(--font-semibold)',
-              color: row.remainingBalance > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)',
+              color: row.remainingBalance > 0 ? 'var(--color-warning-text)' : 'var(--color-text-muted)',
             }}
           >
             Due: ₹{row.remainingBalance.toLocaleString('en-IN')}

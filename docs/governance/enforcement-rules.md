@@ -42,9 +42,15 @@ workflows.
 | 13 | Design tokens | no raw hex/hsl colours outside the token sheet |
 | 14 | DOM integrity | no duplicate element ids (breaks label/aria association) |
 | 15 | Backend logging | no raw `console.*` anywhere in `backend/src`; `utils/logger.ts` is the only sanctioned entry point |
-| 16 | Route decomposition | storage hierarchy routers stay split per entity; `hierarchy.routes.ts` stays retired |
-| 17 | Print SSOT | document printing goes through `lib/print-document.printHtmlDocument()` |
+| 16 | Print SSOT | document printing goes through `lib/print-document.printHtmlDocument()` (no direct `window.open` in feature code) |
+| 17 | (retired number — print SSOT is Rule 16; kept vacant so script numbering stays stable) |
 | 18 | No blocking dialogs | `alert()` / `confirm()` are prohibited; surface errors via `FeedbackStates` or inline `role="alert"` |
+| 19 | Bag composition SSOT | no stored `quantity`/`totalBags` beside `smallBags`+`bigBags`; totals are derived at read time |
+| 20 | Balance-snapshot SSOT | no stored `openingBags`/`closingBags` snapshots; balances are ledger-derived |
+| 21 | Ledger self-sufficiency | `create-grn.handler.ts` must write the `INWARD_PUTAWAY` row in the same transaction as the receipt |
+| 22 | Single balance formula | no `hasLedgerTxns` source switch; balances come from the ledger for every facility |
+| 23 | Compact action overrides | no `.actionBtn` competing override of DS `Button size=sm` in feature CSS |
+| 24 | Token typography/spacing | no hardcoded `font-size:11px/10px`, `gap/margin/padding px`, hex fallbacks, `!important` compact overrides, or non-existent tokens (`surface-3`, `danger-border`, `space-2-5`) in screen UI; fill-vs-text roles (`*-text` for text) must be respected. Print template `renderPassbookHtml.ts` and the intentional `StatCard` 1px hairline are the only sanctioned exceptions |
 
 ## 4. `scripts/check-accessibility.sh` — accessibility
 

@@ -41,6 +41,7 @@ export async function executeRecordPayment(
   let createdPaymentDoc: RentPaymentDoc;
   let lockedGrn: GrnDoc;
   let computedRemainingBalance: number;
+  let computedPaymentStatus: 'Settled' | 'Not Settled' = 'Not Settled';
 
   try {
     await session.withTransaction(async () => {
@@ -108,10 +109,12 @@ export async function executeRecordPayment(
         session,
       );
 
-      computedRemainingBalance = Math.max(
-        0,
-        Number((remainingBalance - input.amountPaid).toFixed(2)),
+      const computedBalance = computeRentBalance(
+        grn.rentAmount,
+        totalPaidBefore + input.amountPaid,
       );
+      computedRemainingBalance = computedBalance.remainingBalance;
+      computedPaymentStatus = computedBalance.paymentStatus;
 
       // Closure invariant: A GRN is CLOSED only when both remainingBags === 0 AND remainingBalance === 0
       if (computedRemainingBalance === 0) {
@@ -142,7 +145,7 @@ export async function executeRecordPayment(
       amountPaid: paymentEntity.amountPaid,
       paymentMode: paymentEntity.paymentMode,
       remainingBalance: computedRemainingBalance!,
-      paymentStatus: computedRemainingBalance! === 0 ? 'Settled' : 'Not Settled',
+      paymentStatus: computedPaymentStatus,
     },
   });
 

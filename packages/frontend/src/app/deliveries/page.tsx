@@ -17,10 +17,8 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { printHtmlDocument } from '@/lib/print-document';
-import { CollectPaymentModal } from '../rent/components/CollectPaymentModal';
-import { UpdateLoanStatusModal } from '../grns/components/UpdateLoanStatusModal';
-import { CreateDeliveryModal } from './components/CreateDeliveryModal';
-import { DeliveryDetailModal } from './components/DeliveryDetailModal';
+import { requestWithAuth } from '@/lib/api-client';
+import { DeliveryPageModals } from './components/DeliveryPageModals';
 import { DeliveryTable } from './components/DeliveryTable';
 import { useDeliveries } from './hooks/useDeliveries';
 import styles from './page.module.css';
@@ -34,6 +32,7 @@ export default function DeliveriesPage() {
   const [printingId, setPrintingId] = useState<string | null>(null);
   const [printError, setPrintError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [reverseDelivery, setReverseDelivery] = useState<DeliveryChallan | null>(null);
   const [rentPayAccount, setRentPayAccount] = useState<RentSummaryDto | null>(null);
   const [rentPaidTick, setRentPaidTick] = useState(0);
   const [loanClearGrn, setLoanClearGrn] = useState<Grn | null>(null);
@@ -44,6 +43,7 @@ export default function DeliveriesPage() {
   const canPrint = can(userRole, 'document:print');
   const canCollectRent = can(userRole, 'rent:collect');
   const canUpdateLoan = can(userRole, 'grn:create');
+  const canReverse = can(userRole, 'delivery:reversal');
 
   const handleRentPaidFromDelivery = () => {
     setRentPayAccount(null);
@@ -60,7 +60,7 @@ export default function DeliveriesPage() {
   const handleCollectRent = async (delivery: DeliveryChallan) => {
     if (!selectedFacilityId) return;
     try {
-      const res = await fetch(
+      const res = await requestWithAuth(
         `/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/grn/${encodeURIComponent(delivery.grnId)}`,
       );
       if (!res.ok) {
@@ -171,6 +171,7 @@ export default function DeliveriesPage() {
               caption={`Delivery Challans for ${deliveryData.currentFacilityName}`}
               canPrint={canPrint}
               canCollectRent={canCollectRent}
+              canReverse={canReverse}
               printingId={printingId}
               page={deliveryData.page}
               pageSize={deliveryData.pageSize}
@@ -180,58 +181,46 @@ export default function DeliveriesPage() {
               onSelectDelivery={setSelectedDelivery}
               onPrintChallan={handlePrintChallan}
               onCollectRent={handleCollectRent}
+              onReverse={setReverseDelivery}
             />
           )}
         </>
       )}
 
-      {selectedDelivery && (
-        <DeliveryDetailModal
-          delivery={selectedDelivery}
-          onClose={() => setSelectedDelivery(null)}
-          canPrint={canPrint}
-          printingId={printingId}
-          onPrintChallan={handlePrintChallan}
-        />
-      )}
-
-      {isCreateOpen && selectedFacilityId && (
-        <CreateDeliveryModal
-          facilityId={selectedFacilityId}
-          onClose={() => setIsCreateOpen(false)}
-          onSuccess={(newDelivery, summary) => {
-            setIsCreateOpen(false);
-            void deliveryData.fetchDeliveries();
-            setSelectedDelivery(newDelivery);
-            void summary;
-          }}
-          onPayRent={setRentPayAccount}
-          rentPaidTick={rentPaidTick}
-          canPayRent={canCollectRent}
-          onClearLoan={setLoanClearGrn}
-          loanClearedTick={loanClearedTick}
-          canClearLoan={canUpdateLoan}
-        />
-      )}
-
-      {loanClearGrn && selectedFacilityId && (
-        <UpdateLoanStatusModal
-          grn={loanClearGrn}
-          facilityId={selectedFacilityId}
-          onClose={() => setLoanClearGrn(null)}
-          onSuccess={handleLoanClearedFromDelivery}
-        />
-      )}
-
-      {rentPayAccount && selectedFacilityId && (
-        <CollectPaymentModal
-          account={rentPayAccount}
-          selectedFacilityId={selectedFacilityId}
-          canPrint={canPrint}
-          onClose={() => setRentPayAccount(null)}
-          onPaymentSuccess={handleRentPaidFromDelivery}
-        />
-      )}
+      <DeliveryPageModals
+        selectedFacilityId={selectedFacilityId}
+        selectedDelivery={selectedDelivery}
+        isCreateOpen={isCreateOpen}
+        loanClearGrn={loanClearGrn}
+        rentPayAccount={rentPayAccount}
+        reverseDelivery={reverseDelivery}
+        canPrint={canPrint}
+        canCollectRent={canCollectRent}
+        canUpdateLoan={canUpdateLoan}
+        printingId={printingId}
+        rentPaidTick={rentPaidTick}
+        loanClearedTick={loanClearedTick}
+        onCloseDetail={() => setSelectedDelivery(null)}
+        onCloseCreate={() => setIsCreateOpen(false)}
+        onCloseLoanClear={() => setLoanClearGrn(null)}
+        onCreateSuccess={(newDelivery, summary) => {
+          setIsCreateOpen(false);
+          void deliveryData.fetchDeliveries();
+          setSelectedDelivery(newDelivery);
+          void summary;
+        }}
+        onPayRent={setRentPayAccount}
+        onClearLoan={setLoanClearGrn}
+        onLoanCleared={handleLoanClearedFromDelivery}
+        onCloseRentPay={() => setRentPayAccount(null)}
+        onRentPaid={handleRentPaidFromDelivery}
+        onCloseReverse={() => setReverseDelivery(null)}
+        onReversed={() => {
+          setReverseDelivery(null);
+          void deliveryData.fetchDeliveries();
+        }}
+        onPrintChallan={handlePrintChallan}
+      />
     </div>
   );
 }

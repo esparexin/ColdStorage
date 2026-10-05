@@ -1,14 +1,14 @@
 # UI ↔ Backend Wiring Matrix (SSOT)
 
-> Branch: `chore/ui-ux-backend-wiring-audit` · Date: 2026-10-03
+> Branch: `chore/ui-ux-ssot-root-cause-cleanup` · Date: 2026-10-06
 > Rule: every interactive element must map to a real backend route + contract schema.
 > No frontend-only actions. Prop-based detail modals are intentional (no new single-GET fetches).
 
 ## 1. Frontend inventory
 
 - Framework: Next.js 14 App Router, `src/app/*/page.tsx`, `next.config.mjs` rewrites `/api/:path*` → backend `:4000/api/:path*`.
-- Routes (11): `/`, `/grns`, `/deliveries`, `/rent`, `/customers`, `/commodities`, `/settings`, `/import-export`, `/audit`, `/backup`, `/users`. (`/inventory` was consolidated into the dashboard.)
-- Primitives (`components/ui/index.ts`, 10): `Button`, `Input`, `Select`, `Badge`, `Card`, `SearchBar`, `Modal`, `Pagination`, `DataTable`, `FeedbackStates`.
+- Routes (12): `/`, `/grns`, `/deliveries`, `/rent`, `/bond-ledger`, `/customers`, `/commodities`, `/settings`, `/import-export`, `/audit`, `/backup`, `/users`. (`/inventory` and `/storage` are retired; chamber is free text.)
+- Primitives (`components/ui/index.ts`, 15): `Button`, `Input`, `Select`, `Badge`, `Card`, `StatCard`, `SearchBar`, `FilterToolbar`, `Modal`, `ConfirmDialog`, `Pagination`, `DataTable`, `FeedbackStates`, `Banner` + `stateCopy.ts`.
 - Client: `lib/api-client.ts` (`requestWithAuth` + single-flight `POST /api/auth/refresh`, Bearer memory-only, `credentials:include`).
 - Contexts: `AuthContext` (login/logout/change-password), `FacilityContext` (`GET /api/facilities`), `SettingsContext` (`GET /api/settings`).
 
@@ -16,8 +16,8 @@
 
 | Primitive | Status | Evidence |
 |---|---|---|
-| `Button` | ✅ widely used | Canonical DS Button across all action, form, and modal submits |
-| `Input` | ⚠️ partial | Login form and forced password-change modal migrated; feature-stylesheet `.fieldInput` copies remain and migrate progressively |
+| `Button` | ✅ enforced | Canonical DS Button across all action, form, and modal submits; compact `.actionBtn` overrides removed (rely on `size="sm"`) |
+| `Input` | ⚠️ partial | Login, password-change, customer/commodity/facility modals migrated; `.fieldInput` copies in GRN/delivery/rent/loan forms remain token-compliant and migrate progressively |
 | `Select` | ✅ enforced | Bound by boundary governance Rule 11 (zero native `<select>` outside `ui/Select.tsx`) |
 | `Card` | ✅ single surface | The one bordered-surface recipe. Wraps content groups in import-export and Settings; deliberately never wraps a `DataTable`, which already draws its own surface |
 | `SearchBar` | ✅ toolbars | Canonical search bar primitive across filter toolbars |
@@ -31,9 +31,9 @@
 | Facility switch / list / create / patch | `GET /api/facilities`, `POST /api/facilities`, `PATCH /api/facilities/:id` (`FacilityFormModal.tsx:36`) | `facility.routes.ts` | `createFacilitySchema`, `updateFacilitySchema` | ✅ wired |
 | Customers list/create/patch | `GET /api/customers?facilityId=`, `POST /api/customers`, `PATCH /api/customers/:id` (`CustomerFormModal:77`) | `customer.routes.ts` | `createCustomerSchema`, `updateCustomerSchema` (PATCH, not PUT) | ✅ wired |
 | Commodities list/create/patch | `GET /api/commodities`, `POST/PATCH /api/commodities[/:id]` | `commodity.routes.ts` | `create/updateCommoditySchema` | ✅ wired |
-| GRNs list/create/print/put-away link | `GET .../grns?...`, `POST .../grns`, `GET .../documents/grn|receipt/:id` (`grns/page.tsx:36`), `Link /inventory?grnId=` | `grn.routes.ts`, `document.routes.ts` | `createGrnSchema`, `grnQuerySchema`, `documentFormatQuerySchema` | ✅ wired |
-| Put-away allocate / summary / occupancy / ledger | `POST .../grns/:gid/allocations`, `GET .../allocations`, `GET .../inventory-summary`, `GET .../positions/:pid/occupancy`, `GET .../inventory`, `GET .../inventory/ledger` | `inventory.routes.ts` | `createPutAwaySchema`, `stockLedgerQuerySchema` | ✅ wired (`/allocations` canonical, facility-scoped) |
-| Deliveries list/create/detail/reverse/print | `GET .../deliveries?...`, `POST .../deliveries`, `POST .../deliveries/:id/reverse`, `GET .../documents/challan/:id` | `delivery.routes.ts` | `createDeliverySchema`, `reverseDeliverySchema`, `deliveryQuerySchema` | ✅ wired (detail modal prop-based by design) |
+| GRNs list/create/print/loan-status | `GET .../grns?...`, `POST .../grns`, `GET .../documents/grn|receipt/:id`, `PATCH .../grns/:gid/loan-status` (`UpdateLoanStatusModal`) | `grn.routes.ts`, `document.routes.ts` | `createGrnSchema`, `grnQuerySchema`, `updateGrnLoanStatusSchema`, `documentFormatQuerySchema` | ✅ wired |
+| Inventory summary / ledger / movement | `GET .../grns/:gid/inventory-summary` (`useCreateDeliveryForm`), `GET .../grns/:gid/movement-history` (bond-ledger), `GET .../rent/grn/:id` (rent/delivery/bond-ledger) | `inventory.routes.ts`, `grn.routes.ts`, `rent.routes.ts` | `stockLedgerQuerySchema` | ✅ wired (ledger-derived balances; `/allocations`, `/put-away`, `/positions/*` retired) |
+| Deliveries list/create/detail/reverse/print | `GET .../deliveries?...`, `POST .../deliveries`, `POST .../deliveries/:id/reverse`, `GET .../documents/challan/:id` | `delivery.routes.ts` | `createDeliverySchema`, `reverseDeliverySchema`, `deliveryQuerySchema` | ✅ wired (detail modal prop-based by design; reversal gated on `delivery:reversal`, wired via `DeliveryReversalModal` in `deliveries/page.tsx`) |
 | Rent collect/history/print-preview/print | `POST .../rent/collect`, `GET .../rent/grn/:id`, `GET .../documents/rent-receipt/preview`, `GET .../rent/receipts/:n/print` | `rent.routes.ts`, `document.routes.ts` | `recordRentPaymentInputSchema` | ✅ wired |
 | Users provision/list/update/reset | `GET /api/users?page&limit`, `POST /api/users` (`useUsersData:23`, `useProvisionUserForm:57`), `PATCH /api/users/:id` + `POST /api/users/:id/reset-password` (`useUserLifecycle:54,92`) | `user.routes.ts` (SUPER_ADMIN only) | `createUserSchema`, `paginationSchema`, `updateUserSchema`, `resetUserPasswordSchema` | ✅ wired |
 | Audit list | `GET /api/audit-logs?...` (`useAuditLogs:34`) | `audit.routes.ts` | `auditQuerySchema` | ✅ wired (detail prop-based) |
@@ -46,36 +46,34 @@ No frontend call targets retired endpoints (`/api/storage/*`, `/api/chambers/*`,
 
 ## 4. Headless REST API Endpoints (Retained & Fully Tested)
 
-Per architecture governance, 8 fully implemented and tested backend endpoints are intentionally retained as headless REST API capabilities. Detail modals in the web UI reuse list entity props to avoid redundant network round-trips. (`GET /api/users/:id` and `GET /api/facilities/:facilityId` were removed as unused orphan reads; scope is covered by list filtering plus `requireFacilityScope` on write routes.)
+Per architecture governance, the endpoints below are intentionally retained as headless REST API capabilities (implemented, routed inline in `*routes.ts`, and covered by backend tests). Detail modals in the web UI reuse list entity props to avoid redundant network round-trips. Delivery reversal was headless until this branch wired `DeliveryReversalModal` into `deliveries/page.tsx`; there is no gate-pass endpoint (balances are ledger-derived).}
 
 | # | Endpoint & Method | Handler / Module | Contract Schema | Capability / Purpose |
 |---|---|---|---|---|
-| 1 | `PATCH /api/facilities/:fid/grns/:gid` | `correct-grn.handler.ts` | `correctGrnSchema` | GRN receipt quantity/weight post-creation administrative correction |
-| 2 | `GET /api/facilities/:fid/grns/:gid/acknowledgement` | `get-grn-ack.handler.ts` | `grnParamsSchema` | Machine-readable JSON acknowledgement of inward receipt |
-| 3 | `GET /api/facilities/:fid/grns/:gid/deliveries` | `get-grn-deliveries.handler.ts` | `grnParamsSchema` | Direct outward delivery history query for a specific GRN |
-| 4 | `GET /api/facilities/:fid/deliveries/:id/gate-pass` | `get-delivery-gate-pass.handler.ts` | `deliveryParamsSchema` | Machine-readable JSON gate-pass issuance payload |
-| 5 | `GET /api/facilities/:fid/documents/rent-receipt/preview` | `preview-rent-receipt.handler.ts` | `documentQuerySchema` | Pre-submission HTML render preview of seasonal cash memo |
-| 6 | `GET /api/customers/:id` | `get-customer.handler.ts` | `customerParamsSchema` | Programmatic single-customer entity lookup |
-| 7 | `GET /api/commodities/:id` | `get-commodity.handler.ts` | `commodityParamsSchema` | Programmatic single-commodity entity lookup |
-| 8 | `GET /api/audit-logs/:id` | `get-audit-log.handler.ts` | `auditParamsSchema` | Forensic single audit log entry lookup by immutable ID |
+| 1 | `PATCH /api/facilities/:fid/grns/:gid` | `grn.routes.ts:176` (inline) | `correctGrnSchema` | GRN receipt quantity/weight post-creation administrative correction (frontend only calls `loan-status`) |
+| 2 | `GET /api/grns/:grnId/acknowledgement` | `grn.routes.ts:129` (inline) | `grnParamsSchema` | Machine-readable JSON acknowledgement of inward receipt |
+| 3 | `GET /api/facilities/:fid/grns/:gid/deliveries` | `delivery.routes.ts:180` (inline) | `grnParamsSchema` | Direct outward delivery history query for a specific GRN (bond-ledger uses `movement-history` instead) |
+| 4 | `GET /api/facilities/:fid/inventory`, `/inventory/ledger`, `/inventory/customer/:cid`, `GET .../rent/occupancy-report` | `inventory.routes.ts`, `rent.routes.ts:120` (inline) | `stockLedgerQuerySchema` | Facility rollups retained API-only; UI reads `inventory-summary` + `movement-history` + `rent/grn/:id` |
+| 5 | `GET /api/customers/:id` | `customer.routes.ts:59` (inline) | `customerParamsSchema` | Programmatic single-customer entity lookup (UI modals are prop-based by design) |
+| 6 | `GET /api/commodities/:id` | `commodity.routes.ts:38` (inline) | `commodityParamsSchema` | Programmatic single-commodity entity lookup (UI modals are prop-based by design) |
+| 7 | `GET /api/audit-logs/:id` | `audit.routes.ts:60` (inline) | `auditParamsSchema` | Forensic single audit log entry lookup by immutable ID (UI modal is prop-based by design) |
+
 
 ## 5. Fixed in this branch (no new features)
 
-1. `inventory/page.tsx:30` dead ternary `initialGrnId ? 'put-away' : 'put-away'` → always `'put-away'`.
-2. `GrnDetailModal.tsx:58` invalid `Link > Button` nesting → `Link` styled as button (`linkButton` class added to `grns/page.module.css` without growing baseline).
-3. `users/page.module.css`: added missing `.spinning` (referenced in `page.tsx:68`), tokenized raw `hsl()` badge values to `var(--color-*)`, removed legacy dead classes (`.primaryBtn`, `.refreshBtn`, `.searchBox`, `.modalOverlay`, `.modalContent`, `.modalHeader`, `.closeBtn`, `.cancelBtn`, `.badge*`) now covered by DS `Button`/`Modal`/`Badge`.
-4. `InventoryHeader.tsx`: tabs now `role="tablist"/role="tab" aria-selected` (was plain buttons).
-5. `UserFilterBar.tsx`: native role `<select>` migrated to DS `Select` (first exemplar; 22 remaining tracked, not all migrated to keep PR <500 lines).
-6. `ExportPanel.tsx`: 5 native export `<button>`s migrated to DS `Button` (`secondary/sm`, `isLoading`), removed inline `style` for unauthorized note (now `.mutedNote` token class).
+1. UI tokens: removed compact `.actionBtn` overrides (`grns/deliveries/page.module.css`) in favour of DS `Button size=sm`; replaced hardcoded `11px/10px` cell text with `var(--text-xs)`; replaced `gap:1/2/3px`, `margin/padding px` with `var(--space-*)`; removed hex fallbacks (`BondLoanSection`); fixed non-existent tokens (`--color-surface-3` → `--color-surface-2`, `--color-danger-border` → `--color-danger`, `--space-2-5` → `--space-2`, `letter-spacing:0.5px` → `var(--tracking-label)`); corrected fill-vs-text roles (`--color-primary/success/warning` → `*-text` for text).
+2. Contracts: `useProvisionUserForm` mobile regex now delegates to `indianMobileSchema`; `deliveries/page.tsx` rent lookup now uses `requestWithAuth` (was bare `fetch` without refresh); `record-payment.handler` post-payment balance + audit status now derive from `computeRentBalance`; rent-receipt preview derives status from `computeRentBalance`; fixed stale `counter.service` comment.
+3. Hygiene: deleted dead `bag-composition.ts` (zero importers; `ledger-polarity.ledgerBagQuantity` is canonical) and orphan `grn/queries/grn-movement-history.queries.ts` shim; removed dead `inventory.mappers isTransientError` re-export and dead `isDatabaseConnected`; uninstalled alien `cookie-parser` dep; wired orphan `DeliveryReversalModal` into `deliveries/page.tsx` (`delivery:reversal` gate); derived `useRentGate.rentBlocked` from SSOT summary (was constant `false`); fixed stale comments; fixed `e2e/ui-density` mocks to real `/api/facilities|audit-logs|backups|customers|commodities|users` paths and added `/bond-ledger`.
+4. Line budget: extracted `DeliveryPageModals` so `deliveries/page.tsx` stays ≤250 lines.
 
-## 6. Remaining tracked (not in this PR to avoid size/duplication)
+## 6. Remaining tracked (progressive, not in this PR)
 
-- Migrate remaining 22 native `<select>`s and tab/combobox/icon `<button>`s to `Select`/`Button` one route at a time.
-- Add `loading.tsx`/`error.tsx` only if App Router gaps proven; add `eslint-plugin-jsx-a11y` as lint enforcement.
-- Extend `e2e/critical-flows.spec.ts` beyond mocks (rent collect/print, reversal, put-away→ledger).
+- Migrate remaining `.fieldInput` form copies to DS `Input` one route at a time (currently token-compliant; no new primitive needed).
+- Consider `eslint-plugin-jsx-a11y` as lint enforcement; extend e2e beyond mocks (rent collect/print, reversal, ledger).
+- Print template `renderPassbookHtml.ts` intentionally keeps standalone print CSS (hex/px) for print fidelity; excluded from screen-token rules. `StatCard` 1px hairline gap is intentional (border divider technique).
 
 ## 7. Verification
 
-- `npm run type-check` ✅ · `npm run lint` ✅ · `npm run test` (contracts+backend) ✅
-- `bash scripts/check-architecture-boundaries.sh` ✅ · `bash scripts/check-line-budget.sh` ✅ (CSS lines only decreased)
-- Manual: every button click-path in §3 traced to handler + endpoint; loading/disabled states preserved.
+- `npm run type-check` ✅ · `npm run lint` ✅ · `npm run test` (contracts) ✅
+- `bash scripts/check-architecture-boundaries.sh` ✅ · `bash scripts/check-line-budget.sh` ✅
+- `npm run hygiene` ✅ · Manual: every button click-path in §3 traced to handler + endpoint; loading/disabled states preserved.

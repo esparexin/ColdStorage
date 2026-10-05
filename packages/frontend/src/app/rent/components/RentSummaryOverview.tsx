@@ -30,9 +30,9 @@ export function RentSummaryOverview({ account }: RentSummaryOverviewProps) {
             <span style={{ color: 'var(--color-text-muted)' }}>Outward Delivered</span>
             <span>{(account.deliveredBags ?? 0).toLocaleString('en-IN')} bags</span>
           </div>
-          <div className={styles.infoRow} style={{ borderTop: '1px solid var(--color-border)', paddingTop: '4px' }}>
+          <div className={styles.infoRow} style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-1)' }}>
             <span style={{ fontWeight: 'var(--font-semibold)' }}>Stock Balance</span>
-            <strong style={{ color: stockBalance > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)' }}>
+            <strong style={{ color: stockBalance > 0 ? 'var(--color-warning-text)' : 'var(--color-text-muted)' }}>
               {stockBalance.toLocaleString('en-IN')} bags
             </strong>
           </div>
@@ -53,13 +53,13 @@ export function RentSummaryOverview({ account }: RentSummaryOverviewProps) {
           </div>
           <div className={styles.infoRow}>
             <span style={{ color: 'var(--color-text-muted)' }}>Already Paid</span>
-            <span style={{ color: 'var(--color-success)' }}>
+            <span style={{ color: 'var(--color-success-text)' }}>
               ₹{account.totalPaid.toLocaleString('en-IN')}
             </span>
           </div>
-          <div className={styles.infoRow} style={{ borderTop: '1px solid var(--color-border)', paddingTop: '4px' }}>
+          <div className={styles.infoRow} style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-1)' }}>
             <span style={{ fontWeight: 'var(--font-semibold)' }}>Remaining Due</span>
-            <strong style={{ color: 'var(--color-warning)' }}>
+            <strong style={{ color: 'var(--color-warning-text)' }}>
               ₹{account.remainingBalance.toLocaleString('en-IN')}
             </strong>
           </div>
