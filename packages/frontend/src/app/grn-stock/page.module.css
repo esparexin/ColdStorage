@@ -1,0 +1,241 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.titleArea {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.pageTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  letter-spacing: var(--tracking-tight);
+}
+
+.pageSubtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.ledgerModal { /* modal size override handled via prop */ }
+
+.modalBody { padding: 0; }
+
+/* ── Movement View ─────────────────────────────────── */
+
+.movementView {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.movementHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-4) 0;
+}
+
+.movementHeaderLeft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.movementCustomer {
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+}
+
+.movementCommodity {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.movementHeaderRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-0-5);
+}
+
+.movementMeta {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.movementMeta strong { color: var(--color-text-primary); }
+
+/* ── Summary Cards ─────────────────────────────────── */
+
+.summaryRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+}
+
+@media (max-width: 600px) {
+  .summaryRow { grid-template-columns: 1fr 1fr; }
+}
+
+.summaryCard {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.summaryLabel {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  font-weight: var(--font-semibold);
+}
+
+.summaryValue {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.summaryUnit {
+  font-size: var(--text-xs);
+  font-weight: var(--font-normal);
+  color: var(--color-text-muted);
+}
+
+.summaryBalance { color: var(--color-success-text); }
+
+/* ── Movement Table ────────────────────────────────── */
+
+.movementTableSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.movementTableHeading {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  color: var(--color-text-muted);
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.ledgerTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  text-align: left;
+}
+
+.ledgerTable th {
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 2px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.ledgerTable td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.ledgerTable tbody tr:last-child td { border-bottom: none; }
+
+.ledgerTable tbody tr:hover { background: var(--color-surface-2); }
+
+.rowInward  { background: var(--color-success-subtle); }
+.rowOutward { background: transparent; }
+.rowReversal { background: var(--color-warning-subtle); }
+
+/* ── Type Tag ──────────────────────────────────────── */
+
+.typeTag {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.typeInward {
+  background: var(--color-success-subtle);
+  color: var(--color-success-text);
+}
+
+.typeOutward {
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+}
+
+.typeReversal {
+  background: var(--color-warning-subtle);
+  color: var(--color-warning-text);
+}
+
+/* ── Numeric Cells ─────────────────────────────────── */
+
+.numCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-medium);
+}
+
+.receivedNum {
+  font-weight: var(--font-bold);
+  color: var(--color-success-text);
+}
+
+.closingNum {
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+}
+
+.closedTag {
+  display: inline-block;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  padding: 1px var(--space-1-5);
+  border-radius: var(--radius-sm);
+  margin-left: var(--space-1);
+}
