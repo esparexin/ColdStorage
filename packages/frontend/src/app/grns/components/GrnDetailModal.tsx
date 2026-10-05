@@ -28,44 +28,51 @@ export function GrnDetailModal({
       isOpen
       onClose={onClose}
       title={`Acknowledgement Details: ${grn.grnNumber}`}
-      subtitle={`Inward Receipt #${grn.inwardReceiptNumber}`}
+      subtitle={`Inward Receipt #${grn.inwardReceiptNumber}${grn.bondNumber ? ` • Bond #${grn.bondNumber}` : ''}`}
       size="lg"
       footer={
-        <>
+        <div className={styles.detailModalFooter}>
           {onManageLoan && (
-            <Button
-              variant={grn.loanStatus === 'TAKEN' ? 'danger' : 'outline'}
-              onClick={() => onManageLoan(grn)}
-            >
-              {grn.loanStatus === 'TAKEN' ? '⚠️ Loan Active — Manage' : 'Manage Loan Status'}
+            <div className={styles.detailFooterLeft}>
+              <Button
+                variant={grn.loanStatus === 'TAKEN' ? 'danger' : 'outline'}
+                size="sm"
+                onClick={() => onManageLoan(grn)}
+              >
+                {grn.loanStatus === 'TAKEN' ? '⚠️ Loan Active — Manage' : 'Manage Loan Status'}
+              </Button>
+            </div>
+          )}
+          <div className={styles.detailFooterRight}>
+            {canPrint && (
+              <>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => onPrint('grn', grn.id)}
+                  disabled={printingId === `grn-${grn.id}`}
+                  isLoading={printingId === `grn-${grn.id}`}
+                  leftIcon={<Printer size={13} aria-hidden="true" />}
+                >
+                  Print GRN
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => onPrint('receipt', grn.id)}
+                  disabled={printingId === `receipt-${grn.id}`}
+                  isLoading={printingId === `receipt-${grn.id}`}
+                  leftIcon={<FileText size={13} aria-hidden="true" />}
+                >
+                  Print Receipt
+                </Button>
+              </>
+            )}
+            <Button variant="outline" size="sm" onClick={onClose}>
+              Close
             </Button>
-          )}
-          {canPrint && (
-            <>
-              <Button
-                variant="primary"
-                onClick={() => onPrint('grn', grn.id)}
-                disabled={printingId === `grn-${grn.id}`}
-                isLoading={printingId === `grn-${grn.id}`}
-                leftIcon={<Printer size={15} aria-hidden="true" />}
-              >
-                Print Official GRN
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => onPrint('receipt', grn.id)}
-                disabled={printingId === `receipt-${grn.id}`}
-                isLoading={printingId === `receipt-${grn.id}`}
-                leftIcon={<FileText size={15} aria-hidden="true" />}
-              >
-                Print Inward Receipt
-              </Button>
-            </>
-          )}
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-        </>
+          </div>
+        </div>
       }
     >
       <div className={styles.modalBody}>
@@ -91,7 +98,18 @@ export function GrnDetailModal({
             </div>
 
             <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Bond / Loan Status</span>
+              <span className={styles.detailLabel}>Bond Number</span>
+              <span className={styles.detailValue}>
+                {grn.bondNumber ? (
+                  <strong style={{ color: 'var(--color-primary)' }}>{grn.bondNumber}</strong>
+                ) : (
+                  'None — Standard Storage'
+                )}
+              </span>
+            </div>
+
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Loan Status</span>
               <span className={styles.detailValue}>
                 <Badge
                   variant={

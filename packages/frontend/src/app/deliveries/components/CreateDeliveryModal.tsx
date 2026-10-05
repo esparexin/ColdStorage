@@ -9,6 +9,7 @@ import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { LOADING_LABELS } from '@/components/ui/stateCopy';
 import { useCreateDeliveryForm } from '../hooks/useCreateDeliveryForm';
 import { DeliveryBagCompositionFields } from './DeliveryBagCompositionFields';
+import { DeliveryTransportFields } from './DeliveryTransportFields';
 import styles from '../page.module.css';
 
 interface CreateDeliveryModalProps {
@@ -51,7 +52,24 @@ export function CreateDeliveryModal({
     >
       <form onSubmit={form.handleSubmit}>
           <div className={styles.modalBody}>
-            {form.modalError && <Banner message={form.modalError} id="delivery-modal-error" />}
+            {form.modalError && (
+              <Banner
+                message={form.modalError}
+                id="delivery-modal-error"
+                action={
+                  canPayRent && form.rentSummary && form.rentSummary.remainingBalance > 0 ? (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={() => onPayRent(form.rentSummary!)}
+                    >
+                      Pay Rent Now
+                    </Button>
+                  ) : undefined
+                }
+              />
+            )}
 
             <div className={styles.fieldGroup}>
               <Select
@@ -73,20 +91,7 @@ export function CreateDeliveryModal({
             </div>
 
             {form.isLoanHoldActive && form.selectedGrn && (
-              <div
-                id="loan-hold-banner"
-                style={{
-                  padding: 'var(--space-2) var(--space-3)',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--color-danger-subtle, #fef2f2)',
-                  border: '1px solid var(--color-danger-border, #fca5a5)',
-                  color: 'var(--color-danger, #b91c1c)',
-                  fontSize: 'var(--text-xs)',
-                  lineHeight: 1.5,
-                  marginBottom: 'var(--space-3)',
-                }}
-                role="alert"
-              >
+              <div id="loan-hold-banner" className={styles.loanHoldBanner} role="alert">
                 <strong>⚠️ Outward Blocked — Active Loan Hold Against This Bond</strong>
                 <div>
                   This commodity is pledged under Bond {form.selectedGrn.grnNumber}
@@ -115,114 +120,32 @@ export function CreateDeliveryModal({
                   </div>
                 )}
                 {form.grnSummary && (
-              <>
-                <DeliveryBagCompositionFields
-                  summary={form.grnSummary}
-                  withdrawal={form.withdrawal}
-                  onSmallBagsChange={form.setWithdrawalSmallBags}
-                  onBigBagsChange={form.setWithdrawalBigBags}
-                />
+                  <>
+                    <DeliveryBagCompositionFields
+                      summary={form.grnSummary}
+                      withdrawal={form.withdrawal}
+                      onSmallBagsChange={form.setWithdrawalSmallBags}
+                      onBigBagsChange={form.setWithdrawalBigBags}
+                    />
 
-                <div className={styles.formGrid2}>
-                  <div className={styles.fieldGroup}>
-                    <label htmlFor="delivery-date" className={styles.fieldLabel}>
-                      Delivery Date *
-                    </label>
-                    <input
-                      id="delivery-date"
-                      type="date"
-                      required
-                      className={styles.fieldInput}
-                      value={form.createDate}
-                      onChange={(e) => form.setCreateDate(e.target.value)}
+                    <DeliveryTransportFields
+                      createDate={form.createDate}
+                      setCreateDate={form.setCreateDate}
+                      createVehicleNumber={form.createVehicleNumber}
+                      setCreateVehicleNumber={form.setCreateVehicleNumber}
+                      createMarks={form.createMarks}
+                      setCreateMarks={form.setCreateMarks}
+                      createGpNumber={form.createGpNumber}
+                      setCreateGpNumber={form.setCreateGpNumber}
+                      createDriverName={form.createDriverName}
+                      setCreateDriverName={form.setCreateDriverName}
+                      createWeight={form.createWeight}
+                      setCreateWeight={form.setCreateWeight}
+                      createRemarks={form.createRemarks}
+                      setCreateRemarks={form.setCreateRemarks}
                     />
-                  </div>
-
-                  <div className={styles.fieldGroup}>
-                    <label htmlFor="delivery-vehicle" className={styles.fieldLabel}>
-                      Vehicle Registration
-                    </label>
-                    <input aria-label="e.g. UP32AA1111"
-                      id="delivery-vehicle"
-                      type="text"
-                      maxLength={15}
-                      className={styles.fieldInput}
-                      placeholder="e.g. UP32AA1111"
-                      value={form.createVehicleNumber}
-                      onChange={(e) => form.setCreateVehicleNumber(e.target.value.toUpperCase())}
-                    />
-                  </div>
-                </div>
-
-                <div className={styles.formGrid2}>
-                  <div className={styles.fieldGroup}>
-                    <label htmlFor="delivery-marks" className={styles.fieldLabel}>Marks</label>
-                    <input
-                      id="delivery-marks"
-                      type="text"
-                      maxLength={100}
-                      className={styles.fieldInput}
-                      placeholder="e.g. LOT-A"
-                      value={form.createMarks}
-                      onChange={(e) => form.setCreateMarks(e.target.value)}
-                    />
-                  </div>
-                  <div className={styles.fieldGroup}>
-                    <label htmlFor="delivery-gp" className={styles.fieldLabel}>Gate Pass (GP) #</label>
-                    <input
-                      id="delivery-gp"
-                      type="text"
-                      maxLength={50}
-                      className={styles.fieldInput}
-                      placeholder="e.g. GP-001"
-                      value={form.createGpNumber}
-                      onChange={(e) => form.setCreateGpNumber(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className={styles.formGrid2}>
-                  <div className={styles.fieldGroup}>
-                    <label htmlFor="delivery-driver" className={styles.fieldLabel}>Driver Name</label>
-                    <input
-                      id="delivery-driver"
-                      type="text"
-                      maxLength={100}
-                      className={styles.fieldInput}
-                      placeholder="e.g. Ramesh Singh"
-                      value={form.createDriverName}
-                      onChange={(e) => form.setCreateDriverName(e.target.value)}
-                    />
-                  </div>
-                  <div className={styles.fieldGroup}>
-                    <label htmlFor="delivery-weight" className={styles.fieldLabel}>Dispatch Weight (kg)</label>
-                    <input
-                      id="delivery-weight"
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      className={styles.fieldInput}
-                      placeholder="e.g. 12500"
-                      value={form.createWeight}
-                      onChange={(e) => form.setCreateWeight(e.target.value ? parseFloat(e.target.value) : '')}
-                    />
-                  </div>
-                </div>
-
-                <div className={styles.fieldGroup}>
-                  <label htmlFor="delivery-remarks" className={styles.fieldLabel}>Remarks</label>
-                  <input
-                    id="delivery-remarks"
-                    type="text"
-                    maxLength={500}
-                    className={styles.fieldInput}
-                    placeholder="Optional outward delivery notes"
-                    value={form.createRemarks}
-                    onChange={(e) => form.setCreateRemarks(e.target.value)}
-                  />
-                </div>
-              </>
-            )}
+                  </>
+                )}
               </>
             )}
           </div>

@@ -30,6 +30,7 @@ export interface CreateGrnState {
   createPartyMark?: string;
   createBillNumber?: string;
   createVehicleNumber: string;
+  bondNumber?: string;
   isBondForLoan?: boolean;
   loanStatus?: LoanStatus;
   loanBankName?: string;
@@ -120,6 +121,7 @@ export function buildCreateGrnPayload(params: {
   smallBagWeight?: number | ''; bigBagWeight?: number | '';
   gpNumber?: string; storageMark?: string; partyMark?: string; billNumber?: string;
   vehicleNumber?: string; remarks?: string;
+  bondNumber?: string;
   isBondForLoan?: boolean; loanStatus?: LoanStatus; loanBankName?: string;
   loanReferenceNumber?: string; loanRemarks?: string;
 }): Record<string, unknown> {
@@ -144,6 +146,7 @@ export function buildCreateGrnPayload(params: {
   if (params.remarks?.trim()) p.remarks = params.remarks.trim();
   if (params.isBondForLoan) {
     p.isBondForLoan = true;
+    if (params.bondNumber?.trim()) p.bondNumber = params.bondNumber.trim();
     p.loanStatus = params.loanStatus || 'NOT_TAKEN';
     if (params.loanBankName?.trim()) p.loanBankName = params.loanBankName.trim();
     if (params.loanReferenceNumber?.trim()) p.loanReferenceNumber = params.loanReferenceNumber.trim();

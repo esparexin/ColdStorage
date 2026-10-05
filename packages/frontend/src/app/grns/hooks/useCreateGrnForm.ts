@@ -22,6 +22,7 @@ export function useCreateGrnForm(
   const [suggestedBillNumber, setSuggestedBillNumber] = useState('');
   const [createVehicleNumber, setCreateVehicleNumber] = useState(''), [createRemarks, setCreateRemarks] = useState('');
   const [isBondForLoan, setIsBondForLoan] = useState(false), [loanStatus, setLoanStatus] = useState<LoanStatus>('NONE');
+  const [bondNumber, setBondNumber] = useState('');
   const [loanBankName, setLoanBankName] = useState(''), [loanReferenceNumber, setLoanReferenceNumber] = useState(''), [loanRemarks, setLoanRemarks] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -181,7 +182,7 @@ export function useCreateGrnForm(
         smallBagWeight: createSmallBagWeight, bigBagWeight: createBigBagWeight,
         gpNumber: createGpNumber, storageMark: createStorageMark, partyMark: createPartyMark,
         billNumber: createBillNumber, vehicleNumber: normalizedVehicle, remarks: createRemarks,
-        isBondForLoan, loanStatus, loanBankName, loanReferenceNumber, loanRemarks,
+        bondNumber, isBondForLoan, loanStatus, loanBankName, loanReferenceNumber, loanRemarks,
       });
 
       const res = await requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns`, {
@@ -210,7 +211,7 @@ export function useCreateGrnForm(
     createCustomerId || createCommodityId || createBags || createSmallBags || createBigBags ||
     createSmallBagWeight || createBigBagWeight || createRentAmount || createGpNumber.trim() ||
     createStorageMark.trim() || createPartyMark.trim() || createBillNumber.trim() ||
-    createVehicleNumber.trim() || createRemarks.trim() || isBondForLoan ||
+    createVehicleNumber.trim() || createRemarks.trim() || isBondForLoan || bondNumber.trim() ||
     loanBankName.trim() || loanReferenceNumber.trim() || loanRemarks.trim(),
   );
 
@@ -238,6 +239,7 @@ export function useCreateGrnForm(
     suggestedBillNumber,
     createVehicleNumber, setCreateVehicleNumber: (val: string) => { setCreateVehicleNumber(val); clearFieldError('vehicleNumber'); },
     createRemarks, setCreateRemarks,
+    bondNumber, setBondNumber,
     isBondForLoan, setIsBondForLoan, loanStatus, setLoanStatus,
     loanBankName, setLoanBankName, loanReferenceNumber, setLoanReferenceNumber, loanRemarks, setLoanRemarks,
     modalError, fieldErrors, submitting, isDirty, handleSubmit,

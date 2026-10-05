@@ -312,3 +312,27 @@
   align-items: center;
   justify-content: space-between;
 }
+
+.detailModalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.detailFooterLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.detailFooterRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+

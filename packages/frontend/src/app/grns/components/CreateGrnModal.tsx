@@ -220,6 +220,7 @@ export function CreateGrnModal({
         />
         <BondLoanSection
           isBondForLoan={form.isBondForLoan} onIsBondForLoanChange={form.setIsBondForLoan}
+          bondNumber={form.bondNumber} onBondNumberChange={form.setBondNumber}
           loanStatus={form.loanStatus} onLoanStatusChange={form.setLoanStatus}
           loanBankName={form.loanBankName} onLoanBankNameChange={form.setLoanBankName}
           loanReferenceNumber={form.loanReferenceNumber} onLoanReferenceNumberChange={form.setLoanReferenceNumber}

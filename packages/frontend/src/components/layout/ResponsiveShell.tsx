@@ -10,6 +10,7 @@ import { Banner } from '@/components/ui/Banner';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { LOADING_LABELS } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
+import { useNumberInputWheel } from '@/hooks/useNumberInputWheel';
 import { PRODUCT_NAME } from '@/lib/branding';
 import styles from './ResponsiveShell.module.css';
 
@@ -26,6 +27,7 @@ interface ResponsiveShellProps {
  * access token is available.
  */
 export function ResponsiveShell({ children }: ResponsiveShellProps) {
+  useNumberInputWheel();
   const { isLoading, user, login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
