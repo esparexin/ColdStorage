@@ -153,7 +153,7 @@ test.describe('Critical Application Flows', () => {
     await page.goto('/grns');
 
     // Verify page heading or action button
-    await expect(page.locator('h1, h2')).toContainText(/Goods Receipt|GRN/i);
+    await expect(page.locator('h1, h2')).toContainText(/Acknowledgement of Goods|Goods Receipt|GRN/i);
   });
 
   test('4. Facility Management Flow: verifies facilities are managed from settings', async ({
