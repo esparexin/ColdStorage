@@ -55,9 +55,14 @@ export async function getGrnMovementHistory(
       grnNumber: grn.grnNumber,
       type: 'INWARD',
       openingBags: 0,
+      receivedBags: grn.bags,
       deliveredBags: 0,
       closingBags: grn.bags,
-      marks: grn.marks ?? null,
+      smallBags: grn.smallBags,
+      bigBags: grn.bigBags,
+      remainingSmallBags: grn.smallBags,
+      remainingBigBags: grn.bigBags,
+      marks: grn.partyMark || grn.storageMark || grn.marks || null,
       gpNumber: grn.gpNumber ?? null,
       vehicleNumber: grn.vehicleNumber ?? null,
       remarks: grn.remarks ?? null,
@@ -66,6 +71,8 @@ export async function getGrnMovementHistory(
   ];
 
   let runningBalance = grn.bags;
+  let runningSmall = grn.smallBags;
+  let runningBig = grn.bigBags;
   let netDelivered = 0;
 
   for (const item of timeline) {
@@ -74,7 +81,11 @@ export async function getGrnMovementHistory(
       const deliveredCount = c.smallBags + c.bigBags;
       const opening = runningBalance;
       const closing = Math.max(0, runningBalance - deliveredCount);
+      const closingSmall = Math.max(0, runningSmall - c.smallBags);
+      const closingBig = Math.max(0, runningBig - c.bigBags);
       runningBalance = closing;
+      runningSmall = closingSmall;
+      runningBig = closingBig;
       netDelivered += deliveredCount;
       const isLive = c.status === 'ISSUED';
 
@@ -86,11 +97,16 @@ export async function getGrnMovementHistory(
         // final outward movement.
         type: isLive && closing === 0 ? 'FINAL_OUTWARD' : 'PARTIAL_OUTWARD',
         openingBags: opening,
+        receivedBags: 0,
         deliveredBags: deliveredCount,
         closingBags: closing,
+        smallBags: c.smallBags,
+        bigBags: c.bigBags,
+        remainingSmallBags: closingSmall,
+        remainingBigBags: closingBig,
         challanNumber: c.challanNumber ?? null,
         deliveryId: c.id,
-        marks: c.marks ?? grn.marks ?? null,
+        marks: c.marks ?? grn.partyMark ?? grn.storageMark ?? grn.marks ?? null,
         gpNumber: c.gpNumber ?? grn.gpNumber ?? null,
         vehicleNumber: c.vehicleNumber ?? null,
         driverName: c.driverName ?? null,
@@ -101,9 +117,15 @@ export async function getGrnMovementHistory(
       const r = item.reversal;
       const originalChallan = challanMap.get(r.deliveryId);
       const returnedCount = originalChallan ? originalChallan.smallBags + originalChallan.bigBags : 0;
+      const returnedSmall = originalChallan ? originalChallan.smallBags : 0;
+      const returnedBig = originalChallan ? originalChallan.bigBags : 0;
       const opening = runningBalance;
       const closing = runningBalance + returnedCount;
+      const closingSmall = runningSmall + returnedSmall;
+      const closingBig = runningBig + returnedBig;
       runningBalance = closing;
+      runningSmall = closingSmall;
+      runningBig = closingBig;
       netDelivered -= returnedCount;
 
       entries.push({
@@ -112,11 +134,16 @@ export async function getGrnMovementHistory(
         grnNumber: grn.grnNumber,
         type: 'DELIVERY_REVERSAL',
         openingBags: opening,
+        receivedBags: returnedCount,
         deliveredBags: returnedCount,
         closingBags: closing,
+        smallBags: originalChallan?.smallBags ?? 0,
+        bigBags: originalChallan?.bigBags ?? 0,
+        remainingSmallBags: closingSmall,
+        remainingBigBags: closingBig,
         challanNumber: r.challanNumber ?? null,
         reversalId: r.id,
-        marks: grn.marks ?? null,
+        marks: grn.partyMark ?? grn.storageMark ?? grn.marks ?? null,
         gpNumber: grn.gpNumber ?? null,
         remarks: r.reason ?? null,
         performedBy: r.reversedBy,
@@ -135,8 +162,12 @@ export async function getGrnMovementHistory(
     chamber: grn.chamber,
     inwardDate: grn.date,
     totalInwardBags: grn.bags,
+    originalSmallBags: grn.smallBags,
+    originalBigBags: grn.bigBags,
     netDeliveredBags: Math.max(0, netDelivered),
     currentClosingBags: runningBalance,
+    currentClosingSmallBags: runningSmall,
+    currentClosingBigBags: runningBig,
     status: grn.status,
     entries,
   };
