@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import type { Grn, GrnMovementHistory, GrnStatus } from '@cold-storage/contracts';
+import type { Grn, GrnStatus } from '@cold-storage/contracts';
 import { FilterToolbar } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { DataTable } from '@/components/ui/DataTable';
@@ -25,7 +25,6 @@ export default function BondsPage() {
   const pageSize = 20;
 
   const [selectedGrn, setSelectedGrn] = useState<Grn | null>(null);
-  const [history, setHistory] = useState<GrnMovementHistory | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
@@ -60,7 +59,6 @@ export default function BondsPage() {
     void fetchGrns();
     setPage(1);
     setSelectedGrn(null);
-    setHistory(null);
   }, [selectedFacilityId]);
 
   const filteredGrns = useMemo(() => {
@@ -87,25 +85,12 @@ export default function BondsPage() {
     return filteredGrns.slice(start, start + pageSize);
   }, [filteredGrns, page, pageSize]);
 
-  const handleOpenDetail = async (grn: Grn) => {
-    if (!selectedFacilityId) return;
+  // Bond details render from the already-loaded list entity, so opening a bond needs no
+  // extra round-trip. Movement history is a GRN Stock concern and is not fetched here.
+  const handleOpenDetail = (grn: Grn) => {
     setSelectedGrn(grn);
-    setHistory(null);
-    setLoadingDetail(true);
+    setLoadingDetail(false);
     setDetailError(null);
-
-    try {
-      const res = await requestWithAuth(
-        `/api/facilities/${encodeURIComponent(selectedFacilityId)}/grns/${encodeURIComponent(grn.id)}/movement-history`,
-      );
-      if (!res.ok) throw new Error('Failed to load bond movement history');
-      const data = (await res.json()) as { history: GrnMovementHistory };
-      setHistory(data.history);
-    } catch (err: unknown) {
-      setDetailError(err instanceof Error ? err.message : 'Error loading bond details');
-    } finally {
-      setLoadingDetail(false);
-    }
   };
 
   const currentFacilityName =
@@ -194,11 +179,10 @@ export default function BondsPage() {
       {selectedGrn && (
         <BondDetailsModal
           selectedGrn={selectedGrn}
-          history={history}
           loadingDetail={loadingDetail}
           detailError={detailError}
           onClose={() => setSelectedGrn(null)}
-          onRetry={() => void handleOpenDetail(selectedGrn)}
+          onRetry={() => handleOpenDetail(selectedGrn)}
         />
       )}
     </div>

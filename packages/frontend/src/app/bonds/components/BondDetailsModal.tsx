@@ -1,14 +1,13 @@
 'use client';
 
 import React from 'react';
-import type { Grn, GrnMovementHistory } from '@cold-storage/contracts';
+import type { Grn } from '@cold-storage/contracts';
 import { Badge, Button, Modal } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import styles from '../page.module.css';
 
 interface BondDetailsModalProps {
   selectedGrn: Grn;
-  history: GrnMovementHistory | null;
   loadingDetail: boolean;
   detailError: string | null;
   onClose: () => void;
@@ -17,14 +16,11 @@ interface BondDetailsModalProps {
 
 export function BondDetailsModal({
   selectedGrn,
-  history,
   loadingDetail,
   detailError,
   onClose,
   onRetry,
 }: BondDetailsModalProps) {
-  const grnForDisplay = history ?? selectedGrn;
-
   const loanStatusLabel = (() => {
     if (selectedGrn.loanStatus === 'TAKEN') return 'Loan Active (Hold)';
     if (selectedGrn.loanStatus === 'CLEARED') return 'Loan Cleared';
