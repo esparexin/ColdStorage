@@ -24,49 +24,51 @@ export function DeliveryBagCompositionFields({
 }: DeliveryBagCompositionFieldsProps) {
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-        <label htmlFor="delivery-small-bags" className={styles.fieldLabel}>
-          Small Bags to Deliver *
-        </label>
-        <span className={styles.fieldHint}>
-          {summary.availableSmallBags} small and {summary.availableBigBags} big bags are in
-          stock in chamber {summary.chamber} (of {summary.totalBags} received).
-        </span>
-        <input
-          id="delivery-small-bags"
-          type="number"
-          inputMode="numeric"
-          min={0}
-          max={summary.availableSmallBags}
-          placeholder="Small bags to deliver"
-          className={styles.fieldInput}
-          value={withdrawal.smallBags}
-          onChange={(e) =>
-            onSmallBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')
-          }
-        />
+      <div className={styles.stockNotice}>
+        {summary.availableSmallBags} Small Bags and {summary.availableBigBags} Big Bags are currently in stock in Chamber {summary.chamber} (out of {summary.totalBags} bags received).
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-        <label htmlFor="delivery-big-bags" className={styles.fieldLabel}>
-          Big Bags to Deliver *
-        </label>
-        <input
-          id="delivery-big-bags"
-          type="number"
-          inputMode="numeric"
-          min={0}
-          max={summary.availableBigBags}
-          placeholder="Big bags to deliver"
-          className={styles.fieldInput}
-          value={withdrawal.bigBags}
-          onChange={(e) =>
-            onBigBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')
-          }
-        />
+      <div className={styles.formGrid2}>
+        <div className={styles.fieldGroup}>
+          <label htmlFor="delivery-small-bags" className={styles.fieldLabel}>
+            Small Bags to Deliver *
+          </label>
+          <input
+            id="delivery-small-bags"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={summary.availableSmallBags}
+            placeholder="Small bags to deliver"
+            className={styles.fieldInput}
+            value={withdrawal.smallBags}
+            onChange={(e) =>
+              onSmallBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')
+            }
+          />
+        </div>
+
+        <div className={styles.fieldGroup}>
+          <label htmlFor="delivery-big-bags" className={styles.fieldLabel}>
+            Big Bags to Deliver *
+          </label>
+          <input
+            id="delivery-big-bags"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={summary.availableBigBags}
+            placeholder="Big bags to deliver"
+            className={styles.fieldInput}
+            value={withdrawal.bigBags}
+            onChange={(e) =>
+              onBigBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')
+            }
+          />
+        </div>
       </div>
 
-      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>
+      <div className={styles.totalDelivering}>
         Total Delivering:{' '}
         <span style={{ color: 'var(--color-primary)' }}>
           {(typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0) +

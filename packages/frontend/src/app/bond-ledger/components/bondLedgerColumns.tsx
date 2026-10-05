@@ -14,8 +14,30 @@ export function createBondLedgerColumns({
 }: CreateBondLedgerColumnsParams): DataTableColumn<Grn>[] {
   return [
     {
+      key: 'bondNumber',
+      header: 'Bond #',
+      render: (row) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: 'var(--text-xs)' }}>
+          {row.bondNumber ? (
+            <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-primary)' }}>
+              {row.bondNumber}
+            </span>
+          ) : (
+            <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
+              Standard
+            </span>
+          )}
+          {row.loanBankName && (
+            <span style={{ fontSize: '10px', color: 'var(--color-text-secondary)' }}>
+              {row.loanBankName}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
       key: 'grnNumber',
-      header: 'Bond / GRN #',
+      header: 'GRN #',
       render: (row) => (
         <div className={styles.grnCell}>
           <span className={styles.grnNumber}>{row.grnNumber}</span>
@@ -105,8 +127,8 @@ export function createBondLedgerColumns({
           variant="secondary"
           size="sm"
           onClick={() => onOpenLedger(row)}
-          title={`View Outward Movement Ledger for ${row.grnNumber}`}
-          aria-label={`View Ledger for Bond ${row.grnNumber}`}
+          title={`View Outward Movement Ledger for ${row.bondNumber ? `Bond ${row.bondNumber} (GRN ${row.grnNumber})` : `GRN ${row.grnNumber}`}`}
+          aria-label={`View Ledger for ${row.bondNumber ? `Bond ${row.bondNumber}` : `GRN ${row.grnNumber}`}`}
           leftIcon={<Eye size={14} aria-hidden="true" />}
         >
           View

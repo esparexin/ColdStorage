@@ -69,11 +69,12 @@ export default function BondLedgerPage() {
       if (statusFilter && g.status !== statusFilter) return false;
       if (!term) return true;
       return (
+        (Boolean(g.bondNumber) && g.bondNumber!.toLowerCase().includes(term)) ||
         g.grnNumber.toLowerCase().includes(term) ||
         g.customerName.toLowerCase().includes(term) ||
         g.commodityName.toLowerCase().includes(term) ||
         g.chamber.toLowerCase().includes(term) ||
-        (g.gpNumber && g.gpNumber.toLowerCase().includes(term))
+        (Boolean(g.gpNumber) && g.gpNumber!.toLowerCase().includes(term))
       );
     });
   }, [grns, searchTerm, statusFilter]);
@@ -154,7 +155,7 @@ export default function BondLedgerPage() {
               setSearchTerm(v);
               setPage(1);
             }}
-            searchPlaceholder="Search Customer, Bond / GRN #, Commodity, Chamber..."
+            searchPlaceholder="Search Customer, Bond #, GRN #, Commodity, Chamber..."
             searchAriaLabel="Search Bond Ledgers"
             searchInputId="bond-search-input"
             selects={[

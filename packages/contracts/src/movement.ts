@@ -53,6 +53,7 @@ export const grnMovementHistorySchema = z.object({
   currentClosingSmallBags: z.number().int().min(0).optional(),
   currentClosingBigBags: z.number().int().min(0).optional(),
   status: grnStatusSchema,
+  bondNumber: z.string().nullable().optional(),
   isBondForLoan: z.boolean().optional(),
   loanStatus: loanStatusSchema.optional(),
   isLoanHoldActive: z.boolean().optional(),

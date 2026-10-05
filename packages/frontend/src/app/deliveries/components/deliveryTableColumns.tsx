@@ -42,13 +42,17 @@ export function createDeliveryColumns({
     {
       key: 'customerName',
       header: 'Customer',
-      render: (row) => <span style={{ fontWeight: 'var(--font-medium)' }}>{row.customerName}</span>,
+      render: (row) => (
+        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)' }}>
+          {row.customerName}
+        </span>
+      ),
     },
     {
       key: 'grnNumber',
-      header: 'Bond / GRN',
+      header: 'GRN #',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: 'var(--text-xs)' }}>
           <span style={{ fontWeight: 'var(--font-semibold)' }}>{row.grnNumber}</span>
           <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
             {row.commodityName} <span className={styles.tagChamber}>CH {row.chamber}</span>
@@ -61,11 +65,11 @@ export function createDeliveryColumns({
       header: 'Delivered Bags',
       align: 'right',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-          <span style={{ fontWeight: 'var(--font-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-primary)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', fontSize: 'var(--text-xs)' }}>
+          <span style={{ fontWeight: 'var(--font-bold)', fontSize: 'var(--text-xs)', color: 'var(--color-text-primary)' }}>
             {row.totalBags.toLocaleString('en-IN')} bags
           </span>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
             {row.smallBags.toLocaleString('en-IN')} small / {row.bigBags.toLocaleString('en-IN')} big
           </span>
         </div>
@@ -73,7 +77,7 @@ export function createDeliveryColumns({
     },
     {
       key: 'remainingBags',
-      header: 'Remaining on Bond',
+      header: 'Remaining Bags',
       align: 'right',
       render: (row) => {
         const remainingTotal = row.remainingTotalBags;
@@ -81,17 +85,17 @@ export function createDeliveryColumns({
         const remainingBig = row.remainingBigBags;
 
         if (remainingTotal === undefined) {
-          return <span style={{ color: 'var(--color-text-muted)' }}>—</span>;
+          return <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}>—</span>;
         }
 
         const isClosed = remainingTotal === 0;
 
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', fontSize: 'var(--text-xs)' }}>
             <span
               style={{
                 fontWeight: 'var(--font-bold)',
-                fontSize: 'var(--text-sm)',
+                fontSize: 'var(--text-xs)',
                 color: isClosed ? 'var(--color-text-muted)' : 'var(--color-primary)',
               }}
             >
@@ -111,7 +115,7 @@ export function createDeliveryColumns({
                 </span>
               )}
             </span>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
               {remainingSmall?.toLocaleString('en-IN') ?? 0} small / {remainingBig?.toLocaleString('en-IN') ?? 0} big
             </span>
             {row.originalBags !== undefined && (
@@ -128,12 +132,12 @@ export function createDeliveryColumns({
       header: 'Rent Status',
       render: (row) => {
         if (!row.rentPaymentStatus) {
-          return <span style={{ color: 'var(--color-text-muted)' }}>—</span>;
+          return <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}>—</span>;
         }
         const isSettled = row.rentPaymentStatus === 'Settled';
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <Badge variant={isSettled ? 'success' : 'warning'}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: 'var(--text-xs)' }}>
+            <Badge variant={isSettled ? 'success' : 'warning'} style={{ fontSize: '11px' }}>
               {isSettled ? 'Settled' : `₹${(row.rentRemainingBalance ?? 0).toLocaleString('en-IN')} pending`}
             </Badge>
             {!isSettled && (row.rentTotalPaid ?? 0) > 0 && (
@@ -163,6 +167,7 @@ export function createDeliveryColumns({
         <Badge
           variant={row.status === 'ISSUED' ? 'success' : 'neutral'}
           icon={row.status === 'ISSUED' ? <CheckCircle2 size={12} aria-hidden="true" /> : <Clock size={12} aria-hidden="true" />}
+          style={{ fontSize: '11px' }}
         >
           {row.status}
         </Badge>
@@ -179,9 +184,10 @@ export function createDeliveryColumns({
             <Button
               variant="outline"
               size="sm"
+              className={styles.actionBtn}
               onClick={() => onSelectDelivery(row)}
               title="View Details"
-              leftIcon={<Eye size={13} aria-hidden="true" />}
+              leftIcon={<Eye size={12} aria-hidden="true" />}
             >
               View
             </Button>
@@ -189,11 +195,12 @@ export function createDeliveryColumns({
               <Button
                 variant="primary"
                 size="sm"
+                className={styles.actionBtn}
                 onClick={() => onPrintChallan(row.id)}
                 disabled={printingId === row.id}
                 isLoading={printingId === row.id}
                 title="Print Outward Delivery Challan & Gate Pass"
-                leftIcon={<Printer size={13} aria-hidden="true" />}
+                leftIcon={<Printer size={12} aria-hidden="true" />}
               >
                 Challan
               </Button>
@@ -202,9 +209,10 @@ export function createDeliveryColumns({
               <Button
                 variant="secondary"
                 size="sm"
+                className={styles.actionBtn}
                 onClick={() => onCollectRent(row)}
-                title="Collect Pending Rent for this Bond"
-                leftIcon={<IndianRupee size={13} aria-hidden="true" />}
+                title="Collect Pending Rent for this Delivery"
+                leftIcon={<IndianRupee size={12} aria-hidden="true" />}
               >
                 Collect Rent
               </Button>

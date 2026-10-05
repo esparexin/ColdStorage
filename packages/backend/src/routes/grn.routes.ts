@@ -202,7 +202,7 @@ grnRouter.patch(
   },
 );
 
-// Update Bond/GRN Loan Status (e.g. Loan Taken, Loan Cleared, Loan Not Taken)
+// Update GRN Loan/Bond Status (e.g. Loan Taken, Loan Cleared, Loan Not Taken)
 grnRouter.patch(
   '/facilities/:facilityId/grns/:grnId/loan-status',
   requirePermission('grn:create'),

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   bagAccountingSchema,
   bagTypeSchema,
+  bondNumberSchema,
   can,
   changePasswordInputSchema,
   createUserSchema,
@@ -19,6 +20,7 @@ import {
 describe('P1 Governance & Shared Contracts Foundation', () => {
   it('enforces independent business identifiers and optional opaque GP', () => {
     expect(grnNumberSchema.parse('GRN-25-26-0001')).toBe('GRN-25-26-0001');
+    expect(bondNumberSchema.parse('BND-26-27-0001')).toBe('BND-26-27-0001');
     expect(receiptNumberSchema.parse('RCPT-2025-0042')).toBe('RCPT-2025-0042');
     expect(rentReceiptNumberSchema.parse('RRCPT-25-26-0001')).toBe('RRCPT-25-26-0001');
     expect(gpNumberSchema.parse(undefined)).toBeUndefined();

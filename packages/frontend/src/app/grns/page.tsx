@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { can, type Grn, type Role } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
@@ -34,6 +34,22 @@ export default function GrnsPage() {
   const [printingId, setPrintingId] = useState<string | null>(null);
   const [printError, setPrintError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  useEffect(() => {
+    const handleSelectEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<Grn>;
+      if (customEvent.detail) setSelectedGrn(customEvent.detail);
+    };
+    window.addEventListener('select-grn', handleSelectEvent);
+
+    const params = new URLSearchParams(window.location.search);
+    const targetGrnId = params.get('selectedGrnId');
+    if (targetGrnId) {
+      const match = grnData.grns.find((g) => g.id === targetGrnId);
+      if (match) setSelectedGrn(match);
+    }
+    return () => window.removeEventListener('select-grn', handleSelectEvent);
+  }, [grnData.grns]);
 
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const canCreate = can(userRole, 'grn:create');
@@ -107,22 +123,28 @@ export default function GrnsPage() {
               onRetry={() => void grnData.fetchGrns()}
             />
           ) : grnData.grns.length === 0 ? (
-            <FeedbackStates.Empty
-              message={emptyForFacility(grnData.currentFacilityName, 'grns')}
-              action={
-                canCreate
-                  ? {
-                      label: '+ Create Inward of Goods',
-                      onClick: () => setIsCreateOpen(true),
-                      id: 'create-grn-empty-btn',
-                    }
-                  : undefined
-              }
-            />
-          ) : grnData.filteredGrns.length === 0 ? (
-            <FeedbackStates.Empty
-              message={`No Inward of Goods matching "${grnData.searchTerm}".`}
-            />
+            grnData.searchTerm ? (
+              <FeedbackStates.Empty
+                message={`No Inward of Goods matching "${grnData.searchTerm}".`}
+              />
+            ) : grnData.statusFilter || grnData.customerFilter || grnData.commodityFilter ? (
+              <FeedbackStates.Empty
+                message="No Inward of Goods found matching the selected filters."
+              />
+            ) : (
+              <FeedbackStates.Empty
+                message={emptyForFacility(grnData.currentFacilityName, 'grns')}
+                action={
+                  canCreate
+                    ? {
+                        label: '+ Create Inward of Goods',
+                        onClick: () => setIsCreateOpen(true),
+                        id: 'create-grn-empty-btn',
+                      }
+                    : undefined
+                }
+              />
+            )
           ) : (
             <GrnTable
               grns={grnData.filteredGrns}

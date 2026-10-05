@@ -56,6 +56,21 @@
   white-space: nowrap;
 }
 
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  max-width: 400px;
+  margin: 0 var(--space-3);
+}
+
+@media (max-width: 768px) {
+  .center {
+    display: none;
+  }
+}
+
 .right {
   display: flex;
   align-items: center;

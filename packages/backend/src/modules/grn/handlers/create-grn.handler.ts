@@ -132,11 +132,15 @@ export async function createGrn(
           }
         }
       } else {
-        inwardReceiptNumber = await counterService.generateInwardReceiptNumber(
-          facilityId,
-          inwardDate,
-          session,
-        );
+        inwardReceiptNumber = await counterService.generateInwardReceiptNumber(facilityId, inwardDate, session);
+      }
+
+      const bondNumber = input.isBondForLoan
+        ? (input.bondNumber?.trim() || (await counterService.generateBondNumber(facilityId, inwardDate, session)))
+        : null;
+      if (bondNumber) {
+        const existingBond = await GrnModel.findOne({ facilityId, bondNumber }, null, { session });
+        if (existingBond) throw new Error(`Bond Number '${bondNumber}' already exists for this facility.`);
       }
 
       const docs = await GrnModel.create(
@@ -171,6 +175,7 @@ export async function createGrn(
             vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null,
             remarks: input.remarks?.trim() || null,
             status: 'OPEN',
+            bondNumber,
             isBondForLoan: Boolean(input.isBondForLoan),
             loanStatus: input.isBondForLoan ? (input.loanStatus && input.loanStatus !== 'NONE' ? input.loanStatus : 'NOT_TAKEN') : 'NONE',
             loanBankName: input.loanBankName?.trim() || null,
@@ -231,6 +236,7 @@ export async function createGrn(
     resourceId: grn.id,
     details: {
       grnNumber: grn.grnNumber,
+      bondNumber: grn.bondNumber,
       bags: grn.bags,
       customerId: grn.customerId,
       chamber: grn.chamber,

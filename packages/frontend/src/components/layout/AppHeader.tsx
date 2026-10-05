@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { useSettings } from '@/context/SettingsContext';
 import { ORG_NAME_FALLBACK } from '@/lib/branding';
+import { GlobalGrnSearch } from './GlobalGrnSearch';
 import styles from './AppHeader.module.css';
 
 interface AppHeaderProps {
@@ -54,6 +55,10 @@ export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHea
         ) : (
           <span className={styles.logo}>{orgName}</span>
         )}
+      </div>
+
+      <div className={styles.center}>
+        <GlobalGrnSearch />
       </div>
 
       <div className={styles.right}>

@@ -6,7 +6,7 @@ import {
   perBagWeightSchema,
 } from './bags.js';
 import { chamberTextSchema, indianVehicleSchema, rentalAmountSchema } from './common.js';
-import { gpNumberSchema, grnNumberSchema, receiptNumberSchema } from './identifiers.js';
+import { bondNumberSchema, gpNumberSchema, grnNumberSchema, receiptNumberSchema } from './identifiers.js';
 import { bagPriceSchema } from './pricing.js';
 
 export const rentTypeSchema = z.enum(['Monthly', 'Seasonal']);
@@ -31,6 +31,7 @@ export type LoanStatus = z.infer<typeof loanStatusSchema>;
 
 export const updateGrnLoanStatusSchema = z.object({
   loanStatus: z.enum(['NOT_TAKEN', 'TAKEN', 'CLEARED']),
+  bondNumber: bondNumberSchema.nullish(),
   bankName: z.string().trim().max(100).optional(),
   referenceNumber: z.string().trim().max(50).optional(),
   remarks: z.string().trim().max(500).optional(),
@@ -75,6 +76,7 @@ export const createGrnSchema = z
     billNumber: z.string().trim().min(1).max(40).nullish(),
     vehicleNumber: indianVehicleSchema.nullish(),
     remarks: z.string().trim().max(500).nullish(),
+    bondNumber: bondNumberSchema.nullish(),
     isBondForLoan: z.boolean().nullish(),
     loanStatus: loanStatusSchema.nullish(),
     loanBankName: z.string().trim().max(100).nullish(),
@@ -167,6 +169,7 @@ export const grnSchema = z.object({
   vehicleNumber: z.string().nullable().optional(),
   remarks: z.string().nullable().optional(),
   status: grnStatusSchema,
+  bondNumber: z.string().nullable().optional().default(null),
   isBondForLoan: z.boolean().default(false),
   loanStatus: loanStatusSchema.default('NONE'),
   loanBankName: z.string().nullable().optional(),

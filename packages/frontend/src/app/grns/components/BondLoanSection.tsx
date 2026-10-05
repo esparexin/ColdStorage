@@ -8,6 +8,8 @@ import styles from '../page.module.css';
 interface BondLoanSectionProps {
   isBondForLoan: boolean;
   onIsBondForLoanChange: (value: boolean) => void;
+  bondNumber?: string;
+  onBondNumberChange?: (v: string) => void;
   loanStatus: LoanStatus;
   onLoanStatusChange: (status: LoanStatus) => void;
   loanBankName: string;
@@ -21,6 +23,8 @@ interface BondLoanSectionProps {
 export function BondLoanSection({
   isBondForLoan,
   onIsBondForLoanChange,
+  bondNumber,
+  onBondNumberChange,
   loanStatus,
   onLoanStatusChange,
   loanBankName,
@@ -66,6 +70,23 @@ export function BondLoanSection({
               <option value="NOT_TAKEN">No — Loan Not Taken (Pledge only, outward allowed)</option>
               <option value="TAKEN">Yes — Loan Taken (Immediate Loan Hold, outward blocked)</option>
             </Select>
+          </div>
+        )}
+
+        {isBondForLoan && (
+          <div className={styles.fieldGroup}>
+            <label htmlFor="create-bond-number" className={styles.fieldLabel}>
+              Bond # (Optional / Auto-generated)
+            </label>
+            <input
+              id="create-bond-number"
+              type="text"
+              maxLength={40}
+              placeholder="e.g. BND-26-27-0001 (Blank = Auto)"
+              className={styles.fieldInput}
+              value={bondNumber || ''}
+              onChange={(e) => onBondNumberChange?.(e.target.value)}
+            />
           </div>
         )}
       </div>

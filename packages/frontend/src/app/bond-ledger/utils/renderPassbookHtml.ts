@@ -56,7 +56,7 @@ export function renderPassbookHtml(
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Bond Movement Ledger - ${history.grnNumber}</title>
+  <title>${history.bondNumber ? `Bond #${history.bondNumber} (GRN #${history.grnNumber})` : `GRN #${history.grnNumber}`} Movement Ledger</title>
   <style>
     body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; color: #111; padding: 24px; line-height: 1.4; }
     h2 { margin: 0 0 8px 0; font-size: 16px; font-weight: bold; }
@@ -73,8 +73,10 @@ export function renderPassbookHtml(
   </style>
 </head>
 <body>
-  <h2>${history.customerName} — ${history.grnNumber} (${history.commodityName})</h2>
+  <h2>${history.customerName} — ${history.bondNumber ? `Bond #${history.bondNumber} • ` : ''}GRN #${history.grnNumber} (${history.commodityName})</h2>
   <div class="meta">
+    ${history.bondNumber ? `<span><strong>Bond #:</strong> ${history.bondNumber}</span>` : ''}
+    <span><strong>GRN #:</strong> ${history.grnNumber}</span>
     <span><strong>Inward Date:</strong> ${inwardStr}</span>
     <span><strong>Chamber:</strong> Chamber ${history.chamber}</span>
     <span><strong>Initial Received:</strong> ${history.totalInwardBags.toLocaleString('en-IN')} Bags</span>

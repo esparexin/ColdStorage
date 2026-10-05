@@ -27,13 +27,14 @@ export function useGrns(
   const [commodities, setCommodities] = useState<Commodity[]>([]);
 
   // Filter states
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTermRaw] = useState('');
   const [statusFilter, setStatusFilterRaw] = useState<'' | GrnStatus>('');
   const [customerFilter, setCustomerFilterRaw] = useState('');
   const [commodityFilter, setCommodityFilterRaw] = useState('');
 
   // Server-side filters narrow the result set, so the current page number is
-  // no longer valid once one changes.
+  // reset to 1 whenever a filter or search term changes.
+  const setSearchTerm = useCallback((v: string) => { setSearchTermRaw(v); setPage(1); }, []);
   const setStatusFilter = useCallback((v: '' | GrnStatus) => { setStatusFilterRaw(v); setPage(1); }, []);
   const setCustomerFilter = useCallback((v: string) => { setCustomerFilterRaw(v); setPage(1); }, []);
   const setCommodityFilter = useCallback((v: string) => { setCommodityFilterRaw(v); setPage(1); }, []);
@@ -78,6 +79,7 @@ export function useGrns(
       if (statusFilter) params.set('status', statusFilter);
       if (customerFilter) params.set('customerId', customerFilter);
       if (commodityFilter) params.set('commodityId', commodityFilter);
+      if (searchTerm.trim()) params.set('search', searchTerm.trim());
 
       const url = `/api/facilities/${encodeURIComponent(selectedFacilityId)}/grns?${params.toString()}`;
       const res = await requestWithAuth(url);
@@ -96,7 +98,7 @@ export function useGrns(
     } finally {
       if (isCurrent()) setLoading(false);
     }
-  }, [selectedFacilityId, page, statusFilter, customerFilter, commodityFilter]);
+  }, [selectedFacilityId, page, statusFilter, customerFilter, commodityFilter, searchTerm]);
 
   useEffect(() => {
     void fetchLookups();
@@ -106,20 +108,8 @@ export function useGrns(
     void fetchGrns();
   }, [fetchGrns]);
 
-  // Filtered in-memory records
-  const filteredGrns = useMemo(() => {
-    if (!searchTerm.trim()) return grns;
-    const term = searchTerm.toLowerCase();
-    return grns.filter((g) => {
-      const matchGrn = g.grnNumber.toLowerCase().includes(term);
-      const matchReceipt = g.inwardReceiptNumber.toLowerCase().includes(term);
-      const matchCustomer = g.customerName.toLowerCase().includes(term);
-      const matchCommodity = g.commodityName.toLowerCase().includes(term);
-      const matchGp = g.gpNumber?.toLowerCase().includes(term) ?? false;
-      const matchVehicle = g.vehicleNumber?.toLowerCase().includes(term) ?? false;
-      return matchGrn || matchReceipt || matchCustomer || matchCommodity || matchGp || matchVehicle;
-    });
-  }, [grns, searchTerm]);
+  // Server-side filtered records
+  const filteredGrns = grns;
 
   const currentFacilityName = useMemo(() => {
     return (

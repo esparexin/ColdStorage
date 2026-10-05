@@ -53,6 +53,8 @@ bagAccounting: z.object({
   }),
   remarks: z.string().nullable().optional(),
   status: grnStatusSchema,
+  bondNumber: z.string().nullable().optional(),
+  isBondForLoan: z.boolean().optional(),
   issuedBy: z.string().min(1),
   issuedAt: z.date(),
 });
@@ -64,6 +66,7 @@ export const grnQuerySchema = z.object({
   commodityId: z.string().optional(),
   chamber: z.string().trim().max(20).optional(),
   status: grnStatusSchema.optional(),
+  search: z.string().trim().max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

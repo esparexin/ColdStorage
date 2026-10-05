@@ -14,7 +14,7 @@
  */
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { executeSingleFlightRefresh, requestWithAuth, setAccessToken } from '@/lib/api-client';
+import { executeSingleFlightRefresh, requestWithAuth, setAccessToken, setOnAuthExpired } from '@/lib/api-client';
 
 export interface AuthUser {
   userId: string;
@@ -89,6 +89,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    setOnAuthExpired(() => {
+      setUser(null);
+    });
+    return () => setOnAuthExpired(null);
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {

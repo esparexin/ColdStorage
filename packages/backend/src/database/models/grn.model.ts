@@ -38,6 +38,7 @@ export interface GrnDoc extends Document {
   vehicleNumber: string | null;
   remarks: string | null;
   status: GrnStatus;
+  bondNumber: string | null;
   isBondForLoan: boolean;
   loanStatus: LoanStatus;
   loanBankName: string | null;
@@ -82,6 +83,7 @@ const grnSchema = new Schema<GrnDoc>(
     vehicleNumber: { type: String, trim: true, uppercase: true, default: null },
     remarks: { type: String, trim: true, default: null },
     status: { type: String, required: true, enum: ['OPEN', 'CLOSED'], default: 'OPEN', index: true },
+    bondNumber: { type: String, trim: true, default: null },
     isBondForLoan: { type: Boolean, default: false, index: true },
     loanStatus: {
       type: String,
@@ -104,6 +106,10 @@ const grnSchema = new Schema<GrnDoc>(
 
 grnSchema.index({ facilityId: 1, grnNumber: 1 }, { unique: true });
 grnSchema.index({ facilityId: 1, inwardReceiptNumber: 1 }, { unique: true });
+grnSchema.index(
+  { facilityId: 1, bondNumber: 1 },
+  { unique: true, sparse: true, partialFilterExpression: { bondNumber: { $type: 'string' } } },
+);
 grnSchema.index({ facilityId: 1, date: -1 });
 grnSchema.index({ customerId: 1, facilityId: 1 });
 grnSchema.index({ facilityId: 1, loanStatus: 1 });

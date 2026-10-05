@@ -16,6 +16,10 @@ import { createGrn } from './handlers/create-grn.handler.js';
 import { correctGrn } from './handlers/update-grn.handler.js';
 import { updateGrnLoanStatus } from './handlers/update-grn-loan-status.handler.js';
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export class GrnService {
   public async createGrn(
     facilityId: string,
@@ -35,7 +39,7 @@ export class GrnService {
     return correctGrn(facilityId, grnId, input, userId);
   }
 
-  /** Update loan/pledge status on existing Bond/GRN with audit trail */
+  /** Update loan/pledge status for inward consignment with audit trail */
   public async updateLoanStatus(
     facilityId: string,
     grnId: string,
@@ -75,6 +79,18 @@ export class GrnService {
     }
     if (query.status) {
       filter.status = query.status;
+    }
+    if (query.search && query.search.trim()) {
+      const regex = { $regex: escapeRegExp(query.search.trim()), $options: 'i' };
+      filter.$or = [
+        { grnNumber: regex },
+        { inwardReceiptNumber: regex },
+        { customerName: regex },
+        { commodityName: regex },
+        { gpNumber: regex },
+        { vehicleNumber: regex },
+        { bondNumber: regex },
+      ];
     }
 
     const page = Math.max(1, query.page || 1);

@@ -61,6 +61,11 @@ export function GrnTable({
         <div className={styles.grnCell} style={{ fontSize: 'var(--text-xs)' }}>
           <span className={styles.grnNumber}>{row.grnNumber}</span>
           <span className={styles.receiptNumber}>Receipt: {row.inwardReceiptNumber}</span>
+          {row.bondNumber && (
+            <span style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 'var(--font-semibold)' }}>
+              Bond: {row.bondNumber}
+            </span>
+          )}
         </div>
       ),
     },

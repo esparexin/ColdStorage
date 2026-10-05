@@ -78,7 +78,8 @@ async function executeDeliveryTransaction(
         throw new Error(`Cannot create delivery: GRN '${grn.grnNumber}' is CLOSED`);
       }
       if (grn.loanStatus === 'TAKEN') {
-        throw new Error(`Outward blocked — Loan outstanding against this Bond (${grn.grnNumber})`);
+        const bondRef = grn.bondNumber ? `Bond ${grn.bondNumber} (GRN: ${grn.grnNumber})` : `GRN ${grn.grnNumber}`;
+        throw new Error(`Outward blocked — Active loan hold against ${bondRef}`);
       }
 
       await assertRentAllowedForOutward(
