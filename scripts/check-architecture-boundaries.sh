@@ -97,9 +97,10 @@ if grep -rnE "<select(\b|[ >])" "$ROOT/packages/frontend/src" \
 fi
 
 # 12. UI SSOT Primitive Enforcement: no native <button> in feature/layout code
+# AppHeader/SidebarNav retain labeled icon-only chrome buttons by design; any other
+# native button must use the canonical Button primitive.
 NATIVE_BUTTON_HITS=$(grep -rnE "<button(\b|[ >])" "$ROOT/packages/frontend/src/app" "$ROOT/packages/frontend/src/components/layout" "$ROOT/packages/frontend/src/components/auth" \
   --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null \
-  | grep -v "InventoryHeader.tsx" \
   | grep -v "AppHeader.tsx" \
   | grep -v "SidebarNav.tsx" || true)
 if [ -n "$NATIVE_BUTTON_HITS" ]; then
@@ -178,6 +179,42 @@ fi
 if grep -rn "hasLedgerTxns" "$ROOT/packages/backend/src" \
   --include="*.ts" --exclude-dir=__tests__ --exclude="*.test.ts" 2>/dev/null; then
   fail "Single-formula violation: balances come from the ledger for every facility; a hasLedgerTxns source switch must not be reintroduced."
+fi
+
+# 23. Compact action overrides. Table actions use DS Button size=sm directly; a competing
+# .actionBtn class that re-imposes 11px/24px via !important is how compact tables drifted
+# off the type scale. Keep the scale in tokens.css, not in feature overrides.
+if grep -rnE "\.actionBtn\b" "$ROOT/packages/frontend/src/app" \
+  --include="*.module.css" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null; then
+  fail "UI SSOT violation: .actionBtn competing override found. Use DS Button size=sm without a feature-level override."
+fi
+if grep -rnE "styles\.actionBtn" "$ROOT/packages/frontend/src" \
+  --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null; then
+  fail "UI SSOT violation: styles.actionBtn usage found. Render DS Button size=sm without the legacy class."
+fi
+
+# 24. Token typography/spacing. Screen UI must consume the type scale (var(--text-*)),
+# spacing scale (var(--space-*)) and color roles (var(--color-*-text) for text). Hardcoded
+# 11px/10px cell text, hex fallbacks inside var(), and references to tokens that do not
+# exist (surface-3, danger-border, space-2-5) are how this audit's drift re-entered.
+# The standalone print template (renderPassbookHtml.ts) and tokens.css itself are excluded.
+if grep -rnE "font-size:\s*(11px|10px)" "$ROOT/packages/frontend/src" \
+  --include="*.css" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null \
+  | grep -v "styles/tokens.css"; then
+  fail "UI SSOT violation: hardcoded 11px/10px font-size found. Use var(--text-xs) for micro-label and table subtext."
+fi
+if grep -rnE "fontSize:\s*['\"](11px|10px)['\"]" "$ROOT/packages/frontend/src" \
+  --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null; then
+  fail "UI SSOT violation: hardcoded fontSize 11px/10px found in TSX. Use fontSize: 'var(--text-xs)'."
+fi
+if grep -rnE "var\(--[a-zA-Z0-9-]+\s*,\s*#[0-9a-fA-F]{3,6}" "$ROOT/packages/frontend/src" \
+  --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null; then
+  fail "Design Token SSOT violation: hex fallback inside var() found. Reference the canonical var(--color-*) with no hex fallback."
+fi
+if grep -rnE "(surface-3|danger-border|space-2-5)" "$ROOT/packages/frontend/src" \
+  --include="*.css" --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null \
+  | grep -v "renderPassbookHtml.ts"; then
+  fail "Design Token SSOT violation: reference to a non-existent token found. Use only tokens declared in styles/tokens.css."
 fi
 
 if [ "$EXIT" -eq 0 ]; then
