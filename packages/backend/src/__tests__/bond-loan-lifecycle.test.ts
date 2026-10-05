@@ -184,7 +184,7 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
       });
 
     expect(blockedDelRes.status).toBe(400);
-    expect(blockedDelRes.body.error).toContain('Outward blocked — Loan outstanding against this Bond');
+    expect(blockedDelRes.body.error).toContain('Outward blocked — Active loan hold against Bond');
 
     // Check movement history passbook reflects loan hold
     const histRes = await request(app)

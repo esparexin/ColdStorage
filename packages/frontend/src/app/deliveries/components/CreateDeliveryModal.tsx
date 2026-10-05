@@ -92,12 +92,11 @@ export function CreateDeliveryModal({
 
             {form.isLoanHoldActive && form.selectedGrn && (
               <div id="loan-hold-banner" className={styles.loanHoldBanner} role="alert">
-                <strong>⚠️ Outward Blocked — Active Loan Hold Against This Bond</strong>
+                <strong>⚠️ Outward Blocked — Active Loan Hold Against {form.selectedGrn.bondNumber ? `Bond ${form.selectedGrn.bondNumber}` : `GRN ${form.selectedGrn.grnNumber}`}</strong>
                 <div>
-                  This commodity is pledged under Bond {form.selectedGrn.grnNumber}
-                  {form.selectedGrn.loanBankName ? ` (${form.selectedGrn.loanBankName}` : ''}
-                  {form.selectedGrn.loanReferenceNumber ? ` · Ref: ${form.selectedGrn.loanReferenceNumber}` : ''}
-                  {form.selectedGrn.loanBankName ? ')' : ''}.
+                  This commodity is pledged under {form.selectedGrn.bondNumber ? `Bond #${form.selectedGrn.bondNumber} (GRN: ${form.selectedGrn.grnNumber})` : `GRN #${form.selectedGrn.grnNumber}`}
+                  {form.selectedGrn.loanBankName ? ` with ${form.selectedGrn.loanBankName}` : ''}
+                  {form.selectedGrn.loanReferenceNumber ? ` · Ref: ${form.selectedGrn.loanReferenceNumber}` : ''}.
                   Delivery challan generation is strictly blocked until the loan is marked as Cleared.
                 </div>
               </div>
