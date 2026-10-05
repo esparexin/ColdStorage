@@ -1,8 +1,12 @@
 import type mongoose from 'mongoose';
-import type { CreateDeliveryInput } from '@cold-storage/contracts';
+import type { BagComposition } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
+
+export interface CompositionBalance extends BagComposition {
+  total: number;
+}
 
 /**
  * Delivery withdrawal is validated against the GRN's active delivery challans, not against any
@@ -16,26 +20,38 @@ import { validateOperationalDate } from '../../common/operational-date.helper.js
  */
 export async function validateStockAndBalances(
   facilityId: string,
-  grn: { id: string; grnNumber: string; bags: number },
-  bags: CreateDeliveryInput['bags'],
+  grn: BagComposition & { id: string; grnNumber: string },
+  withdrawal: BagComposition,
   session: mongoose.ClientSession,
-): Promise<{ remainingDeliveryBalance: number; physicallyStored: number }> {
+): Promise<CompositionBalance> {
   const issuedAgg = await DeliveryChallanModel.aggregate([
     { $match: { grnId: grn.id, facilityId, status: 'ISSUED' } },
-    { $group: { _id: null, total: { $sum: '$bags' } } },
+    {
+      $group: {
+        _id: null,
+        small: { $sum: '$smallBags' },
+        big: { $sum: '$bigBags' },
+      },
+    },
   ]).session(session);
 
-  const netDelivered = issuedAgg[0]?.total ?? 0;
-  const remainingDeliveryBalance = grn.bags - netDelivered;
-  const physicallyStored = remainingDeliveryBalance;
+  const remainingSmall = grn.smallBags - (issuedAgg[0]?.small ?? 0);
+  const remainingBig = grn.bigBags - (issuedAgg[0]?.big ?? 0);
 
-  if (bags > remainingDeliveryBalance) {
+  // The per-type balance is the guard that matters: a GRN holding 100 small and 100 big bags
+  // must not permit a withdrawal of 150 big bags merely because the combined total would allow it.
+  if (withdrawal.smallBags > remainingSmall || withdrawal.bigBags > remainingBig) {
     throw new Error(
-      `Requested ${bags} bags exceeds remaining delivery balance of ${remainingDeliveryBalance} bags for GRN '${grn.grnNumber}'`,
+      `Requested ${withdrawal.smallBags} small and ${withdrawal.bigBags} big bags exceeds the ` +
+        `available balance of ${remainingSmall} small and ${remainingBig} big bags for GRN '${grn.grnNumber}'`,
     );
   }
 
-  return { remainingDeliveryBalance, physicallyStored };
+  return {
+    smallBags: remainingSmall,
+    bigBags: remainingBig,
+    total: Math.max(0, remainingSmall + remainingBig),
+  };
 }
 
 export function validateDeliveryDate(inputDate?: string | Date): Date {
@@ -43,29 +59,26 @@ export function validateDeliveryDate(inputDate?: string | Date): Date {
 }
 
 /**
- * A reversal returns bags to the GRN's own stock. Validated directly against the
- * delivery challan's issued status and original bags.
+ * A reversal is whole-challan only: the P0 lock parks partial reversal rules as unapproved, and
+ * the reversal ledger row restores exactly the composition the challan dispatched. This is a
+ * status check, not a quantity negotiation.
  */
-export async function validateReversalBags(
+export async function assertChallanIsReversible(
   facilityId: string,
   deliveryId: string,
-  bags: number,
   session: mongoose.ClientSession,
-): Promise<{ remainingOnChallan: number }> {
+): Promise<void> {
   const challan = await DeliveryChallanModel.findOne({ id: deliveryId, facilityId })
     .session(session)
     .lean()
     .exec();
 
-  const remainingOnChallan = challan && challan.status === 'ISSUED' ? challan.bags : 0;
-
-  if (bags > remainingOnChallan) {
-    throw new Error(
-      `Cannot reverse ${bags} bags: only ${remainingOnChallan} bags remain delivered on this challan`,
-    );
+  if (!challan) {
+    throw new Error(`Delivery challan '${deliveryId}' not found in facility '${facilityId}'`);
   }
-
-  return { remainingOnChallan };
+  if (challan.status !== 'ISSUED') {
+    throw new Error(`Delivery challan '${challan.challanNumber}' is already REVERSED`);
+  }
 }
 
 /** Stock currently on hand for a GRN inside a transaction, derived from GRN bags minus active challans. */
@@ -83,7 +96,7 @@ export async function readAvailableBags(
   const issuedAgg = await DeliveryChallanModel.aggregate(
     [
       { $match: { facilityId, grnId, status: 'ISSUED' } },
-      { $group: { _id: null, bags: { $sum: '$bags' } } },
+      { $group: { _id: null, bags: { $sum: { $add: ['$smallBags', '$bigBags'] } } } },
     ],
     { session },
   );

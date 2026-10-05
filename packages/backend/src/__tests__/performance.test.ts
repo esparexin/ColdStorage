@@ -37,6 +37,9 @@ function buildBenchmarkGrns(count: number) {
     chamber: `CH-${i % 4}`,
     bags: 100,
     bagType: 'S' as const,
+    // Composition is mandatory on every GRN; a single-type receipt stores zero on the unused side.
+    smallBags: 100,
+    bigBags: 0,
     smallBagWeight: 50,
     rentType: 'Seasonal' as const,
     rentAmount: 5000,

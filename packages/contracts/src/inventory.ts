@@ -8,6 +8,10 @@ import { chamberTextSchema } from './common.js';
  * Physical stock is derived from the immutable ledger, not from any storage structure. A GRN
  * is inward stock allocated into the free-text chamber recorded on that GRN. There are no
  * racks, levels, positions, capacities or occupancy.
+ *
+ * Every ledger row carries a bag composition (`smallQuantity` + `bigQuantity`) rather than one
+ * signed total, so the small/big split survives inward, outward and reversal. The total is
+ * derived from the two parts at read time and is never stored beside them.
  */
 
 export const inventoryTransactionTypeSchema = z.enum([
@@ -26,10 +30,12 @@ export const inventoryTransactionSchema = z.object({
   grnId: z.string().min(1),
   grnNumber: z.string().min(1),
   chamber: chamberTextSchema,
-  customerId: z.string().min(1),
   commodityId: z.string().min(1),
   bagType: bagTypeSchema,
   transactionType: inventoryTransactionTypeSchema,
+  smallQuantity: z.number().int().min(0),
+  bigQuantity: z.number().int().min(0),
+  /** Derived as smallQuantity + bigQuantity. Never persisted. */
   quantity: z.number().int().positive(),
   referenceType: inventoryReferenceTypeSchema,
   referenceId: z.string().min(1),
@@ -52,6 +58,8 @@ export const grnInventorySummarySchema = z.object({
   allocatedBags: z.number().int().min(0),
   unallocatedBags: z.number().int().min(0),
   putAwayStatus: putAwayStatusSchema,
+  availableSmallBags: z.number().int().min(0),
+  availableBigBags: z.number().int().min(0),
 });
 
 export type GrnInventorySummary = z.infer<typeof grnInventorySummarySchema>;

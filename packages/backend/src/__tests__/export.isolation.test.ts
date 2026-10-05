@@ -51,12 +51,16 @@ describe('P8 ExportService cross-facility isolation', () => {
       grnNumber: 'GRN-A-001',
       chamber: 'CH-A1',
       bags: 10,
+      smallBags: 10,
+      bigBags: 0,
     });
     await seedGrn({
       facilityId: facilityB,
       grnNumber: 'GRN-B-001',
       chamber: 'CH-B1',
       bags: 20,
+      smallBags: 20,
+      bigBags: 0,
     });
 
     const capture = await captureCsv((res) => exportService.exportGrns(facilityA, {}, res));
@@ -81,6 +85,8 @@ describe('P8 ExportService cross-facility isolation', () => {
         commodityName: 'Pot',
         chamber: 'CH-A1',
         bags: 5,
+        smallBags: 5,
+        bigBags: 0,
         totalBags: 5,
         status: 'ISSUED',
         issuedBy: 'u1',
@@ -98,6 +104,8 @@ describe('P8 ExportService cross-facility isolation', () => {
         commodityName: 'Pot',
         chamber: 'CH-B1',
         bags: 10,
+        smallBags: 10,
+        bigBags: 0,
         totalBags: 10,
         status: 'ISSUED',
         issuedBy: 'u2',
@@ -117,13 +125,15 @@ describe('P8 ExportService cross-facility isolation', () => {
         facilityId: facilityA,
         grnNumber: 'GRN-A-100',
         chamber: 'CH-A1',
-        quantity: 50,
+        smallQuantity: 50,
+        bigQuantity: 0,
       },
       {
         facilityId: facilityB,
         grnNumber: 'GRN-B-100',
         chamber: 'CH-B1',
-        quantity: 70,
+        smallQuantity: 70,
+        bigQuantity: 0,
       },
     ]);
 
@@ -148,8 +158,8 @@ describe('P8 ExportService cross-facility isolation', () => {
 
   it('cross-facility isolation (Stock Summary): aggregates only Facility A ledger entries', async () => {
     await seedLedgerEntries([
-      { facilityId: facilityA, chamber: 'CH-A1', quantity: 200 },
-      { facilityId: facilityB, chamber: 'CH-B1', quantity: 800 },
+      { facilityId: facilityA, chamber: 'CH-A1', smallQuantity: 200, bigQuantity: 0 },
+      { facilityId: facilityB, chamber: 'CH-B1', smallQuantity: 800, bigQuantity: 0 },
     ]);
 
     const capture = await captureCsv((res) => exportService.exportStockSummary(facilityA, res));
@@ -175,7 +185,7 @@ describe('P8 ExportService cross-facility isolation', () => {
   });
 
   it('a facility with no records at all still receives a header-only stream', async () => {
-    await seedLedgerEntry({ facilityId: facilityA, chamber: 'CH-A1', quantity: 5 });
+    await seedLedgerEntry({ facilityId: facilityA, chamber: 'CH-A1', smallQuantity: 5, bigQuantity: 0 });
     const capture = await captureCsv((res) => exportService.exportStockSummary(facilityB, res));
 
     expect(capture.rows).toEqual(['chamber,totalBags']);

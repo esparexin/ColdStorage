@@ -74,7 +74,8 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
       .set('Authorization', `Bearer ${operatorToken}`)
       .send({
         grnId,
-        bags: 30,
+        smallBags: 30,
+        bigBags: 0,
         vehicleNumber: 'MH12AB1234',
         driverName: 'Ramu',
         remarks: 'First partial delivery',
@@ -82,7 +83,8 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.delivery.challanNumber).toMatch(/^CHL-\d{2}-\d{2}-\d{4}$/);
-    expect(res.body.delivery.bags).toBe(30);
+    expect(res.body.delivery.smallBags).toBe(30);
+    expect(res.body.delivery.bigBags).toBe(0);
     expect(res.body.delivery.totalBags).toBe(30);
     expect(res.body.delivery.chamber).toBe('CH-1');
     expect(res.body.delivery.status).toBe('ISSUED');
@@ -96,7 +98,7 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
     const res = await request(app)
       .post(`/api/facilities/${facilityId}/deliveries`)
       .set('Authorization', `Bearer ${readOnlyToken}`)
-      .send({ grnId, bags: 20 });
+      .send({ grnId, smallBags: 20, bigBags: 0 });
 
     expect(res.status).toBe(403);
     expect(res.body.error).toContain("lacks permission 'delivery:create'");
@@ -106,7 +108,7 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
     const res = await request(app)
       .post(`/api/facilities/${facilityId}/deliveries`)
       .set('Authorization', `Bearer ${otherFacilityOperatorToken}`)
-      .send({ grnId, bags: 20 });
+      .send({ grnId, smallBags: 20, bigBags: 0 });
 
     expect(res.status).toBe(403);
     expect(res.body.error).toContain('not authorized to access facility');
@@ -116,7 +118,7 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
     const res = await request(app)
       .post(`/api/facilities/${otherFacilityId}/deliveries`)
       .set('Authorization', `Bearer ${otherFacilityOperatorToken}`)
-      .send({ grnId, bags: 10 });
+      .send({ grnId, smallBags: 10, bigBags: 0 });
 
     expect(res.status).toBe(404);
     expect(res.body.error).toContain('not found in facility');
@@ -136,10 +138,10 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
     const res = await request(app)
       .post(`/api/facilities/${facilityId}/deliveries`)
       .set('Authorization', `Bearer ${operatorToken}`)
-      .send({ grnId, bags: 81 });
+      .send({ grnId, smallBags: 81, bigBags: 0 });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toContain('exceeds remaining delivery balance');
+    expect(res.body.error).toContain('exceeds the available balance of 80 small and 0 big bags');
   });
 
   it('blocks delivery with 402 when rent is unpaid', async () => {
@@ -155,7 +157,7 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
     const res = await request(app)
       .post(`/api/facilities/${facilityId}/deliveries`)
       .set('Authorization', `Bearer ${operatorToken}`)
-      .send({ grnId: unpaidGrnId, bags: 5 });
+      .send({ grnId: unpaidGrnId, smallBags: 5, bigBags: 0 });
 
     expect(res.status).toBe(402);
     expect(res.body.code).toBe('RENT_PAYMENT_REQUIRED');
@@ -166,7 +168,7 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
     const delRes = await request(app)
       .post(`/api/facilities/${facilityId}/deliveries`)
       .set('Authorization', `Bearer ${operatorToken}`)
-      .send({ grnId, bags: 25 });
+      .send({ grnId, smallBags: 25, bigBags: 0 });
     const deliveryId = delRes.body.delivery.id;
 
     const revRes = await request(app)
@@ -186,7 +188,7 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
     const delRes = await request(app)
       .post(`/api/facilities/${facilityId}/deliveries`)
       .set('Authorization', `Bearer ${operatorToken}`)
-      .send({ grnId, bags: 20 });
+      .send({ grnId, smallBags: 20, bigBags: 0 });
     const deliveryId = delRes.body.delivery.id;
 
     const revRes = await request(app)
@@ -202,7 +204,7 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
     const delRes = await request(app)
       .post(`/api/facilities/${facilityId}/deliveries`)
       .set('Authorization', `Bearer ${operatorToken}`)
-      .send({ grnId, bags: 15 });
+      .send({ grnId, smallBags: 15, bigBags: 0 });
     const deliveryId = delRes.body.delivery.id;
 
     const listRes = await request(app)

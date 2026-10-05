@@ -27,7 +27,7 @@ export async function getFacilityInventorySummary(
       {
         $group: {
           _id: { commodityId: '$commodityId', chamber: '$chamber' },
-          totalBags: { $sum: '$bags' },
+          totalBags: { $sum: { $add: ['$smallBags', '$bigBags'] } },
         },
       },
     ]),

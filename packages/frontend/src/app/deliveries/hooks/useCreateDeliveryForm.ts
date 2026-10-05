@@ -24,7 +24,12 @@ export function useCreateDeliveryForm(
   const [grnSummary, setGrnSummary] = useState<GrnInventorySummary | null>(null);
   const [loadingGrnSummary, setLoadingGrnSummary] = useState(false);
   const [createDate, setCreateDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [withdrawal, setWithdrawal] = useState<GrnWithdrawal>({ maxBags: 0, bags: '' });
+  const [withdrawal, setWithdrawal] = useState<GrnWithdrawal>({
+    availableSmall: 0,
+    availableBig: 0,
+    smallBags: '',
+    bigBags: '',
+  });
   const [createVehicleNumber, setCreateVehicleNumber] = useState('');
   const [createDriverName, setCreateDriverName] = useState('');
   const [createWeight, setCreateWeight] = useState<number | ''>('');
@@ -54,7 +59,7 @@ export function useCreateDeliveryForm(
   const handleSelectGrn = async (grnId: string) => {
     setCreateGrnId(grnId);
     setGrnSummary(null);
-    setWithdrawal({ maxBags: 0, bags: '' });
+    setWithdrawal({ availableSmall: 0, availableBig: 0, smallBags: '', bigBags: '' });
     setRentRequired(null);
     rentGate.resetRentGate();
     if (!facilityId || !grnId) return;
@@ -83,7 +88,12 @@ export function useCreateDeliveryForm(
       if (invRes.ok) {
         const data = (await invRes.json()) as { summary: GrnInventorySummary };
         setGrnSummary(data.summary);
-        setWithdrawal({ maxBags: data.summary.allocatedBags, bags: '' });
+        setWithdrawal({
+          availableSmall: data.summary.availableSmallBags,
+          availableBig: data.summary.availableBigBags,
+          smallBags: '',
+          bigBags: '',
+        });
       }
     } catch {
       setModalError('Failed to load GRN stock summary');
@@ -92,7 +102,9 @@ export function useCreateDeliveryForm(
     }
   };
 
-  const totalWithdrawingBags = typeof withdrawal.bags === 'number' ? withdrawal.bags : 0;
+  const smallBags = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
+  const bigBags = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
+  const totalWithdrawingBags = smallBags + bigBags;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,14 +114,17 @@ export function useCreateDeliveryForm(
       return;
     }
 
-    if (typeof withdrawal.bags !== 'number' || withdrawal.bags <= 0) {
-      setModalError('Please specify how many bags to withdraw');
+    if (totalWithdrawingBags <= 0) {
+      setModalError('Please specify how many small and/or big bags to withdraw');
       return;
     }
 
-    if (withdrawal.bags > withdrawal.maxBags) {
+    // The per-type ceilings are enforced here for fast feedback; the backend re-checks them
+    // inside the transaction, which is the boundary that actually guarantees the invariant.
+    if (smallBags > withdrawal.availableSmall || bigBags > withdrawal.availableBig) {
       setModalError(
-        `Cannot withdraw ${withdrawal.bags} bags: only ${withdrawal.maxBags} are available in stock`,
+        `Cannot withdraw ${smallBags} small and ${bigBags} big bags: only ` +
+          `${withdrawal.availableSmall} small and ${withdrawal.availableBig} big bags are available`,
       );
       return;
     }
@@ -128,7 +143,8 @@ export function useCreateDeliveryForm(
       const payload: Record<string, unknown> = {
         grnId: createGrnId,
         date: new Date(createDate),
-        bags: withdrawal.bags as number,
+        smallBags,
+        bigBags,
       };
 
       if (createVehicleNumber.trim()) {
@@ -187,7 +203,10 @@ export function useCreateDeliveryForm(
     createDate,
     setCreateDate,
     withdrawal,
-    setWithdrawalBags: (bags: number | '') => setWithdrawal((prev) => ({ ...prev, bags })),
+    setWithdrawalSmallBags: (smallBags: number | '') =>
+      setWithdrawal((prev) => ({ ...prev, smallBags })),
+    setWithdrawalBigBags: (bigBags: number | '') =>
+      setWithdrawal((prev) => ({ ...prev, bigBags })),
     createVehicleNumber,
     setCreateVehicleNumber,
     createDriverName,

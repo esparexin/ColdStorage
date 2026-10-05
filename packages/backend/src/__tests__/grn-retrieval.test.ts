@@ -63,6 +63,8 @@ describe('GRN Retrieval & Acknowledgement Projections', () => {
         chamber: 'CH-NORTH-01',
         bags: 120,
         bagType: 'S+B',
+        smallBags: 70,
+        bigBags: 50,
         smallBagWeight: 50,
         bigBagWeight: 80,
         rentType: 'Seasonal',

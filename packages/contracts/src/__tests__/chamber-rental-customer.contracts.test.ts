@@ -129,6 +129,8 @@ describe('Chamber, Rental & Customer Contracts', () => {
       chamber: 'CH-01',
       bags: 100,
       bagType: 'S+B',
+      smallBags: 60,
+      bigBags: 40,
       smallBagWeight: 50,
       bigBagWeight: 80,
       rentType: 'Seasonal',

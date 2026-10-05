@@ -31,6 +31,7 @@ describe('Monthly Storage Rent Occupancy Calculation Tests', () => {
       customerId,
       chamber: 'CH-04',
       bags: 100,
+      smallBags: 100, bigBags: 0,
       commodityName: 'Apples',
       rentType: 'Monthly',
       rentMonths: 3,
@@ -72,7 +73,7 @@ describe('Monthly Storage Rent Occupancy Calculation Tests', () => {
       {
         grnId,
         date: deliveryDate,
-        bags: 40,
+        smallBags: 40, bigBags: 0,
         remarks: 'Partial delivery of 40 bags',
       },
       userId,
@@ -103,8 +104,8 @@ describe('Monthly Storage Rent Occupancy Calculation Tests', () => {
     const d1Date = new Date(now - 10 * 24 * 60 * 60 * 1000);
     const d2Date = new Date(now - 2 * 24 * 60 * 60 * 1000);
 
-    await deliveryService.createDelivery(facilityId, { grnId, date: d1Date, bags: 40 }, userId);
-    await deliveryService.createDelivery(facilityId, { grnId, date: d2Date, bags: 60 }, userId);
+    await deliveryService.createDelivery(facilityId, { grnId, date: d1Date, smallBags: 40, bigBags: 0 }, userId);
+    await deliveryService.createDelivery(facilityId, { grnId, date: d2Date, smallBags: 60, bigBags: 0 }, userId);
 
     const summary = await rentService.getMonthlyOccupancyRent(facilityId, grnId);
     expect(summary).not.toBeNull();
@@ -120,6 +121,7 @@ describe('Monthly Storage Rent Occupancy Calculation Tests', () => {
       customerId,
       chamber: 'CH-05',
       bags: 200,
+      smallBags: 200, bigBags: 0,
       commodityName: 'Potatoes',
       rentType: 'Seasonal',
       rentAmount: 20000,
@@ -137,7 +139,7 @@ describe('Monthly Storage Rent Occupancy Calculation Tests', () => {
       {
         grnId: seasonalGrnId,
         date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-        bags: 50,
+        smallBags: 50, bigBags: 0,
       },
       userId,
     );

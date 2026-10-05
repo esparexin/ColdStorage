@@ -12,7 +12,8 @@ describe('P6 Delivery Contracts', () => {
     const input = {
       grnId: 'grn-1',
       date: new Date(),
-      bags: 50,
+      smallBags: 30,
+      bigBags: 20,
       vehicleNumber: 'MH12AB1234',
       driverName: 'Suresh Kumar',
       weight: 4000,
@@ -21,31 +22,47 @@ describe('P6 Delivery Contracts', () => {
     const parsed = createDeliverySchema.safeParse(input);
     expect(parsed.success).toBe(true);
     if (parsed.success) {
-      expect(parsed.data.bags).toBe(50);
+      expect(parsed.data.smallBags).toBe(30);
+      expect(parsed.data.bigBags).toBe(20);
       expect(parsed.data.weight).toBe(4000);
     }
   });
 
-  it('rejects a zero, negative or fractional bag count', () => {
-    expect(createDeliverySchema.safeParse({ grnId: 'grn-1', bags: 0 }).success).toBe(false);
-    expect(createDeliverySchema.safeParse({ grnId: 'grn-1', bags: -5 }).success).toBe(false);
-    expect(createDeliverySchema.safeParse({ grnId: 'grn-1', bags: 2.5 }).success).toBe(false);
+  it('rejects a negative or fractional bag count on either side', () => {
+    expect(createDeliverySchema.safeParse({ grnId: 'grn-1', smallBags: -5, bigBags: 0 }).success).toBe(false);
+    expect(createDeliverySchema.safeParse({ grnId: 'grn-1', smallBags: 0, bigBags: -1 }).success).toBe(false);
+    expect(createDeliverySchema.safeParse({ grnId: 'grn-1', smallBags: 2.5, bigBags: 0 }).success).toBe(false);
+  });
+
+  it('rejects a delivery that moves no bags at all', () => {
+    expect(createDeliverySchema.safeParse({ grnId: 'grn-1', smallBags: 0, bigBags: 0 }).success).toBe(false);
+  });
+
+  it('accepts a single-bag-type delivery with the other side at zero', () => {
+    expect(createDeliverySchema.safeParse({ grnId: 'grn-1', smallBags: 0, bigBags: 30 }).success).toBe(true);
   });
 
   it('rejects a non-numeric bag count', () => {
-    const parsed = createDeliverySchema.safeParse({ grnId: 'grn-1', bags: 'twenty' });
+    const parsed = createDeliverySchema.safeParse({ grnId: 'grn-1', smallBags: 'twenty', bigBags: 0 });
     expect(parsed.success).toBe(false);
     if (!parsed.success) {
-      expect(parsed.error.issues[0].message).toContain('Bags must be a number');
+      expect(parsed.error.issues[0].message).toContain('Small bags must be a number');
     }
   });
 
-  it('rejects legacy position-item payloads', () => {
+  it('discards legacy position-item payloads rather than honouring them', () => {
+    // Positions are retired. A legacy payload still parses on its bag composition, but the item
+    // list is dropped, so it can never become a second way to express a delivered quantity.
     const parsed = createDeliverySchema.safeParse({
       grnId: 'grn-1',
+      smallBags: 20,
+      bigBags: 0,
       items: [{ positionId: 'pos-1', bags: 20 }],
     });
-    expect(parsed.success).toBe(false);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data).not.toHaveProperty('items');
+    }
   });
 
   it('rejects future delivery date beyond 5-minute skew tolerance', () => {
@@ -53,7 +70,8 @@ describe('P6 Delivery Contracts', () => {
     const parsed = createDeliverySchema.safeParse({
       grnId: 'grn-1',
       date: futureDate,
-      bags: 10,
+      smallBags: 10,
+      bigBags: 0,
     });
     expect(parsed.success).toBe(false);
     if (!parsed.success) {
@@ -101,7 +119,7 @@ describe('P6 Delivery Contracts', () => {
     }
   });
 
-  it('validates deliveryChallanSchema with movement balance snapshots and transport markers', () => {
+  it('validates deliveryChallanSchema with a dispatched composition and transport markers', () => {
     const now = new Date();
     const challan = {
       id: 'del-1',
@@ -115,10 +133,9 @@ describe('P6 Delivery Contracts', () => {
       commodityId: 'comm-1',
       commodityName: 'Potato',
       chamber: 'CH-01',
-      bags: 40,
+      smallBags: 25,
+      bigBags: 15,
       totalBags: 40,
-      openingBags: 100,
-      closingBags: 60,
       marks: 'LOT-A',
       gpNumber: 'GP-999',
       status: 'ISSUED',
@@ -129,8 +146,9 @@ describe('P6 Delivery Contracts', () => {
     const parsed = deliveryChallanSchema.safeParse(challan);
     expect(parsed.success).toBe(true);
     if (parsed.success) {
-      expect(parsed.data.openingBags).toBe(100);
-      expect(parsed.data.closingBags).toBe(60);
+      expect(parsed.data.smallBags).toBe(25);
+      expect(parsed.data.bigBags).toBe(15);
+      expect(parsed.data.totalBags).toBe(40);
       expect(parsed.data.marks).toBe('LOT-A');
       expect(parsed.data.gpNumber).toBe('GP-999');
     }

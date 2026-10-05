@@ -51,8 +51,10 @@ describe('InventoryService GRN Chamber SSOT tests', () => {
       allocatedBags: 100,
       unallocatedBags: 0,
       putAwayStatus: 'ALLOCATED',
+      availableSmallBags: 100,
+      availableBigBags: 0,
     });
-    expect(await inventoryService.getAvailableBags(facilityId, grnId)).toBe(100);
+    expect((await inventoryService.getAvailableBags(facilityId, grnId)).bags).toBe(100);
 
     const facSummary = await inventoryService.getFacilityInventorySummary(facilityId);
     expect(facSummary.totalStockBags).toBe(100);
@@ -60,9 +62,9 @@ describe('InventoryService GRN Chamber SSOT tests', () => {
   });
 
   it('2. Delivery: GRN = 100, Delivery = 30 -> Available = 70, Chamber 1 = 70', async () => {
-    await deliveryService.createDelivery(facilityId, { grnId, bags: 30 }, userId);
+    await deliveryService.createDelivery(facilityId, { grnId, smallBags: 30, bigBags: 0 }, userId);
 
-    expect(await inventoryService.getAvailableBags(facilityId, grnId)).toBe(70);
+    expect((await inventoryService.getAvailableBags(facilityId, grnId)).bags).toBe(70);
 
     const facSummary = await inventoryService.getFacilityInventorySummary(facilityId);
     expect(facSummary.totalStockBags).toBe(70);
@@ -74,10 +76,10 @@ describe('InventoryService GRN Chamber SSOT tests', () => {
   });
 
   it('3. Multiple deliveries: GRN = 100, Delivery 1 = 30, Delivery 2 = 20 -> Available = 50', async () => {
-    await deliveryService.createDelivery(facilityId, { grnId, bags: 30 }, userId);
-    await deliveryService.createDelivery(facilityId, { grnId, bags: 20 }, userId);
+    await deliveryService.createDelivery(facilityId, { grnId, smallBags: 30, bigBags: 0 }, userId);
+    await deliveryService.createDelivery(facilityId, { grnId, smallBags: 20, bigBags: 0 }, userId);
 
-    expect(await inventoryService.getAvailableBags(facilityId, grnId)).toBe(50);
+    expect((await inventoryService.getAvailableBags(facilityId, grnId)).bags).toBe(50);
 
     const facSummary = await inventoryService.getFacilityInventorySummary(facilityId);
     expect(facSummary.totalStockBags).toBe(50);
@@ -85,9 +87,9 @@ describe('InventoryService GRN Chamber SSOT tests', () => {
   });
 
   it('4. Delivery reversal: 30 and 20 delivered, 20 reversed -> Available = 70', async () => {
-    await deliveryService.createDelivery(facilityId, { grnId, bags: 30 }, userId);
-    const del2 = await deliveryService.createDelivery(facilityId, { grnId, bags: 20 }, userId);
-    expect(await inventoryService.getAvailableBags(facilityId, grnId)).toBe(50);
+    await deliveryService.createDelivery(facilityId, { grnId, smallBags: 30, bigBags: 0 }, userId);
+    const del2 = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 20, bigBags: 0 }, userId);
+    expect((await inventoryService.getAvailableBags(facilityId, grnId)).bags).toBe(50);
 
     await deliveryService.reverseDelivery(
       facilityId,
@@ -96,7 +98,7 @@ describe('InventoryService GRN Chamber SSOT tests', () => {
       userId,
     );
 
-    expect(await inventoryService.getAvailableBags(facilityId, grnId)).toBe(70);
+    expect((await inventoryService.getAvailableBags(facilityId, grnId)).bags).toBe(70);
 
     const facSummary = await inventoryService.getFacilityInventorySummary(facilityId);
     expect(facSummary.totalStockBags).toBe(70);
@@ -134,7 +136,7 @@ describe('InventoryService GRN Chamber SSOT tests', () => {
     // Assert directly that with NO put-away allocation or INWARD_PUTAWAY ledger rows,
     // stock is immediately, authoritatively available from the GRN itself.
     const available = await inventoryService.getAvailableBags(facilityId, grnId);
-    expect(available).toBe(100);
+    expect(available.bags).toBe(100);
 
     const summary = await inventoryService.getGrnInventorySummary(facilityId, grnId);
     expect(summary.allocatedBags).toBe(100);

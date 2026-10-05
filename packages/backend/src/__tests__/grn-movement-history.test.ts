@@ -30,6 +30,7 @@ describe('GRN Movement History SSOT tests', () => {
       customerId,
       chamber: 'CH-03',
       bags: 100,
+      smallBags: 100, bigBags: 0,
       commodityName: 'Potatoes',
       grnNumber: 'GRN-25-26-0099',
       marks: 'GRADE-A',
@@ -68,7 +69,7 @@ describe('GRN Movement History SSOT tests', () => {
       {
         grnId,
         date: t1,
-        bags: 40,
+        smallBags: 40, bigBags: 0,
         vehicleNumber: 'DL01AB9999',
         driverName: 'Manpreet Singh',
         remarks: 'First partial withdrawal',
@@ -82,7 +83,7 @@ describe('GRN Movement History SSOT tests', () => {
       {
         grnId,
         date: t2,
-        bags: 60,
+        smallBags: 60, bigBags: 0,
         vehicleNumber: 'DL01AB8888',
         driverName: 'Gurdeep Singh',
         remarks: 'Final settlement withdrawal',
@@ -129,7 +130,7 @@ describe('GRN Movement History SSOT tests', () => {
   it('correctly audits delivery reversal with timeline balance restoration', async () => {
     const del = await deliveryService.createDelivery(
       facilityId,
-      { grnId, bags: 100, remarks: 'Full delivery' },
+      { grnId, smallBags: 100, bigBags: 0, remarks: 'Full delivery' },
       userId,
     );
     expect(del.summary.grnStatus).toBe('CLOSED');
@@ -152,7 +153,9 @@ describe('GRN Movement History SSOT tests', () => {
     expect(inward.type).toBe('INWARD');
     expect(inward.closingBags).toBe(100);
 
-    expect(outward.type).toBe('FINAL_OUTWARD');
+    // A reversed challan emptied the balance but was not a settlement, so it must not be
+    // labelled the final outward movement.
+    expect(outward.type).toBe('PARTIAL_OUTWARD');
     expect(outward.openingBags).toBe(100);
     expect(outward.deliveredBags).toBe(100);
     expect(outward.closingBags).toBe(0);

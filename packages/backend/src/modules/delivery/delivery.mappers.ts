@@ -6,6 +6,8 @@ export { isTransientError } from '../common/mongo-retry.helper.js';
 
 export function toChallanEntity(doc: DeliveryChallanDoc | Record<string, unknown> | unknown): DeliveryChallan {
   const d = doc as Record<string, unknown>;
+  const smallBags = Number(d.smallBags ?? 0);
+  const bigBags = Number(d.bigBags ?? 0);
   return {
     id: String(d.id),
     facilityId: String(d.facilityId),
@@ -18,10 +20,10 @@ export function toChallanEntity(doc: DeliveryChallanDoc | Record<string, unknown
     commodityId: String(d.commodityId),
     commodityName: String(d.commodityName),
     chamber: String(d.chamber),
-    bags: Number(d.bags),
-    totalBags: Number(d.totalBags),
-    openingBags: typeof d.openingBags === 'number' ? d.openingBags : Number(d.openingBags ?? d.totalBags ?? 0),
-    closingBags: typeof d.closingBags === 'number' ? d.closingBags : Number(d.closingBags ?? 0),
+    smallBags,
+    bigBags,
+    // Derived for transport only; the composition is the stored fact.
+    totalBags: smallBags + bigBags,
     marks: d.marks ? String(d.marks) : null,
     gpNumber: d.gpNumber ? String(d.gpNumber) : null,
     vehicleNumber: d.vehicleNumber ? String(d.vehicleNumber) : null,

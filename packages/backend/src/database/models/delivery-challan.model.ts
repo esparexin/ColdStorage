@@ -14,10 +14,9 @@ export interface DeliveryChallanDoc extends Document {
   commodityName: string;
   /** Free-text chamber label copied from the owning GRN. */
   chamber: string;
-  bags: number;
-  totalBags: number;
-  openingBags: number;
-  closingBags: number;
+  /** Bag composition dispatched. The total is their sum and is never stored. */
+  smallBags: number;
+  bigBags: number;
   marks: string | null;
   gpNumber: string | null;
   vehicleNumber: string | null;
@@ -43,10 +42,8 @@ const deliveryChallanSchema = new Schema<DeliveryChallanDoc>(
     commodityId: { type: String, required: true, index: true },
     commodityName: { type: String, required: true, trim: true },
     chamber: { type: String, required: true, trim: true, maxlength: 20 },
-    bags: { type: Number, required: true, min: 1 },
-    totalBags: { type: Number, required: true, min: 1 },
-    openingBags: { type: Number, required: true, default: 0, min: 0 },
-    closingBags: { type: Number, required: true, default: 0, min: 0 },
+    smallBags: { type: Number, required: true, min: 0 },
+    bigBags: { type: Number, required: true, min: 0 },
     marks: { type: String, trim: true, default: null },
     gpNumber: { type: String, trim: true, default: null },
     vehicleNumber: { type: String, trim: true, uppercase: true, default: null },
@@ -60,6 +57,17 @@ const deliveryChallanSchema = new Schema<DeliveryChallanDoc>(
     timestamps: true,
   },
 );
+
+// A challan that dispatched nothing is not a movement record. Guarded here so no caller can
+// write one, which would otherwise net to zero in every balance and hide a lost delivery.
+deliveryChallanSchema.pre('validate', function assertChallanIsNotEmpty(next) {
+  const doc = this as DeliveryChallanDoc;
+  if (doc.smallBags + doc.bigBags <= 0) {
+    next(new Error('DeliveryChallan must dispatch at least one bag'));
+    return;
+  }
+  next();
+});
 
 deliveryChallanSchema.index({ facilityId: 1, challanNumber: 1 }, { unique: true });
 deliveryChallanSchema.index({ facilityId: 1, grnId: 1 });

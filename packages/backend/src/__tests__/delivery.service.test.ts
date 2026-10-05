@@ -49,7 +49,8 @@ describe('P6 DeliveryService outward delivery tests', () => {
       {
         grnId,
         date: new Date(),
-        bags: 40,
+        smallBags: 40,
+        bigBags: 0,
         vehicleNumber: 'MH12AB1234',
         driverName: 'Raju Driver',
         weight: 2000,
@@ -59,10 +60,9 @@ describe('P6 DeliveryService outward delivery tests', () => {
     );
 
     expect(res.delivery.challanNumber).toMatch(/^CHL-\d{2}-\d{2}-\d{4}$/);
-    expect(res.delivery.bags).toBe(40);
+    expect(res.delivery.smallBags).toBe(40);
+    expect(res.delivery.bigBags).toBe(0);
     expect(res.delivery.totalBags).toBe(40);
-    expect(res.delivery.openingBags).toBe(100);
-    expect(res.delivery.closingBags).toBe(60);
     expect(res.delivery.chamber).toBe('CH-01');
     expect(res.delivery.status).toBe('ISSUED');
     expect(res.delivery.issuedBy).toBe(userId);
@@ -74,7 +74,8 @@ describe('P6 DeliveryService outward delivery tests', () => {
     expect(res.summary.grnStatus).toBe('OPEN');
 
     const outward = await InventoryTransactionModel.findOne({ grnId, transactionType: 'OUTWARD_DELIVERY' }).exec();
-    expect(outward?.quantity).toBe(40);
+    expect(outward?.smallQuantity).toBe(40);
+    expect(outward?.bigQuantity).toBe(0);
     expect(outward?.chamber).toBe('CH-01');
     expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('OPEN');
   });
@@ -83,8 +84,8 @@ describe('P6 DeliveryService outward delivery tests', () => {
     await allocateWholeLot();
 
     await expect(
-      deliveryService.createDelivery(facilityId, { grnId, bags: 101 }, userId),
-    ).rejects.toThrow(/exceeds remaining delivery balance/);
+      deliveryService.createDelivery(facilityId, { grnId, smallBags: 101, bigBags: 0 }, userId),
+    ).rejects.toThrow(/exceeds the available balance of 100 small and 0 big bags/);
 
     expect(await DeliveryChallanModel.countDocuments()).toBe(0);
     expect(await InventoryTransactionModel.countDocuments({ transactionType: 'OUTWARD_DELIVERY' })).toBe(0);
@@ -96,7 +97,8 @@ describe('P6 DeliveryService outward delivery tests', () => {
       {
         grnId,
         date: new Date(),
-        bags: 50,
+        smallBags: 50,
+        bigBags: 0,
       },
       userId,
     );
@@ -110,11 +112,9 @@ describe('P6 DeliveryService outward delivery tests', () => {
   it('automatically closes the GRN when balance and stored stock both reach zero', async () => {
     await allocateWholeLot();
 
-    const res = await deliveryService.createDelivery(facilityId, { grnId, bags: 100 }, userId);
+    const res = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 100, bigBags: 0 }, userId);
 
     expect(res.delivery.totalBags).toBe(100);
-    expect(res.delivery.openingBags).toBe(100);
-    expect(res.delivery.closingBags).toBe(0);
     expect(res.summary.remainingDeliveryBalance).toBe(0);
     expect(res.summary.physicallyStoredBags).toBe(0);
     expect(res.summary.grnStatus).toBe('CLOSED');
@@ -124,57 +124,54 @@ describe('P6 DeliveryService outward delivery tests', () => {
   it('correctly records multi-step partial deliveries with exact opening and closing snapshots', async () => {
     const d1 = await deliveryService.createDelivery(
       facilityId,
-      { grnId, bags: 40, marks: 'LOT-A', gpNumber: 'GP-001' },
+      { grnId, smallBags: 40, bigBags: 0, marks: 'LOT-A', gpNumber: 'GP-001' },
       userId,
     );
-    expect(d1.delivery.openingBags).toBe(100);
-    expect(d1.delivery.bags).toBe(40);
-    expect(d1.delivery.closingBags).toBe(60);
+    expect(d1.delivery.smallBags).toBe(40);
+    expect(d1.delivery.totalBags).toBe(40);
     expect(d1.delivery.marks).toBe('LOT-A');
     expect(d1.delivery.gpNumber).toBe('GP-001');
     expect(d1.summary.grnStatus).toBe('OPEN');
+    expect(d1.summary.remainingDeliveryBalance).toBe(60);
 
     const d2 = await deliveryService.createDelivery(
       facilityId,
-      { grnId, bags: 30 },
+      { grnId, smallBags: 30, bigBags: 0 },
       userId,
     );
-    expect(d2.delivery.openingBags).toBe(60);
-    expect(d2.delivery.bags).toBe(30);
-    expect(d2.delivery.closingBags).toBe(30);
+    expect(d2.delivery.smallBags).toBe(30);
+    expect(d2.delivery.totalBags).toBe(30);
     expect(d2.summary.grnStatus).toBe('OPEN');
+    expect(d2.summary.remainingDeliveryBalance).toBe(30);
 
     const d3 = await deliveryService.createDelivery(
       facilityId,
-      { grnId, bags: 30 },
+      { grnId, smallBags: 30, bigBags: 0 },
       userId,
     );
-    expect(d3.delivery.openingBags).toBe(30);
-    expect(d3.delivery.bags).toBe(30);
-    expect(d3.delivery.closingBags).toBe(0);
+    expect(d3.delivery.smallBags).toBe(30);
+    expect(d3.delivery.totalBags).toBe(30);
     expect(d3.summary.grnStatus).toBe('CLOSED');
+    expect(d3.summary.remainingDeliveryBalance).toBe(0);
 
     const grnDoc = await GrnModel.findOne({ id: grnId }).exec();
     expect(grnDoc?.status).toBe('CLOSED');
 
+    // The challan stores the dispatched composition only. Opening/closing are derived balances,
+    // so a reversal cannot leave a stale snapshot behind.
     const savedDocs = await DeliveryChallanModel.find({ grnId }).sort({ createdAt: 1 }).exec();
     expect(savedDocs).toHaveLength(3);
-    expect(savedDocs[0].openingBags).toBe(100);
-    expect(savedDocs[0].closingBags).toBe(60);
+    expect(savedDocs.map((d) => d.smallBags + d.bigBags)).toEqual([40, 30, 30]);
     expect(savedDocs[0].marks).toBe('LOT-A');
     expect(savedDocs[0].gpNumber).toBe('GP-001');
-    expect(savedDocs[1].openingBags).toBe(60);
-    expect(savedDocs[1].closingBags).toBe(30);
-    expect(savedDocs[2].openingBags).toBe(30);
-    expect(savedDocs[2].closingBags).toBe(0);
   });
 
   it('rejects any delivery attempt targeting an already CLOSED GRN', async () => {
     await allocateWholeLot();
-    await deliveryService.createDelivery(facilityId, { grnId, bags: 100 }, userId);
+    await deliveryService.createDelivery(facilityId, { grnId, smallBags: 100, bigBags: 0 }, userId);
 
     await expect(
-      deliveryService.createDelivery(facilityId, { grnId, bags: 10 }, userId),
+      deliveryService.createDelivery(facilityId, { grnId, smallBags: 10, bigBags: 0 }, userId),
     ).rejects.toThrow(/is CLOSED/);
   });
 
@@ -182,8 +179,8 @@ describe('P6 DeliveryService outward delivery tests', () => {
     await allocateWholeLot();
 
     const results = await Promise.allSettled([
-      deliveryService.createDelivery(facilityId, { grnId, bags: 60, remarks: 'Op A' }, 'usr-op-a'),
-      deliveryService.createDelivery(facilityId, { grnId, bags: 60, remarks: 'Op B' }, 'usr-op-b'),
+      deliveryService.createDelivery(facilityId, { grnId, smallBags: 60, bigBags: 0, remarks: 'Op A' }, 'usr-op-a'),
+      deliveryService.createDelivery(facilityId, { grnId, smallBags: 60, bigBags: 0, remarks: 'Op B' }, 'usr-op-b'),
     ]);
 
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
@@ -198,8 +195,8 @@ describe('P6 DeliveryService outward delivery tests', () => {
   it('generates independent sequential FY delivery challan numbers', async () => {
     await allocateWholeLot();
 
-    const del1 = await deliveryService.createDelivery(facilityId, { grnId, bags: 10 }, userId);
-    const del2 = await deliveryService.createDelivery(facilityId, { grnId, bags: 10 }, userId);
+    const del1 = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 10, bigBags: 0 }, userId);
+    const del2 = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 10, bigBags: 0 }, userId);
 
     expect(del1.delivery.challanNumber).toMatch(/^CHL-\d{2}-\d{2}-0001$/);
     expect(del2.delivery.challanNumber).toMatch(/^CHL-\d{2}-\d{2}-0002$/);
@@ -217,7 +214,7 @@ describe('P6 DeliveryService outward delivery tests', () => {
     });
 
     const err = await deliveryService
-      .createDelivery(facilityId, { grnId: unpaidGrnId, bags: 1 }, userId)
+      .createDelivery(facilityId, { grnId: unpaidGrnId, smallBags: 1, bigBags: 0 }, userId)
       .then(() => null)
       .catch((e: unknown) => e);
 

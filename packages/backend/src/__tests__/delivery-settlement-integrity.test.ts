@@ -43,7 +43,7 @@ describe('Phase 5: Payment & Settlement Integrity (delivery-settlement-integrity
 
   it('unpaid rent: blocks delivery with RentPaymentRequiredError when rent is unpaid', async () => {
     await expect(
-      deliveryService.createDelivery(facilityId, { grnId, bags: 20 }, USER_ID),
+      deliveryService.createDelivery(facilityId, { grnId, smallBags: 20, bigBags: 0 }, USER_ID),
     ).rejects.toThrow(RentPaymentRequiredError);
 
     expect(await DeliveryChallanModel.countDocuments({ grnId })).toBe(0);
@@ -65,12 +65,12 @@ describe('Phase 5: Payment & Settlement Integrity (delivery-settlement-integrity
     // 2. Partial delivery of 20 bags (80 remaining)
     const delRes = await deliveryService.createDelivery(
       facilityId,
-      { grnId, bags: 20, remarks: 'Partial delivery 1' },
+      { grnId, smallBags: 20, bigBags: 0, remarks: 'Partial delivery 1' },
       USER_ID,
     );
-    expect(delRes.delivery.openingBags).toBe(100);
-    expect(delRes.delivery.bags).toBe(20);
-    expect(delRes.delivery.closingBags).toBe(80);
+    expect(delRes.delivery.smallBags).toBe(20);
+    expect(delRes.delivery.totalBags).toBe(20);
+    expect(delRes.summary.totalReceivedBags).toBe(100);
     expect(delRes.summary.remainingDeliveryBalance).toBe(80);
     expect(delRes.summary.grnStatus).toBe('OPEN');
 
@@ -131,15 +131,14 @@ describe('Phase 5: Payment & Settlement Integrity (delivery-settlement-integrity
     expect(rentSummary.remainingBalance).toBe(0);
 
     // Delivery 1: 40 bags
-    const del1 = await deliveryService.createDelivery(facilityId, { grnId, bags: 40 }, USER_ID);
-    expect(del1.delivery.openingBags).toBe(100);
-    expect(del1.delivery.closingBags).toBe(60);
+    const del1 = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 40, bigBags: 0 }, USER_ID);
+    expect(del1.summary.totalReceivedBags).toBe(100);
+    expect(del1.summary.remainingDeliveryBalance).toBe(60);
     expect(del1.summary.grnStatus).toBe('OPEN');
 
     // Delivery 2: 30 bags
-    const del2 = await deliveryService.createDelivery(facilityId, { grnId, bags: 30 }, USER_ID);
-    expect(del2.delivery.openingBags).toBe(60);
-    expect(del2.delivery.closingBags).toBe(30);
+    const del2 = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 30, bigBags: 0 }, USER_ID);
+    expect(del2.summary.remainingDeliveryBalance).toBe(30);
     expect(del2.summary.grnStatus).toBe('OPEN');
   });
 
@@ -150,20 +149,19 @@ describe('Phase 5: Payment & Settlement Integrity (delivery-settlement-integrity
     );
 
     // Partial delivery: 70 bags -> 30 remaining
-    const partial = await deliveryService.createDelivery(facilityId, { grnId, bags: 70 }, USER_ID);
-    expect(partial.delivery.closingBags).toBe(30);
+    const partial = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 70, bigBags: 0 }, USER_ID);
+    expect(partial.summary.remainingDeliveryBalance).toBe(30);
     expect(partial.summary.grnStatus).toBe('OPEN');
 
     // Final delivery: 30 bags -> 0 remaining
-    const finalDel = await deliveryService.createDelivery(facilityId, { grnId, bags: 30 }, USER_ID);
-    expect(finalDel.delivery.openingBags).toBe(30);
-    expect(finalDel.delivery.closingBags).toBe(0);
+    const finalDel = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 30, bigBags: 0 }, USER_ID);
+    expect(finalDel.summary.remainingDeliveryBalance).toBe(0);
     expect(finalDel.summary.grnStatus).toBe('CLOSED');
     expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('CLOSED');
 
     // Delivery attempt on CLOSED GRN is rejected
     await expect(
-      deliveryService.createDelivery(facilityId, { grnId, bags: 1 }, USER_ID),
+      deliveryService.createDelivery(facilityId, { grnId, smallBags: 1, bigBags: 0 }, USER_ID),
     ).rejects.toThrow(/is CLOSED/);
   });
 
@@ -174,8 +172,7 @@ describe('Phase 5: Payment & Settlement Integrity (delivery-settlement-integrity
     );
 
     // 2. Deliver all 100 bags (final delivery)
-    const finalDel = await deliveryService.createDelivery(facilityId, { grnId, bags: 100 }, USER_ID);
-    expect(finalDel.delivery.closingBags).toBe(0);
+    const finalDel = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 100, bigBags: 0 }, USER_ID);
     expect(finalDel.summary.remainingDeliveryBalance).toBe(0);
     expect(finalDel.summary.physicallyStoredBags).toBe(0);
 
@@ -196,7 +193,7 @@ describe('Phase 5: Payment & Settlement Integrity (delivery-settlement-integrity
     );
 
     // 2. Deliver all 100 bags -> 0 bags remaining, but GRN is still OPEN
-    await deliveryService.createDelivery(facilityId, { grnId, bags: 100 }, USER_ID);
+    await deliveryService.createDelivery(facilityId, { grnId, smallBags: 100, bigBags: 0 }, USER_ID);
     expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('OPEN');
 
     // 3. Customer settles the remaining ₹3000 via Cash Memo
@@ -225,14 +222,14 @@ describe('Phase 5: Payment & Settlement Integrity (delivery-settlement-integrity
     expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('OPEN');
 
     // 2. Partial delivery of 40 bags -> 60 remaining -> GRN remains OPEN
-    const d1 = await deliveryService.createDelivery(facilityId, { grnId, bags: 40 }, USER_ID);
-    expect(d1.delivery.closingBags).toBe(60);
+    const d1 = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 40, bigBags: 0 }, USER_ID);
+    expect(d1.summary.remainingDeliveryBalance).toBe(60);
     expect(d1.summary.grnStatus).toBe('OPEN');
     expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('OPEN');
 
     // 3. Final delivery of remaining 60 bags -> now bags === 0 AND balance === 0 -> GRN becomes CLOSED
-    const d2 = await deliveryService.createDelivery(facilityId, { grnId, bags: 60 }, USER_ID);
-    expect(d2.delivery.closingBags).toBe(0);
+    const d2 = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 60, bigBags: 0 }, USER_ID);
+    expect(d2.summary.remainingDeliveryBalance).toBe(0);
     expect(d2.summary.grnStatus).toBe('CLOSED');
     expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('CLOSED');
   });

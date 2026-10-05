@@ -15,25 +15,35 @@ export const deliveryStatusSchema = z.enum(['ISSUED', 'REVERSED']);
 export type DeliveryStatus = z.infer<typeof deliveryStatusSchema>;
 
 /**
- * A GRN is one commodity in one chamber, so an outward movement withdraws a single bag count
- * from that GRN's available balance. Over-withdrawal is rejected atomically by the backend
- * against the ledger-derived balance.
+ * A GRN is one commodity in one chamber, so an outward movement withdraws bags from that GRN's
+ * available balance. The withdrawal is declared as a bag composition rather than a single total,
+ * because a GRN may hold both small and big bags and the per-type balance is what must not go
+ * negative. Zero is permitted on either side so an operator can deliver only one bag type.
  */
 export const createDeliverySchema = z
   .object({
     grnId: z.string().trim().min(1, 'grnId is required'),
     date: z.coerce.date().default(() => new Date()),
-    bags: z
-      .number({ invalid_type_error: 'Bags must be a number' })
-      .int('Bags must be a whole number')
-      .positive('Delivery bags must be greater than zero')
-      .max(100000, 'Bags cannot exceed 100,000'),
+    smallBags: z
+      .number({ invalid_type_error: 'Small bags must be a number' })
+      .int('Small bags must be a whole number')
+      .min(0, 'Small bags cannot be negative')
+      .max(100000, 'Small bags cannot exceed 100,000'),
+    bigBags: z
+      .number({ invalid_type_error: 'Big bags must be a number' })
+      .int('Big bags must be a whole number')
+      .min(0, 'Big bags cannot be negative')
+      .max(100000, 'Big bags cannot exceed 100,000'),
     marks: z.string().trim().max(100).nullish(),
     gpNumber: z.string().trim().max(100).nullish(),
     vehicleNumber: indianVehicleSchema.nullish(),
     driverName: z.string().trim().max(100).nullish(),
     weight: z.number().positive('weight must be positive').nullish(),
     remarks: z.string().trim().max(500).nullish(),
+  })
+  .refine((data) => data.smallBags + data.bigBags > 0, {
+    message: 'Delivery must move at least one bag',
+    path: ['smallBags'],
   })
   .refine(
     (data) => {
@@ -67,10 +77,10 @@ export const deliveryChallanSchema = z.object({
   commodityId: z.string().min(1),
   commodityName: z.string().min(1),
   chamber: chamberTextSchema,
-  bags: z.number().int().positive(),
+  smallBags: z.number().int().min(0),
+  bigBags: z.number().int().min(0),
+  /** Derived as smallBags + bigBags. Never stored, so the two parts cannot disagree. */
   totalBags: z.number().int().positive(),
-  openingBags: z.number().int().min(0),
-  closingBags: z.number().int().min(0),
   marks: z.string().nullable().optional(),
   gpNumber: z.string().nullable().optional(),
   vehicleNumber: z.string().nullable().optional(),
@@ -98,6 +108,14 @@ export const deliveryReversalSchema = z.object({
 
 export type DeliveryReversal = z.infer<typeof deliveryReversalSchema>;
 
+/**
+ * Per-GRN outward position. The three balance figures are the bag composition of what was
+ * received, what has left net of reversals, and what therefore remains on hand.
+ *
+ * `remainingDeliveryBalance` and `physicallyStoredBags` were previously two DTO fields assigned
+ * from one expression; they are collapsed into `remaining` here so the API cannot present the
+ * same quantity under two names.
+ */
 export const deliverySummarySchema = z.object({
   grnId: z.string().min(1),
   facilityId: z.string().min(1),
@@ -106,6 +124,10 @@ export const deliverySummarySchema = z.object({
   netDeliveredBags: z.number().int().min(0),
   remainingDeliveryBalance: z.number().int().min(0),
   physicallyStoredBags: z.number().int().min(0),
+  availableSmallBags: z.number().int().min(0),
+  availableBigBags: z.number().int().min(0),
+  netDeliveredSmallBags: z.number().int().min(0),
+  netDeliveredBigBags: z.number().int().min(0),
   grnStatus: grnStatusSchema,
   deliveries: z.array(deliveryChallanSchema),
 });

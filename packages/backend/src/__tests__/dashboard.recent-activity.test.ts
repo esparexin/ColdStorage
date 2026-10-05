@@ -56,7 +56,7 @@ describe('P7 DashboardService recentActivity projection', () => {
       Array.from({ length: 12 }, (_, i) => ({
         ...ledger,
         transactionType: 'INWARD_PUTAWAY' as const,
-        quantity: 10 + i,
+        smallQuantity: 10, bigQuantity: 0 + i,
         createdAt: new Date(Date.UTC(2026, 8, 1, 0, i)),
       })),
     );
@@ -69,13 +69,15 @@ describe('P7 DashboardService recentActivity projection', () => {
       {
         ...ledger,
         transactionType: 'INWARD_PUTAWAY',
-        quantity: 10,
+        smallQuantity: 10,
+        bigQuantity: 0,
         createdAt: new Date('2026-09-01T10:00:00.000Z'),
       },
       {
         ...ledger,
         transactionType: 'INWARD_PUTAWAY',
-        quantity: 20,
+        smallQuantity: 20,
+        bigQuantity: 0,
         createdAt: new Date('2026-09-02T10:00:00.000Z'),
       },
     ]);
@@ -85,9 +87,9 @@ describe('P7 DashboardService recentActivity projection', () => {
 
   it('only includes the three approved transaction types', async () => {
     await seedLedgerEntries([
-      { ...ledger, transactionType: 'INWARD_PUTAWAY', quantity: 10 },
-      { ...ledger, transactionType: 'OUTWARD_DELIVERY', quantity: 5 },
-      { ...ledger, transactionType: 'DELIVERY_REVERSAL', quantity: 5 },
+      { ...ledger, transactionType: 'INWARD_PUTAWAY', smallQuantity: 10, bigQuantity: 0 },
+      { ...ledger, transactionType: 'OUTWARD_DELIVERY', smallQuantity: 5, bigQuantity: 0 },
+      { ...ledger, transactionType: 'DELIVERY_REVERSAL', smallQuantity: 5, bigQuantity: 0 },
     ]);
     const summary = await dashboardService.getSummary(facilityId);
     expect(summary.recentActivity.map((a) => a.type).sort()).toEqual([
@@ -102,14 +104,15 @@ describe('P7 DashboardService recentActivity projection', () => {
       ...ledger,
       facilityId: 'fac-dash-activity-other',
       transactionType: 'INWARD_PUTAWAY',
-      quantity: 10,
+      smallQuantity: 10,
+      bigQuantity: 0,
     });
     const summary = await dashboardService.getSummary(facilityId);
     expect(summary.recentActivity).toHaveLength(0);
   });
 
   it('INWARD_PUTAWAY: referenceNumber is grnNumber (direct field)', async () => {
-    await seedLedgerEntry({ ...ledger, transactionType: 'INWARD_PUTAWAY', quantity: 50 });
+    await seedLedgerEntry({ ...ledger, transactionType: 'INWARD_PUTAWAY', smallQuantity: 50, bigQuantity: 0 });
     const summary = await dashboardService.getSummary(facilityId);
     const activity = summary.recentActivity.find((a) => a.type === 'INWARD_PUTAWAY');
     expect(activity?.referenceNumber).toBe(grnNumber);
@@ -129,7 +132,8 @@ describe('P7 DashboardService recentActivity projection', () => {
       commodityId: 'cmd-activity-1',
       commodityName: 'Wheat',
       chamber: 'CH-1',
-      bags: 50,
+      smallBags: 50,
+      bigBags: 0,
       totalBags: 50,
       status: 'ISSUED',
       issuedBy: 'usr-fixture',
@@ -137,7 +141,8 @@ describe('P7 DashboardService recentActivity projection', () => {
     await seedLedgerEntry({
       ...ledger,
       transactionType: 'OUTWARD_DELIVERY',
-      quantity: 50,
+      smallQuantity: 50,
+      bigQuantity: 0,
       referenceId: deliveryId,
     });
     const summary = await dashboardService.getSummary(facilityId);
@@ -160,7 +165,8 @@ describe('P7 DashboardService recentActivity projection', () => {
     await seedLedgerEntry({
       ...ledger,
       transactionType: 'DELIVERY_REVERSAL',
-      quantity: 30,
+      smallQuantity: 30,
+      bigQuantity: 0,
       referenceId: reversalId,
     });
     const summary = await dashboardService.getSummary(facilityId);
@@ -172,7 +178,8 @@ describe('P7 DashboardService recentActivity projection', () => {
     await seedLedgerEntry({
       ...ledger,
       transactionType: 'INWARD_PUTAWAY',
-      quantity: 10,
+      smallQuantity: 10,
+      bigQuantity: 0,
       chamber: 'Block B - Shed 2',
     });
     const summary = await dashboardService.getSummary(facilityId);
@@ -184,7 +191,8 @@ describe('P7 DashboardService recentActivity projection', () => {
     await seedLedgerEntry({
       ...ledger,
       transactionType: 'OUTWARD_DELIVERY',
-      quantity: 75,
+      smallQuantity: 75,
+      bigQuantity: 0,
       referenceId: 'x-1',
     });
     const summary = await dashboardService.getSummary(facilityId);
@@ -194,7 +202,7 @@ describe('P7 DashboardService recentActivity projection', () => {
 
   it('skips the Phase B challan lookup when deliveryIds is empty', async () => {
     // Only put-away transactions — an empty $in would fail if the lookup still ran.
-    await seedLedgerEntry({ ...ledger, transactionType: 'INWARD_PUTAWAY', quantity: 10 });
+    await seedLedgerEntry({ ...ledger, transactionType: 'INWARD_PUTAWAY', smallQuantity: 10, bigQuantity: 0 });
     const summary = await dashboardService.getSummary(facilityId);
     expect(summary.recentActivity).toHaveLength(1);
     expect(summary.recentActivity[0].type).toBe('INWARD_PUTAWAY');

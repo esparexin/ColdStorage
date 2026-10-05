@@ -21,8 +21,8 @@ export function toGrnEntity(doc: {
   bagPrice?: number | null;
   smallBagPrice?: number | null;
   bigBagPrice?: number | null;
-  smallBags?: number | null;
-  bigBags?: number | null;
+  smallBags: number;
+  bigBags: number;
   gpNumber?: string | null;
   storageMark?: string | null;
   partyMark?: string | null;
@@ -60,8 +60,8 @@ export function toGrnEntity(doc: {
     bagPrice: doc.bagPrice ?? null,
     smallBagPrice: doc.smallBagPrice ?? null,
     bigBagPrice: doc.bigBagPrice ?? null,
-    smallBags: doc.smallBags ?? null,
-    bigBags: doc.bigBags ?? null,
+    smallBags: doc.smallBags,
+    bigBags: doc.bigBags,
     gpNumber: doc.gpNumber ?? null,
     storageMark: doc.storageMark ?? null,
     partyMark: doc.partyMark ?? null,
@@ -101,8 +101,8 @@ export function toGrnAcknowledgement(grn: Grn): GrnAcknowledgement {
       bagPrice: grn.bagPrice ?? null,
       smallBagPrice: grn.smallBagPrice ?? null,
       bigBagPrice: grn.bigBagPrice ?? null,
-      smallBags: grn.smallBags ?? null,
-      bigBags: grn.bigBags ?? null,
+      smallBags: grn.smallBags,
+      bigBags: grn.bigBags,
       smallBagWeight: grn.smallBagWeight,
       bigBagWeight: grn.bigBagWeight,
     },

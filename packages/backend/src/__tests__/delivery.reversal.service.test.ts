@@ -1,11 +1,8 @@
-import mongoose from 'mongoose';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { DeliveryReversalModel } from '../database/models/delivery-reversal.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
-import { validateReversalBags } from '../modules/delivery/handlers/delivery-validation.helper.js';
 import { inventoryService } from '../modules/inventory/inventory.service.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import {
@@ -42,8 +39,8 @@ describe('P6 DeliveryService reversal tests', () => {
   });
 
   it('executes a full delivery reversal, restoring exact stock', async () => {
-    const delRes = await deliveryService.createDelivery(facilityId, { grnId, bags: 30 }, userId);
-    expect((await inventoryService.getAvailableBags(facilityId, grnId))).toBe(70);
+    const delRes = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 30, bigBags: 0 }, userId);
+    expect((await inventoryService.getAvailableBags(facilityId, grnId)).bags).toBe(70);
 
     const revRes = await deliveryService.reverseDelivery(
       facilityId,
@@ -63,30 +60,53 @@ describe('P6 DeliveryService reversal tests', () => {
       referenceId: revRes.reversal.id,
       transactionType: 'DELIVERY_REVERSAL',
     }).exec();
-    expect(reversalLedger?.quantity).toBe(30);
+    expect(reversalLedger?.smallQuantity).toBe(30);
+    expect(reversalLedger?.bigQuantity).toBe(0);
     expect(reversalLedger?.chamber).toBe('CH-01');
-    expect(await inventoryService.getAvailableBags(facilityId, grnId)).toBe(100);
+    expect((await inventoryService.getAvailableBags(facilityId, grnId)).bags).toBe(100);
   });
 
-  it('refuses a reversal larger than the bags originally delivered, writing nothing', async () => {
-    const delRes = await deliveryService.createDelivery(facilityId, { grnId, bags: 30 }, userId);
+  it('restores the exact dispatched composition, not an arbitrary bag count', async () => {
+    // Reversal is whole-challan by decision: the P0 lock parks partial reversal rules, so the
+    // reversal row must carry the challan's own small/big split and nothing else. A mixed GRN is
+    // required so the restoration is genuinely per bag type.
+    const mixedGrnId = await seedGrn({
+      facilityId,
+      customerId,
+      chamber: 'CH-02',
+      bags: 200,
+      bagType: 'S+B',
+      smallBags: 100,
+      bigBags: 100,
+      grnNumber: 'GRN-25-26-0002',
+    });
+    const delRes = await deliveryService.createDelivery(
+      facilityId,
+      { grnId: mixedGrnId, smallBags: 20, bigBags: 10 },
+      userId,
+    );
+    expect((await inventoryService.getAvailableBags(facilityId, mixedGrnId))).toEqual({
+      bags: 170,
+      smallBags: 80,
+      bigBags: 90,
+    });
 
-    const session = await mongoose.startSession();
-    try {
-      await expect(
-        validateReversalBags(facilityId, delRes.delivery.id, 31, session),
-      ).rejects.toThrow(/only 30 bags remain delivered on this challan/);
-    } finally {
-      await session.endSession();
-    }
+    await deliveryService.reverseDelivery(
+      facilityId,
+      delRes.delivery.id,
+      { reason: 'Whole lot returned' },
+      userId,
+    );
 
-    expect(await DeliveryReversalModel.countDocuments()).toBe(0);
-    expect((await DeliveryChallanModel.findOne({ id: delRes.delivery.id }).exec())?.status).toBe('ISSUED');
-    expect(await inventoryService.getAvailableBags(facilityId, grnId)).toBe(70);
+    expect((await inventoryService.getAvailableBags(facilityId, mixedGrnId))).toEqual({
+      bags: 200,
+      smallBags: 100,
+      bigBags: 100,
+    });
   });
 
   it('rejects double reversal of an already reversed delivery challan', async () => {
-    const delRes = await deliveryService.createDelivery(facilityId, { grnId, bags: 20 }, userId);
+    const delRes = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 20, bigBags: 0 }, userId);
 
     await deliveryService.reverseDelivery(facilityId, delRes.delivery.id, { reason: 'First reversal' }, userId);
 
@@ -97,7 +117,7 @@ describe('P6 DeliveryService reversal tests', () => {
   });
 
   it('re-opens a CLOSED GRN when the delivery that caused closure is reversed', async () => {
-    const delRes = await deliveryService.createDelivery(facilityId, { grnId, bags: 100 }, userId);
+    const delRes = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 100, bigBags: 0 }, userId);
     expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('CLOSED');
 
     const revRes = await deliveryService.reverseDelivery(

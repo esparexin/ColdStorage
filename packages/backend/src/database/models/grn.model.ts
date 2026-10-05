@@ -15,6 +15,13 @@ export interface GrnDoc extends Document {
   chamber: string;
   bags: number;
   bagType: BagType;
+  /**
+   * Fully-populated bag composition. A single-type GRN stores zero on the unused side rather
+   * than null, so no reader has to branch on bagType to interpret a balance, and `bags` is
+   * always exactly smallBags + bigBags.
+   */
+  smallBags: number;
+  bigBags: number;
   /** Per-bag weight (kg per individual bag). S uses smallBagWeight, B uses bigBagWeight, S+B uses both. */
   smallBagWeight: number | null;
   bigBagWeight: number | null;
@@ -24,8 +31,6 @@ export interface GrnDoc extends Document {
   bagPrice: number | null;
   smallBagPrice: number | null;
   bigBagPrice: number | null;
-  smallBags: number | null;
-  bigBags: number | null;
   gpNumber: string | null;
   storageMark: string | null;
   partyMark: string | null;
@@ -61,8 +66,8 @@ const grnSchema = new Schema<GrnDoc>(
     bagPrice: { type: Number, default: null },
     smallBagPrice: { type: Number, default: null },
     bigBagPrice: { type: Number, default: null },
-    smallBags: { type: Number, default: null },
-    bigBags: { type: Number, default: null },
+    smallBags: { type: Number, required: true, min: 0 },
+    bigBags: { type: Number, required: true, min: 0 },
     gpNumber: { type: String, trim: true, default: null },
     storageMark: { type: String, trim: true, maxlength: 20, default: null },
     partyMark: { type: String, trim: true, maxlength: 20, default: null },
@@ -81,6 +86,21 @@ grnSchema.index({ facilityId: 1, grnNumber: 1 }, { unique: true });
 grnSchema.index({ facilityId: 1, inwardReceiptNumber: 1 }, { unique: true });
 grnSchema.index({ facilityId: 1, date: -1 });
 grnSchema.index({ customerId: 1, facilityId: 1 });
+
+// `bags` is the sum of the composition, never an independent figure. Enforcing it here means a
+// receipt can never state a total that disagrees with the parts it is made of.
+grnSchema.pre('validate', function assertCompositionMatchesTotal(next) {
+  const doc = this as GrnDoc;
+  if (doc.smallBags + doc.bigBags !== doc.bags) {
+    next(
+      new Error(
+        `GRN composition (${doc.smallBags} small + ${doc.bigBags} big) must sum to the declared total of ${doc.bags} bags`,
+      ),
+    );
+    return;
+  }
+  next();
+});
 
 export const GrnModel: Model<GrnDoc> =
   (mongoose.models.Grn as Model<GrnDoc>) || mongoose.model<GrnDoc>('Grn', grnSchema);

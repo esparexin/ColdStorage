@@ -61,7 +61,13 @@ export async function getDeliverySummary(
     GrnModel.findOne({ id: grnId, facilityId }).lean().exec(),
     DeliveryChallanModel.aggregate([
       { $match: { grnId, facilityId, status: 'ISSUED' } },
-      { $group: { _id: null, total: { $sum: '$bags' } } },
+      {
+        $group: {
+          _id: null,
+          small: { $sum: '$smallBags' },
+          big: { $sum: '$bigBags' },
+        },
+      },
     ]),
     DeliveryChallanModel.find({ facilityId, grnId })
       .sort({ date: -1, createdAt: -1 })
@@ -73,9 +79,12 @@ export async function getDeliverySummary(
     throw new Error(`GRN '${grnId}' not found in facility '${facilityId}'`);
   }
 
-  const netDeliveredBags = issuedAgg[0]?.total ?? 0;
-  const remainingDeliveryBalance = Math.max(0, grn.bags - netDeliveredBags);
-  const physicallyStoredBags = remainingDeliveryBalance;
+  const netDeliveredSmallBags = issuedAgg[0]?.small ?? 0;
+  const netDeliveredBigBags = issuedAgg[0]?.big ?? 0;
+  const netDeliveredBags = netDeliveredSmallBags + netDeliveredBigBags;
+  const availableSmallBags = grn.smallBags - netDeliveredSmallBags;
+  const availableBigBags = grn.bigBags - netDeliveredBigBags;
+  const remainingDeliveryBalance = Math.max(0, availableSmallBags + availableBigBags);
 
   return {
     grnId: grn.id,
@@ -84,7 +93,11 @@ export async function getDeliverySummary(
     totalReceivedBags: grn.bags,
     netDeliveredBags,
     remainingDeliveryBalance,
-    physicallyStoredBags,
+    physicallyStoredBags: remainingDeliveryBalance,
+    availableSmallBags,
+    availableBigBags,
+    netDeliveredSmallBags,
+    netDeliveredBigBags,
     grnStatus: grn.status,
     deliveries: challanDocs.map((d) => toChallanEntity(d)),
   };

@@ -54,7 +54,7 @@ describe('P8 ExportService column headers', () => {
   });
 
   it('stock-summary export emits exactly chamber, totalBags', async () => {
-    await seedLedgerEntry({ facilityId, chamber: 'CH-01', quantity: 200 });
+    await seedLedgerEntry({ facilityId, chamber: 'CH-01', smallQuantity: 200, bigQuantity: 0 });
     const capture = await captureCsv((res) => exportService.exportStockSummary(facilityId, res));
 
     expect(capture.header).toEqual(['chamber', 'totalBags']);
@@ -103,7 +103,8 @@ describe('P8 ExportService column headers', () => {
       commodityId: 'cmd-hdr-1',
       commodityName: 'Potato',
       chamber: 'Block E',
-      bags: 7,
+      smallBags: 7,
+      bigBags: 0,
       totalBags: 7,
       status: 'ISSUED',
       issuedBy: 'usr-fixture',
@@ -116,7 +117,7 @@ describe('P8 ExportService column headers', () => {
   });
 
   it('ledger export uses chamber instead of positionCode', async () => {
-    await seedLedgerEntry({ facilityId, chamber: 'Shed F', quantity: 42 });
+    await seedLedgerEntry({ facilityId, chamber: 'Shed F', smallQuantity: 42, bigQuantity: 0 });
     const capture = await captureCsv((res) =>
       exportService.exportInventoryLedger(facilityId, {}, res),
     );
@@ -144,6 +145,8 @@ describe('P8 ExportService column headers', () => {
       'chamber',
       'commodityId',
       'bagType',
+      'smallQuantity',
+      'bigQuantity',
       'quantity',
       'referenceType',
       'referenceId',

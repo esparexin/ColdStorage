@@ -20,7 +20,7 @@ import { InventoryTransactionModel } from '../../../database/models/inventory-tr
 import { auditService } from '../../audit/audit.service.js';
 import { isTransientError, toChallanEntity, toReversalEntity } from '../delivery.mappers.js';
 import { getDeliverySummary } from '../queries/delivery.queries.js';
-import { validateReversalBags } from './delivery-validation.helper.js';
+import { assertChallanIsReversible } from './delivery-validation.helper.js';
 
 export async function reverseDeliveryWithRetry(
   facilityId: string,
@@ -92,7 +92,7 @@ async function executeReversalTransaction(
         throw new Error(`GRN '${grnId}' not found in facility '${facilityId}'`);
       }
 
-      await validateReversalBags(facilityId, existingChallan.id, existingChallan.bags, session);
+      await assertChallanIsReversible(facilityId, existingChallan.id, session);
 
       const lockedChallan = await DeliveryChallanModel.findOneAndUpdate(
         { id: deliveryId, facilityId, status: 'ISSUED' },
@@ -136,11 +136,13 @@ async function executeReversalTransaction(
             grnId: grn.id,
             grnNumber: grn.grnNumber,
             chamber: existingChallan.chamber,
-            customerId: grn.customerId,
             commodityId: grn.commodityId,
             bagType: grn.bagType,
             transactionType: 'DELIVERY_REVERSAL' as const,
-            quantity: existingChallan.bags,
+            // Restores exactly the composition the challan dispatched, so the GRN's per-type
+            // balance returns to its pre-delivery state without any stored snapshot to repair.
+            smallQuantity: existingChallan.smallBags,
+            bigQuantity: existingChallan.bigBags,
             referenceType: 'DELIVERY_REVERSAL' as const,
             referenceId: reversalId,
             notes: `Reversal of challan ${existingChallan.challanNumber}: ${input.reason.trim()}`,

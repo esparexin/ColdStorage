@@ -38,6 +38,8 @@ describe('P5 Inventory Contracts', () => {
       allocatedBags: 100,
       unallocatedBags: 0,
       putAwayStatus: 'ALLOCATED',
+      availableSmallBags: 60,
+      availableBigBags: 40,
     };
 
     it('accepts a fully allocated GRN', () => {
@@ -50,6 +52,8 @@ describe('P5 Inventory Contracts', () => {
         allocatedBags: 0,
         unallocatedBags: 100,
         putAwayStatus: 'UNALLOCATED',
+        availableSmallBags: 0,
+        availableBigBags: 0,
       });
       expect(result.success).toBe(true);
     });

@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { bagTypeSchema, perBagWeightSchema } from './bags.js';
+import {
+  bagCompositionConsistent,
+  bagCompositionIssueMessage,
+  bagTypeSchema,
+  perBagWeightSchema,
+} from './bags.js';
 import { chamberTextSchema, indianVehicleSchema, rentalAmountSchema } from './common.js';
 import { gpNumberSchema, grnNumberSchema, receiptNumberSchema } from './identifiers.js';
 import { bagPriceSchema } from './pricing.js';
@@ -12,7 +17,6 @@ export const SEASONAL_RENT_MONTHS = 10;
 export function rentMonthsForType(rentType: RentType): number | null {
   return rentType === 'Seasonal' ? SEASONAL_RENT_MONTHS : null;
 }
-
 /** Operator-facing month input: Monthly requires an explicit count; Seasonal is fixed. */
 export const rentMonthsInputSchema = z
   .number({ invalid_type_error: 'Rent months must be a number' })
@@ -24,19 +28,6 @@ export type GrnStatus = z.infer<typeof grnStatusSchema>;
 
 export const inwardReceiptNumberSchema = receiptNumberSchema;
 export type InwardReceiptNumber = z.infer<typeof inwardReceiptNumberSchema>;
-
-/** Calculates Indian Financial Year string from a date in Asia/Kolkata (IST). Starts April 1. */
-export function getFinancialYearKey(date: Date): string {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Kolkata',
-    year: 'numeric',
-    month: 'numeric',
-  }).formatToParts(new Date(date));
-  const year = parseInt(parts.find((p) => p.type === 'year')?.value ?? String(new Date(date).getFullYear()), 10);
-  const month = parseInt(parts.find((p) => p.type === 'month')?.value ?? String(new Date(date).getMonth() + 1), 10);
-  const startYear = month < 4 ? year - 1 : year;
-  return `${String(startYear).slice(-2)}-${String(startYear + 1).slice(-2)}`;
-}
 
 export const createGrnSchema = z
   .object({
@@ -99,6 +90,21 @@ export const createGrnSchema = z
     { message: 'Per-bag weight is required: Small Bag Weight for S, Big Bag Weight for B, both for S+B', path: ['smallBagWeight'] },
   )
   .refine(
+    (data) =>
+      // The stored composition and the stored total are the same fact. Rejecting an inconsistent
+      // declaration here is what stops `bags` and its parts from drifting apart in the database.
+      bagCompositionConsistent({
+        bagType: data.bagType,
+        bags: data.bags,
+        smallBags: data.smallBags,
+        bigBags: data.bigBags,
+      }),
+    {
+      message: bagCompositionIssueMessage,
+      path: ['smallBags'],
+    },
+  )
+  .refine(
     (data) => {
       // Future date check with 5 min tolerance
       const maxAllowed = new Date(Date.now() + 5 * 60 * 1000);
@@ -135,8 +141,9 @@ export const grnSchema = z.object({
   bagPrice: z.number().nullable().optional(),
   smallBagPrice: z.number().nullable().optional(),
   bigBagPrice: z.number().nullable().optional(),
-  smallBags: z.number().int().nullable().optional(),
-  bigBags: z.number().int().nullable().optional(),
+  /** Always present: a single-type receipt stores zero on the unused side rather than null. */
+  smallBags: z.number().int().min(0),
+  bigBags: z.number().int().min(0),
   gpNumber: z.string().nullable().optional(),
   storageMark: z.string().nullable().optional(),
   partyMark: z.string().nullable().optional(),
@@ -199,17 +206,17 @@ export const grnAcknowledgementSchema = z.object({
   storageLocation: z.object({
     chamber: chamberTextSchema,
   }),
-  bagAccounting: z.object({
-    bags: z.number().int().positive(),
-    bagType: bagTypeSchema,
-    bagPrice: z.number().nullable().optional(),
-    smallBagPrice: z.number().nullable().optional(),
-    bigBagPrice: z.number().nullable().optional(),
-    smallBags: z.number().int().nullable().optional(),
-    bigBags: z.number().int().nullable().optional(),
-    smallBagWeight: z.number().positive().nullable().optional(),
-    bigBagWeight: z.number().positive().nullable().optional(),
-  }),
+bagAccounting: z.object({
+      bags: z.number().int().positive(),
+      bagType: bagTypeSchema,
+      bagPrice: z.number().nullable().optional(),
+      smallBagPrice: z.number().nullable().optional(),
+      bigBagPrice: z.number().nullable().optional(),
+      smallBags: z.number().int().min(0),
+      bigBags: z.number().int().min(0),
+      smallBagWeight: z.number().positive().nullable().optional(),
+      bigBagWeight: z.number().positive().nullable().optional(),
+    }),
   rentTerms: z.object({
     rentType: rentTypeSchema,
     /** Informational only; not used to finalize monthly subscription/payment. */

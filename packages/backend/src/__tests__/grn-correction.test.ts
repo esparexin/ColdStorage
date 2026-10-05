@@ -157,7 +157,7 @@ describe('GRN Correction Workflow (PATCH /api/facilities/:facilityId/grns/:grnId
       grnId,
       grnNumber: 'GRN-26-27-0001',
       chamber: 'CH-01',
-      bags: 40,
+      smallBags: 40, bigBags: 0,
       status: 'ISSUED',
     });
 
