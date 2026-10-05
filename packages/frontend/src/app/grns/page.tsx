@@ -12,6 +12,7 @@ import { CreateGrnModal } from './components/CreateGrnModal';
 import { GrnDetailModal } from './components/GrnDetailModal';
 import { GrnFilterToolbar } from './components/GrnFilterToolbar';
 import { GrnTable } from './components/GrnTable';
+import { UpdateLoanStatusModal } from './components/UpdateLoanStatusModal';
 import { useGrns } from './hooks/useGrns';
 import styles from './page.module.css';
 
@@ -21,6 +22,7 @@ export default function GrnsPage() {
   const grnData = useGrns(selectedFacilityId, availableFacilities);
 
   const [selectedGrn, setSelectedGrn] = useState<Grn | null>(null);
+  const [loanModalGrn, setLoanModalGrn] = useState<Grn | null>(null);
   const [printingId, setPrintingId] = useState<string | null>(null);
   const [printError, setPrintError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -28,6 +30,7 @@ export default function GrnsPage() {
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const canCreate = can(userRole, 'grn:create');
   const canPrint = can(userRole, 'document:print');
+  const canManageLoan = can(userRole, 'grn:create');
 
   const handlePrint = async (type: 'grn' | 'receipt', grnId: string) => {
     if (!selectedFacilityId) return;
@@ -139,6 +142,26 @@ export default function GrnsPage() {
           canPrint={canPrint}
           printingId={printingId}
           onPrint={handlePrint}
+          onManageLoan={
+            canManageLoan
+              ? (grn) => {
+                  setSelectedGrn(null);
+                  setLoanModalGrn(grn);
+                }
+              : undefined
+          }
+        />
+      )}
+
+      {loanModalGrn && selectedFacilityId && (
+        <UpdateLoanStatusModal
+          grn={loanModalGrn}
+          facilityId={selectedFacilityId}
+          onClose={() => setLoanModalGrn(null)}
+          onSuccess={(updatedGrn) => {
+            void grnData.fetchGrns();
+            setSelectedGrn(updatedGrn);
+          }}
         />
       )}
 

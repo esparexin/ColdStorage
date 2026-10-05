@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { calculateRentAmount, SEASONAL_RENT_MONTHS } from '@cold-storage/contracts';
-import type { BagType, Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
+import type { BagType, Commodity, Customer, Grn, LoanStatus, RentType } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { buildCreateGrnPayload, parseNumericInput, validateCreateGrnForm } from './createGrnForm.helper';
 
@@ -10,25 +10,19 @@ export function useCreateGrnForm(
   facilityId: string, customers: Customer[], commodities: Commodity[], onSuccess: (newGrn: Grn) => void,
 ) {
   const [createDate, setCreateDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [createCustomerId, setCreateCustomerId] = useState('');
-  const [createCommodityId, setCreateCommodityId] = useState('');
-  const [createChamber, setCreateChamber] = useState('');
-  const [createBags, setCreateBags] = useState<number | ''>('');
-  const [createBagType, setCreateBagType] = useState<BagType>('S');
-  const [createSmallBags, setCreateSmallBags] = useState<number | ''>('');
-  const [createBigBags, setCreateBigBags] = useState<number | ''>('');
-  const [createSmallBagWeight, setCreateSmallBagWeight] = useState<number | ''>('');
-  const [createBigBagWeight, setCreateBigBagWeight] = useState<number | ''>('');
-  const [createRentType, setCreateRentType] = useState<RentType>('Seasonal');
-  const [createRentMonths, setCreateRentMonths] = useState<number | ''>('');
-  const [createBagPrice, setCreateBagPrice] = useState<number | ''>('');
-  const [createSmallBagPrice, setCreateSmallBagPrice] = useState<number | ''>('');
-  const [createBigBagPrice, setCreateBigBagPrice] = useState<number | ''>('');
+  const [createCustomerId, setCreateCustomerId] = useState(''), [createCommodityId, setCreateCommodityId] = useState('');
+  const [createChamber, setCreateChamber] = useState(''), [createBagType, setCreateBagType] = useState<BagType>('S');
+  const [createBags, setCreateBags] = useState<number | ''>(''), [createSmallBags, setCreateSmallBags] = useState<number | ''>(''), [createBigBags, setCreateBigBags] = useState<number | ''>('');
+  const [createSmallBagWeight, setCreateSmallBagWeight] = useState<number | ''>(''), [createBigBagWeight, setCreateBigBagWeight] = useState<number | ''>('');
+  const [createRentType, setCreateRentType] = useState<RentType>('Seasonal'), [createRentMonths, setCreateRentMonths] = useState<number | ''>('');
+  const [createBagPrice, setCreateBagPrice] = useState<number | ''>(''), [createSmallBagPrice, setCreateSmallBagPrice] = useState<number | ''>(''), [createBigBagPrice, setCreateBigBagPrice] = useState<number | ''>('');
   const [createRentAmount, setCreateRentAmount] = useState<number | ''>('');
   const [createGpNumber, setCreateGpNumber] = useState(''), [createStorageMark, setCreateStorageMark] = useState('');
   const [createPartyMark, setCreatePartyMark] = useState(''), [createBillNumber, setCreateBillNumber] = useState('');
   const [suggestedBillNumber, setSuggestedBillNumber] = useState('');
   const [createVehicleNumber, setCreateVehicleNumber] = useState(''), [createRemarks, setCreateRemarks] = useState('');
+  const [isBondForLoan, setIsBondForLoan] = useState(false), [loanStatus, setLoanStatus] = useState<LoanStatus>('NONE');
+  const [loanBankName, setLoanBankName] = useState(''), [loanReferenceNumber, setLoanReferenceNumber] = useState(''), [loanRemarks, setLoanRemarks] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -187,6 +181,7 @@ export function useCreateGrnForm(
         smallBagWeight: createSmallBagWeight, bigBagWeight: createBigBagWeight,
         gpNumber: createGpNumber, storageMark: createStorageMark, partyMark: createPartyMark,
         billNumber: createBillNumber, vehicleNumber: normalizedVehicle, remarks: createRemarks,
+        isBondForLoan, loanStatus, loanBankName, loanReferenceNumber, loanRemarks,
       });
 
       const res = await requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns`, {
@@ -215,7 +210,8 @@ export function useCreateGrnForm(
     createCustomerId || createCommodityId || createBags || createSmallBags || createBigBags ||
     createSmallBagWeight || createBigBagWeight || createRentAmount || createGpNumber.trim() ||
     createStorageMark.trim() || createPartyMark.trim() || createBillNumber.trim() ||
-    createVehicleNumber.trim() || createRemarks.trim(),
+    createVehicleNumber.trim() || createRemarks.trim() || isBondForLoan ||
+    loanBankName.trim() || loanReferenceNumber.trim() || loanRemarks.trim(),
   );
 
   return {
@@ -241,6 +237,9 @@ export function useCreateGrnForm(
     createBillNumber, setCreateBillNumber: (val: string) => { setCreateBillNumber(val); clearFieldError('billNumber'); },
     suggestedBillNumber,
     createVehicleNumber, setCreateVehicleNumber: (val: string) => { setCreateVehicleNumber(val); clearFieldError('vehicleNumber'); },
-    createRemarks, setCreateRemarks, modalError, fieldErrors, submitting, isDirty, handleSubmit,
+    createRemarks, setCreateRemarks,
+    isBondForLoan, setIsBondForLoan, loanStatus, setLoanStatus,
+    loanBankName, setLoanBankName, loanReferenceNumber, setLoanReferenceNumber, loanRemarks, setLoanRemarks,
+    modalError, fieldErrors, submitting, isDirty, handleSubmit,
   };
 }

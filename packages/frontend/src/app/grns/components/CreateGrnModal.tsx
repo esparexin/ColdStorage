@@ -5,6 +5,7 @@ import type { BagType, Commodity, Customer, Grn, RentType } from '@cold-storage/
 import { Button, ConfirmDialog, Input, Modal, Select } from '@/components/ui';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { BagAccountingSection } from './BagAccountingSection';
+import { BondLoanSection } from './BondLoanSection';
 import { TransportLogisticsSection } from './TransportLogisticsSection';
 import { useCustomerCombobox } from '../hooks/useCustomerCombobox';
 import { parseNumericInput, useCreateGrnForm } from '../hooks/useCreateGrnForm';
@@ -179,15 +180,10 @@ export function CreateGrnModal({
             </Select>
           </div>
           <div className={styles.fieldGroup}>
-            <label htmlFor="create-rent-months" className={styles.fieldLabel}>
-              Rent Months {form.createRentType === 'Monthly' ? '*' : ''}
-            </label>
+            <label htmlFor="create-rent-months" className={styles.fieldLabel}>Rent Months {form.createRentType === 'Monthly' ? '*' : ''}</label>
             <input
-              id="create-rent-months"
-              type="number"
-              min={1}
-              disabled={form.createRentType !== 'Monthly'}
-              required={form.createRentType === 'Monthly'}
+              id="create-rent-months" type="number" min={1}
+              disabled={form.createRentType !== 'Monthly'} required={form.createRentType === 'Monthly'}
               value={form.createRentType === 'Seasonal' ? form.seasonalRentMonths : form.createRentMonths}
               onChange={(e) => form.handleRentMonthsChange(e.target.value ? parseInt(e.target.value, 10) : '')}
               placeholder={form.createRentType === 'Monthly' ? 'e.g. 6' : '—'}
@@ -199,16 +195,9 @@ export function CreateGrnModal({
             {form.fieldErrors.rentMonths && <span className={styles.fieldErrorText}>{form.fieldErrors.rentMonths}</span>}
           </div>
           <div className={styles.fieldGroup}>
-            <label htmlFor="create-rent-amount" className={styles.fieldLabel}>
-              Rent Amount (₹) *
-            </label>
+            <label htmlFor="create-rent-amount" className={styles.fieldLabel}>Rent Amount (₹) *</label>
             <input
-              id="create-rent-amount"
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="0.01"
-              required
+              id="create-rent-amount" type="number" inputMode="decimal" min={0} step="0.01" required
               value={form.createRentAmount}
               onChange={(e) => form.setCreateRentAmount(parseNumericInput(e.target.value))}
               placeholder="e.g. 50000"
@@ -219,19 +208,21 @@ export function CreateGrnModal({
           </div>
         </div>
         <TransportLogisticsSection
-          gpNumber={form.createGpNumber}
-          onGpNumberChange={form.setCreateGpNumber}
-          vehicleNumber={form.createVehicleNumber}
-          onVehicleNumberChange={form.setCreateVehicleNumber}
+          gpNumber={form.createGpNumber} onGpNumberChange={form.setCreateGpNumber}
+          vehicleNumber={form.createVehicleNumber} onVehicleNumberChange={form.setCreateVehicleNumber}
           vehicleError={form.fieldErrors.vehicleNumber}
-          storageMark={form.createStorageMark}
-          onStorageMarkChange={form.setCreateStorageMark}
+          storageMark={form.createStorageMark} onStorageMarkChange={form.setCreateStorageMark}
           storageMarkError={form.fieldErrors.storageMark}
-          partyMark={form.createPartyMark}
-          onPartyMarkChange={form.setCreatePartyMark}
+          partyMark={form.createPartyMark} onPartyMarkChange={form.setCreatePartyMark}
           partyMarkError={form.fieldErrors.partyMark}
-          remarks={form.createRemarks}
-          onRemarksChange={form.setCreateRemarks}
+          remarks={form.createRemarks} onRemarksChange={form.setCreateRemarks}
+        />
+        <BondLoanSection
+          isBondForLoan={form.isBondForLoan} onIsBondForLoanChange={form.setIsBondForLoan}
+          loanStatus={form.loanStatus} onLoanStatusChange={form.setLoanStatus}
+          loanBankName={form.loanBankName} onLoanBankNameChange={form.setLoanBankName}
+          loanReferenceNumber={form.loanReferenceNumber} onLoanReferenceNumberChange={form.setLoanReferenceNumber}
+          loanRemarks={form.loanRemarks} onLoanRemarksChange={form.setLoanRemarks}
         />
       </form>
     </Modal>

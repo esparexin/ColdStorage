@@ -12,6 +12,7 @@ interface GrnDetailModalProps {
   canPrint: boolean;
   printingId: string | null;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
+  onManageLoan?: (grn: Grn) => void;
 }
 
 export function GrnDetailModal({
@@ -20,6 +21,7 @@ export function GrnDetailModal({
   canPrint,
   printingId,
   onPrint,
+  onManageLoan,
 }: GrnDetailModalProps) {
   return (
     <Modal
@@ -30,6 +32,14 @@ export function GrnDetailModal({
       size="lg"
       footer={
         <>
+          {onManageLoan && (
+            <Button
+              variant={grn.loanStatus === 'TAKEN' ? 'danger' : 'outline'}
+              onClick={() => onManageLoan(grn)}
+            >
+              {grn.loanStatus === 'TAKEN' ? '⚠️ Loan Active — Manage' : 'Manage Loan Status'}
+            </Button>
+          )}
           {canPrint && (
             <>
               <Button
@@ -72,10 +82,33 @@ export function GrnDetailModal({
             </div>
 
             <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Status</span>
+              <span className={styles.detailLabel}>Physical Status</span>
               <span className={styles.detailValue}>
                 <Badge variant={grn.status === 'OPEN' ? 'warning' : 'neutral'}>
                   {grn.status}
+                </Badge>
+              </span>
+            </div>
+
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Bond / Loan Status</span>
+              <span className={styles.detailValue}>
+                <Badge
+                  variant={
+                    grn.loanStatus === 'TAKEN'
+                      ? 'danger'
+                      : grn.loanStatus === 'CLEARED'
+                        ? 'success'
+                        : 'neutral'
+                  }
+                >
+                  {grn.loanStatus === 'TAKEN'
+                    ? 'Loan Active (Hold)'
+                    : grn.loanStatus === 'CLEARED'
+                      ? 'Loan Cleared'
+                      : grn.loanStatus === 'NOT_TAKEN'
+                        ? 'Loan Not Taken (Pledged)'
+                        : 'Standard Storage'}
                 </Badge>
               </span>
             </div>
