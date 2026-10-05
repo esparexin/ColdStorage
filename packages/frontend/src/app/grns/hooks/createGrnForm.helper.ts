@@ -1,5 +1,4 @@
 import {
-  bagCompositionIssue,
   chamberTextSchema,
   indianVehicleSchema,
   rentalAmountSchema,
@@ -19,23 +18,12 @@ export interface CreateGrnState {
   createChamber: string;
   createBags: number | '';
   createBagType: BagType;
-  createSmallBags: number | '';
-  createBigBags: number | '';
-  createSmallBagWeight: number | '';
-  createBigBagWeight: number | '';
   createRentType: RentType;
   createRentMonths: number | '';
   createRentAmount: number | '';
-  createStorageMark?: string;
+  createBagPrice: number | '';
   createPartyMark?: string;
-  createBillNumber?: string;
   createVehicleNumber: string;
-  bondNumber?: string;
-  isBondForLoan?: boolean;
-  loanStatus?: LoanStatus;
-  loanBankName?: string;
-  loanReferenceNumber?: string;
-  loanRemarks?: string;
 }
 
 export function validateCreateGrnForm(state: CreateGrnState): {
@@ -52,34 +40,10 @@ export function validateCreateGrnForm(state: CreateGrnState): {
     errors.chamber = parsedChamber.error.issues[0]?.message ?? 'Chamber is required';
   }
 
-  // The same composition rule the server enforces, so the form cannot submit a receipt the
-  // create-GRN contract would reject with a different message.
-  const compositionError = bagCompositionIssue({
-    bagType: state.createBagType,
-    bags:
-      state.createBagType === 'S+B'
-        ? (typeof state.createSmallBags === 'number' ? state.createSmallBags : 0) +
-          (typeof state.createBigBags === 'number' ? state.createBigBags : 0)
-        : typeof state.createBags === 'number'
-          ? state.createBags
-          : 0,
-    smallBags: typeof state.createSmallBags === 'number' ? state.createSmallBags : null,
-    bigBags: typeof state.createBigBags === 'number' ? state.createBigBags : null,
-  });
-  if (compositionError) {
-    errors.bags = compositionError;
-  }
-
-  // Per-bag weight only: S requires Small, B requires Big, S+B requires both.
-  if (state.createBagType === 'S' || state.createBagType === 'S+B') {
-    if (typeof state.createSmallBagWeight !== 'number' || state.createSmallBagWeight <= 0) {
-      errors.smallBagWeight = 'Small Bag Weight (kg per bag) is required';
-    }
-  }
-  if (state.createBagType === 'B' || state.createBagType === 'S+B') {
-    if (typeof state.createBigBagWeight !== 'number' || state.createBigBagWeight <= 0) {
-      errors.bigBagWeight = 'Big Bag Weight (kg per bag) is required';
-    }
+  // Total Bags is a manual numbers-only input. Bag type is Small-only or
+  // Big-only, so the split is derived server-side and no composition check applies.
+  if (typeof state.createBags !== 'number' || !Number.isInteger(state.createBags) || state.createBags < 1) {
+    errors.bags = 'Total Bags is required (a positive whole number)';
   }
 
   if (state.createRentType === 'Monthly' && (typeof state.createRentMonths !== 'number' || state.createRentMonths < 1)) {
@@ -96,14 +60,8 @@ export function validateCreateGrnForm(state: CreateGrnState): {
     errors.vehicleNumber = 'Vehicle number must be in standard Indian format (e.g., UP32AA1111)';
   }
 
-  if (state.createStorageMark && state.createStorageMark.trim().length > 20) {
-    errors.storageMark = 'Storage mark cannot exceed 20 characters';
-  }
   if (state.createPartyMark && state.createPartyMark.trim().length > 20) {
     errors.partyMark = 'Party mark cannot exceed 20 characters';
-  }
-  if (state.createBillNumber && state.createBillNumber.trim().length > 40) {
-    errors.billNumber = 'Bill number cannot exceed 40 characters';
   }
 
   return {
@@ -116,14 +74,11 @@ export function validateCreateGrnForm(state: CreateGrnState): {
 export function buildCreateGrnPayload(params: {
   facilityId: string; inwardDate: Date; customerId: string; commodityId: string;
   chamber: string; bags: number; bagType: BagType; rentType: RentType; rentAmount: number;
-  bagPrice?: number | ''; smallBagPrice?: number | ''; bigBagPrice?: number | '';
-  smallBags?: number | ''; bigBags?: number | ''; rentMonths?: number | '';
-  smallBagWeight?: number | ''; bigBagWeight?: number | '';
-  gpNumber?: string; storageMark?: string; partyMark?: string; billNumber?: string;
+  bagPrice?: number | '';
+  rentMonths?: number | '';
+  partyMark?: string;
   vehicleNumber?: string; remarks?: string;
-  bondNumber?: string;
-  isBondForLoan?: boolean; loanStatus?: LoanStatus; loanBankName?: string;
-  loanReferenceNumber?: string; loanRemarks?: string;
+  isBondForLoan?: boolean; loanStatus?: LoanStatus;
 }): Record<string, unknown> {
   const p: Record<string, unknown> = {
     facilityId: params.facilityId, date: params.inwardDate, customerId: params.customerId,
@@ -131,26 +86,13 @@ export function buildCreateGrnPayload(params: {
     bagType: params.bagType, rentType: params.rentType, rentAmount: params.rentAmount,
   };
   if (typeof params.bagPrice === 'number' && params.bagPrice > 0) p.bagPrice = params.bagPrice;
-  if (typeof params.smallBagPrice === 'number' && params.smallBagPrice > 0) p.smallBagPrice = params.smallBagPrice;
-  if (typeof params.bigBagPrice === 'number' && params.bigBagPrice > 0) p.bigBagPrice = params.bigBagPrice;
-  if (typeof params.smallBags === 'number' && params.smallBags > 0) p.smallBags = params.smallBags;
-  if (typeof params.bigBags === 'number' && params.bigBags > 0) p.bigBags = params.bigBags;
   if (params.rentType === 'Monthly' && typeof params.rentMonths === 'number') p.rentMonths = params.rentMonths;
-  if (typeof params.smallBagWeight === 'number' && params.smallBagWeight > 0) p.smallBagWeight = params.smallBagWeight;
-  if (typeof params.bigBagWeight === 'number' && params.bigBagWeight > 0) p.bigBagWeight = params.bigBagWeight;
-  if (params.gpNumber?.trim()) p.gpNumber = params.gpNumber.trim();
-  if (params.storageMark?.trim()) p.storageMark = params.storageMark.trim();
   if (params.partyMark?.trim()) p.partyMark = params.partyMark.trim();
-  if (params.billNumber?.trim()) p.billNumber = params.billNumber.trim();
   if (params.vehicleNumber) p.vehicleNumber = params.vehicleNumber;
   if (params.remarks?.trim()) p.remarks = params.remarks.trim();
   if (params.isBondForLoan) {
     p.isBondForLoan = true;
-    if (params.bondNumber?.trim()) p.bondNumber = params.bondNumber.trim();
     p.loanStatus = params.loanStatus || 'NOT_TAKEN';
-    if (params.loanBankName?.trim()) p.loanBankName = params.loanBankName.trim();
-    if (params.loanReferenceNumber?.trim()) p.loanReferenceNumber = params.loanReferenceNumber.trim();
-    if (params.loanRemarks?.trim()) p.loanRemarks = params.loanRemarks.trim();
   }
   return p;
 }

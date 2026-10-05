@@ -12,18 +12,14 @@ export function useCreateGrnForm(
   const [createDate, setCreateDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [createCustomerId, setCreateCustomerId] = useState(''), [createCommodityId, setCreateCommodityId] = useState('');
   const [createChamber, setCreateChamber] = useState(''), [createBagType, setCreateBagType] = useState<BagType>('S');
-  const [createBags, setCreateBags] = useState<number | ''>(''), [createSmallBags, setCreateSmallBags] = useState<number | ''>(''), [createBigBags, setCreateBigBags] = useState<number | ''>('');
-  const [createSmallBagWeight, setCreateSmallBagWeight] = useState<number | ''>(''), [createBigBagWeight, setCreateBigBagWeight] = useState<number | ''>('');
+  const [createBags, setCreateBags] = useState<number | ''>('');
   const [createRentType, setCreateRentType] = useState<RentType>('Seasonal'), [createRentMonths, setCreateRentMonths] = useState<number | ''>('');
-  const [createBagPrice, setCreateBagPrice] = useState<number | ''>(''), [createSmallBagPrice, setCreateSmallBagPrice] = useState<number | ''>(''), [createBigBagPrice, setCreateBigBagPrice] = useState<number | ''>('');
+  const [createBagPrice, setCreateBagPrice] = useState<number | ''>('');
   const [createRentAmount, setCreateRentAmount] = useState<number | ''>('');
-  const [createGpNumber, setCreateGpNumber] = useState(''), [createStorageMark, setCreateStorageMark] = useState('');
-  const [createPartyMark, setCreatePartyMark] = useState(''), [createBillNumber, setCreateBillNumber] = useState('');
-  const [suggestedBillNumber, setSuggestedBillNumber] = useState('');
+  const [createPartyMark, setCreatePartyMark] = useState('');
+  const [suggestedGrnNumber, setSuggestedGrnNumber] = useState('');
   const [createVehicleNumber, setCreateVehicleNumber] = useState(''), [createRemarks, setCreateRemarks] = useState('');
   const [isBondForLoan, setIsBondForLoan] = useState(false), [loanStatus, setLoanStatus] = useState<LoanStatus>('NONE');
-  const [bondNumber, setBondNumber] = useState('');
-  const [loanBankName, setLoanBankName] = useState(''), [loanReferenceNumber, setLoanReferenceNumber] = useState(''), [loanRemarks, setLoanRemarks] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -31,9 +27,9 @@ export function useCreateGrnForm(
   useEffect(() => {
     let active = true;
     if (facilityId) {
-      requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns/next-bill-number`)
+      requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns/next-grn-number`)
         .then((res) => (res.ok ? res.json() : null))
-        .then((d: { nextBillNumber?: string } | null) => { if (active && d?.nextBillNumber) setSuggestedBillNumber(d.nextBillNumber); })
+        .then((d: { nextGrnNumber?: string } | null) => { if (active && d?.nextGrnNumber) setSuggestedGrnNumber(d.nextGrnNumber); })
         .catch(() => {});
     }
     return () => { active = false; };
@@ -57,17 +53,13 @@ export function useCreateGrnForm(
   };
 
   const autoComputeRent = (overrides?: Partial<{
-    bags: number | ''; bagType: BagType; smallBags: number | ''; bigBags: number | '';
-    bagPrice: number | ''; smallBagPrice: number | ''; bigBagPrice: number | '';
+    bags: number | ''; bagType: BagType;
+    bagPrice: number | '';
     rentType: RentType; rentMonths: number | '';
   }>) => {
     const bags = overrides?.bags ?? createBags;
     const bagType = overrides?.bagType ?? createBagType;
-    const smallBags = overrides?.smallBags ?? createSmallBags;
-    const bigBags = overrides?.bigBags ?? createBigBags;
     const bagPrice = overrides?.bagPrice ?? createBagPrice;
-    const smallBagPrice = overrides?.smallBagPrice ?? createSmallBagPrice;
-    const bigBagPrice = overrides?.bigBagPrice ?? createBigBagPrice;
     const rentType = overrides?.rentType ?? createRentType;
     const rentMonths = overrides?.rentMonths ?? createRentMonths;
 
@@ -75,10 +67,6 @@ export function useCreateGrnForm(
       const calc = calculateRentAmount({
         rentType, bags, bagType,
         bagPrice: typeof bagPrice === 'number' ? bagPrice : null,
-        smallBags: typeof smallBags === 'number' ? smallBags : null,
-        bigBags: typeof bigBags === 'number' ? bigBags : null,
-        smallBagPrice: typeof smallBagPrice === 'number' ? smallBagPrice : null,
-        bigBagPrice: typeof bigBagPrice === 'number' ? bigBagPrice : null,
         rentMonths: typeof rentMonths === 'number' ? rentMonths : null,
       });
       if (calc > 0) {
@@ -97,42 +85,7 @@ export function useCreateGrnForm(
   const handleBagTypeChange = (val: BagType) => {
     setCreateBagType(val);
     setCreateBags('');
-    setCreateSmallBags('');
-    setCreateBigBags('');
     clearFieldError('bags');
-    clearFieldError('smallBagWeight');
-    clearFieldError('bigBagWeight');
-    autoComputeRent({ bagType: val, bags: '', smallBags: '', bigBags: '' });
-  };
-
-  const handleSmallBagsChange = (val: number | '') => {
-    setCreateSmallBags(val);
-    clearFieldError('bags');
-    const small = typeof val === 'number' ? val : 0;
-    const big = typeof createBigBags === 'number' ? createBigBags : 0;
-    const total: number | '' = small + big > 0 ? small + big : '';
-    setCreateBags(total);
-    autoComputeRent({ smallBags: val, bags: total });
-  };
-
-  const handleBigBagsChange = (val: number | '') => {
-    setCreateBigBags(val);
-    clearFieldError('bags');
-    const big = typeof val === 'number' ? val : 0;
-    const small = typeof createSmallBags === 'number' ? createSmallBags : 0;
-    const total: number | '' = small + big > 0 ? small + big : '';
-    setCreateBags(total);
-    autoComputeRent({ bigBags: val, bags: total });
-  };
-
-  const handleSmallBagWeightChange = (val: number | '') => {
-    setCreateSmallBagWeight(val);
-    clearFieldError('smallBagWeight');
-  };
-
-  const handleBigBagWeightChange = (val: number | '') => {
-    setCreateBigBagWeight(val);
-    clearFieldError('bigBagWeight');
   };
 
   const handleRentMonthsChange = (val: number | '') => {
@@ -145,9 +98,8 @@ export function useCreateGrnForm(
     e.preventDefault();
     const { errors, parsedChamber, normalizedVehicle } = validateCreateGrnForm({
       createCustomerId, createCommodityId, createChamber, createBags, createBagType,
-      createSmallBags, createBigBags, createSmallBagWeight, createBigBagWeight,
       createRentType, createRentMonths, createRentAmount,
-      createStorageMark, createPartyMark, createBillNumber, createVehicleNumber,
+      createBagPrice, createPartyMark, createVehicleNumber,
     });
 
     if (Object.keys(errors).length > 0) {
@@ -155,10 +107,8 @@ export function useCreateGrnForm(
       const firstKey = Object.keys(errors)[0];
       const fieldIdMap: Record<string, string> = {
         customer: 'create-customer-search', commodity: 'create-commodity', chamber: 'create-chamber',
-        storageMark: 'create-storage-mark', partyMark: 'create-party-mark', billNumber: 'create-bill-number',
-        bags: createBagType === 'S+B' ? 'create-small-bags' : 'create-bags',
-        smallBagWeight: createBagType === 'S+B' ? 'create-both-small-bag-weight' : createBagType === 'B' ? 'create-big-bag-weight' : 'create-small-bag-weight',
-        bigBagWeight: createBagType === 'S+B' ? 'create-both-big-bag-weight' : 'create-big-bag-weight',
+        partyMark: 'create-party-mark',
+        bags: 'create-bags',
         rentMonths: 'create-rent-months', rentAmount: 'create-rent-amount', vehicleNumber: 'create-vehicle',
       };
       setModalError(errors[firstKey]);
@@ -177,12 +127,10 @@ export function useCreateGrnForm(
         facilityId, inwardDate, customerId: createCustomerId, commodityId: createCommodityId,
         chamber: parsedChamber ?? createChamber, bags: Number(createBags), bagType: createBagType,
         rentType: createRentType, rentAmount: Number(createRentAmount),
-        bagPrice: createBagPrice, smallBagPrice: createSmallBagPrice, bigBagPrice: createBigBagPrice,
-        smallBags: createSmallBags, bigBags: createBigBags, rentMonths: createRentMonths,
-        smallBagWeight: createSmallBagWeight, bigBagWeight: createBigBagWeight,
-        gpNumber: createGpNumber, storageMark: createStorageMark, partyMark: createPartyMark,
-        billNumber: createBillNumber, vehicleNumber: normalizedVehicle, remarks: createRemarks,
-        bondNumber, isBondForLoan, loanStatus, loanBankName, loanReferenceNumber, loanRemarks,
+        bagPrice: createBagPrice, rentMonths: createRentMonths,
+        partyMark: createPartyMark,
+        vehicleNumber: normalizedVehicle, remarks: createRemarks,
+        isBondForLoan, loanStatus,
       });
 
       const res = await requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns`, {
@@ -208,11 +156,10 @@ export function useCreateGrnForm(
   };
 
   const isDirty = Boolean(
-    createCustomerId || createCommodityId || createBags || createSmallBags || createBigBags ||
-    createSmallBagWeight || createBigBagWeight || createRentAmount || createGpNumber.trim() ||
-    createStorageMark.trim() || createPartyMark.trim() || createBillNumber.trim() ||
-    createVehicleNumber.trim() || createRemarks.trim() || isBondForLoan || bondNumber.trim() ||
-    loanBankName.trim() || loanReferenceNumber.trim() || loanRemarks.trim(),
+    createCustomerId || createCommodityId || createBags ||
+    createRentAmount || createBagPrice ||
+    createPartyMark.trim() ||
+    createVehicleNumber.trim() || createRemarks.trim() || isBondForLoan,
   );
 
   return {
@@ -223,25 +170,15 @@ export function useCreateGrnForm(
     seasonalRentMonths: SEASONAL_RENT_MONTHS,
     createBags, handleBagsChange,
     createBagType, handleBagTypeChange,
-    createSmallBags, createBigBags, handleSmallBagsChange, handleBigBagsChange,
-    createSmallBagWeight, handleSmallBagWeightChange,
-    createBigBagWeight, handleBigBagWeightChange,
     createRentType, handleRentTypeChange: (val: RentType) => { setCreateRentType(val); autoComputeRent({ rentType: val }); },
     createRentMonths, handleRentMonthsChange,
     createBagPrice, handleBagPriceChange: (val: number | '') => { setCreateBagPrice(val); autoComputeRent({ bagPrice: val }); },
-    createSmallBagPrice, handleSmallBagPriceChange: (val: number | '') => { setCreateSmallBagPrice(val); autoComputeRent({ smallBagPrice: val }); },
-    createBigBagPrice, handleBigBagPriceChange: (val: number | '') => { setCreateBigBagPrice(val); autoComputeRent({ bigBagPrice: val }); },
     createRentAmount, setCreateRentAmount: (val: number | '') => { setCreateRentAmount(val); clearFieldError('rentAmount'); },
-    createGpNumber, setCreateGpNumber,
-    createStorageMark, setCreateStorageMark: (val: string) => { setCreateStorageMark(val); clearFieldError('storageMark'); },
     createPartyMark, setCreatePartyMark: (val: string) => { setCreatePartyMark(val); clearFieldError('partyMark'); },
-    createBillNumber, setCreateBillNumber: (val: string) => { setCreateBillNumber(val); clearFieldError('billNumber'); },
-    suggestedBillNumber,
+    suggestedGrnNumber,
     createVehicleNumber, setCreateVehicleNumber: (val: string) => { setCreateVehicleNumber(val); clearFieldError('vehicleNumber'); },
     createRemarks, setCreateRemarks,
-    bondNumber, setBondNumber,
     isBondForLoan, setIsBondForLoan, loanStatus, setLoanStatus,
-    loanBankName, setLoanBankName, loanReferenceNumber, setLoanReferenceNumber, loanRemarks, setLoanRemarks,
     modalError, fieldErrors, submitting, isDirty, handleSubmit,
   };
 }

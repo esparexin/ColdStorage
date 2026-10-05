@@ -133,6 +133,11 @@ export class GrnService {
     return counterService.previewNextInwardReceiptNumber(facilityId, new Date());
   }
 
+  /** Preview of the next GR Number, the sole business key for the goods lifecycle. */
+  public async getNextGrnNumber(facilityId: string): Promise<string> {
+    return counterService.previewNextGrnNumber(facilityId, new Date());
+  }
+
   public async getGrnMovementHistory(
     facilityId: string,
     grnId: string,

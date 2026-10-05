@@ -4,14 +4,10 @@ import React from 'react';
 import styles from '../page.module.css';
 
 interface TransportLogisticsSectionProps {
-  gpNumber: string;
-  onGpNumberChange: (v: string) => void;
+  grnPreview: string;
   vehicleNumber: string;
   onVehicleNumberChange: (v: string) => void;
   vehicleError?: string;
-  storageMark: string;
-  onStorageMarkChange: (v: string) => void;
-  storageMarkError?: string;
   partyMark: string;
   onPartyMarkChange: (v: string) => void;
   partyMarkError?: string;
@@ -20,9 +16,8 @@ interface TransportLogisticsSectionProps {
 }
 
 export function TransportLogisticsSection({
-  gpNumber, onGpNumberChange,
+  grnPreview,
   vehicleNumber, onVehicleNumberChange, vehicleError,
-  storageMark, onStorageMarkChange, storageMarkError,
   partyMark, onPartyMarkChange, partyMarkError,
   remarks, onRemarksChange,
 }: TransportLogisticsSectionProps) {
@@ -35,14 +30,12 @@ export function TransportLogisticsSection({
           <input
             id="create-storage-mark"
             type="text"
-            maxLength={20}
-            value={storageMark}
-            onChange={(e) => onStorageMarkChange(e.target.value)}
-            placeholder="e.g. ST-01 (max 20)"
-            className={`${styles.fieldInput} ${storageMarkError ? styles.inputError : ''}`}
-            aria-invalid={Boolean(storageMarkError)}
+            readOnly
+            tabIndex={-1}
+            value={grnPreview || 'Auto'}
+            className={`${styles.fieldInput} ${styles.calculatedField}`}
+            aria-label="Storage Mark (GR Number)"
           />
-          {storageMarkError && <span className={styles.fieldErrorText}>{storageMarkError}</span>}
         </div>
         <div className={styles.fieldGroup}>
           <label htmlFor="create-party-mark" className={styles.fieldLabel}>Party Mark</label>
@@ -60,18 +53,6 @@ export function TransportLogisticsSection({
         </div>
       </div>
       <div className={styles.formGrid2}>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="create-gp" className={styles.fieldLabel}>Gate Pass (GP) #</label>
-          <input
-            id="create-gp"
-            type="text"
-            maxLength={40}
-            value={gpNumber}
-            onChange={(e) => onGpNumberChange(e.target.value)}
-            placeholder="e.g. GP-2026-09"
-            className={styles.fieldInput}
-          />
-        </div>
         <div className={styles.fieldGroup}>
           <label htmlFor="create-vehicle" className={styles.fieldLabel}>Vehicle Registration</label>
           <input

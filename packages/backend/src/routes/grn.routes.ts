@@ -104,6 +104,22 @@ grnRouter.get(
   },
 );
 
+// Preview next GR Number for facility (GR No. is the sole business key)
+grnRouter.get(
+  '/facilities/:facilityId/grns/next-grn-number',
+  requirePermission('grn:view'),
+  requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  async (req: Request, res: Response): Promise<void> => {
+    const facilityId = getParamId(req.params.facilityId);
+    try {
+      const nextGrnNumber = await grnService.getNextGrnNumber(facilityId);
+      res.status(200).json({ nextGrnNumber });
+    } catch (err: unknown) {
+      sendServiceError(res, err, 'Failed to preview next GR number');
+    }
+  },
+);
+
 // Get single GRN by ID (with child-ID scope-bypass protection)
 grnRouter.get(
   '/grns/:grnId',
