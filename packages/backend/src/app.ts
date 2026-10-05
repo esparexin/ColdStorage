@@ -95,7 +95,13 @@ export function createApp(): Express {
       typeof err === 'object' &&
       ('type' in err || 'status' in err || 'statusCode' in err)
     ) {
-      const e = err as { type?: string; status?: number; statusCode?: number; message?: string };
+      const e = err as {
+        type?: string;
+        status?: number;
+        statusCode?: number;
+        message?: string;
+        body?: unknown;
+      };
       if (e.type === 'entity.too.large' || e.status === 413 || e.statusCode === 413) {
         res.status(413).json({
           error: 'PAYLOAD_TOO_LARGE: Request entity exceeds 1 MB limit',
@@ -104,7 +110,10 @@ export function createApp(): Express {
         return;
       }
       const isSyntaxError = err instanceof SyntaxError;
-      const hasBody = typeof err === 'object' && err !== null && 'body' in err;
+      // Outer guard already narrows `err` to a truthy object, so `in` is safe
+      // here without a redundant null check (CodeQL flags `err !== null` as
+      // an inconvertible comparison in this narrowed position).
+      const hasBody = 'body' in e;
       // Narrow to body-parser failures only: a bare `status === 400` would also
       // rewrite domain validation errors forwarded via next(err), masking
       // their real message as "Invalid JSON payload".

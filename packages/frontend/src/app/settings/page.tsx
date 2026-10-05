@@ -87,7 +87,10 @@ export default function SettingsPage() {
               Configured & Active
             </span>
           ) : (
-            <span className={styles.badgeConfigured} style={{ background: 'var(--color-warning-subtle)', color: 'var(--color-warning)' }}>
+            <span
+              className={styles.badgeConfigured}
+              style={{ background: 'var(--color-warning-subtle)', color: 'var(--color-warning)' }}
+            >
               <AlertCircle size={13} aria-hidden="true" />
               Configuration Pending
             </span>
@@ -96,17 +99,11 @@ export default function SettingsPage() {
       </div>
 
       {!isConfigured && (
-        <div className={styles.alertUnconfigured} role="alert">
-          <AlertCircle size={20} style={{ flexShrink: 0, marginTop: '2px' }} aria-hidden="true" />
-          <div>
-            <strong>Organization Details Required:</strong>
-            <p style={{ marginTop: '4px' }}>
-              Official document generation (Goods Receipt Notes, Delivery Challans, and Rent Receipts)
-              remains locked until organization name, registered address, and contact details are
-              saved.
-            </p>
-          </div>
-        </div>
+        <Banner
+          variant="info"
+          id="settings-unconfigured"
+          message="Organization Details Required: Official document generation (Goods Receipt Notes, Delivery Challans, and Rent Receipts) remains locked until organization name, registered address, and contact details are saved."
+        />
       )}
 
       {saveSuccess && <Banner variant="success" message={saveSuccess} />}
@@ -119,7 +116,9 @@ export default function SettingsPage() {
           rest start collapsed so the page fits without a long scroll.
         */}
         <details className={styles.disclosure} open>
-          <summary className={styles.disclosureSummary}>Organization Identity &amp; Operating Details</summary>
+          <summary className={styles.disclosureSummary}>
+            Organization Identity &amp; Operating Details
+          </summary>
           <div className={styles.disclosureBody}>
             <OrgIdentitySection
               orgName={orgName}
