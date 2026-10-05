@@ -4,61 +4,23 @@ import type {
   StockLedgerQuery,
 } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
-import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
+import { readLedgerGroupedPairs } from '../ledger-balance.js';
 import { toLedgerEntity } from '../inventory.mappers.js';
 
 export async function getFacilityInventorySummary(
   facilityId: string,
 ): Promise<FacilityInventorySummary> {
-  const [inwardAgg, deliveryAgg] = await Promise.all([
-    GrnModel.aggregate<{ _id: { commodityId: string; chamber: string }; totalBags: number }>([
-      { $match: { facilityId } },
-      {
-        $group: {
-          _id: { commodityId: '$commodityId', chamber: '$chamber' },
-          totalBags: { $sum: '$bags' },
-        },
-      },
-    ]),
-    DeliveryChallanModel.aggregate<{ _id: { commodityId: string; chamber: string }; totalBags: number }>([
-      { $match: { facilityId, status: 'ISSUED' } },
-      {
-        $group: {
-          _id: { commodityId: '$commodityId', chamber: '$chamber' },
-          totalBags: { $sum: { $add: ['$smallBags', '$bigBags'] } },
-        },
-      },
-    ]),
-  ]);
-
-  const netStockMap = new Map<string, { commodityId: string; chamber: string; bags: number }>();
-
-  for (const row of inwardAgg) {
-    const commodityId = String(row._id.commodityId);
-    const chamber = String(row._id.chamber);
-    const key = `${commodityId}::${chamber}`;
-    netStockMap.set(key, { commodityId, chamber, bags: row.totalBags });
-  }
-
-  for (const row of deliveryAgg) {
-    const commodityId = String(row._id.commodityId);
-    const chamber = String(row._id.chamber);
-    const key = `${commodityId}::${chamber}`;
-    const existing = netStockMap.get(key);
-    if (existing) {
-      existing.bags -= row.totalBags;
-    }
-  }
+  const pairs = await readLedgerGroupedPairs(facilityId, 'commodityId', 'chamber');
 
   const byCommodityMap = new Map<string, number>();
   const byChamberMap = new Map<string, number>();
 
-  for (const item of netStockMap.values()) {
-    if (item.bags > 0) {
-      byCommodityMap.set(item.commodityId, (byCommodityMap.get(item.commodityId) ?? 0) + item.bags);
-      byChamberMap.set(item.chamber, (byChamberMap.get(item.chamber) ?? 0) + item.bags);
+  for (const pair of pairs) {
+    if (pair.total > 0) {
+      byCommodityMap.set(pair.first, (byCommodityMap.get(pair.first) ?? 0) + pair.total);
+      byChamberMap.set(pair.second, (byChamberMap.get(pair.second) ?? 0) + pair.total);
     }
   }
 
@@ -93,7 +55,14 @@ export async function queryStockLedger(
   if (query.grnId) filter.grnId = query.grnId;
   if (query.chamber) filter.chamber = query.chamber;
   if (query.commodityId) filter.commodityId = query.commodityId;
-  if (query.customerId) filter.customerId = query.customerId;
+  if (query.customerId) {
+    // Ledger rows carry no customer: a customer filter resolves to that customer's GRNs first,
+    // so the balance partition stays the GRN and a customer can never be double-counted.
+    const grns = await GrnModel.find({ facilityId, customerId: query.customerId }, { id: 1 })
+      .lean()
+      .exec();
+    filter.grnId = { $in: grns.map((g) => g.id) };
+  }
 
   const skip = (query.page - 1) * query.limit;
 

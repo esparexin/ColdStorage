@@ -172,6 +172,14 @@ if ! grep -q "INWARD_PUTAWAY" "$ROOT/packages/backend/src/modules/grn/handlers/c
   fail "Ledger self-sufficiency violation: create-grn.handler.ts must write the INWARD_PUTAWAY row in the same transaction as the receipt."
 fi
 
+# 22. Single balance formula. The ledger carries the inward leg for every receipt, so there is no
+# second formula to fall back to. Switching sources on a row-existence probe is how the dashboard
+# once reported negative stock the moment a facility recorded its first delivery.
+if grep -rn "hasLedgerTxns" "$ROOT/packages/backend/src" \
+  --include="*.ts" --exclude-dir=__tests__ --exclude="*.test.ts" 2>/dev/null; then
+  fail "Single-formula violation: balances come from the ledger for every facility; a hasLedgerTxns source switch must not be reintroduced."
+fi
+
 if [ "$EXIT" -eq 0 ]; then
   echo "[PASS] All architecture boundaries and UI SSOT governance checks passed."
 fi

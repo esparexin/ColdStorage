@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { inventoryService } from '../modules/inventory/inventory.service.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
@@ -132,9 +133,15 @@ describe('InventoryService GRN Chamber SSOT tests', () => {
     );
   });
 
-  it('6. Legacy protection: stock calculations do not require PutAwayAllocationModel or INWARD_PUTAWAY', async () => {
-    // Assert directly that with NO put-away allocation or INWARD_PUTAWAY ledger rows,
-    // stock is immediately, authoritatively available from the GRN itself.
+  it('6. Ledger authority: available stock equals the signed ledger balance, not the receipt', async () => {
+    // The receipt states what arrived; the ledger states what remains. With no outward movement
+    // the two agree, and the agreement comes from the inward leg, not from reading the receipt.
+    const inwardRows = await InventoryTransactionModel.countDocuments({
+      grnId,
+      transactionType: 'INWARD_PUTAWAY',
+    });
+    expect(inwardRows).toBe(1);
+
     const available = await inventoryService.getAvailableBags(facilityId, grnId);
     expect(available.bags).toBe(100);
 

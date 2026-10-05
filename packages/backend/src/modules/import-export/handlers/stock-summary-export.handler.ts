@@ -1,15 +1,16 @@
 import type { Response } from 'express';
-import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
-import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { auditService } from '../../audit/audit.service.js';
-import { challanBagQuantity } from '../../common/bag-composition.js';
 import { ledgerSignedQuantity } from '../../inventory/ledger-polarity.js';
 import { CsvSerializer } from '../csv.serializer.js';
 
 /**
  * Stock summary reports stock held per free-text chamber label. There is no capacity,
  * availability or utilization column because chamber is a label, not a capacity-managed slot.
+ *
+ * The balance comes from the ledger alone. There used to be a second formula for facilities
+ * that had never recorded a delivery; it existed only because the inward leg was missing, and
+ * keeping it meant the same report could answer two different numbers.
  */
 export async function exportStockSummary(
   facilityId: string,
@@ -26,47 +27,15 @@ export async function exportStockSummary(
     details: { entityType: 'stock_summary' },
   });
 
-  const hasLedgerTxns = await InventoryTransactionModel.countDocuments({
-    facilityId,
-  }).exec();
-
-  let stockByChamber: Array<{ _id: string; totalBags: number }>;
-
-  if (hasLedgerTxns > 0) {
-    stockByChamber = await InventoryTransactionModel.aggregate<{
-      _id: string;
-      totalBags: number;
-    }>([
-      { $match: { facilityId } },
-      { $group: { _id: '$chamber', totalBags: { $sum: ledgerSignedQuantity } } },
-      { $match: { totalBags: { $gt: 0 } } },
-      { $sort: { totalBags: -1 } },
-    ]);
-  } else {
-    const [inwardAgg, deliveryAgg] = await Promise.all([
-      GrnModel.aggregate<{ _id: string; totalBags: number }>([
-        { $match: { facilityId } },
-        { $group: { _id: '$chamber', totalBags: { $sum: '$bags' } } },
-      ]),
-      DeliveryChallanModel.aggregate<{ _id: string; totalBags: number }>([
-        { $match: { facilityId, status: 'ISSUED' } },
-        { $group: { _id: '$chamber', totalBags: { $sum: challanBagQuantity } } },
-      ]),
-    ]);
-
-    const chamberStockMap = new Map<string, number>();
-    for (const row of inwardAgg) {
-      chamberStockMap.set(row._id, (chamberStockMap.get(row._id) ?? 0) + row.totalBags);
-    }
-    for (const row of deliveryAgg) {
-      chamberStockMap.set(row._id, (chamberStockMap.get(row._id) ?? 0) - row.totalBags);
-    }
-
-    stockByChamber = [...chamberStockMap.entries()]
-      .filter(([, totalBags]) => totalBags > 0)
-      .map(([chamber, totalBags]) => ({ _id: chamber, totalBags }))
-      .sort((a, b) => b.totalBags - a.totalBags);
-  }
+  const stockByChamber = await InventoryTransactionModel.aggregate<{
+    _id: string;
+    totalBags: number;
+  }>([
+    { $match: { facilityId } },
+    { $group: { _id: '$chamber', totalBags: { $sum: ledgerSignedQuantity } } },
+    { $match: { totalBags: { $gt: 0 } } },
+    { $sort: { totalBags: -1 } },
+  ]);
 
   const headers = ['chamber', 'totalBags'];
 

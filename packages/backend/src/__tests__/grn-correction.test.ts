@@ -4,6 +4,7 @@ import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
+import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedChallan, seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import {
@@ -108,7 +109,18 @@ describe('GRN Correction Workflow (PATCH /api/facilities/:facilityId/grns/:grnId
     expect(stored.body.grn.commodityId).toBe('cmd-onion-correct');
     expect(stored.body.grn.commodityName).toBe('Onion Nashik');
     expect(stored.body.grn.bags).toBe(180);
+    expect(stored.body.grn.smallBags).toBe(180);
+    expect(stored.body.grn.bigBags).toBe(0);
     expect(stored.body.grn.chamber).toBe('CH-07');
+    // The inward ledger leg is part of the receipt: it moves with the correction, atomically.
+    const inward = await InventoryTransactionModel.findOne({
+      grnId,
+      transactionType: 'INWARD_PUTAWAY',
+    })
+      .lean()
+      .exec();
+    expect(inward?.smallQuantity).toBe(180);
+    expect(inward?.bigQuantity).toBe(0);
     // Rent terms are financial facts and are not correctable through this workflow.
     expect(stored.body.grn.rentAmount).toBe(5000);
     expect(stored.body.grn.rentType).toBe('Seasonal');

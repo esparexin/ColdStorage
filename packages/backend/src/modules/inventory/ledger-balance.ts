@@ -103,6 +103,47 @@ export async function readLedgerGrouped(
   }));
 }
 
+/** Stock rolled up by a commodity/chamber pair. */
+export interface PairedLedgerBalance extends LedgerBalance {
+  first: string;
+  second: string;
+}
+
+/**
+ * Facility stock rolled up by two dimensions at once, for views that cross-tabulate them.
+ *
+ * A separate helper rather than client-side joining of two single-dimension rollups, because
+ * joining would silently drop pairs that net to zero on one side and misattribute the other.
+ */
+export async function readLedgerGroupedPairs(
+  facilityId: string,
+  first: 'commodityId' | 'chamber',
+  second: 'commodityId' | 'chamber',
+  session?: mongoose.ClientSession,
+): Promise<PairedLedgerBalance[]> {
+  const agg = await InventoryTransactionModel.aggregate<
+    { _id: { first: string; second: string }; small: number; big: number }
+  >(
+    [
+      { $match: { facilityId } },
+      {
+        $group: {
+          _id: { first: `$${first}`, second: `$${second}` },
+          small: { $sum: ledgerSignedComposition.small },
+          big: { $sum: ledgerSignedComposition.big },
+        },
+      },
+    ],
+    session ? { session } : {},
+  );
+
+  return agg.map((row) => ({
+    first: String(row._id.first),
+    second: String(row._id.second),
+    ...toBalance(Number(row.small ?? 0), Number(row.big ?? 0)),
+  }));
+}
+
 /**
  * Net delivered bags for one GRN, per bag type and in total.
  *
@@ -139,6 +180,49 @@ export async function readLedgerNetDelivered(
   const small = Number(agg[0].small ?? 0);
   const big = Number(agg[0].big ?? 0);
   return toBalance(Math.abs(small), Math.abs(big));
+}
+
+/**
+ * Net delivered bags for many GRNs in one round trip, for list views.
+ *
+ * One aggregation rather than one call per GRN: the list endpoint already pages the receipts,
+ * and N+1 balance reads would multiply its latency by the page size.
+ */
+export async function readLedgerNetDeliveredMany(
+  facilityId: string,
+  grnIds: string[],
+  session?: mongoose.ClientSession,
+): Promise<Map<string, LedgerBalance>> {
+  if (grnIds.length === 0) return new Map();
+
+  const agg = await InventoryTransactionModel.aggregate<
+    { _id: string; small: number; big: number }
+  >(
+    [
+      {
+        $match: {
+          facilityId,
+          grnId: { $in: grnIds },
+          transactionType: { $in: ['OUTWARD_DELIVERY', 'DELIVERY_REVERSAL'] },
+        },
+      },
+      {
+        $group: {
+          _id: '$grnId',
+          small: { $sum: ledgerSignedComposition.small },
+          big: { $sum: ledgerSignedComposition.big },
+        },
+      },
+    ],
+    session ? { session } : {},
+  );
+
+  return new Map(
+    agg.map((row) => [
+      String(row._id),
+      toBalance(Math.abs(Number(row.small ?? 0)), Math.abs(Number(row.big ?? 0))),
+    ]),
+  );
 }
 
 /** The inward leg alone: what the GRN put into the chamber, per bag type. */

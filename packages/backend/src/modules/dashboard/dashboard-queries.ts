@@ -4,7 +4,6 @@ import { DeliveryReversalModel } from '../../database/models/delivery-reversal.m
 import { GrnModel } from '../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
 import { ledgerBagQuantity, ledgerSignedQuantity } from '../inventory/ledger-polarity.js';
-import { challanBagQuantity } from '../common/bag-composition.js';
 
 export function getIstMonthlyWindow(date: Date = new Date()): {
   startOfMonth: Date;
@@ -45,67 +44,6 @@ function monthlyLedgerCond(type: string, start: Date, end: Date, mult = 1) {
       mult === 1 ? ledgerBagQuantity : { $multiply: [ledgerBagQuantity, mult] },
       0,
     ],
-  };
-}
-
-/**
- * Sums one collection's bag total within a window. GRNs store a single `bags` figure while
- * challans store a composition, so the caller states which shape it is aggregating.
- */
-const monthlyBagsExpr = (start: Date, end: Date, quantity: unknown) => ({
-  $sum: { $cond: [{ $and: [{ $gte: ['$date', start] }, { $lt: ['$date', end] }] }, quantity, 0] },
-});
-
-async function fetchAuthoritativeStockData(
-  facilityId: string,
-  startOfMonth: Date,
-  startOfNextMonth: Date,
-) {
-  const [inwardAgg, deliveryAgg] = await Promise.all([
-    GrnModel.aggregate<{ _id: { commodityId: string; chamber: string }; totalBags: number; monthlyBags: number }>([
-      { $match: { facilityId } },
-      { $group: { _id: { commodityId: '$commodityId', chamber: '$chamber' }, totalBags: { $sum: '$bags' }, monthlyBags: monthlyBagsExpr(startOfMonth, startOfNextMonth, '$bags') } },
-    ]),
-    DeliveryChallanModel.aggregate<{ _id: { commodityId: string; chamber: string }; totalBags: number; monthlyBags: number }>([
-      { $match: { facilityId, status: 'ISSUED' } },
-      { $group: { _id: { commodityId: '$commodityId', chamber: '$chamber' }, totalBags: { $sum: challanBagQuantity }, monthlyBags: monthlyBagsExpr(startOfMonth, startOfNextMonth, challanBagQuantity) } },
-    ]),
-  ]);
-
-  const netStockMap = new Map<string, { commodityId: string; chamber: string; bags: number }>();
-  let monthlyInward = 0;
-  for (const row of inwardAgg) {
-    const key = `${row._id.commodityId}::${row._id.chamber}`;
-    netStockMap.set(key, { commodityId: String(row._id.commodityId), chamber: String(row._id.chamber), bags: row.totalBags });
-    monthlyInward += row.monthlyBags;
-  }
-
-  let monthlyDelivered = 0;
-  for (const row of deliveryAgg) {
-    const key = `${row._id.commodityId}::${row._id.chamber}`;
-    const existing = netStockMap.get(key);
-    if (existing) existing.bags -= row.totalBags;
-    monthlyDelivered += row.monthlyBags;
-  }
-
-  const byChamberMap = new Map<string, number>();
-  const byCommodityMap = new Map<string, number>();
-  let totalBags = 0;
-
-  for (const item of netStockMap.values()) {
-    if (item.bags > 0) {
-      totalBags += item.bags;
-      byChamberMap.set(item.chamber, (byChamberMap.get(item.chamber) ?? 0) + item.bags);
-      byCommodityMap.set(item.commodityId, (byCommodityMap.get(item.commodityId) ?? 0) + item.bags);
-    }
-  }
-
-  const byChamber = [...byChamberMap.entries()].map(([chamber, totalBags]) => ({ _id: chamber, totalBags })).sort((a, b) => b.totalBags - a.totalBags);
-  const byCommodity = [...byCommodityMap.entries()].map(([commodityId, totalBags]) => ({ _id: commodityId, totalBags })).sort((a, b) => b.totalBags - a.totalBags);
-
-  return {
-    totalAgg: [{ _id: null, totalBags, monthlyInward, monthlyDelivered }],
-    chamberCommodityAgg: [{ byChamber, byCommodity }],
   };
 }
 
@@ -158,14 +96,10 @@ export async function fetchPhaseAData(
   startOfMonth: Date,
   startOfNextMonth: Date,
 ) {
-  const hasLedgerTxns = await InventoryTransactionModel.countDocuments({
-    facilityId,
-  }).exec();
-
+  // No source switching: the ledger carries the inward leg for every receipt, so it is the
+  // balance for every facility, including ones that have never recorded a delivery.
   const [stockData, grnStatusAgg, recentTxns] = await Promise.all([
-    hasLedgerTxns > 0
-      ? fetchLedgerStockData(facilityId, startOfMonth, startOfNextMonth)
-      : fetchAuthoritativeStockData(facilityId, startOfMonth, startOfNextMonth),
+    fetchLedgerStockData(facilityId, startOfMonth, startOfNextMonth),
     GrnModel.aggregate<{ _id: string; count: number }>([
       { $match: { facilityId } },
       { $group: { _id: '$status', count: { $sum: 1 } } },

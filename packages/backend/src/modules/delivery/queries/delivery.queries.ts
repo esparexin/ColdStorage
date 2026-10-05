@@ -1,6 +1,7 @@
 import type { DeliveryChallan, DeliveryQuery, DeliverySummary } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
+import { readLedgerBalance, readLedgerNetDelivered } from '../../inventory/ledger-balance.js';
 import { toChallanEntity } from '../delivery.mappers.js';
 
 export async function getDeliveryById(
@@ -57,18 +58,10 @@ export async function getDeliverySummary(
 ): Promise<DeliverySummary> {
   // Every read below keys only on (facilityId, grnId), both of which the caller
   // already supplied, so they run concurrently rather than in sequence.
-  const [grn, issuedAgg, challanDocs] = await Promise.all([
+  const [grn, netDelivered, available, challanDocs] = await Promise.all([
     GrnModel.findOne({ id: grnId, facilityId }).lean().exec(),
-    DeliveryChallanModel.aggregate([
-      { $match: { grnId, facilityId, status: 'ISSUED' } },
-      {
-        $group: {
-          _id: null,
-          small: { $sum: '$smallBags' },
-          big: { $sum: '$bigBags' },
-        },
-      },
-    ]),
+    readLedgerNetDelivered(facilityId, grnId),
+    readLedgerBalance(facilityId, grnId),
     DeliveryChallanModel.find({ facilityId, grnId })
       .sort({ date: -1, createdAt: -1 })
       .lean()
@@ -79,12 +72,12 @@ export async function getDeliverySummary(
     throw new Error(`GRN '${grnId}' not found in facility '${facilityId}'`);
   }
 
-  const netDeliveredSmallBags = issuedAgg[0]?.small ?? 0;
-  const netDeliveredBigBags = issuedAgg[0]?.big ?? 0;
-  const netDeliveredBags = netDeliveredSmallBags + netDeliveredBigBags;
-  const availableSmallBags = grn.smallBags - netDeliveredSmallBags;
-  const availableBigBags = grn.bigBags - netDeliveredBigBags;
-  const remainingDeliveryBalance = Math.max(0, availableSmallBags + availableBigBags);
+  const netDeliveredSmallBags = netDelivered.smallBags;
+  const netDeliveredBigBags = netDelivered.bigBags;
+  const netDeliveredBags = netDelivered.total;
+  const availableSmallBags = available.smallBags;
+  const availableBigBags = available.bigBags;
+  const remainingDeliveryBalance = available.total;
 
   return {
     grnId: grn.id,
