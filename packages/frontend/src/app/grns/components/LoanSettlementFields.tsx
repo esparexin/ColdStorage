@@ -1,7 +1,5 @@
 'use client';
 
-import React from 'react';
-import type { LoanPaymentMode } from '@cold-storage/contracts';
 import { Button } from '@/components/ui';
 import styles from './LoanSettlementFields.module.css';
 

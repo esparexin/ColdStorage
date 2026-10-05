@@ -216,3 +216,7 @@
   line-height: 1.5;
   margin-bottom: var(--space-3);
 }
+
+.loanHoldAction {
+  margin-top: var(--space-2);
+}
