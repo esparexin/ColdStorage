@@ -22,7 +22,7 @@ interface RentTableProps {
 
 export function RentTable({
   accounts,
-  facilityName,
+  facilityName: _facilityName,
   canCollect,
   page,
   pageSize,
@@ -34,12 +34,21 @@ export function RentTable({
 }: RentTableProps) {
   const columns: DataTableColumn<RentSummaryDto>[] = [
     {
+      key: 'customer',
+      header: 'Customer',
+      render: (row) => (
+        <div className={styles.tableCustomer}>
+          <span className={styles.tableCustomerName}>{row.customerName}</span>
+        </div>
+      ),
+    },
+    {
       key: 'grnNumber',
       header: 'GRN # / Date',
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontWeight: 'var(--font-semibold)' }}>{row.grnNumber}</span>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+          <span className={styles.tableMono}>{row.grnNumber}</span>
+          <span className={styles.tableSubtext}>
             {new Date(row.inwardDate).toLocaleDateString('en-IN', {
               day: '2-digit',
               month: 'short',
@@ -50,28 +59,59 @@ export function RentTable({
       ),
     },
     {
-      key: 'customer',
-      header: 'Customer',
-      render: (row) => <span>{row.customerName}</span>,
-    },
-    {
       key: 'commodity',
       header: 'Commodity & Chamber',
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <span>{row.commodityName}</span>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-            Chamber {row.chamber} ({row.totalBags} bags)
+          <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)' }}>
+            {row.commodityName}
+          </span>
+          <span className={styles.tableSubtext}>
+            Chamber {row.chamber}
           </span>
         </div>
       ),
+    },
+    {
+      key: 'inwardBags',
+      header: 'Inward',
+      align: 'right',
+      render: (row) => (
+        <span className={styles.bagNumber}>{row.totalBags.toLocaleString('en-IN')}</span>
+      ),
+    },
+    {
+      key: 'outwardBags',
+      header: 'Outward',
+      align: 'right',
+      render: (row) => (
+        <span className={styles.bagNumber}>
+          {(row.deliveredBags ?? 0).toLocaleString('en-IN')}
+        </span>
+      ),
+    },
+    {
+      key: 'remainingBags',
+      header: 'Balance',
+      align: 'right',
+      render: (row) => {
+        const bal =
+          row.remainingBags ?? Math.max(0, row.totalBags - (row.deliveredBags ?? 0));
+        return (
+          <span
+            className={`${styles.bagNumber} ${bal > 0 ? styles.balancePositive : styles.balanceZero}`}
+          >
+            {bal.toLocaleString('en-IN')}
+          </span>
+        );
+      },
     },
     {
       key: 'structure',
       header: 'Rent Structure',
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <span>
+          <span style={{ fontSize: 'var(--text-xs)' }}>
             {row.rentType}
             {row.rentType === 'Monthly' && row.rentMonths ? ` (${row.rentMonths}m)` : ''}
           </span>
@@ -83,11 +123,17 @@ export function RentTable({
     },
     {
       key: 'accounting',
-      header: 'Paid / Balance',
+      header: 'Paid / Due',
       align: 'right',
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-          <span style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-success)' }}>
+          <span
+            style={{
+              fontSize: 'var(--text-xs)',
+              fontWeight: 'var(--font-semibold)',
+              color: 'var(--color-success)',
+            }}
+          >
             Paid: ₹{row.totalPaid.toLocaleString('en-IN')}
           </span>
           <span
@@ -133,7 +179,7 @@ export function RentTable({
               size="sm"
               onClick={() => onOpenCollect(row)}
               title="Collect rent payment"
-              leftIcon={<Plus size={13} aria-hidden="true" />}
+              leftIcon={<Plus size={12} aria-hidden="true" />}
             >
               Collect
             </Button>
@@ -144,7 +190,7 @@ export function RentTable({
             size="sm"
             onClick={() => onOpenHistory(row)}
             title="View payment cash memos history"
-            leftIcon={<Eye size={13} aria-hidden="true" />}
+            leftIcon={<Eye size={12} aria-hidden="true" />}
           >
             Cash Memos ({row.payments.length})
           </Button>
@@ -158,7 +204,6 @@ export function RentTable({
       columns={columns}
       rows={accounts}
       rowKey={(r) => r.grnId}
-      caption={`Rent Accounts for ${facilityName}`}
       pagination={{ page, pageSize, totalPages, totalRecords: totalAccounts, onPageChange }}
     />
   );

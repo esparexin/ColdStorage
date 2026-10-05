@@ -1,7 +1,8 @@
 import type { DeliveryChallan, DeliveryQuery, DeliverySummary } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
-import { readLedgerBalance, readLedgerNetDelivered } from '../../inventory/ledger-balance.js';
+import { readLedgerBalance, readLedgerBalanceMany, readLedgerNetDelivered } from '../../inventory/ledger-balance.js';
+import { rentService } from '../../rent/rent.service.js';
 import { toChallanEntity } from '../delivery.mappers.js';
 
 export async function getDeliveryById(
@@ -33,8 +34,37 @@ export async function listDeliveries(
     DeliveryChallanModel.countDocuments(filter).exec(),
   ]);
 
+  const grnIds = Array.from(new Set(docs.map((d) => d.grnId)));
+  const [grnDocs, balanceMap, rentSummaries] = await Promise.all([
+    GrnModel.find({ id: { $in: grnIds }, facilityId }).lean().exec(),
+    readLedgerBalanceMany(facilityId, grnIds),
+    Promise.all(grnIds.map((id) => rentService.getRentSummary(facilityId, id).catch(() => null))),
+  ]);
+
+  const grnMap = new Map(grnDocs.map((g) => [g.id, g]));
+  const rentMap = new Map(
+    rentSummaries.filter(Boolean).map((r) => [r!.grnId, r!]),
+  );
+
   return {
-    items: docs.map((d) => toChallanEntity(d)),
+    items: docs.map((d) => {
+      const entity = toChallanEntity(d);
+      const grn = grnMap.get(d.grnId);
+      const bal = balanceMap.get(d.grnId);
+      const rent = rentMap.get(d.grnId);
+
+      return {
+        ...entity,
+        originalBags: grn ? grn.bags : undefined,
+        remainingSmallBags: bal ? bal.smallBags : undefined,
+        remainingBigBags: bal ? bal.bigBags : undefined,
+        remainingTotalBags: bal ? bal.total : undefined,
+        rentPaymentStatus: rent ? rent.paymentStatus : undefined,
+        rentRemainingBalance: rent ? rent.remainingBalance : undefined,
+        rentTotalAmount: rent ? rent.rentAmount : undefined,
+        rentTotalPaid: rent ? rent.totalPaid : undefined,
+      };
+    }),
     total,
     page: query.page,
     limit: query.limit,

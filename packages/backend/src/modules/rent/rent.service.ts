@@ -8,7 +8,12 @@ import {
   type StorageOccupancyFilter,
 } from '@cold-storage/contracts';
 import { GrnModel, type GrnDoc } from '../../database/models/grn.model.js';
-import { readLedgerNetDelivered } from '../inventory/ledger-balance.js';
+import {
+  readLedgerBalance,
+  readLedgerBalanceMany,
+  readLedgerNetDelivered,
+  readLedgerNetDeliveredMany,
+} from '../inventory/ledger-balance.js';
 import { computeRentBalance } from '../common/rent-balance.js';
 import {
   calculateGrnMonthlyOccupancyRent,
@@ -33,7 +38,12 @@ import type { RentPaymentDoc } from '../../database/models/rent-payment.model.js
  * Shared by the single-GRN lookup and the batched facility list so both derive
  * the balance through computeRentBalance and cannot drift apart.
  */
-function buildRentSummary(grn: GrnDoc, payments: RentPaymentDoc[]): RentSummaryDto {
+function buildRentSummary(
+  grn: GrnDoc,
+  payments: RentPaymentDoc[],
+  deliveredBags = 0,
+  remainingBags = grn.bags,
+): RentSummaryDto {
   const balance = computeRentBalance(
     grn.rentAmount,
     payments.reduce((sum, p) => sum + p.amountPaid, 0),
@@ -49,6 +59,9 @@ function buildRentSummary(grn: GrnDoc, payments: RentPaymentDoc[]): RentSummaryD
     chamber: grn.chamber,
     inwardDate: grn.date,
     totalBags: grn.bags,
+    deliveredBags,
+    remainingBags,
+    bagPrice: grn.bagPrice ?? null,
     rentType: grn.rentType,
     rentAmount: balance.rentAmount,
     rentMonths: grn.rentMonths ?? null,
@@ -92,30 +105,38 @@ export class RentService {
    */
   public async getRentSummary(facilityId: string, identifier: string): Promise<RentSummaryDto> {
     const grn = await this.resolveGrn(facilityId, identifier);
-    const payments = await rentRepository.findPaymentsByGrnId(facilityId, grn.id);
-    return buildRentSummary(grn, payments);
+    const [payments, netDelivered, balance] = await Promise.all([
+      rentRepository.findPaymentsByGrnId(facilityId, grn.id),
+      readLedgerNetDelivered(facilityId, grn.id),
+      readLedgerBalance(facilityId, grn.id),
+    ]);
+    const delivered = netDelivered?.total ?? 0;
+    const remaining = balance?.total ?? Math.max(0, grn.bags - delivered);
+    return buildRentSummary(grn, payments, delivered, remaining);
   }
 
   /**
-   * Derives the rent summary for every GRN in a facility using two queries.
+   * Derives the rent summary for every GRN in a facility using batch queries.
    *
-   * This replaces the client-side fan-out that fetched the GRN list and then
-   * requested /rent/grn/:id once per GRN. That pattern cost one HTTP request and
-   * four MongoDB round trips per row, so a facility with 100 GRNs spent roughly
-   * 400 remote round trips and well over the per-minute rate limit on a single
-   * page view.
-   *
-   * The balance is still derived through computeRentBalance, so this returns
-   * byte-identical DTOs to getRentSummary and there is exactly one formula
-   * governing rent state.
+   * The balance is derived through computeRentBalance and bag balances are sourced
+   * directly from the immutable inventory transaction ledger so rent and physical
+   * stock can never drift apart.
    */
   public async getRentSummariesForFacility(facilityId: string): Promise<RentSummaryDto[]> {
-    const [grns, paymentsByGrn] = await Promise.all([
-      GrnModel.find({ facilityId }).lean<GrnDoc[]>().exec(),
+    const grns = await GrnModel.find({ facilityId }).sort({ date: -1, createdAt: -1 }).lean<GrnDoc[]>().exec();
+    const grnIds = grns.map((g) => g.id);
+
+    const [paymentsByGrn, deliveredMap, balanceMap] = await Promise.all([
       rentRepository.findPaymentsByFacilityGrouped(facilityId),
+      readLedgerNetDeliveredMany(facilityId, grnIds),
+      readLedgerBalanceMany(facilityId, grnIds),
     ]);
 
-    return grns.map((grn) => buildRentSummary(grn, paymentsByGrn.get(grn.id) ?? []));
+    return grns.map((grn) => {
+      const delivered = deliveredMap.get(grn.id)?.total ?? 0;
+      const remaining = balanceMap.get(grn.id)?.total ?? Math.max(0, grn.bags - delivered);
+      return buildRentSummary(grn, paymentsByGrn.get(grn.id) ?? [], delivered, remaining);
+    });
   }
 
   /**

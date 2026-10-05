@@ -78,7 +78,7 @@ async function executeDeliveryTransaction(
         throw new Error(`Cannot create delivery: GRN '${grn.grnNumber}' is CLOSED`);
       }
 
-      const rentGateResult = await assertRentAllowedForOutward(
+      await assertRentAllowedForOutward(
         facilityId,
         { id: grn.id, grnNumber: grn.grnNumber, rentAmount: grn.rentAmount ?? 0 },
         session,
@@ -160,8 +160,9 @@ async function executeDeliveryTransaction(
 
       const closingTotal = available.total - withdrawnTotal;
 
-      // Closure invariant: A GRN is CLOSED only when both remainingBags === 0 AND remainingBalance === 0
-      if (closingTotal === 0 && rentGateResult.remainingBalance === 0) {
+      // Physical inventory lifecycle: A GRN is CLOSED when physical bags reach 0 (closingTotal === 0).
+      // Financial rent state (Settled / Not Settled) remains strictly decoupled and preserved in the rent ledger.
+      if (closingTotal === 0) {
         await GrnModel.updateOne({ id: grn.id }, { $set: { status: 'CLOSED' } }, { session });
       }
     });

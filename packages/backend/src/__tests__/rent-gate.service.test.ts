@@ -7,10 +7,7 @@ import { DeliveryChallanModel } from '../database/models/delivery-challan.model.
 import { FacilityModel } from '../database/models/facility.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
-import {
-  RentPaymentRequiredError,
-  assertRentAllowedForOutward,
-} from '../modules/common/rent-gate.service.js';
+import { assertRentAllowedForOutward } from '../modules/common/rent-gate.service.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { rentService } from '../modules/rent/rent.service.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
@@ -64,15 +61,17 @@ describe('Rent gate for outward movement — rent-gate.service.test.ts', () => {
     });
   });
 
-  it('blocks outward movement when nothing is paid yet', async () => {
-    const attempt = assertRentAllowedForOutward(FACILITY_ID, {
+  it('allows outward movement when nothing is paid yet and reports full pending balance', async () => {
+    const gate = await assertRentAllowedForOutward(FACILITY_ID, {
       id: grnId,
       grnNumber: GRN_NUMBER,
       rentAmount: RENT_AMOUNT,
     });
 
-    await expect(attempt).rejects.toBeInstanceOf(RentPaymentRequiredError);
-    await expect(attempt).rejects.toMatchObject({ code: 'RENT_PAYMENT_REQUIRED', statusCode: 402 });
+    expect(gate.paymentStatus).toBe('Not Settled');
+    expect(gate.totalPaid).toBe(0);
+    expect(gate.remainingBalance).toBe(RENT_AMOUNT);
+    expect(gate.isPartial).toBe(false);
   });
 
   it('allows outward movement after a partial payment and reports the balance', async () => {
@@ -123,22 +122,17 @@ describe('Rent gate for outward movement — rent-gate.service.test.ts', () => {
     expect(gate.isPartial).toBe(false);
   });
 
-  it('blocks delivery until rent is paid, then completes the 100→40 flow', async () => {
-    await expect(
-      deliveryService.createDelivery(FACILITY_ID, { grnId, smallBags: 40, bigBags: 0 }, USER_ID),
-    ).rejects.toBeInstanceOf(RentPaymentRequiredError);
-
-    await rentService.recordPayment(
-      FACILITY_ID,
-      { grnId, amountPaid: RENT_AMOUNT, paymentMode: 'Cash', paymentDate: new Date() },
-      USER_ID,
-    );
-
+  it('allows delivery even when rent is unpaid, preserving pending rent balance', async () => {
     const res = await deliveryService.createDelivery(FACILITY_ID, { grnId, smallBags: 40, bigBags: 0 }, USER_ID);
     expect(res.delivery.totalBags).toBe(40);
     expect(res.delivery.chamber).toBe('CH-01');
     expect(res.summary.netDeliveredBags).toBe(40);
     expect(res.summary.remainingDeliveryBalance).toBe(60);
     expect(res.summary.grnStatus).toBe('OPEN');
+
+    // Pending rent remains intact
+    const rentSummary = await rentService.getRentSummary(FACILITY_ID, grnId);
+    expect(rentSummary?.remainingBalance).toBe(RENT_AMOUNT);
+    expect(rentSummary?.paymentStatus).toBe('Not Settled');
   });
 });

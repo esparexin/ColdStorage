@@ -144,7 +144,7 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
     expect(res.body.error).toContain('exceeds the available balance of 80 small and 0 big bags');
   });
 
-  it('blocks delivery with 402 when rent is unpaid', async () => {
+  it('allows delivery when rent is unpaid and returns 201', async () => {
     const customerId = await seedCustomer({ facilityId, name: 'Unpaid Traders' });
     const unpaidGrnId = await seedGrn({
       facilityId,
@@ -159,9 +159,9 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
       .set('Authorization', `Bearer ${operatorToken}`)
       .send({ grnId: unpaidGrnId, smallBags: 5, bigBags: 0 });
 
-    expect(res.status).toBe(402);
-    expect(res.body.code).toBe('RENT_PAYMENT_REQUIRED');
-    expect(res.body.rent.remainingBalance).toBe(5000);
+    expect(res.status).toBe(201);
+    expect(res.body.delivery.totalBags).toBe(5);
+    expect(res.body.summary.remainingDeliveryBalance).toBe(35);
   });
 
   it('allows SUPER_ADMIN to perform full delivery reversal', async () => {

@@ -68,11 +68,13 @@ setRentSummaries(data.summaries ?? []);
 
   const filteredAccounts = useMemo(() => {
     return rentSummaries.filter((acc) => {
+      const term = searchTerm.toLowerCase();
       const matchSearch =
         !searchTerm.trim() ||
-        acc.grnNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        acc.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        acc.commodityName.toLowerCase().includes(searchTerm.toLowerCase());
+        acc.grnNumber.toLowerCase().includes(term) ||
+        acc.customerName.toLowerCase().includes(term) ||
+        acc.commodityName.toLowerCase().includes(term) ||
+        acc.chamber.toLowerCase().includes(term);
 
       const matchStatus = !statusFilter || acc.paymentStatus === statusFilter;
       return matchSearch && matchStatus;

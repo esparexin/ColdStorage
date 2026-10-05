@@ -51,8 +51,7 @@ export function useRentGate(): RentGateState {
 
   const resetRentGate = useCallback(() => setRentSummary(null), []);
 
-  const rentBlocked =
-    rentSummary !== null && rentSummary.rentAmount > 0 && rentSummary.totalPaid === 0;
+  const rentBlocked = false;
   const rentPartial =
     rentSummary !== null && rentSummary.totalPaid > 0 && rentSummary.remainingBalance > 0;
 
