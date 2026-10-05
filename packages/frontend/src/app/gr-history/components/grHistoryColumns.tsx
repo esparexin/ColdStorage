@@ -5,13 +5,13 @@ import type { DataTableColumn } from '@/components/ui/DataTable';
 import { Badge, Button } from '@/components/ui';
 import styles from '../page.module.css';
 
-interface CreateBondLedgerColumnsParams {
+interface CreateGrHistoryColumnsParams {
   onOpenLedger: (grn: Grn) => void;
 }
 
-export function createBondLedgerColumns({
+export function createGrHistoryColumns({
   onOpenLedger,
-}: CreateBondLedgerColumnsParams): DataTableColumn<Grn>[] {
+}: CreateGrHistoryColumnsParams): DataTableColumn<Grn>[] {
   return [
     {
       key: 'bondNumber',
@@ -127,8 +127,8 @@ export function createBondLedgerColumns({
           variant="secondary"
           size="sm"
           onClick={() => onOpenLedger(row)}
-          title={`View Outward Movement Ledger for ${row.bondNumber ? `Bond ${row.bondNumber} (GRN ${row.grnNumber})` : `GRN ${row.grnNumber}`}`}
-          aria-label={`View Ledger for ${row.bondNumber ? `Bond ${row.bondNumber}` : `GRN ${row.grnNumber}`}`}
+          title={`View Outward Movement History for ${row.bondNumber ? `Bond ${row.bondNumber} (GRN ${row.grnNumber})` : `GRN ${row.grnNumber}`}`}
+          aria-label={`View GR History for ${row.bondNumber ? `Bond ${row.bondNumber}` : `GRN ${row.grnNumber}`}`}
           leftIcon={<Eye size={14} aria-hidden="true" />}
         >
           View

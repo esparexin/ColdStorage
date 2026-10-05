@@ -56,7 +56,7 @@ export function renderPassbookHtml(
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>${history.bondNumber ? `Bond #${history.bondNumber} (GRN #${history.grnNumber})` : `GRN #${history.grnNumber}`} Movement Ledger</title>
+  <title>${history.bondNumber ? `GRN #${history.grnNumber} (Bond #${history.bondNumber})` : `GRN #${history.grnNumber}`} Movement History</title>
   <style>
     body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; color: #111; padding: 24px; line-height: 1.4; }
     h2 { margin: 0 0 8px 0; font-size: 16px; font-weight: bold; }

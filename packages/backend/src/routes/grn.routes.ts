@@ -144,7 +144,7 @@ grnRouter.get(
   },
 );
 
-// Get Bond Movement History (authoritative read-only passbook)
+// Get GR Movement History (authoritative read-only passbook)
 grnRouter.get(
   '/facilities/:facilityId/grns/:grnId/movement-history',
   requirePermission('grn:view'),
