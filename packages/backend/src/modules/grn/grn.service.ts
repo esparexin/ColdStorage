@@ -35,7 +35,7 @@ export class GrnService {
     return correctGrn(facilityId, grnId, input, userId);
   }
 
-  /** Update loan/pledge status on existing Bond/GRN with audit trail */
+  /** Update loan/pledge status for inward consignment with audit trail */
   public async updateLoanStatus(
     facilityId: string,
     grnId: string,
