@@ -44,6 +44,14 @@ export function renderPassbookHtml(
     })
     .join('');
 
+  const loanStatusStr = history.loanStatus === 'TAKEN'
+    ? `LOAN ACTIVE / PLEDGED (${history.loanBankName || 'Bank'}${history.loanReferenceNumber ? ` - Ref: ${history.loanReferenceNumber}` : ''})`
+    : history.loanStatus === 'CLEARED'
+      ? 'LOAN CLEARED (LIEN RELEASED)'
+      : history.loanStatus === 'NOT_TAKEN'
+        ? 'BOND PLEDGED (LOAN NOT TAKEN)'
+        : 'STANDARD STORAGE (NO LIEN)';
+
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -72,6 +80,7 @@ export function renderPassbookHtml(
     <span><strong>Initial Received:</strong> ${history.totalInwardBags.toLocaleString('en-IN')} Bags</span>
     <span><strong>Current Stored:</strong> ${history.currentClosingBags.toLocaleString('en-IN')} Bags</span>
     <span><strong>Physical Status:</strong> ${history.status}</span>
+    <span><strong>Bond Loan:</strong> ${loanStatusStr}</span>
     ${rentSummary ? `<span><strong>Rent:</strong> ${rentSummary.paymentStatus}</span>` : ''}
   </div>
   <table>
