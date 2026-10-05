@@ -16,7 +16,6 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { printHtmlDocument } from '@/lib/print-document';
-import { requestWithAuth } from '@/lib/api-client';
 import { CreateGrnModal } from './components/CreateGrnModal';
 import { GrnDetailModal } from './components/GrnDetailModal';
 import { GrnFilterToolbar } from './components/GrnFilterToolbar';
@@ -47,15 +46,7 @@ export default function GrnsPage() {
     const targetGrnId = params.get('selectedGrnId');
     if (targetGrnId) {
       const match = grnData.grns.find((g) => g.id === targetGrnId);
-      if (match) {
-        setSelectedGrn(match);
-      } else {
-        void requestWithAuth(`/api/grns/${encodeURIComponent(targetGrnId)}`)
-          .then((res) => (res.ok ? res.json() : null))
-          .then((data: { grn?: Grn } | null) => {
-            if (data?.grn) setSelectedGrn(data.grn);
-          });
-      }
+      if (match) setSelectedGrn(match);
     }
     return () => window.removeEventListener('select-grn', handleSelectEvent);
   }, [grnData.grns]);
