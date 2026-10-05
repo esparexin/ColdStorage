@@ -1,6 +1,7 @@
 import type { Grn, UpdateGrnLoanStatusInput } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { auditService } from '../../audit/audit.service.js';
+import { counterService } from '../../common/counter.service.js';
 import { readLedgerNetDelivered } from '../../inventory/ledger-balance.js';
 import { toGrnEntity } from '../grn.mappers.js';
 
@@ -19,6 +20,12 @@ export async function updateGrnLoanStatus(
 
   grn.isBondForLoan = true;
   grn.loanStatus = input.loanStatus;
+
+  if (input.bondNumber !== undefined && input.bondNumber !== null) {
+    grn.bondNumber = input.bondNumber.trim() || null;
+  } else if (!grn.bondNumber) {
+    grn.bondNumber = await counterService.generateBondNumber(facilityId, grn.date);
+  }
 
   if (input.loanStatus === 'TAKEN') {
     grn.loanTakenAt = new Date();
@@ -47,6 +54,7 @@ export async function updateGrnLoanStatus(
     resourceId: grn.id,
     details: {
       grnNumber: grn.grnNumber,
+      bondNumber: grn.bondNumber,
       previousStatus,
       newStatus: grn.loanStatus,
       bankName: grn.loanBankName,

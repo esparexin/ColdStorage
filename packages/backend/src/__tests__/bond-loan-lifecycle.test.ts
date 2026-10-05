@@ -85,6 +85,7 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
     expect(inwardRes.status).toBe(201);
     expect(inwardRes.body.grn.isBondForLoan).toBe(false);
     expect(inwardRes.body.grn.loanStatus).toBe('NONE');
+    expect(inwardRes.body.grn.bondNumber).toBeNull();
 
     const grnId = inwardRes.body.grn.id;
 
@@ -115,6 +116,7 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
     expect(inwardRes.status).toBe(201);
     expect(inwardRes.body.grn.isBondForLoan).toBe(true);
     expect(inwardRes.body.grn.loanStatus).toBe('NOT_TAKEN');
+    expect(inwardRes.body.grn.bondNumber).toMatch(/^BND-\d{2}-\d{2}-\d{4}$/);
 
     const grnId = inwardRes.body.grn.id;
 
@@ -143,6 +145,7 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
       }));
 
     expect(inwardRes.status).toBe(201);
+    expect(inwardRes.body.grn.bondNumber).toMatch(/^BND-\d{2}-\d{2}-\d{4}$/);
     const grnId = inwardRes.body.grn.id;
 
     // 2. Operator updates loan status to TAKEN (party has availed loan against this bond)
@@ -227,5 +230,6 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
     expect(finalHistRes.status).toBe(200);
     expect(finalHistRes.body.history.loanStatus).toBe('CLEARED');
     expect(finalHistRes.body.history.isLoanHoldActive).toBe(false);
+    expect(finalHistRes.body.history.bondNumber).toBe(inwardRes.body.grn.bondNumber);
   });
 });

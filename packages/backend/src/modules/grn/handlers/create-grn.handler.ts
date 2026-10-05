@@ -139,6 +139,10 @@ export async function createGrn(
         );
       }
 
+      const bondNumber = input.isBondForLoan
+        ? (input.bondNumber?.trim() || (await counterService.generateBondNumber(facilityId, inwardDate, session)))
+        : null;
+
       const docs = await GrnModel.create(
         [
           {
@@ -171,6 +175,7 @@ export async function createGrn(
             vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null,
             remarks: input.remarks?.trim() || null,
             status: 'OPEN',
+            bondNumber,
             isBondForLoan: Boolean(input.isBondForLoan),
             loanStatus: input.isBondForLoan ? (input.loanStatus && input.loanStatus !== 'NONE' ? input.loanStatus : 'NOT_TAKEN') : 'NONE',
             loanBankName: input.loanBankName?.trim() || null,
@@ -231,6 +236,7 @@ export async function createGrn(
     resourceId: grn.id,
     details: {
       grnNumber: grn.grnNumber,
+      bondNumber: grn.bondNumber,
       bags: grn.bags,
       customerId: grn.customerId,
       chamber: grn.chamber,
