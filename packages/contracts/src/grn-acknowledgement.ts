@@ -53,6 +53,8 @@ bagAccounting: z.object({
   }),
   remarks: z.string().nullable().optional(),
   status: grnStatusSchema,
+  bondNumber: z.string().nullable().optional(),
+  isBondForLoan: z.boolean().optional(),
   issuedBy: z.string().min(1),
   issuedAt: z.date(),
 });

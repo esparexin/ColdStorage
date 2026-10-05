@@ -10,7 +10,7 @@
     "type-check": "npm run build --workspace=@cold-storage/contracts && npm run type-check --workspaces --if-present",
     "lint": "eslint . --max-warnings=0",
     "test": "npm run build --workspace=@cold-storage/contracts && npm run test --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build --workspace=@cold-storage/contracts && npm run build --workspaces --if-present",
     "hygiene": "bash scripts/hygiene-audit.sh",
     "line-budget": "bash scripts/check-line-budget.sh",
     "test:e2e": "npm run build --workspace=@cold-storage/contracts && playwright test"

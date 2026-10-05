@@ -30,6 +30,7 @@ export function toGrnEntity(doc: {
   vehicleNumber?: string | null;
   remarks?: string | null;
   status: string;
+  bondNumber?: string | null;
   isBondForLoan?: boolean;
   loanStatus?: string;
   loanBankName?: string | null;
@@ -78,6 +79,7 @@ export function toGrnEntity(doc: {
     vehicleNumber: doc.vehicleNumber ?? null,
     remarks: doc.remarks ?? null,
     status: doc.status as Grn['status'],
+    bondNumber: ((doc as Record<string, unknown>).bondNumber as string | null) ?? null,
     isBondForLoan: (doc as Record<string, unknown>).isBondForLoan === true,
     loanStatus: ((doc as Record<string, unknown>).loanStatus as Grn['loanStatus']) || 'NONE',
     loanBankName: ((doc as Record<string, unknown>).loanBankName as string | null) ?? null,
@@ -136,6 +138,8 @@ export function toGrnAcknowledgement(grn: Grn): GrnAcknowledgement {
     },
     remarks: grn.remarks,
     status: grn.status,
+    bondNumber: grn.bondNumber ?? null,
+    isBondForLoan: grn.isBondForLoan,
     issuedBy: grn.createdBy,
     issuedAt: grn.createdAt ?? new Date(),
   };
