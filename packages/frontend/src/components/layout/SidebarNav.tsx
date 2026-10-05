@@ -3,10 +3,11 @@
 import React, { useEffect } from 'react';
 import {
   ArrowUpDown,
-  BookOpen,
   Boxes,
   Database,
   LayoutDashboard,
+  Link2,
+  PackageSearch,
   Receipt,
   Settings,
   ShieldCheck,
@@ -43,7 +44,8 @@ const NAV_SECTIONS: NavSection[] = [
       { href: '/', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard:view' },
       { href: '/grns', label: 'Inward of Goods', icon: Warehouse, permission: 'grn:view' },
       { href: '/deliveries', label: 'Outward of Goods', icon: Truck, permission: 'delivery:view' },
-      { href: '/bond-ledger', label: 'Bond Ledger', icon: BookOpen, permission: 'grn:view' },
+      { href: '/grn-stock', label: 'GRN Stock', icon: PackageSearch, permission: 'grn:view' },
+      { href: '/bonds', label: 'Bonds', icon: Link2, permission: 'grn:view' },
       { href: '/rent', label: 'Rent Billing', icon: Receipt, permission: 'rent:view' },
     ],
   },

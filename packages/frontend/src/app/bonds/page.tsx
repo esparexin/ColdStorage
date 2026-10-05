@@ -1,18 +1,18 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import type { Grn, GrnMovementHistory, GrnStatus, RentSummaryDto } from '@cold-storage/contracts';
+import type { Grn, GrnMovementHistory, GrnStatus } from '@cold-storage/contracts';
 import { FilterToolbar } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { DataTable } from '@/components/ui/DataTable';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { requestWithAuth } from '@/lib/api-client';
 import { useFacility } from '@/context/FacilityContext';
-import { BondPassbookModal } from './components/BondPassbookModal';
-import { createBondLedgerColumns } from './components/bondLedgerColumns';
+import { BondDetailsModal } from './components/BondDetailsModal';
+import { createBondsColumns } from './components/bondsColumns';
 import styles from './page.module.css';
 
-export default function BondLedgerPage() {
+export default function BondsPage() {
   const { selectedFacilityId, availableFacilities } = useFacility();
 
   const [grns, setGrns] = useState<Grn[]>([]);
@@ -20,15 +20,14 @@ export default function BondLedgerPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'' | GrnStatus>('');
+  const [statusFilter, setStatusFilter] = useState<'' | GrnStatus | 'LOAN_ACTIVE' | 'LOAN_CLEARED'>('');
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
   const [selectedGrn, setSelectedGrn] = useState<Grn | null>(null);
   const [history, setHistory] = useState<GrnMovementHistory | null>(null);
-  const [rentSummary, setRentSummary] = useState<RentSummaryDto | null>(null);
-  const [loadingLedger, setLoadingLedger] = useState(false);
-  const [ledgerError, setLedgerError] = useState<string | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   const fetchGrns = async () => {
     if (!selectedFacilityId) {
@@ -39,6 +38,7 @@ export default function BondLedgerPage() {
     setLoading(true);
     setError(null);
     try {
+      // Fetch all GRNs — filter client-side for isBondForLoan
       const res = await requestWithAuth(
         `/api/facilities/${encodeURIComponent(selectedFacilityId)}/grns?limit=100`,
       );
@@ -47,9 +47,10 @@ export default function BondLedgerPage() {
         throw new Error(err.error ?? 'Failed to load facility GRNs');
       }
       const data = (await res.json()) as { items?: Grn[] };
-      setGrns(data.items || []);
+      // Only GRNs that are pledged/bonded
+      setGrns((data.items || []).filter((g) => g.isBondForLoan));
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error loading GRNs');
+      setError(err instanceof Error ? err.message : 'Error loading bonds');
     } finally {
       setLoading(false);
     }
@@ -60,21 +61,22 @@ export default function BondLedgerPage() {
     setPage(1);
     setSelectedGrn(null);
     setHistory(null);
-    setRentSummary(null);
   }, [selectedFacilityId]);
 
   const filteredGrns = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     return grns.filter((g) => {
-      if (statusFilter && g.status !== statusFilter) return false;
+      if (statusFilter === 'LOAN_ACTIVE' && g.loanStatus !== 'TAKEN') return false;
+      if (statusFilter === 'LOAN_CLEARED' && g.loanStatus !== 'CLEARED') return false;
+      if (statusFilter === 'OPEN' && g.status !== 'OPEN') return false;
+      if (statusFilter === 'CLOSED' && g.status !== 'CLOSED') return false;
       if (!term) return true;
       return (
         (Boolean(g.bondNumber) && g.bondNumber!.toLowerCase().includes(term)) ||
         g.grnNumber.toLowerCase().includes(term) ||
         g.customerName.toLowerCase().includes(term) ||
-        g.commodityName.toLowerCase().includes(term) ||
-        g.chamber.toLowerCase().includes(term) ||
-        (Boolean(g.gpNumber) && g.gpNumber!.toLowerCase().includes(term))
+        (Boolean(g.loanBankName) && g.loanBankName!.toLowerCase().includes(term)) ||
+        (Boolean(g.loanReferenceNumber) && g.loanReferenceNumber!.toLowerCase().includes(term))
       );
     });
   }, [grns, searchTerm, statusFilter]);
@@ -85,42 +87,24 @@ export default function BondLedgerPage() {
     return filteredGrns.slice(start, start + pageSize);
   }, [filteredGrns, page, pageSize]);
 
-  const handleOpenLedger = async (grn: Grn) => {
+  const handleOpenDetail = async (grn: Grn) => {
     if (!selectedFacilityId) return;
     setSelectedGrn(grn);
     setHistory(null);
-    setRentSummary(null);
-    setLoadingLedger(true);
-    setLedgerError(null);
+    setLoadingDetail(true);
+    setDetailError(null);
 
     try {
-      const [historyRes, rentRes] = await Promise.all([
-        requestWithAuth(
-          `/api/facilities/${encodeURIComponent(selectedFacilityId)}/grns/${encodeURIComponent(grn.id)}/movement-history`,
-        ),
-        requestWithAuth(
-          `/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/grn/${encodeURIComponent(grn.id)}`,
-        ),
-      ]);
-
-      if (!historyRes.ok) throw new Error('Failed to load bond movement history');
-      const historyData = (await historyRes.json()) as { history: GrnMovementHistory };
-
-      let rentDto: RentSummaryDto | null = null;
-      if (rentRes.ok) {
-        const rawRent = (await rentRes.json()) as RentSummaryDto | { summary?: RentSummaryDto };
-        rentDto =
-          rawRent && 'summary' in rawRent && rawRent.summary
-            ? rawRent.summary
-            : (rawRent as RentSummaryDto);
-      }
-
-      setHistory(historyData.history);
-      setRentSummary(rentDto);
+      const res = await requestWithAuth(
+        `/api/facilities/${encodeURIComponent(selectedFacilityId)}/grns/${encodeURIComponent(grn.id)}/movement-history`,
+      );
+      if (!res.ok) throw new Error('Failed to load bond movement history');
+      const data = (await res.json()) as { history: GrnMovementHistory };
+      setHistory(data.history);
     } catch (err: unknown) {
-      setLedgerError(err instanceof Error ? err.message : 'Error loading movement history');
+      setDetailError(err instanceof Error ? err.message : 'Error loading bond details');
     } finally {
-      setLoadingLedger(false);
+      setLoadingDetail(false);
     }
   };
 
@@ -128,7 +112,7 @@ export default function BondLedgerPage() {
     availableFacilities.find((f) => f.id === selectedFacilityId)?.name || 'Cold Storage Facility';
 
   const columns = useMemo(
-    () => createBondLedgerColumns({ onOpenLedger: handleOpenLedger }),
+    () => createBondsColumns({ onOpenDetail: handleOpenDetail }),
     [selectedFacilityId],
   );
 
@@ -136,17 +120,17 @@ export default function BondLedgerPage() {
     <div className={styles.page}>
       <div className={styles.headerRow}>
         <div className={styles.titleArea}>
-          <h1 className={styles.pageTitle}>Bond Ledger</h1>
+          <h1 className={styles.pageTitle}>Bonds</h1>
           <span className={styles.pageSubtitle}>
-            Outward movement passbook per Bond & Customer ({currentFacilityName})
+            Bond / Lien details by customer and GRN ({currentFacilityName})
           </span>
         </div>
       </div>
 
-      {error && <Banner message={error} id="bond-ledger-error" />}
+      {error && <Banner message={error} id="bonds-error" />}
 
       {!selectedFacilityId ? (
-        <FeedbackStates.Empty message="Please select a facility from the header to view Bond Ledgers." />
+        <FeedbackStates.Empty message="Please select a facility from the header to view Bonds." />
       ) : (
         <>
           <FilterToolbar
@@ -155,22 +139,24 @@ export default function BondLedgerPage() {
               setSearchTerm(v);
               setPage(1);
             }}
-            searchPlaceholder="Search Customer, Bond #, GRN #, Commodity, Chamber..."
-            searchAriaLabel="Search Bond Ledgers"
-            searchInputId="bond-search-input"
+            searchPlaceholder="Search Customer, Bond #, GRN #, Lien Holder, Reference..."
+            searchAriaLabel="Search Bonds"
+            searchInputId="bonds-search-input"
             selects={[
               {
-                id: 'bond-status-filter',
-                ariaLabel: 'Filter by Status',
+                id: 'bonds-status-filter',
+                ariaLabel: 'Filter by Bond Status',
                 value: statusFilter,
                 onChange: (v) => {
-                  setStatusFilter(v as '' | GrnStatus);
+                  setStatusFilter(v as typeof statusFilter);
                   setPage(1);
                 },
                 options: [
-                  { value: '', label: 'All Statuses' },
-                  { value: 'OPEN', label: 'Active (Open)' },
-                  { value: 'CLOSED', label: 'Closed (Zero Balance)' },
+                  { value: '', label: 'All Bonds' },
+                  { value: 'LOAN_ACTIVE', label: 'Loan Active (Hold)' },
+                  { value: 'LOAN_CLEARED', label: 'Loan Cleared' },
+                  { value: 'OPEN', label: 'GRN Open' },
+                  { value: 'CLOSED', label: 'GRN Closed' },
                 ],
               },
             ]}
@@ -186,13 +172,13 @@ export default function BondLedgerPage() {
             columns={columns}
             rows={pagedGrns}
             rowKey={(row) => row.id}
-            caption={`Bond Ledgers for ${currentFacilityName}`}
+            caption={`Bond / Lien Details for ${currentFacilityName}`}
             loading={loading}
-            loadingLabel="Loading customer bonds..."
+            loadingLabel="Loading bonds..."
             emptyMessage={
               searchTerm || statusFilter
-                ? 'No customer bonds match the current search filters.'
-                : `No customer bonds recorded for ${currentFacilityName} yet.`
+                ? 'No bonds match the current search filters.'
+                : `No bond GRNs recorded for ${currentFacilityName} yet.`
             }
             pagination={{
               page,
@@ -206,14 +192,13 @@ export default function BondLedgerPage() {
       )}
 
       {selectedGrn && (
-        <BondPassbookModal
+        <BondDetailsModal
           selectedGrn={selectedGrn}
           history={history}
-          rentSummary={rentSummary}
-          loadingLedger={loadingLedger}
-          ledgerError={ledgerError}
+          loadingDetail={loadingDetail}
+          detailError={detailError}
           onClose={() => setSelectedGrn(null)}
-          onRetry={() => void handleOpenLedger(selectedGrn)}
+          onRetry={() => void handleOpenDetail(selectedGrn)}
         />
       )}
     </div>
