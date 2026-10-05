@@ -47,10 +47,10 @@
   --color-text-on-accent: hsl(0, 0%, 100%);
 
   /* ---- Sidebar ---- */
-  --color-sidebar-bg:     hsl(222, 47%, 11%);
-  --color-sidebar-text:   hsl(215, 20%, 75%);
-  --color-sidebar-active: hsl(220, 90%, 56%);
-  --color-sidebar-hover:  hsl(222, 30%, 18%);
+  --color-sidebar-bg:     hsl(0, 0%, 100%);
+  --color-sidebar-text:   hsl(0, 0%, 0%);
+  --color-sidebar-active: hsl(220, 14%, 92%);
+  --color-sidebar-hover:  hsl(220, 14%, 96%);
 
   /* ---- Typography ----
      Compact admin density. Each step has exactly one role; do not add steps

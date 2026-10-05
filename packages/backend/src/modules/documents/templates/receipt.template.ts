@@ -18,7 +18,25 @@ export function renderReceiptTemplate(dto: ReceiptDocumentDto): string {
       </tr>
       <tr>
         <th>Total Quantity Deposited</th>
-        <td><strong>${escapeHtml(dto.bags)} Bags (${escapeHtml(dto.bagType)})</strong></td>
+        <td colspan="3"><strong>${escapeHtml(dto.bags)} Bags (${escapeHtml(dto.bagType)})</strong></td>
+      </tr>
+      <tr>
+        <th>Small Bags</th>
+        <td>
+          ${dto.smallBags !== undefined && dto.smallBags > 0
+            ? `<strong>${escapeHtml(dto.smallBags)}</strong> Bags${dto.smallBagWeight ? ` (${escapeHtml(dto.smallBagWeight)} kg/bag)` : ''}`
+            : dto.bagType === 'S'
+              ? `<strong>${escapeHtml(dto.bags)}</strong> Bags${dto.smallBagWeight ? ` (${escapeHtml(dto.smallBagWeight)} kg/bag)` : ''}`
+              : '—'}
+        </td>
+        <th>Big Bags</th>
+        <td>
+          ${dto.bigBags !== undefined && dto.bigBags > 0
+            ? `<strong>${escapeHtml(dto.bigBags)}</strong> Bags${dto.bigBagWeight ? ` (${escapeHtml(dto.bigBagWeight)} kg/bag)` : ''}`
+            : dto.bagType === 'B'
+              ? `<strong>${escapeHtml(dto.bags)}</strong> Bags${dto.bigBagWeight ? ` (${escapeHtml(dto.bigBagWeight)} kg/bag)` : ''}`
+              : '—'}
+        </td>
       </tr>
       <tr>
         <th>Agreed Rent Terms</th>
@@ -41,8 +59,7 @@ export function renderReceiptTemplate(dto: ReceiptDocumentDto): string {
     title: `Receipt - ${dto.inwardReceiptNumber}`,
     organization: dto.organization,
     facility: dto.facility,
-    documentTitle: 'FARMER INWARD ACKNOWLEDGEMENT RECEIPT',
-    documentNumber: dto.inwardReceiptNumber,
+    documentTitle: 'ACKNOWLEDGEMENT RECEIPT',
     documentDate:
       dto.date instanceof Date ? dto.date.toISOString().split('T')[0] : String(dto.date),
     generatedAt:

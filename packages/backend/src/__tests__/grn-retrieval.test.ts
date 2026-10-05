@@ -134,4 +134,20 @@ describe('GRN Retrieval & Acknowledgement Projections', () => {
     expect(miss.status).toBe(200);
     expect(miss.body.total).toBe(0);
   });
+
+  it('retrieves the chronological movement history passbook for a GRN', async () => {
+    const res = await request(app)
+      .get(`/api/facilities/${northFacilityId}/grns/${createdGrnId}/movement-history`)
+      .set('Authorization', `Bearer ${operatorNorthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.history).toBeDefined();
+    expect(res.body.history.grnId).toBe(createdGrnId);
+    expect(res.body.history.customerName).toBe('Ramesh Patel');
+    expect(res.body.history.entries).toHaveLength(1);
+    expect(res.body.history.entries[0].type).toBe('INWARD');
+    expect(res.body.history.entries[0].receivedBags).toBe(120);
+    expect(res.body.history.entries[0].smallBags).toBe(70);
+    expect(res.body.history.entries[0].bigBags).toBe(50);
+  });
 });

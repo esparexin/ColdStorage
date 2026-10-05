@@ -139,6 +139,34 @@ grnRouter.get(
   },
 );
 
+// Get Bond Movement History (authoritative read-only passbook)
+grnRouter.get(
+  '/facilities/:facilityId/grns/:grnId/movement-history',
+  requirePermission('grn:view'),
+  requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  async (req: Request, res: Response): Promise<void> => {
+    const facilityId = getParamId(req.params.facilityId);
+    const grnId = getParamId(req.params.grnId);
+
+    const grnFacilityId = await grnService.resolveFacilityIdForGrn(grnId);
+    if (!grnFacilityId || grnFacilityId !== facilityId) {
+      res.status(404).json({ error: `GRN '${grnId}' not found in facility '${facilityId}'` });
+      return;
+    }
+
+    try {
+      const history = await grnService.getGrnMovementHistory(facilityId, grnId);
+      if (!history) {
+        res.status(404).json({ error: `GRN '${grnId}' movement history not found` });
+        return;
+      }
+      res.status(200).json({ history });
+    } catch (err: unknown) {
+      sendServiceError(res, err, 'Failed to get GRN movement history');
+    }
+  },
+);
+
 // Correct an inward receipt's commodity, bag count or chamber (authorized workflow).
 grnRouter.patch(
   '/facilities/:facilityId/grns/:grnId',

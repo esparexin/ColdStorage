@@ -66,7 +66,7 @@ export function ImportPanel({
               onChange={(e) => setImportTarget(e.target.value as 'customers' | 'grns')}
             >
               <option value="customers">Customers (KYC & Contact Records)</option>
-              <option value="grns">Acknowledgement of Goods (GRNs)</option>
+              <option value="grns">Inward of Goods (GRNs)</option>
             </Select>
 
           <label className={styles.dropzone}>

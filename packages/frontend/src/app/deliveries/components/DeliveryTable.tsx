@@ -1,23 +1,15 @@
 'use client';
 
-import React from 'react';
-import {
-  CheckCircle2,
-  Clock,
-  Eye,
-  Printer,
-  RotateCcw,
-} from 'lucide-react';
+import React, { useMemo } from 'react';
 import type { DeliveryChallan } from '@cold-storage/contracts';
-import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
-import { Badge, Button } from '@/components/ui';
-import styles from '../page.module.css';
+import { DataTable } from '@/components/ui/DataTable';
+import { createDeliveryColumns } from './deliveryTableColumns';
 
 interface DeliveryTableProps {
   deliveries: DeliveryChallan[];
   caption: string;
   canPrint: boolean;
-  canReverse: boolean;
+  canCollectRent?: boolean;
   printingId: string | null;
   page: number;
   pageSize: number;
@@ -26,14 +18,14 @@ interface DeliveryTableProps {
   onPageChange: (page: number) => void;
   onSelectDelivery: (delivery: DeliveryChallan) => void;
   onPrintChallan: (challanId: string) => void;
-  onStartReversal: (delivery: DeliveryChallan) => void;
+  onCollectRent?: (delivery: DeliveryChallan) => void;
 }
 
 export function DeliveryTable({
   deliveries,
   caption,
   canPrint,
-  canReverse,
+  canCollectRent,
   printingId,
   page,
   pageSize,
@@ -42,140 +34,20 @@ export function DeliveryTable({
   onPageChange,
   onSelectDelivery,
   onPrintChallan,
-  onStartReversal,
+  onCollectRent,
 }: DeliveryTableProps) {
-  const columns: DataTableColumn<DeliveryChallan>[] = [
-    {
-      key: 'challanNumber',
-      header: 'Challan # / Date',
-      render: (row) => (
-        <div className={styles.challanCell}>
-          <span className={styles.challanNumber}>{row.challanNumber}</span>
-          <span className={styles.dateSub}>
-            {new Date(row.date).toLocaleDateString('en-IN', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-            })}
-          </span>
-        </div>
-      ),
-    },
-    {
-      key: 'grnNumber',
-      header: 'GRN Source',
-      render: (row) => <span style={{ fontWeight: 'var(--font-semibold)' }}>{row.grnNumber}</span>,
-    },
-    {
-      key: 'customerName',
-      header: 'Customer',
-      render: (row) => <span>{row.customerName}</span>,
-    },
-    {
-      key: 'commodityName',
-      header: 'Commodity & Chamber',
-      render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <span>{row.commodityName}</span>
-          <span className={styles.tagChamber}>Chamber {row.chamber}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'totalBags',
-      header: 'Delivered Bags',
-      align: 'right',
-      render: (row) => (
-        <span style={{ fontWeight: 'var(--font-bold)', fontSize: 'var(--text-sm)' }}>
-          {row.totalBags.toLocaleString('en-IN')} bags
-          <span
-            style={{
-              display: 'block',
-              fontWeight: 'var(--font-normal)',
-              fontSize: 'var(--text-xs)',
-              color: 'var(--color-text-muted)',
-            }}
-          >
-            {row.smallBags.toLocaleString('en-IN')} small / {row.bigBags.toLocaleString('en-IN')}{' '}
-            big
-          </span>
-        </span>
-      ),
-    },
-    {
-      key: 'transport',
-      header: 'Vehicle / Driver',
-      render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: 'var(--text-xs)' }}>
-          <span>Veh: {row.vehicleNumber || '—'}</span>
-          <span>Driver: {row.driverName || '—'}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      align: 'center',
-      render: (row) => (
-        <Badge
-          variant={row.status === 'ISSUED' ? 'success' : 'neutral'}
-          icon={
-            row.status === 'ISSUED' ? (
-              <CheckCircle2 size={12} aria-hidden="true" />
-            ) : (
-              <Clock size={12} aria-hidden="true" />
-            )
-          }
-        >
-          {row.status}
-        </Badge>
-      ),
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      align: 'right',
-      render: (row) => (
-        <div className={styles.actionGroup}>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onSelectDelivery(row)}
-            title="View Details"
-            leftIcon={<Eye size={13} aria-hidden="true" />}
-          >
-            View
-          </Button>
-
-          {canPrint && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => onPrintChallan(row.id)}
-              disabled={printingId === row.id}
-              isLoading={printingId === row.id}
-              title="Print Outward Delivery Challan & Gate Pass"
-              leftIcon={<Printer size={13} aria-hidden="true" />}
-            >
-              Challan
-            </Button>
-          )}
-
-          {row.status === 'ISSUED' && canReverse && (
-            <Button
-              variant="dangerOutline"
-              size="sm"
-              onClick={() => onStartReversal(row)}
-              title="Reverse Delivery (Restores the dispatched bags to this GRN's balance)"
-              leftIcon={<RotateCcw size={13} aria-hidden="true" />}
-            >
-              Reverse
-            </Button>
-          )}
-        </div>
-      ),
-    },
-  ];
+  const columns = useMemo(
+    () =>
+      createDeliveryColumns({
+        canPrint,
+        canCollectRent,
+        printingId,
+        onSelectDelivery,
+        onPrintChallan,
+        onCollectRent,
+      }),
+    [canPrint, canCollectRent, printingId, onSelectDelivery, onPrintChallan, onCollectRent],
+  );
 
   return (
     <DataTable

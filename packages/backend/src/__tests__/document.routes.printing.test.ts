@@ -125,7 +125,7 @@ describe('P9 Document Routes Authorized Printing & CSP Headers', () => {
       .get(`/api/facilities/${facilityA}/documents/receipt/${scenario.grnId}`)
       .set('Authorization', `Bearer ${operatorToken}`);
     expectPrintedDocument(rcptRes);
-    expect(rcptRes.text).toContain('FARMER INWARD ACKNOWLEDGEMENT RECEIPT');
+    expect(rcptRes.text).toContain('ACKNOWLEDGEMENT RECEIPT');
     expect(rcptRes.text).toContain('RCPT-2026-0001');
 
     // 12c. Delivery Challan document

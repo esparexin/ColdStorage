@@ -67,24 +67,12 @@ export function useCreateDeliveryForm(
     setLoadingGrnSummary(true);
     setModalError(null);
     try {
-      const [invRes, rentSummary] = await Promise.all([
+      const [invRes] = await Promise.all([
         requestWithAuth(
           `/api/facilities/${encodeURIComponent(facilityId)}/grns/${encodeURIComponent(grnId)}/inventory-summary`,
         ),
         rentGate.refreshRentGate(facilityId, grnId),
       ]);
-      if (rentSummary && rentSummary.rentAmount > 0 && rentSummary.totalPaid === 0) {
-        setRentRequired({
-          code: 'RENT_PAYMENT_REQUIRED',
-          rent: {
-            grnId: rentSummary.grnId,
-            grnNumber: rentSummary.grnNumber,
-            rentAmount: rentSummary.rentAmount,
-            totalPaid: rentSummary.totalPaid,
-            remainingBalance: rentSummary.remainingBalance,
-          },
-        });
-      }
       if (invRes.ok) {
         const data = (await invRes.json()) as { summary: GrnInventorySummary };
         setGrnSummary(data.summary);

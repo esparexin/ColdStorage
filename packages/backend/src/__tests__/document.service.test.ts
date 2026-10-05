@@ -76,8 +76,7 @@ describe('P9 DocumentService Read-Only Composition & Boundary Tests', () => {
     const html = await documentService.renderGrnDocument(facilityA, grnId, 'usr-test');
     expect(html).toContain('Himalayan Agri Cold Logistics Ltd');
     expect(html).toContain('Fruit Mandi Complex, Shimla, Himachal Pradesh 171001');
-    expect(html).toContain('Facility Alpha (FA)');
-    expect(html).toContain('Plot 1, Zone A');
+    expect(html).not.toContain('Operating Facility:');
   });
 
   // 3. Unconfigured organization guard: throws ORGANIZATION_NOT_CONFIGURED if administrator has not configured organization details
