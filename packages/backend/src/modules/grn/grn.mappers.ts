@@ -30,6 +30,13 @@ export function toGrnEntity(doc: {
   vehicleNumber?: string | null;
   remarks?: string | null;
   status: string;
+  isBondForLoan?: boolean;
+  loanStatus?: string;
+  loanBankName?: string | null;
+  loanReferenceNumber?: string | null;
+  loanRemarks?: string | null;
+  loanTakenAt?: Date | null;
+  loanClearedAt?: Date | null;
   createdBy: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -71,6 +78,13 @@ export function toGrnEntity(doc: {
     vehicleNumber: doc.vehicleNumber ?? null,
     remarks: doc.remarks ?? null,
     status: doc.status as Grn['status'],
+    isBondForLoan: (doc as Record<string, unknown>).isBondForLoan === true,
+    loanStatus: ((doc as Record<string, unknown>).loanStatus as Grn['loanStatus']) || 'NONE',
+    loanBankName: ((doc as Record<string, unknown>).loanBankName as string | null) ?? null,
+    loanReferenceNumber: ((doc as Record<string, unknown>).loanReferenceNumber as string | null) ?? null,
+    loanRemarks: ((doc as Record<string, unknown>).loanRemarks as string | null) ?? null,
+    loanTakenAt: ((doc as Record<string, unknown>).loanTakenAt as Date | null) ?? null,
+    loanClearedAt: ((doc as Record<string, unknown>).loanClearedAt as Date | null) ?? null,
     netDeliveredBags: netDelivered,
     closingBags: closing,
     createdBy: doc.createdBy,

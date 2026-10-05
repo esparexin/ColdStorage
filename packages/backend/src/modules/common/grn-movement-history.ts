@@ -169,6 +169,11 @@ export async function getGrnMovementHistory(
     currentClosingSmallBags: runningSmall,
     currentClosingBigBags: runningBig,
     status: grn.status,
+    isBondForLoan: grn.isBondForLoan ?? false,
+    loanStatus: grn.loanStatus ?? 'NONE',
+    isLoanHoldActive: grn.loanStatus === 'TAKEN',
+    loanBankName: grn.loanBankName ?? null,
+    loanReferenceNumber: grn.loanReferenceNumber ?? null,
     entries,
   };
 }

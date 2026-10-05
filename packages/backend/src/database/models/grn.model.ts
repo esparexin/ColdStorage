@@ -1,5 +1,5 @@
 import mongoose, { Schema, type Document, type Model } from 'mongoose';
-import type { BagType, GrnStatus, RentType } from '@cold-storage/contracts';
+import type { BagType, GrnStatus, LoanStatus, RentType } from '@cold-storage/contracts';
 
 export interface GrnDoc extends Document {
   id: string;
@@ -38,6 +38,13 @@ export interface GrnDoc extends Document {
   vehicleNumber: string | null;
   remarks: string | null;
   status: GrnStatus;
+  isBondForLoan: boolean;
+  loanStatus: LoanStatus;
+  loanBankName: string | null;
+  loanReferenceNumber: string | null;
+  loanRemarks: string | null;
+  loanTakenAt: Date | null;
+  loanClearedAt: Date | null;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -75,6 +82,19 @@ const grnSchema = new Schema<GrnDoc>(
     vehicleNumber: { type: String, trim: true, uppercase: true, default: null },
     remarks: { type: String, trim: true, default: null },
     status: { type: String, required: true, enum: ['OPEN', 'CLOSED'], default: 'OPEN', index: true },
+    isBondForLoan: { type: Boolean, default: false, index: true },
+    loanStatus: {
+      type: String,
+      required: true,
+      enum: ['NONE', 'NOT_TAKEN', 'TAKEN', 'CLEARED'],
+      default: 'NONE',
+      index: true,
+    },
+    loanBankName: { type: String, trim: true, default: null },
+    loanReferenceNumber: { type: String, trim: true, default: null },
+    loanRemarks: { type: String, trim: true, default: null },
+    loanTakenAt: { type: Date, default: null },
+    loanClearedAt: { type: Date, default: null },
     createdBy: { type: String, required: true },
   },
   {
@@ -86,6 +106,7 @@ grnSchema.index({ facilityId: 1, grnNumber: 1 }, { unique: true });
 grnSchema.index({ facilityId: 1, inwardReceiptNumber: 1 }, { unique: true });
 grnSchema.index({ facilityId: 1, date: -1 });
 grnSchema.index({ customerId: 1, facilityId: 1 });
+grnSchema.index({ facilityId: 1, loanStatus: 1 });
 
 // `bags` is the sum of the composition, never an independent figure. Enforcing it here means a
 // receipt can never state a total that disagrees with the parts it is made of.

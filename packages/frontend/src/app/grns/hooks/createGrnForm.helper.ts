@@ -4,7 +4,7 @@ import {
   indianVehicleSchema,
   rentalAmountSchema,
 } from '@cold-storage/contracts';
-import type { BagType, RentType } from '@cold-storage/contracts';
+import type { BagType, LoanStatus, RentType } from '@cold-storage/contracts';
 
 export function parseNumericInput(raw: string): number | '' {
   const trimmed = raw.trim();
@@ -30,6 +30,11 @@ export interface CreateGrnState {
   createPartyMark?: string;
   createBillNumber?: string;
   createVehicleNumber: string;
+  isBondForLoan?: boolean;
+  loanStatus?: LoanStatus;
+  loanBankName?: string;
+  loanReferenceNumber?: string;
+  loanRemarks?: string;
 }
 
 export function validateCreateGrnForm(state: CreateGrnState): {
@@ -115,6 +120,8 @@ export function buildCreateGrnPayload(params: {
   smallBagWeight?: number | ''; bigBagWeight?: number | '';
   gpNumber?: string; storageMark?: string; partyMark?: string; billNumber?: string;
   vehicleNumber?: string; remarks?: string;
+  isBondForLoan?: boolean; loanStatus?: LoanStatus; loanBankName?: string;
+  loanReferenceNumber?: string; loanRemarks?: string;
 }): Record<string, unknown> {
   const p: Record<string, unknown> = {
     facilityId: params.facilityId, date: params.inwardDate, customerId: params.customerId,
@@ -135,5 +142,12 @@ export function buildCreateGrnPayload(params: {
   if (params.billNumber?.trim()) p.billNumber = params.billNumber.trim();
   if (params.vehicleNumber) p.vehicleNumber = params.vehicleNumber;
   if (params.remarks?.trim()) p.remarks = params.remarks.trim();
+  if (params.isBondForLoan) {
+    p.isBondForLoan = true;
+    p.loanStatus = params.loanStatus || 'NOT_TAKEN';
+    if (params.loanBankName?.trim()) p.loanBankName = params.loanBankName.trim();
+    if (params.loanReferenceNumber?.trim()) p.loanReferenceNumber = params.loanReferenceNumber.trim();
+    if (params.loanRemarks?.trim()) p.loanRemarks = params.loanRemarks.trim();
+  }
   return p;
 }

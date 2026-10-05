@@ -162,18 +162,23 @@ export function GrnTable({
       header: 'Status',
       align: 'center',
       render: (row) => (
-        <Badge
-          variant={row.status === 'OPEN' ? 'warning' : 'neutral'}
-          icon={
-            row.status === 'OPEN' ? (
-              <Clock size={11} aria-hidden="true" />
-            ) : (
-              <CheckCircle2 size={11} aria-hidden="true" />
-            )
-          }
-        >
-          {row.status}
-        </Badge>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+          <Badge
+            variant={row.status === 'OPEN' ? 'warning' : 'neutral'}
+            icon={row.status === 'OPEN' ? <Clock size={11} aria-hidden="true" /> : <CheckCircle2 size={11} aria-hidden="true" />}
+          >
+            {row.status}
+          </Badge>
+          {row.loanStatus === 'TAKEN' && (
+            <Badge variant="danger" style={{ fontSize: '10px' }}>Loan Hold</Badge>
+          )}
+          {row.loanStatus === 'CLEARED' && (
+            <Badge variant="success" style={{ fontSize: '10px' }}>Loan Cleared</Badge>
+          )}
+          {row.loanStatus === 'NOT_TAKEN' && (
+            <Badge variant="neutral" style={{ fontSize: '10px' }}>Pledged</Badge>
+          )}
+        </div>
       ),
     },
     {

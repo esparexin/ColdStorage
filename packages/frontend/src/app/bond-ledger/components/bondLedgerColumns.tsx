@@ -72,11 +72,28 @@ export function createBondLedgerColumns({
     },
     {
       key: 'status',
-      header: 'Status',
+      header: 'Status & Lien',
       render: (row) => (
-        <Badge variant={row.status === 'CLOSED' ? 'neutral' : 'warning'}>
-          {row.status}
-        </Badge>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+          <Badge variant={row.status === 'CLOSED' ? 'neutral' : 'warning'}>
+            {row.status}
+          </Badge>
+          {row.loanStatus === 'TAKEN' && (
+            <Badge variant="danger" style={{ fontSize: '10px' }}>
+              Loan Hold
+            </Badge>
+          )}
+          {row.loanStatus === 'CLEARED' && (
+            <Badge variant="success" style={{ fontSize: '10px' }}>
+              Loan Cleared
+            </Badge>
+          )}
+          {row.loanStatus === 'NOT_TAKEN' && (
+            <Badge variant="neutral" style={{ fontSize: '10px' }}>
+              Pledged
+            </Badge>
+          )}
+        </div>
       ),
     },
     {

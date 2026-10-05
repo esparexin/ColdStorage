@@ -45,17 +45,11 @@ export function BondPassbookModal({
       footer={
         <>
           {history && (
-            <Button
-              variant="primary"
-              onClick={handlePrint}
-              leftIcon={<Printer size={15} aria-hidden="true" />}
-            >
+            <Button variant="primary" onClick={handlePrint} leftIcon={<Printer size={15} aria-hidden="true" />}>
               Print Passbook
             </Button>
           )}
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
+          <Button variant="outline" onClick={onClose}>Close</Button>
         </>
       }
     >
@@ -63,11 +57,7 @@ export function BondPassbookModal({
         {loadingLedger ? (
           <FeedbackStates.Loading label="Loading outward movement ledger passbook..." />
         ) : ledgerError ? (
-          <FeedbackStates.Error
-            title="Error loading ledger"
-            message={ledgerError}
-            onRetry={onRetry}
-          />
+          <FeedbackStates.Error title="Error loading ledger" message={ledgerError} onRetry={onRetry} />
         ) : !history ? (
           <FeedbackStates.Empty message="No movement history available for this bond." />
         ) : (
@@ -81,36 +71,25 @@ export function BondPassbookModal({
                 <span className={styles.metaItem}>
                   <span className={styles.metaLabel}>Inward Date:</span>
                   <span className={styles.metaValue}>
-                    {new Date(history.inwardDate).toLocaleDateString('en-IN', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
+                    {new Date(history.inwardDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </span>
                 </span>
-
                 <span className={styles.metaItem}>
                   <span className={styles.metaLabel}>Chamber:</span>
                   <span className={styles.metaValue}>Chamber {history.chamber}</span>
                 </span>
-
                 <span className={styles.metaItem}>
                   <span className={styles.metaLabel}>Initial Received:</span>
                   <span className={styles.metaValue}>
                     {history.totalInwardBags.toLocaleString('en-IN')} Bags
-                    {history.originalSmallBags != null || history.originalBigBags != null
-                      ? ` (Small: ${history.originalSmallBags ?? 0}, Big: ${history.originalBigBags ?? 0})`
-                      : ''}
+                    {history.originalSmallBags != null || history.originalBigBags != null ? ` (Small: ${history.originalSmallBags ?? 0}, Big: ${history.originalBigBags ?? 0})` : ''}
                   </span>
                 </span>
-
                 <span className={styles.metaItem}>
                   <span className={styles.metaLabel}>Current Stored:</span>
                   <span className={styles.metaValue}>
                     {history.currentClosingBags.toLocaleString('en-IN')} Bags
-                    {history.currentClosingSmallBags != null || history.currentClosingBigBags != null
-                      ? ` (Small: ${history.currentClosingSmallBags ?? 0}, Big: ${history.currentClosingBigBags ?? 0})`
-                      : ''}
+                    {history.currentClosingSmallBags != null || history.currentClosingBigBags != null ? ` (Small: ${history.currentClosingSmallBags ?? 0}, Big: ${history.currentClosingBigBags ?? 0})` : ''}
                   </span>
                 </span>
 
@@ -120,6 +99,36 @@ export function BondPassbookModal({
                     {history.status}
                   </Badge>
                 </span>
+
+                <span className={styles.metaItem}>
+                  <span className={styles.metaLabel}>Bond Loan:</span>
+                  <Badge
+                    variant={
+                      history.loanStatus === 'TAKEN'
+                        ? 'danger'
+                        : history.loanStatus === 'CLEARED'
+                          ? 'success'
+                          : 'neutral'
+                    }
+                  >
+                    {history.loanStatus === 'TAKEN'
+                      ? 'Loan Active (Hold)'
+                      : history.loanStatus === 'CLEARED'
+                        ? 'Loan Cleared'
+                        : history.loanStatus === 'NOT_TAKEN'
+                          ? 'Loan Not Taken (Pledged)'
+                          : 'Standard Storage'}
+                  </Badge>
+                </span>
+
+                {history.loanBankName && (
+                  <span className={styles.metaItem}>
+                    <span className={styles.metaLabel}>Lien Holder:</span>
+                    <span className={styles.metaValue}>
+                      {history.loanBankName}{history.loanReferenceNumber ? ` (Ref: ${history.loanReferenceNumber})` : ''}
+                    </span>
+                  </span>
+                )}
 
                 {rentSummary && (
                   <span className={styles.metaItem}>

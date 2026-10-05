@@ -93,12 +93,21 @@ export function useCreateDeliveryForm(
   const smallBags = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigBags = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
   const totalWithdrawingBags = smallBags + bigBags;
+  const selectedGrn = availableGrns.find((g) => g.id === createGrnId) || null;
+  const isLoanHoldActive = Boolean(selectedGrn?.loanStatus === 'TAKEN');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!facilityId) return;
     if (!createGrnId) {
       setModalError('Please select a GRN to withdraw stock from');
+      return;
+    }
+
+    if (isLoanHoldActive) {
+      setModalError(
+        `Outward blocked — Active loan hold against this Bond (${selectedGrn?.grnNumber}). Outward delivery is strictly prohibited until the loan is cleared.`,
+      );
       return;
     }
 
@@ -213,6 +222,8 @@ export function useCreateDeliveryForm(
     fetchAvailableGrns,
     handleSelectGrn,
     handleSubmit,
+    selectedGrn,
+    isLoanHoldActive,
     rentSummary: rentGate.rentSummary,
     rentLoading: rentGate.rentLoading,
     rentBlocked: rentGate.rentBlocked,
