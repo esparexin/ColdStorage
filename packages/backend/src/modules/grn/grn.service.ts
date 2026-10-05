@@ -3,11 +3,13 @@ import type {
   CreateGrnInput,
   Grn,
   GrnAcknowledgement,
+  GrnMovementHistory,
   GrnQuery,
 } from '@cold-storage/contracts';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { readLedgerNetDelivered, readLedgerNetDeliveredMany } from '../inventory/ledger-balance.js';
 import { counterService } from '../common/counter.service.js';
+import { getGrnMovementHistory } from '../common/grn-movement-history.js';
 import { toGrnAcknowledgement, toGrnEntity } from './grn.mappers.js';
 import { createGrn } from './handlers/create-grn.handler.js';
 import { correctGrn } from './handlers/update-grn.handler.js';
@@ -101,6 +103,13 @@ export class GrnService {
 
   public async getNextBillNumber(facilityId: string): Promise<string> {
     return counterService.previewNextInwardReceiptNumber(facilityId, new Date());
+  }
+
+  public async getGrnMovementHistory(
+    facilityId: string,
+    grnId: string,
+  ): Promise<GrnMovementHistory | null> {
+    return getGrnMovementHistory(facilityId, grnId);
   }
 }
 

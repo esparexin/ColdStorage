@@ -12,7 +12,6 @@ import { printHtmlDocument } from '@/lib/print-document';
 import { CollectPaymentModal } from '../rent/components/CollectPaymentModal';
 import { CreateDeliveryModal } from './components/CreateDeliveryModal';
 import { DeliveryDetailModal } from './components/DeliveryDetailModal';
-import { DeliveryReversalModal } from './components/DeliveryReversalModal';
 import { DeliveryTable } from './components/DeliveryTable';
 import { useDeliveries } from './hooks/useDeliveries';
 import styles from './page.module.css';
@@ -25,7 +24,6 @@ export default function DeliveriesPage() {
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryChallan | null>(null);
   const [printingId, setPrintingId] = useState<string | null>(null);
   const [printError, setPrintError] = useState<string | null>(null);
-  const [reversingDelivery, setReversingDelivery] = useState<DeliveryChallan | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [rentPayAccount, setRentPayAccount] = useState<RentSummaryDto | null>(null);
   const [rentPaidTick, setRentPaidTick] = useState(0);
@@ -33,12 +31,28 @@ export default function DeliveriesPage() {
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const canCreate = can(userRole, 'delivery:create');
   const canPrint = can(userRole, 'document:print');
-  const canReverse = can(userRole, 'delivery:reversal');
   const canCollectRent = can(userRole, 'rent:collect');
 
   const handleRentPaidFromDelivery = () => {
     setRentPayAccount(null);
     setRentPaidTick((t) => t + 1);
+    void deliveryData.fetchDeliveries();
+  };
+
+  const handleCollectRent = async (delivery: DeliveryChallan) => {
+    if (!selectedFacilityId) return;
+    try {
+      const res = await fetch(
+        `/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/grn/${encodeURIComponent(delivery.grnId)}`,
+      );
+      if (!res.ok) {
+        throw new Error('Failed to load rent details for this GRN');
+      }
+      const summary: RentSummaryDto = await res.json();
+      setRentPayAccount(summary);
+    } catch (err: unknown) {
+      setPrintError(err instanceof Error ? err.message : 'Failed to load rent details');
+    }
   };
 
   const handlePrintChallan = async (challanId: string) => {
@@ -139,7 +153,7 @@ export default function DeliveriesPage() {
               deliveries={deliveryData.filteredDeliveries}
               caption={`Delivery Challans for ${deliveryData.currentFacilityName}`}
               canPrint={canPrint}
-              canReverse={canReverse}
+              canCollectRent={canCollectRent}
               printingId={printingId}
               page={deliveryData.page}
               pageSize={deliveryData.pageSize}
@@ -148,7 +162,7 @@ export default function DeliveriesPage() {
               onPageChange={deliveryData.setPage}
               onSelectDelivery={setSelectedDelivery}
               onPrintChallan={handlePrintChallan}
-              onStartReversal={setReversingDelivery}
+              onCollectRent={handleCollectRent}
             />
           )}
         </>
@@ -187,18 +201,6 @@ export default function DeliveriesPage() {
           canPrint={canPrint}
           onClose={() => setRentPayAccount(null)}
           onPaymentSuccess={handleRentPaidFromDelivery}
-        />
-      )}
-
-      {reversingDelivery && selectedFacilityId && (
-        <DeliveryReversalModal
-          facilityId={selectedFacilityId}
-          delivery={reversingDelivery}
-          onClose={() => setReversingDelivery(null)}
-          onSuccess={() => {
-            setReversingDelivery(null);
-            void deliveryData.fetchDeliveries();
-          }}
         />
       )}
     </div>

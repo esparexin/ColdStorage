@@ -23,30 +23,32 @@ export function renderChallanTemplate(dto: ChallanDocumentDto): string {
         <td>${escapeHtml(dto.driverName ?? '—')}</td>
       </tr>
       <tr>
-        <th>Issuing Officer</th>
-        <td>${escapeHtml(dto.issuedBy)}</td>
+        <th>Challan Number</th>
+        <td><strong>${escapeHtml(dto.challanNumber)}</strong></td>
         <th>Challan Status</th>
         <td><strong>${escapeHtml(dto.status)}</strong></td>
       </tr>
     </table>
 
     <div style="margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 13px;">
-      Dispatched Bags by Type
+      Outward Bags Details
     </div>
 
     <table class="data-table">
-      <tr>
-        <th style="width: 34%;">Small Bags</th>
-        <td style="width: 32%;"><strong>${dto.smallBags}</strong></td>
-        <th style="width: 34%;">Big Bags</th>
-        <td style="width: 32%;"><strong>${dto.bigBags}</strong></td>
-      </tr>
-      <tr>
-        <th>Total Bags Dispatched</th>
-        <td><strong>${dto.totalBags}</strong></td>
-        <th>Challan Number</th>
-        <td>${escapeHtml(dto.challanNumber)}</td>
-      </tr>
+      <thead>
+        <tr>
+          <th style="width: 33.33%; text-align: center;">Small Bags</th>
+          <th style="width: 33.33%; text-align: center;">Big Bags</th>
+          <th style="width: 33.34%; text-align: center;">Total Bags Dispatched</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="text-align: center;"><strong>${dto.smallBags}</strong></td>
+          <td style="text-align: center;"><strong>${dto.bigBags}</strong></td>
+          <td style="text-align: center;"><strong>${dto.totalBags}</strong></td>
+        </tr>
+      </tbody>
     </table>
 
     <div style="margin-top: 20px; font-size: 11px; color: #444; border: 1px dashed #999; padding: 10px;">
@@ -62,7 +64,6 @@ export function renderChallanTemplate(dto: ChallanDocumentDto): string {
     organization: dto.organization,
     facility: dto.facility,
     documentTitle: 'OUTWARD DELIVERY CHALLAN (GATE PASS)',
-    documentNumber: dto.challanNumber,
     documentDate:
       dto.date instanceof Date ? dto.date.toISOString().split('T')[0] : String(dto.date),
     generatedAt:

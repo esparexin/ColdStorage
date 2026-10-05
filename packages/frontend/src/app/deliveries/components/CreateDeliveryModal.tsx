@@ -72,21 +72,16 @@ export function CreateDeliveryModal({
               <FeedbackStates.Loading label="Checking stored positions..." />
             ) : (
               <>
-                {(form.rentRequired || form.rentBlocked) && form.rentSummary && (
-                  <div className={styles.modalError} role="alert">
-                    Rent ₹{form.rentSummary.remainingBalance.toLocaleString('en-IN')} pending for {form.rentSummary.grnNumber}. Pay to issue challan — you will return here.
-                    {canPayRent ? (
-                      <Button variant="primary" onClick={() => onPayRent(form.rentSummary!)}>
+                {form.rentSummary && form.rentSummary.remainingBalance > 0 && (
+                  <div className={styles.fieldHint} role="status">
+                    Pending rent for {form.rentSummary.grnNumber}: ₹{form.rentSummary.remainingBalance.toLocaleString('en-IN')}
+                    {form.rentSummary.totalPaid > 0 ? ` (₹${form.rentSummary.totalPaid.toLocaleString('en-IN')} paid)` : ''}.
+                    Challan can be issued; rent remains payable in Rent Billing.
+                    {canPayRent && (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => onPayRent(form.rentSummary!)}>
                         Pay rent now
                       </Button>
-                    ) : (
-                      <span>Ask an operator to collect rent in Rent Billing.</span>
                     )}
-                  </div>
-                )}
-                {form.rentPartial && form.rentSummary && !form.rentBlocked && !form.rentRequired && (
-                  <div className={styles.fieldHint} role="status">
-                    Partial rent paid (₹{form.rentSummary.totalPaid.toLocaleString('en-IN')}); ₹{form.rentSummary.remainingBalance.toLocaleString('en-IN')} remains. You may continue.
                   </div>
                 )}
                 {form.grnSummary && (
@@ -210,11 +205,11 @@ export function CreateDeliveryModal({
               id="submit-create-delivery-btn"
               type="submit"
               variant="primary"
-              disabled={form.submitting || form.totalWithdrawingBags <= 0 || form.rentBlocked || !!form.rentRequired}
+              disabled={form.submitting || form.totalWithdrawingBags <= 0}
               isLoading={form.submitting}
               leftIcon={!form.submitting ? <Truck size={15} aria-hidden="true" /> : undefined}
             >
-              {(form.rentBlocked || form.rentRequired) ? 'Rent payment required' : 'Issue Delivery Challan'}
+              Issue Delivery Challan
             </Button>
           </div>
         </form>

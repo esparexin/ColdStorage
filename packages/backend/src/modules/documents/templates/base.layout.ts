@@ -5,7 +5,7 @@ export interface BaseLayoutOptions {
   organization: OrganizationHeader;
   facility: FacilitySubHeader;
   documentTitle: string;
-  documentNumber: string;
+  documentNumber?: string | null;
   documentDate: string;
   generatedAt: string;
   generatedBy: string;
@@ -214,10 +214,6 @@ export function renderBaseLayout(opts: BaseLayoutOptions): string {
           <div class="org-detail">${escapeHtml(opts.organization.address)}</div>
           <div class="org-detail"><strong>Contact:</strong> ${escapeHtml(opts.organization.contact)}</div>
           ${gstinHtml}
-          <div class="facility-box">
-            <strong>Operating Facility:</strong> ${escapeHtml(opts.facility.facilityName)} (${escapeHtml(opts.facility.facilityCode)})<br />
-            <span>${escapeHtml(opts.facility.facilityAddress)}</span>
-          </div>
         </td>
         <td style="vertical-align: top; text-align: right; width: 150px;">
           ${logoHtml}
@@ -228,7 +224,7 @@ export function renderBaseLayout(opts: BaseLayoutOptions): string {
     <div class="doc-banner">
       <div class="doc-title">${escapeHtml(opts.documentTitle)}</div>
       <div class="doc-meta">
-        <div><strong>Doc #:</strong> ${escapeHtml(opts.documentNumber)}</div>
+        ${opts.documentNumber ? `<div><strong>Doc #:</strong> ${escapeHtml(opts.documentNumber)}</div>` : ''}
         <div><strong>Date:</strong> ${escapeHtml(opts.documentDate)}</div>
       </div>
     </div>

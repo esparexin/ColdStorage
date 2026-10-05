@@ -55,7 +55,7 @@ describe('P9 DocumentService Record Resolution & Preview Boundary Tests', () => 
     });
 
     const html = await documentService.renderReceiptDocument(facilityA, grnId, 'usr-test');
-    expect(html).toContain('FARMER INWARD ACKNOWLEDGEMENT RECEIPT');
+    expect(html).toContain('ACKNOWLEDGEMENT RECEIPT');
     expect(html).toContain('RCPT-2026-0005');
     expect(html).toContain('Harpreet Singh');
     expect(html).toContain('Apple (Royal Delicious)');

@@ -7,7 +7,7 @@ export interface PrintDocumentOptions {
   popupBlockedMessage: string;
   /** Message used when the request itself fails. */
   failureMessage: string;
-  /** Invoke the browser print dialog once the document has settled. Defaults to true. */
+  /** Invoke the browser print dialog once the document has settled. Defaults to false (shows preview first). */
   autoPrint?: boolean;
 }
 
@@ -22,7 +22,7 @@ export interface PrintDocumentOptions {
  * Throws on failure so the calling surface can surface the message through its own state.
  */
 export async function printHtmlDocument(options: PrintDocumentOptions): Promise<void> {
-  const { url, popupBlockedMessage, failureMessage, autoPrint = true } = options;
+  const { url, popupBlockedMessage, failureMessage, autoPrint = false } = options;
 
   const res = await requestWithAuth(url);
   if (!res.ok) {
@@ -30,6 +30,33 @@ export async function printHtmlDocument(options: PrintDocumentOptions): Promise<
     throw new Error(err.error ?? err.message ?? `${failureMessage} (HTTP ${res.status})`);
   }
   const html = await res.text();
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    throw new Error(popupBlockedMessage);
+  }
+
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.focus();
+
+  if (autoPrint) {
+    setTimeout(() => printWindow.print(), 300);
+  }
+}
+
+/**
+ * Print raw HTML string directly via a print window.
+ */
+export function printHtmlString(
+  html: string,
+  options: { autoPrint?: boolean; popupBlockedMessage?: string } = {},
+): void {
+  const {
+    autoPrint = true,
+    popupBlockedMessage = 'Pop-up blocked by browser. Please allow pop-ups to print this document.',
+  } = options;
 
   const printWindow = window.open('', '_blank');
   if (!printWindow) {

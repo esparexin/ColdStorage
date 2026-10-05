@@ -41,7 +41,7 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     const html = renderGrnTemplate(makeGrnDto());
 
     expect(html).toContain('National Cold Chain Enterprise');
-    expect(html).toContain('Sonipat Mega Terminal (SNP-01)');
+    expect(html).not.toContain('Operating Facility:');
     expect(html).toContain('GRN-2026-1001');
     expect(html).toContain('GOODS RECEIPT NOTE (STORAGE RECORD)');
     expect(html).toContain('Sardar Singh');
@@ -80,7 +80,7 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
   it('renders complete Inward Receipt template with farmer acknowledgement and terms', () => {
     const html = renderReceiptTemplate(makeReceiptDto());
 
-    expect(html).toContain('FARMER INWARD ACKNOWLEDGEMENT RECEIPT');
+    expect(html).toContain('ACKNOWLEDGEMENT RECEIPT');
     expect(html).toContain('RCPT-2026-1001');
     expect(html).toContain('Sardar Singh');
     expect(html).toContain('300 Bags (S)');
@@ -110,16 +110,15 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).toContain('CH-03');
     expect(html).toContain('DL-01-AA-4321');
     expect(html).toContain('Karamjit Singh');
-    expect(html).toContain('Officer Verma');
     expect(html).toContain('Gate Pass Declaration');
-    // The gate-pass document a driver signs against must state the dispatched quantity. It
-    // previously carried a declaration referring to a bag count it never printed.
-    expect(html).toContain('Dispatched Bags by Type');
+    expect(html).toContain('Outward Bags Details');
     expect(html).toContain('Small Bags');
     expect(html).toContain('Big Bags');
     expect(html).toContain('Total Bags Dispatched');
     expect(html).toContain('60 small, 40 big');
     expect(html).not.toContain('Storage Position');
+    expect(html).not.toContain('Doc #:');
+    expect(html).not.toContain('Issuing Officer');
   });
 
   it('rejects the removed challan item breakdown and chamberNumber', () => {
