@@ -48,7 +48,13 @@ export async function authenticate(
   // forced-password-change flag must take effect immediately rather than lingering
   // until the access token expires, so both resolve from the canonical MongoDB
   // record rather than the (potentially stale) token claims.
-  const gate = await userRepository.findGateStateById(payload.userId);
+  let gate: { status: string; mustChangePassword: boolean } | null;
+  try {
+    gate = await userRepository.findGateStateById(payload.userId);
+  } catch {
+    res.status(500).json({ error: 'Authorization check failed' });
+    return;
+  }
   if (!gate) {
     res.status(401).json({ error: 'Account no longer exists' });
     return;
