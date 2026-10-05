@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { FileText, Printer } from 'lucide-react';
+import { Edit2, FileText, Printer, Truck } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
 import { Badge, Button, Modal } from '@/components/ui';
 import styles from '../page.module.css';
@@ -10,18 +10,26 @@ interface GrnDetailModalProps {
   grn: Grn;
   onClose: () => void;
   canPrint: boolean;
+  canCorrect?: boolean;
+  canCreateChallan?: boolean;
   printingId: string | null;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
   onManageLoan?: (grn: Grn) => void;
+  onCorrect?: (grn: Grn) => void;
+  onCreateChallan?: (grn: Grn) => void;
 }
 
 export function GrnDetailModal({
   grn,
   onClose,
   canPrint,
+  canCorrect = false,
+  canCreateChallan = false,
   printingId,
   onPrint,
   onManageLoan,
+  onCorrect,
+  onCreateChallan,
 }: GrnDetailModalProps) {
   return (
     <Modal
@@ -67,6 +75,29 @@ export function GrnDetailModal({
                   Print Receipt
                 </Button>
               </>
+            )}
+            {canCorrect && onCorrect && grn.status !== 'CLOSED' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onCorrect(grn)}
+                title="Edit / Correct GRN details"
+                leftIcon={<Edit2 size={13} aria-hidden="true" />}
+              >
+                Edit
+              </Button>
+            )}
+            {canCreateChallan && onCreateChallan && grn.status === 'OPEN' && (grn.closingBags ?? grn.bags) > 0 && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => onCreateChallan(grn)}
+                disabled={grn.loanStatus === 'TAKEN'}
+                title={grn.loanStatus === 'TAKEN' ? 'Outward blocked — Active loan hold' : 'Create Outward Challan'}
+                leftIcon={<Truck size={13} aria-hidden="true" />}
+              >
+                Challan
+              </Button>
             )}
             <Button variant="outline" size="sm" onClick={onClose}>
               Close

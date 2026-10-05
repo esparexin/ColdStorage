@@ -22,6 +22,7 @@ interface CreateDeliveryModalProps {
   onClearLoan?: (grn: Grn) => void;
   loanClearedTick?: number;
   canClearLoan?: boolean;
+  initialGrnId?: string;
 }
 
 export function CreateDeliveryModal({
@@ -34,8 +35,9 @@ export function CreateDeliveryModal({
   onClearLoan,
   loanClearedTick = 0,
   canClearLoan = false,
+  initialGrnId,
 }: CreateDeliveryModalProps) {
-  const form = useCreateDeliveryForm(facilityId, onSuccess);
+  const form = useCreateDeliveryForm(facilityId, onSuccess, initialGrnId);
   const { createGrnId, clearRentRequired, refreshRentGate } = form;
 
   useEffect(() => {

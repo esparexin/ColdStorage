@@ -37,6 +37,21 @@ export default function DeliveriesPage() {
   const [rentPaidTick, setRentPaidTick] = useState(0);
   const [loanClearGrn, setLoanClearGrn] = useState<Grn | null>(null);
   const [loanClearedTick, setLoanClearedTick] = useState(0);
+  const [initialGrnId, setInitialGrnId] = useState<string | undefined>(undefined);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const action = params.get('action');
+      const grnId = params.get('grnId');
+      if (action === 'create') {
+        setIsCreateOpen(true);
+      }
+      if (grnId) {
+        setInitialGrnId(grnId);
+      }
+    }
+  }, []);
 
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const canCreate = can(userRole, 'delivery:create');
@@ -191,6 +206,7 @@ export default function DeliveriesPage() {
         selectedFacilityId={selectedFacilityId}
         selectedDelivery={selectedDelivery}
         isCreateOpen={isCreateOpen}
+        initialGrnId={initialGrnId}
         loanClearGrn={loanClearGrn}
         rentPayAccount={rentPayAccount}
         reverseDelivery={reverseDelivery}

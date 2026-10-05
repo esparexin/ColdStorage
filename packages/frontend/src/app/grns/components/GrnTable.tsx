@@ -4,19 +4,19 @@ import React from 'react';
 import {
   CheckCircle2,
   Clock,
-  Eye,
-  FileText,
-  Printer,
 } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
-import { Badge, Button } from '@/components/ui';
+import { Badge } from '@/components/ui';
+import { GrnRowActions } from './GrnRowActions';
 import styles from '../page.module.css';
 
 interface GrnTableProps {
   grns: Grn[];
   caption: string;
   canPrint: boolean;
+  canCorrect?: boolean;
+  canCreateChallan?: boolean;
   printingId: string | null;
   page: number;
   pageSize: number;
@@ -24,6 +24,8 @@ interface GrnTableProps {
   totalGrns: number;
   onPageChange: (page: number) => void;
   onSelectGrn: (grn: Grn) => void;
+  onCorrectGrn?: (grn: Grn) => void;
+  onCreateChallan?: (grn: Grn) => void;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
 }
 
@@ -31,6 +33,8 @@ export function GrnTable({
   grns,
   caption,
   canPrint,
+  canCorrect = false,
+  canCreateChallan = false,
   printingId,
   page,
   pageSize,
@@ -38,6 +42,8 @@ export function GrnTable({
   totalGrns,
   onPageChange,
   onSelectGrn,
+  onCorrectGrn,
+  onCreateChallan,
   onPrint,
 }: GrnTableProps) {
   const columns: DataTableColumn<Grn>[] = [
@@ -191,44 +197,17 @@ export function GrnTable({
       header: 'Actions',
       align: 'right',
       render: (row) => (
-        <div className={styles.actionGroup}>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onSelectGrn(row)}
-            title="View Details"
-            leftIcon={<Eye size={12} aria-hidden="true" />}
-          >
-            View
-          </Button>
-
-          {canPrint && (
-            <>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => onPrint('grn', row.id)}
-                disabled={printingId === `grn-${row.id}`}
-                isLoading={printingId === `grn-${row.id}`}
-                title="Print Official GRN"
-                leftIcon={<Printer size={12} aria-hidden="true" />}
-              >
-                GRN
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => onPrint('receipt', row.id)}
-                disabled={printingId === `receipt-${row.id}`}
-                isLoading={printingId === `receipt-${row.id}`}
-                title="Print Farmer Inward Receipt"
-                leftIcon={<FileText size={12} aria-hidden="true" />}
-              >
-                Ack
-              </Button>
-            </>
-          )}
-        </div>
+        <GrnRowActions
+          row={row}
+          canCorrect={canCorrect}
+          canCreateChallan={canCreateChallan}
+          canPrint={canPrint}
+          printingId={printingId}
+          onSelectGrn={onSelectGrn}
+          onCorrectGrn={onCorrectGrn}
+          onCreateChallan={onCreateChallan}
+          onPrint={onPrint}
+        />
       ),
     },
   ];

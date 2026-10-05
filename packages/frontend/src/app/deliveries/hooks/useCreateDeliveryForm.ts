@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { indianVehicleSchema } from '@cold-storage/contracts';
 import type {
   DeliveryChallan,
@@ -18,6 +18,7 @@ export interface RentRequiredPayload {
 export function useCreateDeliveryForm(
   facilityId: string,
   onSuccess: (newDelivery: DeliveryChallan, summary?: DeliverySummary) => void,
+  initialGrnId?: string,
 ) {
   const [availableGrns, setAvailableGrns] = useState<Grn[]>([]);
   const [createGrnId, setCreateGrnId] = useState('');
@@ -56,39 +57,50 @@ export function useCreateDeliveryForm(
     }
   }, [facilityId]);
 
-  const handleSelectGrn = async (grnId: string) => {
-    setCreateGrnId(grnId);
-    setGrnSummary(null);
-    setWithdrawal({ availableSmall: 0, availableBig: 0, smallBags: '', bigBags: '' });
-    setRentRequired(null);
-    rentGate.resetRentGate();
-    if (!facilityId || !grnId) return;
+  const handleSelectGrn = useCallback(
+    async (grnId: string) => {
+      setCreateGrnId(grnId);
+      setGrnSummary(null);
+      setWithdrawal({ availableSmall: 0, availableBig: 0, smallBags: '', bigBags: '' });
+      setRentRequired(null);
+      rentGate.resetRentGate();
+      if (!facilityId || !grnId) return;
 
-    setLoadingGrnSummary(true);
-    setModalError(null);
-    try {
-      const [invRes] = await Promise.all([
-        requestWithAuth(
-          `/api/facilities/${encodeURIComponent(facilityId)}/grns/${encodeURIComponent(grnId)}/inventory-summary`,
-        ),
-        rentGate.refreshRentGate(facilityId, grnId),
-      ]);
-      if (invRes.ok) {
-        const data = (await invRes.json()) as { summary: GrnInventorySummary };
-        setGrnSummary(data.summary);
-        setWithdrawal({
-          availableSmall: data.summary.availableSmallBags,
-          availableBig: data.summary.availableBigBags,
-          smallBags: '',
-          bigBags: '',
-        });
+      setLoadingGrnSummary(true);
+      setModalError(null);
+      try {
+        const [invRes] = await Promise.all([
+          requestWithAuth(
+            `/api/facilities/${encodeURIComponent(facilityId)}/grns/${encodeURIComponent(grnId)}/inventory-summary`,
+          ),
+          rentGate.refreshRentGate(facilityId, grnId),
+        ]);
+        if (invRes.ok) {
+          const data = (await invRes.json()) as { summary: GrnInventorySummary };
+          setGrnSummary(data.summary);
+          setWithdrawal({
+            availableSmall: data.summary.availableSmallBags,
+            availableBig: data.summary.availableBigBags,
+            smallBags: '',
+            bigBags: '',
+          });
+        }
+      } catch {
+        setModalError('Failed to load GRN stock summary');
+      } finally {
+        setLoadingGrnSummary(false);
       }
-    } catch {
-      setModalError('Failed to load GRN stock summary');
-    } finally {
-      setLoadingGrnSummary(false);
+    },
+    [facilityId, rentGate],
+  );
+
+  useEffect(() => {
+    if (initialGrnId && availableGrns.length > 0 && !createGrnId) {
+      if (availableGrns.some((g) => g.id === initialGrnId)) {
+        void handleSelectGrn(initialGrnId);
+      }
     }
-  };
+  }, [initialGrnId, availableGrns, createGrnId, handleSelectGrn]);
 
   const smallBags = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigBags = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;

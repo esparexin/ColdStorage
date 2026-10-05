@@ -21,6 +21,7 @@ interface DeliveryPageModalsProps {
   printingId: string | null;
   rentPaidTick: number;
   loanClearedTick: number;
+  initialGrnId?: string;
   onCloseDetail: () => void;
   onCloseCreate: () => void;
   onCloseLoanClear: () => void;
@@ -48,6 +49,7 @@ export function DeliveryPageModals({
   printingId,
   rentPaidTick,
   loanClearedTick,
+  initialGrnId,
   onCloseDetail,
   onCloseCreate,
   onCloseLoanClear,
@@ -85,6 +87,7 @@ export function DeliveryPageModals({
           onClearLoan={onClearLoan}
           loanClearedTick={loanClearedTick}
           canClearLoan={canUpdateLoan}
+          initialGrnId={initialGrnId}
         />
       )}
 
