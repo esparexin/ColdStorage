@@ -116,7 +116,9 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
     expect(inwardRes.status).toBe(201);
     expect(inwardRes.body.grn.isBondForLoan).toBe(true);
     expect(inwardRes.body.grn.loanStatus).toBe('NOT_TAKEN');
-    expect(inwardRes.body.grn.bondNumber).toMatch(/^BND-\d{2}-\d{2}-\d{4}$/);
+    // Bond # is reference-only: no BND- number is minted, the GR Number is the business key.
+    expect(inwardRes.body.grn.bondNumber).toBeNull();
+    expect(inwardRes.body.grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-\d{4}$/);
 
     const grnId = inwardRes.body.grn.id;
 
@@ -145,7 +147,9 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
       }));
 
     expect(inwardRes.status).toBe(201);
-    expect(inwardRes.body.grn.bondNumber).toMatch(/^BND-\d{2}-\d{2}-\d{4}$/);
+    // Bond # is reference-only: no BND- number is minted, the GR Number is the business key.
+    expect(inwardRes.body.grn.bondNumber).toBeNull();
+    expect(inwardRes.body.grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-\d{4}$/);
     const grnId = inwardRes.body.grn.id;
 
     // 2. Operator updates loan status to TAKEN (party has availed loan against this bond)
@@ -184,7 +188,9 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
       });
 
     expect(blockedDelRes.status).toBe(400);
-    expect(blockedDelRes.body.error).toContain('Outward blocked — Active loan hold against Bond');
+    expect(blockedDelRes.body.error).toContain('Outward blocked — Active loan hold against');
+    // With no minted bond number the hold is referenced by the GR Number alone.
+    expect(blockedDelRes.body.error).toContain(inwardRes.body.grn.grnNumber);
 
     // Check movement history passbook reflects loan hold
     const histRes = await request(app)

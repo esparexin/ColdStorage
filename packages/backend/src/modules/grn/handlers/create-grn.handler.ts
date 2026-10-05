@@ -70,8 +70,8 @@ export async function createGrn(
     bigBags: input.bigBags,
   });
 
-  // Per-bag weight accounting (no nominal/weighbridge/total derivation).
-  // Small Bag Weight belongs to the individual small bag; Big Bag Weight to the big bag.
+  // Per-bag weight is optional: the Inward form captures Total Bags and a single Bag Price.
+  // A supplied weight is preserved for that bag type; an absent one is stored as null.
   const smallBagWeight = input.smallBagWeight ?? null;
   const bigBagWeight = input.bigBagWeight ?? null;
 
@@ -135,13 +135,10 @@ export async function createGrn(
         inwardReceiptNumber = await counterService.generateInwardReceiptNumber(facilityId, inwardDate, session);
       }
 
-      const bondNumber = input.isBondForLoan
-        ? (input.bondNumber?.trim() || (await counterService.generateBondNumber(facilityId, inwardDate, session)))
-        : null;
-      if (bondNumber) {
-        const existingBond = await GrnModel.findOne({ facilityId, bondNumber }, null, { session });
-        if (existingBond) throw new Error(`Bond Number '${bondNumber}' already exists for this facility.`);
-      }
+      // Bond # is reference-only and is not minted per receipt: the GR Number is the sole business
+      // key and is what the Bonds UI displays in the Bond # column. A value supplied by a legacy
+      // CSV import is preserved as reference text; nothing new is generated.
+      const bondNumber = input.isBondForLoan ? input.bondNumber?.trim() || null : null;
 
       const docs = await GrnModel.create(
         [

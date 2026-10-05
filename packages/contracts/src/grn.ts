@@ -96,20 +96,20 @@ export const createGrnSchema = z
   )
   .refine(
     (data) => {
-      if (data.bagType === 'S' || data.bagType === 'S+B') {
-        if (typeof data.smallBagWeight !== 'number' || data.smallBagWeight <= 0) return false;
-      }
-      if (data.bagType === 'B' || data.bagType === 'S+B') {
-        if (typeof data.bigBagWeight !== 'number' || data.bigBagWeight <= 0) return false;
-      }
+      // Per-bag weight is optional: the Inward form captures Total Bags and a single Bag Price.
+      // When a weight is supplied it must still be a positive number.
+      if (data.smallBagWeight != null && data.smallBagWeight <= 0) return false;
+      if (data.bigBagWeight != null && data.bigBagWeight <= 0) return false;
       return true;
     },
-    { message: 'Per-bag weight is required: Small Bag Weight for S, Big Bag Weight for B, both for S+B', path: ['smallBagWeight'] },
+    { message: 'Per-bag weight must be a positive number when provided', path: ['smallBagWeight'] },
   )
   .refine(
     (data) =>
-      // The stored composition and the stored total are the same fact. Rejecting an inconsistent
-      // declaration here is what stops `bags` and its parts from drifting apart in the database.
+      // The stored composition and the stored total are the same fact. A receipt either declares
+      // an explicit split (legacy CSV import) or none at all, in which case the split is derived
+      // from the bag type and the total. Rejecting an inconsistent declaration is what stops
+      // `bags` and its parts from drifting apart in the database.
       bagCompositionConsistent({
         bagType: data.bagType,
         bags: data.bags,

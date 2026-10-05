@@ -1,7 +1,6 @@
 import type { Grn, UpdateGrnLoanStatusInput } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { auditService } from '../../audit/audit.service.js';
-import { counterService } from '../../common/counter.service.js';
 import { readLedgerNetDelivered } from '../../inventory/ledger-balance.js';
 import { toGrnEntity } from '../grn.mappers.js';
 
@@ -21,10 +20,11 @@ export async function updateGrnLoanStatus(
   grn.isBondForLoan = true;
   grn.loanStatus = input.loanStatus;
 
+  // Bond # stays reference-only: an explicit value from a legacy import is preserved, but no
+  // new BND- number is minted. The GR Number is the sole business key and is what the Bonds UI
+  // shows in the Bond # column.
   if (input.bondNumber !== undefined && input.bondNumber !== null) {
     grn.bondNumber = input.bondNumber.trim() || null;
-  } else if (!grn.bondNumber) {
-    grn.bondNumber = await counterService.generateBondNumber(facilityId, grn.date);
   }
 
   if (input.loanStatus === 'TAKEN') {
