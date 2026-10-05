@@ -4,6 +4,19 @@
   gap: var(--space-4);
 }
 
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.titleArea {
+  display: flex;
+  flex-direction: column;
+}
+
 .pageTitle {
   font-size: var(--text-lg);
   font-weight: var(--font-bold);
@@ -12,9 +25,16 @@
 }
 
 .pageSub {
-  margin-top: calc(var(--space-1) * -1);
+  margin-top: var(--space-1);
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 /* ---- Sections ---- */

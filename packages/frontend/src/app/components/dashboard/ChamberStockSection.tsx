@@ -31,7 +31,6 @@ export function ChamberStockSection({ items }: { items: ChamberStock[] }) {
         columns={columns}
         rows={items}
         rowKey={(row) => row.chamber}
-        caption="Bags stored in each chamber"
       />
     </section>
   );

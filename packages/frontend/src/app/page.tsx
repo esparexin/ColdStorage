@@ -6,6 +6,9 @@
  */
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowUpRight, BookOpen, Plus, Receipt } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useFacility } from '@/context/FacilityContext';
 import { ChamberStockSection } from './components/dashboard/ChamberStockSection';
@@ -16,12 +19,16 @@ import { useDashboardSummary } from './hooks/useDashboardSummary';
 import styles from './page.module.css';
 
 export default function DashboardPage() {
-  const { selectedFacilityId } = useFacility();
+  const router = useRouter();
+  const { selectedFacilityId, availableFacilities } = useFacility();
   const { summary, loading, error, refetch } = useDashboardSummary(selectedFacilityId);
 
   if (loading) return <FeedbackStates.Loading label="Loading dashboard…" />;
   if (error) return <FeedbackStates.Error message={error} onRetry={() => void refetch()} />;
   if (!summary) return <FeedbackStates.Empty message="No dashboard data available." />;
+
+  const facilityName =
+    availableFacilities.find((f) => f.id === summary.facilityId)?.name ?? summary.facilityId;
 
   const monthLabel = new Date().toLocaleString('en-IN', {
     timeZone: 'Asia/Kolkata',
@@ -31,10 +38,48 @@ export default function DashboardPage() {
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.pageTitle}>Operational Dashboard</h1>
-      <p className={styles.pageSub}>
-        Facility: {summary.facilityId} &nbsp;·&nbsp; {monthLabel}
-      </p>
+      <div className={styles.headerRow}>
+        <div className={styles.titleArea}>
+          <h1 className={styles.pageTitle}>Operational Dashboard</h1>
+          <p className={styles.pageSub}>
+            {facilityName} &nbsp;·&nbsp; {monthLabel}
+          </p>
+        </div>
+        <div className={styles.headerActions}>
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<Plus size={15} />}
+            onClick={() => router.push('/grns')}
+          >
+            Inward of Goods
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<ArrowUpRight size={15} />}
+            onClick={() => router.push('/deliveries')}
+          >
+            Outward of Goods
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<BookOpen size={15} />}
+            onClick={() => router.push('/bond-ledger')}
+          >
+            Bond Ledger
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Receipt size={15} />}
+            onClick={() => router.push('/rent')}
+          >
+            Rent Billing
+          </Button>
+        </div>
+      </div>
 
       <KpiGrid summary={summary} />
       <ChamberStockSection items={summary.chamberStock} />
