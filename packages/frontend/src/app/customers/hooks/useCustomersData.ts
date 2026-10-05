@@ -40,9 +40,10 @@ export function useCustomersData() {
             if (!isCurrent()) return;
 setCustomers(data.items ?? []);
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e instanceof Error ? e.message : 'Failed to load customers');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [selectedFacilityId]);
 

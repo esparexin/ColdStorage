@@ -59,7 +59,7 @@ export function useUsersData(canManage: boolean) {
       setUsers([]);
       setTotalUsers(0);
     } finally {
-      setLoadingUsers(false);
+      if (isCurrent()) setLoadingUsers(false);
     }
   }, [beginRequest, canManage, page]);
 

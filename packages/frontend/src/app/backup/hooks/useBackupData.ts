@@ -49,7 +49,7 @@ export function useBackupData(canManage: boolean) {
       if (!isCurrent()) return;
       setStatusError(err instanceof Error ? err.message : 'Failed to load backup status');
     } finally {
-      setLoadingStatus(false);
+      if (isCurrent()) setLoadingStatus(false);
     }
   }, [beginRequest, canManage]);
 
@@ -85,7 +85,7 @@ export function useBackupData(canManage: boolean) {
       setLogs([]);
       setTotalLogs(0);
     } finally {
-      setLoadingLogs(false);
+      if (isCurrent()) setLoadingLogs(false);
     }
   }, [beginRequest, canManage, page, limit, statusFilter]);
 

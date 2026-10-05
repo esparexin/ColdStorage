@@ -97,12 +97,18 @@ export function createApp(): Express {
     ) {
       const e = err as { type?: string; status?: number; statusCode?: number; message?: string };
       if (e.type === 'entity.too.large' || e.status === 413 || e.statusCode === 413) {
-        res.status(413).json({ error: 'PAYLOAD_TOO_LARGE: Request entity exceeds 1 MB limit' });
+        res.status(413).json({
+          error: 'PAYLOAD_TOO_LARGE: Request entity exceeds 1 MB limit',
+          code: 'PAYLOAD_TOO_LARGE',
+        });
         return;
       }
       const isSyntaxError = err instanceof SyntaxError;
       const hasBody = typeof err === 'object' && err !== null && 'body' in err;
-      if (e.type === 'entity.parse.failed' || (isSyntaxError && hasBody) || e.status === 400) {
+      // Narrow to body-parser failures only: a bare `status === 400` would also
+      // rewrite domain validation errors forwarded via next(err), masking
+      // their real message as "Invalid JSON payload".
+      if (e.type === 'entity.parse.failed' || (isSyntaxError && hasBody)) {
         res.status(400).json({ error: 'Invalid JSON payload', code: 'INVALID_JSON' });
         return;
       }

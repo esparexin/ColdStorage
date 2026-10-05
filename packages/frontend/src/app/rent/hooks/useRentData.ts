@@ -56,9 +56,10 @@ export function useRentData() {
             if (!isCurrent()) return;
 setRentSummaries(data.summaries ?? []);
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e instanceof Error ? e.message : 'Failed to load rent billing accounts');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [selectedFacilityId]);
 

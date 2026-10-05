@@ -38,7 +38,7 @@ export function useCommodities() {
       if (!isCurrent()) return;
       setError(e instanceof Error ? e.message : 'Failed to load commodities');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [beginRequest]);
 

@@ -52,9 +52,10 @@ export function useDeliveries(
       setTotalDeliveries(data.total ?? 0);
       setTotalPages(Math.ceil((data.total ?? 0) / DELIVERY_PAGE_SIZE));
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e instanceof Error ? e.message : 'Failed to load deliveries');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [selectedFacilityId, page, statusFilter]);
 

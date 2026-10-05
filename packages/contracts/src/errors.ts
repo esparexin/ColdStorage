@@ -19,7 +19,7 @@ export const errorCodeSchema = z.enum([
 
 export const errorResponseSchema = z.object({
   error: z.string().min(1),
-  code: z.string().min(1).optional(),
+  code: errorCodeSchema.optional(),
   details: z.unknown().optional(),
   rent: z
     .object({

@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { Grn, GrnMovementHistory, GrnStatus, RentSummaryDto } from '@cold-storage/contracts';
 import { FilterToolbar } from '@/components/ui';
+import { Banner } from '@/components/ui/Banner';
 import { DataTable } from '@/components/ui/DataTable';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { requestWithAuth } from '@/lib/api-client';
@@ -41,7 +42,10 @@ export default function BondLedgerPage() {
       const res = await requestWithAuth(
         `/api/facilities/${encodeURIComponent(selectedFacilityId)}/grns?limit=100`,
       );
-      if (!res.ok) throw new Error('Failed to load facility GRNs');
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to load facility GRNs');
+      }
       const data = (await res.json()) as { items?: Grn[] };
       setGrns(data.items || []);
     } catch (err: unknown) {
@@ -138,11 +142,7 @@ export default function BondLedgerPage() {
         </div>
       </div>
 
-      {error && (
-        <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
-          {error}
-        </div>
-      )}
+      {error && <Banner message={error} id="bond-ledger-error" />}
 
       {!selectedFacilityId ? (
         <FeedbackStates.Empty message="Please select a facility from the header to view Bond Ledgers." />

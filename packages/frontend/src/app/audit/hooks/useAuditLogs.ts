@@ -65,9 +65,10 @@ export function useAuditLogs(canViewAudit: boolean) {
       setTotalLogs(data.totalCount ?? 0);
       setTotalPages(data.totalPages ?? 0);
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e instanceof Error ? e.message : 'Failed to load audit logs');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [canViewAudit, selectedFacilityId, userRole, page, severityFilter, eventTypeFilter]);
 

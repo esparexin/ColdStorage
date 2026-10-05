@@ -91,9 +91,10 @@ export function useGrns(
       setTotalGrns(data.total ?? 0);
       setTotalPages(Math.ceil((data.total ?? 0) / GRN_PAGE_SIZE));
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e instanceof Error ? e.message : 'Failed to load Inward of Goods');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [selectedFacilityId, page, statusFilter, customerFilter, commodityFilter]);
 

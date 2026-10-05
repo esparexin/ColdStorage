@@ -27,9 +27,10 @@ export function useDashboardSummary(facilityId: string | null) {
             if (!isCurrent()) return;
 setSummary(data.summary);
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e instanceof Error ? e.message : 'Failed to load dashboard');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [facilityId]);
 
