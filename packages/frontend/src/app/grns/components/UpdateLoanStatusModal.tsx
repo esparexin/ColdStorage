@@ -4,6 +4,12 @@ import React, { useState } from 'react';
 import type { Grn, LoanStatus } from '@cold-storage/contracts';
 import { Badge, Button, Modal, Select } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
+import { LoanSettlementFields } from './LoanSettlementFields';
+import {
+  initSettlementState,
+  validateLoanSettlement,
+  buildSettlementPayload,
+} from '../hooks/loanSettlement.helper';
 import styles from '../page.module.css';
 
 interface UpdateLoanStatusModalProps {
@@ -27,24 +33,40 @@ export function UpdateLoanStatusModal({
   const [remarks, setRemarks] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [settlement, setSettlement] = useState(() => initSettlementState(grn));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
     setError(null);
 
+    if (targetStatus === 'CLEARED') {
+      const validationError = validateLoanSettlement(settlement);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+    }
+
+    setSubmitting(true);
     try {
+      const payload: Record<string, unknown> = {
+        loanStatus: targetStatus,
+        remarks: remarks.trim() || undefined,
+      };
+
+      if (targetStatus === 'TAKEN') {
+        payload.bankName = bankName.trim() || undefined;
+        payload.referenceNumber = referenceNumber.trim() || undefined;
+      } else if (targetStatus === 'CLEARED') {
+        payload.settlement = buildSettlementPayload(settlement, remarks);
+      }
+
       const res = await requestWithAuth(
         `/api/facilities/${encodeURIComponent(facilityId)}/grns/${encodeURIComponent(grn.id)}/loan-status`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            loanStatus: targetStatus,
-            bankName: targetStatus === 'TAKEN' ? bankName.trim() || undefined : undefined,
-            referenceNumber: targetStatus === 'TAKEN' ? referenceNumber.trim() || undefined : undefined,
-            remarks: remarks.trim() || undefined,
-          }),
+          body: JSON.stringify(payload),
         },
       );
 
@@ -69,7 +91,7 @@ export function UpdateLoanStatusModal({
       onClose={onClose}
       title={`Bond Loan Control: ${grn.grnNumber}`}
       subtitle={`${grn.customerName} — ${grn.commodityName} (${grn.bags.toLocaleString('en-IN')} Bags)`}
-      size="md"
+      size={targetStatus === 'CLEARED' ? 'lg' : 'md'}
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={submitting}>
@@ -82,7 +104,7 @@ export function UpdateLoanStatusModal({
             isLoading={submitting}
             disabled={submitting}
           >
-            {targetStatus === 'CLEARED' ? 'Confirm Loan Cleared' : 'Save Loan Status'}
+            {targetStatus === 'CLEARED' ? 'Confirm Loan Settlement' : 'Save Loan Status'}
           </Button>
         </>
       }
@@ -128,7 +150,7 @@ export function UpdateLoanStatusModal({
             onChange={(e) => setTargetStatus(e.target.value as LoanStatus)}
           >
             {grn.loanStatus === 'TAKEN' && (
-              <option value="CLEARED">Loan Cleared (Repaid — Lift Outward Hold)</option>
+              <option value="CLEARED">Loan Cleared (Record Payment &amp; Lift Outward Hold)</option>
             )}
             <option value="TAKEN">Loan Taken (Active Lien — Block Outward Delivery)</option>
             <option value="NOT_TAKEN">Loan Not Taken (Pledge Only — Allow Outward Delivery)</option>
@@ -139,67 +161,46 @@ export function UpdateLoanStatusModal({
         </div>
 
         {targetStatus === 'CLEARED' && (
-          <div
-            style={{
-              padding: 'var(--space-2) var(--space-3)',
-              borderRadius: 'var(--radius-md)',
-              fontSize: 'var(--text-xs)',
-              background: 'var(--color-success-subtle, #ecfdf5)',
-              color: 'var(--color-success, #047857)',
-              border: '1px solid var(--color-success-border, #6ee7b7)',
-            }}
-          >
-            ✓ Confirming Loan Cleared removes the loan hold and allows outward delivery dispatches for this Bond.
-          </div>
+          <LoanSettlementFields
+            value={settlement}
+            onChange={(u) => setSettlement((prev) => ({ ...prev, ...u }))}
+            lenderBankName={grn.loanBankName}
+            loanReferenceNumber={grn.loanReferenceNumber}
+          />
         )}
 
         {targetStatus === 'TAKEN' && (
-          <>
-            <div
-              style={{
-                padding: 'var(--space-2) var(--space-3)',
-                borderRadius: 'var(--radius-md)',
-                fontSize: 'var(--text-xs)',
-                background: 'var(--color-danger-subtle, #fef2f2)',
-                color: 'var(--color-danger, #b91c1c)',
-                border: '1px solid var(--color-danger-border, #fca5a5)',
-              }}
-            >
-              ⚠️ Placing this Bond under Loan Taken will strictly block Outward Delivery dispatches.
+          <div className={styles.formGrid2}>
+            <div className={styles.fieldGroup}>
+              <label htmlFor="update-loan-bank" className={styles.fieldLabel}>
+                Lender / Bank Name
+              </label>
+              <input
+                id="update-loan-bank"
+                type="text"
+                maxLength={100}
+                className={styles.fieldInput}
+                placeholder="e.g. State Bank of India"
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+              />
             </div>
 
-            <div className={styles.formGrid2}>
-              <div className={styles.fieldGroup}>
-                <label htmlFor="update-loan-bank" className={styles.fieldLabel}>
-                  Lender / Bank Name
-                </label>
-                <input
-                  id="update-loan-bank"
-                  type="text"
-                  maxLength={100}
-                  className={styles.fieldInput}
-                  placeholder="e.g. State Bank of India"
-                  value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
-                />
-              </div>
-
-              <div className={styles.fieldGroup}>
-                <label htmlFor="update-loan-ref" className={styles.fieldLabel}>
-                  Loan Reference / Account #
-                </label>
-                <input
-                  id="update-loan-ref"
-                  type="text"
-                  maxLength={50}
-                  className={styles.fieldInput}
-                  placeholder="e.g. LN-98421"
-                  value={referenceNumber}
-                  onChange={(e) => setReferenceNumber(e.target.value)}
-                />
-              </div>
+            <div className={styles.fieldGroup}>
+              <label htmlFor="update-loan-ref" className={styles.fieldLabel}>
+                Loan Reference / Account #
+              </label>
+              <input
+                id="update-loan-ref"
+                type="text"
+                maxLength={50}
+                className={styles.fieldInput}
+                placeholder="e.g. LN-98421"
+                value={referenceNumber}
+                onChange={(e) => setReferenceNumber(e.target.value)}
+              />
             </div>
-          </>
+          </div>
         )}
 
         <div className={styles.fieldGroup}>
@@ -213,7 +214,7 @@ export function UpdateLoanStatusModal({
             className={styles.fieldInput}
             placeholder={
               targetStatus === 'CLEARED'
-                ? 'e.g. Bank NOC letter received; lien released'
+                ? 'e.g. Bank NOC letter received; full loan repayment verified'
                 : 'Optional notes regarding loan or pledge'
             }
             value={remarks}
