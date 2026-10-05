@@ -17,18 +17,18 @@ export function createBondLedgerColumns({
       key: 'bondNumber',
       header: 'Bond #',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: 'var(--text-xs)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
           {row.bondNumber ? (
-            <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-primary)' }}>
+            <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-primary-text)' }}>
               {row.bondNumber}
             </span>
           ) : (
-            <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
+            <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}>
               Standard
             </span>
           )}
           {row.loanBankName && (
-            <span style={{ fontSize: '10px', color: 'var(--color-text-secondary)' }}>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
               {row.loanBankName}
             </span>
           )}
@@ -96,22 +96,22 @@ export function createBondLedgerColumns({
       key: 'status',
       header: 'Status & Lien',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', alignItems: 'flex-start' }}>
           <Badge variant={row.status === 'CLOSED' ? 'neutral' : 'warning'}>
             {row.status}
           </Badge>
           {row.loanStatus === 'TAKEN' && (
-            <Badge variant="danger" style={{ fontSize: '10px' }}>
+            <Badge variant="danger">
               Loan Hold
             </Badge>
           )}
           {row.loanStatus === 'CLEARED' && (
-            <Badge variant="success" style={{ fontSize: '10px' }}>
+            <Badge variant="success">
               Loan Cleared
             </Badge>
           )}
           {row.loanStatus === 'NOT_TAKEN' && (
-            <Badge variant="neutral" style={{ fontSize: '10px' }}>
+            <Badge variant="neutral">
               Pledged
             </Badge>
           )}

@@ -19,7 +19,7 @@
 }
 
 .pageTitle {
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-bold);
   color: var(--color-text-primary);
   letter-spacing: var(--tracking-tight);
@@ -60,7 +60,7 @@
   font-weight: var(--font-semibold);
   color: var(--color-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: var(--tracking-label);
 }
 
 .passbookCard {
@@ -128,7 +128,7 @@
   font-weight: var(--font-semibold);
   font-size: var(--text-xs);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: var(--tracking-label);
   padding: var(--space-3) var(--space-4);
   border-bottom: 2px solid var(--color-border);
   white-space: nowrap;
@@ -182,7 +182,7 @@
 
 .closingNum {
   font-weight: var(--font-bold);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .closedTag {
@@ -190,8 +190,8 @@
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
   color: var(--color-text-muted);
-  background: var(--color-surface-3);
-  padding: 1px 6px;
+  background: var(--color-surface-2);
+  padding: var(--space-0-5) var(--space-1-5);
   border-radius: var(--radius-sm);
   margin-left: var(--space-1);
 }

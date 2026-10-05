@@ -22,7 +22,7 @@ export function LoanSettlementFields({
     <div className={styles.container}>
       <div className={styles.sectionHeader}>
         <span>Loan Clearance &amp; Settlement Payment Details</span>
-        <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>SSOT RECORD</span>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>SSOT RECORD</span>
       </div>
 
       <div className={styles.clearNotice}>

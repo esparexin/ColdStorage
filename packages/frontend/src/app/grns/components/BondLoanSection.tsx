@@ -100,16 +100,16 @@ export function BondLoanSection({
             marginBottom: 'var(--space-3)',
             background:
               loanStatus === 'TAKEN'
-                ? 'var(--color-danger-subtle, #fef2f2)'
-                : 'var(--color-surface-2, #f8fafc)',
+                ? 'var(--color-danger-subtle)'
+                : 'var(--color-surface-2)',
             color:
               loanStatus === 'TAKEN'
-                ? 'var(--color-danger, #b91c1c)'
-                : 'var(--color-text-muted, #64748b)',
+                ? 'var(--color-danger-text)'
+                : 'var(--color-text-muted)',
             border: `1px solid ${
               loanStatus === 'TAKEN'
-                ? 'var(--color-danger-border, #fca5a5)'
-                : 'var(--color-border, #e2e8f0)'
+                ? 'var(--color-danger)'
+                : 'var(--color-border)'
             }`,
           }}
           role="status"

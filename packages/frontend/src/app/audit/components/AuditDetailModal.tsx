@@ -24,7 +24,7 @@ export function AuditDetailModal({ log, onClose }: AuditDetailModalProps) {
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', fontSize: 'var(--text-xs)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-3)', fontSize: 'var(--text-xs)' }}>
           <div>
             <strong>Timestamp:</strong> {new Date(log.timestamp).toISOString()}
           </div>
