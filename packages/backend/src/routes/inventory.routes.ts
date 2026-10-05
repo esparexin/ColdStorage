@@ -74,3 +74,20 @@ inventoryRouter.get(
     }
   },
 );
+
+// 4. Customer stock rollup, aggregated at read time over that customer's receipts
+inventoryRouter.get(
+  '/facilities/:facilityId/inventory/customer/:customerId',
+  requirePermission('inventory:view'),
+  requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  async (req: Request, res: Response): Promise<void> => {
+    const facilityId = getParamId(req.params.facilityId);
+    const customerId = getParamId(req.params.customerId);
+    try {
+      const summary = await inventoryService.getCustomerStockSummary(facilityId, customerId);
+      res.status(200).json({ summary });
+    } catch (err: unknown) {
+      sendServiceError(res, err, 'Failed to get customer stock summary');
+    }
+  },
+);

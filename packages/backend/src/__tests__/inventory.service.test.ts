@@ -156,4 +156,47 @@ describe('InventoryService GRN Chamber SSOT tests', () => {
       inventoryService.getGrnInventorySummary(facilityId, 'grn-missing'),
     ).rejects.toThrow(/not found in facility/);
   });
+
+  it('8. Customer rollup aggregates receipts at read time without storing a balance', async () => {
+    const secondGrnId = await seedGrn({
+      facilityId,
+      customerId,
+      commodityId: 'cmd-onions',
+      chamber: 'Chamber 2',
+      bags: 200,
+      bagType: 'S+B',
+      smallBags: 100,
+      bigBags: 100,
+      commodityName: 'Onions',
+      grnNumber: 'GRN-25-26-0002',
+    });
+    await deliveryService.createDelivery(
+      facilityId,
+      { grnId: secondGrnId, smallBags: 20, bigBags: 30 },
+      userId,
+    );
+
+    const rollup = await inventoryService.getCustomerStockSummary(facilityId, customerId);
+    expect(rollup).toEqual({
+      customerId,
+      customerName: 'Ramesh Agro Traders',
+      facilityId,
+      grnCount: 2,
+      openGrns: 2,
+      closedGrns: 0,
+      totalReceivedBags: 300,
+      receivedSmallBags: 200,
+      receivedBigBags: 100,
+      netDeliveredBags: 50,
+      remainingBags: 250,
+      remainingSmallBags: 180,
+      remainingBigBags: 70,
+    });
+  });
+
+  it('9. Customer rollup reports an unknown customer as not found', async () => {
+    await expect(
+      inventoryService.getCustomerStockSummary(facilityId, 'cust-missing'),
+    ).rejects.toThrow(/not found in facility/);
+  });
 });

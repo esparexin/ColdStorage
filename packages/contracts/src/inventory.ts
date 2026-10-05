@@ -94,3 +94,26 @@ export const stockLedgerQuerySchema = z.object({
 });
 
 export type StockLedgerQuery = z.infer<typeof stockLedgerQuerySchema>;
+
+/**
+ * Customer stock rollup. A read-time aggregation over that customer's receipts: received and
+ * remaining per bag type, net delivered, and receipt counts. Nothing here is stored — a
+ * customer-level balance must never be persisted, or it double-counts across GRNs.
+ */
+export const customerStockSummarySchema = z.object({
+  customerId: z.string().min(1),
+  customerName: z.string().min(1),
+  facilityId: z.string().min(1),
+  grnCount: z.number().int().min(0),
+  openGrns: z.number().int().min(0),
+  closedGrns: z.number().int().min(0),
+  totalReceivedBags: z.number().int().min(0),
+  receivedSmallBags: z.number().int().min(0),
+  receivedBigBags: z.number().int().min(0),
+  netDeliveredBags: z.number().int().min(0),
+  remainingBags: z.number().int().min(0),
+  remainingSmallBags: z.number().int().min(0),
+  remainingBigBags: z.number().int().min(0),
+});
+
+export type CustomerStockSummary = z.infer<typeof customerStockSummarySchema>;

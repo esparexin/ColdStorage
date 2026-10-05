@@ -1,12 +1,14 @@
 import type {
+  CustomerStockSummary,
   FacilityInventorySummary,
   InventoryTransaction,
   StockLedgerQuery,
 } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
+import { CustomerModel } from '../../../database/models/customer.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
-import { readLedgerGroupedPairs } from '../ledger-balance.js';
+import { readLedgerBalance, readLedgerGroupedPairs } from '../ledger-balance.js';
 import { toLedgerEntity } from '../inventory.mappers.js';
 
 export async function getFacilityInventorySummary(
@@ -45,6 +47,47 @@ export async function getFacilityInventorySummary(
   const totalStockBags = byCommodity.reduce((sum, c) => sum + c.totalBags, 0);
 
   return { facilityId, totalStockBags, byCommodity, byChamber };
+}
+
+/**
+ * Customer stock rollup, computed at read time over that customer's receipts.
+ *
+ * Received figures come from the receipts; remaining figures come from the ledger, one GRN at a
+ * time through the single balance helper. Nothing is stored and nothing is keyed on the
+ * customer in the ledger, so a receipt can never be counted twice.
+ */
+export async function getCustomerStockSummary(
+  facilityId: string,
+  customerId: string,
+): Promise<CustomerStockSummary> {
+  const customer = await CustomerModel.findOne({ id: customerId }).lean().exec();
+  if (!customer || !customer.facilityIds.includes(facilityId)) {
+    throw new Error(`Customer '${customerId}' not found in facility '${facilityId}'`);
+  }
+
+  const grns = await GrnModel.find({ facilityId, customerId }).lean().exec();
+  const balances = await Promise.all(grns.map((g) => readLedgerBalance(facilityId, g.id)));
+
+  const receivedSmallBags = grns.reduce((sum, g) => sum + g.smallBags, 0);
+  const receivedBigBags = grns.reduce((sum, g) => sum + g.bigBags, 0);
+  const remainingSmallBags = balances.reduce((sum, b) => sum + b.smallBags, 0);
+  const remainingBigBags = balances.reduce((sum, b) => sum + b.bigBags, 0);
+
+  return {
+    customerId: customer.id,
+    customerName: customer.name,
+    facilityId,
+    grnCount: grns.length,
+    openGrns: grns.filter((g) => g.status === 'OPEN').length,
+    closedGrns: grns.filter((g) => g.status === 'CLOSED').length,
+    totalReceivedBags: receivedSmallBags + receivedBigBags,
+    receivedSmallBags,
+    receivedBigBags,
+    netDeliveredBags: receivedSmallBags + receivedBigBags - remainingSmallBags - remainingBigBags,
+    remainingBags: remainingSmallBags + remainingBigBags,
+    remainingSmallBags,
+    remainingBigBags,
+  };
 }
 
 export async function queryStockLedger(

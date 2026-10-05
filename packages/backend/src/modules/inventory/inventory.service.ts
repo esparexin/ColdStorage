@@ -1,4 +1,5 @@
 import type {
+  CustomerStockSummary,
   FacilityInventorySummary,
   GrnInventorySummary,
   InventoryTransaction,
@@ -6,6 +7,7 @@ import type {
 } from '@cold-storage/contracts';
 import { ConcurrencyConflictError } from './inventory.mappers.js';
 import {
+  getCustomerStockSummary,
   getFacilityInventorySummary,
   queryStockLedger,
 } from './queries/facility-stock.queries.js';
@@ -35,6 +37,13 @@ export class InventoryService {
 
   public async getFacilityInventorySummary(facilityId: string): Promise<FacilityInventorySummary> {
     return getFacilityInventorySummary(facilityId);
+  }
+
+  public async getCustomerStockSummary(
+    facilityId: string,
+    customerId: string,
+  ): Promise<CustomerStockSummary> {
+    return getCustomerStockSummary(facilityId, customerId);
   }
 
   public async queryStockLedger(

@@ -60,3 +60,26 @@ Apparent duplicates that are **not** duplicates: header `create-*-btn` vs empty-
 ## 6. Operational note: CI only schedules `main`-gated workflows for PRs targeting `main`
 
 `ColdStorage CI`, `Governance Validation`, `Governance Health Check`, `Playwright Tests`, `Security Audits`, `CodeQL Advanced`, and `Commitlint` all gate `pull_request` on `branches: [main]`. A PR opened against any other base runs only `DangerJS Governance` (+ skipped `Dependabot Updates`) until it targets `main` and receives an `opened`/`synchronize`/`reopened` event. Open flow PRs directly against `main`.
+
+## 7. Addendum 2026-10-05 — single-ledger stock authority (`feat/ledger-stock-authority`)
+
+The put-away workflow this audit describes no longer exists, and the stale references in
+§1–§5 should be read accordingly:
+
+- §1 `CreatePutAwayInput`, §2 `POST /:fid/grns/:grnId/allocations` +
+  `allocate-stock.handler.ts`, §3 `usePutAway` + `POST /allocations` + the `/inventory` page:
+  all retired with the storage hierarchy. There is no allocation step and no separate
+  `INWARD_PUTAWAY`-less stock source.
+- The inward receipt now writes its own `INWARD_PUTAWAY` ledger row (same transaction), so the
+  ledger is self-sufficient: inward adds, outward removes, reversal restores.
+- Every balance — delivery guard, summaries, dashboard, exports, rent receipt print — derives
+  from `modules/inventory/ledger-balance.ts`, the single derivation. The `GRN − challans`
+  formula and both `hasLedgerTxns` source switches are deleted.
+- Bag movement is a composition (`smallBags` + `bigBags`) end to end: receipts, challans and
+  ledger rows all carry the split, and the delivery guard enforces each side separately.
+- The rent gate the audit called for (§4 gaps, §5) exists as `rent-gate.service.ts` (402
+  `RENT_PAYMENT_REQUIRED` when `rentAmount > 0` and nothing is paid; partial payment proceeds).
+  Rent collection itself is unchanged: `grns.rentAmount` stays frozen at inward, and outward
+  movement never mutates it.
+- GRN correction keeps an audit trail and now propagates the chamber label to the receipt's
+  ledger rows and challans; bags/commodity corrections are refused once stock has moved.
