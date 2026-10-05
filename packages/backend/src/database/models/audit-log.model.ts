@@ -48,6 +48,7 @@ const auditLogSchema = new Schema<AuditLogDoc>(
         'FACILITY_CREATED',
         'FACILITY_UPDATED',
         'FACILITY_DELETED',
+        'GRN_LOAN_STATUS_UPDATED',
       ],
     },
     severity: {

@@ -5,6 +5,7 @@ import type {
   GrnAcknowledgement,
   GrnMovementHistory,
   GrnQuery,
+  UpdateGrnLoanStatusInput,
 } from '@cold-storage/contracts';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { readLedgerNetDelivered, readLedgerNetDeliveredMany } from '../inventory/ledger-balance.js';
@@ -13,6 +14,7 @@ import { getGrnMovementHistory } from '../common/grn-movement-history.js';
 import { toGrnAcknowledgement, toGrnEntity } from './grn.mappers.js';
 import { createGrn } from './handlers/create-grn.handler.js';
 import { correctGrn } from './handlers/update-grn.handler.js';
+import { updateGrnLoanStatus } from './handlers/update-grn-loan-status.handler.js';
 
 export class GrnService {
   public async createGrn(
@@ -31,6 +33,16 @@ export class GrnService {
     userId: string,
   ): Promise<Grn> {
     return correctGrn(facilityId, grnId, input, userId);
+  }
+
+  /** Update loan/pledge status on existing Bond/GRN with audit trail */
+  public async updateLoanStatus(
+    facilityId: string,
+    grnId: string,
+    input: UpdateGrnLoanStatusInput,
+    userId: string,
+  ): Promise<Grn> {
+    return updateGrnLoanStatus(facilityId, grnId, input, userId);
   }
 
   public async getGrnById(id: string): Promise<Grn | null> {

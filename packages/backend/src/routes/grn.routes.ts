@@ -1,5 +1,10 @@
 import { Router, type Request, type Response } from 'express';
-import { correctGrnSchema, createGrnSchema, grnQuerySchema } from '@cold-storage/contracts';
+import {
+  correctGrnSchema,
+  createGrnSchema,
+  grnQuerySchema,
+  updateGrnLoanStatusSchema,
+} from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
@@ -196,3 +201,34 @@ grnRouter.patch(
     }
   },
 );
+
+// Update Bond/GRN Loan Status (e.g. Loan Taken, Loan Cleared, Loan Not Taken)
+grnRouter.patch(
+  '/facilities/:facilityId/grns/:grnId/loan-status',
+  requirePermission('grn:create'),
+  requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  async (req: Request, res: Response): Promise<void> => {
+    const facilityId = getParamId(req.params.facilityId);
+    const grnId = getParamId(req.params.grnId);
+
+    const grnFacilityId = await grnService.resolveFacilityIdForGrn(grnId);
+    if (!grnFacilityId || grnFacilityId !== facilityId) {
+      res.status(404).json({ error: `GRN '${grnId}' not found in facility '${facilityId}'` });
+      return;
+    }
+
+    const parseResult = updateGrnLoanStatusSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({ error: 'Validation failed', details: parseResult.error.flatten() });
+      return;
+    }
+
+    try {
+      const grn = await grnService.updateLoanStatus(facilityId, grnId, parseResult.data, req.user!.userId);
+      res.status(200).json({ grn });
+    } catch (err: unknown) {
+      sendServiceError(res, err, 'Updating GRN loan status failed');
+    }
+  },
+);
+

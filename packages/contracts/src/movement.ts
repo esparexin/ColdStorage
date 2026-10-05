@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { grnNumberSchema, challanNumberSchema } from './identifiers.js';
-import { grnStatusSchema } from './grn.js';
+import { grnStatusSchema, loanStatusSchema } from './grn.js';
 
 export const grnMovementTypeSchema = z.enum([
   'INWARD',
@@ -53,6 +53,11 @@ export const grnMovementHistorySchema = z.object({
   currentClosingSmallBags: z.number().int().min(0).optional(),
   currentClosingBigBags: z.number().int().min(0).optional(),
   status: grnStatusSchema,
+  isBondForLoan: z.boolean().optional(),
+  loanStatus: loanStatusSchema.optional(),
+  isLoanHoldActive: z.boolean().optional(),
+  loanBankName: z.string().nullable().optional(),
+  loanReferenceNumber: z.string().nullable().optional(),
   entries: z.array(grnMovementEntrySchema),
 });
 export type GrnMovementHistory = z.infer<typeof grnMovementHistorySchema>;

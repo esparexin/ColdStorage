@@ -66,6 +66,8 @@ deliveryRouter.post(
           : message.includes('inactive') ||
               message.includes('exceeds') ||
               message.includes('CLOSED') ||
+              message.includes('Loan outstanding') ||
+              message.includes('Outward blocked') ||
               message.includes('belongs to chamber') ||
               message.includes('future') ||
               message.includes('Financial Year')
