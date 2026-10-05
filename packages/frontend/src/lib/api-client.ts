@@ -22,6 +22,11 @@ export interface RefreshResult<T = unknown> {
 
 let activeAccessToken: string | null = null;
 let refreshPromise: Promise<RefreshResult | null> | null = null;
+let onAuthExpired: (() => void) | null = null;
+
+export function setOnAuthExpired(handler: (() => void) | null): void {
+  onAuthExpired = handler;
+}
 
 /** Called by AuthContext after login or bootstrap refresh. */
 export function setAccessToken(token: string | null): void {
@@ -74,6 +79,7 @@ export async function executeSingleFlightRefresh<T = unknown>(): Promise<Refresh
 
       if (!res.ok) {
         setAccessToken(null);
+        onAuthExpired?.();
         return null;
       }
 

@@ -40,7 +40,7 @@ export function BondPassbookModal({
       onClose={onClose}
       title={selectedGrn.bondNumber ? `Bond Movement Ledger: ${selectedGrn.bondNumber}` : `GRN Movement Ledger: ${selectedGrn.grnNumber}`}
       subtitle={`${selectedGrn.customerName} — ${selectedGrn.commodityName} (Chamber ${selectedGrn.chamber})`}
-      size="xl"
+      size={history ? 'lg' : 'md'}
       className={styles.ledgerModal}
       footer={
         <>
