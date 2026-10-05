@@ -132,22 +132,28 @@ export default function GrnsPage() {
               onRetry={() => void grnData.fetchGrns()}
             />
           ) : grnData.grns.length === 0 ? (
-            <FeedbackStates.Empty
-              message={emptyForFacility(grnData.currentFacilityName, 'grns')}
-              action={
-                canCreate
-                  ? {
-                      label: '+ Create Inward of Goods',
-                      onClick: () => setIsCreateOpen(true),
-                      id: 'create-grn-empty-btn',
-                    }
-                  : undefined
-              }
-            />
-          ) : grnData.filteredGrns.length === 0 ? (
-            <FeedbackStates.Empty
-              message={`No Inward of Goods matching "${grnData.searchTerm}".`}
-            />
+            grnData.searchTerm ? (
+              <FeedbackStates.Empty
+                message={`No Inward of Goods matching "${grnData.searchTerm}".`}
+              />
+            ) : grnData.statusFilter || grnData.customerFilter || grnData.commodityFilter ? (
+              <FeedbackStates.Empty
+                message="No Inward of Goods found matching the selected filters."
+              />
+            ) : (
+              <FeedbackStates.Empty
+                message={emptyForFacility(grnData.currentFacilityName, 'grns')}
+                action={
+                  canCreate
+                    ? {
+                        label: '+ Create Inward of Goods',
+                        onClick: () => setIsCreateOpen(true),
+                        id: 'create-grn-empty-btn',
+                      }
+                    : undefined
+                }
+              />
+            )
           ) : (
             <GrnTable
               grns={grnData.filteredGrns}
