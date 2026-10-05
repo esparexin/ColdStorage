@@ -89,21 +89,23 @@ export default function CustomersPage() {
           message={error}
           onRetry={() => void fetchCustomers()}
         />
-      ) : customers.length === 0 ? (
-        <FeedbackStates.Empty
-          message={EMPTY_MESSAGES.customersEmpty}
-          action={
-            canManage
-              ? {
-                  id: 'empty-add-customer-btn',
-                  label: '+ Add Customer',
-                  onClick: openCreateModal,
-                }
-              : undefined
-          }
-        />
       ) : filteredCustomers.length === 0 ? (
-        <FeedbackStates.Empty message={noMatchMessage('customers', searchTerm)} />
+        searchTerm ? (
+          <FeedbackStates.Empty message={noMatchMessage('customers', searchTerm)} />
+        ) : (
+          <FeedbackStates.Empty
+            message={EMPTY_MESSAGES.customersEmpty}
+            action={
+              canManage
+                ? {
+                    id: 'empty-add-customer-btn',
+                    label: '+ Add Customer',
+                    onClick: openCreateModal,
+                  }
+                : undefined
+            }
+          />
+        )
       ) : (
         <CustomerTable
           customers={customers}

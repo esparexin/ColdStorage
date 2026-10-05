@@ -80,21 +80,23 @@ export default function CommoditiesPage() {
           message={error}
           onRetry={() => void fetchCommodities()}
         />
-      ) : commodities.length === 0 ? (
-        <FeedbackStates.Empty
-          message={EMPTY_MESSAGES.commoditiesEmpty}
-          action={
-            canManage
-              ? {
-                  id: 'empty-add-commodity-btn',
-                  label: '+ Add Commodity',
-                  onClick: openCreateModal,
-                }
-              : undefined
-          }
-        />
       ) : filteredCommodities.length === 0 ? (
-        <FeedbackStates.Empty message={noMatchMessage('commodities', searchTerm)} />
+        searchTerm ? (
+          <FeedbackStates.Empty message={noMatchMessage('commodities', searchTerm)} />
+        ) : (
+          <FeedbackStates.Empty
+            message={EMPTY_MESSAGES.commoditiesEmpty}
+            action={
+              canManage
+                ? {
+                    id: 'empty-add-commodity-btn',
+                    label: '+ Add Commodity',
+                    onClick: openCreateModal,
+                  }
+                : undefined
+            }
+          />
+        )
       ) : (
         <CommodityTable
           commodities={commodities}
