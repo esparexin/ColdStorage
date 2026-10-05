@@ -74,9 +74,13 @@ authRouter.post('/refresh', authRateLimiter, async (req: Request, res: Response)
 });
 
 authRouter.post('/logout', async (req: Request, res: Response): Promise<void> => {
-  const refreshToken = getCookie(req, 'refreshToken') || req.body?.refreshToken;
-  if (refreshToken) {
-    await authService.logout(refreshToken);
+  try {
+    const refreshToken = getCookie(req, 'refreshToken') || req.body?.refreshToken;
+    if (refreshToken) {
+      await authService.logout(refreshToken);
+    }
+  } catch {
+    // Logout is idempotent: a stale token still clears the cookie below.
   }
 
   res.clearCookie('refreshToken', { path: '/api/auth' });

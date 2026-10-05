@@ -30,21 +30,7 @@
   gap: var(--space-2);
 }
 
-/* Inline page-level alert. Consolidated onto a single recipe in Phase 3. */
-.banner {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-}
-
-.bannerError {
-  background: var(--color-danger-subtle);
-  border: 1px solid var(--color-danger);
-  color: var(--color-danger-text);
-}
+/* NOTE: inline page/section banners are owned by components/ui/Banner. */
 
 .tagChamber {
   display: inline-flex;
@@ -194,14 +180,7 @@
   color: var(--color-text-muted);
 }
 
-.modalError {
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-danger-subtle);
-  color: var(--color-danger-text);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  border: 1px solid var(--color-danger);
-}
+/* NOTE: inline error banners are owned by components/ui/Banner. */
 
 /* Detail View Modal Grid */
 .detailGrid {

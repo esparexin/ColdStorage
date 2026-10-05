@@ -49,16 +49,17 @@ export function useRentData() {
         `/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/summaries`,
       );
       if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
       const data = (await res.json()) as { summaries?: RentSummaryDto[] };
             if (!isCurrent()) return;
 setRentSummaries(data.summaries ?? []);
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e instanceof Error ? e.message : 'Failed to load rent billing accounts');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [selectedFacilityId]);
 

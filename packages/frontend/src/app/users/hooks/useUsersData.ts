@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Role, UserSummary } from '@cold-storage/contracts';
+import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
 import { useFacility } from '@/context/FacilityContext';
 
@@ -32,11 +33,13 @@ export function useUsersData(canManage: boolean) {
   // Facility options are already loaded application-wide by FacilityProvider. Fetching them a
   // second time here produced two independent copies of the same list.
   const { availableFacilities } = useFacility();
+  const beginRequest = useRequestGuard();
 
   const fetchUsers = useCallback(async () => {
     if (!canManage) return;
     setLoadingUsers(true);
     setLoadError(null);
+    const isCurrent = beginRequest();
     try {
       const res = await requestWithAuth(`/api/users?page=${page}&limit=${PAGE_SIZE}`);
       if (!res.ok) {
@@ -47,16 +50,18 @@ export function useUsersData(canManage: boolean) {
         items: UserSummary[];
         total: number;
       };
+      if (!isCurrent()) return;
       setUsers(data.items || []);
       setTotalUsers(data.total || 0);
     } catch (err: unknown) {
+      if (!isCurrent()) return;
       setLoadError(err instanceof Error ? err.message : 'Failed to load users');
       setUsers([]);
       setTotalUsers(0);
     } finally {
-      setLoadingUsers(false);
+      if (isCurrent()) setLoadingUsers(false);
     }
-  }, [canManage, page]);
+  }, [beginRequest, canManage, page]);
 
   useEffect(() => {
     if (canManage) {

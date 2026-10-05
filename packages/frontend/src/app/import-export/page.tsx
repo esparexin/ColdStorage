@@ -3,6 +3,7 @@
 import React from 'react';
 import { can, type Role } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import { EMPTY_MESSAGES } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { ExportPanel } from './components/ExportPanel';
@@ -41,7 +42,7 @@ export default function ImportExportPage() {
       </div>
 
       {!selectedFacilityId ? (
-        <FeedbackStates.Empty message="Please select a facility from the top header to manage data imports and exports." />
+        <FeedbackStates.Empty message={EMPTY_MESSAGES.noFacilityImportExport} />
       ) : (
         <div className={styles.layoutGrid}>
           <ImportPanel

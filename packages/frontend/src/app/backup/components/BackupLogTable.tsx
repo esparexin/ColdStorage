@@ -4,6 +4,7 @@ import React from 'react';
 import type { BackupLogRecord, BackupStatus } from '@cold-storage/contracts';
 import { Badge, Select } from '@/components/ui';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { EMPTY_MESSAGES, LOADING_LABELS } from '@/components/ui/stateCopy';
 import { BACKUP_PAGE_SIZE } from '../hooks/useBackupData';
 import { formatBytes, formatDate } from '../utils';
 import styles from '../page.module.css';
@@ -12,6 +13,8 @@ interface BackupLogTableProps {
   logs: BackupLogRecord[];
   totalLogs: number;
   loading: boolean;
+  error?: string | null;
+  onRetry?: () => void;
   page: number;
   totalPages: number;
   statusFilter: '' | BackupStatus;
@@ -25,6 +28,8 @@ export function BackupLogTable({
   logs,
   totalLogs,
   loading,
+  error,
+  onRetry,
   page,
   totalPages,
   statusFilter,
@@ -141,8 +146,10 @@ export function BackupLogTable({
         rowKey={(log) => log.id}
         caption="Encrypted Backup Log Ledger"
         loading={loading}
-        loadingLabel="Loading backup logs..."
-        emptyMessage="No backup history recorded yet."
+        loadingLabel={LOADING_LABELS.backupLogs}
+        error={error}
+        onRetry={onRetry}
+        emptyMessage={EMPTY_MESSAGES.backupLogs}
         emptyAction={
           onTriggerBackup
             ? {

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { customerNameSchema, type Customer } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { Button, Input, Modal } from '@/components/ui';
+import { Banner } from '@/components/ui/Banner';
 import styles from '../page.module.css';
 
 interface CustomerFormModalProps {
@@ -90,11 +91,7 @@ export function CustomerFormModal({
       size="md"
     >
       <form onSubmit={handleSubmit} className={styles.modalForm}>
-        {modalError && (
-          <div className={styles.modalError} role="alert">
-            {modalError}
-          </div>
-        )}
+        {modalError && <Banner message={modalError} id="customer-modal-error" />}
 
         <Input
           id="customer-name"

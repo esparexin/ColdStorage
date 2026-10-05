@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { Image as ImageIcon, Trash2, UploadCloud } from 'lucide-react';
-import { Button } from '@/components/ui';
-import pageStyles from '../page.module.css';
+import { Banner, Button } from '@/components/ui';
+import { LOADING_LABELS } from '@/components/ui/stateCopy';
 import styles from './BrandLogoSection.module.css';
 
 interface BrandLogoSectionProps {
@@ -31,8 +31,8 @@ export function BrandLogoSection({
     <div className={styles.root}>
       {/* The surrounding disclosure already provides the heading, so no inner header is needed. */}
 
-      {logoSuccess && <div className={pageStyles.saveSuccess}>{logoSuccess}</div>}
-      {logoError && <div className={pageStyles.saveError}>{logoError}</div>}
+      {logoSuccess && <Banner variant="success" message={logoSuccess} />}
+      {logoError && <Banner message={logoError} id="logo-error" />}
 
       <div className={styles.logoLayout}>
         <div className={styles.logoPreviewWrapper}>
@@ -54,7 +54,7 @@ export function BrandLogoSection({
           <div className={styles.logoActionsRow}>
             <label className={styles.uploadLabel}>
               <UploadCloud size={16} aria-hidden="true" />
-              {logoUploading ? 'Uploading...' : logoAssetId ? 'Change Logo' : 'Upload Logo'}
+              {logoUploading ? LOADING_LABELS.uploading : logoAssetId ? 'Change Logo' : 'Upload Logo'}
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
@@ -85,18 +85,23 @@ export function BrandLogoSection({
           </div>
 
           {logoDeleteArmed && (
-            <div className={pageStyles.saveError} role="alert">
-              Removing the logo affects all printed documents.{' '}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onCancelDeleteLogo}
-                disabled={logoUploading}
-              >
-                Cancel
-              </Button>
-            </div>
+            <>
+              <Banner
+                message="Removing the logo affects all printed documents."
+                id="logo-delete-warning"
+              />
+              <div style={{ marginTop: 'var(--space-2)' }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onCancelDeleteLogo}
+                  disabled={logoUploading}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </>
           )}
 
           <span className={styles.logoHint}>

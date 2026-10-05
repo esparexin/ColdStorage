@@ -1,4 +1,5 @@
 export * from './common.js';
+export * from './errors.js';
 export * from './identifiers.js';
 export * from './bags.js';
 export * from './facility.js';

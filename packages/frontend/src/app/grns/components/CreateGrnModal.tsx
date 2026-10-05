@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import type { BagType, Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
 import { Button, ConfirmDialog, Input, Modal, Select } from '@/components/ui';
+import { Banner } from '@/components/ui/Banner';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { BagAccountingSection } from './BagAccountingSection';
 import { BondLoanSection } from './BondLoanSection';
@@ -45,7 +46,7 @@ export function CreateGrnModal({
       footer={<><Button variant="outline" onClick={handleAttemptClose} disabled={form.submitting}>Cancel</Button><Button id="submit-create-grn-btn" form="create-grn-form" type="submit" variant="primary" disabled={form.submitting} isLoading={form.submitting}>Create Inward of Goods</Button></>}
     >
       <form id="create-grn-form" noValidate onSubmit={form.handleSubmit} className={styles.modalForm}>
-        {form.modalError && <div id="modal-error-banner" className={styles.modalError} role="alert">{form.modalError}</div>}
+        {form.modalError && <Banner message={form.modalError} id="grn-modal-error" />}
         <h3 className={styles.sectionHeading}>Basic Information</h3>
         <div className={styles.formGrid3}>
           <div className={styles.fieldGroup}>

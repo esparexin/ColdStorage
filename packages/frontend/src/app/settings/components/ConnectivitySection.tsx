@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button, Card, DataTable, type DataTableColumn } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import { ERROR_TITLES, LOADING_LABELS } from '@/components/ui/stateCopy';
 import styles from './ConnectivitySection.module.css';
 
 /**
@@ -136,13 +137,13 @@ export function ConnectivitySection() {
           disabled={state.checking}
           isLoading={state.checking}
         >
-          {state.checking ? 'Checking' : 'Check Connection'}
+          {state.checking ? LOADING_LABELS.connectivity : 'Check Connection'}
         </Button>
       </div>
 
       {state.error ? (
         <FeedbackStates.Error
-          title="Frontend to Backend connection failed"
+          title={ERROR_TITLES.connectivity}
           message={`${state.error}. Confirm the backend is running and that BACKEND_URL points at it.`}
           onRetry={() => void check()}
         />

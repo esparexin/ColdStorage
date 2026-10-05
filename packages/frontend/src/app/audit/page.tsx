@@ -3,6 +3,12 @@
 import React, { useState } from 'react';
 import { can, type AuditLogRecord, type Role } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import {
+  ACCESS_MESSAGES,
+  EMPTY_MESSAGES,
+  ERROR_TITLES,
+  LOADING_LABELS,
+} from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { AuditDetailModal } from './components/AuditDetailModal';
 import { AuditFilterToolbar } from './components/AuditFilterToolbar';
@@ -39,8 +45,8 @@ export default function AuditLogsPage() {
   if (!canViewAudit) {
     return (
       <FeedbackStates.Error
-        title="Access Restricted"
-        message="Inspecting audit trails requires the 'audit:view' permission."
+        title={ERROR_TITLES.accessRestricted}
+        message={ACCESS_MESSAGES.audit}
       />
     );
   }
@@ -63,15 +69,17 @@ export default function AuditLogsPage() {
       />
 
       {loading ? (
-        <FeedbackStates.Loading label="Loading audit logs..." />
+        <FeedbackStates.Loading label={LOADING_LABELS.audit} />
       ) : error ? (
         <FeedbackStates.Error
-          title="Error loading audit logs"
+          title={ERROR_TITLES.audit}
           message={error}
           onRetry={() => void fetchLogs()}
         />
       ) : logs.length === 0 ? (
-        <FeedbackStates.Empty message="No audit log events recorded yet." />
+        <FeedbackStates.Empty message={EMPTY_MESSAGES.audit} />
+      ) : filteredLogs.length === 0 ? (
+        <FeedbackStates.Empty message={`No audit logs matching "${searchTerm}".`} />
       ) : (
         <AuditTable
           logs={filteredLogs}

@@ -4,6 +4,12 @@ import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { can, type Customer, type Role } from '@cold-storage/contracts';
 import { Button, FeedbackStates, SearchBar } from '@/components/ui';
+import {
+  EMPTY_MESSAGES,
+  ERROR_TITLES,
+  LOADING_LABELS,
+  noMatchMessage,
+} from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { CustomerFormModal } from './components/CustomerFormModal';
@@ -76,12 +82,16 @@ export default function CustomersPage() {
       />
 
       {loading ? (
-        <FeedbackStates.Loading label="Loading customers…" />
+        <FeedbackStates.Loading label={LOADING_LABELS.customers} />
       ) : error ? (
-        <FeedbackStates.Error message={error} onRetry={() => void fetchCustomers()} />
+        <FeedbackStates.Error
+          title={ERROR_TITLES.customers}
+          message={error}
+          onRetry={() => void fetchCustomers()}
+        />
       ) : customers.length === 0 ? (
         <FeedbackStates.Empty
-          message="No customers registered yet."
+          message={EMPTY_MESSAGES.customersEmpty}
           action={
             canManage
               ? {
@@ -93,7 +103,7 @@ export default function CustomersPage() {
           }
         />
       ) : filteredCustomers.length === 0 ? (
-        <FeedbackStates.Empty message={`No customers matching "${searchTerm}".`} />
+        <FeedbackStates.Empty message={noMatchMessage('customers', searchTerm)} />
       ) : (
         <CustomerTable
           customers={customers}

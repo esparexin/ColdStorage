@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AlertCircle } from 'lucide-react';
 import { indianMobileSchema, type Role, type UserSummary } from '@cold-storage/contracts';
 import { Button, Modal, Select } from '@/components/ui';
+import { Banner } from '@/components/ui/Banner';
 import type { FacilityOption } from '@/context/FacilityContext';
 import { toUserEditDraft, type UserEditDraft } from '../hooks/useUserLifecycle';
 import styles from '../page.module.css';
@@ -91,12 +91,7 @@ export function EditUserModal({
       }
     >
       <form id="edit-user-form" onSubmit={handleSubmit}>
-          {shownError && (
-            <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
-              <AlertCircle size={16} />
-              <span>{shownError}</span>
-            </div>
-          )}
+          {shownError && <Banner message={shownError} id="edit-user-error" />}
 
           <div className={styles.formGrid}>
             <div className={styles.formGroup}>

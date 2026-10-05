@@ -56,7 +56,7 @@ export function DataTable<T>({
   pagination,
 }: DataTableProps<T>) {
   if (loading) {
-    return <FeedbackStates.Loading label={loadingLabel ?? 'Loading data...'} />;
+    return <FeedbackStates.Loading label={loadingLabel ?? 'Loading data…'} />;
   }
 
   if (error) {

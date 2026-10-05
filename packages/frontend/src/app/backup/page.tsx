@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle, CheckCircle2, Play, RefreshCw, ShieldAlert } from 'lucide-react';
+import { Play, RefreshCw, ShieldAlert } from 'lucide-react';
 import { can, type BackupStatus, type Role } from '@cold-storage/contracts';
-import { Button, Card } from '@/components/ui';
+import { Banner, Button, Card, FeedbackStates } from '@/components/ui';
+import { ACCESS_MESSAGES, ERROR_TITLES, LOADING_LABELS } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { BackupLogTable } from './components/BackupLogTable';
 import { BackupStatusCards } from './components/BackupStatusCards';
@@ -18,6 +19,8 @@ export default function BackupPage() {
   const {
     backupStatus,
     loadingStatus,
+    statusError,
+    logsError,
     logs,
     totalLogs,
     page,
@@ -45,10 +48,8 @@ export default function BackupPage() {
         <Card className={styles.restrictedRow}>
           <ShieldAlert size={20} color="var(--color-danger)" aria-hidden="true" />
           <div>
-            <p className={styles.unauthorizedTitle}>Restricted Access</p>
-            <p className={styles.subtitle}>
-              Backup management requires the &lsquo;backup:manage&rsquo; permission.
-            </p>
+            <p className={styles.unauthorizedTitle}>Access Restricted</p>
+            <p className={styles.subtitle}>{ACCESS_MESSAGES.backup}</p>
           </div>
       </Card>
       </div>
@@ -83,22 +84,19 @@ export default function BackupPage() {
             title={disabledReason}
             leftIcon={!triggering ? <Play size={16} /> : undefined}
           >
-            {triggering ? 'Encrypting...' : 'Trigger Manual Backup'}
+            {triggering ? LOADING_LABELS.encrypting : 'Trigger Manual Backup'}
           </Button>
         </div>
       </header>
 
-      {actionSuccess && (
-        <div className={`${styles.banner} ${styles.bannerSuccess}`} role="status">
-          <CheckCircle2 size={18} />
-          <span>{actionSuccess}</span>
-        </div>
-      )}
-      {actionError && (
-        <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
-          <AlertCircle size={18} />
-          <span>{actionError}</span>
-        </div>
+      {actionSuccess && <Banner variant="success" message={actionSuccess} />}
+      {actionError && <Banner message={actionError} id="backup-action-error" />}
+      {statusError && (
+        <FeedbackStates.Error
+          title={ERROR_TITLES.default}
+          message={statusError}
+          onRetry={() => void fetchStatus()}
+        />
       )}
 
       <BackupStatusCards backupStatus={backupStatus} />
@@ -107,6 +105,8 @@ export default function BackupPage() {
         logs={logs}
         totalLogs={totalLogs}
         loading={loadingLogs}
+        error={logsError}
+        onRetry={() => void fetchLogs()}
         page={page}
         totalPages={totalPages}
         statusFilter={statusFilter}

@@ -6,12 +6,18 @@ import type { Facility } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import {
   Badge,
+  Banner,
   Button,
   ConfirmDialog,
   DataTable,
   type DataTableColumn,
 } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import {
+  EMPTY_MESSAGES,
+  ERROR_TITLES,
+  LOADING_LABELS,
+} from '@/components/ui/stateCopy';
 import { useFacility } from '@/context/FacilityContext';
 import styles from './FacilitySection.module.css';
 import { FacilityFormModal } from './FacilityFormModal';
@@ -39,7 +45,7 @@ export function FacilitySection() {
     try {
       const res = await requestWithAuth('/api/facilities?includeInactive=true');
       if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
       const data = (await res.json()) as { items?: Facility[] };
@@ -173,11 +179,15 @@ export function FacilitySection() {
       </p>
 
       {loading ? (
-        <FeedbackStates.Loading label="Loading facilities..." />
+        <FeedbackStates.Loading label={LOADING_LABELS.facilities} />
       ) : error ? (
-        <FeedbackStates.Error title="Could not load facilities" message={error} onRetry={() => void fetchFacilities()} />
+        <FeedbackStates.Error
+          title={ERROR_TITLES.facilities}
+          message={error}
+          onRetry={() => void fetchFacilities()}
+        />
       ) : facilities.length === 0 ? (
-        <FeedbackStates.Empty message="No facilities configured yet. Add one to begin recording inward receipts." />
+        <FeedbackStates.Empty message={EMPTY_MESSAGES.facilities} />
       ) : (
         <DataTable
           columns={columns}
@@ -187,9 +197,7 @@ export function FacilitySection() {
         />
       )}
 
-      {actionError && (
-        <FeedbackStates.Error title="Facility action failed" message={actionError} />
-      )}
+      {actionError && <Banner message={actionError} id="facility-action-error" />}
 
       <ConfirmDialog
         isOpen={deleting !== null}

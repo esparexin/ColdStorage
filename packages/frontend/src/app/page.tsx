@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowUpRight, BookOpen, Plus, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import { EMPTY_MESSAGES, ERROR_TITLES, LOADING_LABELS } from '@/components/ui/stateCopy';
 import { useFacility } from '@/context/FacilityContext';
 import { ChamberStockSection } from './components/dashboard/ChamberStockSection';
 import { CommodityStockSection } from './components/dashboard/CommodityStockSection';
@@ -23,9 +24,16 @@ export default function DashboardPage() {
   const { selectedFacilityId, availableFacilities } = useFacility();
   const { summary, loading, error, refetch } = useDashboardSummary(selectedFacilityId);
 
-  if (loading) return <FeedbackStates.Loading label="Loading dashboard…" />;
-  if (error) return <FeedbackStates.Error message={error} onRetry={() => void refetch()} />;
-  if (!summary) return <FeedbackStates.Empty message="No dashboard data available." />;
+  if (loading) return <FeedbackStates.Loading label={LOADING_LABELS.dashboard} />;
+  if (error)
+    return (
+      <FeedbackStates.Error
+        title={ERROR_TITLES.default}
+        message={error}
+        onRetry={() => void refetch()}
+      />
+    );
+  if (!summary) return <FeedbackStates.Empty message={EMPTY_MESSAGES.dashboard} />;
 
   const facilityName =
     availableFacilities.find((f) => f.id === summary.facilityId)?.name ?? summary.facilityId;

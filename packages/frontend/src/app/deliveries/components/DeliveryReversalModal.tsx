@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { AlertTriangle, RotateCcw } from 'lucide-react';
 import type { DeliveryChallan } from '@cold-storage/contracts';
 import { Button, Modal } from '@/components/ui';
+import { Banner } from '@/components/ui/Banner';
 import { requestWithAuth } from '@/lib/api-client';
 import styles from '../page.module.css';
 
@@ -68,7 +69,7 @@ export function DeliveryReversalModal({
     >
       <form onSubmit={handleReverseSubmit}>
         <div className={styles.modalBody}>
-          {reversalError && <div className={styles.modalError}>{reversalError}</div>}
+          {reversalError && <Banner message={reversalError} id="reversal-error" />}
 
           <div className={styles.warningBox}>
             <AlertTriangle size={24} style={{ flexShrink: 0 }} aria-hidden="true" />

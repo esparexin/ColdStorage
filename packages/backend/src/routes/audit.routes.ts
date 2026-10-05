@@ -43,8 +43,13 @@ auditRouter.get(
     }
 
     const authorizedFacilityIds = hasGlobalFacilityScope(user.role) ? null : user.facilityIds;
-    const result = await auditService.queryLogs(query, authorizedFacilityIds);
-    res.status(200).json(result);
+    try {
+      const result = await auditService.queryLogs(query, authorizedFacilityIds);
+      res.status(200).json(result);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load audit logs';
+      res.status(500).json({ error: message });
+    }
   },
 );
 

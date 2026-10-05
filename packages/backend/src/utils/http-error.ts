@@ -40,16 +40,22 @@ export type DomainErrorKind = 'unauthorized' | 'conflict' | 'notFound' | 'badReq
 
 /**
  * Classifies a domain error message into an HTTP-ish kind.
+ * Matching is case-insensitive so uppercase codes (GRN_NOT_FOUND,
+ * FACILITY_MISMATCH) classify the same as their lowercase phrases.
  * Exported so handlers and tests can assert on the classification directly.
  */
 export function classifyDomainError(message: string): DomainErrorKind {
-  if (UNAUTHORIZED_MARKERS.some((marker) => message.includes(marker))) {
+  const normalized = message.toLowerCase();
+  if (UNAUTHORIZED_MARKERS.some((marker) => normalized.includes(marker.toLowerCase()))) {
     return 'unauthorized';
   }
-  if (CONFLICT_MARKERS.some((marker) => message.includes(marker))) {
+  if (CONFLICT_MARKERS.some((marker) => normalized.includes(marker.toLowerCase()))) {
     return 'conflict';
   }
-  if (NOT_FOUND_MARKERS.some((marker) => message.includes(marker))) {
+  if (
+    NOT_FOUND_MARKERS.some((marker) => normalized.includes(marker.toLowerCase())) ||
+    normalized.includes('not_found')
+  ) {
     return 'notFound';
   }
   return 'badRequest';

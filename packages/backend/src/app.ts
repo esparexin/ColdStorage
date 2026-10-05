@@ -3,6 +3,7 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import type { HealthResponse } from '@cold-storage/contracts';
 import { config } from './config.js';
 import { getDatabaseName, getDatabaseState } from './database/connection.js';
+import { logger } from './utils/logger.js';
 import {
   securityHeadersMiddleware,
   noSqlInjectionGuard,
@@ -94,13 +95,52 @@ export function createApp(): Express {
       typeof err === 'object' &&
       ('type' in err || 'status' in err || 'statusCode' in err)
     ) {
-      const e = err as { type?: string; status?: number; statusCode?: number; message?: string };
+      const e = err as {
+        type?: string;
+        status?: number;
+        statusCode?: number;
+        message?: string;
+        body?: unknown;
+      };
       if (e.type === 'entity.too.large' || e.status === 413 || e.statusCode === 413) {
-        res.status(413).json({ error: 'PAYLOAD_TOO_LARGE: Request entity exceeds 1 MB limit' });
+        res.status(413).json({
+          error: 'PAYLOAD_TOO_LARGE: Request entity exceeds 1 MB limit',
+          code: 'PAYLOAD_TOO_LARGE',
+        });
+        return;
+      }
+      const isSyntaxError = err instanceof SyntaxError;
+      // Outer guard already narrows `err` to a truthy object, so `in` is safe
+      // here without a redundant null check (CodeQL flags `err !== null` as
+      // an inconvertible comparison in this narrowed position).
+      const hasBody = 'body' in e;
+      // Narrow to body-parser failures only: a bare `status === 400` would also
+      // rewrite domain validation errors forwarded via next(err), masking
+      // their real message as "Invalid JSON payload".
+      if (e.type === 'entity.parse.failed' || (isSyntaxError && hasBody)) {
+        res.status(400).json({ error: 'Invalid JSON payload', code: 'INVALID_JSON' });
         return;
       }
     }
     next(err);
+  });
+
+  // Unknown API routes return JSON (not Express HTML) so clients can branch on `error`.
+  app.use('/api', (_req: Request, res: Response): void => {
+    res.status(404).json({ error: 'API route not found', code: 'NOT_FOUND' });
+  });
+
+  // Terminal JSON error handler: unhandled rejections become 500 JSON (never HTML).
+  app.use((err: unknown, req: Request, res: Response, _next: NextFunction): void => {
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    logger.error('Unhandled request error', {
+      path: req.originalUrl || req.path,
+      method: req.method,
+      message,
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+    if (res.headersSent) return;
+    res.status(500).json({ error: 'Internal server error' });
   });
 
   return app;

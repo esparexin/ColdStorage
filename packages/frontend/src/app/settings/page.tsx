@@ -3,7 +3,8 @@
 import React, { useCallback } from 'react';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { can, type Role } from '@cold-storage/contracts';
-import { Button, ConfirmDialog, FeedbackStates } from '@/components/ui';
+import { Banner, Button, ConfirmDialog, FeedbackStates } from '@/components/ui';
+import { ACCESS_MESSAGES, ERROR_TITLES, LOADING_LABELS } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useRouter } from 'next/navigation';
@@ -62,14 +63,14 @@ export default function SettingsPage() {
   if (!canManageSettings) {
     return (
       <FeedbackStates.Error
-        title="Access Restricted"
-        message="System settings require the 'settings:manage' permission."
+        title={ERROR_TITLES.accessRestricted}
+        message={ACCESS_MESSAGES.settings}
       />
     );
   }
 
   if (isLoadingSettings && !settings) {
-    return <FeedbackStates.Loading label="Loading system settings..." />;
+    return <FeedbackStates.Loading label={LOADING_LABELS.settings} />;
   }
 
   return (
@@ -86,7 +87,10 @@ export default function SettingsPage() {
               Configured & Active
             </span>
           ) : (
-            <span className={styles.badgeConfigured} style={{ background: 'var(--color-warning-subtle)', color: 'var(--color-warning)' }}>
+            <span
+              className={styles.badgeConfigured}
+              style={{ background: 'var(--color-warning-subtle)', color: 'var(--color-warning)' }}
+            >
               <AlertCircle size={13} aria-hidden="true" />
               Configuration Pending
             </span>
@@ -95,21 +99,15 @@ export default function SettingsPage() {
       </div>
 
       {!isConfigured && (
-        <div className={styles.alertUnconfigured} role="alert">
-          <AlertCircle size={20} style={{ flexShrink: 0, marginTop: '2px' }} aria-hidden="true" />
-          <div>
-            <strong>Organization Details Required:</strong>
-            <p style={{ marginTop: '4px' }}>
-              Official document generation (Goods Receipt Notes, Delivery Challans, and Rent Receipts)
-              remains locked until organization name, registered address, and contact details are
-              saved.
-            </p>
-          </div>
-        </div>
+        <Banner
+          variant="info"
+          id="settings-unconfigured"
+          message="Organization Details Required: Official document generation (Goods Receipt Notes, Delivery Challans, and Rent Receipts) remains locked until organization name, registered address, and contact details are saved."
+        />
       )}
 
-      {saveSuccess && <div className={styles.saveSuccess}>{saveSuccess}</div>}
-      {saveError && <div className={styles.saveError}>{saveError}</div>}
+      {saveSuccess && <Banner variant="success" message={saveSuccess} />}
+      {saveError && <Banner message={saveError} id="settings-save-error" />}
 
       <form onSubmit={handleSaveSettings} className={styles.form}>
         {/*
@@ -118,7 +116,9 @@ export default function SettingsPage() {
           rest start collapsed so the page fits without a long scroll.
         */}
         <details className={styles.disclosure} open>
-          <summary className={styles.disclosureSummary}>Organization Identity &amp; Operating Details</summary>
+          <summary className={styles.disclosureSummary}>
+            Organization Identity &amp; Operating Details
+          </summary>
           <div className={styles.disclosureBody}>
             <OrgIdentitySection
               orgName={orgName}
@@ -187,7 +187,7 @@ export default function SettingsPage() {
             disabled={saving}
             isLoading={saving}
           >
-            {saving ? 'Saving...' : 'Save Settings'}
+            {saving ? LOADING_LABELS.saving : 'Save Settings'}
           </Button>
         </div>
       </form>

@@ -4,7 +4,15 @@ import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { can, type Grn, type Role } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
-import { Button } from '@/components/ui';
+import { Banner } from '@/components/ui/Banner';
+import { Button } from '@/components/ui/Button';
+import {
+  EMPTY_MESSAGES,
+  ERROR_TITLES,
+  LOADING_LABELS,
+  PRINT_MESSAGES,
+  emptyForFacility,
+} from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { printHtmlDocument } from '@/lib/print-document';
@@ -35,15 +43,15 @@ export default function GrnsPage() {
   const handlePrint = async (type: 'grn' | 'receipt', grnId: string) => {
     if (!selectedFacilityId) return;
     setPrintingId(`${type}-${grnId}`);
+    setPrintError(null);
     try {
       await printHtmlDocument({
         url: `/api/facilities/${encodeURIComponent(selectedFacilityId)}/documents/${type}/${encodeURIComponent(grnId)}`,
-        popupBlockedMessage:
-          'Pop-up window was blocked. Please allow pop-ups for this site to print documents.',
-        failureMessage: 'Failed to generate document',
+        popupBlockedMessage: PRINT_MESSAGES.popupBlocked,
+        failureMessage: PRINT_MESSAGES.grnFailed,
       });
     } catch (err: unknown) {
-      setPrintError(err instanceof Error ? err.message : 'Failed to generate document');
+      setPrintError(err instanceof Error ? err.message : PRINT_MESSAGES.grnFailed);
     } finally {
       setPrintingId(null);
     }
@@ -70,16 +78,10 @@ export default function GrnsPage() {
         </div>
       </div>
 
-      {printError && (
-        <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
-          <span>{printError}</span>
-        </div>
-      )}
+      {printError && <Banner message={printError} />}
 
       {!selectedFacilityId ? (
-        <FeedbackStates.Empty
-          message="Please select a facility from the top header to manage Inward of Goods."
-        />
+        <FeedbackStates.Empty message={EMPTY_MESSAGES.noFacilityGrns} />
       ) : (
         <>
           <GrnFilterToolbar
@@ -97,16 +99,16 @@ export default function GrnsPage() {
           />
 
           {grnData.loading ? (
-            <FeedbackStates.Loading label="Loading Inward of Goods..." />
+            <FeedbackStates.Loading label={LOADING_LABELS.grns} />
           ) : grnData.error ? (
             <FeedbackStates.Error
-              title="Error loading Inward of Goods"
+              title={ERROR_TITLES.grns}
               message={grnData.error}
               onRetry={() => void grnData.fetchGrns()}
             />
           ) : grnData.grns.length === 0 ? (
             <FeedbackStates.Empty
-              message={`No Inward of Goods recorded for ${grnData.currentFacilityName} yet.`}
+              message={emptyForFacility(grnData.currentFacilityName, 'grns')}
               action={
                 canCreate
                   ? {
@@ -116,6 +118,10 @@ export default function GrnsPage() {
                     }
                   : undefined
               }
+            />
+          ) : grnData.filteredGrns.length === 0 ? (
+            <FeedbackStates.Empty
+              message={`No Inward of Goods matching "${grnData.searchTerm}".`}
             />
           ) : (
             <GrnTable

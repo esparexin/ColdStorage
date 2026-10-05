@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle, CheckCircle2, FileSpreadsheet, Upload } from 'lucide-react';
-import { Button, Card, Select, StatCard, StatGrid } from '@/components/ui';
+import { CheckCircle2, FileSpreadsheet, Upload } from 'lucide-react';
+import { Banner, Button, Card, Select, StatCard, StatGrid } from '@/components/ui';
+import { LOADING_LABELS } from '@/components/ui/stateCopy';
 import type { ImportSummaryResult } from '../types';
 import styles from '../page.module.css';
 
@@ -51,12 +52,7 @@ export function ImportPanel({
         </p>
       ) : (
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-          {importError && (
-            <div style={{ display: 'flex', gap: 'var(--space-2)', padding: 'var(--space-2)', background: 'var(--color-danger-subtle)', color: 'var(--color-danger)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-xs)' }}>
-              <AlertCircle size={16} aria-hidden="true" />
-              <span>{importError}</span>
-            </div>
-          )}
+          {importError && <Banner message={importError} id="import-error" />}
 
           <Select
               id="import-target-select"
@@ -95,7 +91,7 @@ export function ImportPanel({
             isLoading={importing}
             leftIcon={<Upload size={15} aria-hidden="true" />}
           >
-            {importing ? 'Processing Import...' : `Import ${importTarget.toUpperCase()} CSV`}
+            {importing ? LOADING_LABELS.importing : `Import ${importTarget.toUpperCase()} CSV`}
           </Button>
 
           {importResult && (

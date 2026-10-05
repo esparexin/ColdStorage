@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CheckCircle2, Plus, RefreshCw, ShieldAlert } from 'lucide-react';
+import { Plus, RefreshCw, ShieldAlert } from 'lucide-react';
 import { can, type Role, type UserSummary } from '@cold-storage/contracts';
-import { Button, Card } from '@/components/ui';
+import { Banner, Button, Card } from '@/components/ui';
+import { ACCESS_MESSAGES } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { UserFilterBar } from './components/UserFilterBar';
@@ -25,6 +26,7 @@ export default function UsersPage() {
     setPage,
     totalPages,
     loadingUsers,
+    loadError,
     facilityNameMap,
     searchTerm,
     setSearchTerm,
@@ -77,10 +79,8 @@ export default function UsersPage() {
         <Card className={styles.restrictedRow}>
           <ShieldAlert size={20} color="var(--color-danger)" aria-hidden="true" />
           <div>
-            <p className={styles.unauthorizedTitle}>Restricted Access</p>
-            <p className={styles.unauthorizedHint}>
-              Requires the &lsquo;user:manage&rsquo; permission.
-            </p>
+            <p className={styles.unauthorizedTitle}>Access Restricted</p>
+            <p className={styles.unauthorizedHint}>{ACCESS_MESSAGES.users}</p>
           </div>
       </Card>
       </div>
@@ -114,12 +114,7 @@ export default function UsersPage() {
         </div>
       </header>
 
-      {actionSuccess && (
-        <div className={`${styles.banner} ${styles.bannerSuccess}`} role="status">
-          <CheckCircle2 size={18} />
-          <span>{actionSuccess}</span>
-        </div>
-      )}
+      {actionSuccess && <Banner variant="success" message={actionSuccess} />}
 
       <UserFilterBar
         searchTerm={searchTerm}
@@ -133,6 +128,8 @@ export default function UsersPage() {
           users={filteredUsers}
           totalUsers={totalUsers}
           loading={loadingUsers}
+          error={loadError}
+          onRetry={() => void fetchUsers()}
           page={page}
           totalPages={totalPages}
           searchTerm={searchTerm}

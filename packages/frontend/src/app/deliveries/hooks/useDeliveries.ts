@@ -43,7 +43,7 @@ export function useDeliveries(
       const url = `/api/facilities/${encodeURIComponent(selectedFacilityId)}/deliveries?${params.toString()}`;
       const res = await requestWithAuth(url);
       if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
       const data = (await res.json()) as { items?: DeliveryChallan[]; total?: number };
@@ -52,9 +52,10 @@ export function useDeliveries(
       setTotalDeliveries(data.total ?? 0);
       setTotalPages(Math.ceil((data.total ?? 0) / DELIVERY_PAGE_SIZE));
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e instanceof Error ? e.message : 'Failed to load deliveries');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [selectedFacilityId, page, statusFilter]);
 

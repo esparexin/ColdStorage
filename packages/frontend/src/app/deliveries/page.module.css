@@ -31,21 +31,6 @@
 }
 
 /* Inline page-level alert. Consolidated onto a single recipe in Phase 3. */
-.banner {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-}
-
-.bannerError {
-  background: var(--color-danger-subtle);
-  border: 1px solid var(--color-danger);
-  color: var(--color-danger-text);
-}
-
 .tagChamber {
   display: inline-flex;
   align-items: center;

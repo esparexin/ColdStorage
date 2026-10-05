@@ -5,6 +5,7 @@ import { KeyRound, UserCheck } from 'lucide-react';
 import type { UserSummary } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { EMPTY_MESSAGES, LOADING_LABELS } from '@/components/ui/stateCopy';
 import { PAGE_SIZE } from '../hooks/useUsersData';
 import { UserRowActions } from './UserRowActions';
 import styles from '../page.module.css';
@@ -13,6 +14,8 @@ interface UserTableProps {
   users: UserSummary[];
   totalUsers: number;
   loading: boolean;
+  error?: string | null;
+  onRetry?: () => void;
   page: number;
   totalPages: number;
   searchTerm: string;
@@ -31,6 +34,8 @@ export function UserTable({
   users,
   totalUsers,
   loading,
+  error,
+  onRetry,
   page,
   totalPages,
   searchTerm,
@@ -170,11 +175,11 @@ export function UserTable({
       rowKey={(u) => u.id}
       caption="User accounts"
       loading={loading}
-      loadingLabel="Loading users..."
+      loadingLabel={LOADING_LABELS.users}
+      error={error}
+      onRetry={onRetry}
       emptyMessage={
-        searchTerm || roleFilter
-          ? 'No users match your filter criteria.'
-          : 'No registered users found.'
+        searchTerm || roleFilter ? EMPTY_MESSAGES.usersFiltered : EMPTY_MESSAGES.usersEmpty
       }
       emptyAction={
         !searchTerm && !roleFilter

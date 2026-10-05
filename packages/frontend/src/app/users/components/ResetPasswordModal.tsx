@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AlertCircle } from 'lucide-react';
 import { resetUserPasswordSchema, type UserSummary } from '@cold-storage/contracts';
 import { Button, Modal } from '@/components/ui';
+import { Banner } from '@/components/ui/Banner';
 import styles from '../page.module.css';
 
 interface ResetPasswordModalProps {
@@ -72,12 +72,7 @@ export function ResetPasswordModal({
       }
     >
       <form id="reset-password-form" onSubmit={handleSubmit}>
-          {shownError && (
-            <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
-              <AlertCircle size={16} />
-              <span>{shownError}</span>
-            </div>
-          )}
+          {shownError && <Banner message={shownError} id="reset-password-error" />}
 
           <div className={styles.formGroupFull}>
             <label htmlFor="reset-user-password">New Temporary Password *</label>

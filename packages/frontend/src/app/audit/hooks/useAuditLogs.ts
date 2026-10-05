@@ -55,7 +55,7 @@ export function useAuditLogs(canViewAudit: boolean) {
 
       const res = await requestWithAuth(`/api/audit-logs?${params.toString()}`);
       if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
 
@@ -65,9 +65,10 @@ export function useAuditLogs(canViewAudit: boolean) {
       setTotalLogs(data.totalCount ?? 0);
       setTotalPages(data.totalPages ?? 0);
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e instanceof Error ? e.message : 'Failed to load audit logs');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [canViewAudit, selectedFacilityId, userRole, page, severityFilter, eventTypeFilter]);
 

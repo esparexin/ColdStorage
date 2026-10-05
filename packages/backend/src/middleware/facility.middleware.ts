@@ -18,7 +18,13 @@ export function requireFacilityScope(extractor: FacilityIdExtractor) {
       return;
     }
 
-    const raw = await extractor(req);
+    let raw: string | string[] | undefined | null;
+    try {
+      raw = await extractor(req);
+    } catch {
+      res.status(500).json({ error: 'Authorization check failed' });
+      return;
+    }
     const targetFacilityId = Array.isArray(raw) ? raw[0] : raw;
     if (!targetFacilityId) {
       res.status(404).json({ error: 'Target facility or parent entity not found' });

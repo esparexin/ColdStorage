@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Commodity } from '@cold-storage/contracts';
+import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
 
 export const COMMODITY_PAGE_SIZE = 20;
@@ -10,6 +11,7 @@ export function useCommodities() {
   const [commodities, setCommodities] = useState<Commodity[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const beginRequest = useRequestGuard();
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTermRaw] = useState('');
 
@@ -22,20 +24,23 @@ export function useCommodities() {
   const fetchCommodities = useCallback(async () => {
     setLoading(true);
     setError(null);
+    const isCurrent = beginRequest();
     try {
       const res = await requestWithAuth('/api/commodities');
       if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
       const data = (await res.json()) as { items?: Commodity[] };
+      if (!isCurrent()) return;
       setCommodities(data.items ?? []);
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e instanceof Error ? e.message : 'Failed to load commodities');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
-  }, []);
+  }, [beginRequest]);
 
   useEffect(() => {
     void fetchCommodities();
@@ -58,7 +63,7 @@ export function useCommodities() {
       });
 
       if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? 'Failed to update commodity status');
       }
 

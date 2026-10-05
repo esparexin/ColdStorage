@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { BackupLogRecord, BackupStatus, BackupStatusResponse } from '@cold-storage/contracts';
+import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
 
 export const BACKUP_PAGE_SIZE = 15;
@@ -20,6 +21,9 @@ export function useBackupData(canManage: boolean) {
   const [triggering, setTriggering] = useState(false);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [logsError, setLogsError] = useState<string | null>(null);
+  const beginRequest = useRequestGuard();
 
   // A narrower filter can leave the current page number past the end.
   const setStatusFilter = useCallback((status: '' | BackupStatus) => {
@@ -30,22 +34,30 @@ export function useBackupData(canManage: boolean) {
   const fetchStatus = useCallback(async () => {
     if (!canManage) return;
     setLoadingStatus(true);
+    setStatusError(null);
+    const isCurrent = beginRequest();
     try {
       const res = await requestWithAuth('/api/backups/status');
-      if (res.ok) {
-        const data = (await res.json()) as BackupStatusResponse;
-        setBackupStatus(data);
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? `Failed to load backup status (HTTP ${res.status})`);
       }
-    } catch {
-      // Handled silently
+      const data = (await res.json()) as BackupStatusResponse;
+      if (!isCurrent()) return;
+      setBackupStatus(data);
+    } catch (err: unknown) {
+      if (!isCurrent()) return;
+      setStatusError(err instanceof Error ? err.message : 'Failed to load backup status');
     } finally {
-      setLoadingStatus(false);
+      if (isCurrent()) setLoadingStatus(false);
     }
-  }, [canManage]);
+  }, [beginRequest, canManage]);
 
   const fetchLogs = useCallback(async () => {
     if (!canManage) return;
     setLoadingLogs(true);
+    setLogsError(null);
+    const isCurrent = beginRequest();
     try {
       const params = new URLSearchParams();
       params.set('page', String(page));
@@ -54,22 +66,28 @@ export function useBackupData(canManage: boolean) {
         params.set('status', statusFilter);
       }
       const res = await requestWithAuth(`/api/backups?${params.toString()}`);
-      if (res.ok) {
-        const data = (await res.json()) as {
-          items: BackupLogRecord[];
-          total: number;
-          page: number;
-          limit: number;
-        };
-        setLogs(data.items || []);
-        setTotalLogs(data.total || 0);
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? `Failed to load backup logs (HTTP ${res.status})`);
       }
-    } catch {
-      // Handled silently
+      const data = (await res.json()) as {
+        items: BackupLogRecord[];
+        total: number;
+        page: number;
+        limit: number;
+      };
+      if (!isCurrent()) return;
+      setLogs(data.items || []);
+      setTotalLogs(data.total || 0);
+    } catch (err: unknown) {
+      if (!isCurrent()) return;
+      setLogsError(err instanceof Error ? err.message : 'Failed to load backup logs');
+      setLogs([]);
+      setTotalLogs(0);
     } finally {
-      setLoadingLogs(false);
+      if (isCurrent()) setLoadingLogs(false);
     }
-  }, [canManage, page, limit, statusFilter]);
+  }, [beginRequest, canManage, page, limit, statusFilter]);
 
   useEffect(() => {
     if (canManage) {
@@ -92,7 +110,7 @@ export function useBackupData(canManage: boolean) {
       });
 
       if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error || `Backup trigger failed (HTTP ${res.status})`);
       }
 
@@ -112,6 +130,8 @@ export function useBackupData(canManage: boolean) {
   return {
     backupStatus,
     loadingStatus,
+    statusError,
+    logsError,
     logs,
     totalLogs,
     page,

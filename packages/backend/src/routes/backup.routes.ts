@@ -76,8 +76,13 @@ backupRouter.get(
       return;
     }
 
-    const result = await backupService.queryBackupHistory(parseResult.data);
-    res.status(200).json(result);
+    try {
+      const result = await backupService.queryBackupHistory(parseResult.data);
+      res.status(200).json(result);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load backup history';
+      res.status(500).json({ error: message });
+    }
   },
 );
 
@@ -92,7 +97,12 @@ backupRouter.get(
   requirePasswordChanged,
   requirePermission('backup:manage'),
   async (_req: Request, res: Response): Promise<void> => {
-    const status = await backupService.getBackupStatus();
-    res.status(200).json(status);
+    try {
+      const status = await backupService.getBackupStatus();
+      res.status(200).json(status);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load backup status';
+      res.status(500).json({ error: message });
+    }
   },
 );

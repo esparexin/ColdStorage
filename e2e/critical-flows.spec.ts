@@ -280,4 +280,129 @@ test.describe('Critical Application Flows', () => {
     await page.keyboard.press('Escape');
     await expect(sidebar).not.toHaveClass(/sidebarOpen/);
   });
+
+  test('7. List Error State: surfaces role=alert with retry on API failure', async ({ page }) => {
+    const mockUser = {
+      userId: 'usr-admin-001',
+      username: 'superadmin',
+      fullName: 'System Administrator',
+      role: 'SUPER_ADMIN',
+      mustChangePassword: false,
+      facilityIds: ['fac-alpha'],
+    };
+
+    await page.route('**/api/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ token: 'mock-jwt-token', user: mockUser }),
+      });
+    });
+
+    await page.route('**/api/facilities', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          items: [{ id: 'fac-alpha', name: 'Alpha Cold Storage Facility', code: 'FAC-A' }],
+          total: 1,
+        }),
+      });
+    });
+
+    await page.route('**/api/facilities/**/grns*', async (route) => {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Database unavailable' }),
+      });
+    });
+
+    await page.goto('/grns');
+
+    await expect(page.getByText('Database unavailable')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Try again/i })).toBeVisible();
+  });
+
+  test('8. List Empty State: renders empty copy when facility has no records', async ({ page }) => {
+    const mockUser = {
+      userId: 'usr-admin-001',
+      username: 'superadmin',
+      fullName: 'System Administrator',
+      role: 'SUPER_ADMIN',
+      mustChangePassword: false,
+      facilityIds: ['fac-alpha'],
+    };
+
+    await page.route('**/api/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ token: 'mock-jwt-token', user: mockUser }),
+      });
+    });
+
+    await page.route('**/api/facilities', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          items: [{ id: 'fac-alpha', name: 'Alpha Cold Storage Facility', code: 'FAC-A' }],
+          total: 1,
+        }),
+      });
+    });
+
+    await page.route('**/api/customers*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ items: [], total: 0 }),
+      });
+    });
+
+    await page.route('**/api/commodities', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ items: [], total: 0 }),
+      });
+    });
+
+    await page.route('**/api/facilities/**/grns*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ items: [], total: 0 }),
+      });
+    });
+
+    await page.goto('/grns');
+
+    await expect(page.getByText(/No (Acknowledgement|Inward) of Goods recorded for/i)).toBeVisible();
+  });
+
+  test('9. Unknown Route: renders branded not-found state', async ({ page }) => {
+    const mockUser = {
+      userId: 'usr-admin-001',
+      username: 'superadmin',
+      fullName: 'System Administrator',
+      role: 'SUPER_ADMIN',
+      mustChangePassword: false,
+      facilityIds: ['fac-alpha'],
+    };
+
+    await page.route('**/api/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ token: 'mock-jwt-token', user: mockUser }),
+      });
+    });
+
+    await page.goto('/does-not-exist-404-probe');
+
+    await expect(page.getByText('The page you are looking for does not exist.')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Back to Dashboard/i })).toBeVisible();
+  });
 });

@@ -6,7 +6,9 @@ import { SidebarNav } from './SidebarNav';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Banner } from '@/components/ui/Banner';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import { LOADING_LABELS } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { PRODUCT_NAME } from '@/lib/branding';
 import styles from './ResponsiveShell.module.css';
@@ -37,7 +39,7 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
   const toggleMobileNav = useCallback(() => setMobileNavOpen((prev) => !prev), []);
 
   if (isLoading) {
-    return <FeedbackStates.Loading fullPage label="Checking authentication…" />;
+    return <FeedbackStates.Loading fullPage label={LOADING_LABELS.auth} />;
   }
 
   if (!user) {
@@ -63,11 +65,7 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
             <p className={styles.loginSubtitle}>Sign in to access your facility dashboard</p>
           </div>
 
-          {error && (
-            <div className={styles.loginError} role="alert">
-              {error}
-            </div>
-          )}
+          {error && <Banner message={error} id="login-error" />}
 
           <form className={styles.loginForm} onSubmit={handleSubmit}>
             <Input
@@ -99,7 +97,7 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
             />
 
             <Button type="submit" variant="primary" size="lg" disabled={isSubmitting} isLoading={isSubmitting}>
-              {isSubmitting ? 'Signing in…' : 'Sign In'}
+              {isSubmitting ? LOADING_LABELS.signingIn : 'Sign In'}
             </Button>
           </form>
         </div>

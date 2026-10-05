@@ -82,7 +82,7 @@ export function useGrns(
       const url = `/api/facilities/${encodeURIComponent(selectedFacilityId)}/grns?${params.toString()}`;
       const res = await requestWithAuth(url);
       if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
       const data = (await res.json()) as { items?: Grn[]; total?: number };
@@ -91,9 +91,10 @@ export function useGrns(
       setTotalGrns(data.total ?? 0);
       setTotalPages(Math.ceil((data.total ?? 0) / GRN_PAGE_SIZE));
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e instanceof Error ? e.message : 'Failed to load Inward of Goods');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [selectedFacilityId, page, statusFilter, customerFilter, commodityFilter]);
 
