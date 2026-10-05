@@ -36,8 +36,10 @@ export function toGrnEntity(doc: {
   netDeliveredBags?: number;
   closingBags?: number;
 }, extras?: { netDeliveredBags?: number; closingBags?: number }): Grn {
-  const netDelivered = extras?.netDeliveredBags ?? doc.netDeliveredBags ?? 0;
-  const closing = extras?.closingBags ?? doc.closingBags ?? Math.max(0, doc.bags - netDelivered);
+  // Both figures are derived at read time from the ledger-sourced extras the caller passes.
+  // There is no stored snapshot to fall back to: the model no longer carries either field.
+  const netDelivered = extras?.netDeliveredBags ?? 0;
+  const closing = extras?.closingBags ?? Math.max(0, doc.bags - netDelivered);
   return {
     id: doc.id,
     facilityId: doc.facilityId,

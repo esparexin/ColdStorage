@@ -9,7 +9,8 @@
     "type-check": "tsc --noEmit -p tsconfig.json",
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "test": "vitest run --fileParallelism=false",
-    "migrate:free-text-chamber": "node --experimental-strip-types dist/scripts/migrate-free-text-chamber.js"
+    "migrate:free-text-chamber": "node --experimental-strip-types dist/scripts/migrate-free-text-chamber.js",
+    "reset:orphaned-stock": "node --experimental-strip-types dist/scripts/reset-orphaned-stock.js"
   },
   "dependencies": {
     "@cold-storage/contracts": "*",
