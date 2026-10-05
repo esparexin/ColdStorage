@@ -96,7 +96,7 @@ export class CounterService {
   /**
    * Canonical generator for Rent Payment Receipt numbers. P0-Decision 1 requires the rent
    * receipt number to be strictly independent from the inward receipt number; the distinct
-   * `RRCPT` prefix (matching `systemSettingsSchema.documentNumbering.rentReceiptPrefix`)
+   * `RRCPT` prefix (matching `DOCUMENT_PREFIXES.rentReceipt` below)
    * guarantees the two document families never share an identifier namespace.
    */
   public async generateRentReceiptNumber(

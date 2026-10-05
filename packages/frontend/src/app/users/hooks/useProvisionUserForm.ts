@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { Role } from '@cold-storage/contracts';
+import { indianMobileSchema } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import type { FacilityOption } from '@/context/FacilityContext';
 
@@ -43,7 +44,7 @@ export function useProvisionUserForm({
     if (!username.trim() || username.length < 3)
       return setCreateError('Username must be at least 3 characters.');
     if (!employeeId.trim()) return setCreateError('Employee ID is required.');
-    if (!/^[6-9]\d{9}$/.test(mobile.trim()))
+    if (!indianMobileSchema.safeParse(mobile.trim()).success)
       return setCreateError('Mobile must be a valid 10-digit Indian number starting with 6-9.');
     if (!email.trim() || !email.includes('@'))
       return setCreateError('A valid email address is required.');

@@ -6,6 +6,7 @@ import type {
 } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
+import { computeRentBalance } from '../common/rent-balance.js';
 import {
   getFacilitySubHeader,
   getVerifiedOrganization,
@@ -181,7 +182,8 @@ export class DocumentService {
 
     const amountPaid = overrides?.amount ?? 10000;
     const totalRentObligation = 25000;
-    const remainingBalance = Math.max(0, totalRentObligation - amountPaid);
+    const previewBalance = computeRentBalance(totalRentObligation, amountPaid);
+    const remainingBalance = previewBalance.remainingBalance;
 
     const dto: RentReceiptPreviewDto = {
       organization,
@@ -196,7 +198,7 @@ export class DocumentService {
       amountPaid,
       paymentMode: overrides?.paymentMode === 'UPI' ? 'UPI' : 'Cash',
       remainingBalance,
-      paymentStatus: remainingBalance === 0 ? 'Settled' : 'Not Settled',
+      paymentStatus: previewBalance.paymentStatus,
       isPreview: true,
       generatedAt: new Date(),
       generatedBy: userId,

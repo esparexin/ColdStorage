@@ -17,6 +17,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { printHtmlDocument } from '@/lib/print-document';
+import { requestWithAuth } from '@/lib/api-client';
 import { CollectPaymentModal } from '../rent/components/CollectPaymentModal';
 import { UpdateLoanStatusModal } from '../grns/components/UpdateLoanStatusModal';
 import { CreateDeliveryModal } from './components/CreateDeliveryModal';
@@ -60,7 +61,7 @@ export default function DeliveriesPage() {
   const handleCollectRent = async (delivery: DeliveryChallan) => {
     if (!selectedFacilityId) return;
     try {
-      const res = await fetch(
+      const res = await requestWithAuth(
         `/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/grn/${encodeURIComponent(delivery.grnId)}`,
       );
       if (!res.ok) {
