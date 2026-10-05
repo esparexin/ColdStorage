@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { can, type DeliveryChallan, type DeliveryStatus,
+import { can, type DeliveryChallan, type DeliveryStatus, type Grn,
   type Role, type RentSummaryDto } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { Banner } from '@/components/ui/Banner';
@@ -18,6 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { printHtmlDocument } from '@/lib/print-document';
 import { CollectPaymentModal } from '../rent/components/CollectPaymentModal';
+import { UpdateLoanStatusModal } from '../grns/components/UpdateLoanStatusModal';
 import { CreateDeliveryModal } from './components/CreateDeliveryModal';
 import { DeliveryDetailModal } from './components/DeliveryDetailModal';
 import { DeliveryTable } from './components/DeliveryTable';
@@ -35,15 +36,24 @@ export default function DeliveriesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [rentPayAccount, setRentPayAccount] = useState<RentSummaryDto | null>(null);
   const [rentPaidTick, setRentPaidTick] = useState(0);
+  const [loanClearGrn, setLoanClearGrn] = useState<Grn | null>(null);
+  const [loanClearedTick, setLoanClearedTick] = useState(0);
 
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const canCreate = can(userRole, 'delivery:create');
   const canPrint = can(userRole, 'document:print');
   const canCollectRent = can(userRole, 'rent:collect');
+  const canUpdateLoan = can(userRole, 'grn:create');
 
   const handleRentPaidFromDelivery = () => {
     setRentPayAccount(null);
     setRentPaidTick((t) => t + 1);
+    void deliveryData.fetchDeliveries();
+  };
+
+  const handleLoanClearedFromDelivery = () => {
+    setLoanClearGrn(null);
+    setLoanClearedTick((t) => t + 1);
     void deliveryData.fetchDeliveries();
   };
 
@@ -198,6 +208,18 @@ export default function DeliveriesPage() {
           onPayRent={setRentPayAccount}
           rentPaidTick={rentPaidTick}
           canPayRent={canCollectRent}
+          onClearLoan={setLoanClearGrn}
+          loanClearedTick={loanClearedTick}
+          canClearLoan={canUpdateLoan}
+        />
+      )}
+
+      {loanClearGrn && selectedFacilityId && (
+        <UpdateLoanStatusModal
+          grn={loanClearGrn}
+          facilityId={selectedFacilityId}
+          onClose={() => setLoanClearGrn(null)}
+          onSuccess={handleLoanClearedFromDelivery}
         />
       )}
 

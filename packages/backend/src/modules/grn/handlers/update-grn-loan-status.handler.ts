@@ -35,10 +35,31 @@ export async function updateGrnLoanStatus(
     if (input.remarks !== undefined) grn.loanRemarks = input.remarks.trim() || null;
   } else if (input.loanStatus === 'CLEARED') {
     grn.loanClearedAt = new Date();
+    if (input.settlement) {
+      grn.loanSettlementAmount = input.settlement.amountPaid;
+      grn.loanSettlementMode = input.settlement.paymentMode;
+      grn.loanSettlementUtr = input.settlement.utrNumber?.trim() || null;
+      grn.loanSettlementBankName = input.settlement.bankName?.trim() || null;
+      grn.loanSettlementAccountNumber = input.settlement.accountNumber?.trim() || null;
+      grn.loanSettlementIfsc = input.settlement.ifscCode?.trim() || null;
+      grn.loanSettlementReceiverName = input.settlement.receiverName.trim();
+      grn.loanSettlementReceiverAadhaar = input.settlement.receiverAadhaar?.trim() || null;
+      if (input.settlement.remarks) {
+        grn.loanRemarks = input.settlement.remarks.trim();
+      }
+    }
     if (input.remarks !== undefined) grn.loanRemarks = input.remarks.trim() || null;
   } else if (input.loanStatus === 'NOT_TAKEN') {
     grn.loanTakenAt = null;
     grn.loanClearedAt = null;
+    grn.loanSettlementAmount = null;
+    grn.loanSettlementMode = null;
+    grn.loanSettlementUtr = null;
+    grn.loanSettlementBankName = null;
+    grn.loanSettlementAccountNumber = null;
+    grn.loanSettlementIfsc = null;
+    grn.loanSettlementReceiverName = null;
+    grn.loanSettlementReceiverAadhaar = null;
     if (input.remarks !== undefined) grn.loanRemarks = input.remarks.trim() || null;
   }
 
@@ -60,6 +81,18 @@ export async function updateGrnLoanStatus(
       bankName: grn.loanBankName,
       referenceNumber: grn.loanReferenceNumber,
       remarks: grn.loanRemarks,
+      settlement: input.settlement
+        ? {
+            amountPaid: input.settlement.amountPaid,
+            paymentMode: input.settlement.paymentMode,
+            utrNumber: input.settlement.utrNumber,
+            bankName: input.settlement.bankName,
+            accountNumber: input.settlement.accountNumber,
+            ifscCode: input.settlement.ifscCode,
+            receiverName: input.settlement.receiverName,
+            receiverAadhaar: input.settlement.receiverAadhaar,
+          }
+        : undefined,
     },
   });
 

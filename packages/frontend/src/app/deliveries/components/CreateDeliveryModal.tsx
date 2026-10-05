@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { Truck } from 'lucide-react';
-import type { DeliveryChallan, DeliverySummary, RentSummaryDto } from '@cold-storage/contracts';
+import type { DeliveryChallan, DeliverySummary, Grn, RentSummaryDto } from '@cold-storage/contracts';
 import { Button, Modal, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
@@ -19,6 +19,9 @@ interface CreateDeliveryModalProps {
   onPayRent: (account: RentSummaryDto) => void;
   rentPaidTick: number;
   canPayRent: boolean;
+  onClearLoan?: (grn: Grn) => void;
+  loanClearedTick?: number;
+  canClearLoan?: boolean;
 }
 
 export function CreateDeliveryModal({
@@ -28,6 +31,9 @@ export function CreateDeliveryModal({
   onPayRent,
   rentPaidTick,
   canPayRent,
+  onClearLoan,
+  loanClearedTick = 0,
+  canClearLoan = false,
 }: CreateDeliveryModalProps) {
   const form = useCreateDeliveryForm(facilityId, onSuccess);
   const { createGrnId, clearRentRequired, refreshRentGate } = form;
@@ -35,6 +41,12 @@ export function CreateDeliveryModal({
   useEffect(() => {
     void form.fetchAvailableGrns();
   }, [form.fetchAvailableGrns]);
+
+  useEffect(() => {
+    if (loanClearedTick > 0 && createGrnId) {
+      void form.fetchAvailableGrns();
+    }
+  }, [loanClearedTick, createGrnId, form.fetchAvailableGrns]);
 
   useEffect(() => {
     if (rentPaidTick > 0 && createGrnId) {
@@ -99,6 +111,19 @@ export function CreateDeliveryModal({
                   {form.selectedGrn.loanReferenceNumber ? ` · Ref: ${form.selectedGrn.loanReferenceNumber}` : ''}.
                   Delivery challan generation is strictly blocked until the loan is marked as Cleared.
                 </div>
+                {canClearLoan && onClearLoan && (
+                  <div className={styles.loanHoldAction}>
+                    <Button
+                      id="clear-loan-from-delivery-btn"
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={() => onClearLoan(form.selectedGrn!)}
+                    >
+                      Pay / Clear Loan
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 

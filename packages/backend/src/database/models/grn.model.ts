@@ -46,6 +46,14 @@ export interface GrnDoc extends Document {
   loanRemarks: string | null;
   loanTakenAt: Date | null;
   loanClearedAt: Date | null;
+  loanSettlementAmount: number | null;
+  loanSettlementMode: string | null;
+  loanSettlementUtr: string | null;
+  loanSettlementBankName: string | null;
+  loanSettlementAccountNumber: string | null;
+  loanSettlementIfsc: string | null;
+  loanSettlementReceiverName: string | null;
+  loanSettlementReceiverAadhaar: string | null;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -97,6 +105,18 @@ const grnSchema = new Schema<GrnDoc>(
     loanRemarks: { type: String, trim: true, default: null },
     loanTakenAt: { type: Date, default: null },
     loanClearedAt: { type: Date, default: null },
+    loanSettlementAmount: { type: Number, default: null },
+    loanSettlementMode: {
+      type: String,
+      enum: ['Cash', 'UPI', 'Bank Transfer', null],
+      default: null,
+    },
+    loanSettlementUtr: { type: String, trim: true, default: null },
+    loanSettlementBankName: { type: String, trim: true, default: null },
+    loanSettlementAccountNumber: { type: String, trim: true, default: null },
+    loanSettlementIfsc: { type: String, trim: true, default: null },
+    loanSettlementReceiverName: { type: String, trim: true, default: null },
+    loanSettlementReceiverAadhaar: { type: String, trim: true, default: null },
     createdBy: { type: String, required: true },
   },
   {

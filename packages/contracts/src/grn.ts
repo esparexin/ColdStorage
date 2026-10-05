@@ -23,20 +23,19 @@ export const rentMonthsInputSchema = z
   .int('Rent months must be a whole number')
   .min(1, 'Rent months must be at least 1');
 
+import {
+  loanPaymentModeSchema,
+  updateGrnLoanStatusSchema,
+  type UpdateGrnLoanStatusInput,
+} from './loan.js';
+
 export const grnStatusSchema = z.enum(['OPEN', 'CLOSED']);
 export type GrnStatus = z.infer<typeof grnStatusSchema>;
 
 export const loanStatusSchema = z.enum(['NONE', 'NOT_TAKEN', 'TAKEN', 'CLEARED']);
 export type LoanStatus = z.infer<typeof loanStatusSchema>;
 
-export const updateGrnLoanStatusSchema = z.object({
-  loanStatus: z.enum(['NOT_TAKEN', 'TAKEN', 'CLEARED']),
-  bondNumber: bondNumberSchema.nullish(),
-  bankName: z.string().trim().max(100).optional(),
-  referenceNumber: z.string().trim().max(50).optional(),
-  remarks: z.string().trim().max(500).optional(),
-});
-export type UpdateGrnLoanStatusInput = z.infer<typeof updateGrnLoanStatusSchema>;
+export { updateGrnLoanStatusSchema, type UpdateGrnLoanStatusInput };
 
 export const inwardReceiptNumberSchema = receiptNumberSchema;
 export type InwardReceiptNumber = z.infer<typeof inwardReceiptNumberSchema>;
@@ -177,6 +176,14 @@ export const grnSchema = z.object({
   loanRemarks: z.string().nullable().optional(),
   loanTakenAt: z.date().nullable().optional(),
   loanClearedAt: z.date().nullable().optional(),
+  loanSettlementAmount: z.number().nullable().optional(),
+  loanSettlementMode: loanPaymentModeSchema.nullable().optional(),
+  loanSettlementUtr: z.string().nullable().optional(),
+  loanSettlementBankName: z.string().nullable().optional(),
+  loanSettlementAccountNumber: z.string().nullable().optional(),
+  loanSettlementIfsc: z.string().nullable().optional(),
+  loanSettlementReceiverName: z.string().nullable().optional(),
+  loanSettlementReceiverAadhaar: z.string().nullable().optional(),
   netDeliveredBags: z.number().int().min(0).optional(),
   closingBags: z.number().int().min(0).optional(),
   createdBy: z.string().min(1),
