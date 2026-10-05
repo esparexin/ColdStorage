@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { Printer } from 'lucide-react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
 import { Badge, Button, FeedbackStates, Modal, StatCard, StatGrid } from '@/components/ui';
+import { Banner } from '@/components/ui/Banner';
+import { PRINT_MESSAGES } from '@/components/ui/stateCopy';
 import { printHtmlDocument } from '@/lib/print-document';
 import styles from '../page.module.css';
 
@@ -29,8 +31,7 @@ export function RentHistoryModal({
     try {
       await printHtmlDocument({
         url: `/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/receipts/${encodeURIComponent(receiptNumber)}/print`,
-        popupBlockedMessage:
-          'Pop-up window was blocked. Please allow pop-ups for this site to print rent receipts.',
+        popupBlockedMessage: PRINT_MESSAGES.popupBlocked,
         failureMessage: 'Failed to generate rent receipt',
       });
     } catch (err: unknown) {
@@ -75,11 +76,7 @@ export function RentHistoryModal({
             Issued Official Cash Memos ({account.payments.length})
           </h4>
 
-          {error && (
-            <div className={styles.modalError} role="alert">
-              {error}
-            </div>
-          )}
+          {error && <Banner message={error} id="rent-history-error" />}
 
           {account.payments.length === 0 ? (
             <FeedbackStates.Empty message="No cash memos issued yet for this account." />

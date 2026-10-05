@@ -3,7 +3,8 @@
 import React, { useCallback } from 'react';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { can, type Role } from '@cold-storage/contracts';
-import { Button, ConfirmDialog, FeedbackStates } from '@/components/ui';
+import { Banner, Button, ConfirmDialog, FeedbackStates } from '@/components/ui';
+import { ACCESS_MESSAGES, ERROR_TITLES, LOADING_LABELS } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useRouter } from 'next/navigation';
@@ -62,14 +63,14 @@ export default function SettingsPage() {
   if (!canManageSettings) {
     return (
       <FeedbackStates.Error
-        title="Access Restricted"
-        message="System settings require the 'settings:manage' permission."
+        title={ERROR_TITLES.accessRestricted}
+        message={ACCESS_MESSAGES.settings}
       />
     );
   }
 
   if (isLoadingSettings && !settings) {
-    return <FeedbackStates.Loading label="Loading system settings..." />;
+    return <FeedbackStates.Loading label={LOADING_LABELS.settings} />;
   }
 
   return (
@@ -108,8 +109,8 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {saveSuccess && <div className={styles.saveSuccess}>{saveSuccess}</div>}
-      {saveError && <div className={styles.saveError}>{saveError}</div>}
+      {saveSuccess && <Banner variant="success" message={saveSuccess} />}
+      {saveError && <Banner message={saveError} id="settings-save-error" />}
 
       <form onSubmit={handleSaveSettings} className={styles.form}>
         {/*
@@ -187,7 +188,7 @@ export default function SettingsPage() {
             disabled={saving}
             isLoading={saving}
           >
-            {saving ? 'Saving...' : 'Save Settings'}
+            {saving ? LOADING_LABELS.saving : 'Save Settings'}
           </Button>
         </div>
       </form>

@@ -84,32 +84,6 @@
   font-weight: var(--font-semibold);
 }
 
-.saveSuccess {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-success-subtle);
-  border: 1px solid var(--color-success);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  color: var(--color-success-text);
-  font-weight: var(--font-medium);
-}
-
-.saveError {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-danger-subtle);
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  color: var(--color-danger-text);
-  font-weight: var(--font-medium);
-}
-
 /* Footer Actions */
 .saveFooter {
   position: sticky;

@@ -4,6 +4,7 @@ import React from 'react';
 import type { RecentActivityItem } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import { EMPTY_MESSAGES } from '@/components/ui/stateCopy';
 import styles from '@/app/page.module.css';
 
 const activityTypeLabel: Record<string, string> = {
@@ -64,7 +65,7 @@ export function RecentActivitySection({ items }: { items: RecentActivityItem[] }
     <section className={styles.section} aria-label="Recent activity">
       <h2 className={styles.sectionTitle}>Recent Activity</h2>
       {visibleItems.length === 0 ? (
-        <FeedbackStates.Empty message="No recent activity." />
+        <FeedbackStates.Empty message={EMPTY_MESSAGES.recentActivity} />
       ) : (
         <DataTable
           columns={activityColumns}

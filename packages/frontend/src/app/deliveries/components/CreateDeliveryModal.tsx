@@ -4,7 +4,9 @@ import React, { useEffect } from 'react';
 import { Truck } from 'lucide-react';
 import type { DeliveryChallan, DeliverySummary, RentSummaryDto } from '@cold-storage/contracts';
 import { Button, Modal, Select } from '@/components/ui';
+import { Banner } from '@/components/ui/Banner';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import { LOADING_LABELS } from '@/components/ui/stateCopy';
 import { useCreateDeliveryForm } from '../hooks/useCreateDeliveryForm';
 import { DeliveryBagCompositionFields } from './DeliveryBagCompositionFields';
 import styles from '../page.module.css';
@@ -49,7 +51,7 @@ export function CreateDeliveryModal({
     >
       <form onSubmit={form.handleSubmit}>
           <div className={styles.modalBody}>
-            {form.modalError && <div className={styles.modalError}>{form.modalError}</div>}
+            {form.modalError && <Banner message={form.modalError} id="delivery-modal-error" />}
 
             <div className={styles.fieldGroup}>
               <Select
@@ -69,7 +71,7 @@ export function CreateDeliveryModal({
             </div>
 
             {form.loadingGrnSummary || form.rentLoading ? (
-              <FeedbackStates.Loading label="Checking stored positions..." />
+              <FeedbackStates.Loading label={LOADING_LABELS.data} />
             ) : (
               <>
                 {form.rentSummary && form.rentSummary.remainingBalance > 0 && (

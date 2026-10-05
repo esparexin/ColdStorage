@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { Banner } from '@/components/ui/Banner';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { useAuth } from '@/context/AuthContext';
@@ -75,11 +76,7 @@ export function ChangePasswordModal({ isOpen }: ChangePasswordModalProps) {
           Your account was provisioned with a temporary password. You must set a personal password before continuing.
         </div>
 
-        {error && (
-          <div className={styles.error} role="alert">
-            {error}
-          </div>
-        )}
+        {error && <Banner message={error} id="change-password-error" />}
 
         <Input
           id="force-current-password"

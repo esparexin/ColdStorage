@@ -55,7 +55,7 @@ export function useAuditLogs(canViewAudit: boolean) {
 
       const res = await requestWithAuth(`/api/audit-logs?${params.toString()}`);
       if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
 

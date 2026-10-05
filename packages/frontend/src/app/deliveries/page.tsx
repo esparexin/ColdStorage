@@ -5,7 +5,15 @@ import { Plus } from 'lucide-react';
 import { can, type DeliveryChallan, type DeliveryStatus,
   type Role, type RentSummaryDto } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import { Banner } from '@/components/ui/Banner';
 import { Button, FilterToolbar } from '@/components/ui';
+import {
+  EMPTY_MESSAGES,
+  ERROR_TITLES,
+  LOADING_LABELS,
+  PRINT_MESSAGES,
+  emptyForFacility,
+} from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { printHtmlDocument } from '@/lib/print-document';
@@ -62,12 +70,11 @@ export default function DeliveriesPage() {
     try {
       await printHtmlDocument({
         url: `/api/facilities/${encodeURIComponent(selectedFacilityId)}/documents/challan/${encodeURIComponent(challanId)}`,
-        popupBlockedMessage:
-          'Pop-up window was blocked. Please allow pop-ups for this site to print delivery challans.',
-        failureMessage: 'Failed to generate delivery challan',
+        popupBlockedMessage: PRINT_MESSAGES.popupBlocked,
+        failureMessage: PRINT_MESSAGES.challanFailed,
       });
     } catch (err: unknown) {
-      setPrintError(err instanceof Error ? err.message : 'Failed to generate delivery challan');
+      setPrintError(err instanceof Error ? err.message : PRINT_MESSAGES.challanFailed);
     } finally {
       setPrintingId(null);
     }
@@ -75,11 +82,7 @@ export default function DeliveriesPage() {
 
   return (
     <div className={styles.page}>
-      {printError && (
-        <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
-          <span>{printError}</span>
-        </div>
-      )}
+      {printError && <Banner message={printError} />}
 
       <div className={styles.headerRow}>
         <div className={styles.titleArea}>
@@ -101,7 +104,7 @@ export default function DeliveriesPage() {
       </div>
 
       {!selectedFacilityId ? (
-        <FeedbackStates.Empty message="Please select a facility from the top header to manage deliveries." />
+        <FeedbackStates.Empty message={EMPTY_MESSAGES.noFacilityDeliveries} />
       ) : (
         <>
           <FilterToolbar
@@ -128,16 +131,16 @@ export default function DeliveriesPage() {
           />
 
           {deliveryData.loading ? (
-            <FeedbackStates.Loading label="Loading Delivery Challans..." />
+            <FeedbackStates.Loading label={LOADING_LABELS.deliveries} />
           ) : deliveryData.error ? (
             <FeedbackStates.Error
-              title="Error loading deliveries"
+              title={ERROR_TITLES.deliveries}
               message={deliveryData.error}
               onRetry={() => void deliveryData.fetchDeliveries()}
             />
           ) : deliveryData.deliveries.length === 0 ? (
             <FeedbackStates.Empty
-              message={`No delivery challans recorded for ${deliveryData.currentFacilityName} yet.`}
+              message={emptyForFacility(deliveryData.currentFacilityName, 'deliveries')}
               action={
                 canCreate
                   ? {
@@ -147,6 +150,10 @@ export default function DeliveriesPage() {
                     }
                   : undefined
               }
+            />
+          ) : deliveryData.filteredDeliveries.length === 0 ? (
+            <FeedbackStates.Empty
+              message={`No delivery challans matching "${deliveryData.searchTerm}".`}
             />
           ) : (
             <DeliveryTable

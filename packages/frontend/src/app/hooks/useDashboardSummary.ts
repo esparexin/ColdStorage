@@ -20,7 +20,7 @@ export function useDashboardSummary(facilityId: string | null) {
     try {
       const res = await requestWithAuth(`/api/facilities/${facilityId}/dashboard/summary`);
       if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
       const data = (await res.json()) as { summary: DashboardSummary };

@@ -4,6 +4,7 @@ import React from 'react';
 import { CreditCard, Eye, Wallet } from 'lucide-react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
 import { Button, Modal } from '@/components/ui';
+import { Banner } from '@/components/ui/Banner';
 import { RentSummaryOverview } from './RentSummaryOverview';
 import { useCollectPaymentForm } from '../hooks/useCollectPaymentForm';
 import styles from '../page.module.css';
@@ -55,17 +56,9 @@ export function CollectPaymentModal({
     >
       <form onSubmit={handleSubmit}>
           <div className={styles.modalBody}>
-            {collectError && (
-              <div className={styles.modalError} role="alert">
-                {collectError}
-              </div>
-            )}
+            {collectError && <Banner message={collectError} id="collect-error" />}
 
-            {previewError && (
-              <div className={styles.modalError} role="alert">
-                {previewError}
-              </div>
-            )}
+            {previewError && <Banner message={previewError} id="preview-error" />}
 
             <RentSummaryOverview account={account} />
 

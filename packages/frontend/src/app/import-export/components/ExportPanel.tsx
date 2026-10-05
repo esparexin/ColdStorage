@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { Download } from 'lucide-react';
-import { Button, Card } from '@/components/ui';
+import { Banner, Button, Card } from '@/components/ui';
+import { LOADING_LABELS } from '@/components/ui/stateCopy';
 import styles from '../page.module.css';
 
 interface ExportPanelProps {
@@ -26,11 +27,7 @@ export function ExportPanel({
         <h2 className={styles.sectionTitle}>Certified CSV Exports</h2>
       </div>
 
-      {exportError && (
-        <div className={styles.modalError} role="alert">
-          {exportError}
-        </div>
-      )}
+      {exportError && <Banner message={exportError} id="export-error" />}
 
       {!canExport ? (
         <p className={styles.mutedNote}>
@@ -53,7 +50,7 @@ export function ExportPanel({
               isLoading={exportingType === 'customers'}
               leftIcon={<Download size={13} aria-hidden="true" />}
             >
-              {exportingType === 'customers' ? 'Exporting...' : 'Export CSV'}
+              {exportingType === 'customers' ? LOADING_LABELS.exporting : 'Export CSV'}
             </Button>
           </div>
 
@@ -72,7 +69,7 @@ export function ExportPanel({
               isLoading={exportingType === 'grns'}
               leftIcon={<Download size={13} aria-hidden="true" />}
             >
-              {exportingType === 'grns' ? 'Exporting...' : 'Export CSV'}
+              {exportingType === 'grns' ? LOADING_LABELS.exporting : 'Export CSV'}
             </Button>
           </div>
 
@@ -91,7 +88,7 @@ export function ExportPanel({
               isLoading={exportingType === 'deliveries'}
               leftIcon={<Download size={13} aria-hidden="true" />}
             >
-              {exportingType === 'deliveries' ? 'Exporting...' : 'Export CSV'}
+              {exportingType === 'deliveries' ? LOADING_LABELS.exporting : 'Export CSV'}
             </Button>
           </div>
 
@@ -110,7 +107,7 @@ export function ExportPanel({
               isLoading={exportingType === 'stock-summary'}
               leftIcon={<Download size={13} aria-hidden="true" />}
             >
-              {exportingType === 'stock-summary' ? 'Exporting...' : 'Export CSV'}
+              {exportingType === 'stock-summary' ? LOADING_LABELS.exporting : 'Export CSV'}
             </Button>
           </div>
 
@@ -129,7 +126,7 @@ export function ExportPanel({
               isLoading={exportingType === 'inventory-ledger'}
               leftIcon={<Download size={13} aria-hidden="true" />}
             >
-              {exportingType === 'inventory-ledger' ? 'Exporting...' : 'Export CSV'}
+              {exportingType === 'inventory-ledger' ? LOADING_LABELS.exporting : 'Export CSV'}
             </Button>
           </div>
         </div>

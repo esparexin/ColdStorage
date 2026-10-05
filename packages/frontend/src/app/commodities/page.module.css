@@ -26,13 +26,8 @@
   gap: var(--space-3);
 }
 
-.modalError {
-  padding: var(--space-3);
-  background: var(--color-danger-subtle);
-  color: var(--color-danger-text);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-}
+/* NOTE: inline error banners are owned by components/ui/Banner. Do not reintroduce
+   .modalError/.banner here. */
 
 .checkboxGroup {
   margin-top: var(--space-3);

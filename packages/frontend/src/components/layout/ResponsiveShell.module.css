@@ -71,16 +71,6 @@
   color: var(--color-text-secondary);
 }
 
-.loginError {
-  background-color: var(--color-danger-subtle);
-  color: var(--color-danger-text);
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  margin-bottom: var(--space-3);
-}
-
 .loginForm {
   display: flex;
   flex-direction: column;

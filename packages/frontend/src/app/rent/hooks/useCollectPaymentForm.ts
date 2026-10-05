@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { PaymentMode, RentSummaryDto } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { printHtmlDocument } from '@/lib/print-document';
+import { PRINT_MESSAGES } from '@/components/ui/stateCopy';
 
 interface UseCollectPaymentFormProps {
   account: RentSummaryDto;
@@ -101,7 +102,7 @@ export function useCollectPaymentForm({
       });
       await printHtmlDocument({
         url: `/api/facilities/${encodeURIComponent(selectedFacilityId)}/documents/rent-receipt/preview?${params.toString()}`,
-        popupBlockedMessage: 'Pop-up window was blocked. Please allow pop-ups to preview cash memos.',
+        popupBlockedMessage: PRINT_MESSAGES.popupBlocked,
         failureMessage: 'Failed to preview cash memo',
         autoPrint: false,
       });

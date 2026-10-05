@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button, Input, Modal } from '@/components/ui';
+import { Banner } from '@/components/ui/Banner';
 import { requestWithAuth } from '@/lib/api-client';
 import styles from '../page.module.css';
 
@@ -58,11 +59,7 @@ export function CommodityFormModal({ onClose, onSuccess }: CommodityFormModalPro
       size="sm"
     >
       <form onSubmit={handleSubmit} className={styles.modalForm}>
-          {modalError && (
-            <div className={styles.modalError} role="alert">
-              {modalError}
-            </div>
-          )}
+          {modalError && <Banner message={modalError} id="commodity-modal-error" />}
 
           <Input
             id="commodity-name"

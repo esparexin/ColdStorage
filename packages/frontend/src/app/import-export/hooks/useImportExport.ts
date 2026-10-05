@@ -47,7 +47,7 @@ export function useImportExport(selectedFacilityId: string | null) {
       );
 
       if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `Import failed with HTTP ${res.status}`);
       }
 
@@ -64,6 +64,7 @@ export function useImportExport(selectedFacilityId: string | null) {
   const handleExportDownload = async (endpoint: string, filename: string) => {
     if (!selectedFacilityId) return;
     setExportingType(endpoint);
+    setExportError(null);
 
     try {
       const res = await requestWithAuth(
@@ -84,6 +85,7 @@ export function useImportExport(selectedFacilityId: string | null) {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      setExportError(null);
     } catch (err: unknown) {
       setExportError(err instanceof Error ? err.message : 'Export failed');
     } finally {

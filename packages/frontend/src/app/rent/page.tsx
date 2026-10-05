@@ -5,6 +5,12 @@ import { can, type PaymentStatus,
   type Role, type RentSummaryDto } from '@cold-storage/contracts';
 import { FilterToolbar } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import {
+  EMPTY_MESSAGES,
+  ERROR_TITLES,
+  LOADING_LABELS,
+  emptyForFacility,
+} from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { CollectPaymentModal } from './components/CollectPaymentModal';
 import { RentHistoryModal } from './components/RentHistoryModal';
@@ -59,7 +65,7 @@ export default function RentPage() {
       </div>
 
       {!selectedFacilityId ? (
-        <FeedbackStates.Empty message="Please select a facility from the top header to manage rent billing." />
+        <FeedbackStates.Empty message={EMPTY_MESSAGES.noFacilityRent} />
       ) : (
         <>
           <RentKpiCards metrics={metrics} />
@@ -90,17 +96,17 @@ export default function RentPage() {
           />
 
           {loading ? (
-            <FeedbackStates.Loading label="Loading rent billing accounts..." />
+            <FeedbackStates.Loading label={LOADING_LABELS.rent} />
           ) : error ? (
             <FeedbackStates.Error
-              title="Error loading rent accounts"
+              title={ERROR_TITLES.rent}
               message={error}
               onRetry={() => void fetchRentAccounts()}
             />
           ) : rentSummaries.length === 0 ? (
-            <FeedbackStates.Empty
-              message={`No rent accounts recorded for ${currentFacilityName} yet.`}
-            />
+            <FeedbackStates.Empty message={emptyForFacility(currentFacilityName, 'rent')} />
+          ) : pagedAccounts.length === 0 ? (
+            <FeedbackStates.Empty message={`No rent accounts matching "${searchTerm}".`} />
           ) : (
             <RentTable
               accounts={pagedAccounts}

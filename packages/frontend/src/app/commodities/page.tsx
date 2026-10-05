@@ -4,6 +4,12 @@ import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { can, type Role } from '@cold-storage/contracts';
 import { Button, FeedbackStates, SearchBar } from '@/components/ui';
+import {
+  EMPTY_MESSAGES,
+  ERROR_TITLES,
+  LOADING_LABELS,
+  noMatchMessage,
+} from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { CommodityFormModal } from './components/CommodityFormModal';
 import { CommodityTable } from './components/CommodityTable';
@@ -67,12 +73,16 @@ export default function CommoditiesPage() {
       />
 
       {loading ? (
-        <FeedbackStates.Loading label="Loading commodities…" />
+        <FeedbackStates.Loading label={LOADING_LABELS.commodities} />
       ) : error ? (
-        <FeedbackStates.Error message={error} onRetry={() => void fetchCommodities()} />
+        <FeedbackStates.Error
+          title={ERROR_TITLES.commodities}
+          message={error}
+          onRetry={() => void fetchCommodities()}
+        />
       ) : commodities.length === 0 ? (
         <FeedbackStates.Empty
-          message="No commodities registered yet."
+          message={EMPTY_MESSAGES.commoditiesEmpty}
           action={
             canManage
               ? {
@@ -84,7 +94,7 @@ export default function CommoditiesPage() {
           }
         />
       ) : filteredCommodities.length === 0 ? (
-        <FeedbackStates.Empty message={`No commodities matching "${searchTerm}".`} />
+        <FeedbackStates.Empty message={noMatchMessage('commodities', searchTerm)} />
       ) : (
         <CommodityTable
           commodities={commodities}

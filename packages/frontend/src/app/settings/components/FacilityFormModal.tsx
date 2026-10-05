@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import type { Facility } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { Button, Input, Modal } from '@/components/ui';
+import { Banner } from '@/components/ui/Banner';
 import styles from './FacilitySection.module.css';
 
 export function FacilityFormModal({
@@ -67,11 +68,7 @@ export function FacilityFormModal({
       size="md"
     >
       <form onSubmit={handleSubmit} className={styles.modalForm}>
-        {modalError && (
-          <div className={styles.modalError} role="alert">
-            {modalError}
-          </div>
-        )}
+        {modalError && <Banner message={modalError} id="facility-modal-error" />}
 
         <Input
           id="facility-name"

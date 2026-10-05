@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle } from 'lucide-react';
 import type { Role } from '@cold-storage/contracts';
 import { Button, Modal, Select } from '@/components/ui';
+import { Banner } from '@/components/ui/Banner';
 import { useProvisionUserForm } from '../hooks/useProvisionUserForm';
 import type { FacilityOption } from '@/context/FacilityContext';
 import styles from '../page.module.css';
@@ -70,12 +70,7 @@ export function ProvisionUserModal({
       }
     >
       <form id="provision-user-form" onSubmit={handleCreateUser}>
-            {createError && (
-              <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
-                <AlertCircle size={16} />
-                <span>{createError}</span>
-              </div>
-            )}
+            {createError && <Banner message={createError} id="provision-error" />}
 
             <div className={styles.formGrid}>
               <div className={styles.formGroup}>
