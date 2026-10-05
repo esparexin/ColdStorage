@@ -18,10 +18,11 @@ export function useDeliveries(
   const [error, setError] = useState<string | null>(null);
 
   // Filter states
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTermRaw] = useState('');
   const [statusFilter, setStatusFilterRaw] = useState<'' | DeliveryStatus>('');
 
-  // A narrower filter can leave the current page number past the end.
+  // Narrowing a filter resets pagination to page 1.
+  const setSearchTerm = useCallback((v: string) => { setSearchTermRaw(v); setPage(1); }, []);
   const setStatusFilter = useCallback((v: '' | DeliveryStatus) => { setStatusFilterRaw(v); setPage(1); }, []);
 
   const fetchDeliveries = useCallback(async () => {

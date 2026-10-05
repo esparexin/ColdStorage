@@ -72,7 +72,7 @@ export default function RentPage() {
           <FilterToolbar
             searchValue={searchTerm}
             onSearchChange={setSearchTerm}
-            searchPlaceholder="Search GRN #, Customer, Mobile, Commodity..."
+            searchPlaceholder="Search GRN #, Customer, Commodity, Chamber..."
             searchAriaLabel="Search rent billing"
             searchInputId="rent-search-input"
             selects={[
