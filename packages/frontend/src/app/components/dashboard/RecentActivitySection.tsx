@@ -7,8 +7,8 @@ import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import styles from '@/app/page.module.css';
 
 const activityTypeLabel: Record<string, string> = {
-  INWARD_PUTAWAY: 'Put Away',
-  OUTWARD_DELIVERY: 'Delivery',
+  INWARD_PUTAWAY: 'Inward',
+  OUTWARD_DELIVERY: 'Outward',
   DELIVERY_REVERSAL: 'Reversal',
 };
 
@@ -19,6 +19,8 @@ const activityTypeAccent: Record<string, string> = {
 };
 
 export function RecentActivitySection({ items }: { items: RecentActivityItem[] }) {
+  const visibleItems = items.filter((row) => row.bags > 0);
+
   const activityColumns: DataTableColumn<RecentActivityItem>[] = [
     {
       key: 'type',
@@ -61,14 +63,13 @@ export function RecentActivitySection({ items }: { items: RecentActivityItem[] }
   return (
     <section className={styles.section} aria-label="Recent activity">
       <h2 className={styles.sectionTitle}>Recent Activity</h2>
-      {items.length === 0 ? (
+      {visibleItems.length === 0 ? (
         <FeedbackStates.Empty message="No recent activity." />
       ) : (
         <DataTable
           columns={activityColumns}
-          rows={items}
+          rows={visibleItems}
           rowKey={(row) => row.id}
-          caption="Latest 10 inventory transactions"
         />
       )}
     </section>

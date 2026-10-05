@@ -47,7 +47,6 @@ export function CommodityStockSection({
           columns={commodityColumns}
           rows={items}
           rowKey={(row) => row.commodityId}
-          caption="Current commodity stock"
         />
       )}
     </section>
