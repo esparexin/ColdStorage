@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { can, type Grn, type Role } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
@@ -16,21 +17,21 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { printHtmlDocument } from '@/lib/print-document';
-import { CreateGrnModal } from './components/CreateGrnModal';
-import { GrnDetailModal } from './components/GrnDetailModal';
 import { GrnFilterToolbar } from './components/GrnFilterToolbar';
+import { GrnPageModals } from './components/GrnPageModals';
 import { GrnTable } from './components/GrnTable';
-import { UpdateLoanStatusModal } from './components/UpdateLoanStatusModal';
 import { useGrns } from './hooks/useGrns';
 import styles from './page.module.css';
 
 export default function GrnsPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { selectedFacilityId, availableFacilities } = useFacility();
   const grnData = useGrns(selectedFacilityId, availableFacilities);
 
   const [selectedGrn, setSelectedGrn] = useState<Grn | null>(null);
   const [loanModalGrn, setLoanModalGrn] = useState<Grn | null>(null);
+  const [correctModalGrn, setCorrectModalGrn] = useState<Grn | null>(null);
   const [printingId, setPrintingId] = useState<string | null>(null);
   const [printError, setPrintError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -55,6 +56,8 @@ export default function GrnsPage() {
   const canCreate = can(userRole, 'grn:create');
   const canPrint = can(userRole, 'document:print');
   const canManageLoan = can(userRole, 'grn:create');
+  const canCorrect = can(userRole, 'grn:correct');
+  const canCreateChallan = can(userRole, 'delivery:create');
 
   const handlePrint = async (type: 'grn' | 'receipt', grnId: string) => {
     if (!selectedFacilityId) return;
@@ -71,6 +74,15 @@ export default function GrnsPage() {
     } finally {
       setPrintingId(null);
     }
+  };
+
+  const handleCorrectGrn = (grn: Grn) => {
+    setSelectedGrn(null);
+    setCorrectModalGrn(grn);
+  };
+
+  const handleCreateChallan = (grn: Grn) => {
+    router.push(`/deliveries?action=create&grnId=${encodeURIComponent(grn.id)}`);
   };
 
   return (
@@ -150,6 +162,8 @@ export default function GrnsPage() {
               grns={grnData.filteredGrns}
               caption={`Inward of Goods for ${grnData.currentFacilityName}`}
               canPrint={canPrint}
+              canCorrect={canCorrect}
+              canCreateChallan={canCreateChallan}
               printingId={printingId}
               page={grnData.page}
               pageSize={grnData.pageSize}
@@ -157,57 +171,55 @@ export default function GrnsPage() {
               totalGrns={grnData.totalGrns}
               onPageChange={grnData.setPage}
               onSelectGrn={setSelectedGrn}
+              onCorrectGrn={handleCorrectGrn}
+              onCreateChallan={handleCreateChallan}
               onPrint={handlePrint}
             />
           )}
         </>
       )}
 
-      {selectedGrn && (
-        <GrnDetailModal
-          grn={selectedGrn}
-          onClose={() => setSelectedGrn(null)}
-          canPrint={canPrint}
-          printingId={printingId}
-          onPrint={handlePrint}
-          onManageLoan={
-            canManageLoan
-              ? (grn) => {
-                  setSelectedGrn(null);
-                  setLoanModalGrn(grn);
-                }
-              : undefined
-          }
-        />
-      )}
-
-      {loanModalGrn && selectedFacilityId && (
-        <UpdateLoanStatusModal
-          grn={loanModalGrn}
-          facilityId={selectedFacilityId}
-          onClose={() => setLoanModalGrn(null)}
-          onSuccess={(updatedGrn) => {
-            void grnData.fetchGrns();
-            setSelectedGrn(updatedGrn);
-          }}
-        />
-      )}
-
-      {isCreateOpen && selectedFacilityId && (
-        <CreateGrnModal
-          facilityId={selectedFacilityId}
-          customers={grnData.customers}
-          commodities={grnData.commodities}
-          onClose={() => setIsCreateOpen(false)}
-          onCustomerAdded={() => void grnData.fetchLookups()}
-          onCommodityAdded={() => void grnData.fetchLookups()}
-          onSuccess={(newGrn) => {
-            setIsCreateOpen(false);
-            void grnData.fetchGrns();
-            setSelectedGrn(newGrn);
-          }}
-        />
-      )}
+      <GrnPageModals
+        selectedFacilityId={selectedFacilityId}
+        selectedGrn={selectedGrn}
+        loanModalGrn={loanModalGrn}
+        correctModalGrn={correctModalGrn}
+        isCreateOpen={isCreateOpen}
+        canPrint={canPrint}
+        canCorrect={canCorrect}
+        canCreateChallan={canCreateChallan}
+        canManageLoan={canManageLoan}
+        printingId={printingId}
+        customers={grnData.customers}
+        commodities={grnData.commodities}
+        onCloseDetail={() => setSelectedGrn(null)}
+        onCloseLoanModal={() => setLoanModalGrn(null)}
+        onCloseCorrectModal={() => setCorrectModalGrn(null)}
+        onCloseCreateModal={() => setIsCreateOpen(false)}
+        onPrint={handlePrint}
+        onManageLoan={(grn) => {
+          setSelectedGrn(null);
+          setLoanModalGrn(grn);
+        }}
+        onCorrect={handleCorrectGrn}
+        onCreateChallan={handleCreateChallan}
+        onLoanStatusUpdated={(updatedGrn) => {
+          void grnData.fetchGrns();
+          setSelectedGrn(updatedGrn);
+        }}
+        onGrnCorrected={(updatedGrn) => {
+          setCorrectModalGrn(null);
+          void grnData.fetchGrns();
+          setSelectedGrn(updatedGrn);
+        }}
+        onCustomerAdded={() => void grnData.fetchLookups()}
+        onCommodityAdded={() => void grnData.fetchLookups()}
+        onCreateSuccess={(newGrn) => {
+          setIsCreateOpen(false);
+          void grnData.fetchGrns();
+          setSelectedGrn(newGrn);
+        }}
+      />
     </div>
   );
 }
