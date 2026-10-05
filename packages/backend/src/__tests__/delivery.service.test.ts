@@ -2,7 +2,6 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
-import { RentPaymentRequiredError } from '../modules/common/rent-gate.service.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import {
@@ -203,7 +202,7 @@ describe('P6 DeliveryService outward delivery tests', () => {
     expect(del1.delivery.challanNumber).not.toBe(del2.delivery.challanNumber);
   });
 
-  it('blocks delivery behind the rent gate until rent is collected', async () => {
+  it('allows outward delivery without upfront rent payment while preserving rent obligation', async () => {
     const unpaidGrnId = await seedGrn({
       facilityId,
       customerId,
@@ -213,14 +212,15 @@ describe('P6 DeliveryService outward delivery tests', () => {
       rentAmount: 5000,
     });
 
-    const err = await deliveryService
-      .createDelivery(facilityId, { grnId: unpaidGrnId, smallBags: 1, bigBags: 0 }, userId)
-      .then(() => null)
-      .catch((e: unknown) => e);
+    const result = await deliveryService.createDelivery(
+      facilityId,
+      { grnId: unpaidGrnId, smallBags: 10, bigBags: 0 },
+      userId,
+    );
 
-    expect(err).toBeInstanceOf(RentPaymentRequiredError);
-    expect((err as RentPaymentRequiredError).code).toBe('RENT_PAYMENT_REQUIRED');
-    expect((err as RentPaymentRequiredError).statusCode).toBe(402);
-    expect(await DeliveryChallanModel.countDocuments()).toBe(0);
+    expect(result.delivery.totalBags).toBe(10);
+    expect(result.summary.netDeliveredBags).toBe(10);
+    expect(result.summary.remainingDeliveryBalance).toBe(40);
+    expect(await DeliveryChallanModel.countDocuments({ grnId: unpaidGrnId })).toBe(1);
   });
 });

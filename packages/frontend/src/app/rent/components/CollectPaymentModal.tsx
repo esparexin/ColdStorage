@@ -4,6 +4,7 @@ import React from 'react';
 import { CreditCard, Eye, Wallet } from 'lucide-react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
 import { Button, Modal } from '@/components/ui';
+import { RentSummaryOverview } from './RentSummaryOverview';
 import { useCollectPaymentForm } from '../hooks/useCollectPaymentForm';
 import styles from '../page.module.css';
 
@@ -49,6 +50,7 @@ export function CollectPaymentModal({
       isOpen
       onClose={onClose}
       title="Collect Rent & Issue Cash Memo"
+      subtitle={`${account.customerName} · ${account.grnNumber}`}
       size="md"
     >
       <form onSubmit={handleSubmit}>
@@ -65,32 +67,7 @@ export function CollectPaymentModal({
               </div>
             )}
 
-            <div className={styles.infoCard}>
-              <div className={styles.infoRow}>
-                <span style={{ color: 'var(--color-text-muted)' }}>Customer</span>
-                <strong>{account.customerName}</strong>
-              </div>
-              <div className={styles.infoRow}>
-                <span style={{ color: 'var(--color-text-muted)' }}>GRN Reference</span>
-                <span>{account.grnNumber}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span style={{ color: 'var(--color-text-muted)' }}>Total Contract Rent</span>
-                <span>₹{account.rentAmount.toLocaleString('en-IN')}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span style={{ color: 'var(--color-text-muted)' }}>Total Already Paid</span>
-                <span style={{ color: 'var(--color-success)' }}>
-                  ₹{account.totalPaid.toLocaleString('en-IN')}
-                </span>
-              </div>
-              <div className={styles.infoRow} style={{ borderTop: '1px solid var(--color-border)', paddingTop: '8px' }}>
-                <span style={{ fontWeight: 'var(--font-semibold)' }}>Remaining Due</span>
-                <strong style={{ color: 'var(--color-warning)', fontSize: 'var(--text-base)' }}>
-                  ₹{account.remainingBalance.toLocaleString('en-IN')}
-                </strong>
-              </div>
-            </div>
+            <RentSummaryOverview account={account} />
 
             <div className={styles.fieldGroup}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

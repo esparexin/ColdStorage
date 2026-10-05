@@ -33,10 +33,10 @@ export class RentPaymentRequiredError extends Error {
 export type RentGateResult = RentBalance;
 
 /**
- * Shared Inward → Rent gate for all outward movement (put-away + delivery).
+ * Outward movement rent resolver.
  * Reuses the canonical rent ledger formula: remaining = rentAmount - sum(paid).
- * Hard-blocks only when nothing has been paid yet; partial payments proceed
- * so the caller can surface a warn-and-continue banner via GET /rent/grn/:id.
+ * Allows outward movement regardless of whether rent has been paid upfront,
+ * returning the canonical balance so callers and ledgers preserve pending rent.
  */
 export async function assertRentAllowedForOutward(
   facilityId: string,
@@ -49,16 +49,6 @@ export async function assertRentAllowedForOutward(
   ]).session(session ?? null);
 
   const balance = computeRentBalance(grn.rentAmount, agg[0]?.total ?? 0);
-
-  if (balance.rentAmount > 0 && balance.totalPaid === 0) {
-    throw new RentPaymentRequiredError({
-      grnId: grn.id,
-      grnNumber: grn.grnNumber,
-      rentAmount: balance.rentAmount,
-      totalPaid: balance.totalPaid,
-      remainingBalance: balance.remainingBalance,
-    });
-  }
 
   return balance;
 }
