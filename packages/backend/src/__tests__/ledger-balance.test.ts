@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { GrnModel } from '../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
+import { rentService } from '../modules/rent/rent.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
 import {
   readLedgerBalance,
@@ -193,5 +195,42 @@ describe('Phase 2: ledger authority (ledger-balance.test.ts)', () => {
       bigBags: 150,
       total: 200,
     });
+  });
+
+  it('outward movement never mutates the rent obligation', async () => {
+    const grnId = await seedGrn({
+      facilityId,
+      customerId,
+      chamber: 'CH-L1',
+      bags: 200,
+      bagType: 'S+B',
+      smallBags: 100,
+      bigBags: 100,
+      rentAmount: 26000,
+      grnNumber: 'GRN-26-27-LB05',
+    });
+
+    // The rent gate requires a first payment before any outward movement; settling in full keeps
+    // the obligation itself the only figure under test.
+    await rentService.recordPayment(
+      facilityId,
+      { grnId, amountPaid: 26000, paymentMode: 'Cash', paymentDate: new Date() },
+      USER_ID,
+    );
+
+    const del = await deliveryService.createDelivery(
+      facilityId,
+      { grnId, smallBags: 20, bigBags: 30 },
+      USER_ID,
+    );
+    await deliveryService.reverseDelivery(
+      facilityId,
+      del.delivery.id,
+      { reason: 'Buyer rejected the lot at the gate' },
+      USER_ID,
+    );
+
+    const grn = await GrnModel.findOne({ id: grnId }).lean().exec();
+    expect(grn?.rentAmount).toBe(26000);
   });
 });
