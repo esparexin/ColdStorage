@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { AuditLogModel } from '../database/models/audit-log.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
@@ -185,5 +186,19 @@ describe('GRN Correction Workflow (PATCH /api/facilities/:facilityId/grns/:grnId
 
     const stored = await storedGrn();
     expect(stored.body.grn.chamber).toBe('CH-09');
+  });
+
+  it('emits a GRN_CORRECTED audit record with before/after state and reason', async () => {
+    const res = await correct({ bags: 180, chamber: 'CH-07', reason: 'Operator mis-keyed the lot' });
+    expect(res.status).toBe(200);
+
+    const record = await AuditLogModel.findOne({ eventType: 'GRN_CORRECTED', resourceId: grnId })
+      .lean()
+      .exec();
+    expect(record).toBeDefined();
+    expect(record?.severity).toBe('WARN');
+    expect(record?.details?.reason).toBe('Operator mis-keyed the lot');
+    expect(record?.details?.before).toMatchObject({ bags: 200, chamber: 'CH-01' });
+    expect(record?.details?.after).toMatchObject({ bags: 180, chamber: 'CH-07' });
   });
 });

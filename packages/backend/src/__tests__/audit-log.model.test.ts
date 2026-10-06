@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { auditEventTypeSchema } from '@cold-storage/contracts';
 import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { AuditLogModel } from '../database/models/audit-log.model.js';
 
@@ -40,6 +41,32 @@ describe('Suite 2: Audit Model Immutability — audit-log.model.test.ts', () => 
     const found = await AuditLogModel.findOne({ id: 'audit_test_1' }).lean();
     expect(found).toBeDefined();
     expect(found?.username).toBe('harpreet_admin');
+  });
+
+  // 1b. Declared contract events persist: every auditEventTypeSchema option is accepted.
+  // Pins Rule 17 parity (declared == persisted) so emitted events are never silently lost.
+  it('persists every declared contract audit event type', async () => {
+    const events = auditEventTypeSchema.options;
+    await AuditLogModel.create(
+      events.map((eventType, i) => ({
+        id: `audit_parity_${i}`,
+        timestamp: new Date(),
+        eventType,
+        severity: 'INFO',
+        facilityId: 'fac-1',
+        userId: 'usr-1',
+        username: 'parity',
+        userRole: 'SYSTEM',
+        ipAddress: '127.0.0.1',
+        userAgent: 'parity',
+        resource: 'parity',
+        resourceId: null,
+        details: {},
+      })),
+    );
+
+    const count = await AuditLogModel.countDocuments({ username: 'parity' }).exec();
+    expect(count).toBe(events.length);
   });
 
   // 2. Rejects document modification via .updateOne() / .save()
