@@ -9,6 +9,7 @@ import type { Grn } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { Badge } from '@/components/ui';
 import { GrnRowActions } from './GrnRowActions';
+import { RentTermsCell } from './RentTermsCell';
 import styles from '../page.module.css';
 
 interface GrnTableProps {
@@ -144,17 +145,7 @@ export function GrnTable({
     {
       key: 'rent',
       header: 'Rent Terms',
-      render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
-          <span>
-            {row.rentType}
-            {row.rentType === 'Monthly' && row.rentMonths ? ` (${row.rentMonths}m)` : ''}
-          </span>
-          <span style={{ color: 'var(--color-text-muted)' }}>
-            ₹{row.rentAmount.toLocaleString('en-IN')}
-          </span>
-        </div>
-      ),
+      render: (row) => <RentTermsCell row={row} />,
     },
     {
       key: 'vehicleNumber',
