@@ -102,7 +102,7 @@ An exhaustive end-to-end audit was conducted across the Cold Storage management 
 13. **Dependencies and affected files:** `docs/ui-backend-wiring-matrix.md`.
 14. **Risk level:** None (no code modified).
 15. **Verification required:** Documentation update only.
-16. **2026-10-06 correction:** the first endpoint above (`PATCH .../grns/:grnId`, `correctGrnSchema`) is no longer headless — it is the canonical Inward Edit API consumed by `CorrectGrnModal.tsx` via the `GrnTable`/`GrnDetailModal` entry points. The remaining seven stay headless-by-design per §4 of `docs/ui-backend-wiring-matrix.md`.
+16. **2026-10-06 correction:** the first endpoint above (`PATCH .../grns/:grnId`, `correctGrnSchema`) is no longer headless — it is the canonical Inward Edit API consumed by `CreateGrnModal.tsx` (mode="edit") via the `GrnTable`/`GrnDetailModal` entry points. The remaining seven stay headless-by-design per §4 of `docs/ui-backend-wiring-matrix.md`.
 
 ### Finding 5: Database Index Governance Gap (`RentPaymentModel` Omission)
 1. **Finding:** `RentPaymentModel` is missing from `MONITORED_MODELS` in `indexes.ts`.
