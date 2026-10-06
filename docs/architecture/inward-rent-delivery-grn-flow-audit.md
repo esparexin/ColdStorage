@@ -83,3 +83,26 @@ The put-away workflow this audit describes no longer exists, and the stale refer
   movement never mutates it.
 - GRN correction keeps an audit trail and now propagates the chamber label to the receipt's
   ledger rows and challans; bags/commodity corrections are refused once stock has moved.
+
+## 8. Governance decisions — Inward Form Edit Anti-Fragmentation Gate (frozen)
+
+Canonical edit path (exactly one SSOT, no duplicates): UI `CorrectGrnModal.tsx` →
+`PATCH /facilities/:facilityId/grns/:grnId` (`correctGrnSchema`, `grn:correct`) →
+`correctGrn` handler → `GrnModel` + `INWARD_PUTAWAY` leg + `DeliveryChallan.chamber`
+fan-out → `GRN_CORRECTED/WARN` audit.
+
+1. **Frozen semantics.** Editable: `commodityId`, `bags`/`smallBags`/`bigBags`, `chamber`
+   (+ required `reason[5..500]`). Immutable: rent terms, customer/identity, dates,
+   `grnNumber`/`inwardReceiptNumber`/`billNumber`, `bagType`, weights, loan/bond fields.
+   Financial/identity changes require the reversal workflows, never a second edit path.
+2. **Movement freeze stays.** `hasMovement = challanCount + reversalCount > 0` freezes
+   bags/commodity permanently — including after a full reversal (net restored). Only the
+   chamber label may still change. Frontend must mirror this rule, not `netDeliveredBags`.
+3. **Active-delivery block stays.** Any `DeliveryChallan(status=ISSUED)` blocks the whole
+   correction (even chamber-only); the caller must reverse first. Frontend must prevent
+   submission in this state instead of letting the server reject it.
+4. **`loan-status` asymmetry is intentional.** `PATCH .../grns/:grnId/loan-status` stays on
+   `grn:create` (OPERATOR allowed): it sets an operational pledge flag with no
+   ledger/rent side effect. It must never accept bags/commodity/chamber. `merge` and
+   `transfer-ownership` stay on `grn:correct` and are distinct responsibilities, not
+   full-edit workarounds — do not reuse them to bypass the correction allowlist.
