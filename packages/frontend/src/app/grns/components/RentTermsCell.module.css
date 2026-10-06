@@ -4,39 +4,32 @@
   flex-direction: column;
   gap: var(--space-0-5);
   font-size: var(--text-xs);
-  min-width: 170px;
 }
 
 .termType {
-  font-weight: var(--font-medium);
   color: var(--color-text-primary);
 }
 
-.contractRent {
-  color: var(--color-text-primary);
-  font-weight: var(--font-semibold);
-}
-
-.dateRange {
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-}
-
-.periodRow {
+.amountRow {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
 }
 
-.periodResult {
-  color: var(--color-text-secondary);
-  font-size: var(--text-xs);
+.contractRent {
+  color: var(--color-text-muted);
 }
 
 .infoTrigger {
-  padding: 0 var(--space-1) !important;
+  padding: 0 !important;
   min-height: unset !important;
-  height: 20px !important;
+  height: 18px !important;
+  width: 18px !important;
+  color: var(--color-text-muted) !important;
+}
+
+.infoTrigger:hover,
+.infoTrigger:focus-visible {
   color: var(--color-primary-text) !important;
 }
 

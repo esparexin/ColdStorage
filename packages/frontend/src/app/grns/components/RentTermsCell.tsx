@@ -97,11 +97,6 @@ export function RentTermsCell({ row }: RentTermsCellProps) {
   const contractTermText =
     row.rentType === 'Seasonal' ? '10 months' : `${row.rentMonths ?? 1} months`;
 
-  const currentPeriodSummary =
-    row.rentType === 'Seasonal'
-      ? 'Fixed 10-Month Season'
-      : `Cycle ${cycleNumber} in progress (${billingCycle})`;
-
   return (
     <div
       className={styles.cellWrapper}
@@ -109,17 +104,12 @@ export function RentTermsCell({ row }: RentTermsCellProps) {
       onMouseLeave={() => setIsOpen(false)}
     >
       <span className={styles.termType}>
-        {row.rentType} · {contractTermText}
+        {row.rentType}
+        {row.rentType === 'Monthly' && row.rentMonths ? ` (${row.rentMonths}m)` : ''}
       </span>
-      <span className={styles.contractRent}>
-        ₹{row.rentAmount.toLocaleString('en-IN')} Total Contract Rent
-      </span>
-      <span className={styles.dateRange}>
-        {startDateFormatted} → {asOfDateFormatted} ({elapsed.text})
-      </span>
-      <div className={styles.periodRow}>
-        <span className={styles.periodResult}>
-          Current period: {currentPeriodSummary}
+      <div className={styles.amountRow}>
+        <span className={styles.contractRent}>
+          ₹{row.rentAmount.toLocaleString('en-IN')}
         </span>
         <Button
           variant="ghost"
