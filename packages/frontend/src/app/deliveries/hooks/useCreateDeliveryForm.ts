@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { indianVehicleSchema } from '@cold-storage/contracts';
 import type {
   DeliveryChallan,
   DeliverySummary,
@@ -8,6 +7,7 @@ import type {
 } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { useRentGate } from '@/hooks/useRentGate';
+import { validateDeliveryForm } from './deliveryFormValidation.helper';
 import type { GrnWithdrawal } from '../types';
 
 export interface RentRequiredPayload {
@@ -34,13 +34,22 @@ export function useCreateDeliveryForm(
   const [createVehicleNumber, setCreateVehicleNumber] = useState('');
   const [createDriverName, setCreateDriverName] = useState('');
   const [createWeight, setCreateWeight] = useState<number | ''>('');
-  const [createMarks, setCreateMarks] = useState('');
   const [createGpNumber, setCreateGpNumber] = useState('');
   const [createRemarks, setCreateRemarks] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [rentRequired, setRentRequired] = useState<RentRequiredPayload | null>(null);
   const rentGate = useRentGate();
+
+  const clearFieldError = (key: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const copy = { ...prev };
+      delete copy[key];
+      return copy;
+    });
+  };
 
   const fetchAvailableGrns = useCallback(async () => {
     if (!facilityId) return;
@@ -63,6 +72,7 @@ export function useCreateDeliveryForm(
       setGrnSummary(null);
       setWithdrawal({ availableSmall: 0, availableBig: 0, smallBags: '', bigBags: '' });
       setRentRequired(null);
+      setFieldErrors({});
       rentGate.resetRentGate();
       if (!facilityId || !grnId) return;
 
@@ -111,42 +121,29 @@ export function useCreateDeliveryForm(
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!facilityId) return;
-    if (!createGrnId) {
-      setModalError('Please select a GRN to withdraw stock from');
-      return;
-    }
 
-    if (isLoanHoldActive) {
-      setModalError(
-        `Outward blocked — Active loan hold against this Bond (${selectedGrn?.grnNumber}). Outward delivery is strictly prohibited until the loan is cleared.`,
-      );
-      return;
-    }
+    const validation = validateDeliveryForm({
+      createGrnId,
+      createDate,
+      smallBags,
+      bigBags,
+      totalWithdrawingBags,
+      availableSmall: withdrawal.availableSmall,
+      availableBig: withdrawal.availableBig,
+      createVehicleNumber,
+      isLoanHoldActive,
+      selectedGrnNumber: selectedGrn?.grnNumber,
+    });
 
-    if (totalWithdrawingBags <= 0) {
-      setModalError('Please specify how many small and/or big bags to withdraw');
+    if (!validation.isValid) {
+      setFieldErrors(validation.errors);
+      setModalError(validation.modalError);
       return;
-    }
-
-    // The per-type ceilings are enforced here for fast feedback; the backend re-checks them
-    // inside the transaction, which is the boundary that actually guarantees the invariant.
-    if (smallBags > withdrawal.availableSmall || bigBags > withdrawal.availableBig) {
-      setModalError(
-        `Cannot withdraw ${smallBags} small and ${bigBags} big bags: only ` +
-          `${withdrawal.availableSmall} small and ${withdrawal.availableBig} big bags are available`,
-      );
-      return;
-    }
-
-    if (createVehicleNumber.trim()) {
-      if (!indianVehicleSchema.safeParse(createVehicleNumber.trim()).success) {
-        setModalError('Vehicle registration must be in standard Indian format (e.g. UP32AA1111)');
-        return;
-      }
     }
 
     setSubmitting(true);
     setModalError(null);
+    setFieldErrors({});
 
     try {
       const payload: Record<string, unknown> = {
@@ -164,9 +161,6 @@ export function useCreateDeliveryForm(
       }
       if (createWeight !== '' && typeof createWeight === 'number' && createWeight > 0) {
         payload.weight = createWeight;
-      }
-      if (createMarks.trim()) {
-        payload.marks = createMarks.trim();
       }
       if (createGpNumber.trim()) {
         payload.gpNumber = createGpNumber.trim();
@@ -210,25 +204,31 @@ export function useCreateDeliveryForm(
     grnSummary,
     loadingGrnSummary,
     createDate,
-    setCreateDate,
+    setCreateDate: (v: string) => { setCreateDate(v); clearFieldError('date'); },
     withdrawal,
-    setWithdrawalSmallBags: (smallBags: number | '') =>
-      setWithdrawal((prev) => ({ ...prev, smallBags })),
-    setWithdrawalBigBags: (bigBags: number | '') =>
-      setWithdrawal((prev) => ({ ...prev, bigBags })),
+    setWithdrawalSmallBags: (val: number | '') => {
+      setWithdrawal((prev) => ({ ...prev, smallBags: val }));
+      clearFieldError('bags');
+      clearFieldError('smallBags');
+    },
+    setWithdrawalBigBags: (val: number | '') => {
+      setWithdrawal((prev) => ({ ...prev, bigBags: val }));
+      clearFieldError('bags');
+      clearFieldError('bigBags');
+    },
     createVehicleNumber,
-    setCreateVehicleNumber,
+    setCreateVehicleNumber: (v: string) => { setCreateVehicleNumber(v); clearFieldError('vehicleNumber'); },
     createDriverName,
     setCreateDriverName,
     createWeight,
     setCreateWeight,
-    createMarks,
-    setCreateMarks,
     createGpNumber,
     setCreateGpNumber,
     createRemarks,
     setCreateRemarks,
     modalError,
+    fieldErrors,
+    clearFieldError,
     submitting,
     totalWithdrawingBags,
     fetchAvailableGrns,

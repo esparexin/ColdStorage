@@ -1,0 +1,69 @@
+.grnDetailsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  background: var(--color-surface-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+@media (max-width: 640px) {
+  .grnDetailsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.grnDetailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detailLabel {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  color: var(--color-text-muted);
+}
+
+.detailValue {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  font-weight: var(--font-medium);
+}
+
+.pendingRentCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-warning-subtle);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-md);
+}
+
+.pendingRentText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pendingRentTitle {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-warning-text);
+}
+
+.pendingRentSub {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.fieldErrorText {
+  font-size: var(--text-xs);
+  color: var(--color-danger-text);
+  margin-top: var(--space-0-5);
+}

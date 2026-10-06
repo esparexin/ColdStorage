@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CreditCard, Eye, Wallet } from 'lucide-react';
+import { CreditCard, Wallet } from 'lucide-react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
 import { Button, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
@@ -20,7 +20,7 @@ interface CollectPaymentModalProps {
 export function CollectPaymentModal({
   account,
   selectedFacilityId,
-  canPrint,
+  canPrint: _canPrint,
   onClose,
   onPaymentSuccess,
 }: CollectPaymentModalProps) {
@@ -36,10 +36,8 @@ export function CollectPaymentModal({
     upiReference,
     setUpiReference,
     collectError,
-    previewError,
     collectSubmitting,
     handleSubmit,
-    handlePreviewReceipt,
   } = useCollectPaymentForm({
     account,
     selectedFacilityId,
@@ -57,8 +55,6 @@ export function CollectPaymentModal({
       <form onSubmit={handleSubmit}>
           <div className={styles.modalBody}>
             {collectError && <Banner message={collectError} id="collect-error" />}
-
-            {previewError && <Banner message={previewError} id="preview-error" />}
 
             <RentSummaryOverview account={account} />
 
@@ -169,15 +165,6 @@ export function CollectPaymentModal({
           </div>
 
           <div className={styles.modalFooter}>
-            {canPrint && typeof collectAmount === 'number' && collectAmount > 0 && (
-              <Button
-                variant="outline"
-                onClick={() => void handlePreviewReceipt()}
-                leftIcon={<Eye size={14} aria-hidden="true" />}
-              >
-                Preview Cash Memo
-              </Button>
-            )}
             <Button
               variant="outline"
               onClick={onClose}
