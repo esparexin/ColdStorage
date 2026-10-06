@@ -10,6 +10,7 @@ import {
   disconnectTestDatabase,
   resetStockCollections,
 } from './helpers/stock-reset.js';
+import { nextTestGrnNumber } from './helpers/grn-number-fixtures.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
@@ -55,6 +56,7 @@ describe('GRN and Bond Identity Verification Tests', () => {
 
   function makeInwardPayload(overrides: Record<string, unknown> = {}) {
     return {
+      grnNumber: nextTestGrnNumber(),
       date: new Date().toISOString(),
       customerId,
       commodityId,
@@ -87,7 +89,7 @@ describe('GRN and Bond Identity Verification Tests', () => {
     // Verify Inward 1 SSOT invariants
     expect(grn1.customerId).toBe(customerId);
     expect(grn1.customerName).toBe(customerName);
-    expect(grn1.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-\d{4}$/);
+    expect(grn1.grnNumber).toMatch(/^\d{4}$/);
     expect(grn1.grnNumber).not.toBe(customerName);
     expect(grn1.grnNumber).not.toBe(operatorUsername);
     expect(grn1.bondNumber).toBeNull();
@@ -107,7 +109,7 @@ describe('GRN and Bond Identity Verification Tests', () => {
     expect(grn2.customerId).toBe(customerId);
     expect(grn2.id).not.toBe(grn1.id);
     expect(grn2.grnNumber).not.toBe(grn1.grnNumber);
-    expect(grn2.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-\d{4}$/);
+    expect(grn2.grnNumber).toMatch(/^\d{4}$/);
     // The GR Number is the sole business key: no BND- number is minted per receipt.
     expect(grn2.bondNumber).toBeNull();
     expect(grn2.grnNumber).not.toBe(customerName);
@@ -142,7 +144,7 @@ describe('GRN and Bond Identity Verification Tests', () => {
       .send(makeInwardPayload({ isBondForLoan: true }));
     expect(bond1.status).toBe(201);
     expect(bond1.body.grn.bondNumber).toBeNull();
-    expect(bond1.body.grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-\d{4}$/);
+    expect(bond1.body.grn.grnNumber).toMatch(/^\d{4}$/);
     expect(bond1.body.grn.isBondForLoan).toBe(true);
 
     // A bond reference supplied by a legacy import is stored as reference text only.
@@ -181,6 +183,7 @@ describe('GRN and Bond Identity Verification Tests', () => {
       .post(`/api/facilities/${facilityId}/deliveries`)
       .set('Authorization', `Bearer ${operatorToken}`)
       .send({
+        grnNumber: nextTestGrnNumber(),
         grnId: grn.id,
         date: new Date().toISOString(),
         smallBags: 10,

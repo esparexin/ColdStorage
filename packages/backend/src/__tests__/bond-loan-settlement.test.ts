@@ -11,6 +11,7 @@ import {
   disconnectTestDatabase,
   resetStockCollections,
 } from './helpers/stock-reset.js';
+import { nextTestGrnNumber } from './helpers/grn-number-fixtures.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
@@ -51,6 +52,7 @@ describe('Bond Loan Payment Modes & Settlement Lifecycle (Phase 5)', () => {
       .post(`/api/facilities/${testFacilityId}/grns`)
       .set('Authorization', `Bearer ${operatorToken}`)
       .send({
+        grnNumber: nextTestGrnNumber(),
         date: new Date().toISOString(),
         customerId,
         commodityId,

@@ -11,6 +11,7 @@ import {
   disconnectTestDatabase,
   resetStockCollections,
 } from './helpers/stock-reset.js';
+import { nextTestGrnNumber } from './helpers/grn-number-fixtures.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
@@ -91,6 +92,7 @@ describe('GRN Facility Scoping, RBAC & Child-ID Protection', () => {
       .post(`/api/facilities/${facilityId}/grns`)
       .set('Authorization', `Bearer ${token}`)
       .send({
+        grnNumber: nextTestGrnNumber(),
         customerId: customerNorthId,
         commodityId,
         chamber: 'CH-01',

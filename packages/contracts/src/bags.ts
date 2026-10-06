@@ -74,6 +74,13 @@ export function bagCompositionIssue(input: NormalizeCompositionInput): string | 
       : null;
   }
 
+  // S+B is a classification label only: the inward form captures a single Total Bags, so a
+  // receipt may declare no split at all. When a split IS supplied (legacy CSV import, or the
+  // administrative correction workflow) it must still reconcile with the declared total.
+  const hasSplit = (smallBags != null || bigBags != null) && small + big > 0;
+  if (!hasSplit) {
+    return null;
+  }
   if (small <= 0 || big <= 0) {
     return 'Bag type S+B requires a positive small bag count and a positive big bag count';
   }
@@ -104,7 +111,16 @@ export function normalizeBagComposition(input: NormalizeCompositionInput): BagCo
   if (bagType === 'B') {
     return { smallBags: 0, bigBags: bags };
   }
-  return { smallBags: smallBags ?? 0, bigBags: bigBags ?? 0 };
+  // S+B with no declared split is stored as a single-side composition. Readers that report a
+  // per-type split (delivery validation, ledger, challan print) then have a defined vector to
+  // read, exactly as they do for S and B, without inventing a small/big division the operator
+  // never supplied.
+  const small = smallBags ?? 0;
+  const big = bigBags ?? 0;
+  if (small + big === 0) {
+    return { smallBags: bags, bigBags: 0 };
+  }
+  return { smallBags: small, bigBags: big };
 }
 
 /** Narrows an unknown value to a composition, returning null when it is not one. */

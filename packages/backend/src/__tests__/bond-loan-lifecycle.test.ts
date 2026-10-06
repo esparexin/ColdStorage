@@ -11,6 +11,7 @@ import {
   disconnectTestDatabase,
   resetStockCollections,
 } from './helpers/stock-reset.js';
+import { nextTestGrnNumber } from './helpers/grn-number-fixtures.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
@@ -57,6 +58,7 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
 
   function makeInwardPayload(overrides: Record<string, unknown> = {}) {
     return {
+      grnNumber: nextTestGrnNumber(),
       date: new Date().toISOString(),
       customerId,
       commodityId,
@@ -118,7 +120,7 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
     expect(inwardRes.body.grn.loanStatus).toBe('NOT_TAKEN');
     // Bond # is reference-only: no BND- number is minted, the GR Number is the business key.
     expect(inwardRes.body.grn.bondNumber).toBeNull();
-    expect(inwardRes.body.grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-\d{4}$/);
+    expect(inwardRes.body.grn.grnNumber).toMatch(/^\d{4}$/);
 
     const grnId = inwardRes.body.grn.id;
 
@@ -149,7 +151,7 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
     expect(inwardRes.status).toBe(201);
     // Bond # is reference-only: no BND- number is minted, the GR Number is the business key.
     expect(inwardRes.body.grn.bondNumber).toBeNull();
-    expect(inwardRes.body.grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-\d{4}$/);
+    expect(inwardRes.body.grn.grnNumber).toMatch(/^\d{4}$/);
     const grnId = inwardRes.body.grn.id;
 
     // 2. Operator updates loan status to TAKEN (party has availed loan against this GRN).

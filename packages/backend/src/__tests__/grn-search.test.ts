@@ -10,6 +10,7 @@ import {
   disconnectTestDatabase,
   resetStockCollections,
 } from './helpers/stock-reset.js';
+import { nextTestGrnNumber } from './helpers/grn-number-fixtures.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
@@ -84,6 +85,7 @@ describe('Global GRN Search Integration', () => {
       .post(`/api/facilities/${facilityId}/grns`)
       .set('Authorization', `Bearer ${operatorNorthToken}`)
       .send({
+        grnNumber: nextTestGrnNumber(),
         chamber: 'CH-01',
         bags: 100,
         bagType: 'S',

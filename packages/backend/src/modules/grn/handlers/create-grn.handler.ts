@@ -60,9 +60,8 @@ export async function createGrn(
   // 5. Inward Date and FY validation
   const inwardDate = validateOperationalDate(input.date, { label: 'Inward' });
 
-  // 6. Bag composition is resolved once, here, and stored as the authoritative split. `bags` is
-  // already the sum of these two parts by contract validation, so the total is never a third
-  // independent figure that can drift from them.
+  // 6. Bag composition is resolved once, here, and stored as the authoritative split, so `bags`
+  // and its parts can never drift apart.
   const composition = normalizeBagComposition({
     bagType: input.bagType,
     bags: input.bags,
@@ -109,7 +108,14 @@ export async function createGrn(
 
   try {
     await session.withTransaction(async () => {
-      const grnNumber = await counterService.generateGrnNumber(facilityId, inwardDate, session);
+      // GR Number is operator-entered (four digits, contract-validated) and is the sole business key.
+      // Uniqueness is per facility; the unique index is the concurrent-write backstop.
+      const grnNumber = input.grnNumber;
+      const existingGrn = await GrnModel.findOne({ facilityId, grnNumber }, null, { session });
+      if (existingGrn) {
+        throw new Error(`GRN '${grnNumber}' already exists for this facility.`);
+      }
+
       let inwardReceiptNumber: string;
       const customBill = input.billNumber?.trim();
       if (customBill) {

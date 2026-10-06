@@ -8,7 +8,6 @@ import { CounterModel, type CounterType } from '../../database/models/counter.mo
  * they are sequenced by independent counters.
  */
 export const DOCUMENT_PREFIXES = {
-  grn: 'GRN',
   inwardReceipt: 'RCPT',
   challan: 'CHL',
   rentReceipt: 'RRCPT',
@@ -28,18 +27,6 @@ export class CounterService {
     ).exec();
 
     return counter.lastSequence;
-  }
-
-  public async generateGrnNumber(
-    facilityId: string,
-    date: Date,
-    session?: ClientSession,
-    padLength = 4,
-  ): Promise<string> {
-    const fy = getFinancialYearKey(date);
-    const seq = await this.getNextSequence(facilityId, 'GRN', fy, session);
-    const padded = String(seq).padStart(padLength, '0');
-    return `${DOCUMENT_PREFIXES.grn}-${fy}-${padded}`;
   }
 
   public async generateInwardReceiptNumber(
@@ -64,23 +51,6 @@ export class CounterService {
     const nextSeq = (counter?.lastSequence ?? 0) + 1;
     const padded = String(nextSeq).padStart(padLength, '0');
     return `${DOCUMENT_PREFIXES.inwardReceipt}-${fy}-${padded}`;
-  }
-
-  /**
-   * Preview of the next GR Number (the sole business key) without consuming a sequence.
-   * Mirrors previewNextInwardReceiptNumber so the Inward form can display the GR Number
-   * it is about to receive before the receipt is created.
-   */
-  public async previewNextGrnNumber(
-    facilityId: string,
-    date: Date,
-    padLength = 4,
-  ): Promise<string> {
-    const fy = getFinancialYearKey(date);
-    const counter = await CounterModel.findOne({ facilityId, counterType: 'GRN', financialYear: fy }).exec();
-    const nextSeq = (counter?.lastSequence ?? 0) + 1;
-    const padded = String(nextSeq).padStart(padLength, '0');
-    return `${DOCUMENT_PREFIXES.grn}-${fy}-${padded}`;
   }
 
   public async syncInwardReceiptSequence(

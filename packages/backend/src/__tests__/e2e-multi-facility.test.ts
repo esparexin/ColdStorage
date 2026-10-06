@@ -3,13 +3,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { AuditLogModel } from '../database/models/audit-log.model.js';
-import { CounterModel } from '../database/models/counter.model.js';
 import { SEASONAL_MONTHS } from './helpers/master-data-fixtures.js';
 import {
   cleanupMultiFacilityScenario,
   seedMultiFacilityScenario,
   type MultiFacilityScenario,
 } from './helpers/multi-facility-e2e-fixtures.js';
+import { nextTestGrnNumber } from './helpers/grn-number-fixtures.js';
 
 const app = createApp();
 const CHAMBER_A = 'CA1';
@@ -97,12 +97,13 @@ describe('Phase 11: Multi-Facility End-to-End — cross-facility isolation', () 
     expect(foreignRegisterRes.body.error).toContain('not authorized to register customer');
   });
 
-  it('3. Concurrent inwarding: parallel GRNs in both facilities get independent FY sequences', async () => {
+  it('3. Concurrent inwarding: parallel GRNs in both facilities are each accepted', async () => {
     const [resA, resB] = await Promise.all([
       request(app)
         .post(`/api/facilities/${scenario.facilityA}/grns`)
         .set('Authorization', `Bearer ${scenario.tokens.operatorA}`)
         .send({
+          grnNumber: nextTestGrnNumber(),
           customerId: scenario.customerA,
           commodityId: scenario.commodityId,
           chamber: CHAMBER_A,
@@ -116,6 +117,7 @@ describe('Phase 11: Multi-Facility End-to-End — cross-facility isolation', () 
         .post(`/api/facilities/${scenario.facilityB}/grns`)
         .set('Authorization', `Bearer ${scenario.tokens.operatorB}`)
         .send({
+          grnNumber: nextTestGrnNumber(),
           customerId: scenario.customerB,
           commodityId: scenario.commodityId,
           chamber: CHAMBER_B,
@@ -136,20 +138,14 @@ describe('Phase 11: Multi-Facility End-to-End — cross-facility isolation', () 
     grnNumberB = resB.body.grn.grnNumber;
 
     expect(grnIdA).not.toBe(grnIdB);
-    expect(grnNumberA).toMatch(/^GRN-\d{2}-\d{2}-\d{4}$/);
-    expect(grnNumberB).toMatch(/^GRN-\d{2}-\d{2}-\d{4}$/);
+    // GR Numbers are entered manually as four digits; uniqueness is per facility.
+    expect(grnNumberA).toMatch(/^\d{4}$/);
+    expect(grnNumberB).toMatch(/^\d{4}$/);
+    expect(grnNumberA).not.toBe(grnNumberB);
     expect(resA.body.grn.facilityId).toBe(scenario.facilityA);
     expect(resB.body.grn.facilityId).toBe(scenario.facilityB);
     expect(resA.body.grn.bags).toBe(100);
     expect(resB.body.grn.bags).toBe(200);
-
-    // Each tenant owns its FY counter, so both receipts number from 0001 independently.
-    const counters = await CounterModel.find({
-      facilityId: { $in: [scenario.facilityA, scenario.facilityB] },
-      counterType: 'GRN',
-    });
-    expect(counters).toHaveLength(2);
-    expect(counters.map((c) => c.lastSequence)).toEqual([1, 1]);
 
     // Chamber is stored verbatim as free text on both receipts; Seasonal rent is the fixed period.
     expect(resA.body.grn.chamber).toBe(CHAMBER_A);

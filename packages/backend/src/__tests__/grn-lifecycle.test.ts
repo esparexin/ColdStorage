@@ -10,6 +10,7 @@ import {
   disconnectTestDatabase,
   resetStockCollections,
 } from './helpers/stock-reset.js';
+import { nextTestGrnNumber } from './helpers/grn-number-fixtures.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
@@ -59,6 +60,7 @@ describe('GRN Lifecycle & Sequences Integration', () => {
   /** Chamber is free text now, so an inbound needs no storage entity seeded beforehand. */
   function inbound(overrides: Record<string, unknown> = {}): Record<string, unknown> {
     return {
+      grnNumber: nextTestGrnNumber(),
       customerId: customerNorthId,
       commodityId,
       chamber: 'CH-NORTH-01',
@@ -78,7 +80,7 @@ describe('GRN Lifecycle & Sequences Integration', () => {
       .send(body);
   }
 
-  it('creates GRN with atomic independent sequences for grnNumber and inwardReceiptNumber', async () => {
+  it('creates GRN with a manual GR Number and an independent inward receipt sequence', async () => {
     const res = await postInbound(
       inbound({
         bags: 250,
@@ -98,7 +100,7 @@ describe('GRN Lifecycle & Sequences Integration', () => {
 
     expect(grn.id).toBeDefined();
     expect(grn.facilityId).toBe(northFacilityId);
-    expect(grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-0001$/);
+    expect(grn.grnNumber).toMatch(/^\d{4}$/);
     expect(grn.inwardReceiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0001$/);
     expect(grn.status).toBe('OPEN');
     expect(grn.customerName).toBe('Ramesh Patel');
@@ -122,7 +124,7 @@ describe('GRN Lifecycle & Sequences Integration', () => {
     );
 
     expect(res2.status).toBe(201);
-    expect(res2.body.grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-0002$/);
+    expect(res2.body.grn.grnNumber).toMatch(/^\d{4}$/);
     expect(res2.body.grn.inwardReceiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0002$/);
     // Seasonal is a fixed 10-month period derived server-side, never operator input.
     expect(res2.body.grn.rentMonths).toBe(SEASONAL_MONTHS);
@@ -145,7 +147,7 @@ describe('GRN Lifecycle & Sequences Integration', () => {
     const validRes = await postInbound(inbound());
 
     expect(validRes.status).toBe(201);
-    expect(validRes.body.grn.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-0001$/);
+    expect(validRes.body.grn.grnNumber).toMatch(/^\d{4}$/);
     expect(validRes.body.grn.inwardReceiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0001$/);
   });
   it('supports previewing next bill number and given custom bill number', async () => {
