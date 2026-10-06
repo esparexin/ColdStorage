@@ -40,23 +40,10 @@ export function createBondsColumns({
       key: 'bondNumber',
       header: 'Bond #',
       render: (row) => (
+        // Bond # resolves to the GR Number: it is not a separately stored identifier.
         <span style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-primary-text)' }}>
-          {row.bondNumber || '—'}
+          {row.grnNumber}
         </span>
-      ),
-    },
-    {
-      key: 'loanBankName',
-      header: 'Lien Holder',
-      render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)' }}>
-          <span style={{ fontWeight: 'var(--font-medium)' }}>{row.loanBankName || '—'}</span>
-          {row.loanReferenceNumber && (
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-              Ref: {row.loanReferenceNumber}
-            </span>
-          )}
-        </div>
       ),
     },
     {

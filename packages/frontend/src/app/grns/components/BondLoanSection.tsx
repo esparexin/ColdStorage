@@ -8,31 +8,17 @@ import styles from '../page.module.css';
 interface BondLoanSectionProps {
   isBondForLoan: boolean;
   onIsBondForLoanChange: (value: boolean) => void;
-  bondNumber?: string;
-  onBondNumberChange?: (v: string) => void;
+  grnPreview: string;
   loanStatus: LoanStatus;
   onLoanStatusChange: (status: LoanStatus) => void;
-  loanBankName: string;
-  onLoanBankNameChange: (v: string) => void;
-  loanReferenceNumber: string;
-  onLoanReferenceNumberChange: (v: string) => void;
-  loanRemarks: string;
-  onLoanRemarksChange: (v: string) => void;
 }
 
 export function BondLoanSection({
   isBondForLoan,
   onIsBondForLoanChange,
-  bondNumber,
-  onBondNumberChange,
+  grnPreview,
   loanStatus,
   onLoanStatusChange,
-  loanBankName,
-  onLoanBankNameChange,
-  loanReferenceNumber,
-  onLoanReferenceNumberChange,
-  loanRemarks,
-  onLoanRemarksChange,
 }: BondLoanSectionProps) {
   return (
     <>
@@ -76,16 +62,16 @@ export function BondLoanSection({
         {isBondForLoan && (
           <div className={styles.fieldGroup}>
             <label htmlFor="create-bond-number" className={styles.fieldLabel}>
-              Bond # (Optional / Auto-generated)
+              Bond #
             </label>
             <input
               id="create-bond-number"
               type="text"
-              maxLength={40}
-              placeholder="e.g. BND-26-27-0001 (Blank = Auto)"
-              className={styles.fieldInput}
-              value={bondNumber || ''}
-              onChange={(e) => onBondNumberChange?.(e.target.value)}
+              readOnly
+              tabIndex={-1}
+              value={grnPreview || 'Auto'}
+              className={`${styles.fieldInput} ${styles.calculatedField}`}
+              aria-label="Bond # (GR Number)"
             />
           </div>
         )}
@@ -117,55 +103,6 @@ export function BondLoanSection({
           {loanStatus === 'TAKEN'
             ? '⚠️ Loan Taken: Outward Delivery will be strictly blocked for this Bond until the loan is cleared.'
             : 'ℹ️ Loan Not Taken: Outward Delivery remains available according to regular stock and rent rules.'}
-        </div>
-      )}
-
-      {isBondForLoan && loanStatus === 'TAKEN' && (
-        <div className={styles.formGrid2}>
-          <div className={styles.fieldGroup}>
-            <label htmlFor="create-loan-bank" className={styles.fieldLabel}>
-              Lender / Bank Name
-            </label>
-            <input
-              id="create-loan-bank"
-              type="text"
-              maxLength={100}
-              placeholder="e.g. State Bank of India"
-              className={styles.fieldInput}
-              value={loanBankName}
-              onChange={(e) => onLoanBankNameChange(e.target.value)}
-            />
-          </div>
-
-          <div className={styles.fieldGroup}>
-            <label htmlFor="create-loan-ref" className={styles.fieldLabel}>
-              Loan / Pledge Account #
-            </label>
-            <input
-              id="create-loan-ref"
-              type="text"
-              maxLength={50}
-              placeholder="e.g. LN-2026-0042"
-              className={styles.fieldInput}
-              value={loanReferenceNumber}
-              onChange={(e) => onLoanReferenceNumberChange(e.target.value)}
-            />
-          </div>
-
-          <div className={styles.fieldGroup} style={{ gridColumn: '1 / -1' }}>
-            <label htmlFor="create-loan-remarks" className={styles.fieldLabel}>
-              Loan Notes &amp; Terms
-            </label>
-            <input
-              id="create-loan-remarks"
-              type="text"
-              maxLength={500}
-              placeholder="e.g. Pledged against seasonal crop advance"
-              className={styles.fieldInput}
-              value={loanRemarks}
-              onChange={(e) => onLoanRemarksChange(e.target.value)}
-            />
-          </div>
         </div>
       )}
     </>

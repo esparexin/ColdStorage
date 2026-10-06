@@ -98,7 +98,7 @@ export function CreateDeliveryModal({
                   <option key={g.id} value={g.id}>
                     {g.loanStatus === 'TAKEN' ? '🔒 [LOAN HOLD] ' : ''}
                     {g.grnNumber} — {g.customerName} ({g.commodityName}, Chamber {g.chamber})
-                    {g.loanStatus === 'TAKEN' ? ` [Pledged: ${g.loanBankName || 'Bank'}]` : ''}
+                    {g.loanStatus === 'TAKEN' ? ' [Pledged]' : ''}
                   </option>
                 ))}
               </Select>
@@ -106,11 +106,9 @@ export function CreateDeliveryModal({
 
             {form.isLoanHoldActive && form.selectedGrn && (
               <div id="loan-hold-banner" className={styles.loanHoldBanner} role="alert">
-                <strong>⚠️ Outward Blocked — Active Loan Hold Against {form.selectedGrn.bondNumber ? `Bond ${form.selectedGrn.bondNumber}` : `GRN ${form.selectedGrn.grnNumber}`}</strong>
+                <strong>⚠️ Outward Blocked — Active Loan Hold Against GRN {form.selectedGrn.grnNumber}</strong>
                 <div>
-                  This commodity is pledged under {form.selectedGrn.bondNumber ? `Bond #${form.selectedGrn.bondNumber} (GRN: ${form.selectedGrn.grnNumber})` : `GRN #${form.selectedGrn.grnNumber}`}
-                  {form.selectedGrn.loanBankName ? ` with ${form.selectedGrn.loanBankName}` : ''}
-                  {form.selectedGrn.loanReferenceNumber ? ` · Ref: ${form.selectedGrn.loanReferenceNumber}` : ''}.
+                  This commodity is pledged under GRN #{form.selectedGrn.grnNumber}.
                   Delivery challan generation is strictly blocked until the loan is marked as Cleared.
                 </div>
                 {canClearLoan && onClearLoan && (

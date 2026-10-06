@@ -110,20 +110,19 @@ export function CreateGrnModal({
         </div>
         <div className={styles.formGrid3}>
           <div className={styles.fieldGroup}>
-            <label htmlFor="create-bill-number" className={styles.fieldLabel}>
-              Bill Number
+            <label htmlFor="create-gr-number" className={styles.fieldLabel}>
+              GR Number
             </label>
             <input
-              id="create-bill-number"
+              id="create-gr-number"
               type="text"
-              maxLength={40}
-              value={form.createBillNumber}
-              onChange={(e) => form.setCreateBillNumber(e.target.value)}
-              placeholder={form.suggestedBillNumber ? `Auto (${form.suggestedBillNumber})` : 'Auto / given #'}
-              className={`${styles.fieldInput} ${form.fieldErrors.billNumber ? styles.inputError : ''}`}
-              aria-invalid={Boolean(form.fieldErrors.billNumber)}
+              readOnly
+              tabIndex={-1}
+              value={form.suggestedGrnNumber || 'Auto'}
+              placeholder="Auto"
+              className={`${styles.fieldInput} ${styles.calculatedField}`}
+              aria-label="GR Number (system-generated)"
             />
-            {form.fieldErrors.billNumber && <span className={styles.fieldErrorText}>{form.fieldErrors.billNumber}</span>}
           </div>
           <div className={styles.fieldGroup}>
             <Input id="create-chamber" label="Chamber" type="text" required maxLength={20}
@@ -134,45 +133,25 @@ export function CreateGrnModal({
             <Select id="create-bag-type" label="Bag Type" required value={form.createBagType} onChange={(e) => form.handleBagTypeChange(e.target.value as BagType)}>
               <option value="S">Small Bag (S)</option>
               <option value="B">Big Bag (B)</option>
-              <option value="S+B">Mixed (Small + Big)</option>
             </Select>
           </div>
         </div>
         <BagAccountingSection
           values={{
-            bagType: form.createBagType, bags: form.createBags,
-            smallBags: form.createSmallBags, bigBags: form.createBigBags,
-            smallBagWeight: form.createSmallBagWeight, bigBagWeight: form.createBigBagWeight,
+            bags: form.createBags,
             bagError: form.fieldErrors.bags,
-            smallBagWeightError: form.fieldErrors.smallBagWeight,
-            bigBagWeightError: form.fieldErrors.bigBagWeight,
           }}
           handlers={{
-            onBagsChange: form.handleBagsChange, onSmallBagsChange: form.handleSmallBagsChange,
-            onBigBagsChange: form.handleBigBagsChange, onSmallBagWeightChange: form.handleSmallBagWeightChange,
-            onBigBagWeightChange: form.handleBigBagWeightChange,
+            onBagsChange: form.handleBagsChange,
           }}
         />
         <h3 className={styles.sectionHeading}>Rent Terms &amp; Bag Pricing</h3>
-        {form.createBagType === 'S+B' ? (
-          <div className={styles.formGrid2}>
-            <div className={styles.fieldGroup}>
-              <label htmlFor="create-small-bag-price" className={styles.fieldLabel}>Small Bag Price (₹/bag)</label>
-              <input id="create-small-bag-price" type="number" inputMode="decimal" min={0} step="0.01" value={form.createSmallBagPrice} onChange={(e) => form.handleSmallBagPriceChange(parseNumericInput(e.target.value))} placeholder="e.g. 80" className={styles.fieldInput} />
-            </div>
-            <div className={styles.fieldGroup}>
-              <label htmlFor="create-big-bag-price" className={styles.fieldLabel}>Big Bag Price (₹/bag)</label>
-              <input id="create-big-bag-price" type="number" inputMode="decimal" min={0} step="0.01" value={form.createBigBagPrice} onChange={(e) => form.handleBigBagPriceChange(parseNumericInput(e.target.value))} placeholder="e.g. 100" className={styles.fieldInput} />
-            </div>
+        <div className={styles.formGrid2}>
+          <div className={styles.fieldGroup}>
+            <label htmlFor="create-bag-price" className={styles.fieldLabel}>Bag Price (₹/bag)</label>
+            <input id="create-bag-price" type="text" inputMode="decimal" value={form.createBagPrice} onChange={(e) => form.handleBagPriceChange(parseNumericInput(e.target.value))} placeholder="e.g. 80" className={styles.fieldInput} />
           </div>
-        ) : (
-          <div className={styles.formGrid2}>
-            <div className={styles.fieldGroup}>
-              <label htmlFor="create-bag-price" className={styles.fieldLabel}>Bag Price (₹/bag)</label>
-              <input id="create-bag-price" type="number" inputMode="decimal" min={0} step="0.01" value={form.createBagPrice} onChange={(e) => form.handleBagPriceChange(parseNumericInput(e.target.value))} placeholder="e.g. 80" className={styles.fieldInput} />
-            </div>
-          </div>
-        )}
+        </div>
         <div className={styles.formGrid3}>
           <div className={styles.fieldGroup}>
             <Select id="create-rent-type" label="Rent Type" required value={form.createRentType} onChange={(e) => form.createRentType !== e.target.value && form.handleRentTypeChange(e.target.value as RentType)}>
@@ -209,22 +188,17 @@ export function CreateGrnModal({
           </div>
         </div>
         <TransportLogisticsSection
-          gpNumber={form.createGpNumber} onGpNumberChange={form.setCreateGpNumber}
+          grnPreview={form.suggestedGrnNumber}
           vehicleNumber={form.createVehicleNumber} onVehicleNumberChange={form.setCreateVehicleNumber}
           vehicleError={form.fieldErrors.vehicleNumber}
-          storageMark={form.createStorageMark} onStorageMarkChange={form.setCreateStorageMark}
-          storageMarkError={form.fieldErrors.storageMark}
           partyMark={form.createPartyMark} onPartyMarkChange={form.setCreatePartyMark}
           partyMarkError={form.fieldErrors.partyMark}
           remarks={form.createRemarks} onRemarksChange={form.setCreateRemarks}
         />
         <BondLoanSection
           isBondForLoan={form.isBondForLoan} onIsBondForLoanChange={form.setIsBondForLoan}
-          bondNumber={form.bondNumber} onBondNumberChange={form.setBondNumber}
+          grnPreview={form.suggestedGrnNumber}
           loanStatus={form.loanStatus} onLoanStatusChange={form.setLoanStatus}
-          loanBankName={form.loanBankName} onLoanBankNameChange={form.setLoanBankName}
-          loanReferenceNumber={form.loanReferenceNumber} onLoanReferenceNumberChange={form.setLoanReferenceNumber}
-          loanRemarks={form.loanRemarks} onLoanRemarksChange={form.setLoanRemarks}
         />
       </form>
     </Modal>

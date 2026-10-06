@@ -66,6 +66,28 @@ Per architecture governance, the endpoints below are intentionally retained as h
 3. Hygiene: deleted dead `bag-composition.ts` (zero importers; `ledger-polarity.ledgerBagQuantity` is canonical) and orphan `grn/queries/grn-movement-history.queries.ts` shim; removed dead `inventory.mappers isTransientError` re-export and dead `isDatabaseConnected`; uninstalled alien `cookie-parser` dep; wired orphan `DeliveryReversalModal` into `deliveries/page.tsx` (`delivery:reversal` gate); derived `useRentGate.rentBlocked` from SSOT summary (was constant `false`); fixed stale comments; fixed `e2e/ui-density` mocks to real `/api/facilities|audit-logs|backups|customers|commodities|users` paths and added `/bond-ledger`.
 4. Line budget: extracted `DeliveryPageModals` so `deliveries/page.tsx` stays ≤250 lines.
 
+## 5.1 Business-Key SSOT: GR No. (`grnNumber`)
+
+`grnNumber` is the sole business key for the whole goods and financial lifecycle:
+Inward → GR No. → GRN Stock → Delivery-Out → Closing → Rent/Payment → Loan → Cash Memo.
+
+- **Search/lookup**: `grn.service` searches on `grnNumber` only. `inwardReceiptNumber` and
+  `bondNumber` were removed from the GRN `$or` clause; they are reference text, not keys.
+  Rent lookups continue to accept `id` or `grnNumber` via the canonical `resolveGrn` pattern.
+- **Sorting/grouping**: no sort or grouping uses `inwardReceiptNumber` or `bondNumber`.
+- **Minting**: RCPT (`inwardReceiptNumber`) is still generated for the inward receipt. BND
+  (`bondNumber`) is **no longer minted per receipt** — Bond # displays the GR Number instead.
+- **Storage Mark / Bond #**: no stored copies. `TransportLogisticsSection`, `BondLoanSection`,
+  `BondDetailsModal`, `bondsColumns`, `GrnDetailModal` and `GrnTable` all render `grnNumber`
+  in those positions.
+- **Exports**: `GRN_EXPORT_HEADERS` keeps `inwardReceiptNumber` as a historical column with
+  `grnNumber` first; `GRN_IMPORT_*_HEADERS` are unchanged so legacy CSV import keeps working.
+- **Loan fields**: the free-text lender name / pledge account / notes trio is retired from
+  `updateGrnLoanStatusSchema` and its UI. Settlement remains the single capture point for loan
+  payment details and notes (`loanSettlementInputSchema` + `LoanSettlementFields`), including the
+  bank-transfer rail fields the contract requires.
+- **Enforced by** `check-architecture-boundaries.sh` Rule 23.
+
 ## 6. Remaining tracked (progressive, not in this PR)
 
 - Migrate remaining `.fieldInput` form copies to DS `Input` one route at a time (currently token-compliant; no new primitive needed).

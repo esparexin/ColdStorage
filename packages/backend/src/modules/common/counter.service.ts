@@ -12,7 +12,6 @@ export const DOCUMENT_PREFIXES = {
   inwardReceipt: 'RCPT',
   challan: 'CHL',
   rentReceipt: 'RRCPT',
-  bond: 'BND',
 } as const;
 
 export class CounterService {
@@ -67,6 +66,23 @@ export class CounterService {
     return `${DOCUMENT_PREFIXES.inwardReceipt}-${fy}-${padded}`;
   }
 
+  /**
+   * Preview of the next GR Number (the sole business key) without consuming a sequence.
+   * Mirrors previewNextInwardReceiptNumber so the Inward form can display the GR Number
+   * it is about to receive before the receipt is created.
+   */
+  public async previewNextGrnNumber(
+    facilityId: string,
+    date: Date,
+    padLength = 4,
+  ): Promise<string> {
+    const fy = getFinancialYearKey(date);
+    const counter = await CounterModel.findOne({ facilityId, counterType: 'GRN', financialYear: fy }).exec();
+    const nextSeq = (counter?.lastSequence ?? 0) + 1;
+    const padded = String(nextSeq).padStart(padLength, '0');
+    return `${DOCUMENT_PREFIXES.grn}-${fy}-${padded}`;
+  }
+
   public async syncInwardReceiptSequence(
     facilityId: string,
     date: Date,
@@ -109,18 +125,6 @@ export class CounterService {
     const seq = await this.getNextSequence(facilityId, 'RENT_RECEIPT', fy, session);
     const padded = String(seq).padStart(padLength, '0');
     return `${DOCUMENT_PREFIXES.rentReceipt}-${fy}-${padded}`;
-  }
-
-  public async generateBondNumber(
-    facilityId: string,
-    date: Date,
-    session?: ClientSession,
-    padLength = 4,
-  ): Promise<string> {
-    const fy = getFinancialYearKey(date);
-    const seq = await this.getNextSequence(facilityId, 'BOND', fy, session);
-    const padded = String(seq).padStart(padLength, '0');
-    return `${DOCUMENT_PREFIXES.bond}-${fy}-${padded}`;
   }
 }
 

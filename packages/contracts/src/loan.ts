@@ -65,12 +65,19 @@ export const loanSettlementInputSchema = z
 
 export type LoanSettlementInput = z.infer<typeof loanSettlementInputSchema>;
 
+/**
+ * Loan lifecycle transition.
+ *
+ * The GR Number is the sole business key, so no bond number is minted here; `bondNumber` is
+ * accepted only to carry a legacy import's reference text through unchanged.
+ *
+ * The free-text lender name / pledge account / notes trio has been retired. Settlement payment
+ * details (amount, date, mode, UTR, and the bank-transfer rail fields the schema requires) remain
+ * on `settlement`, which is the single place settlement data is captured.
+ */
 export const updateGrnLoanStatusSchema = z.object({
   loanStatus: z.enum(['NOT_TAKEN', 'TAKEN', 'CLEARED']),
   bondNumber: bondNumberSchema.nullish(),
-  bankName: z.string().trim().max(100).optional(),
-  referenceNumber: z.string().trim().max(50).optional(),
-  remarks: z.string().trim().max(500).optional(),
   settlement: loanSettlementInputSchema.optional(),
 });
 

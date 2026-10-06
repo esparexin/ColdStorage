@@ -1,6 +1,6 @@
 import mongoose, { Schema, type Document, type Model } from 'mongoose';
 
-export type CounterType = 'GRN' | 'INWARD_RECEIPT' | 'CHALLAN' | 'RENT_RECEIPT' | 'BOND';
+export type CounterType = 'GRN' | 'INWARD_RECEIPT' | 'CHALLAN' | 'RENT_RECEIPT';
 
 export interface CounterDoc extends Document {
   facilityId: string;
@@ -17,7 +17,7 @@ const counterSchema = new Schema<CounterDoc>(
     counterType: {
       type: String,
       required: true,
-      enum: ['GRN', 'INWARD_RECEIPT', 'CHALLAN', 'RENT_RECEIPT', 'BOND'],
+      enum: ['GRN', 'INWARD_RECEIPT', 'CHALLAN', 'RENT_RECEIPT'],
       index: true,
     },
     financialYear: { type: String, required: true, index: true },
