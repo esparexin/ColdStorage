@@ -2,13 +2,8 @@ import type { GrnMovementEntry, GrnMovementHistory } from '@cold-storage/contrac
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
 import { DeliveryReversalModel } from '../../database/models/delivery-reversal.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
+import { InternalMovementModel } from '../../database/models/internal-movement.model.js';
 
-/**
- * Reconstructs the canonical movement history for a GRN directly from authoritative documents:
- * - GrnModel (Inward event, initial stock)
- * - DeliveryChallanModel (Outward delivery events)
- * - DeliveryReversalModel (Delivery reversal events)
- */
 export async function getGrnMovementHistory(
   facilityId: string,
   grnId: string,
@@ -16,20 +11,21 @@ export async function getGrnMovementHistory(
   const grn = await GrnModel.findOne({ id: grnId, facilityId }).lean().exec();
   if (!grn) return null;
 
-  const [challans, reversals] = await Promise.all([
-    // Reversed challans stay on the timeline, and they DO move the running balance: the goods
-    // physically left the chamber and then came back, and occupancy is charged for that. Their
-    // own reversal entry restores them, which is what makes the totals reconcile. What must not
-    // happen is a reversed challan being labelled a final outward movement.
+  const [challans, reversals, internalMovements] = await Promise.all([
     DeliveryChallanModel.find({ grnId, facilityId }).lean().exec(),
     DeliveryReversalModel.find({ grnId, facilityId }).lean().exec(),
+    InternalMovementModel.find({
+      facilityId,
+      $or: [{ targetGrnId: grnId }, { sourceGrnIds: grnId }, { grnId }],
+    }).lean().exec(),
   ]);
 
   const challanMap = new Map(challans.map((c) => [c.id, c]));
 
   type MovementItem =
     | { kind: 'CHALLAN'; date: Date; createdAt: Date; challan: (typeof challans)[0] }
-    | { kind: 'REVERSAL'; date: Date; createdAt: Date; reversal: (typeof reversals)[0] };
+    | { kind: 'REVERSAL'; date: Date; createdAt: Date; reversal: (typeof reversals)[0] }
+    | { kind: 'INTERNAL'; date: Date; createdAt: Date; movement: (typeof internalMovements)[0] };
 
   const timeline: MovementItem[] = [
     ...challans.map((c) => ({
@@ -43,6 +39,12 @@ export async function getGrnMovementHistory(
       date: r.reversedAt,
       createdAt: r.reversedAt,
       reversal: r,
+    })),
+    ...internalMovements.map((m) => ({
+      kind: 'INTERNAL' as const,
+      date: m.movementDate,
+      createdAt: m.createdAt,
+      movement: m,
     })),
   ];
 
@@ -93,8 +95,6 @@ export async function getGrnMovementHistory(
         date: c.date,
         grnId: grn.id,
         grnNumber: grn.grnNumber,
-        // A reversed challan emptied the balance but did not settle it, so it is never the
-        // final outward movement.
         type: isLive && closing === 0 ? 'FINAL_OUTWARD' : 'PARTIAL_OUTWARD',
         openingBags: opening,
         receivedBags: 0,
@@ -113,7 +113,7 @@ export async function getGrnMovementHistory(
         remarks: c.remarks ?? null,
         performedBy: c.issuedBy,
       });
-    } else {
+    } else if (item.kind === 'REVERSAL') {
       const r = item.reversal;
       const originalChallan = challanMap.get(r.deliveryId);
       const returnedCount = originalChallan ? originalChallan.smallBags + originalChallan.bigBags : 0;
@@ -148,6 +148,69 @@ export async function getGrnMovementHistory(
         remarks: r.reason ?? null,
         performedBy: r.reversedBy,
       });
+    } else {
+      const m = item.movement;
+      if (m.movementType === 'MERGE') {
+        if (m.targetGrnId === grn.id) {
+          const opening = runningBalance;
+          const closing = runningBalance + m.totalBagsMoved;
+          runningBalance = closing;
+          runningSmall += m.smallBagsMoved;
+          runningBig += m.bigBagsMoved;
+          entries.push({
+            date: m.movementDate,
+            grnId: grn.id,
+            grnNumber: grn.grnNumber,
+            type: 'INTERNAL_MERGE_IN',
+            openingBags: opening,
+            receivedBags: m.totalBagsMoved,
+            deliveredBags: 0,
+            closingBags: closing,
+            smallBags: m.smallBagsMoved,
+            bigBags: m.bigBagsMoved,
+            remainingSmallBags: runningSmall,
+            remainingBigBags: runningBig,
+            remarks: `Merged from ${m.sourceGrnNumbers.join(', ')}: ${m.remarks || ''}`,
+            performedBy: m.performedBy,
+          });
+        } else if (m.sourceGrnIds.includes(grn.id)) {
+          const opening = runningBalance;
+          entries.push({
+            date: m.movementDate,
+            grnId: grn.id,
+            grnNumber: grn.grnNumber,
+            type: 'INTERNAL_MERGE_OUT',
+            openingBags: opening,
+            receivedBags: 0,
+            deliveredBags: opening,
+            closingBags: 0,
+            smallBags: runningSmall,
+            bigBags: runningBig,
+            remainingSmallBags: 0,
+            remainingBigBags: 0,
+            remarks: `Merged into GRN ${m.targetGrnNumber}: ${m.remarks || ''}`,
+            performedBy: m.performedBy,
+          });
+          runningBalance = 0;
+          runningSmall = 0;
+          runningBig = 0;
+        }
+      } else if (m.movementType === 'TRANSFER_OWNERSHIP') {
+        entries.push({
+          date: m.movementDate,
+          grnId: grn.id,
+          grnNumber: grn.grnNumber,
+          type: 'OWNERSHIP_TRANSFER',
+          openingBags: runningBalance,
+          receivedBags: 0,
+          deliveredBags: 0,
+          closingBags: runningBalance,
+          remainingSmallBags: runningSmall,
+          remainingBigBags: runningBig,
+          remarks: `Ownership transferred: ${m.fromCustomerName} → ${m.toCustomerName}: ${m.remarks || ''}`,
+          performedBy: m.performedBy,
+        });
+      }
     }
   }
 
