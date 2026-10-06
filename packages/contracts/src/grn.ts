@@ -14,20 +14,16 @@ import {
   receiptNumberSchema,
 } from './identifiers.js';
 import { bagPriceSchema } from './pricing.js';
+import {
+  rentMonthsForType,
+  rentMonthsInputSchema,
+  rentTypeSchema,
+  SEASONAL_RENT_MONTHS,
+} from './grn-rent.js';
 
-export const rentTypeSchema = z.enum(['Monthly', 'Seasonal']);
-export type RentType = z.infer<typeof rentTypeSchema>;
-
-// Complete 10-month rental period business constant for Seasonal subscriptions.
-export const SEASONAL_RENT_MONTHS = 10;
-export function rentMonthsForType(rentType: RentType): number | null {
-  return rentType === 'Seasonal' ? SEASONAL_RENT_MONTHS : null;
-}
-/** Operator-facing month input: Monthly requires an explicit count; Seasonal is fixed. */
-export const rentMonthsInputSchema = z
-  .number({ invalid_type_error: 'Rent months must be a number' })
-  .int('Rent months must be a whole number')
-  .min(1, 'Rent months must be at least 1');
+export { rentMonthsForType, rentMonthsInputSchema, rentTypeSchema, SEASONAL_RENT_MONTHS };
+export type { RentType } from './grn-rent.js';
+export { correctGrnSchema, type CorrectGrnInput } from './grn-correction.js';
 
 import {
   loanPaymentModeSchema,
@@ -200,51 +196,4 @@ export const grnSchema = z.object({
 
 export type Grn = z.infer<typeof grnSchema>;
 
-/**
- * Authorized correction of an inward receipt.
- *
- * Only the operational facts of a receipt may be corrected: what was stored, how many bags, and
- * which chamber it went into. This is the approved correction workflow required by the
- * architecture lock's transaction-immutability rule — it is not a chamber transfer feature, and
- * it refuses to run once stock has moved so the ledger and the receipt cannot diverge.
- *
- * Financial and identity terms (rent, customer, dates, numbering) are deliberately NOT
- * correctable; those require the reversal workflows.
- */
-export const correctGrnSchema = z
-  .object({
-    commodityId: z.string().trim().min(1, 'commodityId is required').optional(),
-    bags: z.number().int().positive('bags must be a positive integer').max(100000).optional(),
-    /**
-     * The corrected split, required together when a mixed receipt's total changes. A single-type
-     * receipt's composition is derived from its bag type, so it takes no split.
-     */
-    smallBags: z.number().int().min(0).max(100000).optional(),
-    bigBags: z.number().int().min(0).max(100000).optional(),
-    chamber: chamberTextSchema.optional(),
-    reason: z.string().trim().min(5, 'A correction reason of at least 5 characters is required').max(500),
-  })
-  .strict()
-  .refine(
-    (data) =>
-      data.commodityId !== undefined ||
-      data.bags !== undefined ||
-      data.chamber !== undefined ||
-      data.smallBags !== undefined ||
-      data.bigBags !== undefined,
-    {
-      message: 'Provide at least one of commodityId, bags, smallBags, bigBags or chamber to correct',
-      path: ['chamber'],
-    },
-  )
-  .refine(
-    (data) =>
-      (data.smallBags === undefined && data.bigBags === undefined) ||
-      (data.smallBags !== undefined && data.bigBags !== undefined),
-    {
-      message: 'smallBags and bigBags must be corrected together',
-      path: ['smallBags'],
-    },
-  );
 
-export type CorrectGrnInput = z.infer<typeof correctGrnSchema>;

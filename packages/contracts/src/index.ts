@@ -10,6 +10,8 @@ export * from './auth.js';
 export * from './customer.js';
 export * from './commodity.js';
 export * from './financial-year.js';
+export * from './grn-rent.js';
+export * from './grn-correction.js';
 export * from './grn.js';
 export * from './grn-acknowledgement.js';
 export * from './inventory.js';
