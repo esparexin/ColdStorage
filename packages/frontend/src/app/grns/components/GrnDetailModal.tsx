@@ -35,15 +35,24 @@ export function GrnDetailModal({
   onCreateChallan,
   onInternalMove,
 }: GrnDetailModalProps) {
+  const isBonded = grn.isBondForLoan || (grn.loanStatus && grn.loanStatus !== 'NONE');
+  const bondNumberDisplay = isBonded ? (grn.bondNumber || grn.grnNumber) : null;
   const loanBadgeVariant = grn.loanStatus === 'TAKEN' ? 'danger' : grn.loanStatus === 'CLEARED' ? 'success' : 'neutral';
-  const loanBadgeText = grn.loanStatus === 'TAKEN' ? 'Loan Active (Hold)' : grn.loanStatus === 'CLEARED' ? 'Loan Cleared' : grn.loanStatus === 'NOT_TAKEN' ? 'Loan Not Taken (Pledged)' : 'Standard Storage';
+  const loanBadgeText =
+    !isBonded || grn.loanStatus === 'NONE'
+      ? 'Standard Storage'
+      : grn.loanStatus === 'TAKEN'
+        ? 'Loan Active (Hold)'
+        : grn.loanStatus === 'CLEARED'
+          ? 'Loan Cleared'
+          : 'Pledged (Loan Not Taken)';
 
   return (
     <Modal
       isOpen
       onClose={onClose}
       title={`Acknowledgement Details: ${grn.grnNumber}`}
-      subtitle={`Inward Receipt #${grn.inwardReceiptNumber}${grn.bondNumber ? ` • Bond #${grn.bondNumber}` : ''}`}
+      subtitle={`Inward Receipt #${grn.inwardReceiptNumber}${bondNumberDisplay ? ` • Bond #${bondNumberDisplay}` : ''}`}
       size="lg"
       footer={
         <div className={styles.detailModalFooter}>
@@ -150,8 +159,8 @@ export function GrnDetailModal({
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Bond Number</span>
               <span className={styles.detailValue}>
-                {grn.bondNumber ? (
-                  <strong style={{ color: 'var(--color-primary)' }}>{grn.bondNumber}</strong>
+                {bondNumberDisplay ? (
+                  <strong style={{ color: 'var(--color-primary)' }}>{bondNumberDisplay}</strong>
                 ) : (
                   'None — Standard Storage'
                 )}
@@ -187,19 +196,6 @@ export function GrnDetailModal({
               </span>
             </div>
 
-            <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Small Bag Weight</span>
-              <span className={styles.detailValue}>
-                {grn.smallBagWeight ? `${grn.smallBagWeight} kg per bag` : '—'}
-              </span>
-            </div>
-
-            <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Big Bag Weight</span>
-              <span className={styles.detailValue}>
-                {grn.bigBagWeight ? `${grn.bigBagWeight} kg per bag` : '—'}
-              </span>
-            </div>
 
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Rent Structure</span>
