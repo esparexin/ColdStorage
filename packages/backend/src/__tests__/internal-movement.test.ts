@@ -79,7 +79,7 @@ describe('Internal Movement Workflows (Merge & Transfer Ownership)', () => {
     });
   });
 
-  it('rejects merge if source GRN has unsettled rent', async () => {
+  it('executes merge with unsettled rent on source GRN, preserving complete financial audit record', async () => {
     const res = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/merge`)
       .set('Authorization', `Bearer ${adminToken}`)
@@ -87,11 +87,20 @@ describe('Internal Movement Workflows (Merge & Transfer Ownership)', () => {
         targetGrnId: grn38,
         sourceGrnIds: [grn39],
         movementDate: new Date(),
-        remarks: 'Testing rent block on merge',
+        remarks: 'Merge source with unsettled rent',
       });
 
-    expect(res.status).toBe(400);
-    expect(res.body.error).toContain('unsettled rent balance');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.targetGrn.bags).toBe(150);
+
+    const updatedSource = await GrnModel.findOne({ id: grn39 }).lean().exec();
+    expect(updatedSource?.status).toBe('CLOSED');
+    expect(updatedSource?.rentAmount).toBe(1000);
+    expect(updatedSource?.remarks).toContain('Financial record preserved: Rent Obligation ₹1000, Paid ₹0, Pending ₹1000 (Status: Not Settled)');
+
+    const updatedTarget = await GrnModel.findOne({ id: grn38 }).lean().exec();
+    expect(updatedTarget?.remarks).toContain('Rent: ₹1000, Paid: ₹0, Balance: ₹1000, Status: Not Settled');
   });
 
   it('rejects merge if source or target GRN has active loan hold', async () => {

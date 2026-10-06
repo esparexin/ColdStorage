@@ -50,6 +50,12 @@ export async function mergeGrn(
         throw new Error('One or more source GRNs were not found in this facility');
       }
 
+      const movementId = `mov-${randomUUID()}`;
+      let totalMovedBags = 0;
+      let totalMovedSmall = 0;
+      let totalMovedBig = 0;
+      const sourceSummaries: string[] = [];
+
       for (const s of sourceGrns) {
         if (s.status === 'CLOSED') {
           throw new Error(`Source GRN '${s.grnNumber}' is already CLOSED`);
@@ -63,36 +69,24 @@ export async function mergeGrn(
           throw new Error(`Source GRN '${s.grnNumber}' has an active loan hold`);
         }
 
-        const payments = await RentPaymentModel.find({ facilityId, grnId: s.id }, null, { session })
-          .lean()
-          .exec();
-        const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
-        const rentBal = computeRentBalance(s.rentAmount, totalPaid);
-        if (rentBal.remainingBalance > 0) {
-          throw new Error(
-            `Source GRN '${s.grnNumber}' has an unsettled rent balance of ₹${rentBal.remainingBalance}. Rent must be settled before merging.`,
-          );
-        }
-      }
-
-      const movementId = `mov-${randomUUID()}`;
-      let totalMovedBags = 0;
-      let totalMovedSmall = 0;
-      let totalMovedBig = 0;
-      const sourceSummaries: string[] = [];
-
-      for (const s of sourceGrns) {
         const bal = await readLedgerBalance(facilityId, s.id, session);
         if (bal.total <= 0) {
           throw new Error(`Source GRN '${s.grnNumber}' has zero remaining bags to merge`);
         }
 
+        const payments = await RentPaymentModel.find({ facilityId, grnId: s.id }, null, { session })
+          .lean()
+          .exec();
+        const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
+        const rentBal = computeRentBalance(s.rentAmount, totalPaid);
+
         totalMovedBags += bal.total;
         totalMovedSmall += bal.smallBags;
         totalMovedBig += bal.bigBags;
 
+        const inwardDateStr = new Date(s.date).toISOString().split('T')[0];
         sourceSummaries.push(
-          `GRN ${s.grnNumber} (Receipt #${s.inwardReceiptNumber}, Date: ${new Date(s.date).toISOString().split('T')[0]}, Customer: ${s.customerName}, Bags: ${bal.total}, Rent: ₹${s.rentAmount})`,
+          `GRN ${s.grnNumber} (Receipt #${s.inwardReceiptNumber}, Date: ${inwardDateStr}, Customer: ${s.customerName}, Bags: ${bal.total}, Rent: ₹${s.rentAmount}, Paid: ₹${totalPaid}, Balance: ₹${rentBal.remainingBalance}, Status: ${rentBal.paymentStatus})`,
         );
 
         await InventoryTransactionModel.create(
@@ -118,7 +112,8 @@ export async function mergeGrn(
           { session, ordered: true },
         );
 
-        const sourceNote = `[MERGED into GRN ${targetGrn.grnNumber} on ${new Date(input.movementDate).toISOString().split('T')[0]}: ${bal.total} bags cleared. ${input.remarks.trim()}]`;
+        const moveDateStr = new Date(input.movementDate).toISOString().split('T')[0];
+        const sourceNote = `[MERGED into GRN ${targetGrn.grnNumber} on ${moveDateStr}: ${bal.total} bags cleared. Financial record preserved: Rent Obligation ₹${s.rentAmount}, Paid ₹${totalPaid}, Pending ₹${rentBal.remainingBalance} (Status: ${rentBal.paymentStatus}). Customer: ${s.customerName}. Reason: ${input.remarks.trim()}]`;
         const updatedSourceRemarks = s.remarks ? `${s.remarks}\n${sourceNote}` : sourceNote;
 
         await GrnModel.updateOne(
