@@ -105,7 +105,7 @@ export function GrnPageModals({
         const reversed = entries.filter((e) => e.type === 'DELIVERY_REVERSAL').length;
         setCorrectionGuard({ hasMovement: outward + reversed > 0, hasActiveIssued: outward > reversed });
       } catch {
-        // History unavailable: CorrectGrnModal keeps the receipt-level heuristic.
+        // History unavailable: CreateGrnModal keeps the receipt-level heuristic.
       }
     })();
     return () => {

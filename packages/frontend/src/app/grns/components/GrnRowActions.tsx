@@ -45,14 +45,13 @@ export function GrnRowActions({
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isClosed = row.status === 'CLOSED';
-  // Heuristic hint only — CorrectGrnModal enforces the ledger-derived rule (any
-  // challan/reversal history locks bags/commodity; an active ISSUED delivery blocks
-  // every correction until reversed).
+  // Heuristic hint only — CreateGrnModal enforces the ledger-derived rule (any
+  // challan/reversal history locks structural fields; descriptive fields remain editable).
   const hasMovedHint = (row.netDeliveredBags ?? 0) > 0;
   const editTitle = isClosed
     ? 'Closed GRN cannot be edited'
     : hasMovedHint
-      ? 'Stock has moved — only chamber may be corrected; reverse active deliveries first'
+      ? 'Stock has moved — core identity is locked; chamber, marks and logistics may be edited'
       : 'Edit GRN';
   const hasRemainingStock = (row.closingBags ?? row.bags) > 0;
   const isLoanHold = row.loanStatus === 'TAKEN';
