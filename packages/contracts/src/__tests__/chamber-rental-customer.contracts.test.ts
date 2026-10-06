@@ -110,10 +110,27 @@ describe('Chamber, Rental & Customer Contracts', () => {
     expect(validMonthly.chamber).toBe('CH-01');
   });
 
-  it('rejects a Monthly GRN that omits the month count', () => {
-    expect(() =>
-      createGrnSchema.parse(grnPayload({ bagType: 'B', bigBagWeight: 80, rentType: 'Monthly', rentAmount: 1500 })),
-    ).toThrow();
+  it('accepts a Monthly GRN that omits the month count', () => {
+    const validMonthly = createGrnSchema.parse(
+      grnPayload({ bagType: 'B', bigBagWeight: 80, rentType: 'Monthly', rentAmount: 1500 }),
+    );
+    expect(validMonthly.rentType).toBe('Monthly');
+    expect(validMonthly.rentMonths).toBeUndefined();
+  });
+
+  it('accepts a Monthly GRN that omits both rentAmount and rentMonths', () => {
+    const unconfiguredMonthly = createGrnSchema.parse(
+      grnPayload({
+        bagType: 'B',
+        bigBagWeight: 80,
+        rentType: 'Monthly',
+        rentAmount: undefined,
+        rentMonths: undefined,
+      }),
+    );
+    expect(unconfiguredMonthly.rentType).toBe('Monthly');
+    expect(unconfiguredMonthly.rentAmount).toBeUndefined();
+    expect(unconfiguredMonthly.rentMonths).toBeUndefined();
   });
 
   it('accepts a Seasonal GRN with no operator-supplied month count', () => {

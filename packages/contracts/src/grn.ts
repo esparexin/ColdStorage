@@ -87,13 +87,17 @@ export const createGrnSchema = z
   })
   .refine(
     (data) => {
-      if (data.rentType === 'Monthly') {
-        return typeof data.rentMonths === 'number' && data.rentMonths >= 1;
+      if (data.rentType === 'Seasonal') {
+        return data.rentMonths === null || data.rentMonths === undefined;
       }
-      return data.rentMonths === null || data.rentMonths === undefined;
+      return (
+        data.rentMonths === null ||
+        data.rentMonths === undefined ||
+        (typeof data.rentMonths === 'number' && data.rentMonths >= 1)
+      );
     },
     {
-      message: "rentMonths (>= 1) is required for 'Monthly' rent and must be omitted for 'Seasonal'",
+      message: "rentMonths must be omitted for 'Seasonal' rent",
       path: ['rentMonths'],
     },
   )

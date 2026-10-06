@@ -78,7 +78,7 @@ const grnSchema = new Schema<GrnDoc>(
     rentType: { type: String, required: true, enum: ['Monthly', 'Seasonal'] },
     /** Seasonal is always the fixed 10-month period; Monthly carries the operator's count. */
     rentMonths: { type: Number, default: null },
-    rentAmount: { type: Number, required: true, min: 0 },
+    rentAmount: { type: Number, default: null, min: 0 },
     bagPrice: { type: Number, default: null },
     smallBagPrice: { type: Number, default: null },
     bigBagPrice: { type: Number, default: null },
