@@ -3,34 +3,6 @@ import { computeRentBalance, type RentBalance } from './rent-balance.js';
 import { RentPaymentModel } from '../../database/models/rent-payment.model.js';
 import { rentExtensionRepository } from '../rent/rent-extension.repository.js';
 
-export class RentPaymentRequiredError extends Error {
-  public readonly statusCode = 402;
-  public readonly code = 'RENT_PAYMENT_REQUIRED';
-  public readonly grnId: string;
-  public readonly grnNumber: string;
-  public readonly rentAmount: number;
-  public readonly totalPaid: number;
-  public readonly remainingBalance: number;
-
-  constructor(args: {
-    grnId: string;
-    grnNumber: string;
-    rentAmount: number;
-    totalPaid: number;
-    remainingBalance: number;
-  }) {
-    super(
-      `Rent payment required for GRN '${args.grnNumber}': paid ₹${args.totalPaid} of ₹${args.rentAmount}, remaining ₹${args.remainingBalance}. Complete rent payment before outward movement.`,
-    );
-    this.name = 'RentPaymentRequiredError';
-    this.grnId = args.grnId;
-    this.grnNumber = args.grnNumber;
-    this.rentAmount = args.rentAmount;
-    this.totalPaid = args.totalPaid;
-    this.remainingBalance = args.remainingBalance;
-  }
-}
-
 export type RentGateResult = RentBalance;
 
 /**
