@@ -88,7 +88,11 @@ export function GrnDetailModal({
                 variant="outline"
                 size="sm"
                 onClick={() => onCorrect(grn)}
-                title="Edit / Correct GRN details"
+                title={
+                  (grn.netDeliveredBags ?? 0) > 0
+                    ? 'Stock has moved — only chamber may be corrected; reverse active deliveries first'
+                    : 'Edit / Correct GRN details'
+                }
                 leftIcon={<Edit2 size={13} aria-hidden="true" />}
               >
                 Edit

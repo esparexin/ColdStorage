@@ -56,7 +56,7 @@ export async function correctGrn(
       }
       if (grn.status === 'CLOSED') {
         throw new Error(
-          `Cannot correct GRN '${grn.grnNumber}': it is CLOSED and its stock has been fully delivered`,
+          `GRN_CLOSED: Cannot correct GRN '${grn.grnNumber}': it is CLOSED and its stock has been fully delivered`,
         );
       }
 
@@ -67,7 +67,7 @@ export async function correctGrn(
 
       if (activeChallans > 0) {
         throw new Error(
-          `Cannot correct GRN '${grn.grnNumber}': stock has already been delivered. Use the delivery reversal workflow instead.`,
+          `GRN_ACTIVE_DELIVERY: Cannot correct GRN '${grn.grnNumber}': stock has already been delivered. Use the delivery reversal workflow instead.`,
         );
       }
 
@@ -83,7 +83,7 @@ export async function correctGrn(
 
       if (hasMovement && (wantsBagsChange || wantsCommodityChange)) {
         throw new Error(
-          `Cannot correct bags or commodity on GRN '${grn.grnNumber}': stock has already moved and ` +
+          `GRN_MOVED: Cannot correct bags or commodity on GRN '${grn.grnNumber}': stock has already moved and ` +
             `the ledger has recorded the original figures. Only the chamber label may still be corrected.`,
         );
       }

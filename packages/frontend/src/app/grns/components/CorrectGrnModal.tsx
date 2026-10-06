@@ -10,6 +10,7 @@ interface CorrectGrnModalProps {
   grn: Grn;
   facilityId: string;
   commodities: Commodity[];
+  movementGuard?: { hasMovement: boolean; hasActiveIssued: boolean } | null;
   onClose: () => void;
   onSuccess: (updatedGrn: Grn) => void;
 }
@@ -18,10 +19,26 @@ export function CorrectGrnModal({
   grn,
   facilityId,
   commodities,
+  movementGuard = null,
   onClose,
   onSuccess,
 }: CorrectGrnModalProps) {
-  const hasDeliveredStock = Boolean((grn.netDeliveredBags && grn.netDeliveredBags > 0) || grn.status === 'CLOSED');
+  const isClosed = grn.status === 'CLOSED';
+  // Backend SSOT (update-grn.handler): ANY challan/reversal history freezes bags/commodity
+  // (even after full reversal); an active ISSUED challan blocks every correction.
+  // movementGuard carries the ledger-derived verdict; without it use the receipt heuristic.
+  const hasMovement =
+    (movementGuard?.hasMovement ?? false) || isClosed || (grn.netDeliveredBags ?? 0) > 0;
+  const fieldsLocked = isClosed || hasMovement;
+  // Single source for the guard reason: submit errors and the notice banner read the same text.
+  const guardMessages = {
+    closed: `Cannot correct GRN '${grn.grnNumber}': it is CLOSED and its stock has been fully delivered.`,
+    blocked: `Cannot correct GRN '${grn.grnNumber}': stock has already been delivered. Use the delivery reversal workflow instead.`,
+    locked: 'Stock has already moved against this GRN. Commodity and Bag counts are locked to preserve ledger integrity. Only the Chamber label may be corrected.',
+  };
+  const activeBlocked = movementGuard?.hasActiveIssued ?? false;
+  const guardState =
+    isClosed ? 'closed' : activeBlocked ? 'blocked' : fieldsLocked ? 'locked' : null;
   const [commodityId, setCommodityId] = useState(grn.commodityId);
   const [chamber, setChamber] = useState(grn.chamber);
   const [bags, setBags] = useState<number | ''>(grn.bags);
@@ -32,13 +49,14 @@ export function CorrectGrnModal({
   const [error, setError] = useState<string | null>(null);
 
   const isMixed = grn.bagType === 'S+B';
-  const computedTotal = isMixed
-    ? (Number(smallBags) || 0) + (Number(bigBags) || 0)
-    : Number(bags) || 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (guardState === 'closed' || guardState === 'blocked') {
+      setError(guardMessages[guardState]);
+      return;
+    }
     const trimmedChamber = chamber.trim();
     const trimmedReason = reason.trim();
 
@@ -52,14 +70,10 @@ export function CorrectGrnModal({
     }
 
     const payload: Record<string, unknown> = { reason: trimmedReason };
-    let hasChange = false;
+    let hasChange = trimmedChamber !== grn.chamber;
+    if (hasChange) payload.chamber = trimmedChamber;
 
-    if (trimmedChamber !== grn.chamber) {
-      payload.chamber = trimmedChamber;
-      hasChange = true;
-    }
-
-    if (!hasDeliveredStock) {
+    if (!fieldsLocked) {
       if (commodityId !== grn.commodityId) {
         payload.commodityId = commodityId;
         hasChange = true;
@@ -128,7 +142,10 @@ export function CorrectGrnModal({
           <Button variant="outline" size="sm" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button variant="primary" size="sm" onClick={handleSubmit} isLoading={submitting} disabled={submitting}>
+          <Button
+            variant="primary" size="sm" onClick={handleSubmit} isLoading={submitting}
+            disabled={submitting || guardState === 'closed' || guardState === 'blocked'}
+          >
             Save Corrections
           </Button>
         </div>
@@ -136,16 +153,14 @@ export function CorrectGrnModal({
     >
       <form onSubmit={handleSubmit} className={styles.modalForm}>
         {error && <Banner message={error} />}
-        {hasDeliveredStock && (
-          <Banner message="Stock has already moved against this GRN. Commodity and Bag counts are locked to preserve ledger integrity. Only the Chamber label may be corrected." />
-        )}
+        {guardState && <Banner message={guardMessages[guardState]} />}
         <div className={styles.formGroup}>
           <Select
             id="grn-edit-commodity"
             label="Commodity"
             value={commodityId}
             onChange={(e) => setCommodityId(e.target.value)}
-            disabled={hasDeliveredStock || submitting}
+            disabled={fieldsLocked || submitting}
           >
             {activeCommodities.map((c) => (
               <option key={c.id} value={c.id}>
@@ -175,7 +190,7 @@ export function CorrectGrnModal({
                 min={0}
                 value={smallBags}
                 onChange={(e) => setSmallBags(e.target.value === '' ? '' : Number(e.target.value))}
-                disabled={hasDeliveredStock || submitting}
+                disabled={fieldsLocked || submitting}
                 required
               />
             </div>
@@ -187,7 +202,7 @@ export function CorrectGrnModal({
                 min={0}
                 value={bigBags}
                 onChange={(e) => setBigBags(e.target.value === '' ? '' : Number(e.target.value))}
-                disabled={hasDeliveredStock || submitting}
+                disabled={fieldsLocked || submitting}
                 required
               />
             </div>
@@ -201,14 +216,14 @@ export function CorrectGrnModal({
               min={1}
               value={bags}
               onChange={(e) => setBags(e.target.value === '' ? '' : Number(e.target.value))}
-              disabled={hasDeliveredStock || submitting}
+              disabled={fieldsLocked || submitting}
               required
             />
           </div>
         )}
         {isMixed && (
           <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: 'calc(-1 * var(--space-2))' }}>
-            Total Bags: <strong>{computedTotal}</strong>
+            Total Bags: <strong>{(Number(smallBags) || 0) + (Number(bigBags) || 0)}</strong>
           </div>
         )}
         <div className={styles.formGroup}>
