@@ -197,6 +197,25 @@ if grep -rn "generateBondNumber" "$ROOT/packages/backend/src" --include="*.ts" -
   fail "Business-key SSOT violation: no BND- bond number may be minted per receipt; the GR Number is displayed as Bond #."
 fi
 
+# 23b. The GR Number is entered by the operator as exactly four digits and is never allocated.
+# A counter-backed generator would silently reintroduce sequencing the manual flow deliberately
+# drops, and a read-only form field would reintroduce the value the operator is meant to own.
+# The guidance endpoint may only report a suggestion; it must not gate submission.
+if grep -rnE "generateGrnNumber|previewNextGrnNumber|DOCUMENT_PREFIXES\.grn" \
+  "$ROOT/packages/backend/src" "$ROOT/packages/frontend/src" --include="*.ts" --include="*.tsx" \
+  --exclude-dir=__tests__ 2>/dev/null; then
+  fail "Business-key SSOT violation: the GR Number is manual and unsequenced; a counter-backed generator or preview must not return."
+fi
+if ! grep -q "input.grnNumber" \
+  "$ROOT/packages/backend/src/modules/grn/handlers/create-grn.handler.ts" 2>/dev/null; then
+  fail "Business-key SSOT violation: create-grn.handler.ts must persist the operator-entered input.grnNumber verbatim."
+fi
+if grep -rnE "create-gr-number.*readOnly|create-gr-number" \
+  "$ROOT/packages/frontend/src/app/grns/components/CreateGrnModal.tsx" 2>/dev/null \
+  | grep -q "readOnly"; then
+  fail "Business-key SSOT violation: the GR Number input must be operator-editable, not read-only."
+fi
+
 # 24. Compact action overrides. Table actions use DS Button size=sm directly; a competing
 # .actionBtn class that re-imposes 11px/24px via !important is how compact tables drifted
 # off the type scale. Keep the scale in tokens.css, not in feature overrides.
