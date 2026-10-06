@@ -28,7 +28,7 @@ export function renderChallanTemplate(dto: ChallanDocumentDto): string {
         <th>Challan Status</th>
         <td><strong>${escapeHtml(dto.status)}</strong></td>
       </tr>
-      ${dto.partyMark ? `<tr><th>Party Mark</th><td colspan="3"><strong>${escapeHtml(dto.partyMark)}</strong></td></tr>` : ''}
+      ${dto.partyMark ? `<tr><th>Party Mark</th><td colspan="${dto.weight != null ? 1 : 3}"><strong>${escapeHtml(dto.partyMark)}</strong></td>${dto.weight != null ? `<th>Dispatch Weight</th><td>${dto.weight} kg</td>` : ''}</tr>` : dto.weight != null ? `<tr><th>Dispatch Weight</th><td colspan="3">${dto.weight} kg</td></tr>` : ''}
     </table>
 
     <div style="margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 13px;">

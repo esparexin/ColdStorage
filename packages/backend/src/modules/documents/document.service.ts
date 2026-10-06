@@ -158,6 +158,7 @@ export class DocumentService {
       smallBags: challan.smallBags,
       bigBags: challan.bigBags,
       totalBags: challan.smallBags + challan.bigBags,
+      weight: challan.weight ?? null,
       vehicleNumber: challan.vehicleNumber ?? null,
       driverName: challan.driverName ?? null,
       issuedBy: challan.issuedBy,

@@ -123,6 +123,7 @@ export const challanDocumentDtoSchema = z.object({
   smallBags: z.number().int().min(0),
   bigBags: z.number().int().min(0),
   totalBags: z.number().int().positive(),
+  weight: z.number().nullable().optional(),
   vehicleNumber: z.string().nullable().optional(),
   driverName: z.string().nullable().optional(),
   issuedBy: z.string(),

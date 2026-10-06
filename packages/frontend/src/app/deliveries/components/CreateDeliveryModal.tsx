@@ -39,7 +39,7 @@ export function CreateDeliveryModal({
   initialGrnId,
 }: CreateDeliveryModalProps) {
   const form = useCreateDeliveryForm(facilityId, onSuccess, initialGrnId);
-  const { createGrnId, clearRentRequired, refreshRentGate } = form;
+  const { createGrnId, refreshRentGate } = form;
 
   useEffect(() => {
     void form.fetchAvailableGrns();
@@ -53,10 +53,9 @@ export function CreateDeliveryModal({
 
   useEffect(() => {
     if (rentPaidTick > 0 && createGrnId) {
-      clearRentRequired();
       void refreshRentGate(facilityId, createGrnId);
     }
-  }, [rentPaidTick, createGrnId, facilityId, clearRentRequired, refreshRentGate]);
+  }, [rentPaidTick, createGrnId, facilityId, refreshRentGate]);
 
   const grnError = form.fieldErrors.grn;
 

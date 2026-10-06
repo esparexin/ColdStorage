@@ -110,6 +110,7 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).toContain('CHL-2026-5001');
     expect(html).toContain('CH-03');
     expect(html).toContain('PM-42');
+    expect(html).toContain('4000 kg');
     expect(html).toContain('DL-01-AA-4321');
     expect(html).toContain('Karamjit Singh');
     expect(html).toContain('Gate Pass Declaration');

@@ -11,11 +11,6 @@ import { validateDeliveryForm } from './deliveryFormValidation.helper';
 import { buildDeliveryPayload } from './deliveryPayload.helper';
 import type { GrnWithdrawal } from '../types';
 
-export interface RentRequiredPayload {
-  code: 'RENT_PAYMENT_REQUIRED';
-  rent: { grnId: string; grnNumber: string; rentAmount: number; totalPaid: number; remainingBalance: number };
-}
-
 export function useCreateDeliveryForm(
   facilityId: string,
   onSuccess: (newDelivery: DeliveryChallan, summary?: DeliverySummary) => void,
@@ -40,7 +35,6 @@ export function useCreateDeliveryForm(
   const [modalError, setModalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [rentRequired, setRentRequired] = useState<RentRequiredPayload | null>(null);
   const rentGate = useRentGate();
 
   const clearFieldError = (key: string) => {
@@ -72,7 +66,6 @@ export function useCreateDeliveryForm(
       setCreateGrnId(grnId);
       setGrnSummary(null);
       setWithdrawal({ availableSmall: 0, availableBig: 0, smallBags: '', bigBags: '' });
-      setRentRequired(null);
       setFieldErrors({});
       rentGate.resetRentGate();
       if (!facilityId || !grnId) return;
@@ -169,17 +162,11 @@ export function useCreateDeliveryForm(
       );
 
       if (!res.ok) {
-        const data = (await res.json()) as { error?: string; code?: string; rent?: RentRequiredPayload['rent'] };
-        if (res.status === 402 && data.code === 'RENT_PAYMENT_REQUIRED' && data.rent) {
-          setRentRequired({ code: 'RENT_PAYMENT_REQUIRED', rent: data.rent });
-          await rentGate.refreshRentGate(facilityId, createGrnId);
-          throw new Error(data.error ?? 'Rent payment required before issuing delivery challan');
-        }
+        const data = (await res.json()) as { error?: string };
         throw new Error(data.error ?? `Delivery failed with HTTP ${res.status}`);
       }
 
       const responseData = (await res.json()) as { delivery: DeliveryChallan; summary?: DeliverySummary };
-      setRentRequired(null);
       onSuccess(responseData.delivery, responseData.summary);
     } catch (err: unknown) {
       setModalError(err instanceof Error ? err.message : 'Failed to issue delivery challan');
@@ -241,8 +228,6 @@ export function useCreateDeliveryForm(
     rentLoading: rentGate.rentLoading,
     rentBlocked: rentGate.rentBlocked,
     rentPartial: rentGate.rentPartial,
-    rentRequired,
     refreshRentGate: rentGate.refreshRentGate,
-    clearRentRequired: useCallback(() => setRentRequired(null), []),
   };
 }
