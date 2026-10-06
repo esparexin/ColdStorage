@@ -186,16 +186,18 @@ export function GrnDetailModal({
 
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Chamber</span>
-              <span className={styles.detailValue}>Chamber {grn.chamber}</span>
+              <span className={styles.detailValue}>{grn.chamber}</span>
             </div>
 
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Bags Accounting</span>
               <span className={styles.detailValue}>
-                {grn.bags.toLocaleString('en-IN')} Bags (Type: {grn.bagType})
+                {grn.bags.toLocaleString('en-IN')} Inward (Type: {grn.bagType})
+                {grn.netDeliveredBags != null && grn.netDeliveredBags > 0 ? (
+                  <> • {grn.netDeliveredBags.toLocaleString('en-IN')} Outward • {(grn.closingBags ?? (grn.bags - grn.netDeliveredBags)).toLocaleString('en-IN')} Bal</>
+                ) : null}
               </span>
             </div>
-
 
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Rent Structure</span>
