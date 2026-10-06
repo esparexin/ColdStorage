@@ -119,13 +119,24 @@ export function CreateDeliveryModal({
               <div className={styles.grnDetailItem}>
                 <span className={styles.detailLabel}>Storage Mark</span>
                 <span className={styles.detailValue}>
-                  {form.selectedGrn.storageMark || '—'}
+                  {/*
+                    The Inward Form shows Storage Mark as a read-only mirror of the GR Number
+                    and never stores a separate value, so fall back to the GR Number exactly
+                    like the GRN detail view does instead of rendering a bare dash.
+                  */}
+                  {form.selectedGrn.storageMark || form.selectedGrn.grnNumber}
                 </span>
               </div>
               <div className={styles.grnDetailItem}>
                 <span className={styles.detailLabel}>Party Mark</span>
                 <span className={styles.detailValue}>
                   {form.selectedGrn.partyMark || '—'}
+                </span>
+              </div>
+              <div className={styles.grnDetailItem}>
+                <span className={styles.detailLabel}>Received</span>
+                <span className={styles.detailValue}>
+                  {form.selectedGrn.bags.toLocaleString('en-IN')} bags
                 </span>
               </div>
             </div>
@@ -183,11 +194,13 @@ export function CreateDeliveryModal({
                 </div>
               )}
 
-              {form.grnSummary && (
+              {form.grnSummary && form.selectedGrn && (
                 <>
                   <DeliveryBagCompositionFields
                     summary={form.grnSummary}
+                    bagType={form.selectedGrn.bagType}
                     withdrawal={form.withdrawal}
+                    onQuantityChange={form.setWithdrawalQuantity}
                     onSmallBagsChange={form.setWithdrawalSmallBags}
                     onBigBagsChange={form.setWithdrawalBigBags}
                     fieldErrors={form.fieldErrors}

@@ -8,6 +8,7 @@ import type {
 import { requestWithAuth } from '@/lib/api-client';
 import { useRentGate } from '@/hooks/useRentGate';
 import { validateDeliveryForm } from './deliveryFormValidation.helper';
+import { buildDeliveryPayload } from './deliveryPayload.helper';
 import type { GrnWithdrawal } from '../types';
 
 export interface RentRequiredPayload {
@@ -146,28 +147,17 @@ export function useCreateDeliveryForm(
     setFieldErrors({});
 
     try {
-      const payload: Record<string, unknown> = {
+      const payload = buildDeliveryPayload({
         grnId: createGrnId,
-        date: new Date(createDate),
+        createDate,
         smallBags,
         bigBags,
-      };
-
-      if (createVehicleNumber.trim()) {
-        payload.vehicleNumber = createVehicleNumber.trim().toUpperCase();
-      }
-      if (createDriverName.trim()) {
-        payload.driverName = createDriverName.trim();
-      }
-      if (createWeight !== '' && typeof createWeight === 'number' && createWeight > 0) {
-        payload.weight = createWeight;
-      }
-      if (createGpNumber.trim()) {
-        payload.gpNumber = createGpNumber.trim();
-      }
-      if (createRemarks.trim()) {
-        payload.remarks = createRemarks.trim();
-      }
+        createVehicleNumber,
+        createDriverName,
+        createWeight,
+        createGpNumber,
+        createRemarks,
+      });
 
       const res = await requestWithAuth(
         `/api/facilities/${encodeURIComponent(facilityId)}/deliveries`,
@@ -214,6 +204,17 @@ export function useCreateDeliveryForm(
     setWithdrawalBigBags: (val: number | '') => {
       setWithdrawal((prev) => ({ ...prev, bigBags: val }));
       clearFieldError('bags');
+      clearFieldError('bigBags');
+    },
+    /** Single-quantity entry mapped onto the GRN's available side (two-sided uses side setters). */
+    setWithdrawalQuantity: (val: number | '') => {
+      setWithdrawal((prev) => {
+        if (prev.availableBig === 0) return { ...prev, smallBags: val, bigBags: 0 };
+        if (prev.availableSmall === 0) return { ...prev, smallBags: 0, bigBags: val };
+        return prev;
+      });
+      clearFieldError('bags');
+      clearFieldError('smallBags');
       clearFieldError('bigBags');
     },
     createVehicleNumber,

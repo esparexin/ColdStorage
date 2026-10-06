@@ -45,7 +45,11 @@ export function validateDeliveryForm(input: ValidateDeliveryFormInput): Delivery
   }
 
   if (input.totalWithdrawingBags <= 0) {
-    errors.bags = 'Please enter at least 1 bag (small or big) to deliver';
+    errors.bags = 'Please enter at least 1 bag to deliver';
+  }
+
+  if (input.totalWithdrawingBags > input.availableSmall + input.availableBig) {
+    errors.bags = `Cannot deliver ${input.totalWithdrawingBags} bags (only ${input.availableSmall + input.availableBig} available)`;
   }
 
   if (input.smallBags > input.availableSmall) {

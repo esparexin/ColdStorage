@@ -55,7 +55,15 @@ describe('validateDeliveryForm', () => {
       makeInput({ smallBags: 0, bigBags: 0, totalWithdrawingBags: 0 }),
     );
     expect(result.isValid).toBe(false);
-    expect(result.errors.bags).toBe('Please enter at least 1 bag (small or big) to deliver');
+    expect(result.errors.bags).toBe('Please enter at least 1 bag to deliver');
+  });
+
+  it('rejects delivery exceeding total available stock', () => {
+    const result = validateDeliveryForm(
+      makeInput({ smallBags: 60, bigBags: 50, totalWithdrawingBags: 110 }),
+    );
+    expect(result.isValid).toBe(false);
+    expect(result.errors.bags).toBe('Cannot deliver 110 bags (only 100 available)');
   });
 
   it('rejects small bags exceeding available stock', () => {
