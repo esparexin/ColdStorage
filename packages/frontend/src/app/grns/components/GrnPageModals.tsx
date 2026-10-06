@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import type { Commodity, Customer, Grn, GrnMovementHistory } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
-import { CorrectGrnModal } from './CorrectGrnModal';
 import { CreateGrnModal } from './CreateGrnModal';
 import { GrnDetailModal } from './GrnDetailModal';
 import { InternalMovementModal } from './InternalMovementModal';
@@ -144,10 +143,12 @@ export function GrnPageModals({
       )}
 
       {correctModalGrn && selectedFacilityId && (
-        <CorrectGrnModal
-          grn={correctModalGrn}
+        <CreateGrnModal
           facilityId={selectedFacilityId}
+          customers={customers}
           commodities={commodities}
+          mode="edit"
+          initialGrn={correctModalGrn}
           movementGuard={correctionGuard}
           onClose={onCloseCorrectModal}
           onSuccess={onGrnCorrected}

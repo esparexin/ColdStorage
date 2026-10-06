@@ -2,26 +2,48 @@ import { useEffect, useState } from 'react';
 import { calculateRentAmount, SEASONAL_RENT_MONTHS } from '@cold-storage/contracts';
 import type { BagType, Commodity, Customer, Grn, LoanStatus, RentType } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
-import { buildCreateGrnPayload, parseNumericInput, validateCreateGrnForm } from './createGrnForm.helper';
+import {
+  buildCreateGrnPayload,
+  buildEditGrnPayload,
+  parseNumericInput,
+  toDateInput,
+  validateCreateGrnForm,
+} from './createGrnForm.helper';
+import { submitCreateGrn, submitEditGrn } from './grnFormSubmit.helper';
 
 export { parseNumericInput };
 
 export function useCreateGrnForm(
-  facilityId: string, customers: Customer[], commodities: Commodity[], onSuccess: (newGrn: Grn) => void,
+  facilityId: string,
+  customers: Customer[],
+  commodities: Commodity[],
+  onSuccess: (savedGrn: Grn) => void,
+  mode: 'create' | 'edit' = 'create',
+  initialGrn?: Grn | null,
+  structuralLocked = false,
+  guardState?: 'closed' | 'partial' | 'locked' | null,
 ) {
-  const [createDate, setCreateDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [createCustomerId, setCreateCustomerId] = useState(''), [createCommodityId, setCreateCommodityId] = useState('');
-  const [createChamber, setCreateChamber] = useState(''), [createBagType, setCreateBagType] = useState<BagType>('S');
-  const [createBags, setCreateBags] = useState<number | ''>('');
-  const [createRentType, setCreateRentType] = useState<RentType>('Seasonal'), [createRentMonths, setCreateRentMonths] = useState<number | ''>('');
-  const [createBagPrice, setCreateBagPrice] = useState<number | ''>('');
-  const [createRentAmount, setCreateRentAmount] = useState<number | ''>('');
-  const [createPartyMark, setCreatePartyMark] = useState('');
+  const isEdit = mode === 'edit' && Boolean(initialGrn);
+  const [createDate, setCreateDate] = useState(() =>
+    isEdit ? toDateInput(initialGrn?.date) : new Date().toISOString().split('T')[0],
+  );
+  const [createCustomerId, setCreateCustomerId] = useState(isEdit ? initialGrn!.customerId : '');
+  const [createCommodityId, setCreateCommodityId] = useState(isEdit ? initialGrn!.commodityId : '');
+  const [createChamber, setCreateChamber] = useState(isEdit ? initialGrn!.chamber : '');
+  const [createBagType, setCreateBagType] = useState<BagType>(isEdit ? initialGrn!.bagType : 'S');
+  const [createBags, setCreateBags] = useState<number | ''>(isEdit ? initialGrn!.bags : '');
+  const [createRentType, setCreateRentType] = useState<RentType>(isEdit ? initialGrn!.rentType : 'Seasonal');
+  const [createRentMonths, setCreateRentMonths] = useState<number | ''>(isEdit ? (initialGrn!.rentMonths ?? '') : '');
+  const [createBagPrice, setCreateBagPrice] = useState<number | ''>(isEdit ? (initialGrn!.bagPrice ?? '') : '');
+  const [createRentAmount, setCreateRentAmount] = useState<number | ''>(isEdit ? initialGrn!.rentAmount : '');
+  const [createPartyMark, setCreatePartyMark] = useState(isEdit ? (initialGrn!.partyMark ?? '') : '');
   const [suggestedGrnNumber, setSuggestedGrnNumber] = useState('');
   const [lastCreatedGrn, setLastCreatedGrn] = useState<string | null>(null);
-  const [createGrnNumber, setCreateGrnNumber] = useState('');
-  const [createVehicleNumber, setCreateVehicleNumber] = useState(''), [createRemarks, setCreateRemarks] = useState('');
-  const [isBondForLoan, setIsBondForLoan] = useState(false), [loanStatus, setLoanStatus] = useState<LoanStatus>('NONE');
+  const [createGrnNumber, setCreateGrnNumber] = useState(isEdit ? initialGrn!.grnNumber.slice(-4) : '');
+  const [createVehicleNumber, setCreateVehicleNumber] = useState(isEdit ? (initialGrn!.vehicleNumber ?? '') : '');
+  const [createRemarks, setCreateRemarks] = useState(isEdit ? (initialGrn!.remarks ?? '') : '');
+  const [isBondForLoan, setIsBondForLoan] = useState(isEdit ? (initialGrn!.isBondForLoan ?? false) : false);
+  const [loanStatus, setLoanStatus] = useState<LoanStatus>(isEdit ? (initialGrn!.loanStatus ?? 'NONE') : 'NONE');
   const [modalError, setModalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -44,18 +66,15 @@ export function useCreateGrnForm(
   const clearFieldError = (key: string) => {
     setFieldErrors((prev) => {
       if (!prev[key]) return prev;
-      const copy = { ...prev };
-      delete copy[key];
-      return copy;
+      const { [key]: _, ...rest } = prev;
+      return rest;
     });
   };
 
   const focusField = (fieldId: string) => {
-    if (typeof document !== 'undefined') {
-      const el = document.getElementById(fieldId);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el?.focus();
-    }
+    const el = typeof document !== 'undefined' ? document.getElementById(fieldId) : null;
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el?.focus();
   };
 
   const autoComputeRent = (overrides?: Partial<{
@@ -102,6 +121,51 @@ export function useCreateGrnForm(
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isEdit && initialGrn) {
+      if (guardState === 'closed') {
+        setModalError(`Cannot correct GRN '${initialGrn.grnNumber}': it is CLOSED and its stock has been fully delivered`);
+        return;
+      }
+      const trimmedChamber = createChamber.trim();
+      if (!trimmedChamber || trimmedChamber.length > 20) {
+        setFieldErrors({ chamber: 'Chamber is required (max 20 characters)' });
+        setModalError('Chamber is required (max 20 characters)');
+        return;
+      }
+      const { payload, hasChanges } = buildEditGrnPayload({
+        initialGrn,
+        structuralLocked,
+        createCustomerId,
+        createDate,
+        createCommodityId,
+        createChamber,
+        createBags,
+        createBagType,
+        createRentType,
+        createRentMonths,
+        createRentAmount,
+        createBagPrice,
+        createPartyMark,
+        createVehicleNumber,
+        createRemarks,
+      });
+      if (!hasChanges) {
+        setModalError('No changes detected to save');
+        return;
+      }
+      setSubmitting(true);
+      setModalError(null);
+      try {
+        const updated = await submitEditGrn(facilityId, initialGrn.id, payload);
+        onSuccess(updated);
+      } catch (err: unknown) {
+        setModalError(err instanceof Error ? err.message : 'Failed to update GRN');
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     const { errors, parsedChamber, normalizedVehicle } = validateCreateGrnForm({
       createCustomerId, createCommodityId, createChamber, createBags, createBagType,
       createGrnNumber, createRentType, createRentMonths, createRentAmount,
@@ -140,19 +204,8 @@ export function useCreateGrnForm(
         isBondForLoan, loanStatus,
       });
 
-      const res = await requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
-        throw new Error(data.error ?? `Creation failed with HTTP ${res.status}`);
-      }
-
-      const responseData = (await res.json()) as { grn: Grn };
-      onSuccess(responseData.grn);
+      const created = await submitCreateGrn(facilityId, payload);
+      onSuccess(created);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to create GRN';
       setModalError(msg);

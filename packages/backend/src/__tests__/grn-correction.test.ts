@@ -140,16 +140,16 @@ describe('GRN Correction Workflow (PATCH /api/facilities/:facilityId/grns/:grnId
     const noField = await correct({ reason: 'Nothing actually changes here' });
     expect(noField.status).toBe(400);
 
-    const unknownKey = await correct({ rentAmount: 1, reason: 'Trying to change the rent' });
+    const unknownKey = await correct({ grnNumber: 'GRN-99', reason: 'Trying to change the key' });
     expect(unknownKey.status).toBe(400);
     expect(unknownKey.body.error).toBe('Validation failed');
   });
 
-  it('rejects every immutable financial/identity/numbering field as unknown', async () => {
+  it('rejects every permanently immutable numbering/lien field as unknown', async () => {
     const frozen = [
       { grnNumber: 'GRN-99' }, { inwardReceiptNumber: 'RCPT-99' }, { billNumber: 'B-99' },
-      { customerId: 'cust-other' }, { rentAmount: 1 }, { rentType: 'Monthly' }, { rentMonths: 3 },
-      { loanStatus: 'TAKEN' }, { bondNumber: 'BND-1' }, { bagType: 'B' }, { vehicleNumber: 'GJ-01' },
+      { loanStatus: 'TAKEN' }, { bondNumber: 'BND-1' }, { status: 'CLOSED' },
+      { facilityId: 'fac-other' }, { isBondForLoan: true },
     ];
     for (const extra of frozen) {
       const res = await correct({ ...extra, reason: 'Trying to change a frozen field' });

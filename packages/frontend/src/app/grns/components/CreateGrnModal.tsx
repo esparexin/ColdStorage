@@ -6,6 +6,7 @@ import { Button, ConfirmDialog, Input, Modal, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { BondLoanSection } from './BondLoanSection';
+import { CustomerCombobox } from './CustomerCombobox';
 import { TransportLogisticsSection } from './TransportLogisticsSection';
 import { useCustomerCombobox } from '../hooks/useCustomerCombobox';
 import { parseNumericInput, useCreateGrnForm } from '../hooks/useCreateGrnForm';
@@ -13,24 +14,46 @@ import { CustomerFormModal } from '../../customers/components/CustomerFormModal'
 import { CommodityFormModal } from '../../commodities/components/CommodityFormModal';
 import styles from '../page.module.css';
 
-interface CreateGrnModalProps {
-  facilityId: string; customers: Customer[]; commodities: Commodity[];
-  onClose: () => void; onSuccess: (newGrn: Grn) => void;
-  onCustomerAdded?: () => void; onCommodityAdded?: () => void;
+export interface CreateGrnModalProps {
+  facilityId: string;
+  customers: Customer[];
+  commodities: Commodity[];
+  onClose: () => void;
+  onSuccess: (savedGrn: Grn) => void;
+  onCustomerAdded?: () => void;
+  onCommodityAdded?: () => void;
+  mode?: 'create' | 'edit';
+  initialGrn?: Grn | null;
+  movementGuard?: { hasMovement: boolean; hasActiveIssued: boolean } | null;
 }
 
 export function CreateGrnModal({
   facilityId, customers, commodities, onClose, onSuccess, onCustomerAdded, onCommodityAdded,
+  mode = 'create', initialGrn = null, movementGuard = null,
 }: CreateGrnModalProps) {
-  const form = useCreateGrnForm(facilityId, customers, commodities, onSuccess);
+  const isEdit = mode === 'edit' && Boolean(initialGrn);
+  const isClosed = initialGrn?.status === 'CLOSED';
+  const hasMovement = Boolean(
+    movementGuard?.hasMovement || isClosed || (initialGrn && (initialGrn.netDeliveredBags ?? 0) > 0),
+  );
+  const structuralLocked = isEdit && (isClosed || hasMovement);
+  const guardMessage = isClosed
+    ? `Cannot correct GRN '${initialGrn?.grnNumber}': it is CLOSED and its stock has been fully delivered.`
+    : isEdit && (initialGrn?.netDeliveredBags ?? 0) > 0
+    ? `Partially delivered (${initialGrn?.netDeliveredBags} bags delivered). Customer, date, commodity and bag count are locked to preserve ledger integrity. Chamber, marks, vehicle, and remarks may be edited.`
+    : isEdit && hasMovement
+    ? `Stock has moved against this GRN. Core identity fields are locked. Chamber, marks, vehicle, and remarks may be edited.`
+    : null;
+
+  const form = useCreateGrnForm(
+    facilityId, customers, commodities, onSuccess, mode, initialGrn, structuralLocked,
+    isClosed ? 'closed' : hasMovement ? 'locked' : null,
+  );
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [isAddingCommodity, setIsAddingCommodity] = useState(false);
 
   const customerBox = useCustomerCombobox(
-    customers,
-    form.createCustomerId,
-    form.setCreateCustomerId,
-    () => setIsAddingCustomer(true),
+    customers, form.createCustomerId, form.setCreateCustomerId, () => setIsAddingCustomer(true),
   );
 
   const { attemptExit, isConfirmOpen, confirmExit, cancelExit } = useUnsavedChanges(
@@ -41,111 +64,87 @@ export function CreateGrnModal({
   return (
     <>
     <Modal
-      isOpen onClose={handleAttemptClose} title="Inward of Goods" size="lg"
-      footer={<><Button variant="outline" onClick={handleAttemptClose} disabled={form.submitting}>Cancel</Button><Button id="submit-create-grn-btn" form="create-grn-form" type="submit" variant="primary" disabled={form.submitting} isLoading={form.submitting}>Create Inward of Goods</Button></>}
+      isOpen onClose={handleAttemptClose}
+      title={isEdit && initialGrn ? `Edit GRN: ${initialGrn.grnNumber}` : 'Inward of Goods'}
+      subtitle={isEdit && initialGrn ? `Customer: ${initialGrn.customerName} • Receipt #${initialGrn.inwardReceiptNumber}` : undefined}
+      size="lg"
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+          <Button variant="outline" size="sm" onClick={handleAttemptClose} disabled={form.submitting}>
+            Cancel
+          </Button>
+          <Button
+            id="submit-create-grn-btn" form="create-grn-form" type="submit" variant="primary" size="sm"
+            disabled={form.submitting || isClosed} isLoading={form.submitting}
+          >
+            {isEdit ? 'Save Changes' : 'Create Inward of Goods'}
+          </Button>
+        </div>
+      }
     >
-      <form
-        id="create-grn-form"
-        noValidate
-        onSubmit={form.handleSubmit}
-        className={`${styles.modalForm} ${styles.formSections}`}
-      >
+      <form id="create-grn-form" noValidate onSubmit={form.handleSubmit} className={`${styles.modalForm} ${styles.formSections}`}>
         {form.modalError && <Banner message={form.modalError} id="grn-modal-error" />}
+        {guardMessage && <Banner message={guardMessage} id="grn-guard-banner" />}
 
         <section className={styles.formSection}>
           <div className={styles.sectionHeadingRow}>
             <h3 className={styles.sectionHeading}>Basic Information</h3>
-            {/* Informational only: entry is manual and unsequenced, so this is a hint, not a rule. */}
-            <span className={styles.grnGuidance}>
-              Last Created GRN: {form.lastCreatedGrn ?? '—'} · Next GRN: {form.suggestedGrnNumber || '—'}
-            </span>
+            {!isEdit && (
+              <span className={styles.grnGuidance}>
+                Last Created GRN: {form.lastCreatedGrn ?? '—'} · Next GRN: {form.suggestedGrnNumber || '—'}
+              </span>
+            )}
           </div>
           <div className={styles.formGrid}>
             <div className={styles.fieldGroup}>
               <label htmlFor="create-date" className={styles.fieldLabel}>Inward Date *</label>
-              <input id="create-date" type="date" required value={form.createDate} onChange={(e) => form.setCreateDate(e.target.value)} className={styles.fieldInput} />
+              <input
+                id="create-date" type="date" required disabled={structuralLocked}
+                value={form.createDate} onChange={(e) => form.setCreateDate(e.target.value)}
+                className={`${styles.fieldInput} ${structuralLocked ? styles.calculatedField : ''}`}
+              />
             </div>
-            <div className={styles.fieldGroup}>
-              <div className={styles.fieldLabelRow}>
-                <label htmlFor="create-customer-search" className={styles.fieldLabel}>Customer *</label>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingCustomer(true)}>+ Add</Button>
-              </div>
-              <div className={styles.comboboxWrapper} ref={customerBox.wrapperRef}>
-                <input aria-label="Search customers by name…"
-                  id="create-customer-search" type="text" autoComplete="off"
-                  className={`${styles.comboboxInput} ${form.fieldErrors.customer ? styles.inputError : ''}`}
-                  value={customerBox.displayValue}
-                  placeholder="Search customers by name…"
-                  onFocus={customerBox.open}
-                  onChange={(e) => { customerBox.setQuery(e.target.value); customerBox.setHighlightIdx(0); }}
-                  onKeyDown={customerBox.handleKeyDown}
-                  aria-invalid={Boolean(form.fieldErrors.customer)}
-                />
-                {form.createCustomerId && !customerBox.isOpen && (
-                  <Button type="button" variant="ghost" size="sm" className={styles.comboboxClearBtn} onClick={customerBox.clear} aria-label="Clear customer selection">✕</Button>
-                )}
-                {form.fieldErrors.customer && <span className={styles.fieldErrorText}>{form.fieldErrors.customer}</span>}
-                {customerBox.isOpen && (
-                  <div className={styles.comboboxDropdown} role="listbox">
-                    {customerBox.matches.length > 0 ? (
-                      customerBox.matches.map((c, idx) => (
-                        <div key={c.id} role="option" aria-selected={c.id === form.createCustomerId} className={`${styles.comboboxOption} ${customerBox.highlightIdx === idx ? styles.comboboxOptionActive : ''}`} onMouseDown={() => customerBox.choose(c.id)}>
-                          <span className={styles.comboboxOptionName}>{c.name}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className={styles.comboboxEmpty}>
-                        No customers found
-                        <Button type="button" variant="ghost" size="sm" onMouseDown={(e) => { e.preventDefault(); customerBox.requestAdd(); }}>+ Add Customer</Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+            <CustomerCombobox
+              customerBox={customerBox} customerId={form.createCustomerId} customers={customers}
+              error={form.fieldErrors.customer} disabled={structuralLocked}
+              onAddCustomer={() => setIsAddingCustomer(true)}
+            />
             <div className={styles.fieldGroup}>
               <Select
-                id="create-commodity"
-                label="Commodity"
-                required
-                value={form.createCommodityId}
-                onChange={(e) => form.setCreateCommodityId(e.target.value)}
+                id="create-commodity" label="Commodity" required disabled={structuralLocked}
+                value={form.createCommodityId} onChange={(e) => form.setCreateCommodityId(e.target.value)}
                 error={form.fieldErrors.commodity}
-                rightAction={
+                rightAction={!structuralLocked ? (
                   <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingCommodity(true)}>+ Add</Button>
-                }
+                ) : undefined}
               >
                 <option value="">Select Commodity</option>
                 {commodities.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
               </Select>
             </div>
             <div className={styles.fieldGroup}>
-              <label htmlFor="create-gr-number" className={styles.fieldLabel}>
-                GR Number *
-              </label>
+              <label htmlFor="create-gr-number" className={styles.fieldLabel}>GR Number *</label>
               <input
-                id="create-gr-number"
-                type="text"
-                inputMode="numeric"
-                required
-                maxLength={4}
-                value={form.createGrnNumber}
-                onChange={(e) => form.setCreateGrnNumber(e.target.value)}
+                id="create-gr-number" type="text" inputMode="numeric" required maxLength={4}
+                disabled={isEdit} value={form.createGrnNumber} onChange={(e) => form.setCreateGrnNumber(e.target.value)}
                 placeholder="Enter 4-digit GRN"
-                className={`${styles.fieldInput} ${form.fieldErrors.grnNumber ? styles.inputError : ''}`}
+                className={`${styles.fieldInput} ${form.fieldErrors.grnNumber ? styles.inputError : ''} ${isEdit ? styles.calculatedField : ''}`}
                 aria-invalid={Boolean(form.fieldErrors.grnNumber)}
               />
-              {form.fieldErrors.grnNumber && (
-                <span className={styles.fieldErrorText}>{form.fieldErrors.grnNumber}</span>
-              )}
+              {form.fieldErrors.grnNumber && <span className={styles.fieldErrorText}>{form.fieldErrors.grnNumber}</span>}
             </div>
             <div className={styles.fieldGroup}>
-              <Input id="create-chamber" label="Chamber" type="text" required maxLength={20}
-                value={form.createChamber} onChange={(e) => form.setCreateChamber(e.target.value)}
-                error={form.fieldErrors.chamber} placeholder="e.g. A or CH-01" />
+              <Input
+                id="create-chamber" label="Chamber" type="text" required maxLength={20}
+                disabled={isClosed} value={form.createChamber} onChange={(e) => form.setCreateChamber(e.target.value)}
+                error={form.fieldErrors.chamber} placeholder="e.g. A or CH-01"
+              />
             </div>
             <div className={styles.fieldGroup}>
-              <Select id="create-bag-type" label="Bag Type" required value={form.createBagType} onChange={(e) => form.handleBagTypeChange(e.target.value as BagType)}>
+              <Select
+                id="create-bag-type" label="Bag Type" required disabled={structuralLocked}
+                value={form.createBagType} onChange={(e) => form.handleBagTypeChange(e.target.value as BagType)}
+              >
                 <option value="S">S — Small Bag</option>
                 <option value="B">B — Big Bag</option>
                 <option value="S+B">S&amp;B — Small &amp; Big Bags</option>
@@ -154,34 +153,33 @@ export function CreateGrnModal({
           </div>
         </section>
 
-        {/* Quantity and rent terms share one section: Total Bags is a quantity field and a
-            heading of its own cost a full row for a single input. */}
         <section className={styles.formSection}>
           <h3 className={styles.sectionHeading}>Quantity &amp; Rent Terms</h3>
           <div className={styles.formGrid}>
             <div className={styles.fieldGroup}>
-              <label htmlFor="create-bags" className={styles.fieldLabel}>
-                Total Bags *
-              </label>
+              <label htmlFor="create-bags" className={styles.fieldLabel}>Total Bags *</label>
               <input
-                id="create-bags"
-                type="text"
-                inputMode="numeric"
-                required
-                value={form.createBags}
-                onChange={(e) => form.handleBagsChange(parseNumericInput(e.target.value))}
+                id="create-bags" type="text" inputMode="numeric" required disabled={structuralLocked}
+                value={form.createBags} onChange={(e) => form.handleBagsChange(parseNumericInput(e.target.value))}
                 placeholder="e.g. 250"
-                className={`${styles.fieldInput} ${form.fieldErrors.bags ? styles.inputError : ''}`}
+                className={`${styles.fieldInput} ${form.fieldErrors.bags ? styles.inputError : ''} ${structuralLocked ? styles.calculatedField : ''}`}
                 aria-invalid={Boolean(form.fieldErrors.bags)}
               />
               {form.fieldErrors.bags && <span className={styles.fieldErrorText}>{form.fieldErrors.bags}</span>}
             </div>
             <div className={styles.fieldGroup}>
               <label htmlFor="create-bag-price" className={styles.fieldLabel}>Bag Price (₹/bag)</label>
-              <input id="create-bag-price" type="text" inputMode="decimal" value={form.createBagPrice} onChange={(e) => form.handleBagPriceChange(parseNumericInput(e.target.value))} placeholder="e.g. 80" className={styles.fieldInput} />
+              <input
+                id="create-bag-price" type="text" inputMode="decimal" disabled={structuralLocked}
+                value={form.createBagPrice} onChange={(e) => form.handleBagPriceChange(parseNumericInput(e.target.value))}
+                placeholder="e.g. 80" className={`${styles.fieldInput} ${structuralLocked ? styles.calculatedField : ''}`}
+              />
             </div>
             <div className={styles.fieldGroup}>
-              <Select id="create-rent-type" label="Rent Type" required value={form.createRentType} onChange={(e) => form.createRentType !== e.target.value && form.handleRentTypeChange(e.target.value as RentType)}>
+              <Select
+                id="create-rent-type" label="Rent Type" required disabled={structuralLocked}
+                value={form.createRentType} onChange={(e) => form.createRentType !== e.target.value && form.handleRentTypeChange(e.target.value as RentType)}
+              >
                 <option value="Seasonal">Seasonal</option>
                 <option value="Monthly">Monthly</option>
               </Select>
@@ -190,12 +188,12 @@ export function CreateGrnModal({
               <label htmlFor="create-rent-months" className={styles.fieldLabel}>Rent Months {form.createRentType === 'Monthly' ? '*' : ''}</label>
               <input
                 id="create-rent-months" type="number" min={1}
-                disabled={form.createRentType !== 'Monthly'} required={form.createRentType === 'Monthly'}
+                disabled={structuralLocked || form.createRentType !== 'Monthly'} required={form.createRentType === 'Monthly'}
                 value={form.createRentType === 'Seasonal' ? form.seasonalRentMonths : form.createRentMonths}
                 onChange={(e) => form.handleRentMonthsChange(e.target.value ? parseInt(e.target.value, 10) : '')}
                 placeholder={form.createRentType === 'Monthly' ? 'e.g. 6' : '—'}
                 readOnly={form.createRentType === 'Seasonal'}
-                className={`${styles.fieldInput} ${form.fieldErrors.rentMonths ? styles.inputError : ''}`}
+                className={`${styles.fieldInput} ${form.fieldErrors.rentMonths ? styles.inputError : ''} ${structuralLocked ? styles.calculatedField : ''}`}
                 aria-invalid={Boolean(form.fieldErrors.rentMonths)}
                 aria-label={form.createRentType === 'Seasonal' ? `Rent Months (fixed at ${form.seasonalRentMonths} for Seasonal)` : 'Rent Months'}
               />
@@ -204,11 +202,10 @@ export function CreateGrnModal({
             <div className={`${styles.fieldGroup} ${styles.span2}`}>
               <label htmlFor="create-rent-amount" className={styles.fieldLabel}>Rent Amount (₹) *</label>
               <input
-                id="create-rent-amount" type="number" inputMode="decimal" min={0} step="0.01" required
-                value={form.createRentAmount}
-                onChange={(e) => form.setCreateRentAmount(parseNumericInput(e.target.value))}
+                id="create-rent-amount" type="number" inputMode="decimal" min={0} step="0.01" required disabled={structuralLocked}
+                value={form.createRentAmount} onChange={(e) => form.setCreateRentAmount(parseNumericInput(e.target.value))}
                 placeholder="e.g. 50000"
-                className={`${styles.fieldInput} ${form.fieldErrors.rentAmount ? styles.inputError : ''}`}
+                className={`${styles.fieldInput} ${form.fieldErrors.rentAmount ? styles.inputError : ''} ${structuralLocked ? styles.calculatedField : ''}`}
                 aria-invalid={Boolean(form.fieldErrors.rentAmount)}
               />
               {form.fieldErrors.rentAmount && <span className={styles.fieldErrorText}>{form.fieldErrors.rentAmount}</span>}
@@ -224,11 +221,13 @@ export function CreateGrnModal({
           partyMarkError={form.fieldErrors.partyMark}
           remarks={form.createRemarks} onRemarksChange={form.setCreateRemarks}
         />
-        <BondLoanSection
-          isBondForLoan={form.isBondForLoan} onIsBondForLoanChange={form.setIsBondForLoan}
-          grnNumber={form.createGrnNumber}
-          loanStatus={form.loanStatus} onLoanStatusChange={form.setLoanStatus}
-        />
+        {!isEdit && (
+          <BondLoanSection
+            isBondForLoan={form.isBondForLoan} onIsBondForLoanChange={form.setIsBondForLoan}
+            grnNumber={form.createGrnNumber}
+            loanStatus={form.loanStatus} onLoanStatusChange={form.setLoanStatus}
+          />
+        )}
       </form>
     </Modal>
     <ConfirmDialog

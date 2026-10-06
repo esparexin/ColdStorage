@@ -99,7 +99,7 @@ describe('GRN Correction After Movement (grn-correction-movement.test.ts)', () =
       .send(body);
   }
 
-  it('refuses bags or commodity changes once stock has moved, even after full reversal', async () => {
+  it('refuses structural changes once stock has moved, even after full reversal', async () => {
     const { facilityId, grnId, token } = await seedMovedGrn();
 
     const res = await correctFor(facilityId, grnId, token, {
@@ -107,7 +107,14 @@ describe('GRN Correction After Movement (grn-correction-movement.test.ts)', () =
       reason: 'Re-counting after a return',
     });
     expect(res.status).toBe(400);
-    expect(res.body.error).toContain('Only the chamber label may still be corrected');
+    expect(res.body.error).toContain('may still be corrected');
+
+    const descriptive = await correctFor(facilityId, grnId, token, {
+      chamber: 'CH-07',
+      remarks: 'Relabel after move',
+      reason: 'Descriptive edit after movement',
+    });
+    expect(descriptive.status).toBe(200);
   });
 
   it('propagates a chamber correction to the inward leg and the reversed challan', async () => {

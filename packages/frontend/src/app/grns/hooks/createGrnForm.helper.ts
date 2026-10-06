@@ -4,7 +4,7 @@ import {
   indianVehicleSchema,
   rentalAmountSchema,
 } from '@cold-storage/contracts';
-import type { BagType, LoanStatus, RentType } from '@cold-storage/contracts';
+import type { BagType, Grn, LoanStatus, RentType } from '@cold-storage/contracts';
 
 export function parseNumericInput(raw: string): number | '' {
   const trimmed = raw.trim();
@@ -106,3 +106,92 @@ export function buildCreateGrnPayload(params: {
   }
   return p;
 }
+
+export function toDateInput(d?: Date | string | null): string {
+  if (!d) return '';
+  const dt = new Date(d);
+  if (Number.isNaN(dt.getTime())) return '';
+  return dt.toISOString().split('T')[0];
+}
+
+export function buildEditGrnPayload(params: {
+  initialGrn: Grn;
+  structuralLocked: boolean;
+  createCustomerId: string;
+  createDate: string;
+  createCommodityId: string;
+  createChamber: string;
+  createBags: number | '';
+  createBagType: BagType;
+  createRentType: RentType;
+  createRentMonths: number | '';
+  createRentAmount: number | '';
+  createBagPrice: number | '';
+  createPartyMark?: string;
+  createVehicleNumber?: string;
+  createRemarks?: string;
+  reason?: string;
+}): { payload: Record<string, unknown>; hasChanges: boolean } {
+  const { initialGrn, structuralLocked } = params;
+  const payload: Record<string, unknown> = {
+    reason: params.reason?.trim() || 'Inward details updated via Inward edit',
+  };
+  let hasChanges = false;
+  const pushIf = (k: string, next: unknown, prev: unknown) => {
+    if (JSON.stringify(next) !== JSON.stringify(prev)) {
+      payload[k] = next;
+      hasChanges = true;
+    }
+  };
+  const chamber = params.createChamber.trim();
+  if (chamber && chamber !== initialGrn.chamber) {
+    payload.chamber = chamber;
+    hasChanges = true;
+  }
+  pushIf('partyMark', params.createPartyMark?.trim() || null, initialGrn.partyMark ?? null);
+  pushIf(
+    'vehicleNumber',
+    params.createVehicleNumber?.trim().replace(/[\s-]/g, '').toUpperCase() || null,
+    initialGrn.vehicleNumber ?? null,
+  );
+  pushIf('remarks', params.createRemarks?.trim() || null, initialGrn.remarks ?? null);
+
+  if (!structuralLocked) {
+    if (params.createCustomerId && params.createCustomerId !== initialGrn.customerId) {
+      pushIf('customerId', params.createCustomerId, initialGrn.customerId);
+    }
+    const dStr = toDateInput(initialGrn.date);
+    if (params.createDate && params.createDate !== dStr) {
+      pushIf('date', new Date(`${params.createDate}T00:00:00`).toISOString(), initialGrn.date);
+    }
+    if (params.createCommodityId && params.createCommodityId !== initialGrn.commodityId) {
+      pushIf('commodityId', params.createCommodityId, initialGrn.commodityId);
+    }
+    if (params.createBagType !== initialGrn.bagType) {
+      pushIf('bagType', params.createBagType, initialGrn.bagType);
+    }
+    if (typeof params.createBags === 'number' && params.createBags !== initialGrn.bags) {
+      pushIf('bags', params.createBags, initialGrn.bags);
+    }
+    if (params.createRentType !== initialGrn.rentType) {
+      pushIf('rentType', params.createRentType, initialGrn.rentType);
+    }
+    pushIf(
+      'rentMonths',
+      typeof params.createRentMonths === 'number' ? params.createRentMonths : null,
+      initialGrn.rentMonths ?? null,
+    );
+    pushIf(
+      'rentAmount',
+      typeof params.createRentAmount === 'number' ? params.createRentAmount : null,
+      initialGrn.rentAmount ?? null,
+    );
+    pushIf(
+      'bagPrice',
+      typeof params.createBagPrice === 'number' ? params.createBagPrice : null,
+      initialGrn.bagPrice ?? null,
+    );
+  }
+  return { payload, hasChanges };
+}
+
