@@ -17,6 +17,7 @@ interface GrnTableProps {
   canPrint: boolean;
   canCorrect?: boolean;
   canCreateChallan?: boolean;
+  canInternalMove?: boolean;
   printingId: string | null;
   page: number;
   pageSize: number;
@@ -26,6 +27,7 @@ interface GrnTableProps {
   onSelectGrn: (grn: Grn) => void;
   onCorrectGrn?: (grn: Grn) => void;
   onCreateChallan?: (grn: Grn) => void;
+  onInternalMove?: (grn: Grn) => void;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
 }
 
@@ -35,6 +37,7 @@ export function GrnTable({
   canPrint,
   canCorrect = false,
   canCreateChallan = false,
+  canInternalMove = false,
   printingId,
   page,
   pageSize,
@@ -44,6 +47,7 @@ export function GrnTable({
   onSelectGrn,
   onCorrectGrn,
   onCreateChallan,
+  onInternalMove,
   onPrint,
 }: GrnTableProps) {
   const columns: DataTableColumn<Grn>[] = [
@@ -198,11 +202,13 @@ export function GrnTable({
           row={row}
           canCorrect={canCorrect}
           canCreateChallan={canCreateChallan}
+          canInternalMove={canInternalMove}
           canPrint={canPrint}
           printingId={printingId}
           onSelectGrn={onSelectGrn}
           onCorrectGrn={onCorrectGrn}
           onCreateChallan={onCreateChallan}
+          onInternalMove={onInternalMove}
           onPrint={onPrint}
         />
       ),

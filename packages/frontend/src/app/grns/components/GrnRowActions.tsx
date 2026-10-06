@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Edit2, Eye, FileText, Printer, Truck } from 'lucide-react';
+import { ArrowRightLeft, Edit2, Eye, FileText, Printer, Truck } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
 import { Button } from '@/components/ui';
 import styles from '../page.module.css';
@@ -10,11 +10,13 @@ interface GrnRowActionsProps {
   row: Grn;
   canCorrect: boolean;
   canCreateChallan: boolean;
+  canInternalMove?: boolean;
   canPrint: boolean;
   printingId: string | null;
   onSelectGrn: (grn: Grn) => void;
   onCorrectGrn?: (grn: Grn) => void;
   onCreateChallan?: (grn: Grn) => void;
+  onInternalMove?: (grn: Grn) => void;
   onPrint: (type: 'grn' | 'receipt', id: string) => void;
 }
 
@@ -22,11 +24,13 @@ export function GrnRowActions({
   row,
   canCorrect,
   canCreateChallan,
+  canInternalMove,
   canPrint,
   printingId,
   onSelectGrn,
   onCorrectGrn,
   onCreateChallan,
+  onInternalMove,
   onPrint,
 }: GrnRowActionsProps) {
   const isClosed = row.status === 'CLOSED';
@@ -55,6 +59,19 @@ export function GrnRowActions({
           leftIcon={<Edit2 size={12} aria-hidden="true" />}
         >
           Edit
+        </Button>
+      )}
+
+      {canInternalMove && onInternalMove && !isClosed && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onInternalMove(row)}
+          disabled={isLoanHold}
+          title={isLoanHold ? 'Movement blocked — Active loan hold' : 'Internal Move (Merge / Transfer Ownership)'}
+          leftIcon={<ArrowRightLeft size={12} aria-hidden="true" />}
+        >
+          Move
         </Button>
       )}
 

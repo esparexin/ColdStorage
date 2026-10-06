@@ -32,6 +32,7 @@ export default function GrnsPage() {
   const [selectedGrn, setSelectedGrn] = useState<Grn | null>(null);
   const [loanModalGrn, setLoanModalGrn] = useState<Grn | null>(null);
   const [correctModalGrn, setCorrectModalGrn] = useState<Grn | null>(null);
+  const [internalMovementGrn, setInternalMovementGrn] = useState<Grn | null>(null);
   const [printingId, setPrintingId] = useState<string | null>(null);
   const [printError, setPrintError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -79,6 +80,11 @@ export default function GrnsPage() {
   const handleCorrectGrn = (grn: Grn) => {
     setSelectedGrn(null);
     setCorrectModalGrn(grn);
+  };
+
+  const handleInternalMove = (grn: Grn) => {
+    setSelectedGrn(null);
+    setInternalMovementGrn(grn);
   };
 
   const handleCreateChallan = (grn: Grn) => {
@@ -164,6 +170,7 @@ export default function GrnsPage() {
               canPrint={canPrint}
               canCorrect={canCorrect}
               canCreateChallan={canCreateChallan}
+              canInternalMove={canCorrect}
               printingId={printingId}
               page={grnData.page}
               pageSize={grnData.pageSize}
@@ -173,6 +180,7 @@ export default function GrnsPage() {
               onSelectGrn={setSelectedGrn}
               onCorrectGrn={handleCorrectGrn}
               onCreateChallan={handleCreateChallan}
+              onInternalMove={handleInternalMove}
               onPrint={handlePrint}
             />
           )}
@@ -184,17 +192,21 @@ export default function GrnsPage() {
         selectedGrn={selectedGrn}
         loanModalGrn={loanModalGrn}
         correctModalGrn={correctModalGrn}
+        internalMovementGrn={internalMovementGrn}
         isCreateOpen={isCreateOpen}
         canPrint={canPrint}
         canCorrect={canCorrect}
         canCreateChallan={canCreateChallan}
+        canInternalMove={canCorrect}
         canManageLoan={canManageLoan}
         printingId={printingId}
         customers={grnData.customers}
         commodities={grnData.commodities}
+        allGrns={grnData.grns}
         onCloseDetail={() => setSelectedGrn(null)}
         onCloseLoanModal={() => setLoanModalGrn(null)}
         onCloseCorrectModal={() => setCorrectModalGrn(null)}
+        onCloseInternalMovementModal={() => setInternalMovementGrn(null)}
         onCloseCreateModal={() => setIsCreateOpen(false)}
         onPrint={handlePrint}
         onManageLoan={(grn) => {
@@ -203,12 +215,18 @@ export default function GrnsPage() {
         }}
         onCorrect={handleCorrectGrn}
         onCreateChallan={handleCreateChallan}
+        onInternalMove={handleInternalMove}
         onLoanStatusUpdated={(updatedGrn) => {
           void grnData.fetchGrns();
           setSelectedGrn(updatedGrn);
         }}
         onGrnCorrected={(updatedGrn) => {
           setCorrectModalGrn(null);
+          void grnData.fetchGrns();
+          setSelectedGrn(updatedGrn);
+        }}
+        onInternalMovementSuccess={(updatedGrn) => {
+          setInternalMovementGrn(null);
           void grnData.fetchGrns();
           setSelectedGrn(updatedGrn);
         }}

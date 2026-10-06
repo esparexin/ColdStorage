@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Edit2, FileText, Printer, Truck } from 'lucide-react';
+import { ArrowRightLeft, Edit2, FileText, Printer, Truck } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
 import { Badge, Button, Modal } from '@/components/ui';
 import styles from '../page.module.css';
@@ -12,11 +12,13 @@ interface GrnDetailModalProps {
   canPrint: boolean;
   canCorrect?: boolean;
   canCreateChallan?: boolean;
+  canInternalMove?: boolean;
   printingId: string | null;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
   onManageLoan?: (grn: Grn) => void;
   onCorrect?: (grn: Grn) => void;
   onCreateChallan?: (grn: Grn) => void;
+  onInternalMove?: (grn: Grn) => void;
 }
 
 export function GrnDetailModal({
@@ -25,12 +27,17 @@ export function GrnDetailModal({
   canPrint,
   canCorrect = false,
   canCreateChallan = false,
+  canInternalMove = false,
   printingId,
   onPrint,
   onManageLoan,
   onCorrect,
   onCreateChallan,
+  onInternalMove,
 }: GrnDetailModalProps) {
+  const loanBadgeVariant = grn.loanStatus === 'TAKEN' ? 'danger' : grn.loanStatus === 'CLEARED' ? 'success' : 'neutral';
+  const loanBadgeText = grn.loanStatus === 'TAKEN' ? 'Loan Active (Hold)' : grn.loanStatus === 'CLEARED' ? 'Loan Cleared' : grn.loanStatus === 'NOT_TAKEN' ? 'Loan Not Taken (Pledged)' : 'Standard Storage';
+
   return (
     <Modal
       isOpen
@@ -87,6 +94,18 @@ export function GrnDetailModal({
                 Edit
               </Button>
             )}
+            {canInternalMove && onInternalMove && grn.status === 'OPEN' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onInternalMove(grn)}
+                disabled={grn.loanStatus === 'TAKEN'}
+                title={grn.loanStatus === 'TAKEN' ? 'Movement blocked — Active loan hold' : 'Internal Move'}
+                leftIcon={<ArrowRightLeft size={13} aria-hidden="true" />}
+              >
+                Internal Move
+              </Button>
+            )}
             {canCreateChallan && onCreateChallan && grn.status === 'OPEN' && (grn.closingBags ?? grn.bags) > 0 && (
               <Button
                 variant="secondary"
@@ -111,11 +130,7 @@ export function GrnDetailModal({
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Inward Date</span>
               <span className={styles.detailValue}>
-                {new Date(grn.date).toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'long',
-                  year: 'numeric',
-                })}
+                {new Date(grn.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
               </span>
             </div>
 
@@ -142,23 +157,7 @@ export function GrnDetailModal({
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Loan Status</span>
               <span className={styles.detailValue}>
-                <Badge
-                  variant={
-                    grn.loanStatus === 'TAKEN'
-                      ? 'danger'
-                      : grn.loanStatus === 'CLEARED'
-                        ? 'success'
-                        : 'neutral'
-                  }
-                >
-                  {grn.loanStatus === 'TAKEN'
-                    ? 'Loan Active (Hold)'
-                    : grn.loanStatus === 'CLEARED'
-                      ? 'Loan Cleared'
-                      : grn.loanStatus === 'NOT_TAKEN'
-                        ? 'Loan Not Taken (Pledged)'
-                        : 'Standard Storage'}
-                </Badge>
+                <Badge variant={loanBadgeVariant}>{loanBadgeText}</Badge>
               </span>
             </div>
 
