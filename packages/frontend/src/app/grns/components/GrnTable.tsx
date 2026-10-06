@@ -68,12 +68,9 @@ export function GrnTable({
       key: 'grnNumber',
       header: 'GRN #',
       render: (row) => (
-        // The GR Number is the sole business key and leads the column. The inward receipt
-        // number stays as secondary reference text only.
-        <div className={styles.grnCell} style={{ fontSize: 'var(--text-xs)' }}>
-          <span className={styles.grnNumber}>{row.grnNumber}</span>
-          <span className={styles.receiptNumber}>Receipt: {row.inwardReceiptNumber}</span>
-        </div>
+        <span className={styles.grnNumber} style={{ fontSize: 'var(--text-xs)' }}>
+          {row.grnNumber}
+        </span>
       ),
     },
     {
@@ -91,7 +88,7 @@ export function GrnTable({
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
           <span>{row.commodityName}</span>
-          <span className={styles.tagChamber}>Chamber {row.chamber}</span>
+          <span className={styles.tagChamber}>{row.chamber}</span>
         </div>
       ),
     },
@@ -160,13 +157,12 @@ export function GrnTable({
       ),
     },
     {
-      key: 'identifiers',
-      header: 'GP / Vehicle',
+      key: 'vehicleNumber',
+      header: 'Vehicle',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
-          <span>GP: {row.gpNumber || '—'}</span>
-          <span>Veh: {row.vehicleNumber || '—'}</span>
-        </div>
+        <span style={{ fontSize: 'var(--text-xs)' }}>
+          {row.vehicleNumber || '—'}
+        </span>
       ),
     },
     {
