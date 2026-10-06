@@ -18,6 +18,16 @@ interface InternalMovementModalProps {
   onSuccess: (updatedGrn: Grn) => void;
 }
 
+interface ApiErrorResponse {
+  error?: string;
+  details?: {
+    fieldErrors?: Record<string, string[]>;
+    formErrors?: string[];
+  };
+  targetGrn?: Grn;
+  grn?: Grn;
+}
+
 export function InternalMovementModal({
   grn,
   facilityId,
@@ -30,25 +40,46 @@ export function InternalMovementModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const formatApiError = (data: ApiErrorResponse, fallback: string): string => {
+    if (data.details?.fieldErrors && Object.keys(data.details.fieldErrors).length > 0) {
+      const fieldEntries = Object.entries(data.details.fieldErrors).map(
+        ([field, msgs]) => `${field}: ${msgs.join(', ')}`,
+      );
+      return `Validation failed: ${fieldEntries.join(' | ')}`;
+    }
+    if (data.details?.formErrors && data.details.formErrors.length > 0) {
+      return `Validation failed: ${data.details.formErrors.join(' | ')}`;
+    }
+    return data.error || fallback;
+  };
+
   const handleExecuteMerge = async (
     targetGrnId: string,
     sourceGrnIds: string[],
     reason: string,
     remarks?: string,
+    movementDate?: string,
   ) => {
     setSubmitting(true);
     setError(null);
     try {
+      const mappedRemarks = remarks?.trim() ? `${reason.trim()}. ${remarks.trim()}` : reason.trim();
       const res = await requestWithAuth(
         `/api/facilities/${encodeURIComponent(facilityId)}/internal-movements/merge`,
         {
           method: 'POST',
-          body: JSON.stringify({ targetGrnId, sourceGrnIds, reason, remarks }),
+          body: JSON.stringify({
+            targetGrnId,
+            sourceGrnIds,
+            movementDate: movementDate || new Date().toISOString(),
+            remarks: mappedRemarks,
+            additionalRentAmount: 0,
+          }),
         },
       );
-      const data = (await res.json()) as { error?: string; targetGrn?: Grn };
+      const data = (await res.json()) as ApiErrorResponse;
       if (!res.ok || !data.targetGrn) {
-        throw new Error(data.error || 'GRN Merge failed');
+        throw new Error(formatApiError(data, 'GRN Merge failed'));
       }
       onSuccess(data.targetGrn);
     } catch (err: unknown) {
@@ -60,13 +91,14 @@ export function InternalMovementModal({
 
   const handleExecuteTransfer = async (
     newCustomerId: string,
-    effectiveDate: string | undefined,
+    movementDate: string,
     reason: string,
     remarks?: string,
   ) => {
     setSubmitting(true);
     setError(null);
     try {
+      const mappedRemarks = remarks?.trim() ? `${reason.trim()}. ${remarks.trim()}` : reason.trim();
       const res = await requestWithAuth(
         `/api/facilities/${encodeURIComponent(facilityId)}/internal-movements/transfer-ownership`,
         {
@@ -74,15 +106,14 @@ export function InternalMovementModal({
           body: JSON.stringify({
             grnId: grn.id,
             newCustomerId,
-            effectiveDate,
-            reason,
-            remarks,
+            movementDate: movementDate || new Date().toISOString(),
+            remarks: mappedRemarks,
           }),
         },
       );
-      const data = (await res.json()) as { error?: string; grn?: Grn };
+      const data = (await res.json()) as ApiErrorResponse;
       if (!res.ok || !data.grn) {
-        throw new Error(data.error || 'Ownership transfer failed');
+        throw new Error(formatApiError(data, 'Ownership transfer failed'));
       }
       onSuccess(data.grn);
     } catch (err: unknown) {

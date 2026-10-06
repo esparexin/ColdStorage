@@ -13,7 +13,7 @@ interface InternalMovementTransferTabProps {
   submitting: boolean;
   onExecuteTransfer: (
     newCustomerId: string,
-    effectiveDate: string | undefined,
+    movementDate: string,
     reason: string,
     remarks?: string,
   ) => Promise<void>;
@@ -27,9 +27,7 @@ export function InternalMovementTransferTab({
   onExecuteTransfer,
 }: InternalMovementTransferTabProps) {
   const [newCustomerId, setNewCustomerId] = useState('');
-  const [effectiveDate, setEffectiveDate] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
+  const [movementDate, setMovementDate] = useState(new Date().toISOString().slice(0, 10));
   const [reason, setReason] = useState('');
   const [remarks, setRemarks] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -65,13 +63,10 @@ export function InternalMovementTransferTab({
       setValidationError('Audit reason must be at least 5 characters.');
       return;
     }
-    const isoEffectiveDate = effectiveDate
-      ? new Date(effectiveDate).toISOString()
-      : undefined;
 
     await onExecuteTransfer(
       newCustomerId,
-      isoEffectiveDate,
+      movementDate,
       reason.trim(),
       remarks.trim() || undefined,
     );
@@ -85,68 +80,46 @@ export function InternalMovementTransferTab({
         </div>
       )}
 
-      <div className={styles.columnsGrid}>
-        {/* Column 1: Current Owner & GRN Details */}
-        <div className={styles.columnCard}>
-          <div className={styles.columnHeader}>
-            <span>1. Current Owner</span>
-            <Badge variant="neutral">Existing</Badge>
-          </div>
-          <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Customer:</span>
-            <span className={styles.detailValue}>{currentGrn.customerName}</span>
-          </div>
-          <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>GRN Number:</span>
-            <span className={styles.detailValue}>{currentGrn.grnNumber}</span>
-          </div>
-          <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Inward Date:</span>
-            <span className={styles.detailValue}>
-              {new Date(currentGrn.date).toLocaleDateString('en-IN')}
-            </span>
-          </div>
-          <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Commodity:</span>
-            <span className={styles.detailValue}>{currentGrn.commodityName}</span>
-          </div>
-          <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Remaining Stock:</span>
-            <span className={styles.detailValue}>{remainingBags} Bags</span>
-          </div>
+      {/* Current Owner & GRN Compact Summary Strip */}
+      <div className={styles.summaryStrip}>
+        <div className={styles.metaItem}>
+          <span className={styles.metaLabel}>Current Owner</span>
+          <span className={styles.metaValue}>{currentGrn.customerName}</span>
         </div>
-
-        {/* Column 2: Financial Snapshot */}
-        <div className={styles.columnCard}>
-          <div className={styles.columnHeader}>
-            <span>2. Financial State</span>
+        <div className={styles.metaItem}>
+          <span className={styles.metaLabel}>GRN Number</span>
+          <span className={styles.metaValue}>{currentGrn.grnNumber}</span>
+        </div>
+        <div className={styles.metaItem}>
+          <span className={styles.metaLabel}>Inward Date</span>
+          <span className={styles.metaValue}>{new Date(currentGrn.date).toLocaleDateString('en-IN')}</span>
+        </div>
+        <div className={styles.metaItem}>
+          <span className={styles.metaLabel}>Commodity / Chamber</span>
+          <span className={styles.metaValue}>{currentGrn.commodityName} (Ch. {currentGrn.chamber})</span>
+        </div>
+        <div className={styles.metaItem}>
+          <span className={styles.metaLabel}>Remaining Stock</span>
+          <span className={styles.metaValue}>{remainingBags} Bags</span>
+        </div>
+        <div className={styles.metaItem}>
+          <span className={styles.metaLabel}>Rent State</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+            <span className={styles.metaValue}>
+              ₹{totalPaid.toLocaleString('en-IN')} paid / ₹{pendingAmount.toLocaleString('en-IN')} due
+            </span>
             <Badge variant={pendingAmount > 0 ? 'warning' : 'success'}>
-              {rentLoading ? 'Calculating...' : pendingAmount > 0 ? 'Dues Pending' : 'Settled'}
+              {rentLoading ? '...' : pendingAmount > 0 ? 'Dues' : 'Settled'}
             </Badge>
           </div>
-          <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Total Rent:</span>
-            <span className={styles.detailValue}>₹{(rentSummary?.rentAmount ?? currentGrn.rentAmount).toLocaleString('en-IN')}</span>
-          </div>
-          <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Paid / Settled:</span>
-            <span className={styles.detailValue}>₹{totalPaid.toLocaleString('en-IN')}</span>
-          </div>
-          <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Pending Dues:</span>
-            <span className={styles.detailValue} style={{ color: pendingAmount > 0 ? 'var(--color-danger-text)' : 'inherit' }}>
-              ₹{pendingAmount.toLocaleString('en-IN')}
-            </span>
-          </div>
-          <div className={styles.noticeBox}>
-            Collected amount remains locked to historical Cash Memos. Pending obligation transfers to new owner.
-          </div>
         </div>
+      </div>
 
-        {/* Column 3: New Owner Assignment */}
-        <div className={styles.resultColumnCard}>
-          <div className={styles.columnHeader}>
-            <span>3. New Owner</span>
+      {/* Transfer Specification & Governance Grid */}
+      <div className={styles.reviewGrid}>
+        <div className={styles.compactCard}>
+          <div className={styles.cardHeader}>
+            <span>1. New Owner Assignment</span>
             <Badge variant="primary">Transfer</Badge>
           </div>
           <Select
@@ -164,33 +137,39 @@ export function InternalMovementTransferTab({
               </option>
             ))}
           </Select>
-          <div className={styles.formSection} style={{ marginTop: 0 }}>
-            <label htmlFor="effective-date-input" className={styles.auditReasonLabel}>
-              Effective Date *
+
+          <div className={styles.formSection}>
+            <label htmlFor="transfer-movement-date" className={styles.inputLabel}>
+              Movement Date *
             </label>
             <Input
-              id="effective-date-input"
+              id="transfer-movement-date"
               type="date"
-              value={effectiveDate}
-              onChange={(e) => setEffectiveDate(e.target.value)}
+              value={movementDate}
+              onChange={(e) => setMovementDate(e.target.value)}
               disabled={submitting}
               required
             />
           </div>
+
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Assigned Transferee:</span>
             <span className={styles.detailValue}>{selectedNewCustomer ? selectedNewCustomer.name : '—'}</span>
           </div>
+
+          <div className={styles.noticeBox}>
+            Collected amount remains locked to historical Cash Memos. Outstanding obligation (₹{pendingAmount.toLocaleString('en-IN')}) transfers to new owner.
+          </div>
         </div>
 
-        {/* Column 4: Audit & Governance Notice */}
-        <div className={styles.columnCard}>
-          <div className={styles.columnHeader}>
-            <span>4. Governance & Audit</span>
+        <div className={styles.compactCard}>
+          <div className={styles.cardHeader}>
+            <span>2. Governance & Audit</span>
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger-text)' }}>*Required</span>
           </div>
+
           <div className={styles.formSection}>
-            <label htmlFor="transfer-reason" className={styles.auditReasonLabel}>
+            <label htmlFor="transfer-reason" className={styles.inputLabel}>
               Audit Reason (min 5 chars) *
             </label>
             <Input
@@ -202,12 +181,14 @@ export function InternalMovementTransferTab({
               required
             />
           </div>
+
           <div className={styles.formSection}>
-            <label htmlFor="transfer-remarks" className={styles.auditReasonLabel}>
+            <label htmlFor="transfer-remarks" className={styles.inputLabel}>
               Additional Remarks (Optional)
             </label>
             <textarea
               id="transfer-remarks"
+              aria-label="Additional Remarks"
               rows={2}
               className={styles.textarea}
               placeholder="Internal notes..."
@@ -216,6 +197,7 @@ export function InternalMovementTransferTab({
               disabled={submitting}
             />
           </div>
+
           <div className={styles.noticeBox}>
             New owner must clear all outstanding GRN obligations prior to dispatch/delivery.
           </div>
