@@ -6,6 +6,7 @@ import { GrnModel } from '../../../database/models/grn.model.js';
 import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { computeRentBalance } from '../../common/rent-balance.js';
+import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
@@ -60,6 +61,7 @@ export async function transferOwnership(
         session,
       );
       const rentBal = computeRentBalance(totalDue, totalPaid);
+      const bal = await readLedgerBalance(facilityId, grn.id, session);
 
       const movementId = `mov-${randomUUID()}`;
       const transferDateStr = new Date(input.movementDate).toISOString().split('T')[0];
@@ -96,9 +98,9 @@ export async function transferOwnership(
             fromCustomerName: grn.customerName,
             toCustomerId: newCustomer.id,
             toCustomerName: newCustomer.name,
-            totalBagsMoved: grn.bags,
-            smallBagsMoved: grn.smallBags,
-            bigBagsMoved: grn.bigBags,
+            totalBagsMoved: bal.total,
+            smallBagsMoved: bal.smallBags,
+            bigBagsMoved: bal.bigBags,
             financialSnapshot: {
               rentAmount: rentBal.rentAmount,
               totalPaid: rentBal.totalPaid,

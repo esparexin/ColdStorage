@@ -8,6 +8,7 @@ import { GrnModel } from '../database/models/grn.model.js';
 import { RentPaymentModel } from '../database/models/rent-payment.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
+import { deliveryService } from '../modules/delivery/delivery.service.js';
 import {
   connectToTestDatabase,
   disconnectTestDatabase,
@@ -182,6 +183,12 @@ describe('Internal Movement Workflows (Merge & Transfer Ownership)', () => {
       createdBy: 'usr-mov-admin',
     });
 
+    await deliveryService.createDelivery(
+      facilityId,
+      { grnId: grn38, smallBags: 20, bigBags: 0 },
+      'usr-mov-admin',
+    );
+
     const res = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/transfer-ownership`)
       .set('Authorization', `Bearer ${adminToken}`)
@@ -196,6 +203,10 @@ describe('Internal Movement Workflows (Merge & Transfer Ownership)', () => {
     expect(res.body.success).toBe(true);
     expect(res.body.grn.customerId).toBe(customerB);
     expect(res.body.grn.customerName).toBe('Trader Suresh');
+    expect(res.body.grn.bags).toBe(100);
+    expect(res.body.movement.totalBagsMoved).toBe(80);
+    expect(res.body.movement.smallBagsMoved).toBe(80);
+    expect(res.body.movement.bigBagsMoved).toBe(0);
 
     const updated = await GrnModel.findOne({ id: grn38 }).lean().exec();
     expect(updated?.customerId).toBe(customerB);
