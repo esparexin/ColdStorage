@@ -4,12 +4,18 @@ import type { BagType, Commodity, Customer, Grn, LoanStatus, RentType } from '@c
 import { requestWithAuth } from '@/lib/api-client';
 import {
   buildCreateGrnPayload,
-  buildEditGrnPayload,
+  focusField,
+  GRN_FIELD_ID_MAP,
   parseNumericInput,
   toDateInput,
   validateCreateGrnForm,
 } from './createGrnForm.helper';
-import { submitCreateGrn, submitEditGrn } from './grnFormSubmit.helper';
+import { handleEditGrnSubmit, submitCreateGrn } from './grnFormSubmit.helper';
+import {
+  formatGrnDuplicateError,
+  isDuplicateGrnError,
+  useLiveGrnValidation,
+} from './useLiveGrnValidation';
 
 export { parseNumericInput };
 
@@ -66,16 +72,19 @@ export function useCreateGrnForm(
   const clearFieldError = (key: string) => {
     setFieldErrors((prev) => {
       if (!prev[key]) return prev;
-      const { [key]: _, ...rest } = prev;
-      return rest;
+      const next = { ...prev };
+      delete next[key];
+      return next;
     });
   };
 
-  const focusField = (fieldId: string) => {
-    const el = typeof document !== 'undefined' ? document.getElementById(fieldId) : null;
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    el?.focus();
-  };
+  const { isCheckingGrn, isGrnInvalid, handleGrnBlur } = useLiveGrnValidation({
+    facilityId,
+    createGrnNumber,
+    isEdit,
+    fieldError: fieldErrors.grnNumber,
+    setFieldErrors,
+  });
 
   const autoComputeRent = (overrides?: Partial<{
     bags: number | ''; bagType: BagType;
@@ -122,47 +131,24 @@ export function useCreateGrnForm(
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isEdit && initialGrn) {
-      if (guardState === 'closed') {
-        setModalError(`Cannot correct GRN '${initialGrn.grnNumber}': it is CLOSED and its stock has been fully delivered`);
-        return;
-      }
-      const trimmedChamber = createChamber.trim();
-      if (!trimmedChamber || trimmedChamber.length > 20) {
-        setFieldErrors({ chamber: 'Chamber is required (max 20 characters)' });
-        setModalError('Chamber is required (max 20 characters)');
-        return;
-      }
-      const { payload, hasChanges } = buildEditGrnPayload({
-        initialGrn,
-        structuralLocked,
-        createCustomerId,
-        createDate,
-        createCommodityId,
-        createChamber,
-        createBags,
-        createBagType,
-        createRentType,
-        createRentMonths,
-        createRentAmount,
-        createBagPrice,
-        createPartyMark,
-        createVehicleNumber,
-        createRemarks,
+      await handleEditGrnSubmit({
+        facilityId, initialGrn, guardState, createChamber, createCustomerId,
+        createDate, createCommodityId, createBags, createBagType, createRentType,
+        createRentMonths, createRentAmount, createBagPrice, createPartyMark,
+        createVehicleNumber, createRemarks, structuralLocked, onSuccess,
+        setFieldErrors, setModalError, setSubmitting,
       });
-      if (!hasChanges) {
-        setModalError('No changes detected to save');
-        return;
+      return;
+    }
+
+    if (isGrnInvalid) {
+      if (!createGrnNumber.trim() || createGrnNumber.trim().length !== 4) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          grnNumber: 'GRN must be exactly 4 digits (numbers only)',
+        }));
       }
-      setSubmitting(true);
-      setModalError(null);
-      try {
-        const updated = await submitEditGrn(facilityId, initialGrn.id, payload);
-        onSuccess(updated);
-      } catch (err: unknown) {
-        setModalError(err instanceof Error ? err.message : 'Failed to update GRN');
-      } finally {
-        setSubmitting(false);
-      }
+      focusField('create-gr-number');
       return;
     }
 
@@ -174,15 +160,10 @@ export function useCreateGrnForm(
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
+      const otherErrors = Object.keys(errors).filter((k) => k !== 'grnNumber');
+      setModalError(otherErrors.length > 0 ? errors[otherErrors[0]] : null);
       const firstKey = Object.keys(errors)[0];
-      const fieldIdMap: Record<string, string> = {
-        customer: 'create-customer-search', commodity: 'create-commodity', chamber: 'create-chamber',
-        partyMark: 'create-party-mark',
-        bags: 'create-bags', grnNumber: 'create-grn-number',
-        rentMonths: 'create-rent-months', rentAmount: 'create-rent-amount', vehicleNumber: 'create-vehicle',
-      };
-      setModalError(errors[firstKey]);
-      focusField(fieldIdMap[firstKey] ?? firstKey);
+      focusField(GRN_FIELD_ID_MAP[firstKey] ?? firstKey);
       return;
     }
 
@@ -208,8 +189,19 @@ export function useCreateGrnForm(
       onSuccess(created);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to create GRN';
-      setModalError(msg);
-      focusField('modal-error-banner');
+      if (isDuplicateGrnError(msg)) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          grnNumber: msg.includes('already exists for this facility')
+            ? msg
+            : formatGrnDuplicateError(createGrnNumber),
+        }));
+        setModalError(null);
+        focusField('create-gr-number');
+      } else {
+        setModalError(msg);
+        focusField('grn-modal-error');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -245,5 +237,6 @@ export function useCreateGrnForm(
     createRemarks, setCreateRemarks,
     isBondForLoan, setIsBondForLoan, loanStatus, setLoanStatus,
     modalError, fieldErrors, submitting, isDirty, handleSubmit,
+    isCheckingGrn, isGrnInvalid, handleGrnBlur,
   };
 }

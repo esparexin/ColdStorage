@@ -83,7 +83,7 @@ describe('createGrnForm buildEditGrnPayload helper', () => {
     inwardReceiptNumber: 'RCPT-26-27-0001',
     createdAt: new Date('2026-10-05T00:00:00Z'),
     updatedAt: new Date('2026-10-05T00:00:00Z'),
-  };
+  } as unknown as import('@cold-storage/contracts').Grn;
 
   it('reports hasChanges false when no values are modified', () => {
     const { hasChanges, payload } = buildEditGrnPayload({

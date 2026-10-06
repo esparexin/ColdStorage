@@ -195,3 +195,20 @@ export function buildEditGrnPayload(params: {
   return { payload, hasChanges };
 }
 
+export const GRN_FIELD_ID_MAP: Record<string, string> = {
+  customer: 'create-customer-search',
+  commodity: 'create-commodity',
+  chamber: 'create-chamber',
+  partyMark: 'create-party-mark',
+  bags: 'create-bags',
+  grnNumber: 'create-gr-number',
+  rentMonths: 'create-rent-months',
+  rentAmount: 'create-rent-amount',
+  vehicleNumber: 'create-vehicle',
+};
+
+export function focusField(fieldId: string): void {
+  const el = typeof document !== 'undefined' ? document.getElementById(fieldId) : null;
+  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el?.focus();
+}

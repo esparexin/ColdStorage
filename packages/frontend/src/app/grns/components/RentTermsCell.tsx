@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Info, X } from 'lucide-react';
 import {
   deriveBagPrice,
-  deriveBillingCycle,
   SEASONAL_RENT_MONTHS,
   type Grn,
 } from '@cold-storage/contracts';
@@ -89,7 +88,6 @@ export function RentTermsCell({ row }: RentTermsCellProps) {
   });
 
   const elapsed = getElapsedDuration(row.date, asOfDate);
-  const billingCycle = deriveBillingCycle(row.date, row.rentType, asOfDate);
 
   const cycleNumber = Math.min(termMonths, Math.floor(elapsed.days / 30) + 1);
   const monthlyCycleCharge = Number(((effectiveRate ?? 0) * row.bags).toFixed(2));

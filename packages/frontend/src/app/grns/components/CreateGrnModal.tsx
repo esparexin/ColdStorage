@@ -75,7 +75,7 @@ export function CreateGrnModal({
           </Button>
           <Button
             id="submit-create-grn-btn" form="create-grn-form" type="submit" variant="primary" size="sm"
-            disabled={form.submitting || isClosed} isLoading={form.submitting}
+            disabled={form.submitting || isClosed || (!isEdit && form.isGrnInvalid)} isLoading={form.submitting}
           >
             {isEdit ? 'Save Changes' : 'Create Inward of Goods'}
           </Button>
@@ -127,11 +127,17 @@ export function CreateGrnModal({
               <input
                 id="create-gr-number" type="text" inputMode="numeric" required maxLength={4}
                 disabled={isEdit} value={form.createGrnNumber} onChange={(e) => form.setCreateGrnNumber(e.target.value)}
+                onBlur={form.handleGrnBlur}
                 placeholder="Enter 4-digit GRN"
                 className={`${styles.fieldInput} ${form.fieldErrors.grnNumber ? styles.inputError : ''} ${isEdit ? styles.calculatedField : ''}`}
                 aria-invalid={Boolean(form.fieldErrors.grnNumber)}
+                aria-describedby={form.fieldErrors.grnNumber ? 'create-gr-number-error' : undefined}
               />
-              {form.fieldErrors.grnNumber && <span className={styles.fieldErrorText}>{form.fieldErrors.grnNumber}</span>}
+              {form.fieldErrors.grnNumber && (
+                <span id="create-gr-number-error" className={styles.fieldErrorText} role="alert">
+                  {form.fieldErrors.grnNumber}
+                </span>
+              )}
             </div>
             <div className={styles.fieldGroup}>
               <Input
