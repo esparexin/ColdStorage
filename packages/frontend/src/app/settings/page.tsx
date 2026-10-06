@@ -13,6 +13,7 @@ import { BrandLogoSection } from './components/BrandLogoSection';
 import { ConnectivitySection } from './components/ConnectivitySection';
 import { FacilitySection } from './components/FacilitySection';
 import { OrgIdentitySection } from './components/OrgIdentitySection';
+import { PricingExplainerSection } from './components/PricingExplainerSection';
 import { useSettingsForm } from './hooks/useSettingsForm';
 import styles from './page.module.css';
 
@@ -162,6 +163,20 @@ export default function SettingsPage() {
               backupEnabled={backupEnabled}
               setBackupEnabled={setBackupEnabled}
             />
+          </div>
+        </details>
+
+        {/*
+          Read-only pricing explanation. No inputs, no state, no API calls:
+          it describes the current canonical calculation (contracts pricing SSOT
+          + Grn.rentAmount stored once + computeRentBalance) in plain language.
+        */}
+        <details className={styles.disclosure}>
+          <summary className={styles.disclosureSummary}>
+            How Bag Pricing &amp; Rent Works (Read-only)
+          </summary>
+          <div className={styles.disclosureBody}>
+            <PricingExplainerSection />
           </div>
         </details>
 
