@@ -18,6 +18,8 @@ export function useCreateGrnForm(
   const [createRentAmount, setCreateRentAmount] = useState<number | ''>('');
   const [createPartyMark, setCreatePartyMark] = useState('');
   const [suggestedGrnNumber, setSuggestedGrnNumber] = useState('');
+  const [lastCreatedGrn, setLastCreatedGrn] = useState<string | null>(null);
+  const [createGrnNumber, setCreateGrnNumber] = useState('');
   const [createVehicleNumber, setCreateVehicleNumber] = useState(''), [createRemarks, setCreateRemarks] = useState('');
   const [isBondForLoan, setIsBondForLoan] = useState(false), [loanStatus, setLoanStatus] = useState<LoanStatus>('NONE');
   const [modalError, setModalError] = useState<string | null>(null);
@@ -29,7 +31,11 @@ export function useCreateGrnForm(
     if (facilityId) {
       requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns/next-grn-number`)
         .then((res) => (res.ok ? res.json() : null))
-        .then((d: { nextGrnNumber?: string } | null) => { if (active && d?.nextGrnNumber) setSuggestedGrnNumber(d.nextGrnNumber); })
+        .then((d: { lastCreatedGrn?: string | null; nextGrn?: string } | null) => {
+          if (!active || !d?.nextGrn) return;
+          setLastCreatedGrn(d.lastCreatedGrn ?? null);
+          setSuggestedGrnNumber(d.nextGrn);
+        })
         .catch(() => {});
     }
     return () => { active = false; };
@@ -98,7 +104,7 @@ export function useCreateGrnForm(
     e.preventDefault();
     const { errors, parsedChamber, normalizedVehicle } = validateCreateGrnForm({
       createCustomerId, createCommodityId, createChamber, createBags, createBagType,
-      createRentType, createRentMonths, createRentAmount,
+      createGrnNumber, createRentType, createRentMonths, createRentAmount,
       createBagPrice, createPartyMark, createVehicleNumber,
     });
 
@@ -108,7 +114,7 @@ export function useCreateGrnForm(
       const fieldIdMap: Record<string, string> = {
         customer: 'create-customer-search', commodity: 'create-commodity', chamber: 'create-chamber',
         partyMark: 'create-party-mark',
-        bags: 'create-bags',
+        bags: 'create-bags', grnNumber: 'create-grn-number',
         rentMonths: 'create-rent-months', rentAmount: 'create-rent-amount', vehicleNumber: 'create-vehicle',
       };
       setModalError(errors[firstKey]);
@@ -124,7 +130,8 @@ export function useCreateGrnForm(
       const todayStr = new Date().toISOString().split('T')[0];
       const inwardDate = createDate === todayStr ? new Date() : new Date(`${createDate}T00:00:00`);
       const payload = buildCreateGrnPayload({
-        facilityId, inwardDate, customerId: createCustomerId, commodityId: createCommodityId,
+        facilityId, inwardDate, grnNumber: createGrnNumber.trim(),
+        customerId: createCustomerId, commodityId: createCommodityId,
         chamber: parsedChamber ?? createChamber, bags: Number(createBags), bagType: createBagType,
         rentType: createRentType, rentAmount: Number(createRentAmount),
         bagPrice: createBagPrice, rentMonths: createRentMonths,
@@ -156,7 +163,7 @@ export function useCreateGrnForm(
   };
 
   const isDirty = Boolean(
-    createCustomerId || createCommodityId || createBags ||
+    createGrnNumber.trim() || createCustomerId || createCommodityId || createBags ||
     createRentAmount || createBagPrice ||
     createPartyMark.trim() ||
     createVehicleNumber.trim() || createRemarks.trim() || isBondForLoan,
@@ -174,8 +181,13 @@ export function useCreateGrnForm(
     createRentMonths, handleRentMonthsChange,
     createBagPrice, handleBagPriceChange: (val: number | '') => { setCreateBagPrice(val); autoComputeRent({ bagPrice: val }); },
     createRentAmount, setCreateRentAmount: (val: number | '') => { setCreateRentAmount(val); clearFieldError('rentAmount'); },
+    createGrnNumber, setCreateGrnNumber: (val: string) => {
+      const digitsOnly = val.replace(/\D/g, '').slice(0, 4);
+      setCreateGrnNumber(digitsOnly);
+      clearFieldError('grnNumber');
+    },
+    lastCreatedGrn, suggestedGrnNumber,
     createPartyMark, setCreatePartyMark: (val: string) => { setCreatePartyMark(val); clearFieldError('partyMark'); },
-    suggestedGrnNumber,
     createVehicleNumber, setCreateVehicleNumber: (val: string) => { setCreateVehicleNumber(val); clearFieldError('vehicleNumber'); },
     createRemarks, setCreateRemarks,
     isBondForLoan, setIsBondForLoan, loanStatus, setLoanStatus,

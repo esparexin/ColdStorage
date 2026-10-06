@@ -4,7 +4,7 @@ import React from 'react';
 import styles from '../page.module.css';
 
 interface TransportLogisticsSectionProps {
-  grnPreview: string;
+  grnNumber: string;
   vehicleNumber: string;
   onVehicleNumberChange: (v: string) => void;
   vehicleError?: string;
@@ -16,7 +16,7 @@ interface TransportLogisticsSectionProps {
 }
 
 export function TransportLogisticsSection({
-  grnPreview,
+  grnNumber,
   vehicleNumber, onVehicleNumberChange, vehicleError,
   partyMark, onPartyMarkChange, partyMarkError,
   remarks, onRemarksChange,
@@ -32,7 +32,7 @@ export function TransportLogisticsSection({
             type="text"
             readOnly
             tabIndex={-1}
-            value={grnPreview || 'Auto'}
+            value={grnNumber}
             className={`${styles.fieldInput} ${styles.calculatedField}`}
             aria-label="Storage Mark (GR Number)"
           />

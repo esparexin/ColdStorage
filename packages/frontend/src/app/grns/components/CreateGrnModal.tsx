@@ -47,7 +47,13 @@ export function CreateGrnModal({
     >
       <form id="create-grn-form" noValidate onSubmit={form.handleSubmit} className={styles.modalForm}>
         {form.modalError && <Banner message={form.modalError} id="grn-modal-error" />}
-        <h3 className={styles.sectionHeading}>Basic Information</h3>
+        <div className={styles.sectionHeadingRow}>
+          <h3 className={styles.sectionHeading}>Basic Information</h3>
+          {/* Informational only: entry is manual and unsequenced, so this is a hint, not a rule. */}
+          <span className={styles.grnGuidance}>
+            Last Created GRN: {form.lastCreatedGrn ?? '—'} · Next GRN: {form.suggestedGrnNumber || '—'}
+          </span>
+        </div>
         <div className={styles.formGrid3}>
           <div className={styles.fieldGroup}>
             <label htmlFor="create-date" className={styles.fieldLabel}>Inward Date *</label>
@@ -111,18 +117,23 @@ export function CreateGrnModal({
         <div className={styles.formGrid3}>
           <div className={styles.fieldGroup}>
             <label htmlFor="create-gr-number" className={styles.fieldLabel}>
-              GR Number
+              GR Number *
             </label>
             <input
               id="create-gr-number"
               type="text"
-              readOnly
-              tabIndex={-1}
-              value={form.suggestedGrnNumber || 'Auto'}
-              placeholder="Auto"
-              className={`${styles.fieldInput} ${styles.calculatedField}`}
-              aria-label="GR Number (system-generated)"
+              inputMode="numeric"
+              required
+              maxLength={4}
+              value={form.createGrnNumber}
+              onChange={(e) => form.setCreateGrnNumber(e.target.value)}
+              placeholder="Enter 4-digit GRN"
+              className={`${styles.fieldInput} ${form.fieldErrors.grnNumber ? styles.inputError : ''}`}
+              aria-invalid={Boolean(form.fieldErrors.grnNumber)}
             />
+            {form.fieldErrors.grnNumber && (
+              <span className={styles.fieldErrorText}>{form.fieldErrors.grnNumber}</span>
+            )}
           </div>
           <div className={styles.fieldGroup}>
             <Input id="create-chamber" label="Chamber" type="text" required maxLength={20}
@@ -131,8 +142,9 @@ export function CreateGrnModal({
           </div>
           <div className={styles.fieldGroup}>
             <Select id="create-bag-type" label="Bag Type" required value={form.createBagType} onChange={(e) => form.handleBagTypeChange(e.target.value as BagType)}>
-              <option value="S">Small Bag (S)</option>
-              <option value="B">Big Bag (B)</option>
+              <option value="S">S — Small Bag</option>
+              <option value="B">B — Big Bag</option>
+              <option value="S+B">S&amp;B — Small &amp; Big Bags</option>
             </Select>
           </div>
         </div>
@@ -188,7 +200,7 @@ export function CreateGrnModal({
           </div>
         </div>
         <TransportLogisticsSection
-          grnPreview={form.suggestedGrnNumber}
+          grnNumber={form.createGrnNumber}
           vehicleNumber={form.createVehicleNumber} onVehicleNumberChange={form.setCreateVehicleNumber}
           vehicleError={form.fieldErrors.vehicleNumber}
           partyMark={form.createPartyMark} onPartyMarkChange={form.setCreatePartyMark}
@@ -197,7 +209,7 @@ export function CreateGrnModal({
         />
         <BondLoanSection
           isBondForLoan={form.isBondForLoan} onIsBondForLoanChange={form.setIsBondForLoan}
-          grnPreview={form.suggestedGrnNumber}
+          grnNumber={form.createGrnNumber}
           loanStatus={form.loanStatus} onLoanStatusChange={form.setLoanStatus}
         />
       </form>
