@@ -5,6 +5,8 @@
 **Date:** 2026-10-03
 **Status:** AUDIT ONLY — no behavior changed in this phase.
 
+> **Reading notice (2026-10-06):** §§1–5 describe the pre-ledger flow and are retained as history. The authoritative corrections are §7 (single-ledger addendum) and §8 (frozen Inward Edit governance). For the live contract/route/handler map use `docs/ui-backend-wiring-matrix.md` §3.
+
 ## 1. SSOT (`packages/contracts/src`)
 
 * `index.ts:1-20` re-exports all domains. Consumed as `@cold-storage/contracts` (Zod).

@@ -145,6 +145,43 @@ describe('GRN Correction Workflow (PATCH /api/facilities/:facilityId/grns/:grnId
     expect(unknownKey.body.error).toBe('Validation failed');
   });
 
+  it('rejects every immutable financial/identity/numbering field as unknown', async () => {
+    const frozen = [
+      { grnNumber: 'GRN-99' }, { inwardReceiptNumber: 'RCPT-99' }, { billNumber: 'B-99' },
+      { customerId: 'cust-other' }, { rentAmount: 1 }, { rentType: 'Monthly' }, { rentMonths: 3 },
+      { loanStatus: 'TAKEN' }, { bondNumber: 'BND-1' }, { bagType: 'B' }, { vehicleNumber: 'GJ-01' },
+    ];
+    for (const extra of frozen) {
+      const res = await correct({ ...extra, reason: 'Trying to change a frozen field' });
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it('rejects a split correction that names only one side', async () => {
+    const res = await correct({ smallBags: 100, reason: 'Correcting only the small side' });
+    expect(res.status).toBe(400);
+  });
+
+  it('requires authentication', async () => {
+    const res = await request(app)
+      .patch(`/api/facilities/${facilityId}/grns/${grnId}`)
+      .send({ chamber: 'CH-02', reason: 'No token supplied' });
+    expect(res.status).toBe(401);
+  });
+
+  it('backfills a missing inward ledger leg during correction', async () => {
+    await InventoryTransactionModel.deleteMany({ grnId, transactionType: 'INWARD_PUTAWAY' }).exec();
+
+    const res = await correct({ bags: 180, reason: 'Correcting a pre-ledger receipt' });
+    expect(res.status).toBe(200);
+
+    const inward = await InventoryTransactionModel.findOne({ grnId, transactionType: 'INWARD_PUTAWAY' })
+      .lean()
+      .exec();
+    expect(inward?.smallQuantity).toBe(180);
+    expect(String(inward?.notes ?? '')).toContain('Backfilled by correction');
+  });
+
   it('rejects a correction naming an inactive commodity', async () => {
     await CommodityModel.updateOne({ id: commodityId }, { isActive: false });
 

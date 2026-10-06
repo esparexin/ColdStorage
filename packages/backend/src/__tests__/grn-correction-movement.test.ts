@@ -132,4 +132,25 @@ describe('GRN Correction After Movement (grn-correction-movement.test.ts)', () =
     const summary = await deliveryService.getDeliverySummary(facilityId, grnId);
     expect(summary.remainingDeliveryBalance).toBe(200);
   });
+
+  it('leaves settled outward/reversal ledger rows on the original chamber', async () => {
+    const { facilityId, grnId, token } = await seedMovedGrn();
+
+    const res = await correctFor(facilityId, grnId, token, {
+      chamber: 'CH-07',
+      reason: 'Relabelling the bay after repainting',
+    });
+    expect(res.status).toBe(200);
+
+    // The chamber label moves with live rows only; settled history keeps the
+    // chamber the stock physically sat in when the event was recorded.
+    const settled = await InventoryTransactionModel.find({
+      grnId,
+      transactionType: { $in: ['OUTWARD_DELIVERY', 'DELIVERY_REVERSAL'] },
+    })
+      .lean()
+      .exec();
+    expect(settled.length).toBeGreaterThan(0);
+    for (const row of settled) expect(row.chamber).toBe('CH-01');
+  });
 });

@@ -4,6 +4,8 @@
 **Branch**: `fix/ui-ux-ssot-code-hygiene`  
 **Status**: VERIFIED & COMPLETE  
 
+> **Supersession notice (2026-10-06):** historical snapshot of 2026-10-03 (counts like `44 files/373 tests` are stale). The live Inward Edit SSOT map is `docs/architecture/inward-rent-delivery-grn-flow-audit.md` §8. Do not use this document's file inventory to justify new implementations.
+
 ---
 
 ## 1. Executive Summary
