@@ -1,5 +1,6 @@
 import type { FilterQuery } from 'mongoose';
 import {
+  totalRentDue,
   type StorageOccupancyFilter,
   type StorageOccupancyReport,
   type StorageOccupancyReportItem,
@@ -67,8 +68,13 @@ export async function generateStorageOccupancyReport(
     if (!history) continue;
 
     const totalPaid = totalPaidByGrn.get(grn.id) ?? 0;
-    const totalDue = Number(
-      (Number(grn.rentAmount ?? 0) + (extensionTotalsByGrn.get(grn.id) ?? 0)).toFixed(2),
+    // extensionTotalsByGrn holds the pre-aggregated sum of all finalAmounts for this GRN.
+    // totalRentDue() accepts individual extension amounts and sums them internally; wrapping
+    // the pre-summed value in a single-element array routes through the SSOT formula
+    // (identical result, consistent rounding behaviour with all other call sites).
+    const totalDue = totalRentDue(
+      grn.rentAmount,
+      extensionTotalsByGrn.get(grn.id) ? [extensionTotalsByGrn.get(grn.id)!] : [],
     );
     const rentBalance = computeRentBalance(totalDue, totalPaid);
 
