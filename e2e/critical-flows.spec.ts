@@ -178,7 +178,7 @@ test.describe('Critical Application Flows', () => {
       });
     });
 
-    await page.goto('/settings');
+    await page.goto('/settings?tab=facilities');
     await expect(page.getByRole('heading', { level: 1 })).toContainText(/Settings/i);
     // Facility records are maintained here by SUPER_ADMIN; chamber is free text on the GRN
     // and has no management screen of its own.
