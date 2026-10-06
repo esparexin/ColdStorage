@@ -4,6 +4,7 @@ export const CUSTOMER_IMPORT_REQUIRED_HEADERS = ['name'] as const;
 export const CUSTOMER_IMPORT_ALLOWED_HEADERS = ['name'] as const;
 
 export const GRN_IMPORT_REQUIRED_HEADERS = [
+  'grnNumber',
   'date',
   'customerName',
   'commodityName',
@@ -15,6 +16,7 @@ export const GRN_IMPORT_REQUIRED_HEADERS = [
 ] as const;
 
 export const GRN_IMPORT_ALLOWED_HEADERS = [
+  'grnNumber',
   'date',
   'customerName',
   'commodityName',

@@ -1,5 +1,9 @@
 import mongoose, { Schema, type Document, type Model } from 'mongoose';
 
+/**
+ * `GRN` is retained for historical counter documents only. GR Numbers are now entered manually
+ * as four digits and are no longer allocated from a counter.
+ */
 export type CounterType = 'GRN' | 'INWARD_RECEIPT' | 'CHALLAN' | 'RENT_RECEIPT';
 
 export interface CounterDoc extends Document {

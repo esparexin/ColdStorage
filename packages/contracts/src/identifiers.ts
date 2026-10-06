@@ -9,6 +9,20 @@ import { z } from 'zod';
 const baseIdentifierSchema = z.string().trim().min(3).max(40);
 
 export const grnNumberSchema = baseIdentifierSchema;
+
+/**
+ * GR Number as entered on the Inward form: a mandatory manual business number of exactly
+ * four digits, numbers only, stored verbatim (e.g. "0004").
+ *
+ * There is no automatic allocation and no sequence enforcement — any unused four-digit
+ * number is accepted. `grnNumberSchema` above stays permissive on purpose so legacy
+ * `GRN-26-27-NNNN` rows keep validating on read.
+ */
+export const grnNumberInputSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}$/, 'GRN must be exactly 4 digits (numbers only)');
+
 export const bondNumberSchema = baseIdentifierSchema;
 export const receiptNumberSchema = baseIdentifierSchema;
 export const challanNumberSchema = baseIdentifierSchema;

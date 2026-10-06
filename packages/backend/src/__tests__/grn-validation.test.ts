@@ -10,6 +10,7 @@ import {
   disconnectTestDatabase,
   resetStockCollections,
 } from './helpers/stock-reset.js';
+import { nextTestGrnNumber } from './helpers/grn-number-fixtures.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
@@ -80,6 +81,7 @@ describe('GRN Relational Validation & Business Constraints', () => {
       .post(`/api/facilities/${facilityId}/grns`)
       .set('Authorization', `Bearer ${token}`)
       .send({
+        grnNumber: nextTestGrnNumber(),
         customerId: customerNorthId,
         commodityId,
         chamber: 'CH-NORTH-01',

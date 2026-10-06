@@ -18,6 +18,7 @@ import {
   seedMultiFacilityScenario,
   type MultiFacilityScenario,
 } from './helpers/multi-facility-e2e-fixtures.js';
+import { nextTestGrnNumber } from './helpers/grn-number-fixtures.js';
 
 const app = createApp();
 const CHAMBER = 'CL1';
@@ -60,6 +61,7 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
       .post(`/api/facilities/${scenario.facilityA}/grns`)
       .set('Authorization', `Bearer ${scenario.tokens.operatorA}`)
       .send({
+        grnNumber: nextTestGrnNumber(),
         customerId: scenario.customerA,
         commodityId: scenario.commodityId,
         chamber: CHAMBER,

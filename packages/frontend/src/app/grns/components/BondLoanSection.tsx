@@ -8,7 +8,7 @@ import styles from '../page.module.css';
 interface BondLoanSectionProps {
   isBondForLoan: boolean;
   onIsBondForLoanChange: (value: boolean) => void;
-  grnPreview: string;
+  grnNumber: string;
   loanStatus: LoanStatus;
   onLoanStatusChange: (status: LoanStatus) => void;
 }
@@ -16,7 +16,7 @@ interface BondLoanSectionProps {
 export function BondLoanSection({
   isBondForLoan,
   onIsBondForLoanChange,
-  grnPreview,
+  grnNumber,
   loanStatus,
   onLoanStatusChange,
 }: BondLoanSectionProps) {
@@ -69,7 +69,7 @@ export function BondLoanSection({
               type="text"
               readOnly
               tabIndex={-1}
-              value={grnPreview || 'Auto'}
+              value={grnNumber}
               className={`${styles.fieldInput} ${styles.calculatedField}`}
               aria-label="Bond # (GR Number)"
             />

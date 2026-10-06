@@ -39,6 +39,7 @@ export async function executeGrnImport(
     GRN_IMPORT_ALLOWED_HEADERS,
   );
 
+  const grnNumberIdx = headers.indexOf('grnNumber');
   const dateIdx = headers.indexOf('date');
   const customerNameIdx = headers.indexOf('customerName');
   const commodityNameIdx = headers.indexOf('commodityName');
@@ -57,6 +58,7 @@ export async function executeGrnImport(
 
   const parsedRows = dataRows.map((cols, idx) => ({
     rowNumber: idx + 1,
+    grnNumber: cols[grnNumberIdx]?.trim() ?? '',
     date: cols[dateIdx]?.trim() ?? '',
     customerName: cols[customerNameIdx]?.trim() ?? '',
     commodityName: cols[commodityNameIdx]?.trim() ?? '',
@@ -124,6 +126,7 @@ export async function executeGrnImport(
     // import path can never accept a row that the interactive GRN endpoint would reject.
     const rentMonths = row.rentType === 'Monthly' ? parseOptionalInt(row.rentMonthsStr) : null;
     const contractCheck = createGrnSchema.safeParse({
+      grnNumber: row.grnNumber,
       date: row.date,
       customerId: customerId ?? 'unresolved-customer',
       commodityId: commodityId ?? 'unresolved-commodity',

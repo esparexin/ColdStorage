@@ -1,5 +1,6 @@
 import {
   chamberTextSchema,
+  grnNumberInputSchema,
   indianVehicleSchema,
   rentalAmountSchema,
 } from '@cold-storage/contracts';
@@ -13,6 +14,7 @@ export function parseNumericInput(raw: string): number | '' {
 }
 
 export interface CreateGrnState {
+  createGrnNumber: string;
   createCustomerId: string;
   createCommodityId: string;
   createChamber: string;
@@ -32,6 +34,13 @@ export function validateCreateGrnForm(state: CreateGrnState): {
   normalizedVehicle?: string;
 } {
   const errors: Record<string, string> = {};
+
+  // Same rule the server enforces, so the form cannot submit a GR Number the contract rejects.
+  const parsedGrnNumber = grnNumberInputSchema.safeParse(state.createGrnNumber.trim());
+  if (!parsedGrnNumber.success) {
+    errors.grnNumber = 'GRN must be exactly 4 digits (numbers only)';
+  }
+
   if (!state.createCustomerId) errors.customer = 'Please select a customer';
   if (!state.createCommodityId) errors.commodity = 'Please select a commodity';
 
@@ -72,7 +81,7 @@ export function validateCreateGrnForm(state: CreateGrnState): {
 }
 
 export function buildCreateGrnPayload(params: {
-  facilityId: string; inwardDate: Date; customerId: string; commodityId: string;
+  facilityId: string; inwardDate: Date; grnNumber: string; customerId: string; commodityId: string;
   chamber: string; bags: number; bagType: BagType; rentType: RentType; rentAmount: number;
   bagPrice?: number | '';
   rentMonths?: number | '';
@@ -81,7 +90,8 @@ export function buildCreateGrnPayload(params: {
   isBondForLoan?: boolean; loanStatus?: LoanStatus;
 }): Record<string, unknown> {
   const p: Record<string, unknown> = {
-    facilityId: params.facilityId, date: params.inwardDate, customerId: params.customerId,
+    facilityId: params.facilityId, date: params.inwardDate,
+    grnNumber: params.grnNumber, customerId: params.customerId,
     commodityId: params.commodityId, chamber: params.chamber, bags: params.bags,
     bagType: params.bagType, rentType: params.rentType, rentAmount: params.rentAmount,
   };

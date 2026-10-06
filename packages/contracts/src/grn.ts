@@ -6,7 +6,13 @@ import {
   perBagWeightSchema,
 } from './bags.js';
 import { chamberTextSchema, indianVehicleSchema, rentalAmountSchema } from './common.js';
-import { bondNumberSchema, gpNumberSchema, grnNumberSchema, receiptNumberSchema } from './identifiers.js';
+import {
+  bondNumberSchema,
+  gpNumberSchema,
+  grnNumberInputSchema,
+  grnNumberSchema,
+  receiptNumberSchema,
+} from './identifiers.js';
 import { bagPriceSchema } from './pricing.js';
 
 export const rentTypeSchema = z.enum(['Monthly', 'Seasonal']);
@@ -40,19 +46,20 @@ export { updateGrnLoanStatusSchema, type UpdateGrnLoanStatusInput };
 export const inwardReceiptNumberSchema = receiptNumberSchema;
 export type InwardReceiptNumber = z.infer<typeof inwardReceiptNumberSchema>;
 
+/**
+ * GR Number is entered manually as exactly four digits and is the sole business key for the
+ * goods lifecycle; uniqueness within the facility is enforced server-side (see grnNumberInputSchema).
+ */
 export const createGrnSchema = z
   .object({
+    grnNumber: grnNumberInputSchema,
     date: z.coerce.date().default(() => new Date()),
     customerId: z.string().trim().min(1),
     commodityId: z.string().trim().min(1),
     chamber: chamberTextSchema,
     bags: z.number().int().positive().max(100000),
     bagType: bagTypeSchema,
-    /**
-     * Per-bag weight only (kg per individual bag).
-     * - S requires smallBagWeight; B requires bigBagWeight; S+B requires both.
-     * - No nominal / weighbridge / total-weight fields exist.
-     */
+    /** Per-bag weight only (kg per individual bag); optional. No nominal/weighbridge/total. */
     smallBagWeight: perBagWeightSchema.nullish(),
     bigBagWeight: perBagWeightSchema.nullish(),
     rentType: rentTypeSchema,

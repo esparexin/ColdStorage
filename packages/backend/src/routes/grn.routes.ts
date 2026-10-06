@@ -104,7 +104,7 @@ grnRouter.get(
   },
 );
 
-// Preview next GR Number for facility (GR No. is the sole business key)
+// GR Number guidance for the Inward form (informational only; entry is manual and unsequenced)
 grnRouter.get(
   '/facilities/:facilityId/grns/next-grn-number',
   requirePermission('grn:view'),
@@ -112,10 +112,10 @@ grnRouter.get(
   async (req: Request, res: Response): Promise<void> => {
     const facilityId = getParamId(req.params.facilityId);
     try {
-      const nextGrnNumber = await grnService.getNextGrnNumber(facilityId);
-      res.status(200).json({ nextGrnNumber });
+      const guidance = await grnService.getGrnNumberGuidance(facilityId);
+      res.status(200).json(guidance);
     } catch (err: unknown) {
-      sendServiceError(res, err, 'Failed to preview next GR number');
+      sendServiceError(res, err, 'Failed to load GR number guidance');
     }
   },
 );

@@ -97,6 +97,29 @@
   gap: var(--space-3);
 }
 
+.sectionHeadingRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* The heading no longer draws its own rule: the row owns it, so the two sit on one line. */
+.sectionHeadingRow .sectionHeading {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.grnGuidance {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-danger-text);
+  white-space: nowrap;
+}
+
 .sectionHeading {
   font-size: var(--text-xs);
   font-weight: var(--font-bold);

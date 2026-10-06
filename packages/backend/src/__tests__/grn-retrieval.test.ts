@@ -10,6 +10,7 @@ import {
   disconnectTestDatabase,
   resetStockCollections,
 } from './helpers/stock-reset.js';
+import { nextTestGrnNumber } from './helpers/grn-number-fixtures.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
@@ -58,6 +59,7 @@ describe('GRN Retrieval & Acknowledgement Projections', () => {
       .post(`/api/facilities/${northFacilityId}/grns`)
       .set('Authorization', `Bearer ${operatorNorthToken}`)
       .send({
+        grnNumber: nextTestGrnNumber(),
         customerId: customerNorthId,
         commodityId,
         chamber: 'CH-NORTH-01',
