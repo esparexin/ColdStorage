@@ -68,8 +68,8 @@ export async function resolveRentEdit(
   } else {
     finalRentMonths = grn.rentMonths ?? null;
   }
-  if (finalRentType === 'Monthly' && (finalRentMonths == null || finalRentMonths < 1)) {
-    throw new Error(`rentMonths (>= 1) is required for 'Monthly' rent`);
+  if (finalRentType === 'Monthly' && finalRentMonths != null && finalRentMonths < 1) {
+    throw new Error(`rentMonths must be >= 1 for 'Monthly' rent`);
   }
 
   const finalBagPrice = input.bagPrice !== undefined ? (input.bagPrice ?? null) : grn.bagPrice;
@@ -81,6 +81,12 @@ export async function resolveRentEdit(
   let finalRentAmount: number;
   if (input.rentAmount !== undefined && input.rentAmount != null) {
     finalRentAmount = input.rentAmount;
+  } else if (
+    finalRentType === 'Monthly' &&
+    (input.rentAmount === null ||
+      (input.rentAmount === undefined && (grn.rentAmount === 0 || finalRentMonths == null)))
+  ) {
+    finalRentAmount = 0;
   } else if (
     input.bagPrice !== undefined ||
     input.smallBagPrice !== undefined ||

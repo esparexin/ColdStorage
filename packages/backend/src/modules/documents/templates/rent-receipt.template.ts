@@ -41,7 +41,7 @@ export function renderRentReceiptTemplate(
       </tr>
       <tr>
         <th>Total Rent Obligation</th>
-        <td>₹${escapeHtml(dto.totalRentObligation.toFixed(2))}</td>
+        <td>${dto.totalRentObligation > 0 ? `₹${escapeHtml(dto.totalRentObligation.toFixed(2))}` : (dto.rentType === 'Monthly' ? 'Dynamic (Cycle Billing)' : '₹0.00')}</td>
         <th>Payment Mode</th>
         <td><strong>${escapeHtml(dto.paymentMode)}</strong></td>
       </tr>

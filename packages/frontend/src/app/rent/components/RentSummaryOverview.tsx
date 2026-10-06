@@ -48,8 +48,14 @@ export function RentSummaryOverview({ account }: RentSummaryOverviewProps) {
             </span>
           </div>
           <div className={styles.infoRow}>
-            <span style={{ color: 'var(--color-text-muted)' }}>Contract Rent</span>
-            <span>₹{account.rentAmount.toLocaleString('en-IN')}</span>
+            <span style={{ color: 'var(--color-text-muted)' }}>
+              {account.rentType === 'Monthly' && account.rentAmount === 0 ? 'Rent Status' : 'Contract Rent'}
+            </span>
+            <span>
+              {account.rentType === 'Monthly' && account.rentAmount === 0
+                ? 'Dynamic (Cycle Billing)'
+                : `₹${account.rentAmount.toLocaleString('en-IN')}`}
+            </span>
           </div>
           <div className={styles.infoRow}>
             <span style={{ color: 'var(--color-text-muted)' }}>Already Paid</span>
@@ -60,7 +66,9 @@ export function RentSummaryOverview({ account }: RentSummaryOverviewProps) {
           <div className={styles.infoRow} style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-1)' }}>
             <span style={{ fontWeight: 'var(--font-semibold)' }}>Remaining Due</span>
             <strong style={{ color: 'var(--color-warning-text)' }}>
-              ₹{account.remainingBalance.toLocaleString('en-IN')}
+              {account.rentType === 'Monthly' && account.rentAmount === 0 && account.remainingBalance === 0
+                ? 'Dynamic (Per Cycle)'
+                : `₹${account.remainingBalance.toLocaleString('en-IN')}`}
             </strong>
           </div>
         </div>

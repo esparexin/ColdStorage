@@ -116,7 +116,7 @@ export function RentTable({
             {row.rentType === 'Monthly' && row.rentMonths ? ` (${row.rentMonths}m)` : ''}
           </span>
           <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)' }}>
-            ₹{row.rentAmount.toLocaleString('en-IN')}
+            {row.rentType === 'Monthly' && row.rentAmount === 0 ? 'Dynamic' : `₹${row.rentAmount.toLocaleString('en-IN')}`}
           </span>
         </div>
       ),

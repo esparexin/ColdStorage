@@ -202,5 +202,35 @@ describe('GRN Full Edit (PATCH /api/facilities/:facilityId/grns/:grnId)', () => 
     expect(stored.body.grn.partyMark).toBe('PM-99');
     expect(stored.body.grn.remarks).toBe('Updated bay after partial delivery');
   });
+
+  it('preserves unconfigured monthly rent (rentAmount = 0) when editing bags and prices without explicit rent', async () => {
+    const monthlyGrnId = await seedGrn({
+      facilityId,
+      customerId,
+      commodityId,
+      commodityName: 'Potato Jyoti',
+      rentType: 'Monthly',
+      rentMonths: null,
+      rentAmount: 0,
+      bags: 100,
+    });
+
+    const res = await request(app)
+      .patch(`/api/facilities/${facilityId}/grns/${monthlyGrnId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        bags: 120,
+        bagPrice: 10,
+        reason: 'Updated bags and price on dynamic monthly receipt',
+      });
+    expect(res.status).toBe(200);
+
+    const stored = await request(app)
+      .get(`/api/grns/${monthlyGrnId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(stored.body.grn.rentType).toBe('Monthly');
+    expect(stored.body.grn.rentAmount).toBe(0);
+    expect(stored.body.grn.bags).toBe(120);
+  });
 });
 

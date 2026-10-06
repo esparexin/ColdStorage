@@ -173,6 +173,16 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     ).toBe(false);
   });
 
+  it('renders Dynamic (Cycle Billing) for unconfigured monthly rent on cash memo', () => {
+    const html = renderRentReceiptTemplate(
+      makeRentReceiptDto({
+        rentType: 'Monthly',
+        totalRentObligation: 0,
+      }),
+    );
+    expect(html).toContain('Dynamic (Cycle Billing)');
+  });
+
   it('rejects the removed rent receipt chamberNumber field', () => {
     const parsed = rentReceiptDocumentDtoSchema.parse({
       ...makeRentReceiptDto(),

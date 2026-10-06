@@ -57,8 +57,8 @@ export function RentHistoryModal({
       <div className={styles.modalBody}>
           <StatGrid label={`Rent summary for ${account.grnNumber}`}>
             <StatCard
-              label="Total Billed"
-              value={`₹${account.rentAmount.toLocaleString('en-IN')}`}
+              label={account.rentType === 'Monthly' && account.rentAmount === 0 ? 'Rent Status' : 'Total Billed'}
+              value={account.rentType === 'Monthly' && account.rentAmount === 0 ? 'Dynamic' : `₹${account.rentAmount.toLocaleString('en-IN')}`}
             />
             <StatCard
               label="Total Paid"
@@ -67,7 +67,7 @@ export function RentHistoryModal({
             />
             <StatCard
               label="Remaining Due"
-              value={`₹${account.remainingBalance.toLocaleString('en-IN')}`}
+              value={account.rentType === 'Monthly' && account.rentAmount === 0 && account.remainingBalance === 0 ? 'Dynamic' : `₹${account.remainingBalance.toLocaleString('en-IN')}`}
               accent="warning"
             />
           </StatGrid>
