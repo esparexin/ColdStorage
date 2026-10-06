@@ -42,10 +42,6 @@ export function renderGrnTemplate(dto: GrnDocumentDto): string {
       </tr>
       ${dto.marks ? `<tr><th>Lot / Identification Marks</th><td colspan="3">${escapeHtml(dto.marks)}</td></tr>` : ''}
     </table>
-
-    <div style="margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 13px;">
-      Storage Position Allocation (Put-Away Record)
-    </div>
   `;
 
   return renderBaseLayout({

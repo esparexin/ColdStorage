@@ -97,9 +97,7 @@ describe('P5 Inventory Routes & RBAC Integration Tests', () => {
 
     expect(sumRes.status).toBe(200);
     expect(sumRes.body.summary.chamber).toBe('CH-1');
-    expect(sumRes.body.summary.allocatedBags).toBe(80);
-    expect(sumRes.body.summary.unallocatedBags).toBe(0);
-    expect(sumRes.body.summary.putAwayStatus).toBe('ALLOCATED');
+    expect(sumRes.body.summary.totalBags).toBe(80);
   });
 
   it('allows querying facility stock aggregated by commodity and chamber directly from GRN', async () => {

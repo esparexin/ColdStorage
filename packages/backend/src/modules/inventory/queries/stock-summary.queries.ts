@@ -1,8 +1,5 @@
 import type mongoose from 'mongoose';
-import type {
-  GrnInventorySummary,
-  PutAwayStatus,
-} from '@cold-storage/contracts';
+import type { GrnInventorySummary } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { readLedgerBalance } from '../ledger-balance.js';
 
@@ -34,7 +31,6 @@ export async function getGrnInventorySummary(
   }
 
   const available = await getAvailableComposition(facilityId, grnId);
-  const putAwayStatus: PutAwayStatus = 'ALLOCATED';
 
   return {
     grnId: grn.id,
@@ -42,9 +38,6 @@ export async function getGrnInventorySummary(
     grnNumber: grn.grnNumber,
     chamber: grn.chamber,
     totalBags: grn.bags,
-    allocatedBags: available.bags,
-    unallocatedBags: 0,
-    putAwayStatus,
     availableSmallBags: available.smallBags,
     availableBigBags: available.bigBags,
   };

@@ -186,10 +186,9 @@ describe('Phase 11: Multi-Facility End-to-End — cross-facility isolation', () 
     expect(sumA.status).toBe(200);
     expect(sumB.status).toBe(200);
     expect(sumA.body.summary.chamber).toBe(CHAMBER_A);
-    expect(sumA.body.summary.allocatedBags).toBe(100);
+    expect(sumA.body.summary.totalBags).toBe(100);
     expect(sumB.body.summary.chamber).toBe(CHAMBER_B);
-    expect(sumB.body.summary.allocatedBags).toBe(200);
-    expect(sumB.body.summary.putAwayStatus).toBe('ALLOCATED');
+    expect(sumB.body.summary.totalBags).toBe(200);
   });
 
   it('6. Cross-facility outward denial: Alpha operator cannot move Beta stock and is audited', async () => {
