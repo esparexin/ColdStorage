@@ -28,6 +28,7 @@ export function renderChallanTemplate(dto: ChallanDocumentDto): string {
         <th>Challan Status</th>
         <td><strong>${escapeHtml(dto.status)}</strong></td>
       </tr>
+      ${dto.partyMark ? `<tr><th>Party Mark</th><td colspan="3"><strong>${escapeHtml(dto.partyMark)}</strong></td></tr>` : ''}
     </table>
 
     <div style="margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 13px;">

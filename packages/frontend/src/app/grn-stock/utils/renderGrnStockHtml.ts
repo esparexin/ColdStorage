@@ -1,6 +1,8 @@
 import type { GrnMovementHistory } from '@cold-storage/contracts';
+import { ORG_NAME_FALLBACK } from '@/lib/branding';
 
-export function renderGrnStockHtml(history: GrnMovementHistory): string {
+export function renderGrnStockHtml(history: GrnMovementHistory, orgName?: string): string {
+  const displayOrg = orgName?.trim() || ORG_NAME_FALLBACK;
   const inwardStr = new Date(history.inwardDate).toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
@@ -72,7 +74,7 @@ export function renderGrnStockHtml(history: GrnMovementHistory): string {
   </style>
 </head>
 <body>
-  <div class="org">SRI SAI BALA COLD STORAGE</div>
+  <div class="org">${displayOrg}</div>
   <div class="title">GRN Stock / Customer Bag Movement</div>
 
   <dl class="grn-header">

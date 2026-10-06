@@ -85,6 +85,7 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).toContain('Sardar Singh');
     expect(html).toContain('300 Bags (S)');
     expect(html).toContain('₹45000');
+    expect(html).toContain('PM-42');
     expect(html).toContain('Terms &amp; Conditions of Storage');
   });
 
@@ -108,6 +109,7 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).toContain('OUTWARD DELIVERY CHALLAN (GATE PASS)');
     expect(html).toContain('CHL-2026-5001');
     expect(html).toContain('CH-03');
+    expect(html).toContain('PM-42');
     expect(html).toContain('DL-01-AA-4321');
     expect(html).toContain('Karamjit Singh');
     expect(html).toContain('Gate Pass Declaration');
