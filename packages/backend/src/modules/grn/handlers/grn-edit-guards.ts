@@ -33,7 +33,7 @@ export function assertCorrectionAllowed(
       `GRN_CLOSED: Cannot correct GRN '${grn.grnNumber}': it is CLOSED and its stock has been fully delivered`,
     );
   }
-  if (opts.activeChallans > 0) {
+  if (opts.activeChallans > 0 && opts.structural) {
     throw new Error(
       `GRN_ACTIVE_DELIVERY: Cannot correct GRN '${grn.grnNumber}': stock has already been delivered. Use the delivery reversal workflow instead.`,
     );

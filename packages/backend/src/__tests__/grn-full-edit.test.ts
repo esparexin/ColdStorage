@@ -6,7 +6,7 @@ import { CommodityModel } from '../database/models/commodity.model.js';
 import { CustomerModel } from '../database/models/customer.model.js';
 import { rentService } from '../modules/rent/rent.service.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
-import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
+import { seedChallan, seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import {
   connectToTestDatabase,
   disconnectTestDatabase,
@@ -174,4 +174,33 @@ describe('GRN Full Edit (PATCH /api/facilities/:facilityId/grns/:grnId)', () => 
     expect(res.status).toBe(409);
     expect(res.body.error).toContain('is inactive');
   });
+
+  it('allows correcting chamber, vehicle, marks and remarks when partial delivery (active ISSUED challan) exists', async () => {
+    await seedChallan({
+      facilityId,
+      customerId,
+      grnId,
+      grnNumber: 'GRN-26-27-0001',
+      chamber: 'CH-01',
+      smallBags: 40,
+      bigBags: 0,
+      status: 'ISSUED',
+    });
+
+    const res = await correct({
+      chamber: 'CH-03',
+      vehicleNumber: 'UP32AA1111',
+      partyMark: 'PM-99',
+      remarks: 'Updated bay after partial delivery',
+      reason: 'Updating bay and transport details after partial delivery',
+    });
+
+    expect(res.status).toBe(200);
+    const stored = await storedGrn();
+    expect(stored.body.grn.chamber).toBe('CH-03');
+    expect(stored.body.grn.vehicleNumber).toBe('UP32AA1111');
+    expect(stored.body.grn.partyMark).toBe('PM-99');
+    expect(stored.body.grn.remarks).toBe('Updated bay after partial delivery');
+  });
 });
+
