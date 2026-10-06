@@ -82,7 +82,7 @@ async function executeDeliveryTransaction(
         throw new Error(`Outward blocked — Active loan hold against ${bondRef}`);
       }
 
-      await assertRentAllowedForOutward(
+      const rentBalance = await assertRentAllowedForOutward(
         facilityId,
         { id: grn.id, grnNumber: grn.grnNumber, rentAmount: grn.rentAmount ?? 0 },
         session,
@@ -164,9 +164,9 @@ async function executeDeliveryTransaction(
 
       const closingTotal = available.total - withdrawnTotal;
 
-      // Physical inventory lifecycle: A GRN is CLOSED when physical bags reach 0 (closingTotal === 0).
-      // Financial rent state (Settled / Not Settled) remains strictly decoupled and preserved in the rent ledger.
-      if (closingTotal === 0) {
+      // Closure invariant: A GRN is CLOSED only when both remainingBags === 0 AND remainingBalance === 0.
+      // If bags reach 0 but rent balance remains, the GRN remains OPEN so outstanding dues are tracked.
+      if (closingTotal === 0 && rentBalance.remainingBalance === 0) {
         await GrnModel.updateOne({ id: grn.id }, { $set: { status: 'CLOSED' } }, { session });
       }
     });
