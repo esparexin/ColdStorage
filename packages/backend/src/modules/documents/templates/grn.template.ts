@@ -24,7 +24,7 @@ export function renderGrnTemplate(dto: GrnDocumentDto): string {
       </tr>
       <tr>
         <th>Rent Agreement</th>
-        <td>${escapeHtml(dto.rentType)} @ ₹${escapeHtml(dto.rentAmount)}${dto.rentMonths ? ` (${dto.rentMonths} mos)` : ''}</td>
+        <td>${escapeHtml(dto.rentType)} @ ${dto.rentType === 'Monthly' && dto.rentAmount === 0 ? 'Dynamic (Cycle Billing)' : `₹${escapeHtml(String(dto.rentAmount))}`}${dto.rentMonths ? ` (${dto.rentMonths} mos)` : ''}</td>
         <th>Status</th>
         <td><strong>${escapeHtml(dto.status)}</strong></td>
       </tr>

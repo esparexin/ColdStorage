@@ -204,7 +204,10 @@ export function GrnDetailModal({
                 {grn.rentType === 'Monthly' && grn.rentMonths
                   ? ` (${grn.rentMonths} Months, info only)`
                   : ''}{' '}
-                — {grn.rentAmount != null ? `₹${grn.rentAmount.toLocaleString('en-IN')}` : 'Dynamic'}
+                —{' '}
+                {grn.rentType === 'Monthly' && (grn.rentAmount == null || grn.rentAmount === 0)
+                  ? 'Dynamic (Cycle Billing)'
+                  : `₹${(grn.rentAmount ?? 0).toLocaleString('en-IN')}`}
               </span>
             </div>
 

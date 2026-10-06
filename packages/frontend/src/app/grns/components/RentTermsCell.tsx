@@ -95,6 +95,9 @@ export function RentTermsCell({ row }: RentTermsCellProps) {
   const contractTermText =
     row.rentType === 'Seasonal' ? '10 months' : `${row.rentMonths ?? 1} months`;
 
+  /** True when this is a Monthly GRN with no upfront fixed contract rent obligation. */
+  const isDynamicMonthly = row.rentType === 'Monthly' && (row.rentAmount == null || row.rentAmount === 0);
+
   return (
     <div
       className={styles.cellWrapper}
@@ -107,7 +110,7 @@ export function RentTermsCell({ row }: RentTermsCellProps) {
       </span>
       <div className={styles.amountRow}>
         <span className={styles.contractRent}>
-          {row.rentAmount != null ? `₹${row.rentAmount.toLocaleString('en-IN')}` : 'Dynamic'}
+          {isDynamicMonthly ? 'Dynamic (Cycle Billing)' : `₹${(row.rentAmount ?? 0).toLocaleString('en-IN')}`}
         </span>
         <Button
           variant="ghost"
@@ -177,14 +180,14 @@ export function RentTermsCell({ row }: RentTermsCellProps) {
             <div className={styles.dataRow}>
               <span className={styles.label}>Original rent:</span>
               <span className={styles.valueEmphasized}>
-                {row.rentAmount != null ? `₹${row.rentAmount.toLocaleString('en-IN')}` : 'Dynamic'}
+                {isDynamicMonthly ? 'Dynamic (Cycle Billing)' : `₹${(row.rentAmount ?? 0).toLocaleString('en-IN')}`}
               </span>
             </div>
             <div className={styles.dataRow}>
               <span className={styles.label}>Current rent:</span>
               <span className={styles.value}>
-                {row.rentType === 'Monthly'
-                  ? `₹${monthlyCycleCharge.toLocaleString('en-IN')} / month (Cycle ${cycleNumber} in progress)`
+                {isDynamicMonthly
+                  ? 'Dynamic (Per Cycle)'
                   : row.rentAmount != null
                   ? `₹${row.rentAmount.toLocaleString('en-IN')} (Fixed Season Term)`
                   : '—'}
@@ -193,15 +196,15 @@ export function RentTermsCell({ row }: RentTermsCellProps) {
             <div className={styles.dataRow}>
               <span className={styles.label}>Remaining rent:</span>
               <span className={styles.value}>
-                {row.rentAmount != null ? `₹${row.rentAmount.toLocaleString('en-IN')}` : 'Dynamic'}
+                {isDynamicMonthly ? 'Dynamic (Per Cycle)' : `₹${(row.rentAmount ?? 0).toLocaleString('en-IN')}`}
               </span>
             </div>
           </div>
-          {effectiveRate != null && (
+          {effectiveRate != null && !isDynamicMonthly && (
             <>
               <div className={styles.divider} />
               <div className={styles.formulaNote}>
-                {row.bags.toLocaleString('en-IN')} bags × ₹{effectiveRate.toFixed(2)}/bag/mo × {termMonths}m{row.rentAmount != null ? ` = ₹${row.rentAmount.toLocaleString('en-IN')}` : ''}
+                {row.bags.toLocaleString('en-IN')} bags × ₹{effectiveRate.toFixed(2)}/bag/mo × {termMonths}m{row.rentAmount ? ` = ₹${row.rentAmount.toLocaleString('en-IN')}` : ''}
               </div>
             </>
           )}

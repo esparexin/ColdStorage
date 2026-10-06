@@ -183,6 +183,22 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).toContain('Dynamic (Cycle Billing)');
   });
 
+  it('renders Dynamic (Cycle Billing) on GRN printout for unconfigured monthly rent', () => {
+    const html = renderGrnTemplate(
+      makeGrnDto({ rentType: 'Monthly', rentAmount: 0, rentMonths: null }),
+    );
+    expect(html).toContain('Dynamic (Cycle Billing)');
+    expect(html).not.toContain('@ ₹0');
+  });
+
+  it('renders Dynamic (Cycle Billing) on Inward Receipt printout for unconfigured monthly rent', () => {
+    const html = renderReceiptTemplate(
+      makeReceiptDto({ rentType: 'Monthly', rentAmount: 0 }),
+    );
+    expect(html).toContain('Dynamic (Cycle Billing)');
+    expect(html).not.toContain('@ ₹0');
+  });
+
   it('rejects the removed rent receipt chamberNumber field', () => {
     const parsed = rentReceiptDocumentDtoSchema.parse({
       ...makeRentReceiptDto(),
