@@ -7,6 +7,7 @@ import {
 import { GrnModel, type GrnDoc } from '../../database/models/grn.model.js';
 import { RentPaymentModel } from '../../database/models/rent-payment.model.js';
 import { computeRentBalance } from './rent-balance.js';
+import { rentExtensionRepository } from '../rent/rent-extension.repository.js';
 import { getGrnMovementHistory } from './grn-movement-history.js';
 import {
   calculateGrnMonthlyOccupancyRent,
@@ -49,6 +50,10 @@ export async function generateStorageOccupancyReport(
       totalPaidByGrn.set(row._id as string, row.total as number);
     }
   }
+  const extensionTotalsByGrn = await rentExtensionRepository.getExtensionTotalsForGrns(
+    facilityId,
+    grns.map((g) => g.id),
+  );
 
   const reportItems: StorageOccupancyReportItem[] = [];
 
@@ -62,7 +67,10 @@ export async function generateStorageOccupancyReport(
     if (!history) continue;
 
     const totalPaid = totalPaidByGrn.get(grn.id) ?? 0;
-    const rentBalance = computeRentBalance(grn.rentAmount, totalPaid);
+    const totalDue = Number(
+      (Number(grn.rentAmount ?? 0) + (extensionTotalsByGrn.get(grn.id) ?? 0)).toFixed(2),
+    );
+    const rentBalance = computeRentBalance(totalDue, totalPaid);
 
     if (view === 'monthly' && monthlySummary) {
       for (const p of monthlySummary.periods) {

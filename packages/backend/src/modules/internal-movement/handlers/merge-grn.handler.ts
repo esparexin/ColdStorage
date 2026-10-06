@@ -6,6 +6,7 @@ import { InventoryTransactionModel } from '../../../database/models/inventory-tr
 import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { computeRentBalance } from '../../common/rent-balance.js';
+import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
@@ -78,7 +79,12 @@ export async function mergeGrn(
           .lean()
           .exec();
         const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
-        const rentBal = computeRentBalance(s.rentAmount, totalPaid);
+        const sourceTotalDue = await rentExtensionRepository.resolveTotalDue(
+          facilityId,
+          { id: s.id, rentAmount: s.rentAmount ?? 0 },
+          session,
+        );
+        const rentBal = computeRentBalance(sourceTotalDue, totalPaid);
 
         totalMovedBags += bal.total;
         totalMovedSmall += bal.smallBags;
@@ -177,7 +183,12 @@ export async function mergeGrn(
         .lean()
         .exec();
       const targetPaid = targetPayments.reduce((sum, p) => sum + p.amountPaid, 0);
-      const targetRentBal = computeRentBalance(newRentAmount, targetPaid);
+      const targetTotalDue = await rentExtensionRepository.resolveTotalDue(
+        facilityId,
+        { id: targetGrn.id, rentAmount: newRentAmount },
+        session,
+      );
+      const targetRentBal = computeRentBalance(targetTotalDue, targetPaid);
 
       const movementDocs = await InternalMovementModel.create(
         [

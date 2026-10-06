@@ -21,6 +21,12 @@ export const PERMISSIONS = {
   'rent:collect': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
   'rent:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   'rent:print': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
+  /**
+   * Finalize a January/February seasonal extension or override its amount.
+   * Creates a financial obligation, so it follows the sensitive-operation
+   * precedent (grn:correct, delivery:reversal): SUPER_ADMIN and ADMIN only.
+   */
+  'rent:extend': ['SUPER_ADMIN', 'ADMIN'],
   /** Chamber is free text; only the tenancy root is a managed entity. */
   'facility:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   'customer:manage': ['SUPER_ADMIN', 'ADMIN'],

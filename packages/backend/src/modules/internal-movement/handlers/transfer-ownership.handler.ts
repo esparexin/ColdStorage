@@ -6,6 +6,7 @@ import { GrnModel } from '../../../database/models/grn.model.js';
 import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { computeRentBalance } from '../../common/rent-balance.js';
+import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
 
@@ -53,7 +54,12 @@ export async function transferOwnership(
         .lean()
         .exec();
       const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
-      const rentBal = computeRentBalance(grn.rentAmount, totalPaid);
+      const totalDue = await rentExtensionRepository.resolveTotalDue(
+        facilityId,
+        { id: grn.id, rentAmount: grn.rentAmount ?? 0 },
+        session,
+      );
+      const rentBal = computeRentBalance(totalDue, totalPaid);
 
       const movementId = `mov-${randomUUID()}`;
       const transferDateStr = new Date(input.movementDate).toISOString().split('T')[0];
