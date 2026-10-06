@@ -107,7 +107,7 @@ export function RentTermsCell({ row }: RentTermsCellProps) {
       </span>
       <div className={styles.amountRow}>
         <span className={styles.contractRent}>
-          ₹{row.rentAmount.toLocaleString('en-IN')}
+          {row.rentAmount != null ? `₹${row.rentAmount.toLocaleString('en-IN')}` : 'Dynamic'}
         </span>
         <Button
           variant="ghost"
@@ -177,7 +177,7 @@ export function RentTermsCell({ row }: RentTermsCellProps) {
             <div className={styles.dataRow}>
               <span className={styles.label}>Original rent:</span>
               <span className={styles.valueEmphasized}>
-                ₹{row.rentAmount.toLocaleString('en-IN')}
+                {row.rentAmount != null ? `₹${row.rentAmount.toLocaleString('en-IN')}` : 'Dynamic'}
               </span>
             </div>
             <div className={styles.dataRow}>
@@ -185,13 +185,15 @@ export function RentTermsCell({ row }: RentTermsCellProps) {
               <span className={styles.value}>
                 {row.rentType === 'Monthly'
                   ? `₹${monthlyCycleCharge.toLocaleString('en-IN')} / month (Cycle ${cycleNumber} in progress)`
-                  : `₹${row.rentAmount.toLocaleString('en-IN')} (Fixed Season Term)`}
+                  : row.rentAmount != null
+                  ? `₹${row.rentAmount.toLocaleString('en-IN')} (Fixed Season Term)`
+                  : '—'}
               </span>
             </div>
             <div className={styles.dataRow}>
               <span className={styles.label}>Remaining rent:</span>
               <span className={styles.value}>
-                ₹{row.rentAmount.toLocaleString('en-IN')}
+                {row.rentAmount != null ? `₹${row.rentAmount.toLocaleString('en-IN')}` : 'Dynamic'}
               </span>
             </div>
           </div>
@@ -199,7 +201,7 @@ export function RentTermsCell({ row }: RentTermsCellProps) {
             <>
               <div className={styles.divider} />
               <div className={styles.formulaNote}>
-                {row.bags.toLocaleString('en-IN')} bags × ₹{effectiveRate.toFixed(2)}/bag/mo × {termMonths}m = ₹{row.rentAmount.toLocaleString('en-IN')}
+                {row.bags.toLocaleString('en-IN')} bags × ₹{effectiveRate.toFixed(2)}/bag/mo × {termMonths}m{row.rentAmount != null ? ` = ₹${row.rentAmount.toLocaleString('en-IN')}` : ''}
               </div>
             </>
           )}

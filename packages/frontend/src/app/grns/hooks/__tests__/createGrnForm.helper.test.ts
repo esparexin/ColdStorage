@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { validateCreateGrnForm, toDateInput, buildEditGrnPayload, type CreateGrnState } from '../createGrnForm.helper';
+import {
+  validateCreateGrnForm,
+  toDateInput,
+  buildEditGrnPayload,
+  buildCreateGrnPayload,
+  type CreateGrnState,
+} from '../createGrnForm.helper';
 
 function makeState(overrides: Partial<CreateGrnState> = {}): CreateGrnState {
   return {
@@ -155,5 +161,47 @@ describe('createGrnForm buildEditGrnPayload helper', () => {
     expect(payload.customerId).toBe('cust-2');
     expect(payload.bags).toBe(250);
     expect(payload.rentAmount).toBe(6250);
+  });
+});
+
+describe('createGrnForm Monthly vs Seasonal rent terms validation', () => {
+  it('accepts Monthly rent with omitted/empty rentMonths and rentAmount', () => {
+    const { errors } = validateCreateGrnForm(
+      makeState({ createRentType: 'Monthly', createRentMonths: '', createRentAmount: '' }),
+    );
+    expect(errors.rentMonths).toBeUndefined();
+    expect(errors.rentAmount).toBeUndefined();
+  });
+
+  it('rejects Monthly rent when rentMonths is less than 1', () => {
+    const { errors } = validateCreateGrnForm(
+      makeState({ createRentType: 'Monthly', createRentMonths: 0, createRentAmount: '' }),
+    );
+    expect(errors.rentMonths).toBe('Rent months must be >= 1 when provided');
+  });
+
+  it('rejects Seasonal rent when rentAmount is empty', () => {
+    const { errors } = validateCreateGrnForm(
+      makeState({ createRentType: 'Seasonal', createRentAmount: '' }),
+    );
+    expect(errors.rentAmount).toBe('Rental amount must be a number');
+  });
+
+  it('buildCreateGrnPayload omits unconfigured rentAmount for Monthly', () => {
+    const payload = buildCreateGrnPayload({
+      facilityId: 'fac-1',
+      inwardDate: new Date('2026-10-06T00:00:00Z'),
+      grnNumber: '0001',
+      customerId: 'cust-1',
+      commodityId: 'cmd-1',
+      chamber: 'CH-01',
+      bags: 100,
+      bagType: 'S',
+      rentType: 'Monthly',
+      rentAmount: '',
+      rentMonths: '',
+    });
+    expect(payload.rentAmount).toBeUndefined();
+    expect(payload.rentMonths).toBeUndefined();
   });
 });

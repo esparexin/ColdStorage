@@ -55,13 +55,15 @@ export function validateCreateGrnForm(state: CreateGrnState): {
     errors.bags = 'Total Bags is required (a positive whole number)';
   }
 
-  if (state.createRentType === 'Monthly' && (typeof state.createRentMonths !== 'number' || state.createRentMonths < 1)) {
-    errors.rentMonths = 'Rent months is required (>= 1) for Monthly rent';
+  if (state.createRentType === 'Monthly' && typeof state.createRentMonths === 'number' && state.createRentMonths < 1) {
+    errors.rentMonths = 'Rent months must be >= 1 when provided';
   }
 
-  const parsedAmount = rentalAmountSchema.safeParse(state.createRentAmount);
-  if (!parsedAmount.success) {
-    errors.rentAmount = parsedAmount.error.issues[0]?.message ?? 'Rent amount must be a number';
+  if (state.createRentType === 'Seasonal' || (state.createRentAmount !== '' && state.createRentAmount !== undefined)) {
+    const parsedAmount = rentalAmountSchema.safeParse(state.createRentAmount);
+    if (!parsedAmount.success) {
+      errors.rentAmount = parsedAmount.error.issues[0]?.message ?? 'Rent amount must be a number';
+    }
   }
 
   const normVehicle = state.createVehicleNumber.trim().replace(/[\s-]/g, '').toUpperCase();
@@ -82,7 +84,8 @@ export function validateCreateGrnForm(state: CreateGrnState): {
 
 export function buildCreateGrnPayload(params: {
   facilityId: string; inwardDate: Date; grnNumber: string; customerId: string; commodityId: string;
-  chamber: string; bags: number; bagType: BagType; rentType: RentType; rentAmount: number;
+  chamber: string; bags: number; bagType: BagType; rentType: RentType;
+  rentAmount?: number | '';
   bagPrice?: number | '';
   rentMonths?: number | '';
   partyMark?: string;
@@ -93,8 +96,9 @@ export function buildCreateGrnPayload(params: {
     facilityId: params.facilityId, date: params.inwardDate,
     grnNumber: params.grnNumber, customerId: params.customerId,
     commodityId: params.commodityId, chamber: params.chamber, bags: params.bags,
-    bagType: params.bagType, rentType: params.rentType, rentAmount: params.rentAmount,
+    bagType: params.bagType, rentType: params.rentType,
   };
+  if (typeof params.rentAmount === 'number') p.rentAmount = params.rentAmount;
   if (typeof params.bagPrice === 'number' && params.bagPrice > 0) p.bagPrice = params.bagPrice;
   if (params.rentType === 'Monthly' && typeof params.rentMonths === 'number') p.rentMonths = params.rentMonths;
   if (params.partyMark?.trim()) p.partyMark = params.partyMark.trim();

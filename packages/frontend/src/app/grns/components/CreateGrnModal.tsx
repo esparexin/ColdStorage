@@ -191,26 +191,27 @@ export function CreateGrnModal({
               </Select>
             </div>
             <div className={styles.fieldGroup}>
-              <label htmlFor="create-rent-months" className={styles.fieldLabel}>Rent Months {form.createRentType === 'Monthly' ? '*' : ''}</label>
+              <label htmlFor="create-rent-months" className={styles.fieldLabel}>Rent Months {form.createRentType === 'Monthly' ? '(Optional)' : ''}</label>
               <input
                 id="create-rent-months" type="number" min={1}
-                disabled={structuralLocked || form.createRentType !== 'Monthly'} required={form.createRentType === 'Monthly'}
+                disabled={structuralLocked || form.createRentType !== 'Monthly'}
                 value={form.createRentType === 'Seasonal' ? form.seasonalRentMonths : form.createRentMonths}
                 onChange={(e) => form.handleRentMonthsChange(e.target.value ? parseInt(e.target.value, 10) : '')}
                 placeholder={form.createRentType === 'Monthly' ? 'e.g. 6' : '—'}
                 readOnly={form.createRentType === 'Seasonal'}
                 className={`${styles.fieldInput} ${form.fieldErrors.rentMonths ? styles.inputError : ''} ${structuralLocked ? styles.calculatedField : ''}`}
                 aria-invalid={Boolean(form.fieldErrors.rentMonths)}
-                aria-label={form.createRentType === 'Seasonal' ? `Rent Months (fixed at ${form.seasonalRentMonths} for Seasonal)` : 'Rent Months'}
+                aria-label={form.createRentType === 'Seasonal' ? `Rent Months (fixed at ${form.seasonalRentMonths} for Seasonal)` : 'Rent Months (Optional)'}
               />
               {form.fieldErrors.rentMonths && <span className={styles.fieldErrorText}>{form.fieldErrors.rentMonths}</span>}
             </div>
             <div className={`${styles.fieldGroup} ${styles.span2}`}>
-              <label htmlFor="create-rent-amount" className={styles.fieldLabel}>Rent Amount (₹) *</label>
+              <label htmlFor="create-rent-amount" className={styles.fieldLabel}>Rent Amount (₹) {form.createRentType === 'Seasonal' ? '*' : '(Optional)'}</label>
               <input
-                id="create-rent-amount" type="number" inputMode="decimal" min={0} step="0.01" required disabled={structuralLocked}
+                id="create-rent-amount" type="number" inputMode="decimal" min={0} step="0.01"
+                required={form.createRentType === 'Seasonal'} disabled={structuralLocked}
                 value={form.createRentAmount} onChange={(e) => form.setCreateRentAmount(parseNumericInput(e.target.value))}
-                placeholder="e.g. 50000"
+                placeholder={form.createRentType === 'Seasonal' ? 'e.g. 50000' : 'Optional (Dynamic)'}
                 className={`${styles.fieldInput} ${form.fieldErrors.rentAmount ? styles.inputError : ''} ${structuralLocked ? styles.calculatedField : ''}`}
                 aria-invalid={Boolean(form.fieldErrors.rentAmount)}
               />

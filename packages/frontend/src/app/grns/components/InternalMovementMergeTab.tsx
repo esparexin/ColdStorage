@@ -80,7 +80,7 @@ export function InternalMovementMergeTab({
         <div className={styles.metaItem}><span className={styles.metaLabel}>Customer</span><span className={styles.metaValue}>{targetGrn.customerName}</span></div>
         <div className={styles.metaItem}><span className={styles.metaLabel}>Commodity / Chamber</span><span className={styles.metaValue}>{targetGrn.commodityName} (Ch. {targetGrn.chamber})</span></div>
         <div className={styles.metaItem}><span className={styles.metaLabel}>Current Stock</span><span className={styles.metaValue}>{targetCurrentRemaining} Bags</span></div>
-        <div className={styles.metaItem}><span className={styles.metaLabel}>Rent Obligation</span><span className={styles.metaValue}>₹{targetGrn.rentAmount.toLocaleString('en-IN')}</span></div>
+        <div className={styles.metaItem}><span className={styles.metaLabel}>Rent Obligation</span><span className={styles.metaValue}>{targetGrn.rentAmount != null ? `₹${targetGrn.rentAmount.toLocaleString('en-IN')}` : '—'}</span></div>
       </div>
 
       {/* Source GRNs Compact Selection List */}
@@ -137,7 +137,7 @@ export function InternalMovementMergeTab({
                       <td>{sg.customerName}</td>
                       <td>{sg.commodityName} (Ch. {sg.chamber})</td>
                       <td style={{ textAlign: 'right', fontWeight: 'var(--font-semibold)' }}>{count}</td>
-                      <td style={{ textAlign: 'right' }}>₹{sg.rentAmount.toLocaleString('en-IN')}</td>
+                      <td style={{ textAlign: 'right' }}>{sg.rentAmount != null ? `₹${sg.rentAmount.toLocaleString('en-IN')}` : '—'}</td>
                       <td style={{ textAlign: 'center' }}>
                         <Badge variant={sg.loanStatus === 'CLEARED' ? 'success' : 'neutral'}>{sg.loanStatus === 'CLEARED' ? 'Cleared' : 'None'}</Badge>
                       </td>

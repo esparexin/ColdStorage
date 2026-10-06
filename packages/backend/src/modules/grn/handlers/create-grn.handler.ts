@@ -76,7 +76,7 @@ export async function createGrn(
 
   // Rent Months is informational only and is not used to finalize the monthly
   // subscription/payment logic beyond the established rent-amount rule.
-  const rentMonths = rentMonthsForType(input.rentType) ?? input.rentMonths!;
+  const rentMonths = rentMonthsForType(input.rentType) ?? (input.rentMonths ?? null);
   const derivedBagPrice = deriveBagPrice({
     rentType: input.rentType,
     bags: input.bags,
@@ -87,18 +87,15 @@ export async function createGrn(
   const finalRentAmount =
     input.rentAmount && input.rentAmount > 0
       ? input.rentAmount
-      : calculateRentAmount({
-          rentType: input.rentType,
-          bags: input.bags,
-          bagType: input.bagType,
-          bagPrice: input.bagPrice ?? derivedBagPrice,
-          smallBags: composition.smallBags,
-          bigBags: composition.bigBags,
-          smallBagPrice: input.smallBagPrice,
-          bigBagPrice: input.bigBagPrice,
-          rentMonths,
-          rentAmount: input.rentAmount,
-        });
+      : input.rentType === 'Monthly'
+        ? 0
+        : calculateRentAmount({
+            rentType: input.rentType, bags: input.bags, bagType: input.bagType,
+            bagPrice: input.bagPrice ?? derivedBagPrice,
+            smallBags: composition.smallBags, bigBags: composition.bigBags,
+            smallBagPrice: input.smallBagPrice, bigBagPrice: input.bigBagPrice,
+            rentMonths, rentAmount: input.rentAmount,
+          });
 
   const id = `grn-${randomUUID()}`;
 

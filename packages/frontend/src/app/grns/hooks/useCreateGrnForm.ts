@@ -41,7 +41,7 @@ export function useCreateGrnForm(
   const [createRentType, setCreateRentType] = useState<RentType>(isEdit ? initialGrn!.rentType : 'Seasonal');
   const [createRentMonths, setCreateRentMonths] = useState<number | ''>(isEdit ? (initialGrn!.rentMonths ?? '') : '');
   const [createBagPrice, setCreateBagPrice] = useState<number | ''>(isEdit ? (initialGrn!.bagPrice ?? '') : '');
-  const [createRentAmount, setCreateRentAmount] = useState<number | ''>(isEdit ? initialGrn!.rentAmount : '');
+  const [createRentAmount, setCreateRentAmount] = useState<number | ''>(isEdit ? (initialGrn?.rentAmount ?? '') : '');
   const [createPartyMark, setCreatePartyMark] = useState(isEdit ? (initialGrn!.partyMark ?? '') : '');
   const [suggestedGrnNumber, setSuggestedGrnNumber] = useState('');
   const [lastCreatedGrn, setLastCreatedGrn] = useState<string | null>(null);
@@ -91,10 +91,11 @@ export function useCreateGrnForm(
     bagPrice: number | '';
     rentType: RentType; rentMonths: number | '';
   }>) => {
+    const rentType = overrides?.rentType ?? createRentType;
+    if (rentType !== 'Seasonal') return;
     const bags = overrides?.bags ?? createBags;
     const bagType = overrides?.bagType ?? createBagType;
     const bagPrice = overrides?.bagPrice ?? createBagPrice;
-    const rentType = overrides?.rentType ?? createRentType;
     const rentMonths = overrides?.rentMonths ?? createRentMonths;
 
     if (typeof bags === 'number' && bags > 0) {
@@ -143,10 +144,7 @@ export function useCreateGrnForm(
 
     if (isGrnInvalid) {
       if (!createGrnNumber.trim() || createGrnNumber.trim().length !== 4) {
-        setFieldErrors((prev) => ({
-          ...prev,
-          grnNumber: 'GRN must be exactly 4 digits (numbers only)',
-        }));
+        setFieldErrors((prev) => ({ ...prev, grnNumber: 'GRN must be exactly 4 digits (numbers only)' }));
       }
       focusField('create-gr-number');
       return;
@@ -178,7 +176,8 @@ export function useCreateGrnForm(
         facilityId, inwardDate, grnNumber: createGrnNumber.trim(),
         customerId: createCustomerId, commodityId: createCommodityId,
         chamber: parsedChamber ?? createChamber, bags: Number(createBags), bagType: createBagType,
-        rentType: createRentType, rentAmount: Number(createRentAmount),
+        rentType: createRentType,
+        rentAmount: typeof createRentAmount === 'number' ? createRentAmount : '',
         bagPrice: createBagPrice, rentMonths: createRentMonths,
         partyMark: createPartyMark,
         vehicleNumber: normalizedVehicle, remarks: createRemarks,
@@ -222,7 +221,11 @@ export function useCreateGrnForm(
     seasonalRentMonths: SEASONAL_RENT_MONTHS,
     createBags, handleBagsChange,
     createBagType, handleBagTypeChange,
-    createRentType, handleRentTypeChange: (val: RentType) => { setCreateRentType(val); autoComputeRent({ rentType: val }); },
+    createRentType, handleRentTypeChange: (val: RentType) => {
+      setCreateRentType(val);
+      if (val === 'Monthly') { clearFieldError('rentMonths'); clearFieldError('rentAmount'); }
+      else { autoComputeRent({ rentType: val }); }
+    },
     createRentMonths, handleRentMonthsChange,
     createBagPrice, handleBagPriceChange: (val: number | '') => { setCreateBagPrice(val); autoComputeRent({ bagPrice: val }); },
     createRentAmount, setCreateRentAmount: (val: number | '') => { setCreateRentAmount(val); clearFieldError('rentAmount'); },
