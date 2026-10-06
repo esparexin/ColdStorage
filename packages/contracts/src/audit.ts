@@ -27,6 +27,8 @@ export const auditEventTypeSchema = z.enum([
   'FACILITY_UPDATED',
   'FACILITY_DELETED',
   'GRN_LOAN_STATUS_UPDATED',
+  'INTERNAL_MOVEMENT_MERGE',
+  'INTERNAL_MOVEMENT_TRANSFER',
 ]);
 
 export type AuditEventType = z.infer<typeof auditEventTypeSchema>;
