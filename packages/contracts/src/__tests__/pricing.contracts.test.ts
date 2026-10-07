@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CANONICAL_BAG_RATES,
   calculateMonthlyCharge,
   calculateMonthlyOccupancy,
   calculateRentAmount,
@@ -140,6 +141,11 @@ describe('Authoritative Bag Pricing & Rental Calculation SSOT', () => {
     expect(periods[4].deliveredBags).toBe(60);
     expect(periods[4].remainingBags).toBe(0);
     expect(periods[4].calculatedCharge).toBe(600);
+  });
+
+  it('7. exposes canonical bag rates for Seasonal and Monthly Small and Big bags', () => {
+    expect(CANONICAL_BAG_RATES.Seasonal).toEqual({ small: 10, big: 15 });
+    expect(CANONICAL_BAG_RATES.Monthly).toEqual({ small: 10, big: 15 });
   });
 });
 

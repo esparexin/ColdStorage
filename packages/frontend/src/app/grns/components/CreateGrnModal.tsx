@@ -7,6 +7,7 @@ import { Banner } from '@/components/ui/Banner';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { BondLoanSection } from './BondLoanSection';
 import { CustomerCombobox } from './CustomerCombobox';
+import { RentRateReferenceNote } from './RentRateReferenceNote';
 import { TransportLogisticsSection } from './TransportLogisticsSection';
 import { useCustomerCombobox } from '../hooks/useCustomerCombobox';
 import { parseNumericInput, useCreateGrnForm } from '../hooks/useCreateGrnForm';
@@ -189,6 +190,12 @@ export function CreateGrnModal({
                 />
                 {form.fieldErrors.rentMonths && <span id="create-rent-months-error" className={styles.fieldErrorText} role="alert">{form.fieldErrors.rentMonths}</span>}
               </div>
+            )}
+            {form.createCommodityId && form.createRentType && (
+              <RentRateReferenceNote
+                rentType={form.createRentType}
+                commodityName={commodities.find((c) => c.id === form.createCommodityId)?.name}
+              />
             )}
           </div>
         </section>

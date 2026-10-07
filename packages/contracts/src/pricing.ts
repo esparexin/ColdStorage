@@ -16,6 +16,17 @@ export const bagPriceSchema = z
 
 export type BagPrice = z.infer<typeof bagPriceSchema>;
 
+export interface CanonicalBagRate {
+  small: number;
+  big: number;
+}
+
+/** Canonical reference rates for Small and Big bags under Seasonal and Monthly rent types. */
+export const CANONICAL_BAG_RATES: Record<RentType, CanonicalBagRate> = {
+  Seasonal: { small: 10, big: 15 },
+  Monthly: { small: 10, big: 15 },
+};
+
 export interface RentalCalculationInput {
   rentType: RentType;
   bags: number;
