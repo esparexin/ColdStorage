@@ -4,7 +4,7 @@ import React from 'react';
 import type { Customer } from '@cold-storage/contracts';
 import { Button } from '@/components/ui';
 import type { useCustomerCombobox } from '../hooks/useCustomerCombobox';
-import styles from '../page.module.css';
+import styles from './CustomerCombobox.module.css';
 
 interface CustomerComboboxProps {
   customerBox: ReturnType<typeof useCustomerCombobox>;
