@@ -53,6 +53,7 @@ export function CustomerTable({
                 size="sm"
                 onClick={() => onEdit(row)}
                 title="Edit customer details"
+                aria-label={`Edit customer ${row.name}`}
                 leftIcon={<Edit2 size={13} aria-hidden="true" />}
               >
                 Edit
