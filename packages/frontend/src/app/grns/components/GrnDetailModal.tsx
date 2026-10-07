@@ -192,7 +192,7 @@ export function GrnDetailModal({
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Bags Accounting</span>
               <span className={styles.detailValue}>
-                {grn.bags.toLocaleString('en-IN')} Inward (Type: {grn.bagType})
+                Total S/B Bags: {grn.bags.toLocaleString('en-IN')} (S/B: {grn.bagType})
                 {grn.netDeliveredBags != null && grn.netDeliveredBags > 0 ? (
                   <> • {grn.netDeliveredBags.toLocaleString('en-IN')} Outward • {(grn.closingBags ?? (grn.bags - grn.netDeliveredBags)).toLocaleString('en-IN')} Bal</>
                 ) : null}

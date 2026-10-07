@@ -100,6 +100,9 @@ export function GrnTable({
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
           <span style={{ fontWeight: 'var(--font-semibold)' }}>{row.bags.toLocaleString('en-IN')} in</span>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+            S/B: {row.bagType ?? 'S/B'}
+          </span>
           {row.netDeliveredBags != null && row.netDeliveredBags > 0 && (
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
               Del: {row.netDeliveredBags.toLocaleString('en-IN')}

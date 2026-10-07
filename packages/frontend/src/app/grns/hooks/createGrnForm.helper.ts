@@ -52,7 +52,7 @@ export function validateCreateGrnForm(state: CreateGrnState): {
   // Total Bags is a manual numbers-only input. Bag type is Small-only or
   // Big-only, so the split is derived server-side and no composition check applies.
   if (typeof state.createBags !== 'number' || !Number.isInteger(state.createBags) || state.createBags < 1) {
-    errors.bags = 'Total Bags is required (a positive whole number)';
+    errors.bags = 'Total S/B Bags is required (a positive whole number)';
   }
 
   if (state.createRentType === 'Monthly' && typeof state.createRentMonths === 'number' && state.createRentMonths < 1) {

@@ -74,7 +74,7 @@ export function createDeliveryColumns({
             {row.totalBags.toLocaleString('en-IN')} bags
           </span>
           <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
-            {row.smallBags.toLocaleString('en-IN')} small / {row.bigBags.toLocaleString('en-IN')} big
+            S/B: {row.bagType ?? 'S/B'}
           </span>
         </div>
       ),

@@ -36,7 +36,7 @@ export function useCreateGrnForm(
   const [createCustomerId, setCreateCustomerId] = useState(isEdit ? initialGrn!.customerId : '');
   const [createCommodityId, setCreateCommodityId] = useState(isEdit ? initialGrn!.commodityId : '');
   const [createChamber, setCreateChamber] = useState(isEdit ? initialGrn!.chamber : '');
-  const [createBagType, setCreateBagType] = useState<BagType>(isEdit ? initialGrn!.bagType : 'S');
+  const [createBagType, setCreateBagType] = useState<BagType>(isEdit ? initialGrn!.bagType : 'S/B');
   const [createBags, setCreateBags] = useState<number | ''>(isEdit ? initialGrn!.bags : '');
   const [createRentType, setCreateRentType] = useState<RentType>(isEdit ? initialGrn!.rentType : 'Seasonal');
   const [createRentMonths, setCreateRentMonths] = useState<number | ''>(isEdit ? (initialGrn!.rentMonths ?? '') : '');

@@ -19,6 +19,7 @@ const BAG_TYPE_LABEL: Record<BagType, string> = {
   S: 'S — Small',
   B: 'B — Big',
   'S+B': 'S+B',
+  'S/B': 'S/B',
 };
 
 function getStockSummaryText(summary: GrnInventorySummary): string {
@@ -67,7 +68,7 @@ export function DeliveryBagCompositionFields({
           <thead>
             <tr>
               <th style={{ textAlign: 'right' }}>Available</th>
-              <th style={{ textAlign: 'left' }}>Bag Type</th>
+              <th style={{ textAlign: 'left' }}>S/B Category</th>
               <th style={{ textAlign: 'left' }}>Chamber</th>
             </tr>
           </thead>
@@ -76,7 +77,7 @@ export function DeliveryBagCompositionFields({
               <td style={{ textAlign: 'right', fontWeight: 'var(--font-semibold)' }}>
                 {availableTotal.toLocaleString('en-IN')} bags
               </td>
-              <td style={{ textAlign: 'left' }}>{BAG_TYPE_LABEL[bagType]}</td>
+              <td style={{ textAlign: 'left' }}>{BAG_TYPE_LABEL[bagType] ?? 'S/B'}</td>
               <td style={{ textAlign: 'left' }}>{summary.chamber}</td>
             </tr>
           </tbody>

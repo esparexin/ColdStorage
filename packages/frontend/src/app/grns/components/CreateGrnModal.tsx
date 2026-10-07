@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { BagType, Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
+import type { Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
 import { Button, ConfirmDialog, Input, Modal, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
@@ -146,16 +146,6 @@ export function CreateGrnModal({
                 error={form.fieldErrors.chamber} placeholder="e.g. A or CH-01"
               />
             </div>
-            <div className={styles.fieldGroup}>
-              <Select
-                id="create-bag-type" label="Bag Type" required disabled={structuralLocked}
-                value={form.createBagType} onChange={(e) => form.handleBagTypeChange(e.target.value as BagType)}
-              >
-                <option value="S">S — Small Bag</option>
-                <option value="B">B — Big Bag</option>
-                <option value="S+B">S&amp;B — Small &amp; Big Bags</option>
-              </Select>
-            </div>
           </div>
         </section>
 
@@ -163,7 +153,7 @@ export function CreateGrnModal({
           <h3 className={styles.sectionHeading}>Quantity &amp; Rent Terms</h3>
           <div className={styles.formGrid}>
             <div className={styles.fieldGroup}>
-              <label htmlFor="create-bags" className={styles.fieldLabel}>Total Bags *</label>
+              <label htmlFor="create-bags" className={styles.fieldLabel}>Total S/B Bags *</label>
               <input
                 id="create-bags" type="text" inputMode="numeric" required disabled={structuralLocked}
                 value={form.createBags} onChange={(e) => form.handleBagsChange(parseNumericInput(e.target.value))}
