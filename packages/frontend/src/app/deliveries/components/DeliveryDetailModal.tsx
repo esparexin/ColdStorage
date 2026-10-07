@@ -135,7 +135,7 @@ export function DeliveryDetailModal({
             </div>
 
             <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Dispatch Weight</span>
+              <span className={styles.detailLabel}>Outward Weight</span>
               <span className={styles.detailValue}>
                 {delivery.weight != null ? `${delivery.weight.toLocaleString('en-IN')} kg` : '—'}
               </span>
