@@ -136,12 +136,12 @@ describe('GRN Relational Validation & Business Constraints', () => {
     expect(res.body.error).toContain('not found');
   });
 
-  it('enforces conditional rent terms: Monthly needs an explicit count, Seasonal is fixed at 10', async () => {
+  it('enforces conditional rent terms: Monthly allows optional count (>=1 if provided), Seasonal must omit months', async () => {
     const monthlyMissing = await postInbound(operatorNorthToken, northFacilityId, {
       rentType: 'Monthly',
     });
-    expect(monthlyMissing.status).toBe(400);
-    expect(monthlyMissing.body.details.fieldErrors.rentMonths).toBeDefined();
+    expect(monthlyMissing.status).toBe(201);
+    expect(monthlyMissing.body.grn.rentMonths).toBeNull();
 
     const monthlyZero = await postInbound(operatorNorthToken, northFacilityId, {
       rentType: 'Monthly',

@@ -2,11 +2,11 @@ import { z } from 'zod';
 
 /**
  * Single canonical bag model (P0-Decision 3 & 4).
- * - Bag Type: strictly controlled vocabulary of 'S', 'B', or 'S+B'.
+ * - Bag Type: strictly controlled vocabulary of 'S', 'B', 'S+B', or 'S/B' (informational, default 'S/B').
  * - Weight is captured per individual bag only (Small Bag Weight / Big Bag Weight).
- * - No nominal/weighbridge/total-weight concepts exist in the GRN workflow.
+ * - Primary operational metric is Total S/B Bags (`bags`).
  */
-export const bagTypeSchema = z.enum(['S', 'B', 'S+B']);
+export const bagTypeSchema = z.enum(['S', 'B', 'S+B', 'S/B']).default('S/B');
 export type BagType = z.infer<typeof bagTypeSchema>;
 
 /** Per-bag weight in kg for one individual bag of the respective type. */
@@ -62,6 +62,10 @@ export function bagCompositionIssue(input: NormalizeCompositionInput): string | 
   const small = smallBags ?? 0;
   const big = bigBags ?? 0;
 
+  if (bagType === 'S/B') {
+    return null;
+  }
+
   if (bagType === 'S') {
     return big > 0
       ? 'Bag type S declares no big bags, but a big bag count was supplied'
@@ -105,6 +109,9 @@ export function normalizeBagComposition(input: NormalizeCompositionInput): BagCo
   }
 
   const { bagType, bags, smallBags, bigBags } = input;
+  if (bagType === 'S/B') {
+    return { smallBags: bags, bigBags: 0 };
+  }
   if (bagType === 'S') {
     return { smallBags: bags, bigBags: 0 };
   }

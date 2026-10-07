@@ -152,13 +152,13 @@ describe('E2E Suite 1: Full GRN Lifecycle — 300 bags, 3 partial deliveries, 2 
     expect(del3.delivery.totalBags).toBe(150);
     expect(del3.summary.remainingDeliveryBalance).toBe(0);
     expect(del3.summary.physicallyStoredBags).toBe(0);
-    expect(del3.summary.grnStatus).toBe('CLOSED');
+    expect(del3.summary.grnStatus).toBe('OPEN');
 
     const delivered = await readLedgerNetDelivered(facilityId, grnId);
     const balance = await readLedgerBalance(facilityId, grnId);
     expect(delivered.total).toBe(300);
     expect(balance.total).toBe(0);
-    expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('CLOSED');
+    expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('OPEN');
 
     const rent = await rentService.getRentSummary(facilityId, grnId);
     expect(rent.deliveredBags).toBe(300);

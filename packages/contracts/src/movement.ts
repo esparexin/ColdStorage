@@ -7,6 +7,9 @@ export const grnMovementTypeSchema = z.enum([
   'PARTIAL_OUTWARD',
   'FINAL_OUTWARD',
   'DELIVERY_REVERSAL',
+  'INTERNAL_MERGE_IN',
+  'INTERNAL_MERGE_OUT',
+  'OWNERSHIP_TRANSFER',
 ]);
 export type GrnMovementType = z.infer<typeof grnMovementTypeSchema>;
 

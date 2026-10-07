@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CreditCard, Eye, Wallet } from 'lucide-react';
+import { CreditCard, Wallet } from 'lucide-react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
 import { Button, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
@@ -20,7 +20,7 @@ interface CollectPaymentModalProps {
 export function CollectPaymentModal({
   account,
   selectedFacilityId,
-  canPrint,
+  canPrint: _canPrint,
   onClose,
   onPaymentSuccess,
 }: CollectPaymentModalProps) {
@@ -36,10 +36,8 @@ export function CollectPaymentModal({
     upiReference,
     setUpiReference,
     collectError,
-    previewError,
     collectSubmitting,
     handleSubmit,
-    handlePreviewReceipt,
   } = useCollectPaymentForm({
     account,
     selectedFacilityId,
@@ -58,9 +56,13 @@ export function CollectPaymentModal({
           <div className={styles.modalBody}>
             {collectError && <Banner message={collectError} id="collect-error" />}
 
-            {previewError && <Banner message={previewError} id="preview-error" />}
-
             <RentSummaryOverview account={account} />
+
+            {account.rentType === 'Monthly' && account.rentAmount === 0 && (
+              <div style={{ padding: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                No fixed upfront contract rent configured for this Monthly GRN. Billing accrues dynamically per cycle.
+              </div>
+            )}
 
             <div className={styles.fieldGroup}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -83,11 +85,12 @@ export function CollectPaymentModal({
                 id="collect-amount"
                 type="number"
                 min={1}
-                max={account.remainingBalance}
+                max={account.remainingBalance > 0 ? account.remainingBalance : undefined}
                 step="0.01"
                 required
+                disabled={account.remainingBalance === 0}
                 className={styles.fieldInput}
-                placeholder="Enter amount"
+                placeholder={account.remainingBalance === 0 ? 'No outstanding dues' : 'Enter amount'}
                 value={collectAmount}
                 onChange={(e) =>
                   setCollectAmount(e.target.value ? parseFloat(e.target.value) : '')
@@ -169,15 +172,6 @@ export function CollectPaymentModal({
           </div>
 
           <div className={styles.modalFooter}>
-            {canPrint && typeof collectAmount === 'number' && collectAmount > 0 && (
-              <Button
-                variant="outline"
-                onClick={() => void handlePreviewReceipt()}
-                leftIcon={<Eye size={14} aria-hidden="true" />}
-              >
-                Preview Cash Memo
-              </Button>
-            )}
             <Button
               variant="outline"
               onClick={onClose}

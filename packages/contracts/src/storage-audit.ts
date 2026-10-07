@@ -61,7 +61,6 @@ export const storageOccupancyReportItemSchema = z.object({
   closingBags: z.number().int().nonnegative(),
   marks: z.string().nullable(),
   gpNumber: z.string().nullable(),
-  sbNumber: z.string().nullable(),
   remarks: z.string().nullable(),
   month: z.string().nullable(),
   season: z.string().nullable(),

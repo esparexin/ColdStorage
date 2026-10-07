@@ -46,18 +46,12 @@ export const inventoryTransactionSchema = z.object({
 
 export type InventoryTransaction = z.infer<typeof inventoryTransactionSchema>;
 
-export const putAwayStatusSchema = z.enum(['UNALLOCATED', 'ALLOCATED']);
-export type PutAwayStatus = z.infer<typeof putAwayStatusSchema>;
-
 export const grnInventorySummarySchema = z.object({
   grnId: z.string().min(1),
   facilityId: z.string().min(1),
   grnNumber: z.string().min(1),
   chamber: chamberTextSchema,
   totalBags: z.number().int().positive(),
-  allocatedBags: z.number().int().min(0),
-  unallocatedBags: z.number().int().min(0),
-  putAwayStatus: putAwayStatusSchema,
   availableSmallBags: z.number().int().min(0),
   availableBigBags: z.number().int().min(0),
 });

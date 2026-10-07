@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { BagType } from './bags.js';
-import { SEASONAL_RENT_MONTHS, type RentType } from './grn.js';
+import { SEASONAL_RENT_MONTHS, type RentType } from './grn-rent.js';
 
 /**
  * Single Authoritative Bag Price & Rental Calculation SSOT.

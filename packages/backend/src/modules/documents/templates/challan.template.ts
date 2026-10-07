@@ -28,6 +28,7 @@ export function renderChallanTemplate(dto: ChallanDocumentDto): string {
         <th>Challan Status</th>
         <td><strong>${escapeHtml(dto.status)}</strong></td>
       </tr>
+      ${dto.partyMark ? `<tr><th>Party Mark</th><td colspan="${dto.weight != null ? 1 : 3}"><strong>${escapeHtml(dto.partyMark)}</strong></td>${dto.weight != null ? `<th>Dispatch Weight</th><td>${dto.weight} kg</td>` : ''}</tr>` : dto.weight != null ? `<tr><th>Dispatch Weight</th><td colspan="3">${dto.weight} kg</td></tr>` : ''}
     </table>
 
     <div style="margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 13px;">
@@ -37,13 +38,15 @@ export function renderChallanTemplate(dto: ChallanDocumentDto): string {
     <table class="data-table">
       <thead>
         <tr>
-          <th style="width: 33.33%; text-align: center;">Small Bags</th>
-          <th style="width: 33.33%; text-align: center;">Big Bags</th>
-          <th style="width: 33.34%; text-align: center;">Total Bags Dispatched</th>
+          <th style="width: 25%; text-align: center;">S/B Category</th>
+          <th style="width: 25%; text-align: center;">Small Bags</th>
+          <th style="width: 25%; text-align: center;">Big Bags</th>
+          <th style="width: 25%; text-align: center;">Total S/B Bags Dispatched</th>
         </tr>
       </thead>
       <tbody>
         <tr>
+          <td style="text-align: center;"><strong>${escapeHtml(dto.bagType || 'S/B')}</strong></td>
           <td style="text-align: center;"><strong>${dto.smallBags}</strong></td>
           <td style="text-align: center;"><strong>${dto.bigBags}</strong></td>
           <td style="text-align: center;"><strong>${dto.totalBags}</strong></td>
@@ -54,7 +57,7 @@ export function renderChallanTemplate(dto: ChallanDocumentDto): string {
     <div style="margin-top: 20px; font-size: 11px; color: #444; border: 1px dashed #999; padding: 10px;">
       <strong>Gate Pass Declaration:</strong>
       <p style="margin-top: 4px;">
-        Certified that the above mentioned goods have been checked, inspected, and released from the cold storage facility in good condition. The driver/transporter acknowledges receipt of the full count of bags as stated above: ${dto.totalBags} bags in total (${dto.smallBags} small, ${dto.bigBags} big).
+        Certified that the above mentioned goods have been checked, inspected, and released from the cold storage facility in good condition. The driver/transporter acknowledges receipt of the full count of bags as stated above: ${dto.totalBags} Total S/B Bags in total (S/B Category: ${escapeHtml(dto.bagType || 'S/B')}).
       </p>
     </div>
   `;

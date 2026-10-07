@@ -4,19 +4,19 @@ import { correctGrnSchema, createDeliverySchema, recordRentPaymentInputSchema } 
 /**
  * Rent/stock separation boundary.
  *
- * The audited rent collection is untouched by the ledger work. These assertions pin the contract
- * behavior that enforces that: a rent term smuggled into a stock input is rejected or dropped,
- * and a stock figure smuggled into a payment input is dropped. If any side grows a field
- * reaching into the other's domain, this fails first.
+ * True full-edit allows rent terms through the authorized GRN correction workflow
+ * (with a mandatory reason and a collected-payments guard in the handler). The
+ * boundary that remains: delivery and payment inputs still drop smuggled fields
+ * from the other's domain. If any side grows a field reaching into the other's
+ * domain, this fails first.
  */
 describe('Rent/stock separation boundary', () => {
-  it('the GRN correction input rejects any rent term', () => {
-    // Strict schema: an unrecognized rentAmount key fails validation outright.
-    const rejected = correctGrnSchema.safeParse({
-      rentAmount: 1,
-      reason: 'Trying to change the rent through a correction',
+  it('the GRN full-edit input accepts rent terms with a reason', () => {
+    const accepted = correctGrnSchema.safeParse({
+      rentAmount: 6000,
+      reason: 'Full edit of rent terms with audit reason',
     });
-    expect(rejected.success).toBe(false);
+    expect(accepted.success).toBe(true);
   });
 
   it('the delivery input drops a smuggled rent term', () => {

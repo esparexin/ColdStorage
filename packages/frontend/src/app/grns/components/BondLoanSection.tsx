@@ -21,11 +21,13 @@ export function BondLoanSection({
   onLoanStatusChange,
 }: BondLoanSectionProps) {
   return (
-    <>
+    <section className={styles.formSection}>
       <h3 className={styles.sectionHeading}>Bond &amp; Loan Control</h3>
 
-      <div className={styles.formGrid2}>
-        <div className={styles.fieldGroup}>
+      <div className={styles.formGrid}>
+        {/* Loan status and Bond # only appear once pledged, so on the default path the
+            single control claims two cells and its full option text stays readable. */}
+        <div className={`${styles.fieldGroup} ${isBondForLoan ? '' : styles.span2}`}>
           <Select
             id="create-is-bond-for-loan"
             label="Bond for Loan / Pledge"
@@ -79,25 +81,7 @@ export function BondLoanSection({
 
       {isBondForLoan && (
         <div
-          style={{
-            padding: 'var(--space-2) var(--space-3)',
-            borderRadius: 'var(--radius-md)',
-            fontSize: 'var(--text-xs)',
-            marginBottom: 'var(--space-3)',
-            background:
-              loanStatus === 'TAKEN'
-                ? 'var(--color-danger-subtle)'
-                : 'var(--color-surface-2)',
-            color:
-              loanStatus === 'TAKEN'
-                ? 'var(--color-danger-text)'
-                : 'var(--color-text-muted)',
-            border: `1px solid ${
-              loanStatus === 'TAKEN'
-                ? 'var(--color-danger)'
-                : 'var(--color-border)'
-            }`,
-          }}
+          className={`${styles.loanNotice} ${loanStatus === 'TAKEN' ? styles.loanNoticeBlocked : ''}`}
           role="status"
         >
           {loanStatus === 'TAKEN'
@@ -105,6 +89,6 @@ export function BondLoanSection({
             : 'ℹ️ Loan Not Taken: Outward Delivery remains available according to regular stock and rent rules.'}
         </div>
       )}
-    </>
+    </section>
   );
 }

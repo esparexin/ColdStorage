@@ -78,7 +78,6 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
       .get(`/api/facilities/${scenario.facilityA}/grns/${grnId}/inventory-summary`)
       .set('Authorization', `Bearer ${scenario.tokens.operatorA}`);
     expect(invRes.status).toBe(200);
-    expect(invRes.body.summary.putAwayStatus).toBe('ALLOCATED');
     expect(invRes.body.summary.chamber).toBe(CHAMBER);
 
     const partialRes = await request(app)

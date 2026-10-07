@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Edit2, FileText, Printer, Truck } from 'lucide-react';
+import { ArrowRightLeft, Edit2, FileText, Printer, Truck } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
 import { Badge, Button, Modal } from '@/components/ui';
 import styles from '../page.module.css';
@@ -12,11 +12,13 @@ interface GrnDetailModalProps {
   canPrint: boolean;
   canCorrect?: boolean;
   canCreateChallan?: boolean;
+  canInternalMove?: boolean;
   printingId: string | null;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
   onManageLoan?: (grn: Grn) => void;
   onCorrect?: (grn: Grn) => void;
   onCreateChallan?: (grn: Grn) => void;
+  onInternalMove?: (grn: Grn) => void;
 }
 
 export function GrnDetailModal({
@@ -25,18 +27,32 @@ export function GrnDetailModal({
   canPrint,
   canCorrect = false,
   canCreateChallan = false,
+  canInternalMove = false,
   printingId,
   onPrint,
   onManageLoan,
   onCorrect,
   onCreateChallan,
+  onInternalMove,
 }: GrnDetailModalProps) {
+  const isBonded = grn.isBondForLoan || (grn.loanStatus && grn.loanStatus !== 'NONE');
+  const bondNumberDisplay = isBonded ? (grn.bondNumber || grn.grnNumber) : null;
+  const loanBadgeVariant = grn.loanStatus === 'TAKEN' ? 'danger' : grn.loanStatus === 'CLEARED' ? 'success' : 'neutral';
+  const loanBadgeText =
+    !isBonded || grn.loanStatus === 'NONE'
+      ? 'Standard Storage'
+      : grn.loanStatus === 'TAKEN'
+        ? 'Loan Active (Hold)'
+        : grn.loanStatus === 'CLEARED'
+          ? 'Loan Cleared'
+          : 'Pledged (Loan Not Taken)';
+
   return (
     <Modal
       isOpen
       onClose={onClose}
       title={`Acknowledgement Details: ${grn.grnNumber}`}
-      subtitle={`Inward Receipt #${grn.inwardReceiptNumber}${grn.bondNumber ? ` • Bond #${grn.bondNumber}` : ''}`}
+      subtitle={`Inward Receipt #${grn.inwardReceiptNumber}${bondNumberDisplay ? ` • Bond #${bondNumberDisplay}` : ''}`}
       size="lg"
       footer={
         <div className={styles.detailModalFooter}>
@@ -81,10 +97,26 @@ export function GrnDetailModal({
                 variant="outline"
                 size="sm"
                 onClick={() => onCorrect(grn)}
-                title="Edit / Correct GRN details"
+                title={
+                  (grn.netDeliveredBags ?? 0) > 0
+                    ? 'Stock has moved — only chamber may be corrected; reverse active deliveries first'
+                    : 'Edit / Correct GRN details'
+                }
                 leftIcon={<Edit2 size={13} aria-hidden="true" />}
               >
                 Edit
+              </Button>
+            )}
+            {canInternalMove && onInternalMove && grn.status === 'OPEN' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onInternalMove(grn)}
+                disabled={grn.loanStatus === 'TAKEN'}
+                title={grn.loanStatus === 'TAKEN' ? 'Movement blocked — Active loan hold' : 'Internal Move'}
+                leftIcon={<ArrowRightLeft size={13} aria-hidden="true" />}
+              >
+                Internal Move
               </Button>
             )}
             {canCreateChallan && onCreateChallan && grn.status === 'OPEN' && (grn.closingBags ?? grn.bags) > 0 && (
@@ -111,11 +143,7 @@ export function GrnDetailModal({
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Inward Date</span>
               <span className={styles.detailValue}>
-                {new Date(grn.date).toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'long',
-                  year: 'numeric',
-                })}
+                {new Date(grn.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
               </span>
             </div>
 
@@ -131,8 +159,8 @@ export function GrnDetailModal({
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Bond Number</span>
               <span className={styles.detailValue}>
-                {grn.bondNumber ? (
-                  <strong style={{ color: 'var(--color-primary)' }}>{grn.bondNumber}</strong>
+                {bondNumberDisplay ? (
+                  <strong style={{ color: 'var(--color-primary)' }}>{bondNumberDisplay}</strong>
                 ) : (
                   'None — Standard Storage'
                 )}
@@ -142,23 +170,7 @@ export function GrnDetailModal({
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Loan Status</span>
               <span className={styles.detailValue}>
-                <Badge
-                  variant={
-                    grn.loanStatus === 'TAKEN'
-                      ? 'danger'
-                      : grn.loanStatus === 'CLEARED'
-                        ? 'success'
-                        : 'neutral'
-                  }
-                >
-                  {grn.loanStatus === 'TAKEN'
-                    ? 'Loan Active (Hold)'
-                    : grn.loanStatus === 'CLEARED'
-                      ? 'Loan Cleared'
-                      : grn.loanStatus === 'NOT_TAKEN'
-                        ? 'Loan Not Taken (Pledged)'
-                        : 'Standard Storage'}
-                </Badge>
+                <Badge variant={loanBadgeVariant}>{loanBadgeText}</Badge>
               </span>
             </div>
 
@@ -174,27 +186,16 @@ export function GrnDetailModal({
 
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Chamber</span>
-              <span className={styles.detailValue}>Chamber {grn.chamber}</span>
+              <span className={styles.detailValue}>{grn.chamber}</span>
             </div>
 
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Bags Accounting</span>
               <span className={styles.detailValue}>
-                {grn.bags.toLocaleString('en-IN')} Bags (Type: {grn.bagType})
-              </span>
-            </div>
-
-            <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Small Bag Weight</span>
-              <span className={styles.detailValue}>
-                {grn.smallBagWeight ? `${grn.smallBagWeight} kg per bag` : '—'}
-              </span>
-            </div>
-
-            <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Big Bag Weight</span>
-              <span className={styles.detailValue}>
-                {grn.bigBagWeight ? `${grn.bigBagWeight} kg per bag` : '—'}
+                Total S/B Bags: {grn.bags.toLocaleString('en-IN')} (S/B: {grn.bagType})
+                {grn.netDeliveredBags != null && grn.netDeliveredBags > 0 ? (
+                  <> • {grn.netDeliveredBags.toLocaleString('en-IN')} Outward • {(grn.closingBags ?? (grn.bags - grn.netDeliveredBags)).toLocaleString('en-IN')} Bal</>
+                ) : null}
               </span>
             </div>
 
@@ -205,7 +206,10 @@ export function GrnDetailModal({
                 {grn.rentType === 'Monthly' && grn.rentMonths
                   ? ` (${grn.rentMonths} Months, info only)`
                   : ''}{' '}
-                — ₹{grn.rentAmount.toLocaleString('en-IN')}
+                —{' '}
+                {grn.rentType === 'Monthly' && (grn.rentAmount == null || grn.rentAmount === 0)
+                  ? 'Dynamic (Cycle Billing)'
+                  : `₹${(grn.rentAmount ?? 0).toLocaleString('en-IN')}`}
               </span>
             </div>
 

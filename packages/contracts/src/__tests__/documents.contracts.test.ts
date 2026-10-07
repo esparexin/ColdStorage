@@ -134,6 +134,7 @@ describe('P9 Documents & Settings Contracts Tests', () => {
       customerName: 'Ramesh Farmer',
       commodityName: 'Potato (Kufri Jyoti)',
       chamber: 'CH-01',
+      bagType: 'S/B',
       smallBags: 30,
       bigBags: 20,
       totalBags: 50,

@@ -13,18 +13,18 @@ export function renderGrnTemplate(dto: GrnDocumentDto): string {
       <tr>
         <th>Commodity</th>
         <td><strong>${escapeHtml(dto.commodityName)}</strong></td>
-        <th>Bag Type</th>
+        <th>S/B Category</th>
         <td>${escapeHtml(dto.bagType)}</td>
       </tr>
       <tr>
-        <th>Total Inward Bags</th>
+        <th>Total S/B Bags</th>
         <td><strong>${escapeHtml(dto.bags)} (${escapeHtml(dto.bagType)})</strong></td>
         <th>Inward Receipt #</th>
         <td>${escapeHtml(dto.inwardReceiptNumber)}</td>
       </tr>
       <tr>
         <th>Rent Agreement</th>
-        <td>${escapeHtml(dto.rentType)} @ ₹${escapeHtml(dto.rentAmount)}${dto.rentMonths ? ` (${dto.rentMonths} mos)` : ''}</td>
+        <td>${escapeHtml(dto.rentType)} @ ${dto.rentType === 'Monthly' && dto.rentAmount === 0 ? 'Dynamic (Cycle Billing)' : `₹${escapeHtml(String(dto.rentAmount))}`}${dto.rentMonths ? ` (${dto.rentMonths} mos)` : ''}</td>
         <th>Status</th>
         <td><strong>${escapeHtml(dto.status)}</strong></td>
       </tr>
@@ -42,10 +42,6 @@ export function renderGrnTemplate(dto: GrnDocumentDto): string {
       </tr>
       ${dto.marks ? `<tr><th>Lot / Identification Marks</th><td colspan="3">${escapeHtml(dto.marks)}</td></tr>` : ''}
     </table>
-
-    <div style="margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 13px;">
-      Storage Position Allocation (Put-Away Record)
-    </div>
   `;
 
   return renderBaseLayout({

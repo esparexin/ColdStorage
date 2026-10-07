@@ -125,6 +125,13 @@ export function DeliveryDetailModal({
               <span className={styles.detailValue}>{delivery.driverName || '—'}</span>
             </div>
 
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Dispatch Weight</span>
+              <span className={styles.detailValue}>
+                {delivery.weight != null ? `${delivery.weight.toLocaleString('en-IN')} kg` : '—'}
+              </span>
+            </div>
+
             <div className={styles.detailItem} style={{ gridColumn: 'span 2' }}>
               <span className={styles.detailLabel}>Remarks</span>
               <span className={styles.detailValue}>{delivery.remarks || '—'}</span>

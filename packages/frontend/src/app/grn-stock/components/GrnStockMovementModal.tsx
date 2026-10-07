@@ -5,6 +5,8 @@ import { Printer } from 'lucide-react';
 import type { Grn, GrnMovementHistory } from '@cold-storage/contracts';
 import { Badge, Button, Modal } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import { useSettings } from '@/context/SettingsContext';
+import { ORG_NAME_FALLBACK } from '@/lib/branding';
 import { printHtmlString } from '@/lib/print-document';
 import { renderGrnStockHtml } from '../utils/renderGrnStockHtml';
 import styles from '../page.module.css';
@@ -26,9 +28,12 @@ export function GrnStockMovementModal({
   onClose,
   onRetry,
 }: GrnStockMovementModalProps) {
+  const { settings } = useSettings();
+  const orgName = settings?.orgName || ORG_NAME_FALLBACK;
+
   const handlePrint = () => {
     if (!history) return;
-    const html = renderGrnStockHtml(history);
+    const html = renderGrnStockHtml(history, orgName);
     printHtmlString(html);
   };
 

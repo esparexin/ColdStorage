@@ -49,9 +49,6 @@ describe('InventoryService GRN Chamber SSOT tests', () => {
       grnNumber: 'GRN-25-26-0001',
       chamber: 'Chamber 1',
       totalBags: 100,
-      allocatedBags: 100,
-      unallocatedBags: 0,
-      putAwayStatus: 'ALLOCATED',
       availableSmallBags: 100,
       availableBigBags: 0,
     });
@@ -72,8 +69,7 @@ describe('InventoryService GRN Chamber SSOT tests', () => {
     expect(facSummary.byChamber).toEqual([{ chamber: 'Chamber 1', totalBags: 70 }]);
 
     const grnSummary = await inventoryService.getGrnInventorySummary(facilityId, grnId);
-    expect(grnSummary.allocatedBags).toBe(70);
-    expect(grnSummary.unallocatedBags).toBe(0);
+    expect(grnSummary.availableSmallBags).toBe(70);
   });
 
   it('3. Multiple deliveries: GRN = 100, Delivery 1 = 30, Delivery 2 = 20 -> Available = 50', async () => {
@@ -146,9 +142,8 @@ describe('InventoryService GRN Chamber SSOT tests', () => {
     expect(available.bags).toBe(100);
 
     const summary = await inventoryService.getGrnInventorySummary(facilityId, grnId);
-    expect(summary.allocatedBags).toBe(100);
-    expect(summary.unallocatedBags).toBe(0);
-    expect(summary.putAwayStatus).toBe('ALLOCATED');
+    expect(summary.totalBags).toBe(100);
+    expect(summary.availableSmallBags).toBe(100);
   });
 
   it('7. Throws an error when getting summary for non-existent GRN', async () => {

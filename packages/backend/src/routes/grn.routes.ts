@@ -188,7 +188,7 @@ grnRouter.get(
   },
 );
 
-// Correct an inward receipt's commodity, bag count or chamber (authorized workflow).
+// Full edit of an inward receipt (authorized workflow, grn:correct).
 grnRouter.patch(
   '/facilities/:facilityId/grns/:grnId',
   requirePermission('grn:correct'),

@@ -18,7 +18,7 @@ export function renderReceiptTemplate(dto: ReceiptDocumentDto): string {
       </tr>
       <tr>
         <th>Total Quantity Deposited</th>
-        <td colspan="3"><strong>${escapeHtml(dto.bags)} Bags (${escapeHtml(dto.bagType)})</strong></td>
+        <td colspan="3"><strong>${escapeHtml(dto.bags)} Total S/B Bags (S/B Category: ${escapeHtml(dto.bagType)})</strong></td>
       </tr>
       <tr>
         <th>Small Bags</th>
@@ -40,8 +40,9 @@ export function renderReceiptTemplate(dto: ReceiptDocumentDto): string {
       </tr>
       <tr>
         <th>Agreed Rent Terms</th>
-        <td colspan="3">${escapeHtml(dto.rentType)} Rent @ ₹${escapeHtml(dto.rentAmount)}${dto.rentMonths ? ` for ${dto.rentMonths} months` : ''}</td>
+        <td colspan="3">${escapeHtml(dto.rentType)} Rent @ ${dto.rentType === 'Monthly' && dto.rentAmount === 0 ? 'Dynamic (Cycle Billing)' : `₹${escapeHtml(String(dto.rentAmount))}`}${dto.rentMonths ? ` for ${dto.rentMonths} months` : ''}</td>
       </tr>
+      ${dto.partyMark ? `<tr><th>Party Mark</th><td colspan="3"><strong>${escapeHtml(dto.partyMark)}</strong></td></tr>` : ''}
       ${dto.vehicleNumber ? `<tr><th>Delivery Vehicle #</th><td colspan="3">${escapeHtml(dto.vehicleNumber)}</td></tr>` : ''}
     </table>
 

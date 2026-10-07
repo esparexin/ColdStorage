@@ -12,6 +12,7 @@ import { auditService } from '../../audit/audit.service.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
 import { counterService } from '../../common/counter.service.js';
 import { computeRentBalance } from '../../common/rent-balance.js';
+import { rentExtensionRepository } from '../rent-extension.repository.js';
 import { readAvailableBags } from '../../delivery/handlers/delivery-validation.helper.js';
 import { rentRepository } from '../rent.repository.js';
 
@@ -59,13 +60,20 @@ export async function executeRecordPayment(
       }
       lockedGrn = grn;
 
-      // 2. Authoritative ledger aggregation inside transaction session
+      // 2. Authoritative ledger aggregation inside transaction session.
+      // The obligation is the total due: original Seasonal rent plus any
+      // finalized January/February extensions (single-pool collection).
       const totalPaidBefore = await rentRepository.getTotalPaidForGrn(
         facilityId,
         grn.id,
         session,
       );
-      const balanceBefore = computeRentBalance(grn.rentAmount, totalPaidBefore);
+      const totalDue = await rentExtensionRepository.resolveTotalDue(
+        facilityId,
+        { id: grn.id, rentAmount: grn.rentAmount },
+        session,
+      );
+      const balanceBefore = computeRentBalance(totalDue, totalPaidBefore);
       const remainingBalance = balanceBefore.remainingBalance;
 
       // 3. Strict Overpayment Guard (Zero negative balance permitted per P0-Decision 9)
@@ -110,7 +118,7 @@ export async function executeRecordPayment(
       );
 
       const computedBalance = computeRentBalance(
-        grn.rentAmount,
+        totalDue,
         totalPaidBefore + input.amountPaid,
       );
       computedRemainingBalance = computedBalance.remainingBalance;

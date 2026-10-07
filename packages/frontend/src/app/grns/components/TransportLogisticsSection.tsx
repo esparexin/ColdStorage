@@ -22,9 +22,9 @@ export function TransportLogisticsSection({
   remarks, onRemarksChange,
 }: TransportLogisticsSectionProps) {
   return (
-    <>
+    <section className={styles.formSection}>
       <h3 className={styles.sectionHeading}>Transport &amp; Identification</h3>
-      <div className={styles.formGrid2}>
+      <div className={styles.formGrid}>
         <div className={styles.fieldGroup}>
           <label htmlFor="create-storage-mark" className={styles.fieldLabel}>Storage Mark</label>
           <input
@@ -51,8 +51,6 @@ export function TransportLogisticsSection({
           />
           {partyMarkError && <span className={styles.fieldErrorText}>{partyMarkError}</span>}
         </div>
-      </div>
-      <div className={styles.formGrid2}>
         <div className={styles.fieldGroup}>
           <label htmlFor="create-vehicle" className={styles.fieldLabel}>Vehicle Registration</label>
           <input
@@ -67,19 +65,19 @@ export function TransportLogisticsSection({
           />
           {vehicleError && <span className={styles.fieldErrorText}>{vehicleError}</span>}
         </div>
+        <div className={`${styles.fieldGroup} ${styles.spanFull}`}>
+          <label htmlFor="create-remarks" className={styles.fieldLabel}>Remarks / Notes</label>
+          <textarea
+            id="create-remarks"
+            rows={2}
+            maxLength={500}
+            value={remarks}
+            onChange={(e) => onRemarksChange(e.target.value)}
+            placeholder="Optional inward inspection notes or quality observations"
+            className={styles.fieldInput}
+          />
+        </div>
       </div>
-      <div className={styles.fieldGroup}>
-        <label htmlFor="create-remarks" className={styles.fieldLabel}>Remarks / Notes</label>
-        <textarea
-          id="create-remarks"
-          rows={2}
-          maxLength={500}
-          value={remarks}
-          onChange={(e) => onRemarksChange(e.target.value)}
-          placeholder="Optional inward inspection notes or quality observations"
-          className={styles.fieldInput}
-        />
-      </div>
-    </>
+    </section>
   );
 }

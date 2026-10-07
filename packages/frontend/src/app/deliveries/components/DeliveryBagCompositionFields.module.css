@@ -1,0 +1,53 @@
+.stockTableWrapper {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-1);
+}
+
+.stockTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-xs);
+}
+
+.stockTable th {
+  padding: var(--space-1-5) var(--space-3);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  font-weight: var(--font-semibold);
+  border-bottom: 1px solid var(--color-border);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+.stockTable td {
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.stockCaption {
+  text-align: left;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  padding: var(--space-1-5) var(--space-3) var(--space-1);
+}
+
+.stockSummaryNote {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-medium);
+  margin-top: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+.inputError {
+  border-color: var(--color-danger) !important;
+}
+
+.fieldErrorText {
+  font-size: var(--text-xs);
+  color: var(--color-danger-text);
+  margin-top: var(--space-0-5);
+}

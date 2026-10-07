@@ -1,0 +1,21 @@
+.formGrid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+@media (max-width: 768px) {
+  .formGrid3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.inputError {
+  border-color: var(--color-danger) !important;
+}
+
+.fieldErrorText {
+  font-size: var(--text-xs);
+  color: var(--color-danger-text);
+  margin-top: var(--space-0-5);
+}

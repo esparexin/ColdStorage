@@ -2,26 +2,54 @@ import { useEffect, useState } from 'react';
 import { calculateRentAmount, SEASONAL_RENT_MONTHS } from '@cold-storage/contracts';
 import type { BagType, Commodity, Customer, Grn, LoanStatus, RentType } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
-import { buildCreateGrnPayload, parseNumericInput, validateCreateGrnForm } from './createGrnForm.helper';
+import {
+  buildCreateGrnPayload,
+  focusField,
+  GRN_FIELD_ID_MAP,
+  parseNumericInput,
+  toDateInput,
+  validateCreateGrnForm,
+} from './createGrnForm.helper';
+import { handleEditGrnSubmit, submitCreateGrn } from './grnFormSubmit.helper';
+import {
+  formatGrnDuplicateError,
+  isDuplicateGrnError,
+  useLiveGrnValidation,
+} from './useLiveGrnValidation';
 
 export { parseNumericInput };
 
 export function useCreateGrnForm(
-  facilityId: string, customers: Customer[], commodities: Commodity[], onSuccess: (newGrn: Grn) => void,
+  facilityId: string,
+  customers: Customer[],
+  commodities: Commodity[],
+  onSuccess: (savedGrn: Grn) => void,
+  mode: 'create' | 'edit' = 'create',
+  initialGrn?: Grn | null,
+  structuralLocked = false,
+  guardState?: 'closed' | 'partial' | 'locked' | null,
 ) {
-  const [createDate, setCreateDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [createCustomerId, setCreateCustomerId] = useState(''), [createCommodityId, setCreateCommodityId] = useState('');
-  const [createChamber, setCreateChamber] = useState(''), [createBagType, setCreateBagType] = useState<BagType>('S');
-  const [createBags, setCreateBags] = useState<number | ''>('');
-  const [createRentType, setCreateRentType] = useState<RentType>('Seasonal'), [createRentMonths, setCreateRentMonths] = useState<number | ''>('');
-  const [createBagPrice, setCreateBagPrice] = useState<number | ''>('');
-  const [createRentAmount, setCreateRentAmount] = useState<number | ''>('');
-  const [createPartyMark, setCreatePartyMark] = useState('');
+  const isEdit = mode === 'edit' && Boolean(initialGrn);
+  const [createDate, setCreateDate] = useState(() =>
+    isEdit ? toDateInput(initialGrn?.date) : new Date().toISOString().split('T')[0],
+  );
+  const [createCustomerId, setCreateCustomerId] = useState(isEdit ? initialGrn!.customerId : '');
+  const [createCommodityId, setCreateCommodityId] = useState(isEdit ? initialGrn!.commodityId : '');
+  const [createChamber, setCreateChamber] = useState(isEdit ? initialGrn!.chamber : '');
+  const [createBagType, setCreateBagType] = useState<BagType>(isEdit ? initialGrn!.bagType : 'S/B');
+  const [createBags, setCreateBags] = useState<number | ''>(isEdit ? initialGrn!.bags : '');
+  const [createRentType, setCreateRentType] = useState<RentType>(isEdit ? initialGrn!.rentType : 'Seasonal');
+  const [createRentMonths, setCreateRentMonths] = useState<number | ''>(isEdit ? (initialGrn!.rentMonths ?? '') : '');
+  const [createBagPrice, setCreateBagPrice] = useState<number | ''>(isEdit ? (initialGrn!.bagPrice ?? '') : '');
+  const [createRentAmount, setCreateRentAmount] = useState<number | ''>(isEdit ? (initialGrn?.rentAmount ?? '') : '');
+  const [createPartyMark, setCreatePartyMark] = useState(isEdit ? (initialGrn!.partyMark ?? '') : '');
   const [suggestedGrnNumber, setSuggestedGrnNumber] = useState('');
   const [lastCreatedGrn, setLastCreatedGrn] = useState<string | null>(null);
-  const [createGrnNumber, setCreateGrnNumber] = useState('');
-  const [createVehicleNumber, setCreateVehicleNumber] = useState(''), [createRemarks, setCreateRemarks] = useState('');
-  const [isBondForLoan, setIsBondForLoan] = useState(false), [loanStatus, setLoanStatus] = useState<LoanStatus>('NONE');
+  const [createGrnNumber, setCreateGrnNumber] = useState(isEdit ? initialGrn!.grnNumber.slice(-4) : '');
+  const [createVehicleNumber, setCreateVehicleNumber] = useState(isEdit ? (initialGrn!.vehicleNumber ?? '') : '');
+  const [createRemarks, setCreateRemarks] = useState(isEdit ? (initialGrn!.remarks ?? '') : '');
+  const [isBondForLoan, setIsBondForLoan] = useState(isEdit ? (initialGrn!.isBondForLoan ?? false) : false);
+  const [loanStatus, setLoanStatus] = useState<LoanStatus>(isEdit ? (initialGrn!.loanStatus ?? 'NONE') : 'NONE');
   const [modalError, setModalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -44,29 +72,30 @@ export function useCreateGrnForm(
   const clearFieldError = (key: string) => {
     setFieldErrors((prev) => {
       if (!prev[key]) return prev;
-      const copy = { ...prev };
-      delete copy[key];
-      return copy;
+      const next = { ...prev };
+      delete next[key];
+      return next;
     });
   };
 
-  const focusField = (fieldId: string) => {
-    if (typeof document !== 'undefined') {
-      const el = document.getElementById(fieldId);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el?.focus();
-    }
-  };
+  const { isCheckingGrn, isGrnInvalid, handleGrnBlur } = useLiveGrnValidation({
+    facilityId,
+    createGrnNumber,
+    isEdit,
+    fieldError: fieldErrors.grnNumber,
+    setFieldErrors,
+  });
 
   const autoComputeRent = (overrides?: Partial<{
     bags: number | ''; bagType: BagType;
     bagPrice: number | '';
     rentType: RentType; rentMonths: number | '';
   }>) => {
+    const rentType = overrides?.rentType ?? createRentType;
+    if (rentType !== 'Seasonal') return;
     const bags = overrides?.bags ?? createBags;
     const bagType = overrides?.bagType ?? createBagType;
     const bagPrice = overrides?.bagPrice ?? createBagPrice;
-    const rentType = overrides?.rentType ?? createRentType;
     const rentMonths = overrides?.rentMonths ?? createRentMonths;
 
     if (typeof bags === 'number' && bags > 0) {
@@ -102,6 +131,25 @@ export function useCreateGrnForm(
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isEdit && initialGrn) {
+      await handleEditGrnSubmit({
+        facilityId, initialGrn, guardState, createChamber, createCustomerId,
+        createDate, createCommodityId, createBags, createBagType, createRentType,
+        createRentMonths, createRentAmount, createBagPrice, createPartyMark,
+        createVehicleNumber, createRemarks, structuralLocked, onSuccess,
+        setFieldErrors, setModalError, setSubmitting,
+      });
+      return;
+    }
+
+    if (isGrnInvalid) {
+      if (!createGrnNumber.trim() || createGrnNumber.trim().length !== 4) {
+        setFieldErrors((prev) => ({ ...prev, grnNumber: 'GRN must be exactly 4 digits (numbers only)' }));
+      }
+      focusField('create-gr-number');
+      return;
+    }
+
     const { errors, parsedChamber, normalizedVehicle } = validateCreateGrnForm({
       createCustomerId, createCommodityId, createChamber, createBags, createBagType,
       createGrnNumber, createRentType, createRentMonths, createRentAmount,
@@ -110,15 +158,10 @@ export function useCreateGrnForm(
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
+      const otherErrors = Object.keys(errors).filter((k) => k !== 'grnNumber');
+      setModalError(otherErrors.length > 0 ? errors[otherErrors[0]] : null);
       const firstKey = Object.keys(errors)[0];
-      const fieldIdMap: Record<string, string> = {
-        customer: 'create-customer-search', commodity: 'create-commodity', chamber: 'create-chamber',
-        partyMark: 'create-party-mark',
-        bags: 'create-bags', grnNumber: 'create-grn-number',
-        rentMonths: 'create-rent-months', rentAmount: 'create-rent-amount', vehicleNumber: 'create-vehicle',
-      };
-      setModalError(errors[firstKey]);
-      focusField(fieldIdMap[firstKey] ?? firstKey);
+      focusField(GRN_FIELD_ID_MAP[firstKey] ?? firstKey);
       return;
     }
 
@@ -133,30 +176,31 @@ export function useCreateGrnForm(
         facilityId, inwardDate, grnNumber: createGrnNumber.trim(),
         customerId: createCustomerId, commodityId: createCommodityId,
         chamber: parsedChamber ?? createChamber, bags: Number(createBags), bagType: createBagType,
-        rentType: createRentType, rentAmount: Number(createRentAmount),
+        rentType: createRentType,
+        rentAmount: typeof createRentAmount === 'number' ? createRentAmount : '',
         bagPrice: createBagPrice, rentMonths: createRentMonths,
         partyMark: createPartyMark,
         vehicleNumber: normalizedVehicle, remarks: createRemarks,
         isBondForLoan, loanStatus,
       });
 
-      const res = await requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
-        throw new Error(data.error ?? `Creation failed with HTTP ${res.status}`);
-      }
-
-      const responseData = (await res.json()) as { grn: Grn };
-      onSuccess(responseData.grn);
+      const created = await submitCreateGrn(facilityId, payload);
+      onSuccess(created);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to create GRN';
-      setModalError(msg);
-      focusField('modal-error-banner');
+      if (isDuplicateGrnError(msg)) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          grnNumber: msg.includes('already exists for this facility')
+            ? msg
+            : formatGrnDuplicateError(createGrnNumber),
+        }));
+        setModalError(null);
+        focusField('create-gr-number');
+      } else {
+        setModalError(msg);
+        focusField('grn-modal-error');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -177,7 +221,11 @@ export function useCreateGrnForm(
     seasonalRentMonths: SEASONAL_RENT_MONTHS,
     createBags, handleBagsChange,
     createBagType, handleBagTypeChange,
-    createRentType, handleRentTypeChange: (val: RentType) => { setCreateRentType(val); autoComputeRent({ rentType: val }); },
+    createRentType, handleRentTypeChange: (val: RentType) => {
+      setCreateRentType(val);
+      if (val === 'Monthly') { clearFieldError('rentMonths'); clearFieldError('rentAmount'); }
+      else { autoComputeRent({ rentType: val }); }
+    },
     createRentMonths, handleRentMonthsChange,
     createBagPrice, handleBagPriceChange: (val: number | '') => { setCreateBagPrice(val); autoComputeRent({ bagPrice: val }); },
     createRentAmount, setCreateRentAmount: (val: number | '') => { setCreateRentAmount(val); clearFieldError('rentAmount'); },
@@ -192,5 +240,6 @@ export function useCreateGrnForm(
     createRemarks, setCreateRemarks,
     isBondForLoan, setIsBondForLoan, loanStatus, setLoanStatus,
     modalError, fieldErrors, submitting, isDirty, handleSubmit,
+    isCheckingGrn, isGrnInvalid, handleGrnBlur,
   };
 }

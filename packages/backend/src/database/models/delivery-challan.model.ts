@@ -14,6 +14,8 @@ export interface DeliveryChallanDoc extends Document {
   commodityName: string;
   /** Free-text chamber label copied from the owning GRN. */
   chamber: string;
+  /** Informational bag type label ('S', 'B', 'S+B', or 'S/B') from the source GRN. */
+  bagType?: string | null;
   /** Bag composition dispatched. The total is their sum and is never stored. */
   smallBags: number;
   bigBags: number;
@@ -42,6 +44,7 @@ const deliveryChallanSchema = new Schema<DeliveryChallanDoc>(
     commodityId: { type: String, required: true, index: true },
     commodityName: { type: String, required: true, trim: true },
     chamber: { type: String, required: true, trim: true, maxlength: 20 },
+    bagType: { type: String, trim: true, default: null },
     smallBags: { type: Number, required: true, min: 0 },
     bigBags: { type: Number, required: true, min: 0 },
     marks: { type: String, trim: true, default: null },

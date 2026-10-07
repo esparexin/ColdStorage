@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { indianVehicleSchema } from '@cold-storage/contracts';
 import type {
   DeliveryChallan,
   DeliverySummary,
@@ -8,12 +7,9 @@ import type {
 } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { useRentGate } from '@/hooks/useRentGate';
+import { validateDeliveryForm } from './deliveryFormValidation.helper';
+import { buildDeliveryPayload } from './deliveryPayload.helper';
 import type { GrnWithdrawal } from '../types';
-
-export interface RentRequiredPayload {
-  code: 'RENT_PAYMENT_REQUIRED';
-  rent: { grnId: string; grnNumber: string; rentAmount: number; totalPaid: number; remainingBalance: number };
-}
 
 export function useCreateDeliveryForm(
   facilityId: string,
@@ -34,13 +30,21 @@ export function useCreateDeliveryForm(
   const [createVehicleNumber, setCreateVehicleNumber] = useState('');
   const [createDriverName, setCreateDriverName] = useState('');
   const [createWeight, setCreateWeight] = useState<number | ''>('');
-  const [createMarks, setCreateMarks] = useState('');
   const [createGpNumber, setCreateGpNumber] = useState('');
   const [createRemarks, setCreateRemarks] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [rentRequired, setRentRequired] = useState<RentRequiredPayload | null>(null);
   const rentGate = useRentGate();
+
+  const clearFieldError = (key: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const copy = { ...prev };
+      delete copy[key];
+      return copy;
+    });
+  };
 
   const fetchAvailableGrns = useCallback(async () => {
     if (!facilityId) return;
@@ -62,7 +66,7 @@ export function useCreateDeliveryForm(
       setCreateGrnId(grnId);
       setGrnSummary(null);
       setWithdrawal({ availableSmall: 0, availableBig: 0, smallBags: '', bigBags: '' });
-      setRentRequired(null);
+      setFieldErrors({});
       rentGate.resetRentGate();
       if (!facilityId || !grnId) return;
 
@@ -111,69 +115,42 @@ export function useCreateDeliveryForm(
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!facilityId) return;
-    if (!createGrnId) {
-      setModalError('Please select a GRN to withdraw stock from');
-      return;
-    }
 
-    if (isLoanHoldActive) {
-      setModalError(
-        `Outward blocked — Active loan hold against this Bond (${selectedGrn?.grnNumber}). Outward delivery is strictly prohibited until the loan is cleared.`,
-      );
-      return;
-    }
+    const validation = validateDeliveryForm({
+      createGrnId,
+      createDate,
+      smallBags,
+      bigBags,
+      totalWithdrawingBags,
+      availableSmall: withdrawal.availableSmall,
+      availableBig: withdrawal.availableBig,
+      createVehicleNumber,
+      isLoanHoldActive,
+      selectedGrnNumber: selectedGrn?.grnNumber,
+    });
 
-    if (totalWithdrawingBags <= 0) {
-      setModalError('Please specify how many small and/or big bags to withdraw');
+    if (!validation.isValid) {
+      setFieldErrors(validation.errors);
+      setModalError(validation.modalError);
       return;
-    }
-
-    // The per-type ceilings are enforced here for fast feedback; the backend re-checks them
-    // inside the transaction, which is the boundary that actually guarantees the invariant.
-    if (smallBags > withdrawal.availableSmall || bigBags > withdrawal.availableBig) {
-      setModalError(
-        `Cannot withdraw ${smallBags} small and ${bigBags} big bags: only ` +
-          `${withdrawal.availableSmall} small and ${withdrawal.availableBig} big bags are available`,
-      );
-      return;
-    }
-
-    if (createVehicleNumber.trim()) {
-      if (!indianVehicleSchema.safeParse(createVehicleNumber.trim()).success) {
-        setModalError('Vehicle registration must be in standard Indian format (e.g. UP32AA1111)');
-        return;
-      }
     }
 
     setSubmitting(true);
     setModalError(null);
+    setFieldErrors({});
 
     try {
-      const payload: Record<string, unknown> = {
+      const payload = buildDeliveryPayload({
         grnId: createGrnId,
-        date: new Date(createDate),
+        createDate,
         smallBags,
         bigBags,
-      };
-
-      if (createVehicleNumber.trim()) {
-        payload.vehicleNumber = createVehicleNumber.trim().toUpperCase();
-      }
-      if (createDriverName.trim()) {
-        payload.driverName = createDriverName.trim();
-      }
-      if (createWeight !== '' && typeof createWeight === 'number' && createWeight > 0) {
-        payload.weight = createWeight;
-      }
-      if (createMarks.trim()) {
-        payload.marks = createMarks.trim();
-      }
-      if (createGpNumber.trim()) {
-        payload.gpNumber = createGpNumber.trim();
-      }
-      if (createRemarks.trim()) {
-        payload.remarks = createRemarks.trim();
-      }
+        createVehicleNumber,
+        createDriverName,
+        createWeight,
+        createGpNumber,
+        createRemarks,
+      });
 
       const res = await requestWithAuth(
         `/api/facilities/${encodeURIComponent(facilityId)}/deliveries`,
@@ -185,17 +162,11 @@ export function useCreateDeliveryForm(
       );
 
       if (!res.ok) {
-        const data = (await res.json()) as { error?: string; code?: string; rent?: RentRequiredPayload['rent'] };
-        if (res.status === 402 && data.code === 'RENT_PAYMENT_REQUIRED' && data.rent) {
-          setRentRequired({ code: 'RENT_PAYMENT_REQUIRED', rent: data.rent });
-          await rentGate.refreshRentGate(facilityId, createGrnId);
-          throw new Error(data.error ?? 'Rent payment required before issuing delivery challan');
-        }
+        const data = (await res.json()) as { error?: string };
         throw new Error(data.error ?? `Delivery failed with HTTP ${res.status}`);
       }
 
       const responseData = (await res.json()) as { delivery: DeliveryChallan; summary?: DeliverySummary };
-      setRentRequired(null);
       onSuccess(responseData.delivery, responseData.summary);
     } catch (err: unknown) {
       setModalError(err instanceof Error ? err.message : 'Failed to issue delivery challan');
@@ -210,25 +181,42 @@ export function useCreateDeliveryForm(
     grnSummary,
     loadingGrnSummary,
     createDate,
-    setCreateDate,
+    setCreateDate: (v: string) => { setCreateDate(v); clearFieldError('date'); },
     withdrawal,
-    setWithdrawalSmallBags: (smallBags: number | '') =>
-      setWithdrawal((prev) => ({ ...prev, smallBags })),
-    setWithdrawalBigBags: (bigBags: number | '') =>
-      setWithdrawal((prev) => ({ ...prev, bigBags })),
+    setWithdrawalSmallBags: (val: number | '') => {
+      setWithdrawal((prev) => ({ ...prev, smallBags: val }));
+      clearFieldError('bags');
+      clearFieldError('smallBags');
+    },
+    setWithdrawalBigBags: (val: number | '') => {
+      setWithdrawal((prev) => ({ ...prev, bigBags: val }));
+      clearFieldError('bags');
+      clearFieldError('bigBags');
+    },
+    /** Single-quantity entry mapped onto the GRN's available side (two-sided uses side setters). */
+    setWithdrawalQuantity: (val: number | '') => {
+      setWithdrawal((prev) => {
+        if (prev.availableBig === 0) return { ...prev, smallBags: val, bigBags: 0 };
+        if (prev.availableSmall === 0) return { ...prev, smallBags: 0, bigBags: val };
+        return prev;
+      });
+      clearFieldError('bags');
+      clearFieldError('smallBags');
+      clearFieldError('bigBags');
+    },
     createVehicleNumber,
-    setCreateVehicleNumber,
+    setCreateVehicleNumber: (v: string) => { setCreateVehicleNumber(v); clearFieldError('vehicleNumber'); },
     createDriverName,
     setCreateDriverName,
     createWeight,
     setCreateWeight,
-    createMarks,
-    setCreateMarks,
     createGpNumber,
     setCreateGpNumber,
     createRemarks,
     setCreateRemarks,
     modalError,
+    fieldErrors,
+    clearFieldError,
     submitting,
     totalWithdrawingBags,
     fetchAvailableGrns,
@@ -240,8 +228,6 @@ export function useCreateDeliveryForm(
     rentLoading: rentGate.rentLoading,
     rentBlocked: rentGate.rentBlocked,
     rentPartial: rentGate.rentPartial,
-    rentRequired,
     refreshRentGate: rentGate.refreshRentGate,
-    clearRentRequired: useCallback(() => setRentRequired(null), []),
   };
 }

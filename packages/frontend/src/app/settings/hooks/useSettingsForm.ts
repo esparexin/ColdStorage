@@ -5,35 +5,13 @@ import type { SystemSettings } from '@cold-storage/contracts';
 import { useSettings } from '@/context/SettingsContext';
 import { requestWithAuth } from '@/lib/api-client';
 import { useLogoUpload } from './useLogoUpload';
-
-/** Server state that the form mirrors. Kept as a primitive so the hook has a single comparison source. */
-interface FormSnapshot {
-  orgName: string;
-  address: string;
-  contact: string;
-  gstin: string;
-  logoAssetId: string | null;
-  printFooter: string;
-  timezone: string;
-  retentionDays: number;
-  backupEnabled: boolean;
-}
-
-function toSnapshot(settings: SystemSettings): FormSnapshot {
-  return {
-    orgName: settings.orgName ?? '',
-    address: settings.address ?? '',
-    contact: settings.contact ?? '',
-    gstin: settings.gstin ?? '',
-    logoAssetId: settings.logoAssetId ?? null,
-    printFooter: settings.printFooter ?? '',
-    timezone: settings.timezone ?? 'Asia/Kolkata',
-    retentionDays: settings.backupPolicy?.retentionDays ?? 30,
-    backupEnabled: settings.backupPolicy?.backupEnabled ?? true,
-  };
-}
-
-const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+import {
+  buildSettingsPayload,
+  toSnapshot,
+  validateBackupFields,
+  validateOrgFields,
+  type FormSnapshot,
+} from './settingsFormUtils';
 
 export function useSettingsForm() {
   const { settings, isConfigured, isLoadingSettings, refreshSettings } = useSettings();
@@ -105,9 +83,44 @@ export function useSettingsForm() {
   const isDirty =
     baselineRef.current !== null && JSON.stringify(currentSnapshot) !== JSON.stringify(baselineRef.current);
 
-  // Adopt server state, but never discard edits the operator has not saved yet. Previously any
-  // settings refetch (a logo upload, a save in another tab) overwrote every field, silently
-  // losing in-progress work elsewhere on the page.
+  /** Per-section dirty tracking: org and backup are edited and saved independently. */
+  const isOrgDirty =
+    baselineRef.current !== null &&
+    (baselineRef.current.orgName !== orgName ||
+      baselineRef.current.address !== address ||
+      baselineRef.current.contact !== contact ||
+      baselineRef.current.gstin !== gstin ||
+      baselineRef.current.printFooter !== printFooter ||
+      baselineRef.current.timezone !== timezone);
+
+  const isBackupDirty =
+    baselineRef.current !== null &&
+    (baselineRef.current.retentionDays !== retentionDays ||
+      baselineRef.current.backupEnabled !== backupEnabled);
+
+  /** Discard in-progress Organization edits and restore the last saved server values. */
+  const revertOrgChanges = useCallback(() => {
+    if (!baselineRef.current) return;
+    const base = baselineRef.current;
+    setOrgName(base.orgName);
+    setAddress(base.address);
+    setContact(base.contact);
+    setGstin(base.gstin);
+    setPrintFooter(base.printFooter);
+    setTimezone(base.timezone);
+    setSaveError(null);
+  }, []);
+
+  /** Discard in-progress Backup Policy edits and restore the last saved server values. */
+  const revertBackupChanges = useCallback(() => {
+    if (!baselineRef.current) return;
+    const base = baselineRef.current;
+    setRetentionDays(base.retentionDays);
+    setBackupEnabled(base.backupEnabled);
+    setSaveError(null);
+  }, []);
+
+  // Adopt server state, but never discard edits the operator has not saved yet.
   useEffect(() => {
     if (!settings) return;
     const next = toSnapshot(settings);
@@ -120,37 +133,8 @@ export function useSettingsForm() {
     }
   }, [settings, isDirty, hydrate]);
 
-  const handleSaveSettings = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!orgName.trim() || !address.trim() || !contact.trim()) {
-      setSaveError('Organization Name, Registered Address, and Contact Details are required.');
-      return;
-    }
-
-    if (gstin.trim() && !GSTIN_PATTERN.test(gstin.trim().toUpperCase())) {
-      setSaveError('Invalid Indian GSTIN format (e.g. 09ABCDE1234F1Z5)');
-      return;
-    }
-
-    setSaving(true);
-    setSaveError(null);
-    setSaveSuccess(null);
-
-    const payload: SystemSettings = {
-      orgName: orgName.trim(),
-      address: address.trim(),
-      contact: contact.trim(),
-      gstin: gstin.trim() ? gstin.trim().toUpperCase() : undefined,
-      logoAssetId: logoAssetId ?? undefined,
-      printFooter: printFooter.trim(),
-      timezone: timezone.trim() || 'Asia/Kolkata',
-      backupPolicy: {
-        retentionDays,
-        backupEnabled,
-      },
-    };
-
-    try {
+  const persistSettings = useCallback(
+    async (payload: SystemSettings) => {
       const res = await requestWithAuth('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -162,13 +146,56 @@ export function useSettingsForm() {
         throw new Error(err.error ?? `Save failed with HTTP ${res.status}`);
       }
 
-      // Adopt what was just written before refetching, so the form is clean and the incoming
-      // server state cannot be mistaken for an unsaved edit.
+      // Adopt what was just written before refetching, so the form is clean.
       hydrate(currentSnapshot);
-      setSaveSuccess('System settings and organization details updated successfully.');
       await refreshSettings();
+    },
+    [currentSnapshot, hydrate, refreshSettings],
+  );
+
+  const handleSaveOrganization = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const error = validateOrgFields({ orgName, address, contact, gstin, printFooter, timezone });
+    if (error) {
+      setSaveError(error);
+      return false;
+    }
+
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(null);
+
+    try {
+      await persistSettings(buildSettingsPayload(currentSnapshot));
+      setSaveSuccess('Organization details updated successfully.');
+      return true;
     } catch (err: unknown) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to update settings');
+      setSaveError(err instanceof Error ? err.message : 'Failed to update organization details');
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveBackupPolicy = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const error = validateBackupFields(retentionDays);
+    if (error) {
+      setSaveError(error);
+      return false;
+    }
+
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(null);
+
+    try {
+      await persistSettings(buildSettingsPayload(currentSnapshot));
+      setSaveSuccess('Backup policy updated successfully.');
+      return true;
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to update backup policy');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -196,6 +223,10 @@ export function useSettingsForm() {
     backupEnabled,
     setBackupEnabled,
     isDirty,
+    isOrgDirty,
+    isBackupDirty,
+    revertOrgChanges,
+    revertBackupChanges,
     saving,
     saveSuccess,
     saveError,
@@ -206,6 +237,7 @@ export function useSettingsForm() {
     setLogoDeleteArmed,
     handleLogoUpload,
     handleDeleteLogo,
-    handleSaveSettings,
+    handleSaveOrganization,
+    handleSaveBackupPolicy,
   };
 }

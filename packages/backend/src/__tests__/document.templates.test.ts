@@ -83,8 +83,9 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).toContain('ACKNOWLEDGEMENT RECEIPT');
     expect(html).toContain('RCPT-2026-1001');
     expect(html).toContain('Sardar Singh');
-    expect(html).toContain('300 Bags (S)');
+    expect(html).toContain('300 Total S/B Bags (S/B Category: S)');
     expect(html).toContain('₹45000');
+    expect(html).toContain('PM-42');
     expect(html).toContain('Terms &amp; Conditions of Storage');
   });
 
@@ -108,14 +109,16 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).toContain('OUTWARD DELIVERY CHALLAN (GATE PASS)');
     expect(html).toContain('CHL-2026-5001');
     expect(html).toContain('CH-03');
+    expect(html).toContain('PM-42');
+    expect(html).toContain('4000 kg');
     expect(html).toContain('DL-01-AA-4321');
     expect(html).toContain('Karamjit Singh');
     expect(html).toContain('Gate Pass Declaration');
     expect(html).toContain('Outward Bags Details');
     expect(html).toContain('Small Bags');
     expect(html).toContain('Big Bags');
-    expect(html).toContain('Total Bags Dispatched');
-    expect(html).toContain('60 small, 40 big');
+    expect(html).toContain('Total S/B Bags Dispatched');
+    expect(html).toContain('100 Total S/B Bags in total (S/B Category: S/B)');
     expect(html).not.toContain('Storage Position');
     expect(html).not.toContain('Doc #:');
     expect(html).not.toContain('Issuing Officer');
@@ -168,6 +171,32 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(
       rentReceiptPreviewDtoSchema.safeParse(makeRentReceiptDto({ isPreview: false })).success,
     ).toBe(false);
+  });
+
+  it('renders Dynamic (Cycle Billing) for unconfigured monthly rent on cash memo', () => {
+    const html = renderRentReceiptTemplate(
+      makeRentReceiptDto({
+        rentType: 'Monthly',
+        totalRentObligation: 0,
+      }),
+    );
+    expect(html).toContain('Dynamic (Cycle Billing)');
+  });
+
+  it('renders Dynamic (Cycle Billing) on GRN printout for unconfigured monthly rent', () => {
+    const html = renderGrnTemplate(
+      makeGrnDto({ rentType: 'Monthly', rentAmount: 0, rentMonths: null }),
+    );
+    expect(html).toContain('Dynamic (Cycle Billing)');
+    expect(html).not.toContain('@ ₹0');
+  });
+
+  it('renders Dynamic (Cycle Billing) on Inward Receipt printout for unconfigured monthly rent', () => {
+    const html = renderReceiptTemplate(
+      makeReceiptDto({ rentType: 'Monthly', rentAmount: 0 }),
+    );
+    expect(html).toContain('Dynamic (Cycle Billing)');
+    expect(html).not.toContain('@ ₹0');
   });
 
   it('rejects the removed rent receipt chamberNumber field', () => {
