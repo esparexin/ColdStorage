@@ -52,9 +52,10 @@ export function DeliveryTransportFields({
             className={`${pageStyles.fieldInput} ${dateError ? styles.inputError : ''}`}
             value={createDate}
             aria-invalid={Boolean(dateError)}
+            aria-describedby={dateError ? 'delivery-date-error' : undefined}
             onChange={(e) => setCreateDate(e.target.value)}
           />
-          {dateError && <span className={styles.fieldErrorText}>{dateError}</span>}
+          {dateError && <span id="delivery-date-error" className={styles.fieldErrorText} role="alert">{dateError}</span>}
         </div>
 
         <div className={pageStyles.fieldGroup}>
@@ -62,7 +63,6 @@ export function DeliveryTransportFields({
             Vehicle Registration
           </label>
           <input
-            aria-label="e.g. UP32AA1111"
             id="delivery-vehicle"
             type="text"
             maxLength={15}
@@ -70,9 +70,10 @@ export function DeliveryTransportFields({
             placeholder="e.g. UP32AA1111"
             value={createVehicleNumber}
             aria-invalid={Boolean(vehicleError)}
+            aria-describedby={vehicleError ? 'delivery-vehicle-error' : undefined}
             onChange={(e) => setCreateVehicleNumber(e.target.value.toUpperCase())}
           />
-          {vehicleError && <span className={styles.fieldErrorText}>{vehicleError}</span>}
+          {vehicleError && <span id="delivery-vehicle-error" className={styles.fieldErrorText} role="alert">{vehicleError}</span>}
         </div>
 
         <div className={pageStyles.fieldGroup}>

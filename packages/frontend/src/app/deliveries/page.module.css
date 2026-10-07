@@ -175,6 +175,8 @@
 
 .fieldInput:focus {
   border-color: var(--color-primary-text);
+  outline: var(--focus-ring-width) solid var(--color-primary);
+  outline-offset: var(--focus-ring-offset);
 }
 
 .fieldHint {

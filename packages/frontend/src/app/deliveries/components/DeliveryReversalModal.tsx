@@ -88,7 +88,7 @@ export function DeliveryReversalModal({
             <label htmlFor="reversal-reason" className={styles.fieldLabel}>
               Reason for Reversal *
             </label>
-            <textarea aria-label="Provide a mandatory operational justification (minimum 5..."
+            <textarea
               id="reversal-reason"
               required
               rows={3}
@@ -97,6 +97,8 @@ export function DeliveryReversalModal({
               className={styles.fieldInput}
               placeholder="Provide a mandatory operational justification (minimum 5 characters)..."
               value={reversalReason}
+              aria-invalid={Boolean(reversalError)}
+              aria-describedby={reversalError ? 'reversal-error' : undefined}
               onChange={(e) => setReversalReason(e.target.value)}
             />
           </div>
