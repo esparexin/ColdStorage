@@ -44,29 +44,21 @@ const uploadSingleCsv = (req: Request, res: Response, next: NextFunction): void 
   upload.single('file')(req, res, (err: unknown) => {
     if (err) {
       if (err instanceof multer.MulterError) {
-        if (err.code === 'LIMIT_FILE_SIZE') {
-          res.status(400).json({ error: 'File size exceeds 2 MB limit' });
-          return;
-        }
-        if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-          res.status(400).json({ error: "Multipart form field name must be 'file'" });
-          return;
-        }
-        res.status(400).json({ error: err.message });
+        const error = err.code === 'LIMIT_FILE_SIZE'
+          ? 'File size exceeds 2 MB limit'
+          : err.code === 'LIMIT_UNEXPECTED_FILE'
+            ? "Multipart form field name must be 'file'"
+            : err.message;
+        res.status(400).json({ error });
         return;
       }
-      if (err instanceof Error) {
-        res.status(400).json({ error: err.message });
-        return;
-      }
-      res.status(400).json({ error: 'File upload error' });
+      const message = err instanceof Error ? err.message : 'File upload error';
+      res.status(400).json({ error: message });
       return;
     }
 
     if (!req.file) {
-      res
-        .status(400)
-        .json({ error: "No file uploaded or multipart form field name is not 'file'" });
+      res.status(400).json({ error: "No file uploaded or multipart form field name is not 'file'" });
       return;
     }
 
