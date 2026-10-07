@@ -83,7 +83,7 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).toContain('ACKNOWLEDGEMENT RECEIPT');
     expect(html).toContain('RCPT-2026-1001');
     expect(html).toContain('Sardar Singh');
-    expect(html).toContain('300 Bags (S)');
+    expect(html).toContain('300 Total S/B Bags (S/B Category: S)');
     expect(html).toContain('₹45000');
     expect(html).toContain('PM-42');
     expect(html).toContain('Terms &amp; Conditions of Storage');
@@ -117,8 +117,8 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).toContain('Outward Bags Details');
     expect(html).toContain('Small Bags');
     expect(html).toContain('Big Bags');
-    expect(html).toContain('Total Bags Dispatched');
-    expect(html).toContain('60 small, 40 big');
+    expect(html).toContain('Total S/B Bags Dispatched');
+    expect(html).toContain('100 Total S/B Bags in total (S/B Category: S/B)');
     expect(html).not.toContain('Storage Position');
     expect(html).not.toContain('Doc #:');
     expect(html).not.toContain('Issuing Officer');
