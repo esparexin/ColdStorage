@@ -88,11 +88,24 @@ async function executeDeliveryTransaction(
         session,
       );
 
+      const resolvedSmall =
+        (input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0
+          ? (input.smallBags ?? 0)
+          : grn.bagType === 'B'
+            ? 0
+            : (input.quantity ?? 0);
+      const resolvedBig =
+        (input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0
+          ? (input.bigBags ?? 0)
+          : grn.bagType === 'B'
+            ? (input.quantity ?? 0)
+            : 0;
+
       const withdrawal: BagComposition = {
-        smallBags: input.smallBags,
-        bigBags: input.bigBags,
+        smallBags: resolvedSmall,
+        bigBags: resolvedBig,
       };
-      const withdrawnTotal = input.smallBags + input.bigBags;
+      const withdrawnTotal = resolvedSmall + resolvedBig;
 
       const available = await validateStockAndBalances(facilityId, grn, withdrawal, session);
 
@@ -122,8 +135,9 @@ async function executeDeliveryTransaction(
             commodityId: grn.commodityId,
             commodityName: grn.commodityName,
             chamber: grn.chamber,
-            smallBags: input.smallBags,
-            bigBags: input.bigBags,
+            bagType: grn.bagType ?? 'S/B',
+            smallBags: resolvedSmall,
+            bigBags: resolvedBig,
             marks,
             gpNumber,
             vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null,
@@ -148,10 +162,10 @@ async function executeDeliveryTransaction(
             grnNumber: grn.grnNumber,
             chamber: grn.chamber,
             commodityId: grn.commodityId,
-            bagType: grn.bagType,
+            bagType: grn.bagType ?? 'S/B',
             transactionType: 'OUTWARD_DELIVERY' as const,
-            smallQuantity: input.smallBags,
-            bigQuantity: input.bigBags,
+            smallQuantity: resolvedSmall,
+            bigQuantity: resolvedBig,
             referenceType: 'DELIVERY' as const,
             referenceId: deliveryId,
             notes: input.remarks?.trim() || null,

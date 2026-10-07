@@ -20,6 +20,7 @@ export function toChallanEntity(doc: DeliveryChallanDoc | Record<string, unknown
     commodityId: String(d.commodityId),
     commodityName: String(d.commodityName),
     chamber: String(d.chamber),
+    bagType: d.bagType ? (d.bagType as DeliveryChallan['bagType']) : undefined,
     smallBags,
     bigBags,
     // Derived for transport only; the composition is the stored fact.

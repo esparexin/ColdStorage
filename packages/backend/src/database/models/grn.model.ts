@@ -72,7 +72,7 @@ const grnSchema = new Schema<GrnDoc>(
     commodityName: { type: String, required: true, trim: true },
     chamber: { type: String, required: true, trim: true, maxlength: 20, index: true },
     bags: { type: Number, required: true, min: 1 },
-    bagType: { type: String, required: true, enum: ['S', 'B', 'S+B'] },
+    bagType: { type: String, required: true, enum: ['S', 'B', 'S+B', 'S/B'], default: 'S/B' },
     smallBagWeight: { type: Number, default: null },
     bigBagWeight: { type: Number, default: null },
     rentType: { type: String, required: true, enum: ['Monthly', 'Seasonal'] },

@@ -154,6 +154,7 @@ export class DocumentService {
       customerName: challan.customerName,
       commodityName: challan.commodityName,
       chamber: challan.chamber,
+      bagType: (challan.bagType || grn?.bagType || 'S/B') as ChallanDocumentDto['bagType'],
       partyMark: grn?.partyMark || challan.marks || null,
       smallBags: challan.smallBags,
       bigBags: challan.bigBags,

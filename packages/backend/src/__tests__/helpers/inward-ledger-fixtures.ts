@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { BagType } from '@cold-storage/contracts';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
 
 /**
@@ -18,7 +19,7 @@ export async function seedInwardPutAway(options: {
   grnNumber: string;
   chamber: string;
   commodityId: string;
-  bagType: 'S' | 'B' | 'S+B';
+  bagType: BagType;
   smallBags: number;
   bigBags: number;
   createdAt?: Date;

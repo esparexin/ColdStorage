@@ -18,7 +18,7 @@ export function renderReceiptTemplate(dto: ReceiptDocumentDto): string {
       </tr>
       <tr>
         <th>Total Quantity Deposited</th>
-        <td colspan="3"><strong>${escapeHtml(dto.bags)} Bags (${escapeHtml(dto.bagType)})</strong></td>
+        <td colspan="3"><strong>${escapeHtml(dto.bags)} Total S/B Bags (S/B Category: ${escapeHtml(dto.bagType)})</strong></td>
       </tr>
       <tr>
         <th>Small Bags</th>

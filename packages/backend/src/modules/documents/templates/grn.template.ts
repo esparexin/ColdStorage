@@ -13,11 +13,11 @@ export function renderGrnTemplate(dto: GrnDocumentDto): string {
       <tr>
         <th>Commodity</th>
         <td><strong>${escapeHtml(dto.commodityName)}</strong></td>
-        <th>Bag Type</th>
+        <th>S/B Category</th>
         <td>${escapeHtml(dto.bagType)}</td>
       </tr>
       <tr>
-        <th>Total Inward Bags</th>
+        <th>Total S/B Bags</th>
         <td><strong>${escapeHtml(dto.bags)} (${escapeHtml(dto.bagType)})</strong></td>
         <th>Inward Receipt #</th>
         <td>${escapeHtml(dto.inwardReceiptNumber)}</td>
