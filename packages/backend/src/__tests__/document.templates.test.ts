@@ -66,9 +66,7 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     // The document schemas strip unknown keys, so a removed field can never reach a template.
     expect(grnDocumentDtoSchema.parse(makeGrnDto()).chamber).toBe('CH-03');
     for (const removed of [
-      { customerMobile: '9812300001' },
-      { chamberNumber: 'CH-03' },
-      { positions: [{ positionCode: 'P1', bags: 300 }] },
+      { customerMobile: '9812300001' }, { chamberNumber: 'CH-03' }, { positions: [{ positionCode: 'P1', bags: 300 }] },
     ]) {
       expect(grnDocumentDtoSchema.parse({ ...makeGrnDto(), ...removed })).not.toHaveProperty(
         Object.keys(removed)[0],
@@ -78,15 +76,29 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
 
   // 3. Inward Receipt: acknowledgement terms, chamber label, no farmer mobile.
   it('renders complete Inward Receipt template with farmer acknowledgement and terms', () => {
-    const html = renderReceiptTemplate(makeReceiptDto());
+    const html = renderReceiptTemplate(
+      makeReceiptDto({
+        totalBagsWeight: 12500,
+        smallBagPrice: 12,
+        bigBagPrice: 18,
+      }),
+    );
 
     expect(html).toContain('ACKNOWLEDGEMENT RECEIPT');
     expect(html).toContain('RCPT-2026-1001');
     expect(html).toContain('Sardar Singh');
-    expect(html).toContain('300 Total S/B Bags (S/B Category: S)');
-    expect(html).toContain('₹45000');
+    expect(html).toContain('300');
+    expect(html).toContain('12,500 kg');
+    expect(html).toContain('Storage Mark');
     expect(html).toContain('PM-42');
-    expect(html).toContain('Terms &amp; Conditions of Storage');
+    expect(html).toContain('HR-10-XY-9999');
+    expect(html).toContain('Terms &amp; Conditions of Storage :');
+    expect(html).toContain('Small Bag Rate:');
+    expect(html).toContain('₹ 12.00');
+    expect(html).toContain('Big Bag Rate:');
+    expect(html).toContain('₹ 18.00');
+    expect(html).toContain('Depositor Signature');
+    expect(html).toContain('Authorized Signatory');
   });
 
   it('renders the allocated chamber on the receipt and rejects the removed farmer mobile', () => {
