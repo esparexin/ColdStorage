@@ -7,6 +7,10 @@ import { Badge, Button, FeedbackStates, Modal, StatCard, StatGrid } from '@/comp
 import { Banner } from '@/components/ui/Banner';
 import { PRINT_MESSAGES } from '@/components/ui/stateCopy';
 import { printHtmlDocument } from '@/lib/print-document';
+import {
+  formatRemainingDue,
+  formatRentStructure,
+} from '../hooks/rentDisplay.helper';
 import styles from '../page.module.css';
 
 interface RentHistoryModalProps {
@@ -58,7 +62,7 @@ export function RentHistoryModal({
           <StatGrid label={`Rent summary for ${account.grnNumber}`}>
             <StatCard
               label={account.rentType === 'Monthly' && account.rentAmount === 0 ? 'Rent Status' : 'Total Billed'}
-              value={account.rentType === 'Monthly' && account.rentAmount === 0 ? 'Dynamic' : `₹${account.rentAmount.toLocaleString('en-IN')}`}
+              value={formatRentStructure(account)}
             />
             <StatCard
               label="Total Paid"
@@ -67,7 +71,7 @@ export function RentHistoryModal({
             />
             <StatCard
               label="Remaining Due"
-              value={account.rentType === 'Monthly' && account.rentAmount === 0 && account.remainingBalance === 0 ? 'Dynamic' : `₹${account.remainingBalance.toLocaleString('en-IN')}`}
+              value={formatRemainingDue(account)}
               accent="warning"
             />
           </StatGrid>

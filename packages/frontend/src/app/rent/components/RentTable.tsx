@@ -5,6 +5,10 @@ import { CheckCircle2, Clock, Eye, Plus } from 'lucide-react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { Badge, Button } from '@/components/ui';
+import {
+  formatPaymentStatus,
+  formatRentStructure,
+} from '../hooks/rentDisplay.helper';
 import styles from '../page.module.css';
 
 interface RentTableProps {
@@ -116,7 +120,7 @@ export function RentTable({
             {row.rentType === 'Monthly' && row.rentMonths ? ` (${row.rentMonths}m)` : ''}
           </span>
           <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)' }}>
-            {row.rentType === 'Monthly' && row.rentAmount === 0 ? 'Dynamic' : `₹${row.rentAmount.toLocaleString('en-IN')}`}
+            {formatRentStructure(row)}
           </span>
         </div>
       ),
@@ -152,20 +156,23 @@ export function RentTable({
       key: 'status',
       header: 'Status',
       align: 'center',
-      render: (row) => (
-        <Badge
-          variant={row.paymentStatus === 'Settled' ? 'success' : 'warning'}
-          icon={
-            row.paymentStatus === 'Settled' ? (
-              <CheckCircle2 size={12} aria-hidden="true" />
-            ) : (
-              <Clock size={12} aria-hidden="true" />
-            )
-          }
-        >
-          {row.paymentStatus === 'Settled' ? 'Settled' : 'Not Settled'}
-        </Badge>
-      ),
+      render: (row) => {
+        const status = formatPaymentStatus(row);
+        return (
+          <Badge
+            variant={status.variant}
+            icon={
+              status.variant === 'success' ? (
+                <CheckCircle2 size={12} aria-hidden="true" />
+              ) : (
+                <Clock size={12} aria-hidden="true" />
+              )
+            }
+          >
+            {status.label}
+          </Badge>
+        );
+      },
     },
     {
       key: 'actions',
