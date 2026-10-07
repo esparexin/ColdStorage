@@ -104,6 +104,7 @@ export function AuditTable({
           variant="outline"
           size="sm"
           onClick={() => onInspect(r)}
+          aria-label={`Inspect payload for ${r.eventType} event ${r.id}`}
           leftIcon={<Eye size={13} aria-hidden="true" />}
         >
           Inspect

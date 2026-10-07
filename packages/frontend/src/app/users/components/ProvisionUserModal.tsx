@@ -75,7 +75,7 @@ export function ProvisionUserModal({
             <div className={styles.formGrid}>
               <div className={styles.formGroup}>
                 <label htmlFor="user-fullname">Full Name *</label>
-                <input aria-label="e.g. Ramesh Kumar"
+                <input
                   id="user-fullname"
                   className={styles.formInput}
                   type="text"
@@ -88,7 +88,7 @@ export function ProvisionUserModal({
 
               <div className={styles.formGroup}>
                 <label htmlFor="user-username">Username *</label>
-                <input aria-label="e.g. ramesh.k"
+                <input
                   id="user-username"
                   className={styles.formInput}
                   type="text"
@@ -101,7 +101,7 @@ export function ProvisionUserModal({
 
               <div className={styles.formGroup}>
                 <label htmlFor="user-empid">Employee ID *</label>
-                <input aria-label="e.g. EMP-1042"
+                <input
                   id="user-empid"
                   className={styles.formInput}
                   type="text"
@@ -129,7 +129,7 @@ export function ProvisionUserModal({
 
               <div className={styles.formGroup}>
                 <label htmlFor="user-mobile">Mobile (10 Digits) *</label>
-                <input aria-label="e.g. 9876543210"
+                <input
                   id="user-mobile"
                   className={styles.formInput}
                   type="tel"
@@ -143,7 +143,7 @@ export function ProvisionUserModal({
 
               <div className={styles.formGroup}>
                 <label htmlFor="user-email">Email Address *</label>
-                <input aria-label="e.g. ramesh@coldstorage.com"
+                <input
                   id="user-email"
                   className={styles.formInput}
                   type="email"
@@ -156,7 +156,7 @@ export function ProvisionUserModal({
 
               <div className={styles.formGroupFull}>
                 <label htmlFor="user-temp-password">Initial Temporary Password *</label>
-                <input aria-label="Minimum 8 characters (forced reset on first login)"
+                <input
                   id="user-temp-password"
                   className={styles.formInput}
                   type="password"

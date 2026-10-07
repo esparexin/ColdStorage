@@ -71,6 +71,7 @@ export function CommodityFormModal({ onClose, onSuccess }: CommodityFormModalPro
             onChange={(e) => setFormName(e.target.value)}
             placeholder="e.g. Potato, Apples"
             disabled={submitting}
+            error={modalError}
           />
 
           <div className={styles.checkboxGroup}>

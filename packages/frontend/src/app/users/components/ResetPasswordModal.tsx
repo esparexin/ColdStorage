@@ -76,7 +76,7 @@ export function ResetPasswordModal({
 
           <div className={styles.formGroupFull}>
             <label htmlFor="reset-user-password">New Temporary Password *</label>
-            <input aria-label="Minimum 8 characters (forced reset on first login)"
+            <input
               id="reset-user-password"
               className={styles.formInput}
               type="password"
