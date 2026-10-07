@@ -169,9 +169,11 @@ export function InternalMovementModal({
       <div className={styles.modalContent}>
         {error && <Banner message={error} />}
 
-        <nav className={styles.tabNav} aria-label="Internal Movement Modes">
+        <div className={styles.tabNav} role="tablist" aria-label="Internal Movement Modes">
           <Button
             type="button"
+            role="tab"
+            aria-selected={activeTab === 'merge'}
             variant={activeTab === 'merge' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => {
@@ -185,6 +187,8 @@ export function InternalMovementModal({
           </Button>
           <Button
             type="button"
+            role="tab"
+            aria-selected={activeTab === 'transfer'}
             variant={activeTab === 'transfer' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => {
@@ -196,7 +200,7 @@ export function InternalMovementModal({
           >
             2. Transfer Ownership
           </Button>
-        </nav>
+        </div>
 
         {activeTab === 'merge' ? (
           <InternalMovementMergeTab

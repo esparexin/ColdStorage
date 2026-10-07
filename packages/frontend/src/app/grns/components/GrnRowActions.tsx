@@ -63,8 +63,15 @@ export function GrnRowActions({
         setMenuOpen(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
     document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [menuOpen]);
 
   return (
@@ -87,6 +94,7 @@ export function GrnRowActions({
             <Button
               variant="ghost"
               size="sm"
+              role="menuitem"
               className={styles.menuItemBtn}
               onClick={() => {
                 setMenuOpen(false);
@@ -101,6 +109,7 @@ export function GrnRowActions({
               <Button
                 variant="ghost"
                 size="sm"
+                role="menuitem"
                 className={styles.menuItemBtn}
                 disabled={isClosed}
                 title={editTitle}
@@ -118,6 +127,7 @@ export function GrnRowActions({
               <Button
                 variant="ghost"
                 size="sm"
+                role="menuitem"
                 className={styles.menuItemBtn}
                 disabled={isLoanHold}
                 title={isLoanHold ? 'Movement blocked — Loan hold' : 'Internal Move'}

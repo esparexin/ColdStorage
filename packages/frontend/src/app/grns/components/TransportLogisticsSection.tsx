@@ -48,8 +48,9 @@ export function TransportLogisticsSection({
             placeholder="e.g. KSN-99 (max 20)"
             className={`${styles.fieldInput} ${partyMarkError ? styles.inputError : ''}`}
             aria-invalid={Boolean(partyMarkError)}
+            aria-describedby={partyMarkError ? 'create-party-mark-error' : undefined}
           />
-          {partyMarkError && <span className={styles.fieldErrorText}>{partyMarkError}</span>}
+          {partyMarkError && <span id="create-party-mark-error" className={styles.fieldErrorText} role="alert">{partyMarkError}</span>}
         </div>
         <div className={styles.fieldGroup}>
           <label htmlFor="create-vehicle" className={styles.fieldLabel}>Vehicle Registration</label>
@@ -62,8 +63,9 @@ export function TransportLogisticsSection({
             placeholder="e.g. UP32AA1111"
             className={`${styles.fieldInput} ${vehicleError ? styles.inputError : ''}`}
             aria-invalid={Boolean(vehicleError)}
+            aria-describedby={vehicleError ? 'create-vehicle-error' : undefined}
           />
-          {vehicleError && <span className={styles.fieldErrorText}>{vehicleError}</span>}
+          {vehicleError && <span id="create-vehicle-error" className={styles.fieldErrorText} role="alert">{vehicleError}</span>}
         </div>
         <div className={`${styles.fieldGroup} ${styles.spanFull}`}>
           <label htmlFor="create-remarks" className={styles.fieldLabel}>Remarks / Notes</label>

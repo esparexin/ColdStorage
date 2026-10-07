@@ -160,8 +160,9 @@ export function CreateGrnModal({
                 placeholder="e.g. 250"
                 className={`${styles.fieldInput} ${form.fieldErrors.bags ? styles.inputError : ''} ${structuralLocked ? styles.calculatedField : ''}`}
                 aria-invalid={Boolean(form.fieldErrors.bags)}
+                aria-describedby={form.fieldErrors.bags ? 'create-bags-error' : undefined}
               />
-              {form.fieldErrors.bags && <span className={styles.fieldErrorText}>{form.fieldErrors.bags}</span>}
+              {form.fieldErrors.bags && <span id="create-bags-error" className={styles.fieldErrorText} role="alert">{form.fieldErrors.bags}</span>}
             </div>
             <div className={styles.fieldGroup}>
               <label htmlFor="create-bag-price" className={styles.fieldLabel}>Bag Price (₹/bag)</label>
@@ -191,9 +192,10 @@ export function CreateGrnModal({
                 readOnly={form.createRentType === 'Seasonal'}
                 className={`${styles.fieldInput} ${form.fieldErrors.rentMonths ? styles.inputError : ''} ${structuralLocked ? styles.calculatedField : ''}`}
                 aria-invalid={Boolean(form.fieldErrors.rentMonths)}
+                aria-describedby={form.fieldErrors.rentMonths ? 'create-rent-months-error' : undefined}
                 aria-label={form.createRentType === 'Seasonal' ? `Rent Months (fixed at ${form.seasonalRentMonths} for Seasonal)` : 'Rent Months (Optional)'}
               />
-              {form.fieldErrors.rentMonths && <span className={styles.fieldErrorText}>{form.fieldErrors.rentMonths}</span>}
+              {form.fieldErrors.rentMonths && <span id="create-rent-months-error" className={styles.fieldErrorText} role="alert">{form.fieldErrors.rentMonths}</span>}
             </div>
             <div className={`${styles.fieldGroup} ${styles.span2}`}>
               <label htmlFor="create-rent-amount" className={styles.fieldLabel}>Rent Amount (₹) {form.createRentType === 'Seasonal' ? '*' : '(Optional)'}</label>
@@ -204,8 +206,9 @@ export function CreateGrnModal({
                 placeholder={form.createRentType === 'Seasonal' ? 'e.g. 50000' : 'Optional (Dynamic)'}
                 className={`${styles.fieldInput} ${form.fieldErrors.rentAmount ? styles.inputError : ''} ${structuralLocked ? styles.calculatedField : ''}`}
                 aria-invalid={Boolean(form.fieldErrors.rentAmount)}
+                aria-describedby={form.fieldErrors.rentAmount ? 'create-rent-amount-error' : undefined}
               />
-              {form.fieldErrors.rentAmount && <span className={styles.fieldErrorText}>{form.fieldErrors.rentAmount}</span>}
+              {form.fieldErrors.rentAmount && <span id="create-rent-amount-error" className={styles.fieldErrorText} role="alert">{form.fieldErrors.rentAmount}</span>}
             </div>
           </div>
         </section>
