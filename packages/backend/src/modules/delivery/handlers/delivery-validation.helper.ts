@@ -30,7 +30,7 @@ export async function validateStockAndBalances(
 
   if (requestedTotal > available.total) {
     throw new Error(
-      `Requested ${requestedTotal} bags exceeds the available balance of ${available.total} bags for GRN '${grn.grnNumber}'`,
+      `Requested ${requestedTotal} bags exceeds the available balance of ${remainingSmall} small and ${remainingBig} big bags for GRN '${grn.grnNumber}'`,
     );
   }
 
