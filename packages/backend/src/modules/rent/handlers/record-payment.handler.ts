@@ -68,9 +68,15 @@ export async function executeRecordPayment(
         grn.id,
         session,
       );
+      const outwardRent = await rentRepository.getOutwardRentChargesForGrn(
+        facilityId,
+        grn.id,
+        session,
+      );
+      const baseRent = grn.rentAmount > 0 ? grn.rentAmount : outwardRent;
       const totalDue = await rentExtensionRepository.resolveTotalDue(
         facilityId,
-        { id: grn.id, rentAmount: grn.rentAmount },
+        { id: grn.id, rentAmount: baseRent },
         session,
       );
       const balanceBefore = computeRentBalance(totalDue, totalPaidBefore);

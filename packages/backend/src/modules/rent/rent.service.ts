@@ -64,15 +64,16 @@ export class RentService {
    */
   public async getRentSummary(facilityId: string, identifier: string): Promise<RentSummaryDto> {
     const grn = await this.resolveGrn(facilityId, identifier);
-    const [payments, netDelivered, balance, extensions] = await Promise.all([
+    const [payments, netDelivered, balance, extensions, outwardRent] = await Promise.all([
       rentRepository.findPaymentsByGrnId(facilityId, grn.id),
       readLedgerNetDelivered(facilityId, grn.id),
       readLedgerBalance(facilityId, grn.id),
       rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id),
+      rentRepository.getOutwardRentChargesForGrn(facilityId, grn.id),
     ]);
     const delivered = netDelivered?.total ?? 0;
     const remaining = balance?.total ?? Math.max(0, grn.bags - delivered);
-    return buildRentSummary(grn, payments, extensions, delivered, remaining);
+    return buildRentSummary(grn, payments, extensions, delivered, remaining, outwardRent);
   }
 
   /**
@@ -86,11 +87,12 @@ export class RentService {
     const grns = await GrnModel.find({ facilityId }).sort({ date: -1, createdAt: -1 }).lean<GrnDoc[]>().exec();
     const grnIds = grns.map((g) => g.id);
 
-    const [paymentsByGrn, deliveredMap, balanceMap, extensionsByGrn] = await Promise.all([
+    const [paymentsByGrn, deliveredMap, balanceMap, extensionsByGrn, outwardRentMap] = await Promise.all([
       rentRepository.findPaymentsByFacilityGrouped(facilityId),
       readLedgerNetDeliveredMany(facilityId, grnIds),
       readLedgerBalanceMany(facilityId, grnIds),
       rentExtensionRepository.findExtensionsByFacilityGrouped(facilityId),
+      rentRepository.getOutwardRentChargesByFacilityGrouped(facilityId),
     ]);
 
     return grns.map((grn) => {
@@ -102,6 +104,7 @@ export class RentService {
         extensionsByGrn.get(grn.id) ?? [],
         delivered,
         remaining,
+        outwardRentMap.get(grn.id) ?? 0,
       );
     });
   }
