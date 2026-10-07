@@ -42,6 +42,10 @@ export function CustomerCombobox({
           aria-label="Search customers by name…"
           id="create-customer-search"
           type="text"
+          role="combobox"
+          aria-expanded={customerBox.isOpen}
+          aria-autocomplete="list"
+          aria-controls="customer-combobox-listbox"
           autoComplete="off"
           disabled={disabled}
           className={`${styles.comboboxInput} ${error ? styles.inputError : ''} ${disabled ? styles.calculatedField : ''}`}
@@ -55,6 +59,7 @@ export function CustomerCombobox({
           }}
           onKeyDown={disabled ? undefined : customerBox.handleKeyDown}
           aria-invalid={Boolean(error)}
+          aria-describedby={error ? 'customer-combobox-error' : undefined}
         />
         {customerId && !customerBox.isOpen && !disabled && (
           <Button
@@ -68,9 +73,13 @@ export function CustomerCombobox({
             ✕
           </Button>
         )}
-        {error && <span className={styles.fieldErrorText}>{error}</span>}
+        {error && (
+          <span id="customer-combobox-error" className={styles.fieldErrorText} role="alert">
+            {error}
+          </span>
+        )}
         {customerBox.isOpen && !disabled && (
-          <div className={styles.comboboxDropdown} role="listbox">
+          <div id="customer-combobox-listbox" className={styles.comboboxDropdown} role="listbox">
             {customerBox.matches.length > 0 ? (
               customerBox.matches.map((c, idx) => (
                 <div
