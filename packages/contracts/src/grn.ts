@@ -54,7 +54,7 @@ export const createGrnSchema = z
     commodityId: z.string().trim().min(1),
     chamber: chamberTextSchema,
     bags: z.number().int().positive().max(100000),
-    bagType: bagTypeSchema,
+    bagType: bagTypeSchema.default('S/B'),
     /** Per-bag weight only (kg per individual bag); optional. No nominal/weighbridge/total. */
     smallBagWeight: perBagWeightSchema.nullish(),
     bigBagWeight: perBagWeightSchema.nullish(),

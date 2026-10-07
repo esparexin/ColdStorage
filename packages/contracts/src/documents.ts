@@ -119,6 +119,7 @@ export const challanDocumentDtoSchema = z.object({
   customerName: z.string(),
   commodityName: z.string(),
   chamber: chamberTextSchema,
+  bagType: bagTypeSchema.optional(),
   partyMark: z.string().nullable().optional(),
   smallBags: z.number().int().min(0),
   bigBags: z.number().int().min(0),

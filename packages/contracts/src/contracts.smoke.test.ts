@@ -31,10 +31,12 @@ describe('P1 Governance & Shared Contracts Foundation', () => {
     expect(gpNumberSchema.parse(null)).toBeNull();
   });
 
-  it('enforces strictly controlled bag types (S, B, S+B)', () => {
+  it('enforces strictly controlled bag types (S, B, S+B, S/B)', () => {
     expect(bagTypeSchema.parse('S')).toBe('S');
     expect(bagTypeSchema.parse('B')).toBe('B');
     expect(bagTypeSchema.parse('S+B')).toBe('S+B');
+    expect(bagTypeSchema.parse('S/B')).toBe('S/B');
+    expect(bagTypeSchema.parse(undefined)).toBe('S/B');
 
     expect(() => bagTypeSchema.parse('SMALL')).toThrow();
     expect(() => bagTypeSchema.parse('LARGE')).toThrow();
