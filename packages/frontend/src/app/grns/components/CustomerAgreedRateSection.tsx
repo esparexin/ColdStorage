@@ -34,12 +34,13 @@ export function CustomerAgreedRateSection({
     <div className={styles.sectionCard} role="group" aria-label={termBadgeText}>
       <div className={styles.headerRow}>
         <span className={styles.badge}>{termBadgeText}</span>
+        <span className={styles.headerHint}>(each bag rate per month)</span>
       </div>
 
       <div className={styles.rateInputsGrid}>
         <div className={styles.inputGroup}>
           <label htmlFor="create-small-bag-price" className={styles.inputLabel}>
-            Small Bag Rate <span className={styles.labelHint}>(each bag rate per month)</span>
+            Small Bag Rate
           </label>
           <div className={styles.inputWrapper}>
             <span className={styles.currencyPrefix} aria-hidden="true">
@@ -76,7 +77,7 @@ export function CustomerAgreedRateSection({
 
         <div className={styles.inputGroup}>
           <label htmlFor="create-big-bag-price" className={styles.inputLabel}>
-            Big Bag Rate <span className={styles.labelHint}>(each bag rate per month)</span>
+            Big Bag Rate
           </label>
           <div className={styles.inputWrapper}>
             <span className={styles.currencyPrefix} aria-hidden="true">
