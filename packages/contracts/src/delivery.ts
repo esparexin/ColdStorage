@@ -43,6 +43,8 @@ export const createDeliverySchema = z
     driverName: z.string().trim().max(100).nullish(),
     weight: z.number().positive('weight must be positive').nullish(),
     remarks: z.string().trim().max(500).nullish(),
+    bagCategory: z.enum(['Small', 'Big', 'Small & Big']).nullish(),
+    rentCharge: z.number().min(0).nullish(),
   })
   .refine((data) => (data.quantity && data.quantity > 0) || data.smallBags + data.bigBags > 0, {
     message: 'Delivery must move at least one bag',
@@ -101,6 +103,7 @@ export const deliveryChallanSchema = z.object({
   rentRemainingBalance: z.number().min(0).optional(),
   rentTotalAmount: z.number().min(0).optional(),
   rentTotalPaid: z.number().min(0).optional(),
+  rentCharge: z.number().min(0).optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

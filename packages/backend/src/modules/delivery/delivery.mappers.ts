@@ -31,6 +31,7 @@ export function toChallanEntity(doc: DeliveryChallanDoc | Record<string, unknown
     driverName: d.driverName ? String(d.driverName) : null,
     weight: d.weight !== null && d.weight !== undefined ? Number(d.weight) : null,
     remarks: d.remarks ? String(d.remarks) : null,
+    rentCharge: d.rentCharge !== null && d.rentCharge !== undefined ? Number(d.rentCharge) : undefined,
     status: d.status as DeliveryChallan['status'],
     issuedBy: String(d.issuedBy),
     createdAt: d.createdAt instanceof Date ? d.createdAt : new Date(String(d.createdAt)),

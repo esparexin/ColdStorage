@@ -9,6 +9,8 @@ import { requestWithAuth } from '@/lib/api-client';
 import { useRentGate } from '@/hooks/useRentGate';
 import { validateDeliveryForm } from './deliveryFormValidation.helper';
 import { buildDeliveryPayload } from './deliveryPayload.helper';
+import { computeOutwardRentCharge, type OutwardBagCategory } from './deliveryRent.helper';
+import { submitDeliveryRequest } from './deliverySubmit.helper';
 import type { GrnWithdrawal } from '../types';
 
 export function useCreateDeliveryForm(
@@ -21,6 +23,7 @@ export function useCreateDeliveryForm(
   const [grnSummary, setGrnSummary] = useState<GrnInventorySummary | null>(null);
   const [loadingGrnSummary, setLoadingGrnSummary] = useState(false);
   const [createDate, setCreateDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [bagCategory, setBagCategory] = useState<OutwardBagCategory>('Small');
   const [withdrawal, setWithdrawal] = useState<GrnWithdrawal>({
     availableSmall: 0,
     availableBig: 0,
@@ -40,25 +43,20 @@ export function useCreateDeliveryForm(
   const clearFieldError = (key: string) => {
     setFieldErrors((prev) => {
       if (!prev[key]) return prev;
-      const copy = { ...prev };
-      delete copy[key];
-      return copy;
+      const { [key]: _, ...rest } = prev;
+      return rest;
     });
   };
 
   const fetchAvailableGrns = useCallback(async () => {
     if (!facilityId) return;
     try {
-      const res = await requestWithAuth(
-        `/api/facilities/${encodeURIComponent(facilityId)}/grns?status=OPEN&limit=100`,
-      );
+      const res = await requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns?status=OPEN&limit=100`);
       if (res.ok) {
         const data = (await res.json()) as { items?: Grn[] };
         setAvailableGrns(data.items ?? []);
       }
-    } catch {
-      // Graceful
-    }
+    } catch { /* Graceful */ }
   }, [facilityId]);
 
   const handleSelectGrn = useCallback(
@@ -74,20 +72,15 @@ export function useCreateDeliveryForm(
       setModalError(null);
       try {
         const [invRes] = await Promise.all([
-          requestWithAuth(
-            `/api/facilities/${encodeURIComponent(facilityId)}/grns/${encodeURIComponent(grnId)}/inventory-summary`,
-          ),
+          requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns/${encodeURIComponent(grnId)}/inventory-summary`),
           rentGate.refreshRentGate(facilityId, grnId),
         ]);
         if (invRes.ok) {
           const data = (await invRes.json()) as { summary: GrnInventorySummary };
           setGrnSummary(data.summary);
-          setWithdrawal({
-            availableSmall: data.summary.availableSmallBags,
-            availableBig: data.summary.availableBigBags,
-            smallBags: '',
-            bigBags: '',
-          });
+          const { availableSmallBags: s, availableBigBags: b } = data.summary;
+          setBagCategory(s > 0 && b > 0 ? 'Small & Big' : b > 0 ? 'Big' : 'Small');
+          setWithdrawal({ availableSmall: s, availableBig: b, smallBags: '', bigBags: '' });
         }
       } catch {
         setModalError('Failed to load GRN stock summary');
@@ -111,6 +104,48 @@ export function useCreateDeliveryForm(
   const totalWithdrawingBags = smallBags + bigBags;
   const selectedGrn = availableGrns.find((g) => g.id === createGrnId) || null;
   const isLoanHoldActive = Boolean(selectedGrn?.loanStatus === 'TAKEN');
+
+  const outwardRent = computeOutwardRentCharge({
+    rentType: selectedGrn?.rentType ?? 'Seasonal',
+    bagCategory,
+    smallBags,
+    bigBags,
+    rentMonths: selectedGrn?.rentMonths,
+  });
+
+  const handleBagCategoryChange = (cat: OutwardBagCategory) => {
+    setBagCategory(cat);
+    setWithdrawal((prev) => {
+      if (cat === 'Small') return { ...prev, bigBags: 0 };
+      if (cat === 'Big') return { ...prev, smallBags: 0 };
+      return prev;
+    });
+    clearFieldError('bags');
+    clearFieldError('smallBags');
+    clearFieldError('bigBags');
+  };
+
+  const handleQuantityChange = (val: number | '') => {
+    setWithdrawal((prev) => {
+      if (bagCategory === 'Big') return { ...prev, smallBags: 0, bigBags: val };
+      return { ...prev, smallBags: val, bigBags: 0 };
+    });
+    clearFieldError('bags');
+    clearFieldError('smallBags');
+    clearFieldError('bigBags');
+  };
+
+  const setWithdrawalSmallBags = (val: number | '') => {
+    setWithdrawal((prev) => ({ ...prev, smallBags: val }));
+    clearFieldError('bags');
+    clearFieldError('smallBags');
+  };
+
+  const setWithdrawalBigBags = (val: number | '') => {
+    setWithdrawal((prev) => ({ ...prev, bigBags: val }));
+    clearFieldError('bags');
+    clearFieldError('bigBags');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,6 +180,8 @@ export function useCreateDeliveryForm(
         createDate,
         smallBags,
         bigBags,
+        bagCategory,
+        rentCharge: outwardRent,
         createVehicleNumber,
         createDriverName,
         createWeight,
@@ -152,21 +189,7 @@ export function useCreateDeliveryForm(
         createRemarks,
       });
 
-      const res = await requestWithAuth(
-        `/api/facilities/${encodeURIComponent(facilityId)}/deliveries`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        },
-      );
-
-      if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
-        throw new Error(data.error ?? `Delivery failed with HTTP ${res.status}`);
-      }
-
-      const responseData = (await res.json()) as { delivery: DeliveryChallan; summary?: DeliverySummary };
+      const responseData = await submitDeliveryRequest(facilityId, payload);
       onSuccess(responseData.delivery, responseData.summary);
     } catch (err: unknown) {
       setModalError(err instanceof Error ? err.message : 'Failed to issue delivery challan');
@@ -182,28 +205,13 @@ export function useCreateDeliveryForm(
     loadingGrnSummary,
     createDate,
     setCreateDate: (v: string) => { setCreateDate(v); clearFieldError('date'); },
+    bagCategory,
+    setBagCategory: handleBagCategoryChange,
+    outwardRent,
     withdrawal,
-    setWithdrawalSmallBags: (val: number | '') => {
-      setWithdrawal((prev) => ({ ...prev, smallBags: val }));
-      clearFieldError('bags');
-      clearFieldError('smallBags');
-    },
-    setWithdrawalBigBags: (val: number | '') => {
-      setWithdrawal((prev) => ({ ...prev, bigBags: val }));
-      clearFieldError('bags');
-      clearFieldError('bigBags');
-    },
-    /** Single-quantity entry mapped onto the GRN's available side (two-sided uses side setters). */
-    setWithdrawalQuantity: (val: number | '') => {
-      setWithdrawal((prev) => {
-        if (prev.availableBig === 0) return { ...prev, smallBags: val, bigBags: 0 };
-        if (prev.availableSmall === 0) return { ...prev, smallBags: 0, bigBags: val };
-        return prev;
-      });
-      clearFieldError('bags');
-      clearFieldError('smallBags');
-      clearFieldError('bigBags');
-    },
+    setWithdrawalSmallBags,
+    setWithdrawalBigBags,
+    setWithdrawalQuantity: handleQuantityChange,
     createVehicleNumber,
     setCreateVehicleNumber: (v: string) => { setCreateVehicleNumber(v); clearFieldError('vehicleNumber'); },
     createDriverName,
