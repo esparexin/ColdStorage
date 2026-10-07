@@ -1,0 +1,120 @@
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.fieldLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fieldLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+}
+
+.inputError {
+  border-color: var(--color-danger);
+}
+
+.fieldErrorText {
+  font-size: var(--text-xs);
+  color: var(--color-danger-text);
+  margin-top: var(--space-0-5);
+}
+
+.calculatedField {
+  background: var(--color-surface-2);
+  font-weight: var(--font-semibold);
+  cursor: default;
+}
+
+.comboboxWrapper {
+  position: relative;
+}
+
+.comboboxInput {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.comboboxInput:focus {
+  outline: none;
+  border-color: var(--color-primary-text);
+  outline: var(--focus-ring-width) solid var(--color-primary);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.comboboxDropdown {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  right: 0;
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.comboboxOption {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--transition-fast);
+}
+
+.comboboxOption:last-child {
+  border-bottom: none;
+}
+
+.comboboxOption:hover,
+.comboboxOptionActive {
+  background: var(--color-surface-2);
+}
+
+.comboboxClearBtn {
+  position: absolute;
+  right: var(--space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: var(--space-0-5) var(--space-1-5);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+}
+
+.comboboxClearBtn:hover {
+  color: var(--color-text-primary);
+}
+
+.comboboxOptionName {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+}
+
+.comboboxEmpty {
+  padding: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}
