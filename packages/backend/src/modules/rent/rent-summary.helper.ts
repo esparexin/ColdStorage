@@ -24,9 +24,11 @@ export function buildRentSummary(
   extensions: RentExtension[],
   deliveredBags = 0,
   remainingBags = grn.bags,
+  outwardRentCharges = 0,
 ): RentSummaryDto {
+  const baseRent = grn.rentAmount > 0 ? grn.rentAmount : outwardRentCharges;
   const totalDue = totalRentDue(
-    grn.rentAmount,
+    baseRent,
     extensions.map((e) => e.finalAmount),
   );
   const balance = computeRentBalance(
@@ -48,7 +50,7 @@ export function buildRentSummary(
     remainingBags,
     bagPrice: grn.bagPrice ?? null,
     rentType: grn.rentType,
-    rentAmount: grn.rentAmount,
+    rentAmount: baseRent,
     rentMonths: grn.rentMonths ?? null,
     totalPaid: balance.totalPaid,
     remainingBalance: balance.remainingBalance,
