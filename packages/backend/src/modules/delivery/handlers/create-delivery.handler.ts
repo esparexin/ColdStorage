@@ -196,12 +196,7 @@ async function executeDeliveryTransaction(
 
       // Closure invariant: A GRN is CLOSED only when both remainingBags === 0 AND remainingBalance === 0.
       // If bags reach 0 but rent balance remains, the GRN remains OPEN so outstanding dues are tracked.
-      const isRentSettled =
-        grn.rentAmount > 0
-          ? rentBalance.remainingBalance === 0
-          : deliveryRentCharge === 0 && rentBalance.remainingBalance === 0;
-
-      if (closingTotal === 0 && isRentSettled) {
+      if (closingTotal === 0 && rentBalance.remainingBalance === 0) {
         await GrnModel.updateOne({ id: grn.id }, { $set: { status: 'CLOSED' } }, { session });
       }
     });

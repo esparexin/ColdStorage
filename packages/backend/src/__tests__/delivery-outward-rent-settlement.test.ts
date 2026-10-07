@@ -101,34 +101,40 @@ describe('Outward Rent Settlement Flow (delivery-outward-rent-settlement.test.ts
     expect(p1.summary.paymentStatus).toBe('Not Settled');
     expect(p1.payment.receiptNumber).toBeDefined();
 
-    // 6. Second delivery dispatches remaining 60 bags (60 × ₹10 × 10 = ₹6,000)
+    // 6. Second delivery dispatches 30 bags (30 × ₹10 × 10 = ₹3,000)
     const d2 = await deliveryService.createDelivery(
       facilityId,
-      { grnId: grn.id, smallBags: 60, bigBags: 0, bagCategory: 'Small' },
+      { grnId: grn.id, smallBags: 30, bigBags: 0, bagCategory: 'Small' },
       USER_ID,
     );
-    expect(d2.delivery.rentCharge).toBe(6000);
+    expect(d2.delivery.rentCharge).toBe(3000);
+    expect(d2.summary.remainingDeliveryBalance).toBe(30);
+    expect(d2.summary.grnStatus).toBe('OPEN');
 
-    // Invariant: Remaining bags reach 0, but GRN remains OPEN because rent dues (₹8,500) remain
-    const grnDocMid = await GrnModel.findOne({ id: grn.id }).lean();
-    expect(grnDocMid?.status).toBe('OPEN');
+    const summaryAfterSecondDel = await rentService.getRentSummary(facilityId, grn.id);
+    expect(summaryAfterSecondDel.totalDue).toBe(7000); // 4,000 + 3,000
+    expect(summaryAfterSecondDel.remainingBalance).toBe(5500); // 7,000 - 1,500
+    expect(summaryAfterSecondDel.remainingBags).toBe(30);
 
-    const summaryAfterAllBags = await rentService.getRentSummary(facilityId, grn.id);
-    expect(summaryAfterAllBags.totalDue).toBe(10000); // 4,000 + 6,000
-    expect(summaryAfterAllBags.remainingBalance).toBe(8500); // 10,000 - 1,500
-    expect(summaryAfterAllBags.remainingBags).toBe(0);
-
-    // 7. Full settlement of remaining ₹8,500 closes the GRN
+    // 7. Settle remaining ₹5,500 rent balance via Cash Memo
     const p2 = await rentService.recordPayment(
       facilityId,
-      { grnId: grn.id, amountPaid: 8500, paymentMode: 'UPI', paymentDate: new Date() },
+      { grnId: grn.id, amountPaid: 5500, paymentMode: 'UPI', paymentDate: new Date() },
       USER_ID,
     );
-    expect(p2.summary.totalPaid).toBe(10000);
+    expect(p2.summary.totalPaid).toBe(7000);
     expect(p2.summary.remainingBalance).toBe(0);
     expect(p2.summary.paymentStatus).toBe('Settled');
 
-    // Both bags === 0 AND remainingBalance === 0 -> GRN transitions to CLOSED
+    // 8. Final delivery dispatches remaining 30 bags (with rentCharge 0 because paid or 0 remaining bags)
+    const d3 = await deliveryService.createDelivery(
+      facilityId,
+      { grnId: grn.id, smallBags: 30, bigBags: 0, rentCharge: 0 },
+      USER_ID,
+    );
+    expect(d3.summary.remainingDeliveryBalance).toBe(0);
+    expect(d3.summary.grnStatus).toBe('CLOSED');
+
     const grnDocFinal = await GrnModel.findOne({ id: grn.id }).lean();
     expect(grnDocFinal?.status).toBe('CLOSED');
   });
