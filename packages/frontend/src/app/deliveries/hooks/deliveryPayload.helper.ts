@@ -16,9 +16,11 @@ export interface DeliveryPayloadInput {
  * builder stays a straight pass-through with optional transport fields.
  */
 export function buildDeliveryPayload(input: DeliveryPayloadInput): Record<string, unknown> {
+  const totalQuantity = input.smallBags + input.bigBags;
   const payload: Record<string, unknown> = {
     grnId: input.grnId,
     date: new Date(input.createDate),
+    quantity: totalQuantity,
     smallBags: input.smallBags,
     bigBags: input.bigBags,
   };
