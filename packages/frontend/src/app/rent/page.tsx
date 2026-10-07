@@ -1,9 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { can, type PaymentStatus,
-  type Role, type RentSummaryDto } from '@cold-storage/contracts';
-import { FilterToolbar } from '@/components/ui';
+import { can, type Role, type RentSummaryDto } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import {
   EMPTY_MESSAGES,
@@ -13,6 +11,7 @@ import {
 } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { CollectPaymentModal } from './components/CollectPaymentModal';
+import { RentFilterToolbar } from './components/RentFilterToolbar';
 import { RentHistoryModal } from './components/RentHistoryModal';
 import { RentKpiCards } from './components/RentKpiCards';
 import { RentTable } from './components/RentTable';
@@ -31,6 +30,8 @@ export default function RentPage() {
     setSearchTerm,
     statusFilter,
     setStatusFilter,
+    typeFilter,
+    setTypeFilter,
     metrics,
     pagedAccounts,
     totalAccounts,
@@ -69,30 +70,18 @@ export default function RentPage() {
       ) : (
         <>
           <RentKpiCards metrics={metrics} />
-          <FilterToolbar
-            searchValue={searchTerm}
+          <RentFilterToolbar
+            searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
-            searchPlaceholder="Search GRN #, Customer, Commodity, Chamber..."
-            searchAriaLabel="Search rent billing"
-            searchInputId="rent-search-input"
-            selects={[
-              {
-                id: 'rent-status-filter',
-                ariaLabel: 'Filter by Payment Status',
-                value: statusFilter,
-                onChange: (v) => setStatusFilter(v as '' | PaymentStatus),
-                options: [
-                  { value: '', label: 'All Payment Statuses' },
-                  { value: 'Not Settled', label: 'Not Settled (Pending Dues)' },
-                  { value: 'Settled', label: 'Settled (Fully Paid)' },
-                ],
-              },
-            ]}
+            statusFilter={statusFilter}
+            onStatusChange={setStatusFilter}
+            typeFilter={typeFilter}
+            onTypeChange={setTypeFilter}
             onReset={() => {
               setStatusFilter('');
+              setTypeFilter('');
               setSearchTerm('');
             }}
-            hasActiveFilters={Boolean(statusFilter || searchTerm)}
           />
 
           {loading ? (
@@ -106,7 +95,13 @@ export default function RentPage() {
           ) : rentSummaries.length === 0 ? (
             <FeedbackStates.Empty message={emptyForFacility(currentFacilityName, 'rent')} />
           ) : pagedAccounts.length === 0 ? (
-            <FeedbackStates.Empty message={`No rent accounts matching "${searchTerm}".`} />
+            <FeedbackStates.Empty
+              message={
+                searchTerm || statusFilter || typeFilter
+                  ? 'No rent accounts matching the selected filter criteria.'
+                  : 'No rent accounts available.'
+              }
+            />
           ) : (
             <RentTable
               accounts={pagedAccounts}
