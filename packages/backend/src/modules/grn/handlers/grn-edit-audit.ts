@@ -21,6 +21,7 @@ const TRACKED_FIELDS = [
   'bigBags',
   'smallBagWeight',
   'bigBagWeight',
+  'totalBagsWeight',
   'rentType',
   'rentMonths',
   'rentAmount',

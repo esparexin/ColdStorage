@@ -141,6 +141,7 @@ export async function createGrn(
             bigBags: composition.bigBags,
             smallBagWeight,
             bigBagWeight,
+            totalBagsWeight: input.totalBagsWeight ?? null,
             rentType: input.rentType,
             rentMonths,
             rentAmount: finalRentAmount,

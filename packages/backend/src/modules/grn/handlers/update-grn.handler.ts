@@ -123,6 +123,9 @@ export async function correctGrn(
       if (input.bigBagWeight !== undefined) {
         update.bigBagWeight = input.bigBagWeight ?? null;
       }
+      if (input.totalBagsWeight !== undefined) {
+        update.totalBagsWeight = input.totalBagsWeight ?? null;
+      }
 
       if (wantsRentChange(input, bagEdit.wantsBagsChange)) {
         Object.assign(

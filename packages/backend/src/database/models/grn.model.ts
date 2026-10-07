@@ -25,6 +25,7 @@ export interface GrnDoc extends Document {
   /** Per-bag weight (kg per individual bag). S uses smallBagWeight, B uses bigBagWeight, S+B uses both. */
   smallBagWeight: number | null;
   bigBagWeight: number | null;
+  totalBagsWeight: number | null;
   rentType: RentType;
   rentMonths: number | null;
   rentAmount: number;
@@ -75,6 +76,7 @@ const grnSchema = new Schema<GrnDoc>(
     bagType: { type: String, required: true, enum: ['S', 'B', 'S+B', 'S/B'], default: 'S/B' },
     smallBagWeight: { type: Number, default: null },
     bigBagWeight: { type: Number, default: null },
+    totalBagsWeight: { type: Number, default: null },
     rentType: { type: String, required: true, enum: ['Monthly', 'Seasonal'] },
     /** Seasonal is always the fixed 10-month period; Monthly carries the operator's count. */
     rentMonths: { type: Number, default: null },
