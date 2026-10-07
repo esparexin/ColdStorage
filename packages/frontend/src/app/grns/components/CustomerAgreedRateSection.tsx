@@ -1,5 +1,4 @@
 import React from 'react';
-import { Tag } from 'lucide-react';
 import type { RentType } from '@cold-storage/contracts';
 import styles from './CustomerAgreedRateSection.module.css';
 
@@ -28,20 +27,14 @@ export function CustomerAgreedRateSection({
 }: CustomerAgreedRateSectionProps) {
   const isSeasonal = rentType === 'Seasonal';
   const termBadgeText = isSeasonal
-    ? 'Seasonal Agreement — 10 Months'
-    : `Monthly Agreement — ${typeof rentMonths === 'number' && rentMonths > 0 ? `${rentMonths} Months` : 'Selected Months'}`;
+    ? 'Rent Type: Seasonal — 10 Months'
+    : `Rent Type: Monthly — ${typeof rentMonths === 'number' && rentMonths > 0 ? `${rentMonths} Months` : 'Selected Months'}`;
 
   const rateUnitSuffix = isSeasonal ? '/ bag (10m)' : '/ bag / month';
 
   return (
-    <div className={styles.sectionCard} role="group" aria-labelledby="agreed-rate-heading">
+    <div className={styles.sectionCard} role="group" aria-label={termBadgeText}>
       <div className={styles.headerRow}>
-        <div className={styles.titleWrap}>
-          <Tag size={14} className={styles.icon} aria-hidden="true" />
-          <span id="agreed-rate-heading" className={styles.title}>
-            CUSTOMER AGREED STORAGE RATE
-          </span>
-        </div>
         <span className={styles.badge}>{termBadgeText}</span>
       </div>
 

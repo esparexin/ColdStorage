@@ -10,29 +10,7 @@
 .headerRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-2);
   margin-bottom: var(--space-2);
-}
-
-.titleWrap {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.icon {
-  color: var(--color-primary);
-  flex-shrink: 0;
-}
-
-.title {
-  font-size: var(--text-xs);
-  font-weight: var(--font-bold);
-  letter-spacing: var(--tracking-label);
-  color: var(--color-text-primary);
-  text-transform: uppercase;
 }
 
 .badge {
