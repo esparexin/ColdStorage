@@ -6,11 +6,14 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
-import { AuditLogModel } from '../database/models/audit-log.model.js';
 import { BackupLogModel } from '../database/models/backup-log.model.js';
 import { FacilityModel } from '../database/models/facility.model.js';
 import { SystemSettingsModel } from '../database/models/system-settings.model.js';
 import { UserModel } from '../database/models/user.model.js';
+import {
+  seedAuditBackupMasterData,
+  seedAuditBackupTokens,
+} from './helpers/audit-backup-fixtures.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 
 const app = createApp();
@@ -51,122 +54,13 @@ describe('P10 Audit & Backup Routes, Security & RBAC Integration Tests', () => {
     await FacilityModel.deleteMany({});
     await UserModel.deleteMany({});
 
-    // Seed facilities
-    await FacilityModel.create([
-      {
-        id: facilityA,
-        name: 'Facility A',
-        code: 'FAC-A',
-        address: 'Sector 1',
-        isActive: true,
-      },
-      {
-        id: facilityB,
-        name: 'Facility B',
-        code: 'FAC-B',
-        address: 'Sector 2',
-        isActive: true,
-      },
-    ]);
-
-    // Seed settings singleton
-    await SystemSettingsModel.create({
-      _id: 'SYSTEM_SETTINGS',
-      orgName: 'Himalayan Cold Chains Pvt Ltd',
-      address: 'Plot 42, Industrial Area, Parwanoo, HP',
-      contact: '+91 1792 234567',
-      timezone: 'Asia/Kolkata',
-      backupPolicy: {
-        retentionDays: 30,
-        backupEnabled: true,
-      },
-    });
-
-    // Create tokens
-    ({ token: superAdminToken } = await seed({
-      userId: 'audit-usr-sa',
-      username: 'audit_superadmin',
-      role: 'SUPER_ADMIN',
-      facilityIds: [],
-    }));
-
-    ({ token: adminToken } = await seed({
-      userId: 'audit-usr-adm',
-      username: 'audit_admin',
-      role: 'ADMIN',
-      facilityIds: [facilityA],
-    }));
-
-    ({ token: operatorToken } = await seed({
-      userId: 'audit-usr-op',
-      username: 'audit_operator',
-      role: 'OPERATOR',
-      facilityIds: [facilityA],
-    }));
-
-    ({ token: readOnlyToken } = await seed({
-      userId: 'audit-usr-ro',
-      username: 'audit_readonly',
-      role: 'READ_ONLY',
-      facilityIds: [facilityA],
-    }));
-
-    ({ token: mustChangePasswordToken } = await seed({
-      userId: 'audit-usr-mcp',
-      username: 'audit_mustchange',
-      role: 'SUPER_ADMIN',
-      facilityIds: [],
-      mustChangePassword: true,
-    }));
-
-    // Seed sample audit logs
-    await AuditLogModel.create([
-      {
-        id: 'aud-seed-1',
-        timestamp: new Date('2026-10-01T10:00:00Z'),
-        eventType: 'GRN_CREATED',
-        severity: 'INFO',
-        facilityId: facilityA,
-        userId: 'audit-usr-op',
-        username: 'audit_operator',
-        userRole: 'OPERATOR',
-        ipAddress: '127.0.0.1',
-        userAgent: 'TestClient/1.0',
-        resource: 'grn',
-        resourceId: 'grn-1',
-        details: { bags: 50 },
-      },
-      {
-        id: 'aud-seed-2',
-        timestamp: new Date('2026-10-01T11:00:00Z'),
-        eventType: 'GRN_CREATED',
-        severity: 'INFO',
-        facilityId: facilityB,
-        userId: 'audit-usr-adm2',
-        username: 'admin2',
-        userRole: 'ADMIN',
-        ipAddress: '127.0.0.1',
-        userAgent: 'TestClient/1.0',
-        resource: 'grn',
-        resourceId: 'grn-2',
-        details: { bags: 75 },
-      },
-      {
-        id: 'aud-seed-3',
-        timestamp: new Date('2026-10-01T12:00:00Z'),
-        eventType: 'AUTH_LOGIN_SUCCESS',
-        severity: 'INFO',
-        facilityId: null,
-        userId: 'audit-usr-sa',
-        username: 'audit_superadmin',
-        userRole: 'SUPER_ADMIN',
-        ipAddress: '127.0.0.1',
-        userAgent: 'TestClient/1.0',
-        resource: 'auth',
-        resourceId: null,
-        details: { method: 'password' },
-      },
-    ]);
+    await seedAuditBackupMasterData(facilityA, facilityB);
+    const tokens = await seedAuditBackupTokens(seed, facilityA);
+    superAdminToken = tokens.superAdminToken;
+    adminToken = tokens.adminToken;
+    operatorToken = tokens.operatorToken;
+    readOnlyToken = tokens.readOnlyToken;
+    mustChangePasswordToken = tokens.mustChangePasswordToken;
   });
 
   it('1. returns 401 when unauthenticated on GET /api/audit-logs', async () => {
