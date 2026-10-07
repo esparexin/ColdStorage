@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DeliveryChallan, DeliveryStatus } from '@cold-storage/contracts';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
+import { filterDeliveries, type DeliveryRentStatusFilter } from './deliveryFilter.helper';
 
 export const DELIVERY_PAGE_SIZE = 20;
 
@@ -20,10 +21,12 @@ export function useDeliveries(
   // Filter states
   const [searchTerm, setSearchTermRaw] = useState('');
   const [statusFilter, setStatusFilterRaw] = useState<'' | DeliveryStatus>('');
+  const [rentStatusFilter, setRentStatusFilterRaw] = useState<DeliveryRentStatusFilter>('');
 
   // Narrowing a filter resets pagination to page 1.
   const setSearchTerm = useCallback((v: string) => { setSearchTermRaw(v); setPage(1); }, []);
   const setStatusFilter = useCallback((v: '' | DeliveryStatus) => { setStatusFilterRaw(v); setPage(1); }, []);
+  const setRentStatusFilter = useCallback((v: DeliveryRentStatusFilter) => { setRentStatusFilterRaw(v); setPage(1); }, []);
 
   const fetchDeliveries = useCallback(async () => {
     if (!selectedFacilityId) {
@@ -65,18 +68,8 @@ export function useDeliveries(
   }, [fetchDeliveries]);
 
   const filteredDeliveries = useMemo(() => {
-    if (!searchTerm.trim()) return deliveries;
-    const term = searchTerm.toLowerCase();
-    return deliveries.filter((d) => {
-      const matchChallan = d.challanNumber.toLowerCase().includes(term);
-      const matchGrn = d.grnNumber.toLowerCase().includes(term);
-      const matchCust = d.customerName.toLowerCase().includes(term);
-      const matchComm = d.commodityName.toLowerCase().includes(term);
-      const matchVeh = d.vehicleNumber?.toLowerCase().includes(term) ?? false;
-      const matchDriver = d.driverName?.toLowerCase().includes(term) ?? false;
-      return matchChallan || matchGrn || matchCust || matchComm || matchVeh || matchDriver;
-    });
-  }, [deliveries, searchTerm]);
+    return filterDeliveries(deliveries, searchTerm, rentStatusFilter);
+  }, [deliveries, searchTerm, rentStatusFilter]);
 
   const currentFacilityName = useMemo(() => {
     return (
@@ -88,6 +81,7 @@ export function useDeliveries(
 
   const resetFilters = () => {
     setStatusFilter('');
+    setRentStatusFilter('');
     setSearchTerm('');
   };
 
@@ -105,6 +99,8 @@ export function useDeliveries(
     setSearchTerm,
     statusFilter,
     setStatusFilter,
+    rentStatusFilter,
+    setRentStatusFilter,
     currentFacilityName,
     fetchDeliveries,
     resetFilters,

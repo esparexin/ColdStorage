@@ -2,11 +2,11 @@
 
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { can, type DeliveryChallan, type DeliveryStatus, type Grn,
+import { can, type DeliveryChallan, type Grn,
   type Role, type RentSummaryDto } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { Banner } from '@/components/ui/Banner';
-import { Button, FilterToolbar } from '@/components/ui';
+import { Button } from '@/components/ui';
 import {
   EMPTY_MESSAGES,
   ERROR_TITLES,
@@ -18,6 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { printHtmlDocument } from '@/lib/print-document';
 import { requestWithAuth } from '@/lib/api-client';
+import { DeliveryFilterToolbar } from './components/DeliveryFilterToolbar';
 import { DeliveryPageModals } from './components/DeliveryPageModals';
 import { DeliveryTable } from './components/DeliveryTable';
 import { useDeliveries } from './hooks/useDeliveries';
@@ -132,27 +133,14 @@ export default function DeliveriesPage() {
         <FeedbackStates.Empty message={EMPTY_MESSAGES.noFacilityDeliveries} />
       ) : (
         <>
-          <FilterToolbar
-            searchValue={deliveryData.searchTerm}
+          <DeliveryFilterToolbar
+            searchTerm={deliveryData.searchTerm}
             onSearchChange={deliveryData.setSearchTerm}
-            searchPlaceholder="Search Challan #, GRN #, Customer, Vehicle..."
-            searchAriaLabel="Search deliveries"
-            searchInputId="delivery-search-input"
-            selects={[
-              {
-                id: 'delivery-status-filter',
-                ariaLabel: 'Filter by Delivery Status',
-                value: deliveryData.statusFilter,
-                onChange: (v) => deliveryData.setStatusFilter(v as '' | DeliveryStatus),
-                options: [
-                  { value: '', label: 'All Statuses' },
-                  { value: 'ISSUED', label: 'Issued (Active)' },
-                  { value: 'REVERSED', label: 'Reversed' },
-                ],
-              },
-            ]}
+            statusFilter={deliveryData.statusFilter}
+            onStatusChange={deliveryData.setStatusFilter}
+            rentStatusFilter={deliveryData.rentStatusFilter}
+            onRentStatusChange={deliveryData.setRentStatusFilter}
             onReset={deliveryData.resetFilters}
-            hasActiveFilters={Boolean(deliveryData.statusFilter || deliveryData.searchTerm)}
           />
 
           {deliveryData.loading ? (
