@@ -103,12 +103,15 @@ export function DeliveryBagCompositionFields({
             className={`${pageStyles.fieldInput} ${bagsError || smallError || bigError ? styles.inputError : ''}`}
             value={hasEntry ? quantity : ''}
             aria-invalid={Boolean(bagsError || smallError || bigError)}
+            aria-describedby={bagsError || smallError || bigError ? 'delivery-bags-error' : undefined}
             onChange={(e) =>
               onQuantityChange(e.target.value ? parseInt(e.target.value, 10) : '')
             }
           />
           {(bagsError || smallError || bigError) && (
-            <span className={styles.fieldErrorText}>{bagsError ?? smallError ?? bigError}</span>
+            <span id="delivery-bags-error" className={styles.fieldErrorText} role="alert">
+              {bagsError ?? smallError ?? bigError}
+            </span>
           )}
         </div>
       ) : (
@@ -127,11 +130,12 @@ export function DeliveryBagCompositionFields({
               className={`${pageStyles.fieldInput} ${bagsError || smallError ? styles.inputError : ''}`}
               value={withdrawal.smallBags}
               aria-invalid={Boolean(bagsError || smallError)}
+              aria-describedby={smallError || bagsError ? 'delivery-small-bags-error' : undefined}
               onChange={(e) =>
                 onSmallBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')
               }
             />
-            {smallError && <span className={styles.fieldErrorText}>{smallError}</span>}
+            {smallError && <span id="delivery-small-bags-error" className={styles.fieldErrorText} role="alert">{smallError}</span>}
           </div>
 
           <div className={pageStyles.fieldGroup}>
@@ -148,17 +152,18 @@ export function DeliveryBagCompositionFields({
               className={`${pageStyles.fieldInput} ${bagsError || bigError ? styles.inputError : ''}`}
               value={withdrawal.bigBags}
               aria-invalid={Boolean(bagsError || bigError)}
+              aria-describedby={bigError || bagsError ? 'delivery-big-bags-error' : undefined}
               onChange={(e) =>
                 onBigBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')
               }
             />
-            {bigError && <span className={styles.fieldErrorText}>{bigError}</span>}
+            {bigError && <span id="delivery-big-bags-error" className={styles.fieldErrorText} role="alert">{bigError}</span>}
           </div>
         </div>
       )}
 
       {bagsError && isTwoSided && !smallError && !bigError && (
-        <span className={styles.fieldErrorText} style={{ marginTop: 'calc(-1 * var(--space-2))' }}>
+        <span id="delivery-composition-error" className={styles.fieldErrorText} role="alert" style={{ marginTop: 'calc(-1 * var(--space-2))' }}>
           {bagsError}
         </span>
       )}

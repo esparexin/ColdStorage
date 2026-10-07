@@ -92,6 +92,7 @@ export function CreateDeliveryModal({
               id="delivery-grn"
               label="Select Inward GRN"
               required
+              error={grnError}
               value={form.createGrnId}
               onChange={(e) => void form.handleSelectGrn(e.target.value)}
             >
@@ -104,7 +105,6 @@ export function CreateDeliveryModal({
                 </option>
               ))}
             </Select>
-            {grnError && <span className={styles.fieldErrorText}>{grnError}</span>}
           </div>
 
           {form.selectedGrn && (

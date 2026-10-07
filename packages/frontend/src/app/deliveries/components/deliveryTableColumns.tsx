@@ -189,6 +189,7 @@ export function createDeliveryColumns({
               size="sm"
               onClick={() => onSelectDelivery(row)}
               title="View Details"
+              aria-label={`View details for delivery challan ${row.challanNumber}`}
               leftIcon={<Eye size={12} aria-hidden="true" />}
             >
               View
@@ -201,6 +202,7 @@ export function createDeliveryColumns({
                 disabled={printingId === row.id}
                 isLoading={printingId === row.id}
                 title="Print Outward Delivery Challan & Gate Pass"
+                aria-label={`Print delivery challan ${row.challanNumber}`}
                 leftIcon={<Printer size={12} aria-hidden="true" />}
               >
                 Challan
@@ -212,6 +214,7 @@ export function createDeliveryColumns({
                 size="sm"
                 onClick={() => onCollectRent(row)}
                 title="Collect Pending Rent for this Delivery"
+                aria-label={`Collect pending rent for delivery challan ${row.challanNumber}`}
                 leftIcon={<IndianRupee size={12} aria-hidden="true" />}
               >
                 Collect Rent
@@ -223,6 +226,7 @@ export function createDeliveryColumns({
                 size="sm"
                 onClick={() => onReverse(row)}
                 title="Reverse this delivery (restores bags to GRN balance)"
+                aria-label={`Reverse delivery challan ${row.challanNumber}`}
                 leftIcon={<RotateCcw size={12} aria-hidden="true" />}
               >
                 Reverse
