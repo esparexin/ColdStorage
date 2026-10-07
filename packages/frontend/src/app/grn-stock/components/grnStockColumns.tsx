@@ -62,11 +62,9 @@ export function createGrnStockColumns({
           <span style={{ fontWeight: 'var(--font-semibold)', fontVariantNumeric: 'tabular-nums' }}>
             {row.bags.toLocaleString('en-IN')}
           </span>
-          {(row.smallBags > 0 || row.bigBags > 0) && (
-            <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
-              {row.smallBags.toLocaleString('en-IN')}S / {row.bigBags.toLocaleString('en-IN')}B
-            </span>
-          )}
+          <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+            S/B: {row.bagType ?? 'S/B'}
+          </span>
         </div>
       ),
     },

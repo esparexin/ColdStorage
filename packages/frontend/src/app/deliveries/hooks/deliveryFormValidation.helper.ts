@@ -52,12 +52,14 @@ export function validateDeliveryForm(input: ValidateDeliveryFormInput): Delivery
     errors.bags = `Cannot deliver ${input.totalWithdrawingBags} bags (only ${input.availableSmall + input.availableBig} available)`;
   }
 
-  if (input.smallBags > input.availableSmall) {
-    errors.smallBags = `Cannot deliver ${input.smallBags} small bags (only ${input.availableSmall} available)`;
-  }
-
-  if (input.bigBags > input.availableBig) {
-    errors.bigBags = `Cannot deliver ${input.bigBags} big bags (only ${input.availableBig} available)`;
+  const isTwoSided = input.availableSmall > 0 && input.availableBig > 0;
+  if (isTwoSided) {
+    if (input.smallBags > input.availableSmall) {
+      errors.smallBags = `Cannot deliver ${input.smallBags} small bags (only ${input.availableSmall} available)`;
+    }
+    if (input.bigBags > input.availableBig) {
+      errors.bigBags = `Cannot deliver ${input.bigBags} big bags (only ${input.availableBig} available)`;
+    }
   }
 
   if (input.createVehicleNumber.trim()) {
