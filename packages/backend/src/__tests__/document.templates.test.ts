@@ -76,13 +76,7 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
 
   // 3. Inward Receipt: acknowledgement terms, chamber label, no farmer mobile.
   it('renders complete Inward Receipt template with farmer acknowledgement and terms', () => {
-    const html = renderReceiptTemplate(
-      makeReceiptDto({
-        totalBagsWeight: 12500,
-        smallBagPrice: 12,
-        bigBagPrice: 18,
-      }),
-    );
+    const html = renderReceiptTemplate(makeReceiptDto({ totalBagsWeight: 12500, smallBagPrice: 12, bigBagPrice: 18 }));
 
     expect(html).toContain('ACKNOWLEDGEMENT RECEIPT');
     expect(html).toContain('RCPT-2026-1001');
@@ -122,7 +116,10 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).toContain('CHL-2026-5001');
     expect(html).toContain('CH-03');
     expect(html).toContain('PM-42');
-    expect(html).toContain('4000 kg');
+    expect(html).toContain('Total Bags Weight');
+    expect(html).toContain('12,500 kg');
+    expect(html).toContain('Outward Weight');
+    expect(html).toContain('4,000 kg');
     expect(html).toContain('DL-01-AA-4321');
     expect(html).toContain('Karamjit Singh');
     expect(html).toContain('Gate Pass Declaration');

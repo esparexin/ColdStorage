@@ -95,6 +95,7 @@ export function makeChallanDto(overrides: Partial<ChallanDocumentDto> = {}): Cha
     smallBags: 60,
     bigBags: 40,
     totalBags: 100,
+    totalBagsWeight: 12500,
     weight: 4000,
     vehicleNumber: 'DL-01-AA-4321',
     driverName: 'Karamjit Singh',
