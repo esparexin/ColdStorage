@@ -37,6 +37,7 @@ export const correctGrnSchema = z
     bigBags: z.number().int().min(0).max(100000).optional(),
     smallBagWeight: perBagWeightSchema.nullish(),
     bigBagWeight: perBagWeightSchema.nullish(),
+    totalBagsWeight: z.number({ invalid_type_error: 'Total bags weight must be a number' }).positive('Total bags weight must be positive').nullish(),
     rentType: rentTypeSchema.optional(),
     rentMonths: rentMonthsInputSchema.nullish(),
     rentAmount: rentalAmountSchema.nullish(),
@@ -64,6 +65,7 @@ export const correctGrnSchema = z
       data.bigBags !== undefined ||
       data.smallBagWeight !== undefined ||
       data.bigBagWeight !== undefined ||
+      data.totalBagsWeight !== undefined ||
       data.rentType !== undefined ||
       data.rentMonths !== undefined ||
       data.rentAmount !== undefined ||

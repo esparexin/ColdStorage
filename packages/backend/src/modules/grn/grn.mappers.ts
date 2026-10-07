@@ -15,6 +15,7 @@ export function toGrnEntity(doc: {
   bagType: string;
   smallBagWeight?: number | null;
   bigBagWeight?: number | null;
+  totalBagsWeight?: number | null;
   rentType: string;
   rentMonths?: number | null;
   rentAmount: number;
@@ -64,6 +65,7 @@ export function toGrnEntity(doc: {
     bagType: doc.bagType as Grn['bagType'],
     smallBagWeight: doc.smallBagWeight ?? null,
     bigBagWeight: doc.bigBagWeight ?? null,
+    totalBagsWeight: doc.totalBagsWeight ?? null,
     rentType: doc.rentType as Grn['rentType'],
     rentMonths: doc.rentMonths ?? null,
     rentAmount: doc.rentAmount,

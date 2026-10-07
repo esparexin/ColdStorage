@@ -45,11 +45,6 @@ export function CustomerAgreedRateSection({
         <span className={styles.badge}>{termBadgeText}</span>
       </div>
 
-      <p className={styles.helpText}>
-        Enter the storage rate agreed with the customer. This information is recorded on the
-        Acknowledgement of Goods and should reflect the actual customer agreement.
-      </p>
-
       <div className={styles.rateInputsGrid}>
         <div className={styles.inputGroup}>
           <label htmlFor="create-small-bag-price" className={styles.inputLabel}>

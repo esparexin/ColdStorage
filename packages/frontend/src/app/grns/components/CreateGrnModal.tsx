@@ -174,33 +174,44 @@ export function CreateGrnModal({
                 <option value="Monthly">Monthly</option>
               </Select>
             </div>
+            <div className={styles.fieldGroup}>
+              <label htmlFor="create-total-bags-weight" className={styles.fieldLabel}>Total Bags Weight</label>
+              <input
+                id="create-total-bags-weight" type="number" step="any" min={0} disabled={structuralLocked}
+                value={form.createTotalBagsWeight}
+                onChange={(e) => form.handleTotalBagsWeightChange(parseNumericInput(e.target.value))}
+                placeholder="e.g. 12500"
+                className={`${styles.fieldInput} ${form.fieldErrors.totalBagsWeight ? styles.inputError : ''} ${structuralLocked ? styles.calculatedField : ''}`}
+                aria-invalid={Boolean(form.fieldErrors.totalBagsWeight)}
+                aria-describedby={form.fieldErrors.totalBagsWeight ? 'create-total-bags-weight-error' : 'create-total-bags-weight-hint'}
+              />
+              {form.fieldErrors.totalBagsWeight ? (
+                <span id="create-total-bags-weight-error" className={styles.fieldErrorText} role="alert">{form.fieldErrors.totalBagsWeight}</span>
+              ) : (
+                <span id="create-total-bags-weight-hint" className={styles.fieldHint}>in kgs</span>
+              )}
+            </div>
             {form.createRentType === 'Monthly' && (
               <div className={styles.fieldGroup}>
                 <label htmlFor="create-rent-months" className={styles.fieldLabel}>Rent Months (Optional)</label>
                 <input
-                  id="create-rent-months" type="number" min={1}
-                  disabled={structuralLocked}
+                  id="create-rent-months" type="number" min={1} disabled={structuralLocked}
                   value={form.createRentMonths}
                   onChange={(e) => form.handleRentMonthsChange(e.target.value ? parseInt(e.target.value, 10) : '')}
                   placeholder="e.g. 6"
                   className={`${styles.fieldInput} ${form.fieldErrors.rentMonths ? styles.inputError : ''} ${structuralLocked ? styles.calculatedField : ''}`}
                   aria-invalid={Boolean(form.fieldErrors.rentMonths)}
                   aria-describedby={form.fieldErrors.rentMonths ? 'create-rent-months-error' : undefined}
-                  aria-label="Rent Months (Optional)"
                 />
                 {form.fieldErrors.rentMonths && <span id="create-rent-months-error" className={styles.fieldErrorText} role="alert">{form.fieldErrors.rentMonths}</span>}
               </div>
             )}
             {form.createCommodityId && form.createRentType && (
               <CustomerAgreedRateSection
-                rentType={form.createRentType}
-                rentMonths={form.createRentMonths}
-                smallBagPrice={form.createSmallBagPrice}
-                bigBagPrice={form.createBigBagPrice}
-                onSmallBagPriceChange={form.handleSmallBagPriceChange}
-                onBigBagPriceChange={form.handleBigBagPriceChange}
-                smallBagPriceError={form.fieldErrors.smallBagPrice}
-                bigBagPriceError={form.fieldErrors.bigBagPrice}
+                rentType={form.createRentType} rentMonths={form.createRentMonths}
+                smallBagPrice={form.createSmallBagPrice} bigBagPrice={form.createBigBagPrice}
+                onSmallBagPriceChange={form.handleSmallBagPriceChange} onBigBagPriceChange={form.handleBigBagPriceChange}
+                smallBagPriceError={form.fieldErrors.smallBagPrice} bigBagPriceError={form.fieldErrors.bigBagPrice}
                 disabled={structuralLocked}
               />
             )}

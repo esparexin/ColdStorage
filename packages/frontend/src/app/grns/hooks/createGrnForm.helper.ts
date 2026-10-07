@@ -26,6 +26,7 @@ export interface CreateGrnState {
   createBagPrice?: number | '';
   createSmallBagPrice?: number | '';
   createBigBagPrice?: number | '';
+  createTotalBagsWeight?: number | '';
   createPartyMark?: string;
   createVehicleNumber: string;
 }
@@ -78,6 +79,11 @@ export function validateCreateGrnForm(state: CreateGrnState): {
       errors.bigBagPrice = 'Big bag rate must be greater than zero';
     }
   }
+  if (state.createTotalBagsWeight !== '' && state.createTotalBagsWeight !== undefined) {
+    if (typeof state.createTotalBagsWeight !== 'number' || state.createTotalBagsWeight <= 0) {
+      errors.totalBagsWeight = 'Total bags weight must be a positive number';
+    }
+  }
 
   const normVehicle = state.createVehicleNumber.trim().replace(/[\s-]/g, '').toUpperCase();
   if (normVehicle && !indianVehicleSchema.safeParse(normVehicle).success) {
@@ -98,14 +104,9 @@ export function validateCreateGrnForm(state: CreateGrnState): {
 export function buildCreateGrnPayload(params: {
   facilityId: string; inwardDate: Date; grnNumber: string; customerId: string; commodityId: string;
   chamber: string; bags: number; bagType: BagType; rentType: RentType;
-  rentAmount?: number | '';
-  bagPrice?: number | '';
-  smallBagPrice?: number | '';
-  bigBagPrice?: number | '';
-  rentMonths?: number | '';
-  partyMark?: string;
-  vehicleNumber?: string; remarks?: string;
-  isBondForLoan?: boolean; loanStatus?: LoanStatus;
+  rentAmount?: number | ''; bagPrice?: number | ''; smallBagPrice?: number | ''; bigBagPrice?: number | '';
+  totalBagsWeight?: number | ''; rentMonths?: number | ''; partyMark?: string;
+  vehicleNumber?: string; remarks?: string; isBondForLoan?: boolean; loanStatus?: LoanStatus;
 }): Record<string, unknown> {
   const p: Record<string, unknown> = {
     facilityId: params.facilityId, date: params.inwardDate,
@@ -117,6 +118,7 @@ export function buildCreateGrnPayload(params: {
   if (typeof params.bagPrice === 'number' && params.bagPrice > 0) p.bagPrice = params.bagPrice;
   if (typeof params.smallBagPrice === 'number' && params.smallBagPrice > 0) p.smallBagPrice = params.smallBagPrice;
   if (typeof params.bigBagPrice === 'number' && params.bigBagPrice > 0) p.bigBagPrice = params.bigBagPrice;
+  if (typeof params.totalBagsWeight === 'number' && params.totalBagsWeight > 0) p.totalBagsWeight = params.totalBagsWeight;
   if (params.rentType === 'Monthly' && typeof params.rentMonths === 'number') p.rentMonths = params.rentMonths;
   if (params.partyMark?.trim()) p.partyMark = params.partyMark.trim();
   if (params.vehicleNumber) p.vehicleNumber = params.vehicleNumber;
@@ -150,6 +152,7 @@ export function buildEditGrnPayload(params: {
   createBagPrice: number | '';
   createSmallBagPrice?: number | '';
   createBigBagPrice?: number | '';
+  createTotalBagsWeight?: number | '';
   createPartyMark?: string;
   createVehicleNumber?: string;
   createRemarks?: string;
@@ -204,22 +207,16 @@ export function buildEditGrnPayload(params: {
     pushIf('bagPrice', typeof params.createBagPrice === 'number' ? params.createBagPrice : null, initialGrn.bagPrice ?? null);
     pushIf('smallBagPrice', typeof params.createSmallBagPrice === 'number' ? params.createSmallBagPrice : null, initialGrn.smallBagPrice ?? null);
     pushIf('bigBagPrice', typeof params.createBigBagPrice === 'number' ? params.createBigBagPrice : null, initialGrn.bigBagPrice ?? null);
+    pushIf('totalBagsWeight', typeof params.createTotalBagsWeight === 'number' && params.createTotalBagsWeight > 0 ? params.createTotalBagsWeight : null, initialGrn.totalBagsWeight ?? null);
   }
   return { payload, hasChanges };
 }
 
 export const GRN_FIELD_ID_MAP: Record<string, string> = {
-  customer: 'create-customer-search',
-  commodity: 'create-commodity',
-  chamber: 'create-chamber',
-  partyMark: 'create-party-mark',
-  bags: 'create-bags',
-  grnNumber: 'create-gr-number',
-  rentMonths: 'create-rent-months',
-  rentAmount: 'create-rent-amount',
-  smallBagPrice: 'create-small-bag-price',
-  bigBagPrice: 'create-big-bag-price',
-  vehicleNumber: 'create-vehicle',
+  customer: 'create-customer-search', commodity: 'create-commodity', chamber: 'create-chamber',
+  partyMark: 'create-party-mark', bags: 'create-bags', totalBagsWeight: 'create-total-bags-weight',
+  grnNumber: 'create-gr-number', rentMonths: 'create-rent-months', rentAmount: 'create-rent-amount',
+  smallBagPrice: 'create-small-bag-price', bigBagPrice: 'create-big-bag-price', vehicleNumber: 'create-vehicle',
 };
 
 export function focusField(fieldId: string): void {

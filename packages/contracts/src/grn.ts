@@ -58,6 +58,7 @@ export const createGrnSchema = z
     /** Per-bag weight only (kg per individual bag); optional. No nominal/weighbridge/total. */
     smallBagWeight: perBagWeightSchema.nullish(),
     bigBagWeight: perBagWeightSchema.nullish(),
+    totalBagsWeight: z.number({ invalid_type_error: 'Total bags weight must be a number' }).positive('Total bags weight must be positive').nullish(),
     rentType: rentTypeSchema,
     /**
      * Rent Months is informational only. It does not determine, modify, or finalize
@@ -158,6 +159,7 @@ export const grnSchema = z.object({
   bagType: bagTypeSchema,
   smallBagWeight: z.number().positive().nullable().optional(),
   bigBagWeight: z.number().positive().nullable().optional(),
+  totalBagsWeight: z.number().positive().nullable().optional(),
   rentType: rentTypeSchema,
   /** Informational only; monthly subscription/rent is finalized per subscription/rent rules. */
   rentMonths: z.number().int().nullable().optional(),
