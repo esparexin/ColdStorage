@@ -13,6 +13,7 @@ interface DeliveryTransportFieldsProps {
   setCreateGpNumber: (v: string) => void;
   createDriverName: string;
   setCreateDriverName: (v: string) => void;
+  totalBagsWeight?: number | null;
   createWeight: number | '';
   setCreateWeight: (v: number | '') => void;
   createRemarks: string;
@@ -29,6 +30,7 @@ export function DeliveryTransportFields({
   setCreateGpNumber,
   createDriverName,
   setCreateDriverName,
+  totalBagsWeight,
   createWeight,
   setCreateWeight,
   createRemarks,
@@ -92,7 +94,7 @@ export function DeliveryTransportFields({
         </div>
       </div>
 
-      <div className={styles.formGrid3}>
+      <div className={pageStyles.formGrid2}>
         <div className={pageStyles.fieldGroup}>
           <label htmlFor="delivery-driver" className={pageStyles.fieldLabel}>
             Driver Name
@@ -109,22 +111,6 @@ export function DeliveryTransportFields({
         </div>
 
         <div className={pageStyles.fieldGroup}>
-          <label htmlFor="delivery-weight" className={pageStyles.fieldLabel}>
-            Dispatch Weight (kg)
-          </label>
-          <input
-            id="delivery-weight"
-            type="number"
-            step="0.01"
-            min={0}
-            className={pageStyles.fieldInput}
-            placeholder="e.g. 12500"
-            value={createWeight}
-            onChange={(e) => setCreateWeight(e.target.value ? parseFloat(e.target.value) : '')}
-          />
-        </div>
-
-        <div className={pageStyles.fieldGroup}>
           <label htmlFor="delivery-remarks" className={pageStyles.fieldLabel}>
             Remarks
           </label>
@@ -137,6 +123,48 @@ export function DeliveryTransportFields({
             value={createRemarks}
             onChange={(e) => setCreateRemarks(e.target.value)}
           />
+        </div>
+      </div>
+
+      <div className={pageStyles.formGrid2}>
+        <div className={pageStyles.fieldGroup}>
+          <label htmlFor="delivery-total-bags-weight" className={pageStyles.fieldLabel}>
+            Total Bags Weight
+          </label>
+          <div className={styles.readOnlyFieldWrapper}>
+            <input
+              id="delivery-total-bags-weight"
+              type="text"
+              readOnly
+              disabled
+              className={`${pageStyles.fieldInput} ${styles.readOnlyInput}`}
+              value={totalBagsWeight != null ? `${totalBagsWeight.toLocaleString('en-IN')} kg` : '—'}
+              aria-readonly="true"
+            />
+            <span className={styles.readOnlyBadge}>Read-only</span>
+          </div>
+          <span className={styles.fieldHelpText}>
+            Reference weight from Inward / GRN (Read-only)
+          </span>
+        </div>
+
+        <div className={pageStyles.fieldGroup}>
+          <label htmlFor="delivery-weight" className={pageStyles.fieldLabel}>
+            Outward Weight (kg)
+          </label>
+          <input
+            id="delivery-weight"
+            type="number"
+            step="0.01"
+            min={0}
+            className={pageStyles.fieldInput}
+            placeholder="e.g. 2100"
+            value={createWeight}
+            onChange={(e) => setCreateWeight(e.target.value ? parseFloat(e.target.value) : '')}
+          />
+          <span className={styles.fieldHelpText}>
+            Actual weight dispatched in this delivery
+          </span>
         </div>
       </div>
     </>

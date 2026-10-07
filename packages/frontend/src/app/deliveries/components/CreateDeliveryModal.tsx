@@ -46,15 +46,11 @@ export function CreateDeliveryModal({
   }, [form.fetchAvailableGrns]);
 
   useEffect(() => {
-    if (loanClearedTick > 0 && createGrnId) {
-      void form.fetchAvailableGrns();
-    }
+    if (loanClearedTick > 0 && createGrnId) void form.fetchAvailableGrns();
   }, [loanClearedTick, createGrnId, form.fetchAvailableGrns]);
 
   useEffect(() => {
-    if (rentPaidTick > 0 && createGrnId) {
-      void refreshRentGate(facilityId, createGrnId);
-    }
+    if (rentPaidTick > 0 && createGrnId) void refreshRentGate(facilityId, createGrnId);
   }, [rentPaidTick, createGrnId, facilityId, refreshRentGate]);
 
   const grnError = form.fieldErrors.grn;
@@ -74,12 +70,7 @@ export function CreateDeliveryModal({
               id="delivery-modal-error"
               action={
                 canPayRent && form.rentSummary && form.rentSummary.remainingBalance > 0 ? (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    onClick={() => onPayRent(form.rentSummary!)}
-                  >
+                  <Button type="button" variant="primary" size="sm" onClick={() => onPayRent(form.rentSummary!)}>
                     Pay Rent Now
                   </Button>
                 ) : undefined
@@ -128,6 +119,14 @@ export function CreateDeliveryModal({
                 <span className={styles.detailValue}>{form.selectedGrn.bags.toLocaleString('en-IN')} bags</span>
               </div>
               <div className={styles.grnDetailItem}>
+                <span className={styles.detailLabel}>Total Bags Weight</span>
+                <span className={styles.detailValue}>
+                  {form.selectedGrn.totalBagsWeight != null
+                    ? `${form.selectedGrn.totalBagsWeight.toLocaleString('en-IN')} kg`
+                    : '—'}
+                </span>
+              </div>
+              <div className={styles.grnDetailItem}>
                 <span className={styles.detailLabel}>Rent Type</span>
                 <span className={styles.detailValue}>{form.selectedGrn.rentType} (Fixed)</span>
               </div>
@@ -143,13 +142,7 @@ export function CreateDeliveryModal({
               </div>
               {canClearLoan && onClearLoan && (
                 <div className={pageStyles.loanHoldAction}>
-                  <Button
-                    id="clear-loan-from-delivery-btn"
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    onClick={() => onClearLoan(form.selectedGrn!)}
-                  >
+                  <Button id="clear-loan-from-delivery-btn" type="button" variant="primary" size="sm" onClick={() => onClearLoan(form.selectedGrn!)}>
                     Pay / Clear Loan
                   </Button>
                 </div>
@@ -212,6 +205,7 @@ export function CreateDeliveryModal({
                     setCreateGpNumber={form.setCreateGpNumber}
                     createDriverName={form.createDriverName}
                     setCreateDriverName={form.setCreateDriverName}
+                    totalBagsWeight={form.selectedGrn.totalBagsWeight}
                     createWeight={form.createWeight}
                     setCreateWeight={form.setCreateWeight}
                     createRemarks={form.createRemarks}
