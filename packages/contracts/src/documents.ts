@@ -129,6 +129,7 @@ export const challanDocumentDtoSchema = z.object({
   driverName: z.string().nullable().optional(),
   issuedBy: z.string(),
   status: z.string(),
+  rentCharge: z.number().min(0).optional(),
   generatedAt: z.coerce.date(),
   generatedBy: z.string(),
 });

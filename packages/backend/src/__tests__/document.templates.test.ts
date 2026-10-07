@@ -140,6 +140,15 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(parsed).not.toHaveProperty('chamberNumber');
   });
 
+  it('renders outward rent charge on delivery challan when present and omits when zero', () => {
+    const htmlWithRent = renderChallanTemplate(makeChallanDto({ rentCharge: 4500 }));
+    expect(htmlWithRent).toContain('Outward Rent Charge');
+    expect(htmlWithRent).toContain('₹4,500');
+
+    const htmlWithoutRent = renderChallanTemplate(makeChallanDto({ rentCharge: 0 }));
+    expect(htmlWithoutRent).not.toContain('Outward Rent Charge');
+  });
+
   // 5. Rent Receipt: one schema, isPreview drives the watermark and the notice banner.
   it('renders the authoritative rent receipt with isPreview false and no watermark', () => {
     const html = renderRentReceiptTemplate(makeRentReceiptDto({ isPreview: false }));

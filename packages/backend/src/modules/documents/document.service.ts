@@ -164,6 +164,7 @@ export class DocumentService {
       driverName: challan.driverName ?? null,
       issuedBy: challan.issuedBy,
       status: challan.status,
+      rentCharge: challan.rentCharge,
       generatedAt: new Date(),
       generatedBy: userId,
     };

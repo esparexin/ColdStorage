@@ -142,12 +142,16 @@ describe('P9 Documents & Settings Contracts Tests', () => {
       driverName: 'Suresh Kumar',
       issuedBy: 'Operator One',
       status: 'ISSUED',
+      rentCharge: 5000,
       generatedAt: new Date(),
       generatedBy: 'usr-operator',
     };
 
     const result = challanDocumentDtoSchema.safeParse(validChallan);
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.rentCharge).toBe(5000);
+    }
   });
 
   // 7. Validates Rent Receipt preview DTO schema
