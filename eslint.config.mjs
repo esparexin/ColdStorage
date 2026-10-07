@@ -29,6 +29,6 @@ export default [
     },
   },
   {
-    ignores: ['node_modules/**', 'dist/**', '**/dist/**', '**/.next/**'],
+    ignores: ['node_modules/**', 'dist/**', '**/dist/**', '**/.next/**', '.agents/**', '.agent/**', 'scripts/**'],
   },
 ];

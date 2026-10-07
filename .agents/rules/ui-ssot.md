@@ -41,4 +41,10 @@
    - `.searchBarContainer`
 
 5. **External Skill Override Protection**:
-   Generic web recommendations or skills (such as `modern-web-guidance`) must never override the repository's established UI primitives, design tokens, and CSS Modules conventions.
+   Generic web recommendations or skills (such as `modern-web-guidance` or `impeccable`) must never override the repository's established UI primitives, design tokens, and CSS Modules conventions.
+
+6. **Impeccable UI/UX Audit Guardrail Precedence**:
+   - Impeccable (`.agents/skills/impeccable`) is installed project-locally strictly as an automated design-quality, accessibility, responsive-layout, typography, and visual-polish guardrail (`impeccable detect`, `/audit`, `/critique`, `/typeset`, `/polish`).
+   - **Domain & SSOT Invariance**: Impeccable must never alter ColdStorage business rules, domain models, form fields, calculations, or authoritative lifecycle workflows (`Inward → ACK → GRN → Delivery-Out → Closing → Settlement`).
+   - **Design System Invariance**: Impeccable must respect canonical UI primitives in `packages/frontend/src/components/ui/` and design tokens in `packages/frontend/src/styles/tokens.css`. Brand font `Inter` is canonical and exempt from overused-font rules via `.impeccable/config.json`.
+   - **Execution Model**: Automated write-interception hooks remain disabled (`hook.enabled: false`). Audits run deterministically on demand (`npx impeccable detect packages/frontend/src/`) or during verification passes.

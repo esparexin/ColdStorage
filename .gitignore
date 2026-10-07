@@ -10,3 +10,9 @@ test-results/
 playwright-report/
 .next/
 storage/
+
+# Impeccable local cache and native engine binaries
+.impeccable/*.local.json
+.impeccable/bin/
+.impeccable/cache/
+.agents/skills/impeccable/scripts/bin/
