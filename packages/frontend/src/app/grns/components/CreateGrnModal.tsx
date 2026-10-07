@@ -7,7 +7,7 @@ import { Banner } from '@/components/ui/Banner';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { BondLoanSection } from './BondLoanSection';
 import { CustomerCombobox } from './CustomerCombobox';
-import { RentRateReferenceNote } from './RentRateReferenceNote';
+import { CustomerAgreedRateSection } from './CustomerAgreedRateSection';
 import { TransportLogisticsSection } from './TransportLogisticsSection';
 import { useCustomerCombobox } from '../hooks/useCustomerCombobox';
 import { parseNumericInput, useCreateGrnForm } from '../hooks/useCreateGrnForm';
@@ -192,9 +192,16 @@ export function CreateGrnModal({
               </div>
             )}
             {form.createCommodityId && form.createRentType && (
-              <RentRateReferenceNote
+              <CustomerAgreedRateSection
                 rentType={form.createRentType}
-                commodityName={commodities.find((c) => c.id === form.createCommodityId)?.name}
+                rentMonths={form.createRentMonths}
+                smallBagPrice={form.createSmallBagPrice}
+                bigBagPrice={form.createBigBagPrice}
+                onSmallBagPriceChange={form.handleSmallBagPriceChange}
+                onBigBagPriceChange={form.handleBigBagPriceChange}
+                smallBagPriceError={form.fieldErrors.smallBagPrice}
+                bigBagPriceError={form.fieldErrors.bigBagPrice}
+                disabled={structuralLocked}
               />
             )}
           </div>

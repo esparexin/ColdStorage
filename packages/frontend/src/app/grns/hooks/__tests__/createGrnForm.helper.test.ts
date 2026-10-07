@@ -204,4 +204,25 @@ describe('createGrnForm Monthly vs Seasonal rent terms validation', () => {
     expect(payload.rentAmount).toBeUndefined();
     expect(payload.rentMonths).toBeUndefined();
   });
+
+  it('validates operator-entered agreed small and big bag rates', () => {
+    const valid = validateCreateGrnForm(makeState({ createSmallBagPrice: 12, createBigBagPrice: 18 }));
+    expect(valid.errors.smallBagPrice).toBeUndefined();
+    expect(valid.errors.bigBagPrice).toBeUndefined();
+
+    const invalid = validateCreateGrnForm(makeState({ createSmallBagPrice: 0, createBigBagPrice: -2 }));
+    expect(invalid.errors.smallBagPrice).toBe('Small bag rate must be greater than zero');
+    expect(invalid.errors.bigBagPrice).toBe('Big bag rate must be greater than zero');
+  });
+
+  it('buildCreateGrnPayload maps operator agreed rates into payload', () => {
+    const payload = buildCreateGrnPayload({
+      facilityId: 'fac-1', inwardDate: new Date('2026-10-06T00:00:00Z'),
+      grnNumber: '0001', customerId: 'cust-1', commodityId: 'cmd-1',
+      chamber: 'CH-01', bags: 100, bagType: 'S', rentType: 'Seasonal',
+      smallBagPrice: 12, bigBagPrice: 18,
+    });
+    expect(payload.smallBagPrice).toBe(12);
+    expect(payload.bigBagPrice).toBe(18);
+  });
 });

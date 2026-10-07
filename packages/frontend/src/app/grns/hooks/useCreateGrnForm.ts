@@ -41,6 +41,8 @@ export function useCreateGrnForm(
   const [createRentType, setCreateRentType] = useState<RentType>(isEdit ? initialGrn!.rentType : 'Seasonal');
   const [createRentMonths, setCreateRentMonths] = useState<number | ''>(isEdit ? (initialGrn!.rentMonths ?? '') : '');
   const [createBagPrice, setCreateBagPrice] = useState<number | ''>(isEdit ? (initialGrn!.bagPrice ?? '') : '');
+  const [createSmallBagPrice, setCreateSmallBagPrice] = useState<number | ''>(isEdit ? (initialGrn?.smallBagPrice ?? '') : '');
+  const [createBigBagPrice, setCreateBigBagPrice] = useState<number | ''>(isEdit ? (initialGrn?.bigBagPrice ?? '') : '');
   const [createRentAmount, setCreateRentAmount] = useState<number | ''>(isEdit ? (initialGrn?.rentAmount ?? '') : '');
   const [createPartyMark, setCreatePartyMark] = useState(isEdit ? (initialGrn!.partyMark ?? '') : '');
   const [suggestedGrnNumber, setSuggestedGrnNumber] = useState('');
@@ -108,8 +110,9 @@ export function useCreateGrnForm(
       await handleEditGrnSubmit({
         facilityId, initialGrn, guardState, createChamber, createCustomerId,
         createDate, createCommodityId, createBags, createBagType, createRentType,
-        createRentMonths, createRentAmount, createBagPrice, createPartyMark,
-        createVehicleNumber, createRemarks, structuralLocked, onSuccess,
+        createRentMonths, createRentAmount, createBagPrice,
+        createSmallBagPrice, createBigBagPrice,
+        createPartyMark, createVehicleNumber, createRemarks, structuralLocked, onSuccess,
         setFieldErrors, setModalError, setSubmitting,
       });
       return;
@@ -126,7 +129,8 @@ export function useCreateGrnForm(
     const { errors, parsedChamber, normalizedVehicle } = validateCreateGrnForm({
       createCustomerId, createCommodityId, createChamber, createBags, createBagType,
       createGrnNumber, createRentType, createRentMonths, createRentAmount,
-      createBagPrice, createPartyMark, createVehicleNumber,
+      createBagPrice, createSmallBagPrice, createBigBagPrice,
+      createPartyMark, createVehicleNumber,
     });
 
     if (Object.keys(errors).length > 0) {
@@ -151,6 +155,8 @@ export function useCreateGrnForm(
         chamber: parsedChamber ?? createChamber, bags: Number(createBags), bagType: createBagType,
         rentType: createRentType,
         rentMonths: createRentType === 'Monthly' && typeof createRentMonths === 'number' ? createRentMonths : '',
+        smallBagPrice: createSmallBagPrice,
+        bigBagPrice: createBigBagPrice,
         partyMark: createPartyMark,
         vehicleNumber: normalizedVehicle, remarks: createRemarks,
         isBondForLoan, loanStatus,
@@ -180,6 +186,7 @@ export function useCreateGrnForm(
 
   const isDirty = Boolean(
     createGrnNumber.trim() || createCustomerId || createCommodityId || createBags ||
+    createSmallBagPrice !== '' || createBigBagPrice !== '' ||
     createPartyMark.trim() ||
     createVehicleNumber.trim() || createRemarks.trim() || isBondForLoan,
   );
@@ -198,6 +205,8 @@ export function useCreateGrnForm(
     },
     createRentMonths, handleRentMonthsChange,
     createBagPrice, handleBagPriceChange: (val: number | '') => { setCreateBagPrice(val); },
+    createSmallBagPrice, handleSmallBagPriceChange: (val: number | '') => { setCreateSmallBagPrice(val); clearFieldError('smallBagPrice'); },
+    createBigBagPrice, handleBigBagPriceChange: (val: number | '') => { setCreateBigBagPrice(val); clearFieldError('bigBagPrice'); },
     createRentAmount, setCreateRentAmount: (val: number | '') => { setCreateRentAmount(val); },
     createGrnNumber, setCreateGrnNumber: (val: string) => {
       const digitsOnly = val.replace(/\D/g, '').slice(0, 4);

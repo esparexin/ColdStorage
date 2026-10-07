@@ -58,6 +58,8 @@ export async function handleEditGrnSubmit(params: {
   createRentMonths: number | '';
   createRentAmount: number | '';
   createBagPrice: number | '';
+  createSmallBagPrice?: number | '';
+  createBigBagPrice?: number | '';
   createPartyMark: string;
   createVehicleNumber: string;
   createRemarks: string;
@@ -91,6 +93,8 @@ export async function handleEditGrnSubmit(params: {
     createRentMonths: params.createRentMonths,
     createRentAmount: params.createRentAmount,
     createBagPrice: params.createBagPrice,
+    createSmallBagPrice: params.createSmallBagPrice,
+    createBigBagPrice: params.createBigBagPrice,
     createPartyMark: params.createPartyMark,
     createVehicleNumber: params.createVehicleNumber,
     createRemarks: params.createRemarks,
