@@ -179,6 +179,7 @@ export function RentTable({
               size="sm"
               onClick={() => onOpenCollect(row)}
               title="Collect rent payment"
+              aria-label={`Collect rent payment for ${row.grnNumber}`}
               leftIcon={<Plus size={12} aria-hidden="true" />}
             >
               Collect
@@ -190,6 +191,7 @@ export function RentTable({
             size="sm"
             onClick={() => onOpenHistory(row)}
             title="View payment cash memos history"
+            aria-label={`View cash memos history for ${row.grnNumber}`}
             leftIcon={<Eye size={12} aria-hidden="true" />}
           >
             Cash Memos ({row.payments.length})

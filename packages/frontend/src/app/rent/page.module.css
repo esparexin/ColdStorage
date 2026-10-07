@@ -180,6 +180,8 @@
 
 .fieldInput:focus {
   border-color: var(--color-primary-text);
+  outline: var(--focus-ring-width) solid var(--color-primary);
+  outline-offset: var(--focus-ring-offset);
 }
 
 .modeToggleGroup {
@@ -201,6 +203,11 @@
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   transition: all var(--transition-fast);
+}
+
+.modeOption:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-primary);
+  outline-offset: var(--focus-ring-offset);
 }
 
 .modeOptionActive {

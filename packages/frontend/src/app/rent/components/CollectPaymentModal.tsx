@@ -81,7 +81,7 @@ export function CollectPaymentModal({
                   </Button>
                 )}
               </div>
-              <input aria-label="Enter amount"
+              <input
                 id="collect-amount"
                 type="number"
                 min={1}
@@ -92,6 +92,8 @@ export function CollectPaymentModal({
                 className={styles.fieldInput}
                 placeholder={account.remainingBalance === 0 ? 'No outstanding dues' : 'Enter amount'}
                 value={collectAmount}
+                aria-invalid={Boolean(collectError)}
+                aria-describedby={collectError ? 'collect-error' : undefined}
                 onChange={(e) =>
                   setCollectAmount(e.target.value ? parseFloat(e.target.value) : '')
                 }
@@ -99,10 +101,12 @@ export function CollectPaymentModal({
             </div>
 
             <div className={styles.fieldGroup}>
-              <span className={styles.fieldLabel}>Payment Mode *</span>
-              <div className={styles.modeToggleGroup}>
+              <span className={styles.fieldLabel} id="payment-mode-label">Payment Mode *</span>
+              <div className={styles.modeToggleGroup} role="radiogroup" aria-labelledby="payment-mode-label">
                 <Button
                   type="button"
+                  role="radio"
+                  aria-checked={collectMode === 'Cash'}
                   variant={collectMode === 'Cash' ? 'primary' : 'outline'}
                   className={`${styles.modeOption} ${collectMode === 'Cash' ? styles.modeOptionActive : ''}`}
                   onClick={() => setCollectMode('Cash')}
@@ -112,6 +116,8 @@ export function CollectPaymentModal({
                 </Button>
                 <Button
                   type="button"
+                  role="radio"
+                  aria-checked={collectMode === 'UPI'}
                   variant={collectMode === 'UPI' ? 'primary' : 'outline'}
                   className={`${styles.modeOption} ${collectMode === 'UPI' ? styles.modeOptionActive : ''}`}
                   onClick={() => setCollectMode('UPI')}
@@ -159,7 +165,6 @@ export function CollectPaymentModal({
                 {collectMode === 'UPI' ? 'Additional Notes (Optional)' : 'Payment Notes (Optional)'}
               </label>
               <input
-                aria-label="Optional payment notes"
                 id="collect-notes"
                 type="text"
                 maxLength={400}
