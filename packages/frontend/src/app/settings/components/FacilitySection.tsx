@@ -130,6 +130,7 @@ export function FacilitySection() {
             variant="ghost"
             size="sm"
             onClick={() => setEditing(row)}
+            aria-label={`Edit facility ${row.name}`}
             leftIcon={<Pencil size={13} aria-hidden="true" />}
           >
             Edit
@@ -139,6 +140,7 @@ export function FacilitySection() {
             size="sm"
             disabled={togglingId === row.id}
             onClick={() => void handleToggleActive(row)}
+            aria-label={`${row.isActive ? 'Deactivate' : 'Activate'} facility ${row.name}`}
           >
             {row.isActive ? 'Deactivate' : 'Activate'}
           </Button>
@@ -147,6 +149,7 @@ export function FacilitySection() {
             size="sm"
             disabled={!row.isActive}
             onClick={() => setDeleting(row)}
+            aria-label={`Delete facility ${row.name}`}
             leftIcon={<Trash2 size={13} aria-hidden="true" />}
           >
             Delete
