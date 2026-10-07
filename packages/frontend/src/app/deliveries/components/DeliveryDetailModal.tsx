@@ -105,6 +105,15 @@ export function DeliveryDetailModal({
               </span>
             </div>
 
+            {delivery.rentCharge != null && delivery.rentCharge > 0 && (
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>Rent Charge</span>
+                <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-bold)' }}>
+                  ₹{delivery.rentCharge.toLocaleString('en-IN')}
+                </span>
+              </div>
+            )}
+
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Marks</span>
               <span className={styles.detailValue}>{delivery.marks || '—'}</span>

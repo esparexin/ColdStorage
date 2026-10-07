@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CommodityModel } from '../database/models/commodity.model.js';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
-import { GrnModel } from '../database/models/grn.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
 import { seedCustomer, seedFacility } from './helpers/master-data-fixtures.js';
@@ -42,6 +41,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
       facilityId,
       {
         grnNumber: '1001',
+        date: new Date(),
         customerId,
         commodityId: 'cmd-wheat',
         chamber: 'CH-01',
@@ -71,6 +71,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
       facilityId,
       {
         grnNumber: '1002',
+        date: new Date(),
         customerId,
         commodityId: 'cmd-wheat',
         chamber: 'CH-01',
@@ -96,6 +97,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
       facilityId,
       {
         grnNumber: '1003',
+        date: new Date(),
         customerId,
         commodityId: 'cmd-wheat',
         chamber: 'CH-01',
@@ -123,6 +125,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
       facilityId,
       {
         grnNumber: '1004',
+        date: new Date(),
         customerId,
         commodityId: 'cmd-wheat',
         chamber: 'CH-01',
@@ -150,6 +153,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
       facilityId,
       {
         grnNumber: '1005',
+        date: new Date(),
         customerId,
         commodityId: 'cmd-wheat',
         chamber: 'CH-01',
@@ -185,6 +189,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
       facilityId,
       {
         grnNumber: '1006',
+        date: new Date(),
         customerId,
         commodityId: 'cmd-wheat',
         chamber: 'CH-01',

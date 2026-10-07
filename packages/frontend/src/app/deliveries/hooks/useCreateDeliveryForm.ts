@@ -43,8 +43,9 @@ export function useCreateDeliveryForm(
   const clearFieldError = (key: string) => {
     setFieldErrors((prev) => {
       if (!prev[key]) return prev;
-      const { [key]: _, ...rest } = prev;
-      return rest;
+      const next = { ...prev };
+      delete next[key];
+      return next;
     });
   };
 
