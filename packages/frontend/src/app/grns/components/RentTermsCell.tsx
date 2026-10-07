@@ -88,10 +88,6 @@ export function RentTermsCell({ row }: RentTermsCellProps) {
   });
 
   const elapsed = getElapsedDuration(row.date, asOfDate);
-
-  const cycleNumber = Math.min(termMonths, Math.floor(elapsed.days / 30) + 1);
-  const monthlyCycleCharge = Number(((effectiveRate ?? 0) * row.bags).toFixed(2));
-
   const contractTermText =
     row.rentType === 'Seasonal' ? '10 months' : `${row.rentMonths ?? 1} months`;
 

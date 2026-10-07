@@ -59,7 +59,7 @@ export function CollectPaymentModal({
             <RentSummaryOverview account={account} />
 
             {account.rentType === 'Monthly' && account.rentAmount === 0 && (
-              <div style={{ padding: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+              <div style={{ padding: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
                 No fixed upfront contract rent configured for this Monthly GRN. Billing accrues dynamically per cycle.
               </div>
             )}

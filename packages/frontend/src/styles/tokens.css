@@ -55,7 +55,7 @@
   /* ---- Typography ----
      Compact admin density. Each step has exactly one role; do not add steps
      without a role. All sizes keep >= 4.5:1 against --color-surface-1. */
-  --font-sans: var(--font-inter, 'Inter', system-ui, -apple-system, sans-serif);
+  --font-sans: var(--font-geist, var(--font-inter, 'Geist', 'Inter', system-ui, -apple-system, sans-serif));
   --font-mono: ui-monospace, 'Cascadia Code', monospace;
 
   --text-xs:   0.75rem;   /* 12px — micro-label, table header, badge */
