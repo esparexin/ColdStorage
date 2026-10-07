@@ -105,16 +105,7 @@ export function createDeliveryColumns({
             >
               {remainingTotal.toLocaleString('en-IN')} bags
               {isClosed && (
-                <span
-                  style={{
-                    marginLeft: 'var(--space-1)',
-                    fontSize: 'var(--text-xs)',
-                    fontWeight: 'var(--font-bold)',
-                    background: 'var(--color-surface-2)',
-                    padding: '0 var(--space-1-5)',
-                    borderRadius: 'var(--radius-sm)',
-                  }}
-                >
+                <span style={{ marginLeft: 'var(--space-1)', fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', background: 'var(--color-surface-2)', padding: '0 var(--space-1-5)', borderRadius: 'var(--radius-sm)' }}>
                   CLOSED
                 </span>
               )}
@@ -135,15 +126,22 @@ export function createDeliveryColumns({
       key: 'rentStatus',
       header: 'Rent Status',
       render: (row) => {
-        if (!row.rentPaymentStatus) {
+        if (!row.rentPaymentStatus && !row.rentCharge) {
           return <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}>—</span>;
         }
         const isSettled = row.rentPaymentStatus === 'Settled';
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
-            <Badge variant={isSettled ? 'success' : 'warning'}>
-              {isSettled ? 'Settled' : `₹${(row.rentRemainingBalance ?? 0).toLocaleString('en-IN')} pending`}
-            </Badge>
+            {row.rentPaymentStatus && (
+              <Badge variant={isSettled ? 'success' : 'warning'}>
+                {isSettled ? 'Settled' : `₹${(row.rentRemainingBalance ?? 0).toLocaleString('en-IN')} pending`}
+              </Badge>
+            )}
+            {row.rentCharge != null && row.rentCharge > 0 && (
+              <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-primary-text)' }}>
+                Rent: ₹{row.rentCharge.toLocaleString('en-IN')}
+              </span>
+            )}
             {!isSettled && (row.rentTotalPaid ?? 0) > 0 && (
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
                 ₹{(row.rentTotalPaid ?? 0).toLocaleString('en-IN')} paid
