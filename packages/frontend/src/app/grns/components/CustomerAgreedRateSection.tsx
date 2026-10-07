@@ -30,8 +30,6 @@ export function CustomerAgreedRateSection({
     ? 'Rent Type: Seasonal — 10 Months'
     : `Rent Type: Monthly — ${typeof rentMonths === 'number' && rentMonths > 0 ? `${rentMonths} Months` : 'Selected Months'}`;
 
-  const rateUnitSuffix = isSeasonal ? '/ bag (10m)' : '/ bag / month';
-
   return (
     <div className={styles.sectionCard} role="group" aria-label={termBadgeText}>
       <div className={styles.headerRow}>
@@ -41,7 +39,7 @@ export function CustomerAgreedRateSection({
       <div className={styles.rateInputsGrid}>
         <div className={styles.inputGroup}>
           <label htmlFor="create-small-bag-price" className={styles.inputLabel}>
-            Small Bag Rate ({rateUnitSuffix})
+            Small Bag Rate <span className={styles.labelHint}>(each bag rate per month)</span>
           </label>
           <div className={styles.inputWrapper}>
             <span className={styles.currencyPrefix} aria-hidden="true">
@@ -78,7 +76,7 @@ export function CustomerAgreedRateSection({
 
         <div className={styles.inputGroup}>
           <label htmlFor="create-big-bag-price" className={styles.inputLabel}>
-            Big Bag Rate ({rateUnitSuffix})
+            Big Bag Rate <span className={styles.labelHint}>(each bag rate per month)</span>
           </label>
           <div className={styles.inputWrapper}>
             <span className={styles.currencyPrefix} aria-hidden="true">
