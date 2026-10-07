@@ -180,11 +180,11 @@ describe('createGrnForm Monthly vs Seasonal rent terms validation', () => {
     expect(errors.rentMonths).toBe('Rent months must be >= 1 when provided');
   });
 
-  it('rejects Seasonal rent when rentAmount is empty', () => {
+  it('accepts Seasonal rent without rentAmount on Inward', () => {
     const { errors } = validateCreateGrnForm(
       makeState({ createRentType: 'Seasonal', createRentAmount: '' }),
     );
-    expect(errors.rentAmount).toBe('Rental amount must be a number');
+    expect(errors.rentAmount).toBeUndefined();
   });
 
   it('buildCreateGrnPayload omits unconfigured rentAmount for Monthly', () => {

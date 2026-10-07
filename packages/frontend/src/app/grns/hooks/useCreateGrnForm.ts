@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { calculateRentAmount, SEASONAL_RENT_MONTHS } from '@cold-storage/contracts';
+import { SEASONAL_RENT_MONTHS } from '@cold-storage/contracts';
 import type { BagType, Commodity, Customer, Grn, LoanStatus, RentType } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import {
@@ -86,35 +86,9 @@ export function useCreateGrnForm(
     setFieldErrors,
   });
 
-  const autoComputeRent = (overrides?: Partial<{
-    bags: number | ''; bagType: BagType;
-    bagPrice: number | '';
-    rentType: RentType; rentMonths: number | '';
-  }>) => {
-    const rentType = overrides?.rentType ?? createRentType;
-    if (rentType !== 'Seasonal') return;
-    const bags = overrides?.bags ?? createBags;
-    const bagType = overrides?.bagType ?? createBagType;
-    const bagPrice = overrides?.bagPrice ?? createBagPrice;
-    const rentMonths = overrides?.rentMonths ?? createRentMonths;
-
-    if (typeof bags === 'number' && bags > 0) {
-      const calc = calculateRentAmount({
-        rentType, bags, bagType,
-        bagPrice: typeof bagPrice === 'number' ? bagPrice : null,
-        rentMonths: typeof rentMonths === 'number' ? rentMonths : null,
-      });
-      if (calc > 0) {
-        setCreateRentAmount(calc);
-        clearFieldError('rentAmount');
-      }
-    }
-  };
-
   const handleBagsChange = (val: number | '') => {
     setCreateBags(val);
     clearFieldError('bags');
-    autoComputeRent({ bags: val });
   };
 
   const handleBagTypeChange = (val: BagType) => {
@@ -126,7 +100,6 @@ export function useCreateGrnForm(
   const handleRentMonthsChange = (val: number | '') => {
     setCreateRentMonths(val);
     clearFieldError('rentMonths');
-    autoComputeRent({ rentMonths: val });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -177,8 +150,7 @@ export function useCreateGrnForm(
         customerId: createCustomerId, commodityId: createCommodityId,
         chamber: parsedChamber ?? createChamber, bags: Number(createBags), bagType: createBagType,
         rentType: createRentType,
-        rentAmount: typeof createRentAmount === 'number' ? createRentAmount : '',
-        bagPrice: createBagPrice, rentMonths: createRentMonths,
+        rentMonths: createRentType === 'Monthly' && typeof createRentMonths === 'number' ? createRentMonths : '',
         partyMark: createPartyMark,
         vehicleNumber: normalizedVehicle, remarks: createRemarks,
         isBondForLoan, loanStatus,
@@ -208,7 +180,6 @@ export function useCreateGrnForm(
 
   const isDirty = Boolean(
     createGrnNumber.trim() || createCustomerId || createCommodityId || createBags ||
-    createRentAmount || createBagPrice ||
     createPartyMark.trim() ||
     createVehicleNumber.trim() || createRemarks.trim() || isBondForLoan,
   );
@@ -223,12 +194,11 @@ export function useCreateGrnForm(
     createBagType, handleBagTypeChange,
     createRentType, handleRentTypeChange: (val: RentType) => {
       setCreateRentType(val);
-      if (val === 'Monthly') { clearFieldError('rentMonths'); clearFieldError('rentAmount'); }
-      else { autoComputeRent({ rentType: val }); }
+      clearFieldError('rentMonths');
     },
     createRentMonths, handleRentMonthsChange,
-    createBagPrice, handleBagPriceChange: (val: number | '') => { setCreateBagPrice(val); autoComputeRent({ bagPrice: val }); },
-    createRentAmount, setCreateRentAmount: (val: number | '') => { setCreateRentAmount(val); clearFieldError('rentAmount'); },
+    createBagPrice, handleBagPriceChange: (val: number | '') => { setCreateBagPrice(val); },
+    createRentAmount, setCreateRentAmount: (val: number | '') => { setCreateRentAmount(val); },
     createGrnNumber, setCreateGrnNumber: (val: string) => {
       const digitsOnly = val.replace(/\D/g, '').slice(0, 4);
       setCreateGrnNumber(digitsOnly);

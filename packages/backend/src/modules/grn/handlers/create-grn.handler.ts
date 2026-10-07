@@ -1,8 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
-  calculateRentAmount,
-  deriveBagPrice,
   getFinancialYearKey,
   normalizeBagComposition,
   rentMonthsForType,
@@ -74,28 +72,9 @@ export async function createGrn(
   const smallBagWeight = input.smallBagWeight ?? null;
   const bigBagWeight = input.bigBagWeight ?? null;
 
-  // Rent Months is informational only and is not used to finalize the monthly
-  // subscription/payment logic beyond the established rent-amount rule.
+  // Inward records storage arrangement and rent type only; actual rent calculation happens during Outward.
   const rentMonths = rentMonthsForType(input.rentType) ?? (input.rentMonths ?? null);
-  const derivedBagPrice = deriveBagPrice({
-    rentType: input.rentType,
-    bags: input.bags,
-    bagPrice: input.bagPrice,
-    rentMonths,
-    rentAmount: input.rentAmount,
-  });
-  const finalRentAmount =
-    input.rentAmount && input.rentAmount > 0
-      ? input.rentAmount
-      : input.rentType === 'Monthly'
-        ? 0
-        : calculateRentAmount({
-            rentType: input.rentType, bags: input.bags, bagType: input.bagType,
-            bagPrice: input.bagPrice ?? derivedBagPrice,
-            smallBags: composition.smallBags, bigBags: composition.bigBags,
-            smallBagPrice: input.smallBagPrice, bigBagPrice: input.bigBagPrice,
-            rentMonths, rentAmount: input.rentAmount,
-          });
+  const finalRentAmount = input.rentAmount && input.rentAmount > 0 ? input.rentAmount : 0;
 
   const id = `grn-${randomUUID()}`;
 
@@ -165,7 +144,7 @@ export async function createGrn(
             rentType: input.rentType,
             rentMonths,
             rentAmount: finalRentAmount,
-            bagPrice: input.bagPrice ?? derivedBagPrice ?? null,
+            bagPrice: input.bagPrice ?? null,
             smallBagPrice: input.smallBagPrice ?? null,
             bigBagPrice: input.bigBagPrice ?? null,
             gpNumber: input.gpNumber?.trim() || null,
