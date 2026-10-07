@@ -35,8 +35,8 @@ export async function validateStockAndBalances(
   }
 
   // When a GRN was historically split into distinct small and big pools (both > 0),
-  // guard per type if explicit split withdrawal was requested.
-  if (remainingSmall > 0 && remainingBig > 0 && withdrawal.smallBags > 0 && withdrawal.bigBags > 0) {
+  // guard per type so individual balances are not exceeded.
+  if (remainingSmall > 0 && remainingBig > 0) {
     if (withdrawal.smallBags > remainingSmall || withdrawal.bigBags > remainingBig) {
       throw new Error(
         `Requested ${withdrawal.smallBags} small and ${withdrawal.bigBags} big bags exceeds the ` +

@@ -3,6 +3,8 @@ export interface DeliveryPayloadInput {
   createDate: string;
   smallBags: number;
   bigBags: number;
+  bagCategory?: 'Small' | 'Big' | 'Small & Big';
+  rentCharge?: number;
   createVehicleNumber: string;
   createDriverName: string;
   createWeight: number | '';
@@ -25,6 +27,12 @@ export function buildDeliveryPayload(input: DeliveryPayloadInput): Record<string
     bigBags: input.bigBags,
   };
 
+  if (input.bagCategory) {
+    payload.bagCategory = input.bagCategory;
+  }
+  if (typeof input.rentCharge === 'number' && input.rentCharge >= 0) {
+    payload.rentCharge = input.rentCharge;
+  }
   if (input.createVehicleNumber.trim()) {
     payload.vehicleNumber = input.createVehicleNumber.trim().toUpperCase();
   }

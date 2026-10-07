@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
-import type {
-  BagComposition,
-  CreateDeliveryInput,
-  DeliveryChallan,
-  DeliverySummary,
+import {
+  CANONICAL_BAG_RATES,
+  calculateRentAmount,
+  type BagComposition,
+  type CreateDeliveryInput,
+  type DeliveryChallan,
+  type DeliverySummary,
 } from '@cold-storage/contracts';
 import { ConcurrencyConflictError } from '../../inventory/inventory.service.js';
 import { counterService } from '../../common/counter.service.js';
@@ -67,9 +69,7 @@ async function executeDeliveryTransaction(
         { id: input.grnId, facilityId },
         { $set: { updatedAt: new Date() } },
         { session, new: true },
-      )
-        .lean()
-        .exec();
+      ).lean().exec();
 
       if (!grn) {
         throw new Error(`GRN '${input.grnId}' not found in facility '${facilityId}'`);
@@ -81,12 +81,6 @@ async function executeDeliveryTransaction(
         const bondRef = grn.bondNumber ? `Bond ${grn.bondNumber} (GRN: ${grn.grnNumber})` : `GRN ${grn.grnNumber}`;
         throw new Error(`Outward blocked — Active loan hold against ${bondRef}`);
       }
-
-      const rentBalance = await assertRentAllowedForOutward(
-        facilityId,
-        { id: grn.id, grnNumber: grn.grnNumber, rentAmount: grn.rentAmount ?? 0 },
-        session,
-      );
 
       const resolvedSmall =
         (input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0
@@ -109,13 +103,31 @@ async function executeDeliveryTransaction(
 
       const available = await validateStockAndBalances(facilityId, grn, withdrawal, session);
 
-      const deliveryDate = validateDeliveryDate(input.date);
+      // Actual rent/charge calculation happens at Outward delivery using existing canonical rules.
+      const rates = CANONICAL_BAG_RATES[grn.rentType];
+      const deliveryRentCharge =
+        input.rentCharge != null && input.rentCharge >= 0
+          ? input.rentCharge
+          : calculateRentAmount({
+              rentType: grn.rentType,
+              bags: withdrawnTotal,
+              bagType: 'S+B',
+              smallBags: resolvedSmall,
+              bigBags: resolvedBig,
+              smallBagPrice: rates.small,
+              bigBagPrice: rates.big,
+              rentMonths: grn.rentMonths ?? 1,
+            });
 
-      const challanNumber = await counterService.generateDeliveryChallanNumber(
+      const rentBalance = await assertRentAllowedForOutward(
         facilityId,
-        deliveryDate,
+        { id: grn.id, grnNumber: grn.grnNumber, rentAmount: grn.rentAmount ?? 0 },
         session,
       );
+
+      const deliveryDate = validateDeliveryDate(input.date);
+
+      const challanNumber = await counterService.generateDeliveryChallanNumber(facilityId, deliveryDate, session);
       const deliveryId = `del-${randomUUID()}`;
 
       const marks = input.marks?.trim() || grn.marks || null;
@@ -144,6 +156,7 @@ async function executeDeliveryTransaction(
             driverName: input.driverName?.trim() || null,
             weight: input.weight ?? null,
             remarks: input.remarks?.trim() || null,
+            rentCharge: deliveryRentCharge,
             status: 'ISSUED',
             issuedBy: userId,
           },
@@ -152,6 +165,9 @@ async function executeDeliveryTransaction(
       );
 
       createdChallanDoc = challanDocs[0];
+
+      const txSmall = available.bigBags === 0 ? withdrawnTotal : available.smallBags === 0 ? 0 : resolvedSmall;
+      const txBig = available.smallBags === 0 ? withdrawnTotal : available.bigBags === 0 ? 0 : resolvedBig;
 
       await InventoryTransactionModel.create(
         [
@@ -164,8 +180,8 @@ async function executeDeliveryTransaction(
             commodityId: grn.commodityId,
             bagType: grn.bagType ?? 'S/B',
             transactionType: 'OUTWARD_DELIVERY' as const,
-            smallQuantity: resolvedSmall,
-            bigQuantity: resolvedBig,
+            smallQuantity: txSmall,
+            bigQuantity: txBig,
             referenceType: 'DELIVERY' as const,
             referenceId: deliveryId,
             notes: input.remarks?.trim() || null,

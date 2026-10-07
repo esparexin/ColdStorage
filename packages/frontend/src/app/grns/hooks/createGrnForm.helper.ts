@@ -21,9 +21,9 @@ export interface CreateGrnState {
   createBags: number | '';
   createBagType: BagType;
   createRentType: RentType;
-  createRentMonths: number | '';
-  createRentAmount: number | '';
-  createBagPrice: number | '';
+  createRentMonths?: number | '';
+  createRentAmount?: number | '';
+  createBagPrice?: number | '';
   createPartyMark?: string;
   createVehicleNumber: string;
 }
@@ -59,7 +59,7 @@ export function validateCreateGrnForm(state: CreateGrnState): {
     errors.rentMonths = 'Rent months must be >= 1 when provided';
   }
 
-  if (state.createRentType === 'Seasonal' || (state.createRentAmount !== '' && state.createRentAmount !== undefined)) {
+  if (state.createRentAmount !== '' && state.createRentAmount !== undefined) {
     const parsedAmount = rentalAmountSchema.safeParse(state.createRentAmount);
     if (!parsedAmount.success) {
       errors.rentAmount = parsedAmount.error.issues[0]?.message ?? 'Rent amount must be a number';
