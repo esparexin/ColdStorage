@@ -42,70 +42,74 @@ export function CustomerAgreedRateSection({
           <label htmlFor="create-small-bag-price" className={styles.inputLabel}>
             Small Bag Rate
           </label>
-          <div className={styles.inputWrapper}>
-            <span className={styles.currencyPrefix} aria-hidden="true">
-              ₹
-            </span>
-            <input
-              id="create-small-bag-price"
-              type="number"
-              step="0.01"
-              min={0}
-              disabled={disabled}
-              value={smallBagPrice}
-              onChange={(e) =>
-                onSmallBagPriceChange(e.target.value ? parseFloat(e.target.value) : '')
-              }
-              placeholder="e.g. 12"
-              className={`${styles.fieldInput} ${smallBagPriceError ? styles.inputError : ''}`}
-              aria-invalid={Boolean(smallBagPriceError)}
-              aria-describedby={
-                smallBagPriceError ? 'create-small-bag-price-error' : undefined
-              }
-            />
+          <div className={styles.fieldControl}>
+            <div className={styles.inputWrapper}>
+              <span className={styles.currencyPrefix} aria-hidden="true">
+                ₹
+              </span>
+              <input
+                id="create-small-bag-price"
+                type="number"
+                step="0.01"
+                min={0}
+                disabled={disabled}
+                value={smallBagPrice}
+                onChange={(e) =>
+                  onSmallBagPriceChange(e.target.value ? parseFloat(e.target.value) : '')
+                }
+                placeholder="e.g. 12"
+                className={`${styles.fieldInput} ${smallBagPriceError ? styles.inputError : ''}`}
+                aria-invalid={Boolean(smallBagPriceError)}
+                aria-describedby={
+                  smallBagPriceError ? 'create-small-bag-price-error' : undefined
+                }
+              />
+            </div>
+            {smallBagPriceError && (
+              <span
+                id="create-small-bag-price-error"
+                className={styles.fieldErrorText}
+                role="alert"
+              >
+                {smallBagPriceError}
+              </span>
+            )}
           </div>
-          {smallBagPriceError && (
-            <span
-              id="create-small-bag-price-error"
-              className={styles.fieldErrorText}
-              role="alert"
-            >
-              {smallBagPriceError}
-            </span>
-          )}
         </div>
 
         <div className={styles.inputGroup}>
           <label htmlFor="create-big-bag-price" className={styles.inputLabel}>
             Big Bag Rate
           </label>
-          <div className={styles.inputWrapper}>
-            <span className={styles.currencyPrefix} aria-hidden="true">
-              ₹
-            </span>
-            <input
-              id="create-big-bag-price"
-              type="number"
-              step="0.01"
-              min={0}
-              disabled={disabled}
-              value={bigBagPrice}
-              onChange={(e) =>
-                onBigBagPriceChange(e.target.value ? parseFloat(e.target.value) : '')
-              }
-              placeholder="e.g. 18"
-              className={`${styles.fieldInput} ${bigBagPriceError ? styles.inputError : ''}`}
-              aria-invalid={Boolean(bigBagPriceError)}
-              aria-describedby={
-                bigBagPriceError ? 'create-big-bag-price-error' : undefined
-              }
-            />
+          <div className={styles.fieldControl}>
+            <div className={styles.inputWrapper}>
+              <span className={styles.currencyPrefix} aria-hidden="true">
+                ₹
+              </span>
+              <input
+                id="create-big-bag-price"
+                type="number"
+                step="0.01"
+                min={0}
+                disabled={disabled}
+                value={bigBagPrice}
+                onChange={(e) =>
+                  onBigBagPriceChange(e.target.value ? parseFloat(e.target.value) : '')
+                }
+                placeholder="e.g. 18"
+                className={`${styles.fieldInput} ${bigBagPriceError ? styles.inputError : ''}`}
+                aria-invalid={Boolean(bigBagPriceError)}
+                aria-describedby={
+                  bigBagPriceError ? 'create-big-bag-price-error' : undefined
+                }
+              />
+            </div>
+            {bigBagPriceError && (
+              <span id="create-big-bag-price-error" className={styles.fieldErrorText} role="alert">
+                {bigBagPriceError}
+              </span>
+            )}
           </div>
-          {bigBagPriceError && (
-            <span id="create-big-bag-price-error" className={styles.fieldErrorText} role="alert">
-              {bigBagPriceError}
-            </span>
-          )}
         </div>
       </div>
     </div>
