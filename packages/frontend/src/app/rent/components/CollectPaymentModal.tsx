@@ -7,6 +7,7 @@ import { Button, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { RentSummaryOverview } from './RentSummaryOverview';
 import { useCollectPaymentForm } from '../hooks/useCollectPaymentForm';
+import { getRentCollectionNotice } from '../hooks/rentDisplay.helper';
 import styles from '../page.module.css';
 
 interface CollectPaymentModalProps {
@@ -58,11 +59,14 @@ export function CollectPaymentModal({
 
             <RentSummaryOverview account={account} />
 
-            {account.rentType === 'Monthly' && account.rentAmount === 0 && (
-              <div style={{ padding: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
-                No fixed upfront contract rent configured for this Monthly GRN. Billing accrues dynamically per cycle.
-              </div>
-            )}
+            {(() => {
+              const notice = getRentCollectionNotice(account);
+              return notice ? (
+                <div style={{ padding: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                  {notice}
+                </div>
+              ) : null;
+            })()}
 
             <div className={styles.fieldGroup}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

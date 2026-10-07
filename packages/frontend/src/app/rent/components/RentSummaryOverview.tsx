@@ -1,5 +1,9 @@
 import React from 'react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
+import {
+  formatRemainingDue,
+  formatRentStructure,
+} from '../hooks/rentDisplay.helper';
 import styles from '../page.module.css';
 
 interface RentSummaryOverviewProps {
@@ -54,7 +58,7 @@ export function RentSummaryOverview({ account }: RentSummaryOverviewProps) {
             <span>
               {account.rentType === 'Monthly' && account.rentAmount === 0
                 ? 'Dynamic (Cycle Billing)'
-                : `₹${account.rentAmount.toLocaleString('en-IN')}`}
+                : formatRentStructure(account)}
             </span>
           </div>
           <div className={styles.infoRow}>
@@ -66,9 +70,7 @@ export function RentSummaryOverview({ account }: RentSummaryOverviewProps) {
           <div className={styles.infoRow} style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-1)' }}>
             <span style={{ fontWeight: 'var(--font-semibold)' }}>Remaining Due</span>
             <strong style={{ color: 'var(--color-warning-text)' }}>
-              {account.rentType === 'Monthly' && account.rentAmount === 0 && account.remainingBalance === 0
-                ? 'Dynamic (Per Cycle)'
-                : `₹${account.remainingBalance.toLocaleString('en-IN')}`}
+              {formatRemainingDue(account)}
             </strong>
           </div>
         </div>
