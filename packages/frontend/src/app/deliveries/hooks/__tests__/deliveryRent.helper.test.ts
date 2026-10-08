@@ -72,6 +72,19 @@ describe('deliveryRent.helper', () => {
         }),
       ).toBe(0);
     });
+
+    it('uses agreed smallBagPrice and bigBagPrice overrides when supplied', () => {
+      const rent = computeOutwardRentCharge({
+        rentType: 'Seasonal',
+        bagCategory: 'Small & Big',
+        smallBags: 20,
+        bigBags: 30,
+        smallBagPrice: 12,
+        bigBagPrice: 18,
+      });
+      // (20 * 12 + 30 * 18) * 10 = (240 + 540) * 10 = 7800
+      expect(rent).toBe(7800);
+    });
   });
 
   describe('formatOutwardRentFormula', () => {

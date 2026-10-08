@@ -114,8 +114,8 @@ async function executeDeliveryTransaction(
               bagType: 'S+B',
               smallBags: resolvedSmall,
               bigBags: resolvedBig,
-              smallBagPrice: rates.small,
-              bigBagPrice: rates.big,
+              smallBagPrice: grn.smallBagPrice ?? grn.bagPrice ?? rates.small,
+              bigBagPrice: grn.bigBagPrice ?? grn.bagPrice ?? rates.big,
               rentMonths: grn.rentMonths ?? 1,
             });
 

@@ -112,6 +112,9 @@ export function useCreateDeliveryForm(
     smallBags,
     bigBags,
     rentMonths: selectedGrn?.rentMonths,
+    smallBagPrice: selectedGrn?.smallBagPrice,
+    bigBagPrice: selectedGrn?.bigBagPrice,
+    bagPrice: selectedGrn?.bagPrice,
   });
 
   const handleBagCategoryChange = (cat: OutwardBagCategory) => {

@@ -208,4 +208,32 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
 
     expect(del.delivery.rentCharge).toBe(1200);
   });
+
+  it('Seasonal Outward: calculates rent using agreed smallBagPrice from GRN', async () => {
+    const { grn } = await grnService.createGrn(
+      facilityId,
+      {
+        grnNumber: '1007',
+        date: new Date(),
+        customerId,
+        commodityId: 'cmd-wheat',
+        chamber: 'CH-01',
+        bags: 100,
+        bagType: 'S',
+        rentType: 'Seasonal',
+        smallBagPrice: 12,
+        bigBagPrice: 18,
+      },
+      USER_ID,
+    );
+
+    const del = await deliveryService.createDelivery(
+      facilityId,
+      { grnId: grn.id, smallBags: 40, bigBags: 0, bagCategory: 'Small' },
+      USER_ID,
+    );
+
+    // 40 bags × ₹12/bag × 10 months = ₹4,800
+    expect(del.delivery.rentCharge).toBe(4800);
+  });
 });
