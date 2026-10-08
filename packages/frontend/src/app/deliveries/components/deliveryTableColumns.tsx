@@ -47,9 +47,7 @@ export function createDeliveryColumns({
       key: 'customerName',
       header: 'Customer',
       render: (row) => (
-        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)' }}>
-          {row.customerName}
-        </span>
+        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)' }}>{row.customerName}</span>
       ),
     },
     {
@@ -80,6 +78,16 @@ export function createDeliveryColumns({
       ),
     },
     {
+      key: 'weight',
+      header: 'Outward Weight',
+      align: 'right',
+      render: (row) => (
+        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: row.weight != null ? 'var(--color-text-primary)' : 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+          {row.weight != null ? `${row.weight.toLocaleString('en-IN')} kg` : '—'}
+        </span>
+      ),
+    },
+    {
       key: 'remainingBags',
       header: 'Remaining Bags',
       align: 'right',
@@ -96,13 +104,7 @@ export function createDeliveryColumns({
 
         return (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
-            <span
-              style={{
-                fontWeight: 'var(--font-bold)',
-                fontSize: 'var(--text-xs)',
-                color: isClosed ? 'var(--color-text-muted)' : 'var(--color-primary-text)',
-              }}
-            >
+            <span style={{ fontWeight: 'var(--font-bold)', fontSize: 'var(--text-xs)', color: isClosed ? 'var(--color-text-muted)' : 'var(--color-primary-text)' }}>
               {remainingTotal.toLocaleString('en-IN')} bags
               {isClosed && (
                 <span style={{ marginLeft: 'var(--space-1)', fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', background: 'var(--color-surface-2)', padding: '0 var(--space-1-5)', borderRadius: 'var(--radius-sm)' }}>
