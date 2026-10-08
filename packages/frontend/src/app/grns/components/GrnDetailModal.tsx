@@ -71,21 +71,15 @@ export function GrnDetailModal({
             {canPrint && (
               <>
                 <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => onPrint('grn', grn.id)}
-                  disabled={printingId === `grn-${grn.id}`}
-                  isLoading={printingId === `grn-${grn.id}`}
+                  variant="primary" size="sm" onClick={() => onPrint('grn', grn.id)}
+                  disabled={printingId === `grn-${grn.id}`} isLoading={printingId === `grn-${grn.id}`}
                   leftIcon={<Printer size={13} aria-hidden="true" />}
                 >
                   Print GRN
                 </Button>
                 <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => onPrint('receipt', grn.id)}
-                  disabled={printingId === `receipt-${grn.id}`}
-                  isLoading={printingId === `receipt-${grn.id}`}
+                  variant="secondary" size="sm" onClick={() => onPrint('receipt', grn.id)}
+                  disabled={printingId === `receipt-${grn.id}`} isLoading={printingId === `receipt-${grn.id}`}
                   leftIcon={<FileText size={13} aria-hidden="true" />}
                 >
                   Print Receipt
@@ -94,14 +88,8 @@ export function GrnDetailModal({
             )}
             {canCorrect && onCorrect && grn.status !== 'CLOSED' && (
               <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onCorrect(grn)}
-                title={
-                  (grn.netDeliveredBags ?? 0) > 0
-                    ? 'Stock has moved — only chamber may be corrected; reverse active deliveries first'
-                    : 'Edit / Correct GRN details'
-                }
+                variant="outline" size="sm" onClick={() => onCorrect(grn)}
+                title={(grn.netDeliveredBags ?? 0) > 0 ? 'Stock has moved — only chamber may be corrected; reverse active deliveries first' : 'Edit / Correct GRN details'}
                 leftIcon={<Edit2 size={13} aria-hidden="true" />}
               >
                 Edit
@@ -109,10 +97,7 @@ export function GrnDetailModal({
             )}
             {canInternalMove && onInternalMove && grn.status === 'OPEN' && (
               <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onInternalMove(grn)}
-                disabled={grn.loanStatus === 'TAKEN'}
+                variant="outline" size="sm" onClick={() => onInternalMove(grn)} disabled={grn.loanStatus === 'TAKEN'}
                 title={grn.loanStatus === 'TAKEN' ? 'Movement blocked — Active loan hold' : 'Internal Move'}
                 leftIcon={<ArrowRightLeft size={13} aria-hidden="true" />}
               >
@@ -121,10 +106,7 @@ export function GrnDetailModal({
             )}
             {canCreateChallan && onCreateChallan && grn.status === 'OPEN' && (grn.closingBags ?? grn.bags) > 0 && (
               <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => onCreateChallan(grn)}
-                disabled={grn.loanStatus === 'TAKEN'}
+                variant="secondary" size="sm" onClick={() => onCreateChallan(grn)} disabled={grn.loanStatus === 'TAKEN'}
                 title={grn.loanStatus === 'TAKEN' ? 'Outward blocked — Active loan hold' : 'Create Outward Challan'}
                 leftIcon={<Truck size={13} aria-hidden="true" />}
               >
@@ -199,19 +181,34 @@ export function GrnDetailModal({
               </span>
             </div>
 
+            {grn.totalBagsWeight != null && grn.totalBagsWeight > 0 && (
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>Total Bags Weight</span>
+                <span className={styles.detailValue}>{grn.totalBagsWeight.toLocaleString('en-IN')} kg</span>
+              </div>
+            )}
+
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Rent Structure</span>
               <span className={styles.detailValue}>
                 {grn.rentType}
-                {grn.rentType === 'Monthly' && grn.rentMonths
-                  ? ` (${grn.rentMonths} Months, info only)`
-                  : ''}{' '}
-                —{' '}
+                {grn.rentType === 'Monthly' && grn.rentMonths ? ` (${grn.rentMonths} Months, info only)` : ''} —{' '}
                 {grn.rentType === 'Monthly' && (grn.rentAmount == null || grn.rentAmount === 0)
                   ? 'Dynamic (Cycle Billing)'
                   : `₹${(grn.rentAmount ?? 0).toLocaleString('en-IN')}`}
               </span>
             </div>
+
+            {(grn.smallBagPrice != null || grn.bigBagPrice != null || (grn.bagPrice != null && grn.bagPrice > 0)) && (
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>Agreed Rates</span>
+                <span className={styles.detailValue}>
+                  {grn.smallBagPrice != null || grn.bigBagPrice != null
+                    ? [grn.smallBagPrice != null ? `Small: ₹${grn.smallBagPrice.toFixed(2)}` : null, grn.bigBagPrice != null ? `Big: ₹${grn.bigBagPrice.toFixed(2)}` : null].filter(Boolean).join(' • ')
+                    : `₹${(grn.bagPrice ?? 0).toFixed(2)} / bag`}
+                </span>
+              </div>
+            )}
 
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Gate Pass (GP) #</span>
