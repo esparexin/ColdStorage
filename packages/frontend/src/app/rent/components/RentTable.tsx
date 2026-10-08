@@ -8,6 +8,7 @@ import { Badge, Button } from '@/components/ui';
 import {
   formatPaymentStatus,
   formatRentStructure,
+  formatAgreedRates,
 } from '../hooks/rentDisplay.helper';
 import styles from '../page.module.css';
 
@@ -113,17 +114,25 @@ export function RentTable({
     {
       key: 'structure',
       header: 'Rent Structure',
-      render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)' }}>
-          <span style={{ fontSize: 'var(--text-xs)' }}>
-            {row.rentType}
-            {row.rentType === 'Monthly' && row.rentMonths ? ` (${row.rentMonths}m)` : ''}
-          </span>
-          <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)' }}>
-            {formatRentStructure(row)}
-          </span>
-        </div>
-      ),
+      render: (row) => {
+        const agreedRates = formatAgreedRates(row);
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)' }}>
+            <span style={{ fontSize: 'var(--text-xs)' }}>
+              {row.rentType}
+              {row.rentType === 'Monthly' && row.rentMonths ? ` (${row.rentMonths}m)` : ''}
+            </span>
+            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)' }}>
+              {formatRentStructure(row)}
+            </span>
+            {agreedRates && (
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                {agreedRates}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'accounting',

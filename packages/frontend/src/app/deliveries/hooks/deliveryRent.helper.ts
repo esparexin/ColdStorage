@@ -8,11 +8,16 @@ export interface ComputeOutwardRentParams {
   smallBags: number;
   bigBags: number;
   rentMonths?: number | null;
+  smallBagPrice?: number | null;
+  bigBagPrice?: number | null;
+  bagPrice?: number | null;
 }
 
 export function computeOutwardRentCharge(params: ComputeOutwardRentParams): number {
   const { rentType, bagCategory, smallBags, bigBags, rentMonths } = params;
   const rates = CANONICAL_BAG_RATES[rentType] ?? { small: 10, big: 15 };
+  const smallRate = params.smallBagPrice ?? params.bagPrice ?? rates.small;
+  const bigRate = params.bigBagPrice ?? params.bagPrice ?? rates.big;
 
   const effectiveSmall = bagCategory === 'Big' ? 0 : smallBags;
   const effectiveBig = bagCategory === 'Small' ? 0 : bigBags;
@@ -26,8 +31,8 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
     bagType: 'S+B',
     smallBags: effectiveSmall,
     bigBags: effectiveBig,
-    smallBagPrice: rates.small,
-    bigBagPrice: rates.big,
+    smallBagPrice: smallRate,
+    bigBagPrice: bigRate,
     rentMonths: rentMonths ?? 1,
   });
 }

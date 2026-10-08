@@ -6,6 +6,10 @@ export interface RentAccountDisplayInput {
   remainingBalance?: number;
   paymentStatus?: 'Settled' | 'Not Settled';
   deliveredBags?: number;
+  bagPrice?: number | null;
+  smallBagPrice?: number | null;
+  bigBagPrice?: number | null;
+  totalBagsWeight?: number | null;
 }
 
 /**
@@ -19,6 +23,21 @@ export function formatRentStructure(input: RentAccountDisplayInput): string {
     return 'At Outward';
   }
   return `₹${input.rentAmount.toLocaleString('en-IN')}`;
+}
+
+/**
+ * Returns formatted agreed rates string if present.
+ */
+export function formatAgreedRates(input: RentAccountDisplayInput): string | null {
+  if (input.smallBagPrice != null || input.bigBagPrice != null) {
+    const s = input.smallBagPrice != null ? `S: ₹${input.smallBagPrice.toFixed(2)}` : null;
+    const b = input.bigBagPrice != null ? `B: ₹${input.bigBagPrice.toFixed(2)}` : null;
+    return [s, b].filter(Boolean).join(' | ');
+  }
+  if (input.bagPrice != null && input.bagPrice > 0) {
+    return `₹${input.bagPrice.toFixed(2)}/bag`;
+  }
+  return null;
 }
 
 /**

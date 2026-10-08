@@ -3,10 +3,26 @@ import {
   formatPaymentStatus,
   formatRemainingDue,
   formatRentStructure,
+  formatAgreedRates,
   getRentCollectionNotice,
 } from '../rentDisplay.helper';
 
 describe('rentDisplay.helper', () => {
+  describe('formatAgreedRates', () => {
+    it('returns formatted rates when small and big rates are provided', () => {
+      expect(formatAgreedRates({ rentType: 'Seasonal', rentAmount: 0, smallBagPrice: 12, bigBagPrice: 18 })).toBe(
+        'S: ₹12.00 | B: ₹18.00',
+      );
+    });
+
+    it('returns formatted per bag price when single bagPrice provided', () => {
+      expect(formatAgreedRates({ rentType: 'Seasonal', rentAmount: 0, bagPrice: 15 })).toBe('₹15.00/bag');
+    });
+
+    it('returns null when no bag rates are specified', () => {
+      expect(formatAgreedRates({ rentType: 'Seasonal', rentAmount: 0 })).toBeNull();
+    });
+  });
   describe('formatRentStructure', () => {
     it('returns "Dynamic" for Monthly rent with zero rentAmount', () => {
       expect(formatRentStructure({ rentType: 'Monthly', rentAmount: 0 })).toBe('Dynamic');
