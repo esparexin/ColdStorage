@@ -20,6 +20,27 @@ export interface RefreshResult<T = unknown> {
   user?: T;
 }
 
+/** Upper bound for any single auth fetch so the gate can never hang indefinitely. */
+export const AUTH_REQUEST_TIMEOUT_MS = 12000;
+
+/**
+ * fetch with an AbortController timeout. Abort/timeout errors propagate to the
+ * caller; refresh treats them as failure (null), login/bootstrap map them.
+ */
+export async function fetchWithTimeout(
+  url: string,
+  init: RequestInit = {},
+  timeoutMs: number = AUTH_REQUEST_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 let activeAccessToken: string | null = null;
 let refreshPromise: Promise<RefreshResult | null> | null = null;
 let onAuthExpired: (() => void) | null = null;
@@ -43,7 +64,7 @@ export async function requestWithAuth(url: string, options: RequestInit = {}): P
     headers.set('Authorization', `Bearer ${activeAccessToken}`);
   }
 
-  const response = await fetch(url, { ...options, headers, credentials: 'include' });
+  const response = await fetchWithTimeout(url, { ...options, headers, credentials: 'include' });
 
   // Guard: do not refresh if the request itself was to the refresh endpoint
   // (prevents infinite recursion on a failing refresh endpoint).
@@ -52,7 +73,7 @@ export async function requestWithAuth(url: string, options: RequestInit = {}): P
     if (refreshResult?.token) {
       headers.set('Authorization', `Bearer ${refreshResult.token}`);
       // Retry exactly once with the new token
-      return fetch(url, { ...options, headers, credentials: 'include' });
+      return fetchWithTimeout(url, { ...options, headers, credentials: 'include' });
     }
   }
 
@@ -64,7 +85,9 @@ export async function requestWithAuth(url: string, options: RequestInit = {}): P
  * Concurrent callers attach to the existing Promise; they do not issue
  * a second HTTP request.
  */
-export async function executeSingleFlightRefresh<T = unknown>(): Promise<RefreshResult<T> | null> {
+export async function executeSingleFlightRefresh<T = unknown>(
+  timeoutMs: number = AUTH_REQUEST_TIMEOUT_MS,
+): Promise<RefreshResult<T> | null> {
   // Attach concurrent 401 callers to the existing in-flight Promise
   if (refreshPromise !== null) {
     return refreshPromise as Promise<RefreshResult<T> | null>;
@@ -72,10 +95,14 @@ export async function executeSingleFlightRefresh<T = unknown>(): Promise<Refresh
 
   refreshPromise = (async (): Promise<RefreshResult<T> | null> => {
     try {
-      const res = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        credentials: 'include', // sends HTTP-only refreshToken cookie automatically
-      });
+      const res = await fetchWithTimeout(
+        '/api/auth/refresh',
+        {
+          method: 'POST',
+          credentials: 'include', // sends HTTP-only refreshToken cookie automatically
+        },
+        timeoutMs,
+      );
 
       if (!res.ok) {
         setAccessToken(null);
