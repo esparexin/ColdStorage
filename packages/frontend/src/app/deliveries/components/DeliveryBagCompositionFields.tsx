@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  CANONICAL_BAG_RATES,
+  resolveOutwardRates,
   type BagType,
   type GrnInventorySummary,
   type RentType,
@@ -16,6 +16,9 @@ interface DeliveryBagCompositionFieldsProps {
   bagType: BagType;
   rentType: RentType;
   rentMonths?: number | null;
+  smallBagPrice?: number | null;
+  bigBagPrice?: number | null;
+  bagPrice?: number | null;
   withdrawal: GrnWithdrawal;
   bagCategory: OutwardBagCategory;
   onBagCategoryChange: (category: OutwardBagCategory) => void;
@@ -38,6 +41,9 @@ export function DeliveryBagCompositionFields({
   bagType,
   rentType,
   rentMonths,
+  smallBagPrice,
+  bigBagPrice,
+  bagPrice,
   withdrawal,
   bagCategory,
   onBagCategoryChange,
@@ -49,7 +55,7 @@ export function DeliveryBagCompositionFields({
 }: DeliveryBagCompositionFieldsProps) {
   const { bags: bagsError, smallBags: smallError, bigBags: bigError } = fieldErrors;
   const availableTotal = summary.availableSmallBags + summary.availableBigBags;
-  const rates = CANONICAL_BAG_RATES[rentType] ?? { small: 10, big: 15 };
+  const rates = resolveOutwardRates(rentType, { smallBagPrice, bigBagPrice, bagPrice });
   const smallQty = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigQty = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
   const quantity = smallQty + bigQty;

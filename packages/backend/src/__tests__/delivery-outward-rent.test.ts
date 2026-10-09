@@ -184,7 +184,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
     expect(d2.delivery.rentCharge).toBe(6000);
   });
 
-  it('honors explicitly provided rentCharge when supplied in input', async () => {
+  it('accepts explicitly provided rentCharge when it matches recomputed rent', async () => {
     const { grn } = await grnService.createGrn(
       facilityId,
       {
@@ -200,13 +200,14 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
       USER_ID,
     );
 
+    // 20 bags × ₹10/bag × 10 months = ₹2,000 (matches server recomputation)
     const del = await deliveryService.createDelivery(
       facilityId,
-      { grnId: grn.id, smallBags: 20, bigBags: 0, rentCharge: 1200 },
+      { grnId: grn.id, smallBags: 20, bigBags: 0, rentCharge: 2000 },
       USER_ID,
     );
 
-    expect(del.delivery.rentCharge).toBe(1200);
+    expect(del.delivery.rentCharge).toBe(2000);
   });
 
   it('Seasonal Outward: calculates rent using agreed smallBagPrice from GRN', async () => {

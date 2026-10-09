@@ -1,4 +1,4 @@
-import { CANONICAL_BAG_RATES, calculateRentAmount, type RentType } from '@cold-storage/contracts';
+import { calculateRentAmount, resolveOutwardRates, type RentType } from '@cold-storage/contracts';
 
 export type OutwardBagCategory = 'Small' | 'Big' | 'Small & Big';
 
@@ -13,11 +13,20 @@ export interface ComputeOutwardRentParams {
   bagPrice?: number | null;
 }
 
+export function getOutwardEffectiveRates(
+  rentType: RentType,
+  overrides?: { smallBagPrice?: number | null; bigBagPrice?: number | null; bagPrice?: number | null } | null,
+): { small: number; big: number } {
+  return resolveOutwardRates(rentType, overrides);
+}
+
 export function computeOutwardRentCharge(params: ComputeOutwardRentParams): number {
   const { rentType, bagCategory, smallBags, bigBags, rentMonths } = params;
-  const rates = CANONICAL_BAG_RATES[rentType] ?? { small: 10, big: 15 };
-  const smallRate = params.smallBagPrice ?? params.bagPrice ?? rates.small;
-  const bigRate = params.bigBagPrice ?? params.bagPrice ?? rates.big;
+  const { small: smallRate, big: bigRate } = resolveOutwardRates(rentType, {
+    smallBagPrice: params.smallBagPrice,
+    bigBagPrice: params.bigBagPrice,
+    bagPrice: params.bagPrice,
+  });
 
   const effectiveSmall = bagCategory === 'Big' ? 0 : smallBags;
   const effectiveBig = bagCategory === 'Small' ? 0 : bigBags;
