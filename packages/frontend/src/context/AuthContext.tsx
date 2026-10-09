@@ -14,7 +14,7 @@
  */
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { executeSingleFlightRefresh, requestWithAuth, setAccessToken, setOnAuthExpired } from '@/lib/api-client';
+import { AUTH_REQUEST_TIMEOUT_MS, executeSingleFlightRefresh, fetchWithTimeout, requestWithAuth, setAccessToken, setOnAuthExpired } from '@/lib/api-client';
 
 export interface AuthUser {
   userId: string;
@@ -99,12 +99,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ username, password }),
-    });
+    let res: Response;
+    try {
+      res = await fetchWithTimeout(
+        '/api/auth/login',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ username, password }),
+        },
+        AUTH_REQUEST_TIMEOUT_MS,
+      );
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        throw new Error('Connection to server timed out. Please try again.');
+      }
+      throw err;
+    }
 
     if (!res.ok) {
       const err = (await res.json()) as { error?: string };
