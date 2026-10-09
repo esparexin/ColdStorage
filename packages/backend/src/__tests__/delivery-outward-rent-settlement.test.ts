@@ -126,14 +126,38 @@ describe('Outward Rent Settlement Flow (delivery-outward-rent-settlement.test.ts
     expect(p2.summary.remainingBalance).toBe(0);
     expect(p2.summary.paymentStatus).toBe('Settled');
 
-    // 8. Final delivery dispatches remaining 30 bags (with rentCharge 0 because paid or 0 remaining bags)
+    // 8. Final delivery dispatches remaining 30 bags (30 × ₹10 × 10 = ₹3,000).
+    // Server recomputes rent; a stale rentCharge:0 override is rejected.
+    await expect(
+      deliveryService.createDelivery(
+        facilityId,
+        { grnId: grn.id, smallBags: 30, bigBags: 0, rentCharge: 0 },
+        USER_ID,
+      ),
+    ).rejects.toThrow(/rentCharge mismatch/);
+
     const d3 = await deliveryService.createDelivery(
       facilityId,
-      { grnId: grn.id, smallBags: 30, bigBags: 0, rentCharge: 0 },
+      { grnId: grn.id, smallBags: 30, bigBags: 0, bagCategory: 'Small' },
       USER_ID,
     );
+    expect(d3.delivery.rentCharge).toBe(3000);
     expect(d3.summary.remainingDeliveryBalance).toBe(0);
-    expect(d3.summary.grnStatus).toBe('CLOSED');
+    // Bags are fully delivered but ₹3,000 remains unpaid, so GRN stays OPEN.
+    expect(d3.summary.grnStatus).toBe('OPEN');
+
+    const summaryAfterFinalDel = await rentService.getRentSummary(facilityId, grn.id);
+    expect(summaryAfterFinalDel.totalDue).toBe(10000); // 4,000 + 3,000 + 3,000
+    expect(summaryAfterFinalDel.remainingBalance).toBe(3000);
+
+    // 9. Settle final ₹3,000; GRN closes only when bags and balance are both zero.
+    const p3 = await rentService.recordPayment(
+      facilityId,
+      { grnId: grn.id, amountPaid: 3000, paymentMode: 'UPI', paymentDate: new Date() },
+      USER_ID,
+    );
+    expect(p3.summary.remainingBalance).toBe(0);
+    expect(p3.summary.paymentStatus).toBe('Settled');
 
     const grnDocFinal = await GrnModel.findOne({ id: grn.id }).lean();
     expect(grnDocFinal?.status).toBe('CLOSED');

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { resolveOutwardRates } from '@cold-storage/contracts';
 import {
   computeOutwardRentCharge,
   formatOutwardRentFormula,
+  getOutwardEffectiveRates,
 } from '../deliveryRent.helper';
 
 describe('deliveryRent.helper', () => {
@@ -84,6 +86,53 @@ describe('deliveryRent.helper', () => {
       });
       // (20 * 12 + 30 * 18) * 10 = (240 + 540) * 10 = 7800
       expect(rent).toBe(7800);
+    });
+
+    it('screenshot regression: 200 Small + 200 Big Seasonal canonical = ₹50,000', () => {
+      const rent = computeOutwardRentCharge({
+        rentType: 'Seasonal',
+        bagCategory: 'Small & Big',
+        smallBags: 200,
+        bigBags: 200,
+      });
+      // (200 * 10 + 200 * 15) * 10 = 5000 * 10 = 50000
+      expect(rent).toBe(50000);
+      const rates = getOutwardEffectiveRates('Seasonal', {});
+      expect(rates).toEqual({ small: 10, big: 15 });
+      expect(formatOutwardRentFormula('Seasonal', 'Small & Big', 200, 200, rates.small, rates.big)).toBe(
+        '(200 Small × ₹10 + 200 Big × ₹15) × 10 mos season',
+      );
+    });
+
+    it('screenshot divergence: uniform ₹12 agreed rate yields ₹48,000 with matching formula', () => {
+      const overrides = { smallBagPrice: 12, bigBagPrice: 12 };
+      const rent = computeOutwardRentCharge({
+        rentType: 'Seasonal',
+        bagCategory: 'Small & Big',
+        smallBags: 200,
+        bigBags: 200,
+        ...overrides,
+      });
+      // (200 * 12 + 200 * 12) * 10 = 4800 * 10 = 48000
+      expect(rent).toBe(48000);
+      const rates = getOutwardEffectiveRates('Seasonal', overrides);
+      expect(rates).toEqual({ small: 12, big: 12 });
+      expect(formatOutwardRentFormula('Seasonal', 'Small & Big', 200, 200, rates.small, rates.big)).toBe(
+        '(200 Small × ₹12 + 200 Big × ₹12) × 10 mos season',
+      );
+    });
+
+    it('resolves single bagPrice override to both rates', () => {
+      expect(getOutwardEffectiveRates('Seasonal', { bagPrice: 12 })).toEqual({ small: 12, big: 12 });
+      expect(resolveOutwardRates('Seasonal', { bagPrice: 12 })).toEqual({ small: 12, big: 12 });
+      const rent = computeOutwardRentCharge({
+        rentType: 'Seasonal',
+        bagCategory: 'Small & Big',
+        smallBags: 200,
+        bigBags: 200,
+        bagPrice: 12,
+      });
+      expect(rent).toBe(48000);
     });
   });
 

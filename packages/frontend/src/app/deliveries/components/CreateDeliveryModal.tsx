@@ -186,6 +186,9 @@ export function CreateDeliveryModal({
                     bagType={form.selectedGrn.bagType}
                     rentType={form.selectedGrn.rentType}
                     rentMonths={form.selectedGrn.rentMonths}
+                    smallBagPrice={form.selectedGrn.smallBagPrice}
+                    bigBagPrice={form.selectedGrn.bigBagPrice}
+                    bagPrice={form.selectedGrn.bagPrice}
                     bagCategory={form.bagCategory}
                     onBagCategoryChange={form.setBagCategory}
                     outwardRent={form.outwardRent}

@@ -27,6 +27,13 @@ export const CANONICAL_BAG_RATES: Record<RentType, CanonicalBagRate> = {
   Monthly: { small: 10, big: 15 },
 };
 
+export interface OutwardRateOverride { smallBagPrice?: number | null; bigBagPrice?: number | null; bagPrice?: number | null; }
+/** Outward effective rates SSOT: GRN agreed rates override canonical; charge and display share this. */
+export function resolveOutwardRates(rentType: RentType, o?: OutwardRateOverride | null): CanonicalBagRate {
+  const r = CANONICAL_BAG_RATES[rentType] ?? { small: 10, big: 15 };
+  return { small: o?.smallBagPrice ?? o?.bagPrice ?? r.small, big: o?.bigBagPrice ?? o?.bagPrice ?? r.big };
+}
+
 export interface RentalCalculationInput {
   rentType: RentType;
   bags: number;
