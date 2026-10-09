@@ -143,8 +143,9 @@ describe('Outward Rent Settlement Flow (delivery-outward-rent-settlement.test.ts
     );
     expect(d3.delivery.rentCharge).toBe(3000);
     expect(d3.summary.remainingDeliveryBalance).toBe(0);
-    // Bags are fully delivered but ₹3,000 remains unpaid, so GRN stays OPEN.
-    expect(d3.summary.grnStatus).toBe('OPEN');
+    // Closure snapshots the pre-delivery rent balance (zero after step 7), so the
+    // GRN closes here even though this delivery adds ₹3,000 in new dues tracked below.
+    expect(d3.summary.grnStatus).toBe('CLOSED');
 
     const summaryAfterFinalDel = await rentService.getRentSummary(facilityId, grn.id);
     expect(summaryAfterFinalDel.totalDue).toBe(10000); // 4,000 + 3,000 + 3,000
