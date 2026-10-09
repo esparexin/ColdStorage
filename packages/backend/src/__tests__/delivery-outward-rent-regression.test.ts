@@ -55,7 +55,20 @@ describe('Outward Rent Regression: screenshot 50k vs 48k + mismatch guard', () =
   }
 
   it('rejects mismatched rentCharge instead of trusting the client', async () => {
-    const { grn } = await createGrn('9001', { bags: 50, bagType: 'S' });
+    const { grn } = await grnService.createGrn(
+      facilityId,
+      {
+        grnNumber: '9001',
+        date: new Date(),
+        customerId,
+        commodityId: 'cmd-wheat',
+        chamber: 'CH-01',
+        bags: 50,
+        bagType: 'S',
+        rentType: 'Seasonal',
+      },
+      USER_ID,
+    );
     await expect(
       deliveryService.createDelivery(facilityId, { grnId: grn.id, smallBags: 20, bigBags: 0, rentCharge: 1200 }, USER_ID),
     ).rejects.toThrow(/rentCharge mismatch/);
