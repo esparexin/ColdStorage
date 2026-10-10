@@ -22,6 +22,7 @@ function createMockAccount(overrides: Partial<RentSummaryDto> = {}): RentSummary
     totalPaid: 0,
     remainingBalance: 4000,
     paymentStatus: 'Not Settled',
+    rentState: 'PENDING',
     payments: [],
     extensions: [],
     totalDue: 4000,
@@ -54,6 +55,7 @@ describe('rentFilter.helper', () => {
     totalPaid: 5000,
     remainingBalance: 0,
     paymentStatus: 'Settled',
+    rentState: 'SETTLED',
     payments: [
       {
         id: 'rp-1',

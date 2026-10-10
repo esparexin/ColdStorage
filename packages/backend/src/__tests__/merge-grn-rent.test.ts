@@ -92,7 +92,7 @@ describe('Merge GRN: Rent Carry-Forward & Obligation Preservation (Phase 4)', ()
   it('monthly unbilled source lot accrues occupancy rent and carries it forward to target', async () => {
     const targetGrnId = await seedGrn({
       facilityId, customerId: customerA, customerName: 'Farmer Ramesh', commodityId, commodityName: 'Wheat',
-      chamber: 'CH-01', bags: 100, rentType: 'Monthly', rentAmount: 1000, bagPrice: 10, grnNumber: 'GRN-26-27-0103',
+      chamber: 'CH-01', bags: 100, rentType: 'Monthly', rentAmount: 1000, grnNumber: 'GRN-26-27-0103',
     });
 
     const inwardDate = new Date();

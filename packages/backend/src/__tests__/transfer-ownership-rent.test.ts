@@ -110,7 +110,6 @@ describe('Transfer Ownership: Monthly & Seasonal Rent Accrual (Phase 2)', () => 
       chamber: 'CH-01',
       bags: 200,
       rentType: 'Seasonal',
-      bagPrice: 15,
       rentAmount: 3000,
       grnNumber: 'GRN-26-27-0092',
     });
