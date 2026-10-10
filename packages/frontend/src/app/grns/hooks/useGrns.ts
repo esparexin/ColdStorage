@@ -3,7 +3,6 @@ import type {
   Commodity,
   Customer,
   Grn,
-  GrnStatus,
 } from '@cold-storage/contracts';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
