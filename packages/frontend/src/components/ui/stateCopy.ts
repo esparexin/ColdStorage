@@ -12,6 +12,7 @@ export const LOADING_LABELS = {
   rent: 'Loading rent billing accounts…',
   customers: 'Loading customers…',
   commodities: 'Loading commodities…',
+  groups: 'Loading groups…',
   users: 'Loading users…',
   audit: 'Loading audit logs…',
   backupLogs: 'Loading backup logs…',
@@ -34,6 +35,7 @@ export const ERROR_TITLES = {
   rent: 'Error loading rent accounts',
   customers: 'Error loading customers',
   commodities: 'Error loading commodities',
+  groups: 'Error loading groups',
   users: 'Error loading users',
   audit: 'Error loading audit logs',
   facilities: 'Could not load facilities',
@@ -46,6 +48,7 @@ export const EMPTY_MESSAGES = {
   noFacilityGrns: 'Please select a facility from the top header to manage Inward of Goods.',
   noFacilityDeliveries: 'Please select a facility from the top header to manage deliveries.',
   noFacilityRent: 'Please select a facility from the top header to manage rent billing.',
+  noFacilityGroups: 'Please select a facility from the top header to manage groups.',
   noFacilityImportExport: 'Please select a facility from the top header to manage data imports and exports.',
   dashboard: 'No dashboard data available.',
   commodityStock: 'No commodity stock on hand.',
@@ -57,6 +60,7 @@ export const EMPTY_MESSAGES = {
   usersEmpty: 'No registered users found.',
   customersEmpty: 'No customers registered yet.',
   commoditiesEmpty: 'No commodities registered yet.',
+  groupsEmpty: 'No groups created yet. Create a group to organize GRNs by trader.',
 } as const;
 
 export function emptyForFacility(facilityName: string | null, kind: 'grns' | 'deliveries' | 'rent'): string {
@@ -66,8 +70,9 @@ export function emptyForFacility(facilityName: string | null, kind: 'grns' | 'de
   return `No rent accounts recorded for ${name} yet.`;
 }
 
-export function noMatchMessage(kind: 'customers' | 'commodities', term: string): string {
+export function noMatchMessage(kind: 'customers' | 'commodities' | 'groups', term: string): string {
   if (kind === 'customers') return `No customers matching "${term}".`;
+  if (kind === 'groups') return `No groups matching "${term}".`;
   return `No commodities matching "${term}".`;
 }
 
