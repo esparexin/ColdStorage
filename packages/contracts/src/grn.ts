@@ -198,6 +198,8 @@ export const grnSchema = z.object({
   loanSettlementReceiverAadhaar: z.string().nullable().optional(),
   netDeliveredBags: z.number().int().min(0).optional(),
   closingBags: z.number().int().min(0).optional(),
+  groupId: z.string().nullable().optional(),
+  groupName: z.string().nullable().optional(),
   createdBy: z.string().min(1),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),

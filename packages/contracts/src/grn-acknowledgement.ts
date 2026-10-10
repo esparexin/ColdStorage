@@ -66,6 +66,7 @@ export const grnQuerySchema = z.object({
   commodityId: z.string().optional(),
   chamber: z.string().trim().max(20).optional(),
   status: grnStatusSchema.optional(),
+  groupId: z.string().trim().optional(),
   search: z.string().trim().max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),

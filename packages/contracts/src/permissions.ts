@@ -48,6 +48,9 @@ export const PERMISSIONS = {
   'audit:view': ['SUPER_ADMIN', 'ADMIN'],
   'settings:manage': ['SUPER_ADMIN'],
   'dashboard:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
+  'group:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
+  'group:manage': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
+  'group:delete': ['SUPER_ADMIN', 'ADMIN'],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type PermissionKey = keyof typeof PERMISSIONS;

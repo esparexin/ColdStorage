@@ -31,6 +31,12 @@ export const auditEventTypeSchema = z.enum([
   'GRN_LOAN_STATUS_UPDATED',
   'INTERNAL_MOVEMENT_MERGE',
   'INTERNAL_MOVEMENT_TRANSFER',
+  'GROUP_CREATED',
+  'GROUP_RENAMED',
+  'GROUP_DELETED',
+  'GROUP_GRNS_ASSIGNED',
+  'GROUP_GRNS_UNASSIGNED',
+  'GROUP_GRNS_MOVED',
 ]);
 
 export type AuditEventType = z.infer<typeof auditEventTypeSchema>;
