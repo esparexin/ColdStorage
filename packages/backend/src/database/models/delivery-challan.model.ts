@@ -75,6 +75,10 @@ deliveryChallanSchema.pre('validate', function assertChallanIsNotEmpty(next) {
 });
 
 deliveryChallanSchema.index({ facilityId: 1, challanNumber: 1 }, { unique: true });
+deliveryChallanSchema.index(
+  { facilityId: 1, gpNumber: 1 },
+  { unique: true, partialFilterExpression: { gpNumber: { $type: 'string' } } },
+);
 deliveryChallanSchema.index({ facilityId: 1, grnId: 1 });
 deliveryChallanSchema.index({ facilityId: 1, date: -1 });
 deliveryChallanSchema.index({ customerId: 1, facilityId: 1 });

@@ -11,6 +11,7 @@ export const DOCUMENT_PREFIXES = {
   inwardReceipt: 'RCPT',
   challan: 'CHL',
   rentReceipt: 'RRCPT',
+  gatePass: 'GP',
 } as const;
 
 export class CounterService {
@@ -61,8 +62,8 @@ export class CounterService {
   ): Promise<void> {
     const fy = getFinancialYearKey(date);
     await CounterModel.findOneAndUpdate(
-      { facilityId, counterType: 'INWARD_RECEIPT', financialYear: fy, lastSequence: { $lt: sequenceNumber } },
-      { $set: { lastSequence: sequenceNumber } },
+      { facilityId, counterType: 'INWARD_RECEIPT', financialYear: fy },
+      { $max: { lastSequence: sequenceNumber } },
       { session, upsert: true },
     ).exec();
   }
@@ -95,6 +96,48 @@ export class CounterService {
     const seq = await this.getNextSequence(facilityId, 'RENT_RECEIPT', fy, session);
     const padded = String(seq).padStart(padLength, '0');
     return `${DOCUMENT_PREFIXES.rentReceipt}-${fy}-${padded}`;
+  }
+
+  /**
+   * Sequential Gate Pass number generator in format GP-0001, GP-0002, etc.
+   * Concurrency-safe via atomic findOneAndUpdate sequence tracking.
+   */
+  public async generateGatePassNumber(
+    facilityId: string,
+    date: Date,
+    session?: ClientSession,
+    padLength = 4,
+  ): Promise<string> {
+    const fy = getFinancialYearKey(date);
+    const seq = await this.getNextSequence(facilityId, 'GATE_PASS', fy, session);
+    const padded = String(seq).padStart(padLength, '0');
+    return `${DOCUMENT_PREFIXES.gatePass}-${padded}`;
+  }
+
+  public async previewNextGatePassNumber(
+    facilityId: string,
+    date: Date,
+    padLength = 4,
+  ): Promise<string> {
+    const fy = getFinancialYearKey(date);
+    const counter = await CounterModel.findOne({ facilityId, counterType: 'GATE_PASS', financialYear: fy }).exec();
+    const nextSeq = (counter?.lastSequence ?? 0) + 1;
+    const padded = String(nextSeq).padStart(padLength, '0');
+    return `${DOCUMENT_PREFIXES.gatePass}-${padded}`;
+  }
+
+  public async syncGatePassSequence(
+    facilityId: string,
+    date: Date,
+    sequenceNumber: number,
+    session?: ClientSession,
+  ): Promise<void> {
+    const fy = getFinancialYearKey(date);
+    await CounterModel.findOneAndUpdate(
+      { facilityId, counterType: 'GATE_PASS', financialYear: fy },
+      { $max: { lastSequence: sequenceNumber } },
+      { session, upsert: true },
+    ).exec();
   }
 }
 

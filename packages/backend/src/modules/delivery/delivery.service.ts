@@ -15,6 +15,7 @@ import {
   listDeliveriesForGrn,
   resolveFacilityIdForDelivery,
 } from './queries/delivery.queries.js';
+import { counterService } from '../common/counter.service.js';
 
 export class DeliveryService {
   public async createDelivery(
@@ -58,6 +59,10 @@ export class DeliveryService {
 
   public async resolveFacilityIdForDelivery(deliveryId: string): Promise<string | null> {
     return resolveFacilityIdForDelivery(deliveryId);
+  }
+
+  public async getNextGatePassNumber(facilityId: string): Promise<string> {
+    return counterService.previewNextGatePassNumber(facilityId, new Date());
   }
 }
 
