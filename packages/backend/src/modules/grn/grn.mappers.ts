@@ -104,6 +104,7 @@ export function toGrnEntity(doc: {
     loanSettlementReceiverAadhaar: ((doc as Record<string, unknown>).loanSettlementReceiverAadhaar as string | null) ?? null,
     netDeliveredBags: netDelivered,
     closingBags: closing,
+    groupId: ((doc as Record<string, unknown>).groupId as string | null) ?? null,
     createdBy: doc.createdBy,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
