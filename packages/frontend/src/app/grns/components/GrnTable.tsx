@@ -6,7 +6,7 @@ import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { Badge, Button } from '@/components/ui';
 import { GrnRowActions } from './GrnRowActions';
 import { RentTermsCell } from './RentTermsCell';
-import styles from '../page.module.css';
+import styles from './GrnTable.module.css';
 
 interface GrnTableProps {
   grns: Grn[];
@@ -42,16 +42,8 @@ export interface CreateGrnTableColumnsParams {
 }
 
 export function createGrnTableColumns({
-  canPrint,
-  canCorrect = false,
-  canCreateChallan = false,
-  canInternalMove = false,
-  printingId,
-  onSelectGrn,
-  onCorrectGrn,
-  onCreateChallan,
-  onInternalMove,
-  onPrint,
+  canPrint, canCorrect = false, canCreateChallan = false, canInternalMove = false,
+  printingId, onSelectGrn, onCorrectGrn, onCreateChallan, onInternalMove, onPrint,
 }: CreateGrnTableColumnsParams): DataTableColumn<Grn>[] {
   return [
     {
@@ -104,16 +96,22 @@ export function createGrnTableColumns({
       align: 'right',
       render: (row) => (
         <div className={styles.bagsCell}>
-          <span className={styles.tabularNum} style={{ fontWeight: 'var(--font-semibold)' }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={styles.inwardLink}
+            onClick={() => onSelectGrn(row)}
+            aria-label={`View details for GRN ${row.grnNumber}`}
+          >
             {row.bags.toLocaleString('en-IN')} bags
-          </span>
+          </Button>
           {row.bagType && (
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+            <span className={styles.bagTypeSub}>
               S/B: {row.bagType}
             </span>
           )}
           {row.netDeliveredBags != null && row.netDeliveredBags > 0 && (
-            <span className={styles.tabularNum} style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
+            <span className={styles.deliveredSub}>
               Out: {row.netDeliveredBags.toLocaleString('en-IN')}
             </span>
           )}
@@ -130,7 +128,7 @@ export function createGrnTableColumns({
           <span
             className={styles.balanceCell}
             style={{
-              color: closing === 0 ? 'var(--color-text-muted)' : 'var(--color-primary-text)',
+              color: closing === 0 ? 'var(--color-text-muted)' : 'var(--color-text-primary)',
             }}
           >
             {closing.toLocaleString('en-IN')} bags
@@ -204,35 +202,13 @@ export function createGrnTableColumns({
 }
 
 export function GrnTable({
-  grns,
-  caption,
-  canPrint,
-  canCorrect = false,
-  canCreateChallan = false,
-  canInternalMove = false,
-  printingId,
-  page,
-  pageSize,
-  totalPages,
-  totalGrns,
-  onPageChange,
-  onSelectGrn,
-  onCorrectGrn,
-  onCreateChallan,
-  onInternalMove,
-  onPrint,
+  grns, caption, canPrint, canCorrect = false, canCreateChallan = false,
+  canInternalMove = false, printingId, page, pageSize, totalPages, totalGrns,
+  onPageChange, onSelectGrn, onCorrectGrn, onCreateChallan, onInternalMove, onPrint,
 }: GrnTableProps) {
   const columns = createGrnTableColumns({
-    canPrint,
-    canCorrect,
-    canCreateChallan,
-    canInternalMove,
-    printingId,
-    onSelectGrn,
-    onCorrectGrn,
-    onCreateChallan,
-    onInternalMove,
-    onPrint,
+    canPrint, canCorrect, canCreateChallan, canInternalMove,
+    printingId, onSelectGrn, onCorrectGrn, onCreateChallan, onInternalMove, onPrint,
   });
 
   return (
