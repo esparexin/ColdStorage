@@ -14,7 +14,7 @@
  */
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { AUTH_REQUEST_TIMEOUT_MS, executeSingleFlightRefresh, fetchWithTimeout, requestWithAuth, setAccessToken, setOnAuthExpired } from '@/lib/api-client';
+import { AUTH_BOOTSTRAP_OVERALL_TIMEOUT_MS, AUTH_REQUEST_TIMEOUT_MS, executeSingleFlightRefresh, fetchWithTimeout, requestWithAuth, setAccessToken, setOnAuthExpired } from '@/lib/api-client';
 
 export interface AuthUser {
   userId: string;
@@ -45,6 +45,33 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function toAuthUser(raw: RawAuthUserData): AuthUser {
+  return {
+    userId: raw.userId ?? raw.id ?? '',
+    username: raw.username,
+    fullName: raw.fullName,
+    role: raw.role,
+    facilityIds: raw.facilityIds,
+    mustChangePassword: Boolean(raw.mustChangePassword),
+  };
+}
+
+/**
+ * Single canonical GET /me reader (Phase 3 de-dupe).
+ * Previously `refreshUserFromMe` and the `changePassword` fallback each
+ * implemented their own `/api/auth/me` fetch+parse. Both now share this.
+ */
+async function fetchMeRaw(): Promise<RawAuthUserData | null> {
+  try {
+    const meRes = await requestWithAuth('/api/auth/me');
+    if (!meRes.ok) return null;
+    const meData = (await meRes.json()) as { user: RawAuthUserData };
+    return meData.user ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,25 +79,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ---------------------------------------------------------------------------
   // Bootstrap: attempt silent refresh on mount.
   // While isLoading === true, ResponsiveShell renders the full-page spinner.
+  //
+  // Phase 3 hardening: race the single-flight refresh against an overall
+  // deadline so stacked sequential windows (refresh 12s + retry-once 2×12s)
+  // can never hold the gate toward ~48s. Per-fetch 12s still bounds each
+  // HTTP call; this bounds their sum. On deadline expiry we resolve null so
+  // the gate falls through to the login form instead of spinning.
   // ---------------------------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
 
     async function bootstrap() {
       try {
-        const result = await executeSingleFlightRefresh<RawAuthUserData>();
+        const refreshTask = executeSingleFlightRefresh<RawAuthUserData>();
+        const deadlineTask = new Promise<null>((resolve) => {
+          setTimeout(() => resolve(null), AUTH_BOOTSTRAP_OVERALL_TIMEOUT_MS);
+        });
+        const result = await Promise.race([refreshTask, deadlineTask]);
         if (cancelled) return;
 
         if (result?.user) {
-          const raw = result.user;
-          setUser({
-            userId: raw.userId ?? raw.id ?? '',
-            username: raw.username,
-            fullName: raw.fullName,
-            role: raw.role,
-            facilityIds: raw.facilityIds,
-            mustChangePassword: Boolean(raw.mustChangePassword),
-          });
+          setUser(toAuthUser(result.user));
         } else {
           setAccessToken(null);
           setUser(null);
@@ -131,14 +160,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     const token = data.token ?? data.accessToken ?? null;
     setAccessToken(token);
-    setUser({
-      userId: data.user.userId ?? data.user.id ?? '',
-      username: data.user.username,
-      fullName: data.user.fullName,
-      role: data.user.role,
-      facilityIds: data.user.facilityIds,
-      mustChangePassword: Boolean(data.mustChangePassword ?? data.user.mustChangePassword),
-    });
+    const mapped = toAuthUser(data.user);
+    // Top-level mustChangePassword (from login response) wins when present;
+    // otherwise fall back to the embedded user record. Canonical contract
+    // keeps password-only flow — no OTP/MFA second step.
+    mapped.mustChangePassword = Boolean(data.mustChangePassword ?? data.user.mustChangePassword);
+    setUser(mapped);
   }, []);
 
   const logout = useCallback(async () => {
@@ -153,24 +180,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshUserFromMe = useCallback(async (): Promise<boolean> => {
-    try {
-      const meRes = await requestWithAuth('/api/auth/me');
-      if (!meRes.ok) return false;
-      const meData = (await meRes.json()) as { user: RawAuthUserData };
-      const raw = meData.user;
-      if (!raw) return false;
-      setUser({
-        userId: raw.userId ?? raw.id ?? '',
-        username: raw.username,
-        fullName: raw.fullName,
-        role: raw.role,
-        facilityIds: raw.facilityIds,
-        mustChangePassword: Boolean(raw.mustChangePassword),
-      });
-      return true;
-    } catch {
-      return false;
-    }
+    const raw = await fetchMeRaw();
+    if (!raw) return false;
+    setUser(toAuthUser(raw));
+    return true;
   }, []);
 
   const changePassword = useCallback(
@@ -194,17 +207,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await login(capturedUsername, newPassword);
         return;
       }
-      try {
-        const meRes = await requestWithAuth('/api/auth/me');
-        if (meRes.ok) {
-          const meData = (await meRes.json()) as { user: RawAuthUserData };
-          if (meData.user?.username) {
-            await login(meData.user.username, newPassword);
-            return;
-          }
-        }
-      } catch {
-        // fall through to direct state sync below
+      const meRaw = await fetchMeRaw();
+      if (meRaw?.username) {
+        await login(meRaw.username, newPassword);
+        return;
       }
       // Last resort: sync user state from the authoritative record so the
       // forced-change modal does not render stale mustChangePassword=true.
