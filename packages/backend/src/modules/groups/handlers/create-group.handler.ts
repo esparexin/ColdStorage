@@ -17,7 +17,7 @@ export async function createGroup(
   }
 
   const name = input.name.trim();
-  const nameNormalized = name.toLowerCase();
+  const nameNormalized = name.toLowerCase().replace(/\s+/g, ' ');
 
   const existing = await GroupModel.findOne({ facilityId, nameNormalized }).lean().exec();
   if (existing) {
@@ -36,15 +36,23 @@ export async function createGroup(
   }
 
   const id = `grp-${randomUUID()}`;
-  const doc = await GroupModel.create({
-    id,
-    facilityId,
-    name,
-    nameNormalized,
-    remarks: input.remarks?.trim() || null,
-    customerId: input.customerId || null,
-    createdBy: userId,
-  });
+  let doc;
+  try {
+    doc = await GroupModel.create({
+      id,
+      facilityId,
+      name,
+      nameNormalized,
+      remarks: input.remarks?.trim() || null,
+      customerId: input.customerId || null,
+      createdBy: userId,
+    });
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
+      throw new Error(`Group with name '${name}' already exists in this facility`);
+    }
+    throw err;
+  }
 
   await auditService.log({
     eventType: 'GROUP_CREATED',

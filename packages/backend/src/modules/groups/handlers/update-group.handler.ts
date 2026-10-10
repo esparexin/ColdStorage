@@ -18,9 +18,9 @@ export async function updateGroup(
   let wasRenamed = false;
   const oldName = group.name;
 
-  if (input.name && input.name.trim().toLowerCase() !== group.nameNormalized) {
+  if (input.name && input.name.trim().toLowerCase().replace(/\s+/g, ' ') !== group.nameNormalized) {
     const name = input.name.trim();
-    const nameNormalized = name.toLowerCase();
+    const nameNormalized = name.toLowerCase().replace(/\s+/g, ' ');
 
     const duplicate = await GroupModel.findOne({
       facilityId,
@@ -43,7 +43,14 @@ export async function updateGroup(
     group.remarks = input.remarks ? input.remarks.trim() : null;
   }
 
-  await group.save();
+  try {
+    await group.save();
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 11000) {
+      throw new Error(`Group with name '${group.name}' already exists in this facility`);
+    }
+    throw err;
+  }
 
   if (wasRenamed) {
     await auditService.log({
