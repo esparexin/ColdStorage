@@ -13,6 +13,7 @@ import { useCustomerCombobox } from '../hooks/useCustomerCombobox';
 import { parseNumericInput, useCreateGrnForm } from '../hooks/useCreateGrnForm';
 import { CustomerFormModal } from '../../customers/components/CustomerFormModal';
 import { CommodityFormModal } from '../../commodities/components/CommodityFormModal';
+import { CommodityRatesModal } from '../../commodities/components/CommodityRatesModal';
 import styles from '../page.module.css';
 
 export interface CreateGrnModalProps {
@@ -34,9 +35,7 @@ export function CreateGrnModal({
 }: CreateGrnModalProps) {
   const isEdit = mode === 'edit' && Boolean(initialGrn);
   const isClosed = initialGrn?.status === 'CLOSED';
-  const hasMovement = Boolean(
-    movementGuard?.hasMovement || isClosed || (initialGrn && (initialGrn.netDeliveredBags ?? 0) > 0),
-  );
+  const hasMovement = Boolean(movementGuard?.hasMovement || isClosed || (initialGrn && (initialGrn.netDeliveredBags ?? 0) > 0));
   const structuralLocked = isEdit && (isClosed || hasMovement);
   const guardMessage = isClosed
     ? `Cannot correct GRN '${initialGrn?.grnNumber}': it is CLOSED and its stock has been fully delivered.`
@@ -52,14 +51,17 @@ export function CreateGrnModal({
   );
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [isAddingCommodity, setIsAddingCommodity] = useState(false);
+  const [isConfiguringRates, setIsConfiguringRates] = useState(false);
+
+  const selectedCommodity =
+    commodities.find((c) => c.id === form.createCommodityId) ??
+    (form.createCommodityId ? { id: form.createCommodityId, name: 'Commodity', isActive: true } : null);
 
   const customerBox = useCustomerCombobox(
     customers, form.createCustomerId, form.setCreateCustomerId, () => setIsAddingCustomer(true),
   );
 
-  const { attemptExit, isConfirmOpen, confirmExit, cancelExit } = useUnsavedChanges(
-    form.isDirty && !form.submitting,
-  );
+  const { attemptExit, isConfirmOpen, confirmExit, cancelExit } = useUnsavedChanges(form.isDirty && !form.submitting);
   const handleAttemptClose = () => attemptExit(onClose);
 
   return (
@@ -71,9 +73,7 @@ export function CreateGrnModal({
       size="lg"
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
-          <Button variant="outline" size="sm" onClick={handleAttemptClose} disabled={form.submitting}>
-            Cancel
-          </Button>
+          <Button variant="outline" size="sm" onClick={handleAttemptClose} disabled={form.submitting}>Cancel</Button>
           <Button
             id="submit-create-grn-btn" form="create-grn-form" type="submit" variant="primary" size="sm"
             disabled={form.submitting || isClosed || (!isEdit && (form.isGrnInvalid || form.isRateUnresolved))} isLoading={form.submitting}
@@ -128,17 +128,12 @@ export function CreateGrnModal({
               <input
                 id="create-gr-number" type="text" inputMode="numeric" required maxLength={4}
                 disabled={isEdit} value={form.createGrnNumber} onChange={(e) => form.setCreateGrnNumber(e.target.value)}
-                onBlur={form.handleGrnBlur}
-                placeholder="Enter 4-digit GRN"
+                onBlur={form.handleGrnBlur} placeholder="Enter 4-digit GRN"
                 className={`${styles.fieldInput} ${form.fieldErrors.grnNumber ? styles.inputError : ''} ${isEdit ? styles.calculatedField : ''}`}
                 aria-invalid={Boolean(form.fieldErrors.grnNumber)}
                 aria-describedby={form.fieldErrors.grnNumber ? 'create-gr-number-error' : undefined}
               />
-              {form.fieldErrors.grnNumber && (
-                <span id="create-gr-number-error" className={styles.fieldErrorText} role="alert">
-                  {form.fieldErrors.grnNumber}
-                </span>
-              )}
+              {form.fieldErrors.grnNumber && <span id="create-gr-number-error" className={styles.fieldErrorText} role="alert">{form.fieldErrors.grnNumber}</span>}
             </div>
             <div className={styles.fieldGroup}>
               <Input
@@ -211,6 +206,7 @@ export function CreateGrnModal({
                 rentType={form.createRentType} rentMonths={form.createRentMonths}
                 rate={form.displayRate} loading={form.rateLoading}
                 error={form.fieldErrors.rate ?? form.rateError} onRetry={form.retryRate}
+                onAddRate={selectedCommodity ? () => setIsConfiguringRates(true) : undefined}
               />
             )}
           </div>
@@ -240,6 +236,13 @@ export function CreateGrnModal({
     />
     {isAddingCustomer && <CustomerFormModal customer={null} selectedFacilityId={facilityId} existingCustomers={customers} onClose={() => setIsAddingCustomer(false)} onSuccess={() => { setIsAddingCustomer(false); onCustomerAdded?.(); }} />}
     {isAddingCommodity && <CommodityFormModal onClose={() => setIsAddingCommodity(false)} onSuccess={() => { setIsAddingCommodity(false); onCommodityAdded?.(); }} />}
+    {isConfiguringRates && selectedCommodity && (
+      <CommodityRatesModal
+        commodity={selectedCommodity}
+        onClose={() => { setIsConfiguringRates(false); form.retryRate(); }}
+        onSaved={() => { setIsConfiguringRates(false); form.retryRate(); }}
+      />
+    )}
     </>
   );
 }

@@ -21,34 +21,37 @@ interface CommodityRatesModalProps {
   onSaved: () => void;
 }
 
-interface RateField {
-  key: keyof CommodityRatesFormState;
-  id: string;
-  label: string;
-}
-
-interface RateSection {
+interface MatrixRow {
   title: string;
   subtitle: string;
-  fields: [RateField, RateField];
+  smallKey: 'seasonalSmall' | 'monthlySmall';
+  smallId: string;
+  smallAriaLabel: string;
+  bigKey: 'seasonalBig' | 'monthlyBig';
+  bigId: string;
+  bigAriaLabel: string;
 }
 
-const SECTIONS: RateSection[] = [
+const MATRIX_ROWS: MatrixRow[] = [
   {
-    title: 'Seasonal — March to December',
-    subtitle: 'Whole-season total per bag (10 months informational)',
-    fields: [
-      { key: 'seasonalSmall', id: 'rate-seasonal-small', label: 'Small-Bag Rate (whole-season total ₹/bag)' },
-      { key: 'seasonalBig', id: 'rate-seasonal-big', label: 'Big-Bag Rate (whole-season total ₹/bag)' },
-    ],
+    title: 'Seasonal Subscription',
+    subtitle: 'March–December (₹/bag)',
+    smallKey: 'seasonalSmall',
+    smallId: 'rate-seasonal-small',
+    smallAriaLabel: 'Seasonal Small-Bag Rate (₹/bag)',
+    bigKey: 'seasonalBig',
+    bigId: 'rate-seasonal-big',
+    bigAriaLabel: 'Seasonal Big-Bag Rate (₹/bag)',
   },
   {
-    title: 'Monthly — January and February',
-    subtitle: 'Rent per bag for one month',
-    fields: [
-      { key: 'monthlySmall', id: 'rate-monthly-small', label: 'Small-Bag Rate (₹/bag/month)' },
-      { key: 'monthlyBig', id: 'rate-monthly-big', label: 'Big-Bag Rate (₹/bag/month)' },
-    ],
+    title: 'Monthly Subscription',
+    subtitle: 'Per month (₹/bag/month)',
+    smallKey: 'monthlySmall',
+    smallId: 'rate-monthly-small',
+    smallAriaLabel: 'Monthly Small-Bag Rate (₹/bag/month)',
+    bigKey: 'monthlyBig',
+    bigId: 'rate-monthly-big',
+    bigAriaLabel: 'Monthly Big-Bag Rate (₹/bag/month)',
   },
 ];
 
@@ -111,7 +114,7 @@ export function CommodityRatesModal({ commodity, onClose, onSaved }: CommodityRa
           <Banner
             variant="success"
             id="rates-saved-confirmation"
-            message={`Rates saved for ${commodity.name}. Saving updates the commodity's complete four-rate configuration; existing GRNs keep their agreed rates.`}
+            message={`Rates saved for ${commodity.name}.`}
           />
           <div className={styles.modalFooter}>
             <Button variant="primary" onClick={onSaved}>
@@ -122,33 +125,59 @@ export function CommodityRatesModal({ commodity, onClose, onSaved }: CommodityRa
       ) : (
         <form onSubmit={handleSubmit} className={styles.modalForm}>
           {modalError && <Banner message={modalError} id="rates-modal-error" />}
-          {SECTIONS.map((section) => (
-            <section key={section.title} className={styles.rateSection} aria-label={section.title}>
-              <h3 className={styles.rateSectionTitle}>{section.title}</h3>
-              <p className={styles.formHint}>{section.subtitle}</p>
-              <div className={styles.rateGrid}>
-                {section.fields.map((field) => (
-                  <Input
-                    key={field.id}
-                    id={field.id}
-                    label={field.label}
-                    type="text"
-                    inputMode="decimal"
-                    required
-                    value={form[field.key]}
-                    onChange={(e) => setField(field.key, e.target.value)}
-                    placeholder="e.g. 12"
-                    disabled={saving}
-                    error={fieldErrors[field.key]}
-                  />
+          <div className={styles.matrixContainer}>
+            <table className={styles.matrixTable}>
+              <thead>
+                <tr>
+                  <th scope="col" className={styles.matrixTh}>Subscription</th>
+                  <th scope="col" className={styles.matrixTh} style={{ textAlign: 'center' }}>
+                    Small Bag
+                  </th>
+                  <th scope="col" className={styles.matrixTh} style={{ textAlign: 'center' }}>
+                    Big Bag
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {MATRIX_ROWS.map((row) => (
+                  <tr key={row.title} className={styles.matrixTr}>
+                    <td className={styles.matrixTd}>
+                      <div className={styles.matrixRowTitle}>{row.title}</div>
+                      <div className={styles.matrixRowSubtitle}>{row.subtitle}</div>
+                    </td>
+                    <td className={styles.matrixTd}>
+                      <Input
+                        id={row.smallId}
+                        aria-label={row.smallAriaLabel}
+                        type="text"
+                        inputMode="decimal"
+                        required
+                        value={form[row.smallKey]}
+                        onChange={(e) => setField(row.smallKey, e.target.value)}
+                        placeholder="e.g. 10"
+                        disabled={saving}
+                        error={fieldErrors[row.smallKey]}
+                      />
+                    </td>
+                    <td className={styles.matrixTd}>
+                      <Input
+                        id={row.bigId}
+                        aria-label={row.bigAriaLabel}
+                        type="text"
+                        inputMode="decimal"
+                        required
+                        value={form[row.bigKey]}
+                        onChange={(e) => setField(row.bigKey, e.target.value)}
+                        placeholder="e.g. 12"
+                        disabled={saving}
+                        error={fieldErrors[row.bigKey]}
+                      />
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            </section>
-          ))}
-          <p className={styles.formHint}>
-            Saving updates the commodity&apos;s complete four-rate configuration at once.
-            Existing GRNs keep their agreed rates.
-          </p>
+              </tbody>
+            </table>
+          </div>
           <div className={styles.modalFooter}>
             <Button variant="secondary" onClick={onClose} disabled={saving}>
               Cancel

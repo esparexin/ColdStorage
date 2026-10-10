@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { Commodity } from '@cold-storage/contracts';
+import type { Commodity, CommodityRate } from '@cold-storage/contracts';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
 
@@ -9,6 +9,8 @@ export const COMMODITY_PAGE_SIZE = 20;
 
 export function useCommodities() {
   const [commodities, setCommodities] = useState<Commodity[]>([]);
+  const [ratesMap, setRatesMap] = useState<Record<string, CommodityRate[]>>({});
+  const [ratesLoading, setRatesLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const beginRequest = useRequestGuard();
@@ -33,12 +35,43 @@ export function useCommodities() {
       }
       const data = (await res.json()) as { items?: Commodity[] };
       if (!isCurrent()) return;
-      setCommodities(data.items ?? []);
+      const items = data.items ?? [];
+      setCommodities(items);
+      setLoading(false);
+
+      if (items.length > 0) {
+        setRatesLoading(true);
+        const rateEntries = await Promise.all(
+          items.map(async (c): Promise<[string, CommodityRate[]]> => {
+            try {
+              const ratesRes = await requestWithAuth(
+                `/api/commodities/${encodeURIComponent(c.id)}/rates`,
+              );
+              if (!ratesRes.ok) return [c.id, []];
+              const ratesData = (await ratesRes.json()) as { items?: CommodityRate[] };
+              return [c.id, ratesData.items ?? []];
+            } catch {
+              return [c.id, []];
+            }
+          }),
+        );
+        if (!isCurrent()) return;
+        const newMap: Record<string, CommodityRate[]> = {};
+        for (const [id, r] of rateEntries) {
+          newMap[id] = r;
+        }
+        setRatesMap(newMap);
+      } else {
+        setRatesMap({});
+      }
     } catch (e) {
       if (!isCurrent()) return;
       setError(e instanceof Error ? e.message : 'Failed to load commodities');
     } finally {
-      if (isCurrent()) setLoading(false);
+      if (isCurrent()) {
+        setLoading(false);
+        setRatesLoading(false);
+      }
     }
   }, [beginRequest]);
 
@@ -87,6 +120,8 @@ export function useCommodities() {
     pageSize: COMMODITY_PAGE_SIZE,
     loading,
     error,
+    ratesMap,
+    ratesLoading,
     searchTerm,
     setSearchTerm,
     filteredCommodities,
