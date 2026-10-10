@@ -55,6 +55,9 @@ export interface GrnDoc extends Document {
   loanSettlementIfsc: string | null;
   loanSettlementReceiverName: string | null;
   loanSettlementReceiverAadhaar: string | null;
+  /** Surviving target of a merge; null unless this GRN was merged. Lifecycle status stays CLOSED. */
+  mergedIntoGrnId: string | null;
+  mergedIntoGrnNumber: string | null;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -119,6 +122,8 @@ const grnSchema = new Schema<GrnDoc>(
     loanSettlementIfsc: { type: String, trim: true, default: null },
     loanSettlementReceiverName: { type: String, trim: true, default: null },
     loanSettlementReceiverAadhaar: { type: String, trim: true, default: null },
+    mergedIntoGrnId: { type: String, default: null, index: true },
+    mergedIntoGrnNumber: { type: String, trim: true, default: null },
     createdBy: { type: String, required: true },
   },
   {

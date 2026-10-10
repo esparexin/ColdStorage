@@ -89,7 +89,7 @@ export function GrnTable({
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
           <span>{row.commodityName}</span>
-          <span className={styles.tagChamber}>{row.chamber}</span>
+          <span className={styles.tagChamber}>{row.mergedIntoGrnNumber ? '—' : row.chamber}</span>
         </div>
       ),
     },
@@ -138,7 +138,7 @@ export function GrnTable({
                   borderRadius: 'var(--radius-sm)',
                 }}
               >
-                CLOSED
+                {row.mergedIntoGrnNumber ? `Merged → ${row.mergedIntoGrnNumber}` : 'CLOSED'}
               </span>
             )}
           </div>

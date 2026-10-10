@@ -97,6 +97,8 @@ describe('Internal Movement Workflows (Merge & Transfer Ownership)', () => {
 
     const updatedSource = await GrnModel.findOne({ id: grn39 }).lean().exec();
     expect(updatedSource?.status).toBe('CLOSED');
+    expect(updatedSource?.mergedIntoGrnId).toBe(grn38);
+    expect(updatedSource?.mergedIntoGrnNumber).toBe('GRN-26-27-0038');
     expect(updatedSource?.rentAmount).toBe(1000);
     expect(updatedSource?.remarks).toContain('Financial record preserved: Rent Obligation ₹1000, Paid ₹0, Pending ₹1000 (Status: Not Settled)');
 
