@@ -47,9 +47,7 @@ export function createDeliveryColumns({
       key: 'customerName',
       header: 'Customer',
       render: (row) => (
-        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)' }}>
-          {row.customerName}
-        </span>
+        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)' }}>{row.customerName}</span>
       ),
     },
     {
@@ -74,9 +72,19 @@ export function createDeliveryColumns({
             {row.totalBags.toLocaleString('en-IN')} bags
           </span>
           <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
-            {row.smallBags.toLocaleString('en-IN')} small / {row.bigBags.toLocaleString('en-IN')} big
+            S/B: {row.bagType ?? 'S/B'}
           </span>
         </div>
+      ),
+    },
+    {
+      key: 'weight',
+      header: 'Outward Weight',
+      align: 'right',
+      render: (row) => (
+        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: row.weight != null ? 'var(--color-text-primary)' : 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+          {row.weight != null ? `${row.weight.toLocaleString('en-IN')} kg` : '—'}
+        </span>
       ),
     },
     {
@@ -96,25 +104,10 @@ export function createDeliveryColumns({
 
         return (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
-            <span
-              style={{
-                fontWeight: 'var(--font-bold)',
-                fontSize: 'var(--text-xs)',
-                color: isClosed ? 'var(--color-text-muted)' : 'var(--color-primary-text)',
-              }}
-            >
+            <span style={{ fontWeight: 'var(--font-bold)', fontSize: 'var(--text-xs)', color: isClosed ? 'var(--color-text-muted)' : 'var(--color-primary-text)' }}>
               {remainingTotal.toLocaleString('en-IN')} bags
               {isClosed && (
-                <span
-                  style={{
-                    marginLeft: 'var(--space-1)',
-                    fontSize: 'var(--text-xs)',
-                    fontWeight: 'var(--font-bold)',
-                    background: 'var(--color-surface-2)',
-                    padding: '0 var(--space-1-5)',
-                    borderRadius: 'var(--radius-sm)',
-                  }}
-                >
+                <span style={{ marginLeft: 'var(--space-1)', fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', background: 'var(--color-surface-2)', padding: '0 var(--space-1-5)', borderRadius: 'var(--radius-sm)' }}>
                   CLOSED
                 </span>
               )}
@@ -135,15 +128,22 @@ export function createDeliveryColumns({
       key: 'rentStatus',
       header: 'Rent Status',
       render: (row) => {
-        if (!row.rentPaymentStatus) {
+        if (!row.rentPaymentStatus && !row.rentCharge) {
           return <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}>—</span>;
         }
         const isSettled = row.rentPaymentStatus === 'Settled';
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
-            <Badge variant={isSettled ? 'success' : 'warning'}>
-              {isSettled ? 'Settled' : `₹${(row.rentRemainingBalance ?? 0).toLocaleString('en-IN')} pending`}
-            </Badge>
+            {row.rentPaymentStatus && (
+              <Badge variant={isSettled ? 'success' : 'warning'}>
+                {isSettled ? 'Settled' : `₹${(row.rentRemainingBalance ?? 0).toLocaleString('en-IN')} pending`}
+              </Badge>
+            )}
+            {row.rentCharge != null && row.rentCharge > 0 && (
+              <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-primary-text)' }}>
+                Rent: ₹{row.rentCharge.toLocaleString('en-IN')}
+              </span>
+            )}
             {!isSettled && (row.rentTotalPaid ?? 0) > 0 && (
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
                 ₹{(row.rentTotalPaid ?? 0).toLocaleString('en-IN')} paid
@@ -189,6 +189,7 @@ export function createDeliveryColumns({
               size="sm"
               onClick={() => onSelectDelivery(row)}
               title="View Details"
+              aria-label={`View details for delivery challan ${row.challanNumber}`}
               leftIcon={<Eye size={12} aria-hidden="true" />}
             >
               View
@@ -201,6 +202,7 @@ export function createDeliveryColumns({
                 disabled={printingId === row.id}
                 isLoading={printingId === row.id}
                 title="Print Outward Delivery Challan & Gate Pass"
+                aria-label={`Print delivery challan ${row.challanNumber}`}
                 leftIcon={<Printer size={12} aria-hidden="true" />}
               >
                 Challan
@@ -212,6 +214,7 @@ export function createDeliveryColumns({
                 size="sm"
                 onClick={() => onCollectRent(row)}
                 title="Collect Pending Rent for this Delivery"
+                aria-label={`Collect pending rent for delivery challan ${row.challanNumber}`}
                 leftIcon={<IndianRupee size={12} aria-hidden="true" />}
               >
                 Collect Rent
@@ -223,6 +226,7 @@ export function createDeliveryColumns({
                 size="sm"
                 onClick={() => onReverse(row)}
                 title="Reverse this delivery (restores bags to GRN balance)"
+                aria-label={`Reverse delivery challan ${row.challanNumber}`}
                 leftIcon={<RotateCcw size={12} aria-hidden="true" />}
               >
                 Reverse

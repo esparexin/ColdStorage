@@ -175,7 +175,7 @@ describe('Phase 5: Payment & Settlement Integrity (delivery-settlement-integrity
     ).rejects.toThrow(/is CLOSED/);
   });
 
-  it('final delivery with outstanding balance: remaining bags reach 0 and GRN transitions to CLOSED while rent remains Not Settled', async () => {
+  it('final delivery with outstanding balance: remaining bags reach 0 and GRN stays OPEN while rent remains Not Settled', async () => {
     // 1. Partial payment of ₹2000 out of ₹5000 (leaves ₹3000 outstanding)
     await rentService.recordPayment(
       facilityId, { grnId, amountPaid: 2000, paymentMode: 'UPI', paymentDate: new Date() }, USER_ID,
@@ -186,9 +186,9 @@ describe('Phase 5: Payment & Settlement Integrity (delivery-settlement-integrity
     expect(finalDel.summary.remainingDeliveryBalance).toBe(0);
     expect(finalDel.summary.physicallyStoredBags).toBe(0);
 
-    // 3. Invariant: GRN physical status becomes CLOSED because all inventory exited
-    expect(finalDel.summary.grnStatus).toBe('CLOSED');
-    expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('CLOSED');
+    // 3. Closure invariant: GRN remains OPEN because financial rent balance (₹3000) is outstanding
+    expect(finalDel.summary.grnStatus).toBe('OPEN');
+    expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('OPEN');
 
     // 4. Invariant: Financial rent state remains strictly decoupled and preserved
     const rentSummary = await rentService.getRentSummary(facilityId, grnId);
@@ -196,17 +196,17 @@ describe('Phase 5: Payment & Settlement Integrity (delivery-settlement-integrity
     expect(rentSummary.paymentStatus).toBe('Not Settled');
   });
 
-  it('rent payment after physical closure: settles outstanding rent for a CLOSED GRN via Cash Memo', async () => {
+  it('rent payment after physical exit: settles outstanding rent for an OPEN GRN and transitions to CLOSED via Cash Memo', async () => {
     // 1. Partial payment of ₹2000 out of ₹5000
     await rentService.recordPayment(
       facilityId, { grnId, amountPaid: 2000, paymentMode: 'UPI', paymentDate: new Date() }, USER_ID,
     );
 
-    // 2. Deliver all 100 bags -> physical closure (GRN is CLOSED)
+    // 2. Deliver all 100 bags -> physical exit complete, but GRN remains OPEN due to outstanding balance
     await deliveryService.createDelivery(facilityId, { grnId, smallBags: 100, bigBags: 0 }, USER_ID);
-    expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('CLOSED');
+    expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('OPEN');
 
-    // 3. Customer settles the remaining ₹3000 via Cash Memo on the CLOSED GRN
+    // 3. Customer settles the remaining ₹3000 via Cash Memo on the GRN
     const paymentResult = await rentService.recordPayment(
       facilityId,
       { grnId, amountPaid: 3000, paymentMode: 'Cash', notes: 'Final settlement after physical exit', paymentDate: new Date() },
@@ -218,7 +218,7 @@ describe('Phase 5: Payment & Settlement Integrity (delivery-settlement-integrity
     expect(paymentResult.summary.remainingBalance).toBe(0);
     expect(paymentResult.summary.paymentStatus).toBe('Settled');
 
-    // 4. Physical status remains CLOSED
+    // 4. Closure invariant achieved: remainingBags === 0 AND remainingBalance === 0 -> transitions to CLOSED
     expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('CLOSED');
   });
 

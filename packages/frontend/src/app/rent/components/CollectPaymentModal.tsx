@@ -1,12 +1,13 @@
 'use client';
 
 import React from 'react';
-import { CreditCard, Eye, Wallet } from 'lucide-react';
+import { CreditCard, Wallet } from 'lucide-react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
 import { Button, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { RentSummaryOverview } from './RentSummaryOverview';
 import { useCollectPaymentForm } from '../hooks/useCollectPaymentForm';
+import { getRentCollectionNotice } from '../hooks/rentDisplay.helper';
 import styles from '../page.module.css';
 
 interface CollectPaymentModalProps {
@@ -20,7 +21,7 @@ interface CollectPaymentModalProps {
 export function CollectPaymentModal({
   account,
   selectedFacilityId,
-  canPrint,
+  canPrint: _canPrint,
   onClose,
   onPaymentSuccess,
 }: CollectPaymentModalProps) {
@@ -36,10 +37,8 @@ export function CollectPaymentModal({
     upiReference,
     setUpiReference,
     collectError,
-    previewError,
     collectSubmitting,
     handleSubmit,
-    handlePreviewReceipt,
   } = useCollectPaymentForm({
     account,
     selectedFacilityId,
@@ -58,9 +57,16 @@ export function CollectPaymentModal({
           <div className={styles.modalBody}>
             {collectError && <Banner message={collectError} id="collect-error" />}
 
-            {previewError && <Banner message={previewError} id="preview-error" />}
-
             <RentSummaryOverview account={account} />
+
+            {(() => {
+              const notice = getRentCollectionNotice(account);
+              return notice ? (
+                <div style={{ padding: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                  {notice}
+                </div>
+              ) : null;
+            })()}
 
             <div className={styles.fieldGroup}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -79,16 +85,19 @@ export function CollectPaymentModal({
                   </Button>
                 )}
               </div>
-              <input aria-label="Enter amount"
+              <input
                 id="collect-amount"
                 type="number"
                 min={1}
-                max={account.remainingBalance}
+                max={account.remainingBalance > 0 ? account.remainingBalance : undefined}
                 step="0.01"
                 required
+                disabled={account.remainingBalance === 0}
                 className={styles.fieldInput}
-                placeholder="Enter amount"
+                placeholder={account.remainingBalance === 0 ? 'No outstanding dues' : 'Enter amount'}
                 value={collectAmount}
+                aria-invalid={Boolean(collectError)}
+                aria-describedby={collectError ? 'collect-error' : undefined}
                 onChange={(e) =>
                   setCollectAmount(e.target.value ? parseFloat(e.target.value) : '')
                 }
@@ -96,10 +105,12 @@ export function CollectPaymentModal({
             </div>
 
             <div className={styles.fieldGroup}>
-              <span className={styles.fieldLabel}>Payment Mode *</span>
-              <div className={styles.modeToggleGroup}>
+              <span className={styles.fieldLabel} id="payment-mode-label">Payment Mode *</span>
+              <div className={styles.modeToggleGroup} role="radiogroup" aria-labelledby="payment-mode-label">
                 <Button
                   type="button"
+                  role="radio"
+                  aria-checked={collectMode === 'Cash'}
                   variant={collectMode === 'Cash' ? 'primary' : 'outline'}
                   className={`${styles.modeOption} ${collectMode === 'Cash' ? styles.modeOptionActive : ''}`}
                   onClick={() => setCollectMode('Cash')}
@@ -109,6 +120,8 @@ export function CollectPaymentModal({
                 </Button>
                 <Button
                   type="button"
+                  role="radio"
+                  aria-checked={collectMode === 'UPI'}
                   variant={collectMode === 'UPI' ? 'primary' : 'outline'}
                   className={`${styles.modeOption} ${collectMode === 'UPI' ? styles.modeOptionActive : ''}`}
                   onClick={() => setCollectMode('UPI')}
@@ -156,7 +169,6 @@ export function CollectPaymentModal({
                 {collectMode === 'UPI' ? 'Additional Notes (Optional)' : 'Payment Notes (Optional)'}
               </label>
               <input
-                aria-label="Optional payment notes"
                 id="collect-notes"
                 type="text"
                 maxLength={400}
@@ -169,15 +181,6 @@ export function CollectPaymentModal({
           </div>
 
           <div className={styles.modalFooter}>
-            {canPrint && typeof collectAmount === 'number' && collectAmount > 0 && (
-              <Button
-                variant="outline"
-                onClick={() => void handlePreviewReceipt()}
-                leftIcon={<Eye size={14} aria-hidden="true" />}
-              >
-                Preview Cash Memo
-              </Button>
-            )}
             <Button
               variant="outline"
               onClick={onClose}

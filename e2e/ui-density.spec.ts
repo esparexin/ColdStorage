@@ -27,8 +27,27 @@ async function mockAll(page: import('@playwright/test').Page) {
   }
 }
 
+/**
+ * The GRN Create button only renders once an active facility is selected, and the modal's
+ * lookup fields need real customer/commodity options, so the shared mock is not enough here.
+ */
+async function mockGrnFormPage(page: import('@playwright/test').Page) {
+  await mockAll(page);
+  const json = (body: unknown) => ({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(body),
+  });
+  await page.route('**/api/facilities', (r) =>
+    r.fulfill(json({ items: [{ id: 'fac-alpha', name: 'Alpha Cold Storage Facility', code: 'FAC-A', isActive: true }], total: 1 })));
+  await page.route('**/api/customers*', (r) =>
+    r.fulfill(json({ data: [{ id: 'c1', name: 'Ramesh Patel Traders' }], items: [{ id: 'c1', name: 'Ramesh Patel Traders' }], total: 1 })));
+  await page.route('**/api/commodities*', (r) =>
+    r.fulfill(json({ data: [{ id: 'm1', name: 'Potato Jyoti', isActive: true }], items: [{ id: 'm1', name: 'Potato Jyoti', isActive: true }], total: 1 })));
+}
+
 const ROUTES = ['/', '/grns', '/deliveries', '/rent', '/customers',
-  '/commodities', '/bond-ledger', '/audit', '/users', '/backup', '/import-export', '/settings'];
+  '/commodities', '/grn-stock', '/bonds', '/audit', '/users', '/backup', '/import-export', '/settings'];
 
 const SIZES = [
   { name: '360', width: 360, height: 780 },
@@ -138,6 +157,38 @@ test.describe('density + a11y audit', () => {
       await page.keyboard.press('Escape');
       await expect(dialog).toBeHidden();
     }
+  });
+
+  test('inward form fits a laptop viewport without scrolling', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await mockGrnFormPage(page);
+    await page.goto('/grns');
+    await page.locator('#create-grn-header-btn').click();
+    const form = page.locator('#create-grn-form');
+    await expect(form).toBeVisible();
+    // The whole receipt fits in one screen: every section is a three-column grid, so no
+    // field sits alone on a row and Total Bags shares the rent grid.
+    const overflow = await form.evaluate((el) => {
+      const body = el.parentElement as HTMLElement;
+      return body.scrollHeight - body.clientHeight;
+    });
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+
+  test('inward form keeps three columns on tablet widths', async ({ page }) => {
+    // The modal is capped at 640px, so a 768px viewport still has room for three columns.
+    // Collapsing here would triple the form height for no reason.
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await mockGrnFormPage(page);
+    await page.goto('/grns');
+    await page.locator('#create-grn-header-btn').click();
+    const form = page.locator('#create-grn-form');
+    await expect(form).toBeVisible();
+    const columns = await form.evaluate((el) => {
+      const grid = el.querySelector('[class*="formGrid"]') as HTMLElement;
+      return getComputedStyle(grid).gridTemplateColumns.split(' ').length;
+    });
+    expect(columns).toBe(3);
   });
 
   test('no decorative snowflake symbol remains', async ({ page }) => {

@@ -10,6 +10,7 @@ import {
   disconnectTestDatabase,
   resetStockCollections,
 } from './helpers/stock-reset.js';
+import { nextTestGrnNumber } from './helpers/grn-number-fixtures.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
@@ -55,6 +56,7 @@ describe('GRN and Bond Identity Verification Tests', () => {
 
   function makeInwardPayload(overrides: Record<string, unknown> = {}) {
     return {
+      grnNumber: nextTestGrnNumber(),
       date: new Date().toISOString(),
       customerId,
       commodityId,
@@ -87,7 +89,7 @@ describe('GRN and Bond Identity Verification Tests', () => {
     // Verify Inward 1 SSOT invariants
     expect(grn1.customerId).toBe(customerId);
     expect(grn1.customerName).toBe(customerName);
-    expect(grn1.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-\d{4}$/);
+    expect(grn1.grnNumber).toMatch(/^\d{4}$/);
     expect(grn1.grnNumber).not.toBe(customerName);
     expect(grn1.grnNumber).not.toBe(operatorUsername);
     expect(grn1.bondNumber).toBeNull();
@@ -103,21 +105,20 @@ describe('GRN and Bond Identity Verification Tests', () => {
     expect(inwardRes2.status).toBe(201);
     const grn2 = inwardRes2.body.grn;
 
-    // Verify Inward 2 SSOT invariants: unique distinct GRN and unique Bond
+    // Verify Inward 2 SSOT invariants: a unique GR Number and no second minted identifier
     expect(grn2.customerId).toBe(customerId);
     expect(grn2.id).not.toBe(grn1.id);
     expect(grn2.grnNumber).not.toBe(grn1.grnNumber);
-    expect(grn2.grnNumber).toMatch(/^GRN-\d{2}-\d{2}-\d{4}$/);
-    expect(grn2.bondNumber).toMatch(/^BND-\d{2}-\d{2}-\d{4}$/);
-    expect(grn2.bondNumber).not.toBe(grn2.grnNumber);
-    expect(grn2.bondNumber).not.toBe(grn1.grnNumber);
-    expect(grn2.bondNumber).not.toBe(customerName);
-    expect(grn2.bondNumber).not.toBe(operatorUsername);
+    expect(grn2.grnNumber).toMatch(/^\d{4}$/);
+    // The GR Number is the sole business key: no BND- number is minted per receipt.
+    expect(grn2.bondNumber).toBeNull();
+    expect(grn2.grnNumber).not.toBe(customerName);
+    expect(grn2.grnNumber).not.toBe(operatorUsername);
     expect(grn2.isBondForLoan).toBe(true);
     expect(grn2.loanStatus).toBe('NOT_TAKEN');
   });
 
-  it('enforces facility-scoped bond uniqueness while allowing multiple non-bonded GRNs', async () => {
+  it('keeps the GR Number the only minted identifier across multiple inwards', async () => {
     // Multiple standard inwards without bond should never conflict with each other
     const std1 = await request(app)
       .post(`/api/facilities/${facilityId}/grns`)
@@ -133,20 +134,27 @@ describe('GRN and Bond Identity Verification Tests', () => {
     expect(std2.status).toBe(201);
     expect(std2.body.grn.bondNumber).toBeNull();
 
-    // Bonded inward with explicit bond number
+    // Every inward receives its own GR Number, bonded or not.
+    expect(std2.body.grn.grnNumber).not.toBe(std1.body.grn.grnNumber);
+
+    // Bonded inward: no bond number is generated, so none can collide.
     const bond1 = await request(app)
       .post(`/api/facilities/${facilityId}/grns`)
       .set('Authorization', `Bearer ${operatorToken}`)
-      .send(makeInwardPayload({ isBondForLoan: true, bondNumber: 'BND-PLEDGE-9001' }));
+      .send(makeInwardPayload({ isBondForLoan: true }));
     expect(bond1.status).toBe(201);
-    expect(bond1.body.grn.bondNumber).toBe('BND-PLEDGE-9001');
+    expect(bond1.body.grn.bondNumber).toBeNull();
+    expect(bond1.body.grn.grnNumber).toMatch(/^\d{4}$/);
+    expect(bond1.body.grn.isBondForLoan).toBe(true);
 
-    // Duplicate bond number in the same facility must fail
-    const bondDuplicate = await request(app)
+    // A bond reference supplied by a legacy import is stored as reference text only.
+    const legacyRef = await request(app)
       .post(`/api/facilities/${facilityId}/grns`)
       .set('Authorization', `Bearer ${operatorToken}`)
       .send(makeInwardPayload({ isBondForLoan: true, bondNumber: 'BND-PLEDGE-9001' }));
-    expect(bondDuplicate.status).toBe(409);
+    expect(legacyRef.status).toBe(201);
+    expect(legacyRef.body.grn.bondNumber).toBe('BND-PLEDGE-9001');
+    expect(legacyRef.body.grn.grnNumber).not.toBe(legacyRef.body.grn.bondNumber);
   });
 
   it('anchors stock movement to grnId and distinguishes bond hold on outward delivery', async () => {
@@ -158,7 +166,7 @@ describe('GRN and Bond Identity Verification Tests', () => {
 
     const grn = bondedInward.body.grn;
 
-    // Movement history links stock by grnId and surfaces bondNumber
+    // Movement history links stock by grnId and surfaces the GR Number
     const histRes = await request(app)
       .get(`/api/facilities/${facilityId}/grns/${grn.id}/movement-history`)
       .set('Authorization', `Bearer ${operatorToken}`);
@@ -170,11 +178,12 @@ describe('GRN and Bond Identity Verification Tests', () => {
     expect(histRes.body.history.currentClosingBags).toBe(50);
     expect(histRes.body.history.isLoanHoldActive).toBe(true);
 
-    // Outward delivery blocked referencing both Bond Number and GRN Number
+    // Outward delivery blocked, referenced by the GR Number
     const delRes = await request(app)
       .post(`/api/facilities/${facilityId}/deliveries`)
       .set('Authorization', `Bearer ${operatorToken}`)
       .send({
+        grnNumber: nextTestGrnNumber(),
         grnId: grn.id,
         date: new Date().toISOString(),
         smallBags: 10,
@@ -182,7 +191,6 @@ describe('GRN and Bond Identity Verification Tests', () => {
       });
 
     expect(delRes.status).toBe(400);
-    expect(delRes.body.error).toContain(grn.bondNumber);
     expect(delRes.body.error).toContain(grn.grnNumber);
     expect(delRes.body.error).toContain('Outward blocked');
   });

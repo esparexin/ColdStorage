@@ -4,19 +4,21 @@ import React from 'react';
 import {
   CheckCircle2,
   Clock,
-  Eye,
-  FileText,
-  Printer,
 } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
-import { Badge, Button } from '@/components/ui';
+import { Badge } from '@/components/ui';
+import { GrnRowActions } from './GrnRowActions';
+import { RentTermsCell } from './RentTermsCell';
 import styles from '../page.module.css';
 
 interface GrnTableProps {
   grns: Grn[];
   caption: string;
   canPrint: boolean;
+  canCorrect?: boolean;
+  canCreateChallan?: boolean;
+  canInternalMove?: boolean;
   printingId: string | null;
   page: number;
   pageSize: number;
@@ -24,6 +26,9 @@ interface GrnTableProps {
   totalGrns: number;
   onPageChange: (page: number) => void;
   onSelectGrn: (grn: Grn) => void;
+  onCorrectGrn?: (grn: Grn) => void;
+  onCreateChallan?: (grn: Grn) => void;
+  onInternalMove?: (grn: Grn) => void;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
 }
 
@@ -31,6 +36,9 @@ export function GrnTable({
   grns,
   caption,
   canPrint,
+  canCorrect = false,
+  canCreateChallan = false,
+  canInternalMove = false,
   printingId,
   page,
   pageSize,
@@ -38,6 +46,9 @@ export function GrnTable({
   totalGrns,
   onPageChange,
   onSelectGrn,
+  onCorrectGrn,
+  onCreateChallan,
+  onInternalMove,
   onPrint,
 }: GrnTableProps) {
   const columns: DataTableColumn<Grn>[] = [
@@ -56,17 +67,11 @@ export function GrnTable({
     },
     {
       key: 'grnNumber',
-      header: 'GRN / Receipt #',
+      header: 'GRN #',
       render: (row) => (
-        <div className={styles.grnCell} style={{ fontSize: 'var(--text-xs)' }}>
-          <span className={styles.grnNumber}>{row.grnNumber}</span>
-          <span className={styles.receiptNumber}>Receipt: {row.inwardReceiptNumber}</span>
-          {row.bondNumber && (
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}>
-              Bond: {row.bondNumber}
-            </span>
-          )}
-        </div>
+        <span className={styles.grnNumber} style={{ fontSize: 'var(--text-xs)' }}>
+          {row.grnNumber}
+        </span>
       ),
     },
     {
@@ -84,7 +89,7 @@ export function GrnTable({
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
           <span>{row.commodityName}</span>
-          <span className={styles.tagChamber}>Chamber {row.chamber}</span>
+          <span className={styles.tagChamber}>{row.chamber}</span>
         </div>
       ),
     },
@@ -95,6 +100,9 @@ export function GrnTable({
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
           <span style={{ fontWeight: 'var(--font-semibold)' }}>{row.bags.toLocaleString('en-IN')} in</span>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+            S/B: {row.bagType ?? 'S/B'}
+          </span>
           {row.netDeliveredBags != null && row.netDeliveredBags > 0 && (
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
               Del: {row.netDeliveredBags.toLocaleString('en-IN')}
@@ -140,26 +148,15 @@ export function GrnTable({
     {
       key: 'rent',
       header: 'Rent Terms',
-      render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
-          <span>
-            {row.rentType}
-            {row.rentType === 'Monthly' && row.rentMonths ? ` (${row.rentMonths}m)` : ''}
-          </span>
-          <span style={{ color: 'var(--color-text-muted)' }}>
-            ₹{row.rentAmount.toLocaleString('en-IN')}
-          </span>
-        </div>
-      ),
+      render: (row) => <RentTermsCell row={row} />,
     },
     {
-      key: 'identifiers',
-      header: 'GP / Vehicle',
+      key: 'vehicleNumber',
+      header: 'Vehicle',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
-          <span>GP: {row.gpNumber || '—'}</span>
-          <span>Veh: {row.vehicleNumber || '—'}</span>
-        </div>
+        <span style={{ fontSize: 'var(--text-xs)' }}>
+          {row.vehicleNumber || '—'}
+        </span>
       ),
     },
     {
@@ -191,44 +188,19 @@ export function GrnTable({
       header: 'Actions',
       align: 'right',
       render: (row) => (
-        <div className={styles.actionGroup}>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onSelectGrn(row)}
-            title="View Details"
-            leftIcon={<Eye size={12} aria-hidden="true" />}
-          >
-            View
-          </Button>
-
-          {canPrint && (
-            <>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => onPrint('grn', row.id)}
-                disabled={printingId === `grn-${row.id}`}
-                isLoading={printingId === `grn-${row.id}`}
-                title="Print Official GRN"
-                leftIcon={<Printer size={12} aria-hidden="true" />}
-              >
-                GRN
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => onPrint('receipt', row.id)}
-                disabled={printingId === `receipt-${row.id}`}
-                isLoading={printingId === `receipt-${row.id}`}
-                title="Print Farmer Inward Receipt"
-                leftIcon={<FileText size={12} aria-hidden="true" />}
-              >
-                Ack
-              </Button>
-            </>
-          )}
-        </div>
+        <GrnRowActions
+          row={row}
+          canCorrect={canCorrect}
+          canCreateChallan={canCreateChallan}
+          canInternalMove={canInternalMove}
+          canPrint={canPrint}
+          printingId={printingId}
+          onSelectGrn={onSelectGrn}
+          onCorrectGrn={onCorrectGrn}
+          onCreateChallan={onCreateChallan}
+          onInternalMove={onInternalMove}
+          onPrint={onPrint}
+        />
       ),
     },
   ];

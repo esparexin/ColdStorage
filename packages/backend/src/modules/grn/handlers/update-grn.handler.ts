@@ -1,35 +1,30 @@
 import mongoose from 'mongoose';
-import { randomUUID } from 'node:crypto';
-import { normalizeBagComposition, type CorrectGrnInput, type Grn } from '@cold-storage/contracts';
+import type { CorrectGrnInput, Grn } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
+import { CustomerModel } from '../../../database/models/customer.model.js';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { DeliveryReversalModel } from '../../../database/models/delivery-reversal.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
-import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { auditService } from '../../audit/audit.service.js';
+import { validateOperationalDate } from '../../common/operational-date.helper.js';
 import { toGrnEntity } from '../grn.mappers.js';
-
-interface CorrectionRecord {
-  grnId: string;
-  grnNumber: string;
-  before: { commodityId: string; commodityName: string; bags: number; chamber: string };
-  after: { commodityId: string; commodityName: string; bags: number; chamber: string };
-  reason: string;
-}
+import { resolveBagEdit, wantsBagsChange } from './grn-edit-bags.js';
+import { resolveRentEdit, wantsRentChange } from './grn-edit-rent.js';
+import {
+  buildCorrectionAfter,
+  buildCorrectionBefore,
+  type CorrectionRecord,
+} from './grn-edit-audit.js';
+import { assertCorrectionAllowed, isStructuralEdit } from './grn-edit-guards.js';
+import { applyDescriptiveEdits, persistCorrection } from './grn-edit-persist.js';
 
 /**
- * Authorized correction of an inward receipt's operational facts.
+ * Full edit of an inward receipt.
  *
- * The architecture lock forbids silently editing confirmed transactions; any correction must go
- * through an approved workflow that leaves an audit trail. This is that workflow for the GRN.
- *
- * Two invariants govern what may change:
- * - The inward ledger leg is part of the receipt, not subsequent history, so a correction made
- *   before anything has moved updates the receipt and its inward row together, atomically.
- * - Once stock has moved, the receipt's bags and commodity are frozen: the ledger has already
- *   recorded them on outward and reversal events that must not be rewritten. Only the chamber
- *   label may still change, and it propagates to every row that carries it so grouped reports
- *   cannot disagree.
+ * The architecture lock forbids silently editing confirmed transactions; any edit must go
+ * through this approved workflow that leaves an audit trail. Guardrails, bag/rent
+ * resolution, persistence and audit snapshots live in sibling grn-edit-* modules so
+ * this orchestrator stays within the line budget.
  */
 export async function correctGrn(
   facilityId: string,
@@ -54,51 +49,51 @@ export async function correctGrn(
       if (!grn) {
         throw new Error(`GRN '${grnId}' not found in facility '${facilityId}'`);
       }
-      if (grn.status === 'CLOSED') {
-        throw new Error(
-          `Cannot correct GRN '${grn.grnNumber}': it is CLOSED and its stock has been fully delivered`,
-        );
-      }
 
       const activeChallans = await DeliveryChallanModel.countDocuments(
         { facilityId, grnId, status: 'ISSUED' },
         { session },
       ).exec();
-
-      if (activeChallans > 0) {
-        throw new Error(
-          `Cannot correct GRN '${grn.grnNumber}': stock has already been delivered. Use the delivery reversal workflow instead.`,
-        );
-      }
-
       const [challanCount, reversalCount] = await Promise.all([
         DeliveryChallanModel.countDocuments({ facilityId, grnId }, { session }).exec(),
         DeliveryReversalModel.countDocuments({ facilityId, grnId }, { session }).exec(),
       ]);
-      const hasMovement = challanCount + reversalCount > 0;
 
-      const wantsBagsChange =
-        input.bags !== undefined || input.smallBags !== undefined || input.bigBags !== undefined;
-      const wantsCommodityChange = input.commodityId !== undefined;
+      const bagsChanged = wantsBagsChange(input);
+      assertCorrectionAllowed(grn, {
+        hasMovement: challanCount + reversalCount > 0,
+        activeChallans,
+        structural: isStructuralEdit(input, bagsChanged),
+      });
 
-      if (hasMovement && (wantsBagsChange || wantsCommodityChange)) {
-        throw new Error(
-          `Cannot correct bags or commodity on GRN '${grn.grnNumber}': stock has already moved and ` +
-            `the ledger has recorded the original figures. Only the chamber label may still be corrected.`,
-        );
-      }
-
-      const before = {
-        commodityId: grn.commodityId,
-        commodityName: grn.commodityName,
-        bags: grn.bags,
-        chamber: grn.chamber,
-      };
-
+      const before = buildCorrectionBefore(grn as unknown as Record<string, unknown>);
       const update: Record<string, unknown> = {};
       const inwardUpdate: Record<string, unknown> = {};
 
-      if (wantsCommodityChange) {
+      if (input.customerId !== undefined) {
+        const customer = await CustomerModel.findOne({ id: input.customerId })
+          .lean()
+          .exec();
+        if (!customer) {
+          throw new Error(`Customer '${input.customerId}' not found`);
+        }
+        if (!customer.isActive) {
+          throw new Error(`Customer '${customer.name}' is inactive`);
+        }
+        if (!customer.facilityIds.includes(facilityId)) {
+          throw new Error(
+            `Customer '${customer.name}' is not registered for facility '${facilityId}'`,
+          );
+        }
+        update.customerId = customer.id;
+        update.customerName = customer.name;
+      }
+
+      if (input.date !== undefined) {
+        update.date = validateOperationalDate(input.date, { label: 'Inward' });
+      }
+
+      if (input.commodityId !== undefined) {
         const commodity = await CommodityModel.findOne({ id: input.commodityId })
           .lean()
           .exec();
@@ -113,98 +108,72 @@ export async function correctGrn(
         inwardUpdate.commodityId = commodity.id;
       }
 
-      if (wantsBagsChange) {
-        const finalBags = input.bags ?? grn.bags;
-        // A single-type receipt's composition follows its bag type; a mixed receipt's corrected
-        // split must sum to the corrected total. The shared rule rejects anything else.
-        const composition = normalizeBagComposition({
-          bagType: grn.bagType,
-          bags: finalBags,
-          smallBags: input.smallBags ?? (grn.bagType === 'S+B' ? grn.smallBags : undefined),
-          bigBags: input.bigBags ?? (grn.bagType === 'S+B' ? grn.bigBags : undefined),
-        });
-        update.bags = finalBags;
-        update.smallBags = composition.smallBags;
-        update.bigBags = composition.bigBags;
-        inwardUpdate.smallQuantity = composition.smallBags;
-        inwardUpdate.bigQuantity = composition.bigBags;
-        // Per-bag weights are independent of the bag count, so a corrected count
-        // does not invalidate or recalculate any weight field.
+      const bagEdit = resolveBagEdit(input, {
+        bagType: grn.bagType,
+        bags: grn.bags,
+        smallBags: grn.smallBags,
+        bigBags: grn.bigBags,
+      });
+      Object.assign(update, bagEdit.update);
+      Object.assign(inwardUpdate, bagEdit.inwardUpdate);
+
+      if (input.smallBagWeight !== undefined) {
+        update.smallBagWeight = input.smallBagWeight ?? null;
+      }
+      if (input.bigBagWeight !== undefined) {
+        update.bigBagWeight = input.bigBagWeight ?? null;
+      }
+      if (input.totalBagsWeight !== undefined) {
+        update.totalBagsWeight = input.totalBagsWeight ?? null;
       }
 
-      if (input.chamber !== undefined) {
-        update.chamber = input.chamber.trim();
-        inwardUpdate.chamber = input.chamber.trim();
+      if (wantsRentChange(input, bagEdit.wantsBagsChange)) {
+        Object.assign(
+          update,
+          await resolveRentEdit({
+            facilityId,
+            grnId: grn.id,
+            grnNumber: grn.grnNumber,
+            grn: {
+              rentType: grn.rentType,
+              rentMonths: grn.rentMonths,
+              rentAmount: grn.rentAmount,
+              bagPrice: grn.bagPrice,
+              smallBagPrice: grn.smallBagPrice,
+              bigBagPrice: grn.bigBagPrice,
+            },
+            input,
+            finalBags: bagEdit.finalBags,
+            finalBagType: bagEdit.finalBagType,
+            finalSmallBags: bagEdit.finalSmallBags,
+            finalBigBags: bagEdit.finalBigBags,
+            bagsChanged: bagEdit.wantsBagsChange,
+            session,
+          }),
+        );
       }
 
-      // Read the corrected state back inside the transaction session. Reading without the
-      // session returns the pre-commit document, so the response would echo the old values
-      // even though MongoDB persisted the correction.
-      const updated = await GrnModel.findOneAndUpdate(
-        { id: grn.id },
-        { $set: update },
-        { session, new: true },
-      )
-        .lean()
-        .exec();
+      applyDescriptiveEdits(input, update, inwardUpdate);
 
-      if (Object.keys(inwardUpdate).length > 0) {
-        const inwardResult = await InventoryTransactionModel.updateOne(
-          { facilityId, grnId: grn.id, transactionType: 'INWARD_PUTAWAY' },
-          { $set: inwardUpdate },
-          { session },
-        ).exec();
-
-        if (inwardResult.matchedCount === 0) {
-          // A receipt that predates the inward leg has no row to update. Its ledger balance
-          // would otherwise disagree with the corrected receipt, so the leg is created now
-          // rather than left missing.
-          await InventoryTransactionModel.create(
-            [
-              {
-                id: `tx-${randomUUID()}`,
-                facilityId,
-                grnId: grn.id,
-                grnNumber: grn.grnNumber,
-                chamber: (inwardUpdate.chamber as string | undefined) ?? grn.chamber,
-                commodityId: (inwardUpdate.commodityId as string | undefined) ?? grn.commodityId,
-                bagType: grn.bagType,
-                transactionType: 'INWARD_PUTAWAY' as const,
-                smallQuantity: (inwardUpdate.smallQuantity as number | undefined) ?? grn.smallBags,
-                bigQuantity: (inwardUpdate.bigQuantity as number | undefined) ?? grn.bigBags,
-                referenceType: 'PUT_AWAY' as const,
-                referenceId: grn.id,
-                notes: `Backfilled by correction of GRN '${grn.grnNumber}': ${input.reason.trim()}`,
-                createdBy: userId,
-                createdAt: grn.date,
-              },
-            ],
-            { session, ordered: true },
-          );
-        }
-      }
-
-      if (input.chamber !== undefined) {
-        // The chamber label denotes where the stock physically sits. Every row that carries it
-        // moves with the correction, otherwise chamber-grouped reports disagree by source.
-        await DeliveryChallanModel.updateMany(
-          { facilityId, grnId: grn.id },
-          { $set: { chamber: input.chamber.trim() } },
-          { session },
-        ).exec();
-      }
+      const updated = await persistCorrection({
+        session,
+        facilityId,
+        grn,
+        update,
+        inwardUpdate,
+        finalBagType: bagEdit.finalBagType,
+        finalSmallBags: bagEdit.finalSmallBags,
+        finalBigBags: bagEdit.finalBigBags,
+        input,
+        userId,
+      });
 
       corrected = toGrnEntity(updated!);
       record = {
         grnId: grn.id,
         grnNumber: grn.grnNumber,
         before,
-        after: {
-          commodityId: corrected.commodityId,
-          commodityName: corrected.commodityName,
-          bags: corrected.bags,
-          chamber: corrected.chamber,
-        },
+        after: buildCorrectionAfter(corrected),
         reason: input.reason,
       };
     });

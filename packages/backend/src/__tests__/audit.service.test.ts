@@ -105,20 +105,8 @@ describe('Suite 3: Audit Service & Domain Integration — audit.service.test.ts'
 
   // 4. Correctly filters audit logs by facilityId for facility-scoped administrators
   it('correctly filters audit logs by facilityId for facility-scoped administrators', async () => {
-    await auditService.log({
-      eventType: 'GRN_CREATED',
-      severity: 'INFO',
-      facilityId: 'fac-alpha',
-      resource: 'grn',
-      resourceId: 'grn-a',
-    });
-    await auditService.log({
-      eventType: 'GRN_CREATED',
-      severity: 'INFO',
-      facilityId: 'fac-beta',
-      resource: 'grn',
-      resourceId: 'grn-b',
-    });
+    await auditService.log({ eventType: 'GRN_CREATED', severity: 'INFO', facilityId: 'fac-alpha', resource: 'grn', resourceId: 'grn-a' });
+    await auditService.log({ eventType: 'GRN_CREATED', severity: 'INFO', facilityId: 'fac-beta', resource: 'grn', resourceId: 'grn-b' });
 
     // Admin assigned to fac-alpha
     const res = await auditService.queryLogs({ page: 1, limit: 10 }, ['fac-alpha']);
@@ -135,69 +123,40 @@ describe('Suite 3: Audit Service & Domain Integration — audit.service.test.ts'
 
   // 6. Allows SUPER_ADMIN to query audit logs across all facilities and global events
   it('allows SUPER_ADMIN to query audit logs across all facilities and global events', async () => {
-    await auditService.log({
-      eventType: 'SETTINGS_UPDATED',
-      severity: 'WARN',
-      facilityId: null, // global
-      resource: 'settings',
-    });
-    await auditService.log({
-      eventType: 'GRN_CREATED',
-      severity: 'INFO',
-      facilityId: 'fac-1',
-      resource: 'grn',
-    });
+    await auditService.log({ eventType: 'SETTINGS_UPDATED', severity: 'WARN', facilityId: null, resource: 'settings' });
+    await auditService.log({ eventType: 'GRN_CREATED', severity: 'INFO', facilityId: 'fac-1', resource: 'grn' });
 
     // authorizedFacilityIds = null signifies SUPER_ADMIN
     const res = await auditService.queryLogs({ page: 1, limit: 10 }, null);
     expect(res.totalCount).toBe(2);
   });
 
+  const createLogRecord = (id: string, timestamp: Date, resourceId = 'g1') => ({
+    id,
+    timestamp,
+    eventType: 'GRN_CREATED' as const,
+    severity: 'INFO' as const,
+    facilityId: 'fac-1',
+    userId: 'u1',
+    username: 'u1',
+    userRole: 'OPERATOR' as const,
+    ipAddress: '127.0.0.1',
+    userAgent: 'Test',
+    resource: 'grn',
+    resourceId,
+    details: {},
+    createdAt: new Date(),
+  });
+
   // 7. Correctly filters logs by timestamp range (from and to)
   it('correctly filters logs by timestamp range', async () => {
-    // Manually create with specific timestamps
     await AuditLogModel.collection.insertMany([
-      {
-        id: 'log_day1',
-        timestamp: new Date('2026-10-01T10:00:00Z'),
-        eventType: 'GRN_CREATED',
-        severity: 'INFO',
-        facilityId: 'fac-1',
-        userId: 'u1',
-        username: 'u1',
-        userRole: 'OPERATOR',
-        ipAddress: '127.0.0.1',
-        userAgent: 'Test',
-        resource: 'grn',
-        resourceId: 'g1',
-        details: {},
-        createdAt: new Date(),
-      },
-      {
-        id: 'log_day2',
-        timestamp: new Date('2026-10-05T10:00:00Z'),
-        eventType: 'GRN_CREATED',
-        severity: 'INFO',
-        facilityId: 'fac-1',
-        userId: 'u1',
-        username: 'u1',
-        userRole: 'OPERATOR',
-        ipAddress: '127.0.0.1',
-        userAgent: 'Test',
-        resource: 'grn',
-        resourceId: 'g2',
-        details: {},
-        createdAt: new Date(),
-      },
+      createLogRecord('log_day1', new Date('2026-10-01T10:00:00Z'), 'g1'),
+      createLogRecord('log_day2', new Date('2026-10-05T10:00:00Z'), 'g2'),
     ]);
 
     const res = await auditService.queryLogs(
-      {
-        from: '2026-10-01T00:00:00Z',
-        to: '2026-10-02T23:59:59Z',
-        page: 1,
-        limit: 10,
-      },
+      { from: '2026-10-01T00:00:00Z', to: '2026-10-02T23:59:59Z', page: 1, limit: 10 },
       null,
     );
 
@@ -207,16 +166,8 @@ describe('Suite 3: Audit Service & Domain Integration — audit.service.test.ts'
 
   // 8. Correctly filters logs by eventType and severity
   it('correctly filters logs by eventType and severity', async () => {
-    await auditService.log({
-      eventType: 'AUTH_LOGIN_FAILED',
-      severity: 'SECURITY',
-      resource: 'auth',
-    });
-    await auditService.log({
-      eventType: 'GRN_CREATED',
-      severity: 'INFO',
-      resource: 'grn',
-    });
+    await auditService.log({ eventType: 'AUTH_LOGIN_FAILED', severity: 'SECURITY', resource: 'auth' });
+    await auditService.log({ eventType: 'GRN_CREATED', severity: 'INFO', resource: 'grn' });
 
     const res = await auditService.queryLogs(
       { eventType: 'AUTH_LOGIN_FAILED', severity: 'SECURITY', page: 1, limit: 10 },
@@ -254,22 +205,9 @@ describe('Suite 3: Audit Service & Domain Integration — audit.service.test.ts'
 
   // 10. Returns correct pagination metadata (totalCount, page, totalPages)
   it('returns correct pagination metadata', async () => {
-    const records = Array.from({ length: 15 }, (_, i) => ({
-      id: `audit_pag_${i}`,
-      timestamp: new Date(Date.now() - i * 1000),
-      eventType: 'GRN_CREATED' as const,
-      severity: 'INFO' as const,
-      facilityId: 'fac-1',
-      userId: 'u1',
-      username: 'u1',
-      userRole: 'OPERATOR' as const,
-      ipAddress: '127.0.0.1',
-      userAgent: 'Test',
-      resource: 'grn',
-      resourceId: `g-${i}`,
-      details: {},
-      createdAt: new Date(),
-    }));
+    const records = Array.from({ length: 15 }, (_, i) =>
+      createLogRecord(`audit_pag_${i}`, new Date(Date.now() - i * 1000), `g-${i}`),
+    );
 
     await AuditLogModel.collection.insertMany(records);
 
@@ -281,3 +219,4 @@ describe('Suite 3: Audit Service & Domain Integration — audit.service.test.ts'
     expect(res.logs.length).toBe(5);
   });
 });
+

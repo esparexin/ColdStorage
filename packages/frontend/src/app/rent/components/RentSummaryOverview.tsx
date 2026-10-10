@@ -1,5 +1,10 @@
 import React from 'react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
+import {
+  formatAgreedRates,
+  formatRemainingDue,
+  formatRentStructure,
+} from '../hooks/rentDisplay.helper';
 import styles from '../page.module.css';
 
 interface RentSummaryOverviewProps {
@@ -8,6 +13,7 @@ interface RentSummaryOverviewProps {
 
 export function RentSummaryOverview({ account }: RentSummaryOverviewProps) {
   const stockBalance = account.remainingBags ?? Math.max(0, account.totalBags - (account.deliveredBags ?? 0));
+  const agreedRates = formatAgreedRates(account);
 
   return (
     <div className={styles.infoCard}>
@@ -30,6 +36,12 @@ export function RentSummaryOverview({ account }: RentSummaryOverviewProps) {
             <span style={{ color: 'var(--color-text-muted)' }}>Outward Delivered</span>
             <span>{(account.deliveredBags ?? 0).toLocaleString('en-IN')} bags</span>
           </div>
+          {account.totalBagsWeight != null && account.totalBagsWeight > 0 && (
+            <div className={styles.infoRow}>
+              <span style={{ color: 'var(--color-text-muted)' }}>Bags Weight</span>
+              <span>{account.totalBagsWeight.toLocaleString('en-IN')} kg</span>
+            </div>
+          )}
           <div className={styles.infoRow} style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-1)' }}>
             <span style={{ fontWeight: 'var(--font-semibold)' }}>Stock Balance</span>
             <strong style={{ color: stockBalance > 0 ? 'var(--color-warning-text)' : 'var(--color-text-muted)' }}>
@@ -47,9 +59,21 @@ export function RentSummaryOverview({ account }: RentSummaryOverviewProps) {
               {account.rentType === 'Monthly' && account.rentMonths ? ` (${account.rentMonths}m)` : ''}
             </span>
           </div>
+          {agreedRates && (
+            <div className={styles.infoRow}>
+              <span style={{ color: 'var(--color-text-muted)' }}>Agreed Rates</span>
+              <span style={{ fontWeight: 'var(--font-medium)' }}>{agreedRates}</span>
+            </div>
+          )}
           <div className={styles.infoRow}>
-            <span style={{ color: 'var(--color-text-muted)' }}>Contract Rent</span>
-            <span>₹{account.rentAmount.toLocaleString('en-IN')}</span>
+            <span style={{ color: 'var(--color-text-muted)' }}>
+              {account.rentType === 'Monthly' && account.rentAmount === 0 ? 'Rent Status' : 'Contract Rent'}
+            </span>
+            <span>
+              {account.rentType === 'Monthly' && account.rentAmount === 0
+                ? 'Dynamic (Cycle Billing)'
+                : formatRentStructure(account)}
+            </span>
           </div>
           <div className={styles.infoRow}>
             <span style={{ color: 'var(--color-text-muted)' }}>Already Paid</span>
@@ -60,7 +84,7 @@ export function RentSummaryOverview({ account }: RentSummaryOverviewProps) {
           <div className={styles.infoRow} style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-1)' }}>
             <span style={{ fontWeight: 'var(--font-semibold)' }}>Remaining Due</span>
             <strong style={{ color: 'var(--color-warning-text)' }}>
-              ₹{account.remainingBalance.toLocaleString('en-IN')}
+              {formatRemainingDue(account)}
             </strong>
           </div>
         </div>

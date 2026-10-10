@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { AuditLogModel } from '../database/models/audit-log.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
@@ -139,9 +140,46 @@ describe('GRN Correction Workflow (PATCH /api/facilities/:facilityId/grns/:grnId
     const noField = await correct({ reason: 'Nothing actually changes here' });
     expect(noField.status).toBe(400);
 
-    const unknownKey = await correct({ rentAmount: 1, reason: 'Trying to change the rent' });
+    const unknownKey = await correct({ grnNumber: 'GRN-99', reason: 'Trying to change the key' });
     expect(unknownKey.status).toBe(400);
     expect(unknownKey.body.error).toBe('Validation failed');
+  });
+
+  it('rejects every permanently immutable numbering/lien field as unknown', async () => {
+    const frozen = [
+      { grnNumber: 'GRN-99' }, { inwardReceiptNumber: 'RCPT-99' }, { billNumber: 'B-99' },
+      { loanStatus: 'TAKEN' }, { bondNumber: 'BND-1' }, { status: 'CLOSED' },
+      { facilityId: 'fac-other' }, { isBondForLoan: true },
+    ];
+    for (const extra of frozen) {
+      const res = await correct({ ...extra, reason: 'Trying to change a frozen field' });
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it('rejects a split correction that names only one side', async () => {
+    const res = await correct({ smallBags: 100, reason: 'Correcting only the small side' });
+    expect(res.status).toBe(400);
+  });
+
+  it('requires authentication', async () => {
+    const res = await request(app)
+      .patch(`/api/facilities/${facilityId}/grns/${grnId}`)
+      .send({ chamber: 'CH-02', reason: 'No token supplied' });
+    expect(res.status).toBe(401);
+  });
+
+  it('backfills a missing inward ledger leg during correction', async () => {
+    await InventoryTransactionModel.deleteMany({ grnId, transactionType: 'INWARD_PUTAWAY' }).exec();
+
+    const res = await correct({ bags: 180, reason: 'Correcting a pre-ledger receipt' });
+    expect(res.status).toBe(200);
+
+    const inward = await InventoryTransactionModel.findOne({ grnId, transactionType: 'INWARD_PUTAWAY' })
+      .lean()
+      .exec();
+    expect(inward?.smallQuantity).toBe(180);
+    expect(String(inward?.notes ?? '')).toContain('Backfilled by correction');
   });
 
   it('rejects a correction naming an inactive commodity', async () => {
@@ -185,5 +223,19 @@ describe('GRN Correction Workflow (PATCH /api/facilities/:facilityId/grns/:grnId
 
     const stored = await storedGrn();
     expect(stored.body.grn.chamber).toBe('CH-09');
+  });
+
+  it('emits a GRN_CORRECTED audit record with before/after state and reason', async () => {
+    const res = await correct({ bags: 180, chamber: 'CH-07', reason: 'Operator mis-keyed the lot' });
+    expect(res.status).toBe(200);
+
+    const record = await AuditLogModel.findOne({ eventType: 'GRN_CORRECTED', resourceId: grnId })
+      .lean()
+      .exec();
+    expect(record).toBeDefined();
+    expect(record?.severity).toBe('WARN');
+    expect(record?.details?.reason).toBe('Operator mis-keyed the lot');
+    expect(record?.details?.before).toMatchObject({ bags: 200, chamber: 'CH-01' });
+    expect(record?.details?.after).toMatchObject({ bags: 180, chamber: 'CH-07' });
   });
 });

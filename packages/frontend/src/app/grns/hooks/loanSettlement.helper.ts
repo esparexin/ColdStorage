@@ -12,6 +12,7 @@ export interface LoanSettlementState {
   ifscCode: string;
   receiverName: string;
   receiverAadhaar: string;
+  remarks: string;
 }
 
 export function initSettlementState(grn: Grn): LoanSettlementState {
@@ -27,6 +28,7 @@ export function initSettlementState(grn: Grn): LoanSettlementState {
     ifscCode: grn.loanSettlementIfsc || '',
     receiverName: grn.loanSettlementReceiverName || '',
     receiverAadhaar: grn.loanSettlementReceiverAadhaar || '',
+    remarks: grn.loanRemarks || '',
   };
 }
 
@@ -51,7 +53,7 @@ export function validateLoanSettlement(s: LoanSettlementState): string | null {
   return null;
 }
 
-export function buildSettlementPayload(s: LoanSettlementState, remarks?: string) {
+export function buildSettlementPayload(s: LoanSettlementState) {
   return {
     amountPaid: Number(s.amountPaid),
     paymentMode: s.paymentMode,
@@ -64,6 +66,7 @@ export function buildSettlementPayload(s: LoanSettlementState, remarks?: string)
     ifscCode: s.ifscCode.trim() || undefined,
     receiverName: s.receiverName.trim(),
     receiverAadhaar: s.receiverAadhaar.trim() || undefined,
-    remarks: remarks?.trim() || undefined,
+    // Settlement notes are the single place loan remarks are captured.
+    remarks: s.remarks.trim() || undefined,
   };
 }

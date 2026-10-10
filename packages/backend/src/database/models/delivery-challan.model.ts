@@ -14,6 +14,8 @@ export interface DeliveryChallanDoc extends Document {
   commodityName: string;
   /** Free-text chamber label copied from the owning GRN. */
   chamber: string;
+  /** Informational bag type label ('S', 'B', 'S+B', or 'S/B') from the source GRN. */
+  bagType?: string | null;
   /** Bag composition dispatched. The total is their sum and is never stored. */
   smallBags: number;
   bigBags: number;
@@ -23,6 +25,7 @@ export interface DeliveryChallanDoc extends Document {
   driverName: string | null;
   weight: number | null;
   remarks: string | null;
+  rentCharge?: number;
   status: DeliveryStatus;
   issuedBy: string;
   createdAt: Date;
@@ -42,6 +45,7 @@ const deliveryChallanSchema = new Schema<DeliveryChallanDoc>(
     commodityId: { type: String, required: true, index: true },
     commodityName: { type: String, required: true, trim: true },
     chamber: { type: String, required: true, trim: true, maxlength: 20 },
+    bagType: { type: String, trim: true, default: null },
     smallBags: { type: Number, required: true, min: 0 },
     bigBags: { type: Number, required: true, min: 0 },
     marks: { type: String, trim: true, default: null },
@@ -50,6 +54,7 @@ const deliveryChallanSchema = new Schema<DeliveryChallanDoc>(
     driverName: { type: String, trim: true, default: null },
     weight: { type: Number, default: null },
     remarks: { type: String, trim: true, default: null },
+    rentCharge: { type: Number, default: 0 },
     status: { type: String, required: true, enum: ['ISSUED', 'REVERSED'], default: 'ISSUED', index: true },
     issuedBy: { type: String, required: true },
   },

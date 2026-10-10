@@ -103,6 +103,7 @@ export function CustomerFormModal({
           onChange={(e) => setFormName(e.target.value)}
           placeholder="e.g. Ramesh Agro Traders"
           disabled={submitting}
+          error={modalError}
         />
 
         {customer && (

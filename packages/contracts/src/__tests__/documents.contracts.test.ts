@@ -115,12 +115,22 @@ describe('P9 Documents & Settings Contracts Tests', () => {
       rentAmount: 37500,
       rentMonths: 10,
       vehicleNumber: 'HR-05-AB-1234',
+      totalBagsWeight: 12500,
+      smallBagPrice: 12,
+      bigBagPrice: 18,
+      storageMark: 'GRN-2026-0001',
       generatedAt: new Date(),
       generatedBy: 'usr-operator',
     };
 
     const result = receiptDocumentDtoSchema.safeParse(validReceipt);
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.totalBagsWeight).toBe(12500);
+      expect(result.data.smallBagPrice).toBe(12);
+      expect(result.data.bigBagPrice).toBe(18);
+      expect(result.data.storageMark).toBe('GRN-2026-0001');
+    }
   });
 
   // 6. Validates Delivery Challan print DTO schema
@@ -134,6 +144,7 @@ describe('P9 Documents & Settings Contracts Tests', () => {
       customerName: 'Ramesh Farmer',
       commodityName: 'Potato (Kufri Jyoti)',
       chamber: 'CH-01',
+      bagType: 'S/B',
       smallBags: 30,
       bigBags: 20,
       totalBags: 50,
@@ -141,12 +152,16 @@ describe('P9 Documents & Settings Contracts Tests', () => {
       driverName: 'Suresh Kumar',
       issuedBy: 'Operator One',
       status: 'ISSUED',
+      rentCharge: 5000,
       generatedAt: new Date(),
       generatedBy: 'usr-operator',
     };
 
     const result = challanDocumentDtoSchema.safeParse(validChallan);
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.rentCharge).toBe(5000);
+    }
   });
 
   // 7. Validates Rent Receipt preview DTO schema

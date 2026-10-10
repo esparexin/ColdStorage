@@ -153,4 +153,43 @@ describe('P6 Delivery Contracts', () => {
       expect(parsed.data.gpNumber).toBe('GP-999');
     }
   });
+
+  it('accepts quantity-only delivery and defaults bag composition to zero', () => {
+    const parsed = createDeliverySchema.safeParse({ grnId: 'grn-1', quantity: 50 });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.quantity).toBe(50);
+      expect(parsed.data.smallBags).toBe(0);
+      expect(parsed.data.bigBags).toBe(0);
+    }
+  });
+
+  it('preserves informational bagType on deliveryChallanSchema', () => {
+    const now = new Date();
+    const parsed = deliveryChallanSchema.safeParse({
+      id: 'del-2',
+      facilityId: 'fac-1',
+      challanNumber: 'CHL-25-26-0002',
+      date: now,
+      grnId: 'grn-2',
+      grnNumber: 'GRN-25-26-0002',
+      customerId: 'cust-1',
+      customerName: 'Kisan Agro',
+      commodityId: 'comm-1',
+      commodityName: 'Potato',
+      chamber: 'CH-01',
+      bagType: 'S/B',
+      smallBags: 50,
+      bigBags: 0,
+      totalBags: 50,
+      status: 'ISSUED',
+      issuedBy: 'usr-1',
+      createdAt: now,
+      updatedAt: now,
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.bagType).toBe('S/B');
+    }
+  });
 });

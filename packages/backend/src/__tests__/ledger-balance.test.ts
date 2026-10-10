@@ -54,6 +54,7 @@ describe('Phase 2: ledger authority (ledger-balance.test.ts)', () => {
     const { grn } = await grnService.createGrn(
       facilityId,
       {
+        grnNumber: '0501',
         customerId,
         commodityId,
         chamber: 'CH-L1',

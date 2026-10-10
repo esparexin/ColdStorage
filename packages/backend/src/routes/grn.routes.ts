@@ -104,6 +104,22 @@ grnRouter.get(
   },
 );
 
+// GR Number guidance for the Inward form (informational only; entry is manual and unsequenced)
+grnRouter.get(
+  '/facilities/:facilityId/grns/next-grn-number',
+  requirePermission('grn:view'),
+  requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  async (req: Request, res: Response): Promise<void> => {
+    const facilityId = getParamId(req.params.facilityId);
+    try {
+      const guidance = await grnService.getGrnNumberGuidance(facilityId);
+      res.status(200).json(guidance);
+    } catch (err: unknown) {
+      sendServiceError(res, err, 'Failed to load GR number guidance');
+    }
+  },
+);
+
 // Get single GRN by ID (with child-ID scope-bypass protection)
 grnRouter.get(
   '/grns/:grnId',
@@ -144,7 +160,7 @@ grnRouter.get(
   },
 );
 
-// Get Bond Movement History (authoritative read-only passbook)
+// Get GR Movement History (authoritative read-only passbook)
 grnRouter.get(
   '/facilities/:facilityId/grns/:grnId/movement-history',
   requirePermission('grn:view'),
@@ -172,7 +188,7 @@ grnRouter.get(
   },
 );
 
-// Correct an inward receipt's commodity, bag count or chamber (authorized workflow).
+// Full edit of an inward receipt (authorized workflow, grn:correct).
 grnRouter.patch(
   '/facilities/:facilityId/grns/:grnId',
   requirePermission('grn:correct'),

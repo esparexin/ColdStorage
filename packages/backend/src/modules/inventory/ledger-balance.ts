@@ -21,17 +21,17 @@ export interface GroupedLedgerBalance extends LedgerBalance {
   key: string;
 }
 
-interface RawCompositionTotals {
+export interface RawCompositionTotals {
   _id: null;
   small: number;
   big: number;
 }
 
-function toBalance(small: number, big: number): LedgerBalance {
+export function toBalance(small: number, big: number): LedgerBalance {
   return { smallBags: small, bigBags: big, total: small + big };
 }
 
-const EMPTY: LedgerBalance = { smallBags: 0, bigBags: 0, total: 0 };
+export const EMPTY: LedgerBalance = { smallBags: 0, bigBags: 0, total: 0 };
 
 /** Available stock for one GRN. `session` enables reading uncommitted balance inside transactions. */
 export async function readLedgerBalance(

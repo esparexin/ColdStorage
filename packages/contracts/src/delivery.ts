@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { bagTypeSchema } from './bags.js';
 import { chamberTextSchema, indianVehicleSchema } from './common.js';
 import { challanNumberSchema } from './identifiers.js';
 import { grnStatusSchema } from './grn.js';
@@ -16,32 +17,36 @@ export type DeliveryStatus = z.infer<typeof deliveryStatusSchema>;
 
 /**
  * A GRN is one commodity in one chamber, so an outward movement withdraws bags from that GRN's
- * available balance. The withdrawal is declared as a bag composition rather than a single total,
- * because a GRN may hold both small and big bags and the per-type balance is what must not go
- * negative. Zero is permitted on either side so an operator can deliver only one bag type.
+ * available balance.
+ * Delivery requires bags to deliver (either as quantity or composition).
  */
 export const createDeliverySchema = z
   .object({
     grnId: z.string().trim().min(1, 'grnId is required'),
     date: z.coerce.date().default(() => new Date()),
+    quantity: z.number().int().positive('Quantity must be positive').max(100000).nullish(),
     smallBags: z
       .number({ invalid_type_error: 'Small bags must be a number' })
       .int('Small bags must be a whole number')
       .min(0, 'Small bags cannot be negative')
-      .max(100000, 'Small bags cannot exceed 100,000'),
+      .max(100000, 'Small bags cannot exceed 100,000')
+      .default(0),
     bigBags: z
       .number({ invalid_type_error: 'Big bags must be a number' })
       .int('Big bags must be a whole number')
       .min(0, 'Big bags cannot be negative')
-      .max(100000, 'Big bags cannot exceed 100,000'),
+      .max(100000, 'Big bags cannot exceed 100,000')
+      .default(0),
     marks: z.string().trim().max(100).nullish(),
     gpNumber: z.string().trim().max(100).nullish(),
     vehicleNumber: indianVehicleSchema.nullish(),
     driverName: z.string().trim().max(100).nullish(),
     weight: z.number().positive('weight must be positive').nullish(),
     remarks: z.string().trim().max(500).nullish(),
+    bagCategory: z.enum(['Small', 'Big', 'Small & Big']).nullish(),
+    rentCharge: z.number().min(0).nullish(),
   })
-  .refine((data) => data.smallBags + data.bigBags > 0, {
+  .refine((data) => (data.quantity && data.quantity > 0) || data.smallBags + data.bigBags > 0, {
     message: 'Delivery must move at least one bag',
     path: ['smallBags'],
   })
@@ -77,6 +82,7 @@ export const deliveryChallanSchema = z.object({
   commodityId: z.string().min(1),
   commodityName: z.string().min(1),
   chamber: chamberTextSchema,
+  bagType: bagTypeSchema.optional(),
   smallBags: z.number().int().min(0),
   bigBags: z.number().int().min(0),
   /** Derived as smallBags + bigBags. Never stored, so the two parts cannot disagree. */
@@ -97,6 +103,7 @@ export const deliveryChallanSchema = z.object({
   rentRemainingBalance: z.number().min(0).optional(),
   rentTotalAmount: z.number().min(0).optional(),
   rentTotalPaid: z.number().min(0).optional(),
+  rentCharge: z.number().min(0).optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

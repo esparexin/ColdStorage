@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowUpRight, BookOpen, Plus, Receipt } from 'lucide-react';
+import { ArrowUpRight, PackageSearch, Plus, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { EMPTY_MESSAGES, ERROR_TITLES, LOADING_LABELS } from '@/components/ui/stateCopy';
@@ -73,10 +73,10 @@ export default function DashboardPage() {
           <Button
             variant="secondary"
             size="sm"
-            leftIcon={<BookOpen size={15} />}
-            onClick={() => router.push('/bond-ledger')}
+            leftIcon={<PackageSearch size={15} />}
+            onClick={() => router.push('/grn-stock')}
           >
-            Bond Ledger
+            GRN Stock
           </Button>
           <Button
             variant="secondary"

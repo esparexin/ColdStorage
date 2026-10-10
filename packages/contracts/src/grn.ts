@@ -6,22 +6,24 @@ import {
   perBagWeightSchema,
 } from './bags.js';
 import { chamberTextSchema, indianVehicleSchema, rentalAmountSchema } from './common.js';
-import { bondNumberSchema, gpNumberSchema, grnNumberSchema, receiptNumberSchema } from './identifiers.js';
+import {
+  bondNumberSchema,
+  gpNumberSchema,
+  grnNumberInputSchema,
+  grnNumberSchema,
+  receiptNumberSchema,
+} from './identifiers.js';
 import { bagPriceSchema } from './pricing.js';
+import {
+  rentMonthsForType,
+  rentMonthsInputSchema,
+  rentTypeSchema,
+  SEASONAL_RENT_MONTHS,
+} from './grn-rent.js';
 
-export const rentTypeSchema = z.enum(['Monthly', 'Seasonal']);
-export type RentType = z.infer<typeof rentTypeSchema>;
-
-// Complete 10-month rental period business constant for Seasonal subscriptions.
-export const SEASONAL_RENT_MONTHS = 10;
-export function rentMonthsForType(rentType: RentType): number | null {
-  return rentType === 'Seasonal' ? SEASONAL_RENT_MONTHS : null;
-}
-/** Operator-facing month input: Monthly requires an explicit count; Seasonal is fixed. */
-export const rentMonthsInputSchema = z
-  .number({ invalid_type_error: 'Rent months must be a number' })
-  .int('Rent months must be a whole number')
-  .min(1, 'Rent months must be at least 1');
+export { rentMonthsForType, rentMonthsInputSchema, rentTypeSchema, SEASONAL_RENT_MONTHS };
+export type { RentType } from './grn-rent.js';
+export { correctGrnSchema, type CorrectGrnInput } from './grn-correction.js';
 
 import {
   loanPaymentModeSchema,
@@ -40,21 +42,23 @@ export { updateGrnLoanStatusSchema, type UpdateGrnLoanStatusInput };
 export const inwardReceiptNumberSchema = receiptNumberSchema;
 export type InwardReceiptNumber = z.infer<typeof inwardReceiptNumberSchema>;
 
+/**
+ * GR Number is entered manually as exactly four digits and is the sole business key for the
+ * goods lifecycle; uniqueness within the facility is enforced server-side (see grnNumberInputSchema).
+ */
 export const createGrnSchema = z
   .object({
+    grnNumber: grnNumberInputSchema,
     date: z.coerce.date().default(() => new Date()),
     customerId: z.string().trim().min(1),
     commodityId: z.string().trim().min(1),
     chamber: chamberTextSchema,
     bags: z.number().int().positive().max(100000),
-    bagType: bagTypeSchema,
-    /**
-     * Per-bag weight only (kg per individual bag).
-     * - S requires smallBagWeight; B requires bigBagWeight; S+B requires both.
-     * - No nominal / weighbridge / total-weight fields exist.
-     */
+    bagType: bagTypeSchema.default('S/B'),
+    /** Per-bag weight only (kg per individual bag); optional. No nominal/weighbridge/total. */
     smallBagWeight: perBagWeightSchema.nullish(),
     bigBagWeight: perBagWeightSchema.nullish(),
+    totalBagsWeight: z.number({ invalid_type_error: 'Total bags weight must be a number' }).positive('Total bags weight must be positive').nullish(),
     rentType: rentTypeSchema,
     /**
      * Rent Months is informational only. It does not determine, modify, or finalize
@@ -84,32 +88,36 @@ export const createGrnSchema = z
   })
   .refine(
     (data) => {
-      if (data.rentType === 'Monthly') {
-        return typeof data.rentMonths === 'number' && data.rentMonths >= 1;
+      if (data.rentType === 'Seasonal') {
+        return data.rentMonths === null || data.rentMonths === undefined;
       }
-      return data.rentMonths === null || data.rentMonths === undefined;
+      return (
+        data.rentMonths === null ||
+        data.rentMonths === undefined ||
+        (typeof data.rentMonths === 'number' && data.rentMonths >= 1)
+      );
     },
     {
-      message: "rentMonths (>= 1) is required for 'Monthly' rent and must be omitted for 'Seasonal'",
+      message: "rentMonths must be omitted for 'Seasonal' rent",
       path: ['rentMonths'],
     },
   )
   .refine(
     (data) => {
-      if (data.bagType === 'S' || data.bagType === 'S+B') {
-        if (typeof data.smallBagWeight !== 'number' || data.smallBagWeight <= 0) return false;
-      }
-      if (data.bagType === 'B' || data.bagType === 'S+B') {
-        if (typeof data.bigBagWeight !== 'number' || data.bigBagWeight <= 0) return false;
-      }
+      // Per-bag weight is optional: the Inward form captures Total Bags and a single Bag Price.
+      // When a weight is supplied it must still be a positive number.
+      if (data.smallBagWeight != null && data.smallBagWeight <= 0) return false;
+      if (data.bigBagWeight != null && data.bigBagWeight <= 0) return false;
       return true;
     },
-    { message: 'Per-bag weight is required: Small Bag Weight for S, Big Bag Weight for B, both for S+B', path: ['smallBagWeight'] },
+    { message: 'Per-bag weight must be a positive number when provided', path: ['smallBagWeight'] },
   )
   .refine(
     (data) =>
-      // The stored composition and the stored total are the same fact. Rejecting an inconsistent
-      // declaration here is what stops `bags` and its parts from drifting apart in the database.
+      // The stored composition and the stored total are the same fact. A receipt either declares
+      // an explicit split (legacy CSV import) or none at all, in which case the split is derived
+      // from the bag type and the total. Rejecting an inconsistent declaration is what stops
+      // `bags` and its parts from drifting apart in the database.
       bagCompositionConsistent({
         bagType: data.bagType,
         bags: data.bags,
@@ -151,6 +159,7 @@ export const grnSchema = z.object({
   bagType: bagTypeSchema,
   smallBagWeight: z.number().positive().nullable().optional(),
   bigBagWeight: z.number().positive().nullable().optional(),
+  totalBagsWeight: z.number().positive().nullable().optional(),
   rentType: rentTypeSchema,
   /** Informational only; monthly subscription/rent is finalized per subscription/rent rules. */
   rentMonths: z.number().int().nullable().optional(),
@@ -193,51 +202,4 @@ export const grnSchema = z.object({
 
 export type Grn = z.infer<typeof grnSchema>;
 
-/**
- * Authorized correction of an inward receipt.
- *
- * Only the operational facts of a receipt may be corrected: what was stored, how many bags, and
- * which chamber it went into. This is the approved correction workflow required by the
- * architecture lock's transaction-immutability rule — it is not a chamber transfer feature, and
- * it refuses to run once stock has moved so the ledger and the receipt cannot diverge.
- *
- * Financial and identity terms (rent, customer, dates, numbering) are deliberately NOT
- * correctable; those require the reversal workflows.
- */
-export const correctGrnSchema = z
-  .object({
-    commodityId: z.string().trim().min(1, 'commodityId is required').optional(),
-    bags: z.number().int().positive('bags must be a positive integer').max(100000).optional(),
-    /**
-     * The corrected split, required together when a mixed receipt's total changes. A single-type
-     * receipt's composition is derived from its bag type, so it takes no split.
-     */
-    smallBags: z.number().int().min(0).max(100000).optional(),
-    bigBags: z.number().int().min(0).max(100000).optional(),
-    chamber: chamberTextSchema.optional(),
-    reason: z.string().trim().min(5, 'A correction reason of at least 5 characters is required').max(500),
-  })
-  .strict()
-  .refine(
-    (data) =>
-      data.commodityId !== undefined ||
-      data.bags !== undefined ||
-      data.chamber !== undefined ||
-      data.smallBags !== undefined ||
-      data.bigBags !== undefined,
-    {
-      message: 'Provide at least one of commodityId, bags, smallBags, bigBags or chamber to correct',
-      path: ['chamber'],
-    },
-  )
-  .refine(
-    (data) =>
-      (data.smallBags === undefined && data.bigBags === undefined) ||
-      (data.smallBags !== undefined && data.bigBags !== undefined),
-    {
-      message: 'smallBags and bigBags must be corrected together',
-      path: ['smallBags'],
-    },
-  );
 
-export type CorrectGrnInput = z.infer<typeof correctGrnSchema>;

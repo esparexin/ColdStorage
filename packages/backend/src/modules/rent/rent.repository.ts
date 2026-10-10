@@ -1,4 +1,5 @@
 import type { ClientSession } from 'mongoose';
+import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
 import { RentPaymentModel, type RentPaymentDoc } from '../../database/models/rent-payment.model.js';
 
 export class RentRepository {
@@ -52,6 +53,34 @@ export class RentRepository {
     ]).session(session ?? null);
 
     return agg[0]?.total ?? 0;
+  }
+
+  public async getOutwardRentChargesForGrn(
+    facilityId: string,
+    grnId: string,
+    session?: ClientSession,
+  ): Promise<number> {
+    const agg = await DeliveryChallanModel.aggregate([
+      { $match: { facilityId, grnId, status: 'ISSUED' } },
+      { $group: { _id: null, total: { $sum: '$rentCharge' } } },
+    ]).session(session ?? null);
+
+    return agg[0]?.total ?? 0;
+  }
+
+  public async getOutwardRentChargesByFacilityGrouped(
+    facilityId: string,
+  ): Promise<Map<string, number>> {
+    const agg = await DeliveryChallanModel.aggregate([
+      { $match: { facilityId, status: 'ISSUED' } },
+      { $group: { _id: '$grnId', total: { $sum: '$rentCharge' } } },
+    ]);
+
+    const grouped = new Map<string, number>();
+    for (const doc of agg) {
+      grouped.set(doc._id, doc.total ?? 0);
+    }
+    return grouped;
   }
 
   public async findByReceiptNumber(

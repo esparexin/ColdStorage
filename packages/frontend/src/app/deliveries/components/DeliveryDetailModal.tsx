@@ -105,6 +105,15 @@ export function DeliveryDetailModal({
               </span>
             </div>
 
+            {delivery.rentCharge != null && delivery.rentCharge > 0 && (
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>Rent Charge</span>
+                <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-bold)' }}>
+                  ₹{delivery.rentCharge.toLocaleString('en-IN')}
+                </span>
+              </div>
+            )}
+
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Marks</span>
               <span className={styles.detailValue}>{delivery.marks || '—'}</span>
@@ -123,6 +132,13 @@ export function DeliveryDetailModal({
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Driver Name</span>
               <span className={styles.detailValue}>{delivery.driverName || '—'}</span>
+            </div>
+
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Outward Weight</span>
+              <span className={styles.detailValue}>
+                {delivery.weight != null ? `${delivery.weight.toLocaleString('en-IN')} kg` : '—'}
+              </span>
             </div>
 
             <div className={styles.detailItem} style={{ gridColumn: 'span 2' }}>

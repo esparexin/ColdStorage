@@ -42,6 +42,8 @@ const auditLogSchema = new Schema<AuditLogDoc>(
         'BACKUP_TRIGGERED',
         'ACCESS_DENIED',
         'RENT_PAYMENT_COLLECTED',
+        'RENT_EXTENSION_FINALIZED',
+        'RENT_EXTENSION_OVERRIDDEN',
         'USER_CREATED',
         'USER_UPDATED',
         'USER_PASSWORD_RESET',
@@ -49,6 +51,8 @@ const auditLogSchema = new Schema<AuditLogDoc>(
         'FACILITY_UPDATED',
         'FACILITY_DELETED',
         'GRN_LOAN_STATUS_UPDATED',
+        'INTERNAL_MOVEMENT_MERGE',
+        'INTERNAL_MOVEMENT_TRANSFER',
       ],
     },
     severity: {

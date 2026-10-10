@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { chamberTextSchema, rentalAmountSchema } from './common.js';
 import { grnStatusSchema, rentTypeSchema } from './grn.js';
 import { rentReceiptNumberSchema } from './identifiers.js';
+import { rentExtensionSchema } from './rent-extension.js';
 
 export const paymentModeSchema = z.enum(['Cash', 'UPI']);
 export type PaymentMode = z.infer<typeof paymentModeSchema>;
@@ -62,6 +63,9 @@ export const rentSummaryDtoSchema = z.object({
   deliveredBags: z.number().int().min(0).optional(),
   remainingBags: z.number().int().min(0).optional(),
   bagPrice: z.number().nullish(),
+  smallBagPrice: z.number().nullish(),
+  bigBagPrice: z.number().nullish(),
+  totalBagsWeight: z.number().nullish(),
   rentType: rentTypeSchema,
   rentAmount: rentalAmountSchema,
   rentMonths: z.number().int().nullable().optional(),
@@ -69,6 +73,16 @@ export const rentSummaryDtoSchema = z.object({
   remainingBalance: z.number().min(0),
   paymentStatus: paymentStatusSchema,
   payments: z.array(rentPaymentSchema),
+  /**
+   * Finalized January/February extensions (additive to rentAmount).
+   * Defaults to [] so payloads produced before the extension model still parse.
+   */
+  extensions: z.array(rentExtensionSchema).default([]),
+  /**
+   * Total due = rentAmount + sum(finalized extensions). Equals rentAmount when
+   * no extensions exist, so pre-extension balances are unchanged.
+   */
+  totalDue: rentalAmountSchema.default(0),
 });
 
 export type RentSummaryDto = z.infer<typeof rentSummaryDtoSchema>;

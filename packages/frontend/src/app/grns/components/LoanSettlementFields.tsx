@@ -8,15 +8,11 @@ import type { LoanSettlementState } from '../hooks/loanSettlement.helper';
 interface LoanSettlementFieldsProps {
   value: LoanSettlementState;
   onChange: (updates: Partial<LoanSettlementState>) => void;
-  lenderBankName?: string | null;
-  loanReferenceNumber?: string | null;
 }
 
 export function LoanSettlementFields({
   value,
   onChange,
-  lenderBankName,
-  loanReferenceNumber,
 }: LoanSettlementFieldsProps) {
   return (
     <div className={styles.container}>
@@ -116,7 +112,7 @@ export function LoanSettlementFields({
                 type="text"
                 maxLength={100}
                 className={styles.fieldInput}
-                placeholder={lenderBankName || 'e.g. State Bank of India'}
+                placeholder="e.g. State Bank of India"
                 value={value.bankName}
                 onChange={(e) => onChange({ bankName: e.target.value })}
                 required
@@ -144,7 +140,7 @@ export function LoanSettlementFields({
                 type="text"
                 maxLength={35}
                 className={styles.fieldInput}
-                placeholder={loanReferenceNumber || 'e.g. 10029384721'}
+                placeholder="e.g. 10029384721"
                 value={value.accountNumber}
                 onChange={(e) => onChange({ accountNumber: e.target.value })}
                 required
@@ -207,6 +203,19 @@ export function LoanSettlementFields({
             onChange={(e) => onChange({ receiverAadhaar: e.target.value.replace(/\D/g, '') })}
           />
         </div>
+      </div>
+
+      <div className={styles.fieldGroup}>
+        <label htmlFor="settlement-remarks" className={styles.fieldLabel}>Settlement Notes (Optional)</label>
+        <input
+          id="settlement-remarks"
+          type="text"
+          maxLength={500}
+          className={styles.fieldInput}
+          placeholder="e.g. Bank NOC letter received; full loan repayment verified"
+          value={value.remarks}
+          onChange={(e) => onChange({ remarks: e.target.value })}
+        />
       </div>
     </div>
   );

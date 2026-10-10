@@ -1,10 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { PaymentStatus, RentSummaryDto } from '@cold-storage/contracts';
+import type { RentSummaryDto } from '@cold-storage/contracts';
 import { useFacility } from '@/context/FacilityContext';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
+import {
+  filterRentAccounts,
+  type RentStatusFilter,
+  type RentTypeFilter,
+} from './rentFilter.helper';
 
 export const RENT_PAGE_SIZE = 20;
 
@@ -24,10 +29,17 @@ export function useRentData() {
     setSearchTermRaw(v);
     setPage(1);
   }, []);
-  const [statusFilter, setStatusFilterRaw] = useState<'' | PaymentStatus>('');
+  const [statusFilter, setStatusFilterRaw] = useState<RentStatusFilter>('');
 
-  const setStatusFilter = useCallback((v: '' | PaymentStatus) => {
+  const setStatusFilter = useCallback((v: RentStatusFilter) => {
     setStatusFilterRaw(v);
+    setPage(1);
+  }, []);
+
+  const [typeFilter, setTypeFilterRaw] = useState<RentTypeFilter>('');
+
+  const setTypeFilter = useCallback((v: RentTypeFilter) => {
+    setTypeFilterRaw(v);
     setPage(1);
   }, []);
 
@@ -68,19 +80,12 @@ setRentSummaries(data.summaries ?? []);
   }, [fetchRentAccounts]);
 
   const filteredAccounts = useMemo(() => {
-    return rentSummaries.filter((acc) => {
-      const term = searchTerm.toLowerCase();
-      const matchSearch =
-        !searchTerm.trim() ||
-        acc.grnNumber.toLowerCase().includes(term) ||
-        acc.customerName.toLowerCase().includes(term) ||
-        acc.commodityName.toLowerCase().includes(term) ||
-        acc.chamber.toLowerCase().includes(term);
-
-      const matchStatus = !statusFilter || acc.paymentStatus === statusFilter;
-      return matchSearch && matchStatus;
+    return filterRentAccounts(rentSummaries, {
+      searchTerm,
+      statusFilter,
+      typeFilter,
     });
-  }, [rentSummaries, searchTerm, statusFilter]);
+  }, [rentSummaries, searchTerm, statusFilter, typeFilter]);
 
   // Derived from the filtered set so the totals always describe exactly the
   // rows in the table below them, rather than the unfiltered facility totals.
@@ -119,6 +124,8 @@ setRentSummaries(data.summaries ?? []);
     setSearchTerm,
     statusFilter,
     setStatusFilter,
+    typeFilter,
+    setTypeFilter,
     metrics,
     filteredAccounts,
     pagedAccounts,

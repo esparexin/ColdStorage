@@ -29,7 +29,7 @@ export function BrandLogoSection({
 }: BrandLogoSectionProps) {
   return (
     <div className={styles.root}>
-      {/* The surrounding disclosure already provides the heading, so no inner header is needed. */}
+      {/* The surrounding tab panel already provides the heading, so no inner header is needed. */}
 
       {logoSuccess && <Banner variant="success" message={logoSuccess} />}
       {logoError && <Banner message={logoError} id="logo-error" />}

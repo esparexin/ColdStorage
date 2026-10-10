@@ -1,5 +1,6 @@
 import type { FilterQuery } from 'mongoose';
 import {
+  totalRentDue,
   type StorageOccupancyFilter,
   type StorageOccupancyReport,
   type StorageOccupancyReportItem,
@@ -7,6 +8,7 @@ import {
 import { GrnModel, type GrnDoc } from '../../database/models/grn.model.js';
 import { RentPaymentModel } from '../../database/models/rent-payment.model.js';
 import { computeRentBalance } from './rent-balance.js';
+import { rentExtensionRepository } from '../rent/rent-extension.repository.js';
 import { getGrnMovementHistory } from './grn-movement-history.js';
 import {
   calculateGrnMonthlyOccupancyRent,
@@ -49,6 +51,10 @@ export async function generateStorageOccupancyReport(
       totalPaidByGrn.set(row._id as string, row.total as number);
     }
   }
+  const extensionTotalsByGrn = await rentExtensionRepository.getExtensionTotalsForGrns(
+    facilityId,
+    grns.map((g) => g.id),
+  );
 
   const reportItems: StorageOccupancyReportItem[] = [];
 
@@ -62,7 +68,15 @@ export async function generateStorageOccupancyReport(
     if (!history) continue;
 
     const totalPaid = totalPaidByGrn.get(grn.id) ?? 0;
-    const rentBalance = computeRentBalance(grn.rentAmount, totalPaid);
+    // extensionTotalsByGrn holds the pre-aggregated sum of all finalAmounts for this GRN.
+    // totalRentDue() accepts individual extension amounts and sums them internally; wrapping
+    // the pre-summed value in a single-element array routes through the SSOT formula
+    // (identical result, consistent rounding behaviour with all other call sites).
+    const totalDue = totalRentDue(
+      grn.rentAmount,
+      extensionTotalsByGrn.get(grn.id) ? [extensionTotalsByGrn.get(grn.id)!] : [],
+    );
+    const rentBalance = computeRentBalance(totalDue, totalPaid);
 
     if (view === 'monthly' && monthlySummary) {
       for (const p of monthlySummary.periods) {
@@ -81,7 +95,6 @@ export async function generateStorageOccupancyReport(
           closingBags: p.remainingBags,
           marks: grn.marks ?? null,
           gpNumber: grn.gpNumber ?? null,
-          sbNumber: null,
           remarks: `Month: ${p.applicableMonth}`,
           month: p.applicableMonth,
           season: null,
@@ -108,7 +121,6 @@ export async function generateStorageOccupancyReport(
         closingBags: seasonalSummary.remainingBags,
         marks: grn.marks ?? null,
         gpNumber: grn.gpNumber ?? null,
-        sbNumber: null,
         remarks: seasonalSummary.seasonName,
         month: null,
         season: seasonalSummary.seasonName,
@@ -136,7 +148,6 @@ export async function generateStorageOccupancyReport(
           closingBags: entry.closingBags,
           marks: entry.marks ?? grn.marks ?? null,
           gpNumber: entry.gpNumber ?? grn.gpNumber ?? null,
-          sbNumber: null,
           remarks: entry.remarks ?? null,
           month: entry.date.toISOString().slice(0, 7),
           season: seasonalSummary?.seasonName ?? null,

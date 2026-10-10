@@ -53,6 +53,7 @@ export function CommodityTable({
                 size="sm"
                 onClick={() => void onToggleActive(row)}
                 title={row.isActive ? 'Deactivate commodity' : 'Activate commodity'}
+                aria-label={`${row.isActive ? 'Deactivate' : 'Activate'} commodity ${row.name}`}
                 leftIcon={
                   row.isActive ? (
                     <XCircle size={13} aria-hidden="true" color="var(--color-danger)" />

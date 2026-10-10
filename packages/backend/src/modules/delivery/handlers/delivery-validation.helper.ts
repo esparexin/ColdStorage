@@ -19,21 +19,30 @@ export interface CompositionBalance extends BagComposition {
  */
 export async function validateStockAndBalances(
   facilityId: string,
-  grn: { id: string; grnNumber: string },
+  grn: { id: string; grnNumber: string; bagType?: string | null },
   withdrawal: BagComposition,
   session: mongoose.ClientSession,
 ): Promise<CompositionBalance> {
   const available = await readLedgerBalance(facilityId, grn.id, session);
   const remainingSmall = available.smallBags;
   const remainingBig = available.bigBags;
+  const requestedTotal = withdrawal.smallBags + withdrawal.bigBags;
 
-  // The per-type balance is the guard that matters: a GRN holding 100 small and 100 big bags
-  // must not permit a withdrawal of 150 big bags merely because the combined total would allow it.
-  if (withdrawal.smallBags > remainingSmall || withdrawal.bigBags > remainingBig) {
+  if (requestedTotal > available.total) {
     throw new Error(
-      `Requested ${withdrawal.smallBags} small and ${withdrawal.bigBags} big bags exceeds the ` +
-        `available balance of ${remainingSmall} small and ${remainingBig} big bags for GRN '${grn.grnNumber}'`,
+      `Requested ${requestedTotal} bags exceeds the available balance of ${remainingSmall} small and ${remainingBig} big bags for GRN '${grn.grnNumber}'`,
     );
+  }
+
+  // When a GRN was historically split into distinct small and big pools (both > 0),
+  // guard per type so individual balances are not exceeded.
+  if (remainingSmall > 0 && remainingBig > 0) {
+    if (withdrawal.smallBags > remainingSmall || withdrawal.bigBags > remainingBig) {
+      throw new Error(
+        `Requested ${withdrawal.smallBags} small and ${withdrawal.bigBags} big bags exceeds the ` +
+          `available balance of ${remainingSmall} small and ${remainingBig} big bags for GRN '${grn.grnNumber}'`,
+      );
+    }
   }
 
   return {

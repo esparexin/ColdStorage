@@ -6,6 +6,7 @@ import {
   hashPassword,
   verifyPassword,
 } from '../../utils/crypto.js';
+import { logger } from '../../utils/logger.js';
 import { auditService } from '../audit/audit.service.js';
 import { userRepository, type UserRepository } from '../users/user.repository.js';
 import { userService, type UserService } from '../users/user.service.js';
@@ -32,7 +33,11 @@ export class AuthService {
   ) {}
 
   public async login(input: LoginInput): Promise<LoginResult> {
+    const opStart = Date.now();
+    const tm: Record<string, number> = {};
+    let s = Date.now();
     const user = await this.userRepo.findByUsername(input.username);
+    tm.findByUsernameMs = Date.now() - s;
     if (!user) {
       await auditService.log({
         eventType: 'AUTH_LOGIN_FAILED',
@@ -58,7 +63,9 @@ export class AuthService {
       throw new Error('User account is disabled');
     }
 
+    s = Date.now();
     const passwordValid = await verifyPassword(input.password, user.passwordHash);
+    tm.verifyPasswordMs = Date.now() - s;
     if (!passwordValid) {
       await auditService.log({
         eventType: 'AUTH_LOGIN_FAILED',
@@ -71,8 +78,9 @@ export class AuthService {
       });
       throw new Error('Invalid credentials');
     }
-
+    s = Date.now();
     await this.userRepo.updateLastLogin(user.id);
+    tm.updateLastLoginMs = Date.now() - s;
 
     const accessToken = generateAccessToken(
       {
@@ -87,8 +95,10 @@ export class AuthService {
     );
 
     const refreshToken = generateOpaqueToken(32);
+    s = Date.now();
     await this.sessionRepo.createSession(user.id, refreshToken, config.refreshTokenExpiryDays);
-
+    tm.createSessionMs = Date.now() - s;
+    s = Date.now();
     await auditService.log({
       eventType: 'AUTH_LOGIN_SUCCESS',
       severity: 'INFO',
@@ -98,6 +108,10 @@ export class AuthService {
       resource: 'auth',
       details: { mustChangePassword: user.mustChangePassword },
     });
+    tm.auditSuccessMs = Date.now() - s;
+    const totalMs = Date.now() - opStart;
+    // Attribute login wall-clock to DB vs. crypto vs. audit; Argon2 ~100-500ms is normal.
+    if (totalMs > 1000) logger.warn('auth.login slow', { ...tm, totalMs });
 
     return {
       accessToken,
@@ -112,22 +126,23 @@ export class AuthService {
       throw new Error('Refresh token is required');
     }
 
+    const opStart = Date.now();
+    let s = Date.now();
     const session = await this.sessionRepo.findActiveSession(currentRefreshToken);
+    const findSessionMs = Date.now() - s;
     if (!session) {
       throw new Error('Invalid, expired, or revoked refresh token');
     }
-
+    s = Date.now();
     const user = await this.userRepo.findById(session.userId);
+    const findUserMs = Date.now() - s;
     if (!user || user.status !== 'ACTIVE') {
       throw new Error('User account is inactive or not found');
     }
-
     const newRefreshToken = generateOpaqueToken(32);
-    await this.sessionRepo.rotateSession(
-      currentRefreshToken,
-      newRefreshToken,
-      config.refreshTokenExpiryDays,
-    );
+    s = Date.now();
+    await this.sessionRepo.rotateSession(currentRefreshToken, newRefreshToken, config.refreshTokenExpiryDays);
+    const rotateMs = Date.now() - s;
 
     const accessToken = generateAccessToken(
       {
@@ -140,6 +155,9 @@ export class AuthService {
       config.jwtSecret,
       config.accessTokenExpirySeconds,
     );
+
+    const totalMs = Date.now() - opStart;
+    if (totalMs > 1000) logger.warn('auth.refresh slow', { findSessionMs, findUserMs, rotateMs, totalMs });
 
     return {
       accessToken,

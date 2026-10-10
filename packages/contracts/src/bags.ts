@@ -2,11 +2,11 @@ import { z } from 'zod';
 
 /**
  * Single canonical bag model (P0-Decision 3 & 4).
- * - Bag Type: strictly controlled vocabulary of 'S', 'B', or 'S+B'.
+ * - Bag Type: strictly controlled vocabulary of 'S', 'B', 'S+B', or 'S/B' (informational, default 'S/B').
  * - Weight is captured per individual bag only (Small Bag Weight / Big Bag Weight).
- * - No nominal/weighbridge/total-weight concepts exist in the GRN workflow.
+ * - Primary operational metric is Total S/B Bags (`bags`).
  */
-export const bagTypeSchema = z.enum(['S', 'B', 'S+B']);
+export const bagTypeSchema = z.enum(['S', 'B', 'S+B', 'S/B']).default('S/B');
 export type BagType = z.infer<typeof bagTypeSchema>;
 
 /** Per-bag weight in kg for one individual bag of the respective type. */
@@ -62,6 +62,10 @@ export function bagCompositionIssue(input: NormalizeCompositionInput): string | 
   const small = smallBags ?? 0;
   const big = bigBags ?? 0;
 
+  if (bagType === 'S/B') {
+    return null;
+  }
+
   if (bagType === 'S') {
     return big > 0
       ? 'Bag type S declares no big bags, but a big bag count was supplied'
@@ -74,6 +78,13 @@ export function bagCompositionIssue(input: NormalizeCompositionInput): string | 
       : null;
   }
 
+  // S+B is a classification label only: the inward form captures a single Total Bags, so a
+  // receipt may declare no split at all. When a split IS supplied (legacy CSV import, or the
+  // administrative correction workflow) it must still reconcile with the declared total.
+  const hasSplit = (smallBags != null || bigBags != null) && small + big > 0;
+  if (!hasSplit) {
+    return null;
+  }
   if (small <= 0 || big <= 0) {
     return 'Bag type S+B requires a positive small bag count and a positive big bag count';
   }
@@ -98,13 +109,25 @@ export function normalizeBagComposition(input: NormalizeCompositionInput): BagCo
   }
 
   const { bagType, bags, smallBags, bigBags } = input;
+  if (bagType === 'S/B') {
+    return { smallBags: bags, bigBags: 0 };
+  }
   if (bagType === 'S') {
     return { smallBags: bags, bigBags: 0 };
   }
   if (bagType === 'B') {
     return { smallBags: 0, bigBags: bags };
   }
-  return { smallBags: smallBags ?? 0, bigBags: bigBags ?? 0 };
+  // S+B with no declared split is stored as a single-side composition. Readers that report a
+  // per-type split (delivery validation, ledger, challan print) then have a defined vector to
+  // read, exactly as they do for S and B, without inventing a small/big division the operator
+  // never supplied.
+  const small = smallBags ?? 0;
+  const big = bigBags ?? 0;
+  if (small + big === 0) {
+    return { smallBags: bags, bigBags: 0 };
+  }
+  return { smallBags: small, bigBags: big };
 }
 
 /** Narrows an unknown value to a composition, returning null when it is not one. */

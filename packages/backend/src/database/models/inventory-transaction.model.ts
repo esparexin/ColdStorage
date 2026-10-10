@@ -29,7 +29,7 @@ const inventoryTransactionSchema = new Schema<InventoryTransactionDoc>(
     grnNumber: { type: String, required: true, index: true },
     chamber: { type: String, required: true, trim: true, maxlength: 20, index: true },
     commodityId: { type: String, required: true, index: true },
-    bagType: { type: String, required: true, enum: ['S', 'B', 'S+B'] },
+    bagType: { type: String, required: true, enum: ['S', 'B', 'S+B', 'S/B'], default: 'S/B' },
     transactionType: {
       type: String,
       required: true,

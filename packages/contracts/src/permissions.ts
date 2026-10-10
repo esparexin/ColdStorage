@@ -8,6 +8,13 @@ export type Role = z.infer<typeof roleSchema>;
  * Centralized mapping of permissions to authorized roles.
  */
 export const PERMISSIONS = {
+  /**
+   * Operational inward intake. Also gates the GRN loan/bond status update
+   * (`PATCH /facilities/:facilityId/grns/:grnId/loan-status`): loan status is an
+   * operational pledge flag, not an evidentiary correction, so OPERATOR may set
+   * it. This asymmetry with `grn:correct` below is intentional and frozen by the
+   * Inward Edit governance record (see inward-rent-delivery-grn-flow-audit §8).
+   */
   'grn:create': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
   'grn:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   /** Authorized correction of an inward receipt's commodity, bag count or chamber. */
@@ -21,6 +28,12 @@ export const PERMISSIONS = {
   'rent:collect': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
   'rent:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   'rent:print': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
+  /**
+   * Finalize a January/February seasonal extension or override its amount.
+   * Creates a financial obligation, so it follows the sensitive-operation
+   * precedent (grn:correct, delivery:reversal): SUPER_ADMIN and ADMIN only.
+   */
+  'rent:extend': ['SUPER_ADMIN', 'ADMIN'],
   /** Chamber is free text; only the tenancy root is a managed entity. */
   'facility:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   'customer:manage': ['SUPER_ADMIN', 'ADMIN'],

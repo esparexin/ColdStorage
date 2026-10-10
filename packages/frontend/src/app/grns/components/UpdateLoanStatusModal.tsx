@@ -28,9 +28,6 @@ export function UpdateLoanStatusModal({
   const [targetStatus, setTargetStatus] = useState<LoanStatus>(() => {
     return grn.loanStatus === 'TAKEN' ? 'CLEARED' : 'TAKEN';
   });
-  const [bankName, setBankName] = useState(grn.loanBankName || '');
-  const [referenceNumber, setReferenceNumber] = useState(grn.loanReferenceNumber || '');
-  const [remarks, setRemarks] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [settlement, setSettlement] = useState(() => initSettlementState(grn));
@@ -49,16 +46,11 @@ export function UpdateLoanStatusModal({
 
     setSubmitting(true);
     try {
-      const payload: Record<string, unknown> = {
-        loanStatus: targetStatus,
-        remarks: remarks.trim() || undefined,
-      };
+      // Settlement is the only place loan payment details and notes are captured.
+      const payload: Record<string, unknown> = { loanStatus: targetStatus };
 
-      if (targetStatus === 'TAKEN') {
-        payload.bankName = bankName.trim() || undefined;
-        payload.referenceNumber = referenceNumber.trim() || undefined;
-      } else if (targetStatus === 'CLEARED') {
-        payload.settlement = buildSettlementPayload(settlement, remarks);
+      if (targetStatus === 'CLEARED') {
+        payload.settlement = buildSettlementPayload(settlement);
       }
 
       const res = await requestWithAuth(
@@ -135,11 +127,6 @@ export function UpdateLoanStatusModal({
                   ? 'Loan Not Taken'
                   : 'Standard Storage'}
           </Badge>
-          {grn.loanBankName && (
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-              ({grn.loanBankName}{grn.loanReferenceNumber ? ` · Ref: ${grn.loanReferenceNumber}` : ''})
-            </span>
-          )}
         </div>
 
         <div className={styles.fieldGroup}>
@@ -164,63 +151,8 @@ export function UpdateLoanStatusModal({
           <LoanSettlementFields
             value={settlement}
             onChange={(u) => setSettlement((prev) => ({ ...prev, ...u }))}
-            lenderBankName={grn.loanBankName}
-            loanReferenceNumber={grn.loanReferenceNumber}
           />
         )}
-
-        {targetStatus === 'TAKEN' && (
-          <div className={styles.formGrid2}>
-            <div className={styles.fieldGroup}>
-              <label htmlFor="update-loan-bank" className={styles.fieldLabel}>
-                Lender / Bank Name
-              </label>
-              <input
-                id="update-loan-bank"
-                type="text"
-                maxLength={100}
-                className={styles.fieldInput}
-                placeholder="e.g. State Bank of India"
-                value={bankName}
-                onChange={(e) => setBankName(e.target.value)}
-              />
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label htmlFor="update-loan-ref" className={styles.fieldLabel}>
-                Loan Reference / Account #
-              </label>
-              <input
-                id="update-loan-ref"
-                type="text"
-                maxLength={50}
-                className={styles.fieldInput}
-                placeholder="e.g. LN-98421"
-                value={referenceNumber}
-                onChange={(e) => setReferenceNumber(e.target.value)}
-              />
-            </div>
-          </div>
-        )}
-
-        <div className={styles.fieldGroup}>
-          <label htmlFor="update-loan-remarks" className={styles.fieldLabel}>
-            Operator Remarks &amp; Clearance Notes
-          </label>
-          <input
-            id="update-loan-remarks"
-            type="text"
-            maxLength={500}
-            className={styles.fieldInput}
-            placeholder={
-              targetStatus === 'CLEARED'
-                ? 'e.g. Bank NOC letter received; full loan repayment verified'
-                : 'Optional notes regarding loan or pledge'
-            }
-            value={remarks}
-            onChange={(e) => setRemarks(e.target.value)}
-          />
-        </div>
       </form>
     </Modal>
   );

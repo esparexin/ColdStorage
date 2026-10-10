@@ -88,161 +88,92 @@ describe('Chamber, Rental & Customer Contracts', () => {
     expect(getFinancialYearKey(new Date('2026-03-31T12:00:00Z'))).toBe('25-26');
   });
 
+  /** Minimal valid GRN payload; individual cases override only what they exercise. */
+  const grnPayload = (overrides: Record<string, unknown> = {}) => ({
+    grnNumber: '0001',
+    customerId: 'cust-123',
+    commodityId: 'comm-123',
+    chamber: 'CH-01',
+    bags: 100,
+    bagType: 'S',
+    smallBagWeight: 50,
+    rentType: 'Seasonal',
+    rentAmount: 2500,
+    ...overrides,
+  });
+
   it('accepts a Monthly GRN with an explicit month count', () => {
-    const validMonthly = createGrnSchema.parse({
-      customerId: 'cust-123',
-      commodityId: 'comm-123',
-      chamber: 'CH-01',
-      bags: 100,
-      bagType: 'S',
-      smallBagWeight: 50,
-      rentType: 'Monthly',
-      rentMonths: 3,
-      rentAmount: 1500,
-      vehicleNumber: 'MH12AB1234',
-    });
+    const validMonthly = createGrnSchema.parse(grnPayload({ rentType: 'Monthly', rentMonths: 3, rentAmount: 1500, vehicleNumber: 'MH12AB1234' }));
     expect(validMonthly.bags).toBe(100);
     expect(validMonthly.bagType).toBe('S');
     expect(validMonthly.rentMonths).toBe(3);
     expect(validMonthly.chamber).toBe('CH-01');
   });
 
-  it('rejects a Monthly GRN that omits the month count', () => {
-    expect(() =>
-      createGrnSchema.parse({
-        customerId: 'cust-123',
-        commodityId: 'comm-123',
-        chamber: 'CH-01',
-        bags: 100,
+  it('accepts a Monthly GRN that omits the month count', () => {
+    const validMonthly = createGrnSchema.parse(
+      grnPayload({ bagType: 'B', bigBagWeight: 80, rentType: 'Monthly', rentAmount: 1500 }),
+    );
+    expect(validMonthly.rentType).toBe('Monthly');
+    expect(validMonthly.rentMonths).toBeUndefined();
+  });
+
+  it('accepts a Monthly GRN that omits both rentAmount and rentMonths', () => {
+    const unconfiguredMonthly = createGrnSchema.parse(
+      grnPayload({
         bagType: 'B',
         bigBagWeight: 80,
         rentType: 'Monthly',
-        rentAmount: 1500,
+        rentAmount: undefined,
+        rentMonths: undefined,
       }),
-    ).toThrow();
+    );
+    expect(unconfiguredMonthly.rentType).toBe('Monthly');
+    expect(unconfiguredMonthly.rentAmount).toBeUndefined();
+    expect(unconfiguredMonthly.rentMonths).toBeUndefined();
   });
 
   it('accepts a Seasonal GRN with no operator-supplied month count', () => {
-    const validSeasonal = createGrnSchema.parse({
-      customerId: 'cust-123',
-      commodityId: 'comm-123',
-      chamber: 'CH-01',
-      bags: 100,
-      bagType: 'S+B',
-      smallBags: 60,
-      bigBags: 40,
-      smallBagWeight: 50,
-      bigBagWeight: 80,
-      rentType: 'Seasonal',
-      rentAmount: 2500,
-    });
+    const validSeasonal = createGrnSchema.parse(grnPayload({ bagType: 'S+B', smallBags: 60, bigBags: 40, smallBagWeight: 50, bigBagWeight: 80, rentAmount: 2500 }));
     expect(validSeasonal.rentMonths).toBeUndefined();
     expect(rentMonthsForType(validSeasonal.rentType)).toBe(SEASONAL_RENT_MONTHS);
   });
 
   it('rejects a Seasonal GRN that carries a month count', () => {
     expect(() =>
-      createGrnSchema.parse({
-        customerId: 'cust-123',
-        commodityId: 'comm-123',
-        chamber: 'CH-01',
-        bags: 100,
-        bagType: 'S+B',
-        smallBagWeight: 50,
-        bigBagWeight: 80,
-        rentType: 'Seasonal',
-        rentMonths: 2,
-        rentAmount: 2500,
-      }),
+      createGrnSchema.parse(grnPayload({ bigBagWeight: 80, rentMonths: 2, rentAmount: 2500 })),
     ).toThrow();
   });
 
   it('rejects a non-numeric rental amount on a GRN', () => {
     expect(() =>
-      createGrnSchema.parse({
-        customerId: 'cust-123',
-        commodityId: 'comm-123',
-        chamber: 'CH-01',
-        bags: 100,
-        bagType: 'S',
-        smallBagWeight: 50,
-        rentType: 'Seasonal',
-        rentAmount: 'abc' as unknown as number,
-      }),
+      createGrnSchema.parse(grnPayload({ rentAmount: 'abc' as unknown as number })),
     ).toThrow();
   });
 
   it('rejects a chamber longer than 20 characters on a GRN', () => {
     expect(() =>
-      createGrnSchema.parse({
-        customerId: 'cust-123',
-        commodityId: 'comm-123',
-        chamber: 'c'.repeat(21),
-        bags: 100,
-        bagType: 'S',
-        smallBagWeight: 50,
-        rentType: 'Seasonal',
-        rentAmount: 2500,
-      }),
+      createGrnSchema.parse(grnPayload({ chamber: 'c'.repeat(21) })),
     ).toThrow();
   });
 
   it('rejects an invalid bag type on a GRN', () => {
     expect(() =>
-      createGrnSchema.parse({
-        customerId: 'cust-123',
-        commodityId: 'comm-123',
-        chamber: 'CH-01',
-        bags: 100,
-        bagType: 'INVALID_BAG' as unknown as 'S',
-        rentType: 'Seasonal',
-        rentAmount: 2500,
-      }),
+      createGrnSchema.parse(grnPayload({ bagType: 'INVALID_BAG' as unknown as 'S', rentAmount: 2500 })),
     ).toThrow();
   });
 
   it('validates storageMark and partyMark up to 20 characters on a GRN', () => {
-    const valid = createGrnSchema.parse({
-      customerId: 'cust-123',
-      commodityId: 'comm-123',
-      chamber: 'CH-01',
-      bags: 100,
-      bagType: 'S',
-      smallBagWeight: 50,
-      rentType: 'Seasonal',
-      rentAmount: 2500,
-      storageMark: '  ST-01  ',
-      partyMark: 'KSN-99',
-    });
+    const valid = createGrnSchema.parse(grnPayload({ storageMark: '  ST-01  ', partyMark: 'KSN-99' }));
     expect(valid.storageMark).toBe('ST-01');
     expect(valid.partyMark).toBe('KSN-99');
 
     expect(() =>
-      createGrnSchema.parse({
-        customerId: 'cust-123',
-        commodityId: 'comm-123',
-        chamber: 'CH-01',
-        bags: 100,
-        bagType: 'S',
-        smallBagWeight: 50,
-        rentType: 'Seasonal',
-        rentAmount: 2500,
-        storageMark: 'm'.repeat(21),
-      }),
+      createGrnSchema.parse(grnPayload({ storageMark: 'm'.repeat(21) })),
     ).toThrow(/Storage mark cannot exceed 20 characters/);
 
     expect(() =>
-      createGrnSchema.parse({
-        customerId: 'cust-123',
-        commodityId: 'comm-123',
-        chamber: 'CH-01',
-        bags: 100,
-        bagType: 'S',
-        smallBagWeight: 50,
-        rentType: 'Seasonal',
-        rentAmount: 2500,
-        partyMark: 'p'.repeat(21),
-      }),
+      createGrnSchema.parse(grnPayload({ partyMark: 'p'.repeat(21) })),
     ).toThrow(/Party mark cannot exceed 20 characters/);
   });
 });

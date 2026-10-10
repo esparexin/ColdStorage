@@ -5,6 +5,11 @@ import { CheckCircle2, Clock, Eye, Plus } from 'lucide-react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { Badge, Button } from '@/components/ui';
+import {
+  formatPaymentStatus,
+  formatRentStructure,
+  formatAgreedRates,
+} from '../hooks/rentDisplay.helper';
 import styles from '../page.module.css';
 
 interface RentTableProps {
@@ -109,17 +114,25 @@ export function RentTable({
     {
       key: 'structure',
       header: 'Rent Structure',
-      render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)' }}>
-          <span style={{ fontSize: 'var(--text-xs)' }}>
-            {row.rentType}
-            {row.rentType === 'Monthly' && row.rentMonths ? ` (${row.rentMonths}m)` : ''}
-          </span>
-          <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)' }}>
-            ₹{row.rentAmount.toLocaleString('en-IN')}
-          </span>
-        </div>
-      ),
+      render: (row) => {
+        const agreedRates = formatAgreedRates(row);
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)' }}>
+            <span style={{ fontSize: 'var(--text-xs)' }}>
+              {row.rentType}
+              {row.rentType === 'Monthly' && row.rentMonths ? ` (${row.rentMonths}m)` : ''}
+            </span>
+            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)' }}>
+              {formatRentStructure(row)}
+            </span>
+            {agreedRates && (
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                {agreedRates}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'accounting',
@@ -152,20 +165,23 @@ export function RentTable({
       key: 'status',
       header: 'Status',
       align: 'center',
-      render: (row) => (
-        <Badge
-          variant={row.paymentStatus === 'Settled' ? 'success' : 'warning'}
-          icon={
-            row.paymentStatus === 'Settled' ? (
-              <CheckCircle2 size={12} aria-hidden="true" />
-            ) : (
-              <Clock size={12} aria-hidden="true" />
-            )
-          }
-        >
-          {row.paymentStatus === 'Settled' ? 'Settled' : 'Not Settled'}
-        </Badge>
-      ),
+      render: (row) => {
+        const status = formatPaymentStatus(row);
+        return (
+          <Badge
+            variant={status.variant}
+            icon={
+              status.variant === 'success' ? (
+                <CheckCircle2 size={12} aria-hidden="true" />
+              ) : (
+                <Clock size={12} aria-hidden="true" />
+              )
+            }
+          >
+            {status.label}
+          </Badge>
+        );
+      },
     },
     {
       key: 'actions',
@@ -179,6 +195,7 @@ export function RentTable({
               size="sm"
               onClick={() => onOpenCollect(row)}
               title="Collect rent payment"
+              aria-label={`Collect rent payment for ${row.grnNumber}`}
               leftIcon={<Plus size={12} aria-hidden="true" />}
             >
               Collect
@@ -190,6 +207,7 @@ export function RentTable({
             size="sm"
             onClick={() => onOpenHistory(row)}
             title="View payment cash memos history"
+            aria-label={`View cash memos history for ${row.grnNumber}`}
             leftIcon={<Eye size={12} aria-hidden="true" />}
           >
             Cash Memos ({row.payments.length})

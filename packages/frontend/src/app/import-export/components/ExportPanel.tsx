@@ -48,6 +48,7 @@ export function ExportPanel({
               onClick={() => onExport('customers', `customers-${selectedFacilityId}.csv`)}
               disabled={exportingType === 'customers'}
               isLoading={exportingType === 'customers'}
+              aria-label="Export Customer Directory as CSV"
               leftIcon={<Download size={13} aria-hidden="true" />}
             >
               {exportingType === 'customers' ? LOADING_LABELS.exporting : 'Export CSV'}
@@ -67,6 +68,7 @@ export function ExportPanel({
               onClick={() => onExport('grns', `grns-${selectedFacilityId}.csv`)}
               disabled={exportingType === 'grns'}
               isLoading={exportingType === 'grns'}
+              aria-label="Export Inward of Goods as CSV"
               leftIcon={<Download size={13} aria-hidden="true" />}
             >
               {exportingType === 'grns' ? LOADING_LABELS.exporting : 'Export CSV'}
@@ -86,6 +88,7 @@ export function ExportPanel({
               onClick={() => onExport('deliveries', `deliveries-${selectedFacilityId}.csv`)}
               disabled={exportingType === 'deliveries'}
               isLoading={exportingType === 'deliveries'}
+              aria-label="Export Outward Delivery Challans as CSV"
               leftIcon={<Download size={13} aria-hidden="true" />}
             >
               {exportingType === 'deliveries' ? LOADING_LABELS.exporting : 'Export CSV'}
@@ -105,6 +108,7 @@ export function ExportPanel({
               onClick={() => onExport('stock-summary', `stock-summary-${selectedFacilityId}.csv`)}
               disabled={exportingType === 'stock-summary'}
               isLoading={exportingType === 'stock-summary'}
+              aria-label="Export Live Stock Summary as CSV"
               leftIcon={<Download size={13} aria-hidden="true" />}
             >
               {exportingType === 'stock-summary' ? LOADING_LABELS.exporting : 'Export CSV'}
@@ -124,6 +128,7 @@ export function ExportPanel({
               onClick={() => onExport('inventory-ledger', `ledger-${selectedFacilityId}.csv`)}
               disabled={exportingType === 'inventory-ledger'}
               isLoading={exportingType === 'inventory-ledger'}
+              aria-label="Export Immutable Stock Ledger as CSV"
               leftIcon={<Download size={13} aria-hidden="true" />}
             >
               {exportingType === 'inventory-ledger' ? LOADING_LABELS.exporting : 'Export CSV'}

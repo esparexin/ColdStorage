@@ -81,15 +81,16 @@ export class GrnService {
       filter.status = query.status;
     }
     if (query.search && query.search.trim()) {
+      // grnNumber is the sole business key and therefore the only identifier searched.
+      // inwardReceiptNumber and bondNumber are reference-only: they may be printed on
+      // documents but must never become a business lookup key.
       const regex = { $regex: escapeRegExp(query.search.trim()), $options: 'i' };
       filter.$or = [
         { grnNumber: regex },
-        { inwardReceiptNumber: regex },
         { customerName: regex },
         { commodityName: regex },
         { gpNumber: regex },
         { vehicleNumber: regex },
-        { bondNumber: regex },
       ];
     }
 
@@ -131,6 +132,37 @@ export class GrnService {
 
   public async getNextBillNumber(facilityId: string): Promise<string> {
     return counterService.previewNextInwardReceiptNumber(facilityId, new Date());
+  }
+
+  /**
+   * Informational GR Number guidance for the Inward form.
+   *
+   * The GR Number is entered manually and is not sequence-enforced, so this is guidance only:
+   * `lastCreatedGrn` is the highest four-digit GR Number already present in the facility and
+   * `nextGrn` is one above it. Legacy `GRN-26-27-NNNN` values are not four-digit GR Numbers and
+   * are deliberately excluded from both figures.
+   */
+  public async getGrnNumberGuidance(
+    facilityId: string,
+  ): Promise<{ lastCreatedGrn: string | null; nextGrn: string }> {
+    const doc = await GrnModel.findOne(
+      { facilityId, grnNumber: /^\d{4}$/ },
+      null,
+      { sort: { grnNumber: -1 } },
+    )
+      .select('grnNumber')
+      .lean()
+      .exec();
+
+    const lastCreatedGrn = doc?.grnNumber ?? null;
+    if (!lastCreatedGrn) {
+      return { lastCreatedGrn: null, nextGrn: '0001' };
+    }
+    const next = Number(lastCreatedGrn) + 1;
+    return {
+      lastCreatedGrn,
+      nextGrn: next > 9999 ? '9999' : String(next).padStart(4, '0'),
+    };
   }
 
   public async getGrnMovementHistory(

@@ -6,6 +6,8 @@ export interface BaseLayoutOptions {
   facility: FacilitySubHeader;
   documentTitle: string;
   documentNumber?: string | null;
+  documentNumberLabel?: string | null;
+  customerSignatureLabel?: string | null;
   documentDate: string;
   generatedAt: string;
   generatedBy: string;
@@ -43,11 +45,7 @@ export function renderBaseLayout(opts: BaseLayoutOptions): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${escapeHtml(opts.title)}</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-size: 12px;
@@ -224,7 +222,7 @@ export function renderBaseLayout(opts: BaseLayoutOptions): string {
     <div class="doc-banner">
       <div class="doc-title">${escapeHtml(opts.documentTitle)}</div>
       <div class="doc-meta">
-        ${opts.documentNumber ? `<div><strong>Doc #:</strong> ${escapeHtml(opts.documentNumber)}</div>` : ''}
+        ${opts.documentNumber ? `<div><strong>${escapeHtml(opts.documentNumberLabel || 'Doc #')}:</strong> ${escapeHtml(opts.documentNumber)}</div>` : ''}
         <div><strong>Date:</strong> ${escapeHtml(opts.documentDate)}</div>
       </div>
     </div>
@@ -236,7 +234,7 @@ export function renderBaseLayout(opts: BaseLayoutOptions): string {
     <div class="footer-section">
       ${opts.organization.printFooter ? `<div class="org-detail text-center" style="margin-bottom: 12px;">${escapeHtml(opts.organization.printFooter)}</div>` : ''}
       <div class="signatures avoid-break">
-        <div class="sig-box">Customer / Driver Signature</div>
+        <div class="sig-box">${escapeHtml(opts.customerSignatureLabel || 'Customer / Driver Signature')}</div>
         <div class="sig-box">Authorized Signatory</div>
       </div>
       <div style="margin-top: 16px; font-size: 10px; color: #777; text-align: right;">

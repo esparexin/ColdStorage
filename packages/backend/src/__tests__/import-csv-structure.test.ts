@@ -108,7 +108,7 @@ describe('ImportService — CSV structure guards', () => {
     await expect(
       harness.importService.importGrns(
         IMPORT_FACILITY_ID,
-        'date,customerName,commodityName,chamber,chamberNumber,bags,bagType,rentType,rentAmount',
+        'grnNumber,date,customerName,commodityName,chamber,chamberNumber,bags,bagType,rentType,rentAmount',
         IMPORT_USER_ID,
       ),
     ).rejects.toThrow('UNKNOWN_CSV_HEADERS');

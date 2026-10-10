@@ -1,7 +1,6 @@
 import type { Grn, UpdateGrnLoanStatusInput } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { auditService } from '../../audit/audit.service.js';
-import { counterService } from '../../common/counter.service.js';
 import { readLedgerNetDelivered } from '../../inventory/ledger-balance.js';
 import { toGrnEntity } from '../grn.mappers.js';
 
@@ -21,18 +20,16 @@ export async function updateGrnLoanStatus(
   grn.isBondForLoan = true;
   grn.loanStatus = input.loanStatus;
 
+  // Bond # stays reference-only: an explicit value from a legacy import is preserved, but no
+  // new BND- number is minted. The GR Number is the sole business key and is what the Bonds UI
+  // shows in the Bond # column.
   if (input.bondNumber !== undefined && input.bondNumber !== null) {
     grn.bondNumber = input.bondNumber.trim() || null;
-  } else if (!grn.bondNumber) {
-    grn.bondNumber = await counterService.generateBondNumber(facilityId, grn.date);
   }
 
   if (input.loanStatus === 'TAKEN') {
     grn.loanTakenAt = new Date();
     grn.loanClearedAt = null;
-    if (input.bankName !== undefined) grn.loanBankName = input.bankName.trim() || null;
-    if (input.referenceNumber !== undefined) grn.loanReferenceNumber = input.referenceNumber.trim() || null;
-    if (input.remarks !== undefined) grn.loanRemarks = input.remarks.trim() || null;
   } else if (input.loanStatus === 'CLEARED') {
     grn.loanClearedAt = new Date();
     if (input.settlement) {
@@ -44,11 +41,9 @@ export async function updateGrnLoanStatus(
       grn.loanSettlementIfsc = input.settlement.ifscCode?.trim() || null;
       grn.loanSettlementReceiverName = input.settlement.receiverName.trim();
       grn.loanSettlementReceiverAadhaar = input.settlement.receiverAadhaar?.trim() || null;
-      if (input.settlement.remarks) {
-        grn.loanRemarks = input.settlement.remarks.trim();
-      }
+      // Settlement is the single place loan notes are captured.
+      grn.loanRemarks = input.settlement.remarks?.trim() || null;
     }
-    if (input.remarks !== undefined) grn.loanRemarks = input.remarks.trim() || null;
   } else if (input.loanStatus === 'NOT_TAKEN') {
     grn.loanTakenAt = null;
     grn.loanClearedAt = null;
@@ -60,7 +55,7 @@ export async function updateGrnLoanStatus(
     grn.loanSettlementIfsc = null;
     grn.loanSettlementReceiverName = null;
     grn.loanSettlementReceiverAadhaar = null;
-    if (input.remarks !== undefined) grn.loanRemarks = input.remarks.trim() || null;
+    grn.loanRemarks = null;
   }
 
   grn.updatedAt = new Date();
@@ -78,8 +73,6 @@ export async function updateGrnLoanStatus(
       bondNumber: grn.bondNumber,
       previousStatus,
       newStatus: grn.loanStatus,
-      bankName: grn.loanBankName,
-      referenceNumber: grn.loanReferenceNumber,
       remarks: grn.loanRemarks,
       settlement: input.settlement
         ? {

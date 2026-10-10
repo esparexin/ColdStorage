@@ -49,8 +49,9 @@ workflows.
 | 20 | Balance-snapshot SSOT | no stored `openingBags`/`closingBags` snapshots; balances are ledger-derived |
 | 21 | Ledger self-sufficiency | `create-grn.handler.ts` must write the `INWARD_PUTAWAY` row in the same transaction as the receipt |
 | 22 | Single balance formula | no `hasLedgerTxns` source switch; balances come from the ledger for every facility |
-| 23 | Compact action overrides | no `.actionBtn` competing override of DS `Button size=sm` in feature CSS |
-| 24 | Token typography/spacing | no hardcoded `font-size:11px/10px`, `gap/margin/padding px`, hex fallbacks, `!important` compact overrides, or non-existent tokens (`surface-3`, `danger-border`, `space-2-5`) in screen UI; fill-vs-text roles (`*-text` for text) must be respected. Print template `renderPassbookHtml.ts` and the intentional `StatCard` 1px hairline are the only sanctioned exceptions |
+| 23 | GR Number business-key SSOT | `grnNumber` is the sole business key: `inwardReceiptNumber`/`bondNumber` may not appear in a GRN search clause (`$or`/regex), and no BND- number may be minted per receipt (`generateBondNumber` is gone) |
+| 24 | Compact action overrides | no `.actionBtn` competing override of DS `Button size=sm` in feature CSS |
+| 25 | Token typography/spacing | no hardcoded `font-size:11px/10px`, `gap/margin/padding px`, hex fallbacks, `!important` compact overrides, or non-existent tokens (`surface-3`, `danger-border`, `space-2-5`) in screen UI; fill-vs-text roles (`*-text` for text) must be respected. Print template `renderPassbookHtml.ts` and the intentional `StatCard` 1px hairline are the only sanctioned exceptions |
 
 ## 4. `scripts/check-accessibility.sh` — accessibility
 

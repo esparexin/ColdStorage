@@ -66,9 +66,7 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     // The document schemas strip unknown keys, so a removed field can never reach a template.
     expect(grnDocumentDtoSchema.parse(makeGrnDto()).chamber).toBe('CH-03');
     for (const removed of [
-      { customerMobile: '9812300001' },
-      { chamberNumber: 'CH-03' },
-      { positions: [{ positionCode: 'P1', bags: 300 }] },
+      { customerMobile: '9812300001' }, { chamberNumber: 'CH-03' }, { positions: [{ positionCode: 'P1', bags: 300 }] },
     ]) {
       expect(grnDocumentDtoSchema.parse({ ...makeGrnDto(), ...removed })).not.toHaveProperty(
         Object.keys(removed)[0],
@@ -78,14 +76,23 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
 
   // 3. Inward Receipt: acknowledgement terms, chamber label, no farmer mobile.
   it('renders complete Inward Receipt template with farmer acknowledgement and terms', () => {
-    const html = renderReceiptTemplate(makeReceiptDto());
+    const html = renderReceiptTemplate(makeReceiptDto({ totalBagsWeight: 12500, smallBagPrice: 12, bigBagPrice: 18 }));
 
     expect(html).toContain('ACKNOWLEDGEMENT RECEIPT');
     expect(html).toContain('RCPT-2026-1001');
     expect(html).toContain('Sardar Singh');
-    expect(html).toContain('300 Bags (S)');
-    expect(html).toContain('₹45000');
-    expect(html).toContain('Terms &amp; Conditions of Storage');
+    expect(html).toContain('300');
+    expect(html).toContain('12,500 kg');
+    expect(html).toContain('Storage Mark');
+    expect(html).toContain('PM-42');
+    expect(html).toContain('HR-10-XY-9999');
+    expect(html).toContain('Terms &amp; Conditions of Storage :');
+    expect(html).toContain('Small Bag Rate:');
+    expect(html).toContain('₹ 12.00');
+    expect(html).toContain('Big Bag Rate:');
+    expect(html).toContain('₹ 18.00');
+    expect(html).toContain('Depositor Signature');
+    expect(html).toContain('Authorized Signatory');
   });
 
   it('renders the allocated chamber on the receipt and rejects the removed farmer mobile', () => {
@@ -108,14 +115,19 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).toContain('OUTWARD DELIVERY CHALLAN (GATE PASS)');
     expect(html).toContain('CHL-2026-5001');
     expect(html).toContain('CH-03');
+    expect(html).toContain('PM-42');
+    expect(html).toContain('Total Bags Weight');
+    expect(html).toContain('12,500 kg');
+    expect(html).toContain('Outward Weight');
+    expect(html).toContain('4,000 kg');
     expect(html).toContain('DL-01-AA-4321');
     expect(html).toContain('Karamjit Singh');
     expect(html).toContain('Gate Pass Declaration');
     expect(html).toContain('Outward Bags Details');
     expect(html).toContain('Small Bags');
     expect(html).toContain('Big Bags');
-    expect(html).toContain('Total Bags Dispatched');
-    expect(html).toContain('60 small, 40 big');
+    expect(html).toContain('Total S/B Bags Dispatched');
+    expect(html).toContain('100 Total S/B Bags in total (S/B Category: S/B)');
     expect(html).not.toContain('Storage Position');
     expect(html).not.toContain('Doc #:');
     expect(html).not.toContain('Issuing Officer');
@@ -135,6 +147,15 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(parsed.totalBags).toBe(100);
     expect(parsed).not.toHaveProperty('items');
     expect(parsed).not.toHaveProperty('chamberNumber');
+  });
+
+  it('renders outward rent charge on delivery challan when present and omits when zero', () => {
+    const htmlWithRent = renderChallanTemplate(makeChallanDto({ rentCharge: 4500 }));
+    expect(htmlWithRent).toContain('Outward Rent Charge');
+    expect(htmlWithRent).toContain('₹4,500');
+
+    const htmlWithoutRent = renderChallanTemplate(makeChallanDto({ rentCharge: 0 }));
+    expect(htmlWithoutRent).not.toContain('Outward Rent Charge');
   });
 
   // 5. Rent Receipt: one schema, isPreview drives the watermark and the notice banner.
@@ -168,6 +189,32 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(
       rentReceiptPreviewDtoSchema.safeParse(makeRentReceiptDto({ isPreview: false })).success,
     ).toBe(false);
+  });
+
+  it('renders Dynamic (Cycle Billing) for unconfigured monthly rent on cash memo', () => {
+    const html = renderRentReceiptTemplate(
+      makeRentReceiptDto({
+        rentType: 'Monthly',
+        totalRentObligation: 0,
+      }),
+    );
+    expect(html).toContain('Dynamic (Cycle Billing)');
+  });
+
+  it('renders Dynamic (Cycle Billing) on GRN printout for unconfigured monthly rent', () => {
+    const html = renderGrnTemplate(
+      makeGrnDto({ rentType: 'Monthly', rentAmount: 0, rentMonths: null }),
+    );
+    expect(html).toContain('Dynamic (Cycle Billing)');
+    expect(html).not.toContain('@ ₹0');
+  });
+
+  it('renders Dynamic (Cycle Billing) on Inward Receipt printout for unconfigured monthly rent', () => {
+    const html = renderReceiptTemplate(
+      makeReceiptDto({ rentType: 'Monthly', rentAmount: 0 }),
+    );
+    expect(html).toContain('Dynamic (Cycle Billing)');
+    expect(html).not.toContain('@ ₹0');
   });
 
   it('rejects the removed rent receipt chamberNumber field', () => {

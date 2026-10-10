@@ -3,20 +3,10 @@ import {
   facilityInventorySummarySchema,
   grnInventorySummarySchema,
   inventoryTransactionTypeSchema,
-  putAwayStatusSchema,
   stockLedgerQuerySchema,
 } from '../inventory.js';
 
 describe('P5 Inventory Contracts', () => {
-
-  describe('putAwayStatusSchema vocabulary', () => {
-    it('accepts only UNALLOCATED and ALLOCATED', () => {
-      expect(putAwayStatusSchema.safeParse('UNALLOCATED').success).toBe(true);
-      expect(putAwayStatusSchema.safeParse('ALLOCATED').success).toBe(true);
-      expect(putAwayStatusSchema.safeParse('PARTIALLY_ALLOCATED').success).toBe(false);
-      expect(putAwayStatusSchema.safeParse('FULLY_ALLOCATED').success).toBe(false);
-    });
-  });
 
   describe('inventoryTransactionTypeSchema vocabulary', () => {
     it('is the canonical ledger event vocabulary', () => {
@@ -35,27 +25,12 @@ describe('P5 Inventory Contracts', () => {
       grnNumber: 'GRN-26-27-0001',
       chamber: 'A',
       totalBags: 100,
-      allocatedBags: 100,
-      unallocatedBags: 0,
-      putAwayStatus: 'ALLOCATED',
       availableSmallBags: 60,
       availableBigBags: 40,
     };
 
-    it('accepts a fully allocated GRN', () => {
+    it('accepts a valid GRN inventory summary', () => {
       expect(grnInventorySummarySchema.safeParse(base).success).toBe(true);
-    });
-
-    it('accepts an unallocated GRN', () => {
-      const result = grnInventorySummarySchema.safeParse({
-        ...base,
-        allocatedBags: 0,
-        unallocatedBags: 100,
-        putAwayStatus: 'UNALLOCATED',
-        availableSmallBags: 0,
-        availableBigBags: 0,
-      });
-      expect(result.success).toBe(true);
     });
 
     it('rejects a chamber longer than 20 characters', () => {

@@ -10,6 +10,7 @@ import {
   disconnectTestDatabase,
   resetStockCollections,
 } from './helpers/stock-reset.js';
+import { nextTestGrnNumber } from './helpers/grn-number-fixtures.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
@@ -84,6 +85,7 @@ describe('Global GRN Search Integration', () => {
       .post(`/api/facilities/${facilityId}/grns`)
       .set('Authorization', `Bearer ${operatorNorthToken}`)
       .send({
+        grnNumber: nextTestGrnNumber(),
         chamber: 'CH-01',
         bags: 100,
         bagType: 'S',
@@ -101,14 +103,13 @@ describe('Global GRN Search Integration', () => {
       .query(params);
   }
 
-  it('searches across all 7 SSOT fields case-insensitively and returns matching items', async () => {
-    // Seed 2 GRNs in North facility with distinctive values across the 7 fields
+  it('searches the GR Number and descriptive fields, never the reference-only identifiers', async () => {
+    // Seed 2 GRNs in North facility with distinctive values across the searched fields
     const res1 = await createInbound(northFacilityId, {
       customerId: customerNorth1Id,
       commodityId: commodityPotatoId,
       gpNumber: 'GP-ALPHA-99',
       vehicleNumber: 'UP32AB1234',
-      bondNumber: 'BND-26-27-0010',
       isBondForLoan: true,
     });
     expect(res1.status).toBe(201);
@@ -119,7 +120,6 @@ describe('Global GRN Search Integration', () => {
       commodityId: commodityAppleId,
       gpNumber: 'GP-BETA-77',
       vehicleNumber: 'DL01CD5678',
-      bondNumber: 'BND-26-27-0020',
       isBondForLoan: true,
     });
     expect(res2.status).toBe(201);
@@ -131,11 +131,13 @@ describe('Global GRN Search Integration', () => {
     expect(sGrnExact.body.items[0].id).toBe(grn1.id);
     expect(sGrnExact.body.total).toBe(1);
 
-    // 2. Search by partial inwardReceiptNumber
-    const sReceipt = await searchGrns(northFacilityId, {
-      search: grn2.inwardReceiptNumber.slice(-4),
+    // 2. inwardReceiptNumber is reference-only. Its trailing sequence also appears in the
+    // GR Number (both counters advance together), so assert the match is the GR Number and
+    // that the RCPT- prefix itself is not searchable.
+    const sReceiptPrefix = await searchGrns(northFacilityId, {
+      search: grn2.inwardReceiptNumber.replace(/-\d+$/, ''),
     });
-    expect(sReceipt.body.items.some((g: { id: string }) => g.id === grn2.id)).toBe(true);
+    expect(sReceiptPrefix.body.items).toHaveLength(0);
 
     // 3. Search by customerName (case-insensitive)
     const sCust = await searchGrns(northFacilityId, { search: 'ramesh' });
@@ -157,10 +159,9 @@ describe('Global GRN Search Integration', () => {
     expect(sVeh.body.items).toHaveLength(1);
     expect(sVeh.body.items[0].vehicleNumber).toBe('DL01CD5678');
 
-    // 7. Search by bondNumber
+    // 7. bondNumber is reference-only: it must NOT resolve a search either
     const sBond = await searchGrns(northFacilityId, { search: '0010' });
-    expect(sBond.body.items).toHaveLength(1);
-    expect(sBond.body.items[0].bondNumber).toBe('BND-26-27-0010');
+    expect(sBond.body.items).toHaveLength(0);
   });
 
   it('searches entire dataset across pagination boundaries without slicing limits', async () => {

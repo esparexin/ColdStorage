@@ -7,6 +7,8 @@
 **Authoritative Reference**: [docs/00-p0-lock.md](file:///Users/admin/Desktop/ColdStorage/docs/00-p0-lock.md)  
 **Governance Standard**: [docs/governance/code-line-quality-standard.md](file:///Users/admin/Desktop/ColdStorage/docs/governance/code-line-quality-standard.md)  
 
+> **Supersession notice (2026-10-06):** historical snapshot of 2026-10-03. Its pre-ledger references (storage hierarchy, put-away allocations, `/inventory` page, `PUT /settings`, `chamberId`, `PositionOccupancy`) are retired and must not be used to justify new implementations. Current SSOT is `docs/architecture/inward-rent-delivery-grn-flow-audit.md` §§7–8 and `docs/ui-backend-wiring-matrix.md`.
+
 ---
 
 ## 1. Executive Summary

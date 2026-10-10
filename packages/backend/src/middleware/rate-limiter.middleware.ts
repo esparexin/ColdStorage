@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { config } from '../config.js';
 import { auditService } from '../modules/audit/audit.service.js';
+import { logger } from '../utils/logger.js';
 
 export interface RateLimitStore {
   increment(key: string, windowMs: number): Promise<{ count: number; resetAt: number }>;
@@ -36,13 +37,20 @@ export class MemoryRateLimitStore implements RateLimitStore {
 
 export class UpstashRedisRateLimitStore implements RateLimitStore {
   private memoryFallback = new MemoryRateLimitStore();
+  constructor(private readonly url: string, private readonly token: string) {}
 
-  constructor(
-    private readonly url: string,
-    private readonly token: string,
-  ) {}
+  /** Bounded Upstash REST timeout: stalled Upstash previously held all /api
+   *  behind authRateLimiter/generalRateLimiter indefinitely (catch only fires
+   *  on rejection, never hang). Fail-open to memory preserved; P0 lock holds
+   *  (Redis = rate-limit counter only, never session store). */
+  private static readonly UPSTASH_FETCH_TIMEOUT_MS = 1500;
+
+  private upstashSignal(): AbortSignal {
+    return AbortSignal.timeout(UpstashRedisRateLimitStore.UPSTASH_FETCH_TIMEOUT_MS);
+  }
 
   async increment(key: string, windowMs: number): Promise<{ count: number; resetAt: number }> {
+    const incrementStart = Date.now();
     try {
       const response = await fetch(`${this.url}/pipeline`, {
         method: 'POST',
@@ -54,6 +62,7 @@ export class UpstashRedisRateLimitStore implements RateLimitStore {
           ['INCR', key],
           ['PTTL', key],
         ]),
+        signal: this.upstashSignal(),
       });
 
       if (!response.ok) {
@@ -70,6 +79,7 @@ export class UpstashRedisRateLimitStore implements RateLimitStore {
           headers: {
             Authorization: `Bearer ${this.token}`,
           },
+          signal: this.upstashSignal(),
         });
         ttl = windowMs;
       }
@@ -77,6 +87,11 @@ export class UpstashRedisRateLimitStore implements RateLimitStore {
       return { count, resetAt: Date.now() + ttl };
     } catch {
       return this.memoryFallback.increment(key, windowMs);
+    } finally {
+      const elapsedMs = Date.now() - incrementStart;
+      if (elapsedMs > UpstashRedisRateLimitStore.UPSTASH_FETCH_TIMEOUT_MS) {
+        logger.warn('Rate-limit Upstash slow', { elapsedMs, key });
+      }
     }
   }
 
@@ -87,6 +102,7 @@ export class UpstashRedisRateLimitStore implements RateLimitStore {
         headers: {
           Authorization: `Bearer ${this.token}`,
         },
+        signal: this.upstashSignal(),
       });
     } catch {
       await this.memoryFallback.reset(key);

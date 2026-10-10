@@ -38,34 +38,16 @@
   padding: var(--space-0-5) var(--space-2);
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
-}
-
-.tagChamber {
   background: var(--color-surface-2);
   color: var(--color-text-secondary);
   font-weight: var(--font-medium);
 }
 
 /* Cell typography */
-.grnCell {
-  display: flex;
-  flex-direction: column;
-}
-
-.grnNumber {
-  font-weight: var(--font-semibold);
-  color: var(--color-text-primary);
-}
-
-.receiptNumber {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-}
-
-.dateSub {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-}
+.grnCell { display: flex; flex-direction: column; }
+.grnNumber { font-weight: var(--font-semibold); color: var(--color-text-primary); }
+.receiptNumber { font-size: var(--text-xs); color: var(--color-text-muted); }
+.dateSub { font-size: var(--text-xs); color: var(--color-text-muted); }
 
 /* Table Actions */
 .actionGroup {
@@ -75,9 +57,7 @@
   flex-wrap: nowrap;
 }
 
-.inputError {
-  border-color: var(--color-danger);
-}
+.inputError { border-color: var(--color-danger); }
 
 .fieldErrorText {
   font-size: var(--text-xs);
@@ -97,39 +77,71 @@
   gap: var(--space-3);
 }
 
+.formSections { gap: var(--space-4); }
+
+.formSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Single three-column grid for every section, so column rhythm stays consistent.
+   minmax(0, 1fr) lets long select options shrink instead of forcing overflow. */
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.span2 { grid-column: span 2; }
+.spanFull { grid-column: 1 / -1; }
+
+@media (max-width: 560px) {
+  .formGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 400px) {
+  .formGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .span2,
+  .spanFull {
+    grid-column: 1 / -1;
+  }
+}
+
+.sectionHeadingRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sectionHeadingRow .sectionHeading {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.grnGuidance {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-danger-text);
+  white-space: nowrap;
+}
+
 .sectionHeading {
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
   color: var(--color-text-muted);
-  padding-bottom: var(--space-1);
   border-bottom: 1px solid var(--color-border);
-}
-
-.formGrid2 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-3);
-}
-
-.formGrid3 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-3);
-}
-
-@media (max-width: 768px) {
-  .formGrid3 {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 640px) {
-  .formGrid2 {
-    grid-template-columns: 1fr;
-    gap: var(--space-3);
-  }
 }
 
 .fieldGroup {
@@ -158,6 +170,8 @@
 
 .fieldInput:focus {
   border-color: var(--color-primary-text);
+  outline: var(--focus-ring-width) solid var(--color-primary);
+  outline-offset: var(--focus-ring-offset);
 }
 
 .fieldInput:disabled {
@@ -171,8 +185,6 @@
   color: var(--color-text-muted);
 }
 
-/* NOTE: inline error banners are owned by components/ui/Banner. */
-
 /* Detail View Modal Grid */
 .detailGrid {
   display: grid;
@@ -184,11 +196,7 @@
   border: 1px solid var(--color-border);
 }
 
-.detailItem {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-0-5);
-}
+.detailItem { display: flex; flex-direction: column; gap: var(--space-0-5); }
 
 .detailLabel {
   font-size: var(--text-xs);
@@ -204,104 +212,25 @@
   color: var(--color-text-primary);
 }
 
-/* ── Customer Search Combobox ─────────────────────────────────────────────── */
-.comboboxWrapper {
-  position: relative;
-}
-
-.comboboxInput {
-  width: 100%;
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  color: var(--color-text-primary);
-  cursor: pointer;
-  transition: border-color var(--transition-fast);
-}
-
-.comboboxInput:focus {
-  outline: none;
-  border-color: var(--color-primary-text);
-  outline: var(--focus-ring-width) solid var(--color-primary);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.comboboxDropdown {
-  position: absolute;
-  top: calc(100% + var(--space-1));
-  left: 0;
-  right: 0;
-  background: var(--color-surface-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  z-index: 50;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.comboboxOption {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-0-5);
-  padding: var(--space-2) var(--space-3);
-  cursor: pointer;
-  border-bottom: 1px solid var(--color-border);
-  transition: background var(--transition-fast);
-}
-
-.comboboxOption:last-child {
-  border-bottom: none;
-}
-
-.comboboxOption:hover,
-.comboboxOptionActive {
-  background: var(--color-surface-2);
-}
-
-.comboboxClearBtn {
-  position: absolute;
-  right: var(--space-2);
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: var(--space-0-5) var(--space-1-5);
-  font-size: var(--text-sm);
-  border-radius: var(--radius-sm);
-}
-
-.comboboxClearBtn:hover {
-  color: var(--color-text-primary);
-}
-
 .calculatedField {
   background: var(--color-surface-2);
   font-weight: var(--font-semibold);
   cursor: default;
 }
 
-.comboboxOptionName {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-text-primary);
-}
-
-.comboboxEmpty {
-  padding: var(--space-2);
-  font-size: var(--text-sm);
+.loanNotice {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  background: var(--color-surface-2);
   color: var(--color-text-muted);
-  text-align: center;
+  border: 1px solid var(--color-border);
 }
 
-.fieldLabelRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.loanNoticeBlocked {
+  background: var(--color-danger-subtle);
+  color: var(--color-danger-text);
+  border-color: var(--color-danger);
 }
 
 .detailModalFooter {
@@ -313,17 +242,5 @@
   flex-wrap: wrap;
 }
 
-.detailFooterLeft {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.detailFooterRight {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-left: auto;
-  flex-wrap: wrap;
-}
-
+.detailFooterLeft { display: flex; align-items: center; gap: var(--space-2); }
+.detailFooterRight { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; flex-wrap: wrap; }

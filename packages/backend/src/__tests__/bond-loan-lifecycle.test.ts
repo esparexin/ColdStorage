@@ -11,6 +11,7 @@ import {
   disconnectTestDatabase,
   resetStockCollections,
 } from './helpers/stock-reset.js';
+import { nextTestGrnNumber } from './helpers/grn-number-fixtures.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
@@ -57,6 +58,7 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
 
   function makeInwardPayload(overrides: Record<string, unknown> = {}) {
     return {
+      grnNumber: nextTestGrnNumber(),
       date: new Date().toISOString(),
       customerId,
       commodityId,
@@ -116,7 +118,9 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
     expect(inwardRes.status).toBe(201);
     expect(inwardRes.body.grn.isBondForLoan).toBe(true);
     expect(inwardRes.body.grn.loanStatus).toBe('NOT_TAKEN');
-    expect(inwardRes.body.grn.bondNumber).toMatch(/^BND-\d{2}-\d{2}-\d{4}$/);
+    // Bond # is reference-only: no BND- number is minted, the GR Number is the business key.
+    expect(inwardRes.body.grn.bondNumber).toBeNull();
+    expect(inwardRes.body.grn.grnNumber).toMatch(/^\d{4}$/);
 
     const grnId = inwardRes.body.grn.id;
 
@@ -145,24 +149,22 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
       }));
 
     expect(inwardRes.status).toBe(201);
-    expect(inwardRes.body.grn.bondNumber).toMatch(/^BND-\d{2}-\d{2}-\d{4}$/);
+    // Bond # is reference-only: no BND- number is minted, the GR Number is the business key.
+    expect(inwardRes.body.grn.bondNumber).toBeNull();
+    expect(inwardRes.body.grn.grnNumber).toMatch(/^\d{4}$/);
     const grnId = inwardRes.body.grn.id;
 
-    // 2. Operator updates loan status to TAKEN (party has availed loan against this bond)
+    // 2. Operator updates loan status to TAKEN (party has availed loan against this GRN).
+    // The lender name / pledge account / notes trio is retired: settlement is the only
+    // place loan payment details and notes are captured.
     const updateTakenRes = await request(app)
       .patch(`/api/facilities/${testFacilityId}/grns/${grnId}/loan-status`)
       .set('Authorization', `Bearer ${operatorToken}`)
-      .send({
-        loanStatus: 'TAKEN',
-        bankName: 'State Bank of India',
-        referenceNumber: 'LN-2026-999',
-        remarks: 'Produce pledged for agricultural credit',
-      });
+      .send({ loanStatus: 'TAKEN' });
 
     expect(updateTakenRes.status).toBe(200);
     expect(updateTakenRes.body.grn.loanStatus).toBe('TAKEN');
-    expect(updateTakenRes.body.grn.loanBankName).toBe('State Bank of India');
-    expect(updateTakenRes.body.grn.loanReferenceNumber).toBe('LN-2026-999');
+    expect(updateTakenRes.body.grn.loanTakenAt).toBeDefined();
 
     // Verify audit log recorded
     const auditRecord = await AuditLogModel.findOne({
@@ -184,7 +186,9 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
       });
 
     expect(blockedDelRes.status).toBe(400);
-    expect(blockedDelRes.body.error).toContain('Outward blocked — Active loan hold against Bond');
+    expect(blockedDelRes.body.error).toContain('Outward blocked — Active loan hold against');
+    // With no minted bond number the hold is referenced by the GR Number alone.
+    expect(blockedDelRes.body.error).toContain(inwardRes.body.grn.grnNumber);
 
     // Check movement history passbook reflects loan hold
     const histRes = await request(app)

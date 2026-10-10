@@ -1,8 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
-  calculateRentAmount,
-  deriveBagPrice,
   getFinancialYearKey,
   normalizeBagComposition,
   rentMonthsForType,
@@ -60,9 +58,8 @@ export async function createGrn(
   // 5. Inward Date and FY validation
   const inwardDate = validateOperationalDate(input.date, { label: 'Inward' });
 
-  // 6. Bag composition is resolved once, here, and stored as the authoritative split. `bags` is
-  // already the sum of these two parts by contract validation, so the total is never a third
-  // independent figure that can drift from them.
+  // 6. Bag composition is resolved once, here, and stored as the authoritative split, so `bags`
+  // and its parts can never drift apart.
   const composition = normalizeBagComposition({
     bagType: input.bagType,
     bags: input.bags,
@@ -70,36 +67,14 @@ export async function createGrn(
     bigBags: input.bigBags,
   });
 
-  // Per-bag weight accounting (no nominal/weighbridge/total derivation).
-  // Small Bag Weight belongs to the individual small bag; Big Bag Weight to the big bag.
+  // Per-bag weight is optional: the Inward form captures Total Bags and a single Bag Price.
+  // A supplied weight is preserved for that bag type; an absent one is stored as null.
   const smallBagWeight = input.smallBagWeight ?? null;
   const bigBagWeight = input.bigBagWeight ?? null;
 
-  // Rent Months is informational only and is not used to finalize the monthly
-  // subscription/payment logic beyond the established rent-amount rule.
-  const rentMonths = rentMonthsForType(input.rentType) ?? input.rentMonths!;
-  const derivedBagPrice = deriveBagPrice({
-    rentType: input.rentType,
-    bags: input.bags,
-    bagPrice: input.bagPrice,
-    rentMonths,
-    rentAmount: input.rentAmount,
-  });
-  const finalRentAmount =
-    input.rentAmount && input.rentAmount > 0
-      ? input.rentAmount
-      : calculateRentAmount({
-          rentType: input.rentType,
-          bags: input.bags,
-          bagType: input.bagType,
-          bagPrice: input.bagPrice ?? derivedBagPrice,
-          smallBags: composition.smallBags,
-          bigBags: composition.bigBags,
-          smallBagPrice: input.smallBagPrice,
-          bigBagPrice: input.bigBagPrice,
-          rentMonths,
-          rentAmount: input.rentAmount,
-        });
+  // Inward records storage arrangement and rent type only; actual rent calculation happens during Outward.
+  const rentMonths = rentMonthsForType(input.rentType) ?? (input.rentMonths ?? null);
+  const finalRentAmount = input.rentAmount && input.rentAmount > 0 ? input.rentAmount : 0;
 
   const id = `grn-${randomUUID()}`;
 
@@ -109,7 +84,14 @@ export async function createGrn(
 
   try {
     await session.withTransaction(async () => {
-      const grnNumber = await counterService.generateGrnNumber(facilityId, inwardDate, session);
+      // GR Number is operator-entered (four digits, contract-validated) and is the sole business key.
+      // Uniqueness is per facility; the unique index is the concurrent-write backstop.
+      const grnNumber = input.grnNumber;
+      const existingGrn = await GrnModel.findOne({ facilityId, grnNumber }, null, { session });
+      if (existingGrn) {
+        throw new Error(`GRN '${grnNumber}' already exists for this facility.`);
+      }
+
       let inwardReceiptNumber: string;
       const customBill = input.billNumber?.trim();
       if (customBill) {
@@ -135,13 +117,10 @@ export async function createGrn(
         inwardReceiptNumber = await counterService.generateInwardReceiptNumber(facilityId, inwardDate, session);
       }
 
-      const bondNumber = input.isBondForLoan
-        ? (input.bondNumber?.trim() || (await counterService.generateBondNumber(facilityId, inwardDate, session)))
-        : null;
-      if (bondNumber) {
-        const existingBond = await GrnModel.findOne({ facilityId, bondNumber }, null, { session });
-        if (existingBond) throw new Error(`Bond Number '${bondNumber}' already exists for this facility.`);
-      }
+      // Bond # is reference-only and is not minted per receipt: the GR Number is the sole business
+      // key and is what the Bonds UI displays in the Bond # column. A value supplied by a legacy
+      // CSV import is preserved as reference text; nothing new is generated.
+      const bondNumber = input.isBondForLoan ? input.bondNumber?.trim() || null : null;
 
       const docs = await GrnModel.create(
         [
@@ -162,10 +141,11 @@ export async function createGrn(
             bigBags: composition.bigBags,
             smallBagWeight,
             bigBagWeight,
+            totalBagsWeight: input.totalBagsWeight ?? null,
             rentType: input.rentType,
             rentMonths,
             rentAmount: finalRentAmount,
-            bagPrice: input.bagPrice ?? derivedBagPrice ?? null,
+            bagPrice: input.bagPrice ?? null,
             smallBagPrice: input.smallBagPrice ?? null,
             bigBagPrice: input.bigBagPrice ?? null,
             gpNumber: input.gpNumber?.trim() || null,

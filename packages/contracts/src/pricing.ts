@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { BagType } from './bags.js';
-import { SEASONAL_RENT_MONTHS, type RentType } from './grn.js';
+import { SEASONAL_RENT_MONTHS, type RentType } from './grn-rent.js';
 
 /**
  * Single Authoritative Bag Price & Rental Calculation SSOT.
@@ -15,6 +15,24 @@ export const bagPriceSchema = z
   .max(100000, 'Bag price cannot exceed ₹100,000');
 
 export type BagPrice = z.infer<typeof bagPriceSchema>;
+
+export interface CanonicalBagRate {
+  small: number;
+  big: number;
+}
+
+/** Canonical reference rates for Small and Big bags under Seasonal and Monthly rent types. */
+export const CANONICAL_BAG_RATES: Record<RentType, CanonicalBagRate> = {
+  Seasonal: { small: 10, big: 15 },
+  Monthly: { small: 10, big: 15 },
+};
+
+export interface OutwardRateOverride { smallBagPrice?: number | null; bigBagPrice?: number | null; bagPrice?: number | null; }
+/** Outward effective rates SSOT: GRN agreed rates override canonical; charge and display share this. */
+export function resolveOutwardRates(rentType: RentType, o?: OutwardRateOverride | null): CanonicalBagRate {
+  const r = CANONICAL_BAG_RATES[rentType] ?? { small: 10, big: 15 };
+  return { small: o?.smallBagPrice ?? o?.bagPrice ?? r.small, big: o?.bigBagPrice ?? o?.bagPrice ?? r.big };
+}
 
 export interface RentalCalculationInput {
   rentType: RentType;

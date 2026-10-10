@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
-import type {
-  BagComposition,
-  CreateDeliveryInput,
-  DeliveryChallan,
-  DeliverySummary,
+import {
+  calculateRentAmount,
+  resolveOutwardRates,
+  type BagComposition,
+  type CreateDeliveryInput,
+  type DeliveryChallan,
+  type DeliverySummary,
 } from '@cold-storage/contracts';
 import { ConcurrencyConflictError } from '../../inventory/inventory.service.js';
 import { counterService } from '../../common/counter.service.js';
@@ -67,9 +69,7 @@ async function executeDeliveryTransaction(
         { id: input.grnId, facilityId },
         { $set: { updatedAt: new Date() } },
         { session, new: true },
-      )
-        .lean()
-        .exec();
+      ).lean().exec();
 
       if (!grn) {
         throw new Error(`GRN '${input.grnId}' not found in facility '${facilityId}'`);
@@ -82,27 +82,62 @@ async function executeDeliveryTransaction(
         throw new Error(`Outward blocked — Active loan hold against ${bondRef}`);
       }
 
-      await assertRentAllowedForOutward(
+      const resolvedSmall =
+        (input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0
+          ? (input.smallBags ?? 0)
+          : grn.bagType === 'B'
+            ? 0
+            : (input.quantity ?? 0);
+      const resolvedBig =
+        (input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0
+          ? (input.bigBags ?? 0)
+          : grn.bagType === 'B'
+            ? (input.quantity ?? 0)
+            : 0;
+
+      const withdrawal: BagComposition = {
+        smallBags: resolvedSmall,
+        bigBags: resolvedBig,
+      };
+      const withdrawnTotal = resolvedSmall + resolvedBig;
+
+      const available = await validateStockAndBalances(facilityId, grn, withdrawal, session);
+
+      // Actual rent/charge calculation happens at Outward delivery using the single
+      // effective-rate source of truth. Client rentCharge is reconciled, never trusted blindly.
+      const effectiveRates = resolveOutwardRates(grn.rentType, {
+        smallBagPrice: grn.smallBagPrice,
+        bigBagPrice: grn.bigBagPrice,
+        bagPrice: grn.bagPrice,
+      });
+      const expectedRentCharge = calculateRentAmount({
+        rentType: grn.rentType,
+        bags: withdrawnTotal,
+        bagType: 'S+B',
+        smallBags: resolvedSmall,
+        bigBags: resolvedBig,
+        smallBagPrice: effectiveRates.small,
+        bigBagPrice: effectiveRates.big,
+        rentMonths: grn.rentMonths ?? 1,
+      });
+      if (input.rentCharge != null && input.rentCharge >= 0) {
+        if (Math.abs(input.rentCharge - expectedRentCharge) > 0.01) {
+          throw new Error(
+            `rentCharge mismatch: expected ₹${expectedRentCharge.toLocaleString('en-IN')} for ${resolvedSmall} Small × ₹${effectiveRates.small} + ${resolvedBig} Big × ₹${effectiveRates.big} over ${grn.rentType === 'Seasonal' ? '10 mos season' : `${grn.rentMonths ?? 1} mo`}, received ₹${input.rentCharge.toLocaleString('en-IN')}`,
+          );
+        }
+      }
+      const deliveryRentCharge = expectedRentCharge;
+
+      const rentBalance = await assertRentAllowedForOutward(
         facilityId,
         { id: grn.id, grnNumber: grn.grnNumber, rentAmount: grn.rentAmount ?? 0 },
         session,
       );
 
-      const withdrawal: BagComposition = {
-        smallBags: input.smallBags,
-        bigBags: input.bigBags,
-      };
-      const withdrawnTotal = input.smallBags + input.bigBags;
-
-      const available = await validateStockAndBalances(facilityId, grn, withdrawal, session);
-
       const deliveryDate = validateDeliveryDate(input.date);
 
-      const challanNumber = await counterService.generateDeliveryChallanNumber(
-        facilityId,
-        deliveryDate,
-        session,
-      );
+      const challanNumber = await counterService.generateDeliveryChallanNumber(facilityId, deliveryDate, session);
       const deliveryId = `del-${randomUUID()}`;
 
       const marks = input.marks?.trim() || grn.marks || null;
@@ -122,14 +157,16 @@ async function executeDeliveryTransaction(
             commodityId: grn.commodityId,
             commodityName: grn.commodityName,
             chamber: grn.chamber,
-            smallBags: input.smallBags,
-            bigBags: input.bigBags,
+            bagType: grn.bagType ?? 'S/B',
+            smallBags: resolvedSmall,
+            bigBags: resolvedBig,
             marks,
             gpNumber,
             vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null,
             driverName: input.driverName?.trim() || null,
             weight: input.weight ?? null,
             remarks: input.remarks?.trim() || null,
+            rentCharge: deliveryRentCharge,
             status: 'ISSUED',
             issuedBy: userId,
           },
@@ -138,6 +175,9 @@ async function executeDeliveryTransaction(
       );
 
       createdChallanDoc = challanDocs[0];
+
+      const txSmall = available.bigBags === 0 ? withdrawnTotal : available.smallBags === 0 ? 0 : resolvedSmall;
+      const txBig = available.smallBags === 0 ? withdrawnTotal : available.bigBags === 0 ? 0 : resolvedBig;
 
       await InventoryTransactionModel.create(
         [
@@ -148,10 +188,10 @@ async function executeDeliveryTransaction(
             grnNumber: grn.grnNumber,
             chamber: grn.chamber,
             commodityId: grn.commodityId,
-            bagType: grn.bagType,
+            bagType: grn.bagType ?? 'S/B',
             transactionType: 'OUTWARD_DELIVERY' as const,
-            smallQuantity: input.smallBags,
-            bigQuantity: input.bigBags,
+            smallQuantity: txSmall,
+            bigQuantity: txBig,
             referenceType: 'DELIVERY' as const,
             referenceId: deliveryId,
             notes: input.remarks?.trim() || null,
@@ -164,9 +204,9 @@ async function executeDeliveryTransaction(
 
       const closingTotal = available.total - withdrawnTotal;
 
-      // Physical inventory lifecycle: A GRN is CLOSED when physical bags reach 0 (closingTotal === 0).
-      // Financial rent state (Settled / Not Settled) remains strictly decoupled and preserved in the rent ledger.
-      if (closingTotal === 0) {
+      // Closure invariant: A GRN is CLOSED only when both remainingBags === 0 AND remainingBalance === 0.
+      // If bags reach 0 but rent balance remains, the GRN remains OPEN so outstanding dues are tracked.
+      if (closingTotal === 0 && rentBalance.remainingBalance === 0) {
         await GrnModel.updateOne({ id: grn.id }, { $set: { status: 'CLOSED' } }, { session });
       }
     });

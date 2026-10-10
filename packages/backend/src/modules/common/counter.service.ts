@@ -8,11 +8,9 @@ import { CounterModel, type CounterType } from '../../database/models/counter.mo
  * they are sequenced by independent counters.
  */
 export const DOCUMENT_PREFIXES = {
-  grn: 'GRN',
   inwardReceipt: 'RCPT',
   challan: 'CHL',
   rentReceipt: 'RRCPT',
-  bond: 'BND',
 } as const;
 
 export class CounterService {
@@ -29,18 +27,6 @@ export class CounterService {
     ).exec();
 
     return counter.lastSequence;
-  }
-
-  public async generateGrnNumber(
-    facilityId: string,
-    date: Date,
-    session?: ClientSession,
-    padLength = 4,
-  ): Promise<string> {
-    const fy = getFinancialYearKey(date);
-    const seq = await this.getNextSequence(facilityId, 'GRN', fy, session);
-    const padded = String(seq).padStart(padLength, '0');
-    return `${DOCUMENT_PREFIXES.grn}-${fy}-${padded}`;
   }
 
   public async generateInwardReceiptNumber(
@@ -109,18 +95,6 @@ export class CounterService {
     const seq = await this.getNextSequence(facilityId, 'RENT_RECEIPT', fy, session);
     const padded = String(seq).padStart(padLength, '0');
     return `${DOCUMENT_PREFIXES.rentReceipt}-${fy}-${padded}`;
-  }
-
-  public async generateBondNumber(
-    facilityId: string,
-    date: Date,
-    session?: ClientSession,
-    padLength = 4,
-  ): Promise<string> {
-    const fy = getFinancialYearKey(date);
-    const seq = await this.getNextSequence(facilityId, 'BOND', fy, session);
-    const padded = String(seq).padStart(padLength, '0');
-    return `${DOCUMENT_PREFIXES.bond}-${fy}-${padded}`;
   }
 }
 

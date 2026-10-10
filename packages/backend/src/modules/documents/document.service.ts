@@ -108,9 +108,14 @@ export class DocumentService {
       bigBags: grn.bigBags,
       smallBagWeight: grn.smallBagWeight ?? null,
       bigBagWeight: grn.bigBagWeight ?? null,
+      totalBagsWeight: grn.totalBagsWeight ?? null,
+      smallBagPrice: grn.smallBagPrice ?? null,
+      bigBagPrice: grn.bigBagPrice ?? null,
+      storageMark: grn.storageMark || grn.grnNumber,
       rentType: grn.rentType,
       rentAmount: grn.rentAmount,
       rentMonths: grn.rentMonths ?? null,
+      partyMark: grn.partyMark ?? null,
       vehicleNumber: grn.vehicleNumber ?? null,
       generatedAt: new Date(),
       generatedBy: userId,
@@ -139,7 +144,10 @@ export class DocumentService {
       throw new Error('FACILITY_MISMATCH: Document does not belong to the requested facility');
     }
 
-    const facility = await getFacilitySubHeader(facilityId);
+    const [facility, grn] = await Promise.all([
+      getFacilitySubHeader(facilityId),
+      GrnModel.findOne({ id: challan.grnId, facilityId }).lean().exec(),
+    ]);
 
     const dto: ChallanDocumentDto = {
       organization,
@@ -150,13 +158,18 @@ export class DocumentService {
       customerName: challan.customerName,
       commodityName: challan.commodityName,
       chamber: challan.chamber,
+      bagType: (challan.bagType || grn?.bagType || 'S/B') as ChallanDocumentDto['bagType'],
+      partyMark: grn?.partyMark || challan.marks || null,
       smallBags: challan.smallBags,
       bigBags: challan.bigBags,
       totalBags: challan.smallBags + challan.bigBags,
+      totalBagsWeight: grn?.totalBagsWeight ?? null,
+      weight: challan.weight ?? null,
       vehicleNumber: challan.vehicleNumber ?? null,
       driverName: challan.driverName ?? null,
       issuedBy: challan.issuedBy,
       status: challan.status,
+      rentCharge: challan.rentCharge,
       generatedAt: new Date(),
       generatedBy: userId,
     };

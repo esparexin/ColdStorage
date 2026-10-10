@@ -14,7 +14,6 @@ import {
   readLedgerNetDelivered,
   readLedgerNetDeliveredMany,
 } from '../inventory/ledger-balance.js';
-import { computeRentBalance } from '../common/rent-balance.js';
 import {
   calculateGrnMonthlyOccupancyRent,
   calculateGrnSeasonalOccupancyRent,
@@ -27,50 +26,10 @@ import {
 } from '../documents/document-headers.helper.js';
 import {
   executeRecordPayment,
-  toPaymentEntity,
 } from './handlers/record-payment.handler.js';
+import { rentExtensionRepository } from './rent-extension.repository.js';
 import { rentRepository } from './rent.repository.js';
-import type { RentPaymentDoc } from '../../database/models/rent-payment.model.js';
-
-/**
- * Maps a GRN and its payments to the canonical rent summary DTO.
- *
- * Shared by the single-GRN lookup and the batched facility list so both derive
- * the balance through computeRentBalance and cannot drift apart.
- */
-function buildRentSummary(
-  grn: GrnDoc,
-  payments: RentPaymentDoc[],
-  deliveredBags = 0,
-  remainingBags = grn.bags,
-): RentSummaryDto {
-  const balance = computeRentBalance(
-    grn.rentAmount,
-    payments.reduce((sum, p) => sum + p.amountPaid, 0),
-  );
-
-  return {
-    grnId: grn.id,
-    grnNumber: grn.grnNumber,
-    facilityId: grn.facilityId,
-    customerId: grn.customerId,
-    customerName: grn.customerName,
-    commodityName: grn.commodityName,
-    chamber: grn.chamber,
-    inwardDate: grn.date,
-    totalBags: grn.bags,
-    deliveredBags,
-    remainingBags,
-    bagPrice: grn.bagPrice ?? null,
-    rentType: grn.rentType,
-    rentAmount: balance.rentAmount,
-    rentMonths: grn.rentMonths ?? null,
-    totalPaid: balance.totalPaid,
-    remainingBalance: balance.remainingBalance,
-    paymentStatus: balance.paymentStatus,
-    payments: payments.map((p) => toPaymentEntity(p)),
-  };
-}
+import { buildRentSummary } from './rent-summary.helper.js';
 
 export class RentService {
   /**
@@ -105,14 +64,16 @@ export class RentService {
    */
   public async getRentSummary(facilityId: string, identifier: string): Promise<RentSummaryDto> {
     const grn = await this.resolveGrn(facilityId, identifier);
-    const [payments, netDelivered, balance] = await Promise.all([
+    const [payments, netDelivered, balance, extensions, outwardRent] = await Promise.all([
       rentRepository.findPaymentsByGrnId(facilityId, grn.id),
       readLedgerNetDelivered(facilityId, grn.id),
       readLedgerBalance(facilityId, grn.id),
+      rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id),
+      rentRepository.getOutwardRentChargesForGrn(facilityId, grn.id),
     ]);
     const delivered = netDelivered?.total ?? 0;
     const remaining = balance?.total ?? Math.max(0, grn.bags - delivered);
-    return buildRentSummary(grn, payments, delivered, remaining);
+    return buildRentSummary(grn, payments, extensions, delivered, remaining, outwardRent);
   }
 
   /**
@@ -126,16 +87,25 @@ export class RentService {
     const grns = await GrnModel.find({ facilityId }).sort({ date: -1, createdAt: -1 }).lean<GrnDoc[]>().exec();
     const grnIds = grns.map((g) => g.id);
 
-    const [paymentsByGrn, deliveredMap, balanceMap] = await Promise.all([
+    const [paymentsByGrn, deliveredMap, balanceMap, extensionsByGrn, outwardRentMap] = await Promise.all([
       rentRepository.findPaymentsByFacilityGrouped(facilityId),
       readLedgerNetDeliveredMany(facilityId, grnIds),
       readLedgerBalanceMany(facilityId, grnIds),
+      rentExtensionRepository.findExtensionsByFacilityGrouped(facilityId),
+      rentRepository.getOutwardRentChargesByFacilityGrouped(facilityId),
     ]);
 
     return grns.map((grn) => {
       const delivered = deliveredMap.get(grn.id)?.total ?? 0;
       const remaining = balanceMap.get(grn.id)?.total ?? Math.max(0, grn.bags - delivered);
-      return buildRentSummary(grn, paymentsByGrn.get(grn.id) ?? [], delivered, remaining);
+      return buildRentSummary(
+        grn,
+        paymentsByGrn.get(grn.id) ?? [],
+        extensionsByGrn.get(grn.id) ?? [],
+        delivered,
+        remaining,
+        outwardRentMap.get(grn.id) ?? 0,
+      );
     });
   }
 
@@ -208,7 +178,7 @@ export class RentService {
       rentType: grn.rentType,
       rentMonths: grn.rentMonths ?? null,
       billingCyclePeriod,
-      totalRentObligation: grn.rentAmount,
+      totalRentObligation: summary.totalDue,
       previousPaidAmount,
       amountPaid: payment.amountPaid,
       paymentMode: payment.paymentMode,
