@@ -44,7 +44,7 @@
 | UI action | Frontend call | Backend route | Contract | Verdict |
 |---|---|---|---|---|
 | Commodity rate lookup (Inward read-only rates) | `GET /api/commodities/:id/rates?rentType=` (`useCommodityRate`) | `commodity.routes.ts` | `commodityRateQuerySchema`, `commodityRateSchema` | ✅ wired |
-| Commodity rate upsert (managers only) | Settings/ops tooling via `PUT /api/commodities/:id/rates` | `commodity.routes.ts` (`commodity:manage`) | `upsertCommodityRateSchema` | ✅ wired |
+| Commodity rate upsert (managers only) | `CommodityRatesModal` → `PUT /api/commodities/:id/rates` via `useCommodityRates` (Rates action, `commodity:manage`-gated) | `commodity.routes.ts` (`commodity:manage`) | `upsertCommodityRateSchema` | ✅ wired |
 | Inward with controller rates | `POST .../grns` (read-only agreed rates from lookup) | `grn.routes.ts` (mismatch → 400, unconfigured → legacy path) | `createGrnSchema` | ✅ wired |
 | Seasonal renewal + Jan/Feb finalize/override/list | `POST .../rent/extensions/finalize`, `PATCH .../rent/extensions/:id/override`, `GET .../rent/grn/:id/extensions` | `rent.routes.ts` (`rent:extend` for writes) | `finalizeExtensionInputSchema` (`JANUARY\|FEBRUARY\|SEASON`), `overrideExtensionInputSchema` | ✅ wired |
 | Billing-period history | `RentHistoryModal` billing-periods section over `RentSummaryDto.extensions/totalDue` | `rent.routes.ts` (`GET .../rent/grn/:id`) | `rentSummaryDtoSchema`, `rentExtensionSchema` | ✅ wired (display only, no math duplicated) |

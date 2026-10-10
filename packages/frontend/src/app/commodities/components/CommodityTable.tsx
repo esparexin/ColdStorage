@@ -15,6 +15,7 @@ interface CommodityTableProps {
   totalCommodities: number;
   onPageChange: (page: number) => void;
   onToggleActive: (commodity: Commodity) => void;
+  onManageRates: (commodity: Commodity) => void;
 }
 
 export function CommodityTable({
@@ -26,6 +27,7 @@ export function CommodityTable({
   totalCommodities,
   onPageChange,
   onToggleActive,
+  onManageRates,
 }: CommodityTableProps) {
   const columns: DataTableColumn<Commodity>[] = [
     {
@@ -48,22 +50,33 @@ export function CommodityTable({
             key: 'actions',
             header: 'Actions',
             render: (row: Commodity) => (
-              <Button
-                variant={row.isActive ? 'dangerOutline' : 'outline'}
-                size="sm"
-                onClick={() => void onToggleActive(row)}
-                title={row.isActive ? 'Deactivate commodity' : 'Activate commodity'}
-                aria-label={`${row.isActive ? 'Deactivate' : 'Activate'} commodity ${row.name}`}
-                leftIcon={
-                  row.isActive ? (
-                    <XCircle size={13} aria-hidden="true" color="var(--color-danger)" />
-                  ) : (
-                    <CheckCircle2 size={13} aria-hidden="true" color="var(--color-success)" />
-                  )
-                }
-              >
-                {row.isActive ? 'Deactivate' : 'Activate'}
-              </Button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onManageRates(row)}
+                  title={`Manage Price Controller rates for ${row.name}`}
+                  aria-label={`Manage rates for commodity ${row.name}`}
+                >
+                  Rates
+                </Button>
+                <Button
+                  variant={row.isActive ? 'dangerOutline' : 'outline'}
+                  size="sm"
+                  onClick={() => void onToggleActive(row)}
+                  title={row.isActive ? 'Deactivate commodity' : 'Activate commodity'}
+                  aria-label={`${row.isActive ? 'Deactivate' : 'Activate'} commodity ${row.name}`}
+                  leftIcon={
+                    row.isActive ? (
+                      <XCircle size={13} aria-hidden="true" color="var(--color-danger)" />
+                    ) : (
+                      <CheckCircle2 size={13} aria-hidden="true" color="var(--color-success)" />
+                    )
+                  }
+                >
+                  {row.isActive ? 'Deactivate' : 'Activate'}
+                </Button>
+              </div>
             ),
             align: 'right' as const,
           },
