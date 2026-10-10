@@ -1,6 +1,25 @@
 import mongoose from 'mongoose';
 import type { DatabaseState } from '@cold-storage/contracts';
 import { config } from '../config.js';
+import { logger } from '../utils/logger.js';
+
+/**
+ * Bounded MongoDB timeouts (Phase 2 fail-fast).
+ *
+ * Previously `mongoose.connect()` was called with no options, inheriting
+ * Mongoose v8 defaults (`serverSelectionTimeoutMS:30000`, `socketTimeoutMS:0`,
+ * `bufferCommands:true`). A degraded network then buffered each sequential
+ * auth op (`findByUsername` → `AuditLog.create` → …) instead of fast-failing,
+ * and two consecutive 30s windows summed to the observed ~60s spinner hold
+ * behind the Next.js rewrite (which itself has no proxy timeout).
+ *
+ * These bounds keep MongoDB as the canonical SSOT while ensuring
+ * login/refresh fail fast (≈5s) so the frontend 12s abort can surface the
+ * login form with a meaningful error instead of hanging the gate.
+ */
+export const MONGO_SERVER_SELECTION_TIMEOUT_MS = 5000;
+export const MONGO_CONNECT_TIMEOUT_MS = 5000;
+export const MONGO_SOCKET_TIMEOUT_MS = 10000;
 
 /**
  * Validates that a connection target URI is safe for the active environment.
@@ -41,7 +60,20 @@ export async function connectToDatabase(uri?: string): Promise<boolean> {
     return true;
   }
 
-  await mongoose.connect(mongoUri);
+  const connectStart = Date.now();
+  await mongoose.connect(mongoUri, {
+    serverSelectionTimeoutMS: MONGO_SERVER_SELECTION_TIMEOUT_MS,
+    connectTimeoutMS: MONGO_CONNECT_TIMEOUT_MS,
+    socketTimeoutMS: MONGO_SOCKET_TIMEOUT_MS,
+    // Fail fast instead of buffering auth ops while disconnected. Per-request
+    // ops then reject within the selection timeout above rather than hanging
+    // the Express handler indefinitely.
+    bufferCommands: false,
+  });
+  const connectMs = Date.now() - connectStart;
+  if (connectMs > 1000) {
+    logger.warn('MongoDB connect slow', { connectMs });
+  }
 
   if (process.env.NODE_ENV === 'test' && mongoose.connection.name === 'cold_storage') {
     await mongoose.disconnect();

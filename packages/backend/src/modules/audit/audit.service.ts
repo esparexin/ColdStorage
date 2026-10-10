@@ -7,6 +7,7 @@ import type {
   Role,
 } from '@cold-storage/contracts';
 import { AuditLogModel, type AuditLogDoc } from '../../database/models/audit-log.model.js';
+import { logger } from '../../utils/logger.js';
 
 export interface AuditEventInput {
   eventType: AuditEventType;
@@ -90,10 +91,12 @@ export class AuditService {
   }
 
   /**
-   * Asynchronously records an audit event in an append-only collection.
-   * Catches errors locally so domain transactions are never blocked by audit logger failures.
+   * Append-only audit write. Callers KEEP awaiting this (no fire-and-forget)
+   * so AUTH_* events are never silently dropped; bounded by the global
+   * Mongoose 5s selection timeout. Failures are logged for detectability.
    */
   public async log(input: AuditEventInput): Promise<AuditLogDoc | null> {
+    const start = Date.now();
     try {
       const id = `audit_${Date.now()}_${randomBytes(4).toString('hex')}`;
       const doc = await AuditLogModel.create({
@@ -112,9 +115,19 @@ export class AuditService {
         details: this.sanitizeDetails(input.details ?? {}),
       });
 
+      const elapsedMs = Date.now() - start;
+      if (elapsedMs > 1000) {
+        logger.warn('Audit write slow', { eventType: input.eventType, elapsedMs });
+      }
       return doc;
-    } catch {
-      // Non-blocking error handling: Domain transactions must not abort on audit logging issues
+    } catch (err) {
+      // Fail-open for availability, but now observable (was silent).
+      logger.error('Audit write failed', {
+        eventType: input.eventType,
+        resource: input.resource,
+        elapsedMs: Date.now() - start,
+        error: err instanceof Error ? err.message : 'Unknown audit error',
+      });
       return null;
     }
   }

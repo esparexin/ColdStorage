@@ -24,6 +24,18 @@ export interface RefreshResult<T = unknown> {
 export const AUTH_REQUEST_TIMEOUT_MS = 12000;
 
 /**
+ * Overall bootstrap deadline (Phase 3 hardening).
+ *
+ * Per-fetch `AUTH_REQUEST_TIMEOUT_MS` bounds each HTTP call, but sequential
+ * windows (bootstrap refresh 12s + `requestWithAuth` retry-once 2×12s + login
+ * 12s) could still stack toward ~48s of spinner. `AuthContext` races bootstrap
+ * against this deadline so `isLoading` always clears promptly with the login
+ * form, even if layered retries stack. Kept above the single-fetch bound so a
+ * healthy refresh (ms) never trips it.
+ */
+export const AUTH_BOOTSTRAP_OVERALL_TIMEOUT_MS = 15000;
+
+/**
  * fetch with an AbortController timeout. Abort/timeout errors propagate to the
  * caller; refresh treats them as failure (null), login/bootstrap map them.
  */
