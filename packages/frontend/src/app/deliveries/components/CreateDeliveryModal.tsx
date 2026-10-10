@@ -179,7 +179,15 @@ export function CreateDeliveryModal({
                 </div>
               )}
 
-              {form.grnSummary && form.selectedGrn && (
+              {form.isLoanHoldActive && form.selectedGrn && (
+                <Banner
+                  variant="info"
+                  id="loan-hold-guidance"
+                  message="Complete the loan clearance above to continue — delivery details unlock after the hold is lifted."
+                />
+              )}
+
+              {form.grnSummary && form.selectedGrn && !form.isLoanHoldActive && (
                 <>
                   <DeliveryBagCompositionFields
                     summary={form.grnSummary}
