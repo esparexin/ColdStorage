@@ -1,4 +1,4 @@
-import type { Group, GroupQuery } from '@cold-storage/contracts';
+import { groupQuerySchema, type Group, type GroupQueryInput } from '@cold-storage/contracts';
 import { GroupModel } from '../../../database/models/group.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { readLedgerBalanceMany } from '../../inventory/ledger-balance.js';
@@ -10,23 +10,24 @@ function escapeRegExp(value: string): string {
 
 export async function listGroups(
   facilityId: string,
-  query: GroupQuery,
+  query: GroupQueryInput = {},
 ): Promise<{ items: Group[]; total: number; page: number; limit: number }> {
+  const parsed = groupQuerySchema.parse(query);
   const filter: Record<string, unknown> = { facilityId };
 
-  if (query.customerId) {
-    filter.customerId = query.customerId;
+  if (parsed.customerId) {
+    filter.customerId = parsed.customerId;
   }
-  if (query.search && query.search.trim()) {
-    filter.name = { $regex: escapeRegExp(query.search.trim()), $options: 'i' };
+  if (parsed.search && parsed.search.trim()) {
+    filter.name = { $regex: escapeRegExp(parsed.search.trim()), $options: 'i' };
   }
 
-  const sortField = query.sortBy === 'name' ? 'name' : 'createdAt';
-  const sortDir = query.sortDir === 'asc' ? 1 : -1;
+  const sortField = parsed.sortBy === 'name' ? 'name' : 'createdAt';
+  const sortDir = parsed.sortDir === 'asc' ? 1 : -1;
   const sort: Record<string, 1 | -1> = { [sortField]: sortDir };
 
-  const page = Math.max(1, query.page || 1);
-  const limit = Math.min(100, Math.max(1, query.limit || 20));
+  const page = Math.max(1, parsed.page || 1);
+  const limit = Math.min(100, Math.max(1, parsed.limit || 20));
   const skip = (page - 1) * limit;
 
   const [docs, total] = await Promise.all([

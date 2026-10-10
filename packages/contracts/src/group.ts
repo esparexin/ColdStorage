@@ -83,3 +83,4 @@ export type AssignGrnsInput = z.infer<typeof assignGrnsSchema>;
 export type UnassignGrnsInput = z.infer<typeof unassignGrnsSchema>;
 export type MoveGrnsInput = z.infer<typeof moveGrnsSchema>;
 export type GroupQuery = z.infer<typeof groupQuerySchema>;
+export type GroupQueryInput = z.input<typeof groupQuerySchema>;

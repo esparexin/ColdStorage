@@ -3,7 +3,7 @@ import type {
   CreateGroupInput,
   Grn,
   Group,
-  GroupQuery,
+  GroupQueryInput,
   GroupStockSummary,
   MoveGrnsInput,
   UnassignGrnsInput,
@@ -30,7 +30,7 @@ export class GroupService {
 
   public async listGroups(
     facilityId: string,
-    query: GroupQuery,
+    query: GroupQueryInput = {},
   ): Promise<{ items: Group[]; total: number; page: number; limit: number }> {
     return listGroups(facilityId, query);
   }
