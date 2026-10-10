@@ -87,24 +87,6 @@ export class CommodityRateService {
   }
 
   /**
-   * Resolution helper for Phases 3–4: returns the active authoritative row or
-   * throws, so GRN creation and period finalization can validate submitted
-   * rates against the Price Controller instead of trusting client input.
-   */
-  public async resolveAuthoritativeRate(
-    commodityId: string,
-    rentType: RentType,
-  ): Promise<CommodityRate> {
-    const rate = await this.getRate(commodityId, rentType);
-    if (!rate) {
-      throw new Error(
-        `No active ${rentType} rate configured for commodity '${commodityId}'`,
-      );
-    }
-    return rate;
-  }
-
-  /**
    * Period pair for finalization: the active controller row for the period
    * kind (SEASON → Seasonal, JANUARY/FEBRUARY → Monthly), else the legacy
    * single rate mapped to both sides when it is positive, else null.

@@ -101,15 +101,10 @@ describe('Commodity rates — commodity-rate.service.test.ts', () => {
     });
 
     expect(await commodityRateService.getRate('cmd-rate-1', 'Seasonal')).toBeNull();
-    await expect(
-      commodityRateService.resolveAuthoritativeRate('cmd-rate-1', 'Seasonal'),
-    ).rejects.toThrow(`No active Seasonal rate configured for commodity 'cmd-rate-1'`);
     expect(await commodityRateService.listRates('cmd-rate-1')).toHaveLength(1);
   });
 
-  it('throws resolution errors for unconfigured pairs', async () => {
-    await expect(
-      commodityRateService.resolveAuthoritativeRate('cmd-rate-1', 'Monthly'),
-    ).rejects.toThrow(`No active Monthly rate configured for commodity 'cmd-rate-1'`);
+  it('returns null lookups for unconfigured pairs (legacy path)', async () => {
+    expect(await commodityRateService.getRate('cmd-rate-1', 'Monthly')).toBeNull();
   });
 });

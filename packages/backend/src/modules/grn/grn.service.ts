@@ -12,7 +12,7 @@ import { readLedgerNetDelivered, readLedgerNetDeliveredMany } from '../inventory
 import { counterService } from '../common/counter.service.js';
 import { getGrnMovementHistory } from '../common/grn-movement-history.js';
 import { toGrnAcknowledgement, toGrnEntity } from './grn.mappers.js';
-import { createGrn } from './handlers/create-grn.handler.js';
+import { createGrn, type CreateGrnOptions } from './handlers/create-grn.handler.js';
 import { correctGrn } from './handlers/update-grn.handler.js';
 import { updateGrnLoanStatus } from './handlers/update-grn-loan-status.handler.js';
 
@@ -25,7 +25,7 @@ export class GrnService {
     facilityId: string,
     input: CreateGrnInput,
     userId: string,
-    opts?: { requireRates?: boolean },
+    opts?: CreateGrnOptions,
   ): Promise<{ grn: Grn; acknowledgement: GrnAcknowledgement }> {
     return createGrn(facilityId, input, userId, opts);
   }
