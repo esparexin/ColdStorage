@@ -12,7 +12,7 @@
 }
 
 .stockTable th {
-  padding: var(--space-1-5) var(--space-3);
+  padding: var(--space-1-5) var(--space-2);
   background: var(--color-surface-2);
   color: var(--color-text-muted);
   font-weight: var(--font-semibold);
@@ -22,7 +22,7 @@
 }
 
 .stockTable td {
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-1-5) var(--space-2);
   color: var(--color-text-primary);
   border-bottom: 1px solid var(--color-border);
 }
@@ -31,11 +31,11 @@
   text-align: left;
   font-size: var(--text-xs);
   color: var(--color-text-muted);
-  padding: var(--space-1-5) var(--space-3) var(--space-1);
+  padding: var(--space-1) var(--space-2);
 }
 
 .categorySection {
-  margin-top: var(--space-3);
+  margin-top: var(--space-2);
   margin-bottom: var(--space-2);
 }
 
@@ -55,26 +55,35 @@
 }
 
 .rateHint {
-  font-size: var(--text-2xs);
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
   margin-top: 2px;
 }
 
 .outwardRentCard {
-  margin-top: var(--space-3);
+  margin-top: var(--space-2);
   padding: var(--space-2) var(--space-3);
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.outwardRentLeft {
+  display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
 }
 
 .outwardRentHeader {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .outwardRentTitle {
@@ -86,23 +95,45 @@
 }
 
 .outwardRentTypeBadge {
-  font-size: var(--text-2xs);
+  font-size: var(--text-xs);
   font-weight: var(--font-bold);
-  padding: 2px var(--space-2);
+  padding: 1px var(--space-1-5);
   background: var(--color-surface-1);
   color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
+}
+
+.pendingBadge {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  padding: 1px var(--space-2);
+  background: var(--color-warning-subtle);
+  color: var(--color-warning-text);
+  border-radius: var(--radius-full);
+}
+
+.outwardRentAmountRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .outwardRentAmount {
   font-size: var(--text-base);
   font-weight: var(--font-bold);
   color: var(--color-primary);
+  line-height: 1.2;
 }
 
 .outwardRentFormula {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
+}
+
+.outwardRentAction {
+  flex-shrink: 0;
 }
 
 .inputError {

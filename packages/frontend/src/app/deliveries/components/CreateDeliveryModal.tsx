@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { IndianRupee, Truck } from 'lucide-react';
+import { Truck } from 'lucide-react';
 import type { DeliveryChallan, DeliverySummary, Grn, RentSummaryDto } from '@cold-storage/contracts';
 import { Button, Modal, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
@@ -117,14 +117,6 @@ export function CreateDeliveryModal({
                 <span className={styles.detailValue}>{form.selectedGrn.bags.toLocaleString('en-IN')} bags</span>
               </div>
               <div className={styles.grnDetailItem}>
-                <span className={styles.detailLabel}>Total Bags Weight</span>
-                <span className={styles.detailValue}>
-                  {form.selectedGrn.totalBagsWeight != null
-                    ? `${form.selectedGrn.totalBagsWeight.toLocaleString('en-IN')} kg`
-                    : '—'}
-                </span>
-              </div>
-              <div className={styles.grnDetailItem}>
                 <span className={styles.detailLabel}>Rent Type</span>
                 <span className={styles.detailValue}>{form.selectedGrn.rentType} (Fixed)</span>
               </div>
@@ -152,33 +144,6 @@ export function CreateDeliveryModal({
             <FeedbackStates.Loading label={LOADING_LABELS.data} />
           ) : (
             <>
-              {form.rentSummary && form.rentSummary.remainingBalance > 0 && (
-                <div className={styles.pendingRentCard} role="status">
-                  <div className={styles.pendingRentText}>
-                    <span className={styles.pendingRentTitle}>
-                      Pending Rent for {form.rentSummary.grnNumber}: ₹{form.rentSummary.remainingBalance.toLocaleString('en-IN')}
-                      {form.rentSummary.totalPaid > 0 ? ` (₹${form.rentSummary.totalPaid.toLocaleString('en-IN')} paid)` : ''}
-                    </span>
-                    <span className={styles.pendingRentSub}>
-                      {form.isLoanHoldActive
-                        ? 'Rent remains payable in Rent Billing; outward stays blocked by the loan hold above.'
-                        : 'Challan can be issued; rent remains payable in Rent Billing.'}
-                    </span>
-                  </div>
-                  {canPayRent && (
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="sm"
-                      onClick={() => onPayRent(form.rentSummary!)}
-                      leftIcon={<IndianRupee size={12} aria-hidden="true" />}
-                    >
-                      Pay Rent Now
-                    </Button>
-                  )}
-                </div>
-              )}
-
               {form.isLoanHoldActive && form.selectedGrn && (
                 <Banner
                   variant="info"
@@ -205,6 +170,9 @@ export function CreateDeliveryModal({
                     onSmallBagsChange={form.setWithdrawalSmallBags}
                     onBigBagsChange={form.setWithdrawalBigBags}
                     fieldErrors={form.fieldErrors}
+                    onPayRent={onPayRent}
+                    canPayRent={canPayRent}
+                    rentSummary={form.rentSummary}
                   />
 
                   <DeliveryTransportFields
@@ -216,7 +184,6 @@ export function CreateDeliveryModal({
                     setCreateGpNumber={form.setCreateGpNumber}
                     createDriverName={form.createDriverName}
                     setCreateDriverName={form.setCreateDriverName}
-                    totalBagsWeight={form.selectedGrn.totalBagsWeight}
                     createWeight={form.createWeight}
                     setCreateWeight={form.setCreateWeight}
                     createRemarks={form.createRemarks}
