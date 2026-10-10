@@ -108,3 +108,23 @@ controller row exists, `rentAmount` must equal the SSOT-derived amount**; otherw
 | 6 | Re-verify + remove dead code only; wiring matrix/docs/fixtures; full gates; stop at merge readiness | One definition per formula; zero orphaned pricing files; all gates green | `test(pricing): verify consolidated pricing integrity` |
 
 Each phase passes type-check, lint, affected suites, and hygiene before the next begins.
+
+## 6. Phase 5 proposal — CSV compatibility policy (requires approval, NOT implemented)
+
+Verified current behavior (pinned by `grn-import-legacy.test.ts`): the CSV carries no
+rate columns by design; `executeGrnImport` calls `createGrn` with an explicit legacy
+opt-out, so rentAmount-only rows commit even when a controller row exists. Outward
+bills such rows at canonical fallback; extensions derive from the stored lump sum.
+
+Proposed policy (no code changes until approved): when an active controller row exists
+for the row's (commodity, rentType), reject rate-less rows with a message directing
+operators to record agreed rates through the Inward UI (or a future optional
+`smallBagPrice`/`bigBagPrice` column set, which would then validate exactly like
+interactive submissions). When unconfigured, accept exactly as today. In all cases:
+no retroactive invalidation of already-imported rows, no silent repricing, dynamic
+and lump-sum semantics preserved.
+
+Outward division of responsibilities (pinned by `delivery-stored-agreement.test.ts`):
+delivery bills the stored immutable agreement and never live-fetches the controller;
+later controller edits must not reprice agreed GRNs. Canonical fallback stays for
+unconfigured/legacy records only (full sunset out of scope per rule 5).
