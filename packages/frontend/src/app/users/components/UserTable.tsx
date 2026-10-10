@@ -21,6 +21,7 @@ interface UserTableProps {
   searchTerm: string;
   roleFilter: string;
   facilityNameMap: Map<string, string>;
+  roleDisplayById?: Map<string, string>;
   currentUserId: string | null;
   actionsBusy: boolean;
   onPageChange: (newPage: number) => void;
@@ -41,6 +42,7 @@ export function UserTable({
   searchTerm,
   roleFilter,
   facilityNameMap,
+  roleDisplayById,
   currentUserId,
   actionsBusy,
   onPageChange,
@@ -49,6 +51,10 @@ export function UserTable({
   onResetPassword,
   onToggleStatus,
 }: UserTableProps) {
+  const resolveRoleLabel = (u: UserSummary): string => {
+    if (u.roleId && roleDisplayById?.get(u.roleId)) return roleDisplayById.get(u.roleId) as string;
+    return u.role;
+  };
   const columns: DataTableColumn<UserSummary>[] = [
     {
       key: 'user',
@@ -78,7 +84,7 @@ export function UserTable({
               : 'neutral'
           }
         >
-          {u.role}
+          {resolveRoleLabel(u)}
         </Badge>
       ),
     },

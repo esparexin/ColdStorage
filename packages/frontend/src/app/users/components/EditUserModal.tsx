@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { indianMobileSchema, type Role, type UserSummary } from '@cold-storage/contracts';
+import { indianMobileSchema, type RoleDefinition, type UserSummary } from '@cold-storage/contracts';
 import { Button, Modal, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import type { FacilityOption } from '@/context/FacilityContext';
@@ -11,28 +11,28 @@ import styles from '../page.module.css';
 interface EditUserModalProps {
   user: UserSummary;
   availableFacilities: FacilityOption[];
+  availableRoles: RoleDefinition[];
   saving: boolean;
   error: string | null;
   onSubmit: (userId: string, draft: UserEditDraft) => Promise<boolean>;
   onClose: () => void;
 }
 
-const ROLE_OPTIONS: Array<{ value: Role; label: string }> = [
-  { value: 'OPERATOR', label: 'OPERATOR (Weighbridge, GRN, Put-away, Challan)' },
-  { value: 'ADMIN', label: 'ADMIN (Facility Supervisor, Approvals)' },
-  { value: 'READ_ONLY', label: 'READ_ONLY (Auditor, Viewer)' },
-  { value: 'SUPER_ADMIN', label: 'SUPER_ADMIN (Complete System Authority)' },
-];
-
 export function EditUserModal({
   user,
   availableFacilities,
+  availableRoles,
   saving,
   error,
   onSubmit,
   onClose,
 }: EditUserModalProps) {
-  const [draft, setDraft] = useState<UserEditDraft>(() => toUserEditDraft(user));
+  const [draft, setDraft] = useState<UserEditDraft>(() => {
+    const base = toUserEditDraft(user);
+    const matched = availableRoles.find((r) => r.id === base.roleId)
+      ?? availableRoles.find((r) => r.key === base.role);
+    return { ...base, roleId: matched?.id ?? base.roleId, role: (matched?.key as UserEditDraft['role']) ?? base.role };
+  });
   const [localError, setLocalError] = useState<string | null>(null);
 
   const toggleFacility = (facilityId: string) => {
@@ -111,12 +111,19 @@ export function EditUserModal({
               <Select
                 id="edit-user-role"
                 className={styles.formInput}
-                value={draft.role}
-                onChange={(e) => setDraft({ ...draft, role: e.target.value as Role })}
+                value={draft.roleId ?? draft.role}
+                onChange={(e) => {
+                  const selected = availableRoles.find((r) => r.id === e.target.value);
+                  setDraft({
+                    ...draft,
+                    roleId: selected?.id,
+                    role: (selected?.key as UserEditDraft['role']) ?? draft.role,
+                  });
+                }}
               >
-                {ROLE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
+                {availableRoles.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.displayName} ({opt.key})
                   </option>
                 ))}
               </Select>

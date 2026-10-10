@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { UserSummary } from '@cold-storage/contracts';
+import type { RoleDefinition, UserSummary } from '@cold-storage/contracts';
 import type { FacilityOption } from '@/context/FacilityContext';
 import type { UserEditDraft } from '../hooks/useUserLifecycle';
 import { EditUserModal } from './EditUserModal';
@@ -13,6 +13,7 @@ interface UserLifecycleModalsProps {
   editingUser: UserSummary | null;
   resettingUser: UserSummary | null;
   availableFacilities: FacilityOption[];
+  availableRoles: RoleDefinition[];
   saving: boolean;
   error: string | null;
   onCloseProvisioning: () => void;
@@ -32,6 +33,7 @@ export function UserLifecycleModals({
   editingUser,
   resettingUser,
   availableFacilities,
+  availableRoles,
   saving,
   error,
   onCloseProvisioning,
@@ -46,6 +48,7 @@ export function UserLifecycleModals({
       {provisioningOpen && (
         <ProvisionUserModal
           availableFacilities={availableFacilities}
+          availableRoles={availableRoles}
           onClose={onCloseProvisioning}
           onSuccess={onProvisioned}
         />
@@ -55,6 +58,7 @@ export function UserLifecycleModals({
         <EditUserModal
           user={editingUser}
           availableFacilities={availableFacilities}
+          availableRoles={availableRoles}
           saving={saving}
           error={error}
           onSubmit={onSubmitEdit}

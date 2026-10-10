@@ -1,14 +1,15 @@
 'use client';
 
 import React from 'react';
-import type { Role } from '@cold-storage/contracts';
+import type { RoleDefinition } from '@cold-storage/contracts';
 import { FilterToolbar, Select } from '@/components/ui';
 
 interface UserFilterBarProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  roleFilter: '' | Role;
-  onRoleFilterChange: (role: '' | Role) => void;
+  roleFilter: string;
+  onRoleFilterChange: (role: string) => void;
+  availableRoles?: RoleDefinition[];
 }
 
 export function UserFilterBar({
@@ -16,6 +17,7 @@ export function UserFilterBar({
   onSearchChange,
   roleFilter,
   onRoleFilterChange,
+  availableRoles,
 }: UserFilterBarProps) {
   const resetFilters = () => {
     onSearchChange('');
@@ -33,14 +35,23 @@ export function UserFilterBar({
     >
       <Select
         value={roleFilter}
-        onChange={(e) => onRoleFilterChange(e.target.value as '' | Role)}
+        onChange={(e) => onRoleFilterChange(e.target.value)}
         aria-label="Filter by role"
       >
         <option value="">All Roles</option>
-        <option value="SUPER_ADMIN">SUPER_ADMIN</option>
-        <option value="ADMIN">ADMIN</option>
-        <option value="OPERATOR">OPERATOR</option>
-        <option value="READ_ONLY">READ_ONLY</option>
+        {(availableRoles && availableRoles.length > 0
+          ? availableRoles.map((r) => ({ value: r.key, label: `${r.displayName} (${r.key})` }))
+          : [
+              { value: 'SUPER_ADMIN', label: 'SUPER_ADMIN' },
+              { value: 'ADMIN', label: 'ADMIN' },
+              { value: 'OPERATOR', label: 'OPERATOR' },
+              { value: 'READ_ONLY', label: 'READ_ONLY' },
+            ]
+        ).map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
       </Select>
     </FilterToolbar>
   );
