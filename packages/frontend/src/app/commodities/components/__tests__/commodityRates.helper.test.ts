@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildRatePayloads,
   EMPTY_RATES_FORM,
+  hydrateRatesForm,
   parseRateInput,
   validateRatesForm,
 } from '../commodityRates.helper';
@@ -32,6 +33,21 @@ describe('commodityRates.helper', () => {
     expect(errors.seasonalBig).toContain('greater than zero');
     expect(errors.monthlySmall).toContain('greater than zero');
     expect(errors.monthlyBig).toContain('cannot exceed');
+  });
+
+  it('hydrates the form from stored rows and reports unconfigured commodities', () => {
+    expect(hydrateRatesForm([])).toBeNull();
+    expect(
+      hydrateRatesForm([
+        { rentType: 'Seasonal', smallRate: 12, bigRate: 18 },
+        { rentType: 'Monthly', smallRate: 10, bigRate: 15 },
+      ]),
+    ).toEqual({ seasonalSmall: 12, seasonalBig: 18, monthlySmall: 10, monthlyBig: 15 });
+    expect(hydrateRatesForm([{ rentType: 'Monthly', smallRate: 10, bigRate: 15 }])).toEqual({
+      ...EMPTY_RATES_FORM,
+      monthlySmall: 10,
+      monthlyBig: 15,
+    });
   });
 
   it('builds synchronized seasonal and monthly upsert payloads', () => {
