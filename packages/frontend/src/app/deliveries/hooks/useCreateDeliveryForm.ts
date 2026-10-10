@@ -238,8 +238,6 @@ export function useCreateDeliveryForm(
     isLoanHoldActive,
     rentSummary: rentGate.rentSummary,
     rentLoading: rentGate.rentLoading,
-    rentBlocked: rentGate.rentBlocked,
-    rentPartial: rentGate.rentPartial,
     refreshRentGate: rentGate.refreshRentGate,
   };
 }
