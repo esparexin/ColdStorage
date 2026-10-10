@@ -185,6 +185,9 @@ export const grnSchema = z.object({
   loanRemarks: z.string().nullable().optional(),
   loanTakenAt: z.date().nullable().optional(),
   loanClearedAt: z.date().nullable().optional(),
+  /** Set when this GRN was merged into a surviving target; lifecycle status stays CLOSED. */
+  mergedIntoGrnId: z.string().nullable().optional(),
+  mergedIntoGrnNumber: z.string().nullable().optional(),
   loanSettlementAmount: z.number().nullable().optional(),
   loanSettlementMode: loanPaymentModeSchema.nullable().optional(),
   loanSettlementUtr: z.string().nullable().optional(),

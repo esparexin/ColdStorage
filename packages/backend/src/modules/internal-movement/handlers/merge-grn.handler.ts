@@ -122,11 +122,14 @@ export async function mergeGrn(
         const sourceNote = `[MERGED into GRN ${targetGrn.grnNumber} on ${moveDateStr}: ${bal.total} bags cleared. Financial record preserved: Rent Obligation ₹${s.rentAmount}, Paid ₹${totalPaid}, Pending ₹${rentBal.remainingBalance} (Status: ${rentBal.paymentStatus}). Customer: ${s.customerName}. Reason: ${input.remarks.trim()}]`;
         const updatedSourceRemarks = s.remarks ? `${s.remarks}\n${sourceNote}` : sourceNote;
 
-        await GrnModel.updateOne(
-          { id: s.id },
-          { $set: { status: 'CLOSED', remarks: updatedSourceRemarks, updatedAt: new Date() } },
-          { session },
-        );
+        const sourceCloseUpdate = {
+          status: 'CLOSED' as const,
+          remarks: updatedSourceRemarks,
+          mergedIntoGrnId: targetGrn.id,
+          mergedIntoGrnNumber: targetGrn.grnNumber,
+          updatedAt: new Date(),
+        };
+        await GrnModel.updateOne({ id: s.id }, { $set: sourceCloseUpdate }, { session });
       }
 
       await InventoryTransactionModel.create(

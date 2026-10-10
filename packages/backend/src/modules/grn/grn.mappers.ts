@@ -39,6 +39,8 @@ export function toGrnEntity(doc: {
   loanRemarks?: string | null;
   loanTakenAt?: Date | null;
   loanClearedAt?: Date | null;
+  mergedIntoGrnId?: string | null;
+  mergedIntoGrnNumber?: string | null;
   createdBy: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -89,6 +91,9 @@ export function toGrnEntity(doc: {
     loanRemarks: ((doc as Record<string, unknown>).loanRemarks as string | null) ?? null,
     loanTakenAt: ((doc as Record<string, unknown>).loanTakenAt as Date | null) ?? null,
     loanClearedAt: ((doc as Record<string, unknown>).loanClearedAt as Date | null) ?? null,
+    mergedIntoGrnId: ((doc as Record<string, unknown>).mergedIntoGrnId as string | null) ?? null,
+    mergedIntoGrnNumber:
+      ((doc as Record<string, unknown>).mergedIntoGrnNumber as string | null) ?? null,
     loanSettlementAmount: ((doc as Record<string, unknown>).loanSettlementAmount as number | null) ?? null,
     loanSettlementMode: ((doc as Record<string, unknown>).loanSettlementMode as Grn['loanSettlementMode']) ?? null,
     loanSettlementUtr: ((doc as Record<string, unknown>).loanSettlementUtr as string | null) ?? null,
