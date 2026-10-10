@@ -82,23 +82,10 @@ async function executeDeliveryTransaction(
         throw new Error(`Outward blocked — Active loan hold against ${bondRef}`);
       }
 
-      const resolvedSmall =
-        (input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0
-          ? (input.smallBags ?? 0)
-          : grn.bagType === 'B'
-            ? 0
-            : (input.quantity ?? 0);
-      const resolvedBig =
-        (input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0
-          ? (input.bigBags ?? 0)
-          : grn.bagType === 'B'
-            ? (input.quantity ?? 0)
-            : 0;
-
-      const withdrawal: BagComposition = {
-        smallBags: resolvedSmall,
-        bigBags: resolvedBig,
-      };
+      const hasSpecificBags = (input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0;
+      const resolvedSmall = hasSpecificBags ? (input.smallBags ?? 0) : grn.bagType === 'B' ? 0 : (input.quantity ?? 0);
+      const resolvedBig = hasSpecificBags ? (input.bigBags ?? 0) : grn.bagType === 'B' ? (input.quantity ?? 0) : 0;
+      const withdrawal: BagComposition = { smallBags: resolvedSmall, bigBags: resolvedBig };
       const withdrawnTotal = resolvedSmall + resolvedBig;
 
       const available = await validateStockAndBalances(facilityId, grn, withdrawal, session);
@@ -141,7 +128,32 @@ async function executeDeliveryTransaction(
       const deliveryId = `del-${randomUUID()}`;
 
       const marks = input.marks?.trim() || grn.marks || null;
-      const gpNumber = input.gpNumber?.trim() || grn.gpNumber || null;
+
+      // Sequential Gate Pass generation and concurrency duplicate prevention
+      let gpNumber: string | null = null;
+      if (input.gpNumber?.trim()) {
+        gpNumber = input.gpNumber.trim();
+        const match = /^GP-(\d+)$/i.exec(gpNumber);
+        if (match) {
+          const seq = parseInt(match[1], 10);
+          if (!isNaN(seq)) {
+            await counterService.syncGatePassSequence(facilityId, deliveryDate, seq, session);
+          }
+        }
+      } else {
+        gpNumber = await counterService.generateGatePassNumber(facilityId, deliveryDate, session);
+      }
+
+      if (gpNumber) {
+        const existingGp = await DeliveryChallanModel.findOne(
+          { facilityId, gpNumber },
+          { id: 1 },
+          { session },
+        ).lean().exec();
+        if (existingGp) {
+          throw new Error(`Gate Pass number '${gpNumber}' already exists in this facility`);
+        }
+      }
 
       const challanDocs = await DeliveryChallanModel.create(
         [
@@ -218,19 +230,10 @@ async function executeDeliveryTransaction(
   const summary = await getDeliverySummary(facilityId, input.grnId);
 
   await auditService.log({
-    eventType: 'DELIVERY_ISSUED',
-    severity: 'INFO',
-    userId,
-    facilityId,
-    resource: 'delivery',
-    resourceId: delivery.id,
+    eventType: 'DELIVERY_ISSUED', severity: 'INFO', userId, facilityId, resource: 'delivery', resourceId: delivery.id,
     details: {
-      challanNumber: delivery.challanNumber,
-      smallBags: delivery.smallBags,
-      bigBags: delivery.bigBags,
-      totalBags: delivery.totalBags,
-      grnId: delivery.grnId,
-      customerId: delivery.customerId,
+      challanNumber: delivery.challanNumber, smallBags: delivery.smallBags, bigBags: delivery.bigBags,
+      totalBags: delivery.totalBags, grnId: delivery.grnId, customerId: delivery.customerId,
     },
   });
 

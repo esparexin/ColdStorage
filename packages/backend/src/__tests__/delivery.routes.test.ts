@@ -227,4 +227,12 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
     expect(grnDelRes.status).toBe(200);
     expect(grnDelRes.body.deliveries).toHaveLength(1);
   });
+
+  it('previews next sequential Gate Pass number for facility', async () => {
+    const res = await request(app)
+      .get(`/api/facilities/${facilityId}/deliveries/next-gp-number`)
+      .set('Authorization', `Bearer ${operatorToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.nextGpNumber).toMatch(/^GP-\d{4}$/);
+  });
 });

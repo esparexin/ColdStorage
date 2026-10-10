@@ -97,7 +97,23 @@ deliveryRouter.get(
   },
 );
 
-// 3. Get Single Delivery Challan by ID
+// 3. Preview next Gate Pass number for facility
+deliveryRouter.get(
+  '/facilities/:facilityId/deliveries/next-gp-number',
+  requirePermission('delivery:view'),
+  requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  async (req: Request, res: Response): Promise<void> => {
+    const facilityId = getParamId(req.params.facilityId);
+    try {
+      const nextGpNumber = await deliveryService.getNextGatePassNumber(facilityId);
+      res.status(200).json({ nextGpNumber });
+    } catch (err: unknown) {
+      sendServiceError(res, err, 'Failed to preview next gate pass number');
+    }
+  },
+);
+
+// 4. Get Single Delivery Challan by ID
 deliveryRouter.get(
   '/facilities/:facilityId/deliveries/:deliveryId',
   requirePermission('delivery:view'),

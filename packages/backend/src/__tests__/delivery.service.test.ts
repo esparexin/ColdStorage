@@ -223,4 +223,24 @@ describe('P6 DeliveryService outward delivery tests', () => {
     expect(result.summary.remainingDeliveryBalance).toBe(40);
     expect(await DeliveryChallanModel.countDocuments({ grnId: unpaidGrnId })).toBe(1);
   });
+
+  it('automatically generates sequential Gate Pass numbers in GP-0001, GP-0002 format', async () => {
+    await allocateWholeLot();
+
+    const del1 = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 10, bigBags: 0 }, userId);
+    const del2 = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 10, bigBags: 0 }, userId);
+
+    expect(del1.delivery.gpNumber).toBe('GP-0001');
+    expect(del2.delivery.gpNumber).toBe('GP-0002');
+  });
+
+  it('rejects duplicate Gate Pass number submission in the same facility', async () => {
+    await allocateWholeLot();
+
+    await deliveryService.createDelivery(facilityId, { grnId, smallBags: 10, bigBags: 0, gpNumber: 'GP-9999' }, userId);
+
+    await expect(
+      deliveryService.createDelivery(facilityId, { grnId, smallBags: 10, bigBags: 0, gpNumber: 'GP-9999' }, userId),
+    ).rejects.toThrow(/already exists in this facility/);
+  });
 });
