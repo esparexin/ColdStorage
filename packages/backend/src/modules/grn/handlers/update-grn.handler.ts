@@ -7,7 +7,6 @@ import { DeliveryReversalModel } from '../../../database/models/delivery-reversa
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
-import { commodityRateService } from '../../commodities/commodity-rate.service.js';
 import { toGrnEntity } from '../grn.mappers.js';
 import { resolveBagEdit, wantsBagsChange } from './grn-edit-bags.js';
 import { resolveRentEdit, wantsRentChange } from './grn-edit-rent.js';
@@ -128,23 +127,8 @@ export async function correctGrn(
         update.totalBagsWeight = input.totalBagsWeight ?? null;
       }
 
-      if (
-        input.smallBagPrice !== undefined ||
-        input.bigBagPrice !== undefined ||
-        input.commodityId !== undefined ||
-        input.rentType !== undefined
-      ) {
-        // Submitted agreed rates must match the active controller row when one
-        // exists. Stored-but-unsubmitted values are history and never checked.
-        await commodityRateService.validateSubmittedRates(
-          input.commodityId ?? grn.commodityId,
-          input.rentType ?? grn.rentType,
-          { smallBagPrice: input.smallBagPrice, bigBagPrice: input.bigBagPrice },
-          // Fail-closed correction gate lands in Phase 4; behavior unchanged here.
-          { requireRates: false },
-        );
-      }
-
+      // Rate enforcement lives inside resolveRentEdit, which validates touched
+      // fields and agreement switches against final values with fail-closed omission.
       if (wantsRentChange(input, bagEdit.wantsBagsChange)) {
         Object.assign(
           update,
@@ -153,6 +137,7 @@ export async function correctGrn(
             grnId: grn.id,
             grnNumber: grn.grnNumber,
             grn: {
+              commodityId: grn.commodityId,
               rentType: grn.rentType,
               rentMonths: grn.rentMonths,
               rentAmount: grn.rentAmount,
@@ -160,6 +145,7 @@ export async function correctGrn(
               smallBagPrice: grn.smallBagPrice,
               bigBagPrice: grn.bigBagPrice,
             },
+            finalCommodityId: input.commodityId ?? grn.commodityId,
             input,
             finalBags: bagEdit.finalBags,
             finalBagType: bagEdit.finalBagType,
