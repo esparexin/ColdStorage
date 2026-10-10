@@ -15,6 +15,7 @@ interface InternalMovementMergeTabProps {
     reason: string,
     remarks?: string,
     movementDate?: string,
+    additionalRentAmount?: number,
   ) => Promise<void>;
 }
 
@@ -36,8 +37,10 @@ export function InternalMovementMergeTab({
   const eligibleSources = useMemo(() => openGrns.filter((g) => g.id !== targetGrnId && (g.closingBags ?? g.bags) > 0 && g.loanStatus !== 'TAKEN'), [openGrns, targetGrnId]);
   const selectedSources = useMemo(() => eligibleSources.filter((g) => selectedSourceIds.includes(g.id)), [eligibleSources, selectedSourceIds]);
   const totalSourceBags = useMemo(() => selectedSources.reduce((acc, g) => acc + (g.closingBags ?? g.bags), 0), [selectedSources]);
+  const totalSourceRent = useMemo(() => selectedSources.reduce((acc, g) => acc + (g.rentAmount ?? 0), 0), [selectedSources]);
   const targetCurrentRemaining = targetGrn.closingBags ?? targetGrn.bags;
   const targetNewRemaining = targetCurrentRemaining + totalSourceBags;
+  const targetNewRent = (targetGrn.rentAmount ?? 0) + totalSourceRent;
   const isTargetLoanHold = targetGrn.loanStatus === 'TAKEN';
 
   const toggleSource = (id: string) => {
@@ -52,7 +55,7 @@ export function InternalMovementMergeTab({
     // Client-side mirror of the backend guard (merge-grn.handler rejects TAKEN
     // targets) so the operator learns before the round-trip, with identical wording.
     if (isTargetLoanHold) return setValidationError(`Target GRN '${targetGrn.grnNumber}' has an active loan hold — clear the loan before merging into it.`);
-    await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate);
+    await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, totalSourceRent);
   };
 
   return (
@@ -162,12 +165,12 @@ export function InternalMovementMergeTab({
       {/* Review & Audit Bottom Section */}
       <div className={styles.reviewGrid}>
         <div className={styles.compactCard}>
-          <div className={styles.cardHeader}><span>3. Resulting Stock</span><Badge variant="primary">Audit-Safe</Badge></div>
-          <div className={styles.detailRow}><span className={styles.detailLabel}>{targetGrn.grnNumber} Initial:</span><span className={styles.detailValue}>{targetCurrentRemaining} bags</span></div>
-          <div className={styles.detailRow}><span className={styles.detailLabel}>+ Transferred:</span><span className={styles.detailValue}>+{totalSourceBags} bags</span></div>
+          <div className={styles.cardHeader}><span>3. Resulting Stock & Obligations</span><Badge variant="primary">Audit-Safe</Badge></div>
+          <div className={styles.detailRow}><span className={styles.detailLabel}>{targetGrn.grnNumber} Initial:</span><span className={styles.detailValue}>{targetCurrentRemaining} bags (₹{targetGrn.rentAmount ?? 0})</span></div>
+          <div className={styles.detailRow}><span className={styles.detailLabel}>+ Merged Sources:</span><span className={styles.detailValue}>+{totalSourceBags} bags (+₹{totalSourceRent})</span></div>
           <div className={styles.detailRow} style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
             <span className={styles.detailLabel}>Resulting Total:</span>
-            <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)' }}>{targetNewRemaining} Bags</span>
+            <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)' }}>{targetNewRemaining} Bags (₹{targetNewRent})</span>
           </div>
           <div className={styles.formSection}>
             <label htmlFor="merge-date" className={styles.inputLabel}>Movement Date *</label>

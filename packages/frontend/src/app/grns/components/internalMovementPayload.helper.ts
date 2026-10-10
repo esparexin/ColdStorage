@@ -41,13 +41,14 @@ export function buildMergePayload(
   reason: string,
   remarks?: string,
   movementDate?: string,
+  additionalRentAmount?: number,
 ): MergePayload {
   return {
     targetGrnId,
     sourceGrnIds,
     movementDate: movementDate || new Date().toISOString(),
     remarks: composeRemarks(reason, remarks),
-    additionalRentAmount: 0,
+    additionalRentAmount: additionalRentAmount ?? 0,
   };
 }
 

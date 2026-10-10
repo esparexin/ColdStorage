@@ -68,4 +68,17 @@ describe('internalMovement payload helpers', () => {
     expect(payload.settlementDetails?.amountPaid).toBe(1500);
     expect(transferOwnershipInputSchema.safeParse(payload).success).toBe(true);
   });
+
+  it('builds a merge payload carrying forward additional rent amount', () => {
+    const payload = buildMergePayload(
+      'grn-target',
+      ['grn-a'],
+      'Consolidate lots',
+      undefined,
+      '2026-10-10',
+      1200,
+    );
+    expect(payload.additionalRentAmount).toBe(1200);
+    expect(mergeGrnInputSchema.safeParse(payload).success).toBe(true);
+  });
 });
