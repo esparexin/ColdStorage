@@ -65,11 +65,16 @@ export function createBondsColumns({
     {
       key: 'status',
       header: 'GRN Status',
-      render: (row) => (
-        <Badge variant={row.status === 'CLOSED' ? 'neutral' : 'warning'}>
-          {row.status}
-        </Badge>
-      ),
+      render: (row) => {
+        if (row.mergedIntoGrnNumber) {
+          return <Badge variant="neutral">Merged → {row.mergedIntoGrnNumber}</Badge>;
+        }
+        return (
+          <Badge variant={row.status === 'CLOSED' ? 'neutral' : 'warning'}>
+            {row.status}
+          </Badge>
+        );
+      },
     },
     {
       key: 'actions',

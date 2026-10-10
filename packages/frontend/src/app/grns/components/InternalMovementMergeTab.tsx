@@ -174,7 +174,8 @@ export function InternalMovementMergeTab({
             <Input id="merge-date" type="date" value={movementDate} onChange={(e) => setMovementDate(e.target.value)} disabled={submitting} required />
           </div>
           <div className={styles.noticeBox}>
-            Source GRN(s) will be set to CLOSED. Original financial obligations and payments are preserved.
+            Source GRN(s) will be set to CLOSED and linked to the surviving target GRN. Original financial
+            obligations and payments are preserved.
           </div>
         </div>
 
