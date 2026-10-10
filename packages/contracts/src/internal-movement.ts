@@ -43,6 +43,7 @@ export const internalMovementRecordSchema = z.object({
     totalPaid: z.number().min(0),
     remainingBalance: z.number().min(0),
     paymentStatus: z.string(),
+    rentState: z.string().optional(),
   }),
   remarks: z.string().nullable().optional(),
   performedBy: z.string().min(1),

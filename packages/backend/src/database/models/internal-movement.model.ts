@@ -24,6 +24,7 @@ export interface InternalMovementDoc extends Document {
     totalPaid: number;
     remainingBalance: number;
     paymentStatus: string;
+    rentState?: string | null;
   };
   remarks: string | null;
   performedBy: string;
@@ -54,6 +55,7 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
       totalPaid: { type: Number, required: true, min: 0 },
       remainingBalance: { type: Number, required: true, min: 0 },
       paymentStatus: { type: String, required: true },
+      rentState: { type: String, default: null },
     },
     remarks: { type: String, default: null },
     performedBy: { type: String, required: true },

@@ -10,6 +10,7 @@ import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
+import { calculateGrnMonthlyOccupancyRent } from '../../common/occupancy-rent.js';
 
 export async function transferOwnership(
   facilityId: string,
@@ -55,9 +56,20 @@ export async function transferOwnership(
         .lean()
         .exec();
       const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
+
+      let effectiveObligation = Number(grn.rentAmount ?? 0);
+      if (grn.rentType === 'Monthly' && effectiveObligation === 0) {
+        const monthlyAccrual = await calculateGrnMonthlyOccupancyRent(facilityId, grn.id, {
+          asOfDate: new Date(input.movementDate),
+        });
+        if (monthlyAccrual && monthlyAccrual.totalOccupancyCharge > 0) {
+          effectiveObligation = monthlyAccrual.totalOccupancyCharge;
+        }
+      }
+
       const totalDue = await rentExtensionRepository.resolveTotalDue(
         facilityId,
-        { id: grn.id, rentAmount: grn.rentAmount ?? 0 },
+        { id: grn.id, rentAmount: effectiveObligation },
         session,
       );
       const rentBal = computeRentBalance(totalDue, totalPaid);
@@ -68,16 +80,19 @@ export async function transferOwnership(
       const transferNote = `[OWNERSHIP TRANSFERRED on ${transferDateStr}: from ${grn.customerName} (ID: ${grn.customerId}) to ${newCustomer.name} (ID: ${newCustomer.id}). Pending rent: ₹${rentBal.remainingBalance} of ₹${rentBal.rentAmount} (Prior collected: ₹${rentBal.totalPaid}). Reason: ${input.remarks.trim()}]`;
       const updatedRemarks = grn.remarks ? `${grn.remarks}\n${transferNote}` : transferNote;
 
+      const updateFields: Record<string, unknown> = {
+        customerId: newCustomer.id,
+        customerName: newCustomer.name,
+        remarks: updatedRemarks,
+        updatedAt: new Date(),
+      };
+      if (grn.rentType === 'Monthly' && (grn.rentAmount ?? 0) === 0 && effectiveObligation > 0) {
+        updateFields.rentAmount = effectiveObligation;
+      }
+
       const updatedGrn = await GrnModel.findOneAndUpdate(
         { id: grn.id },
-        {
-          $set: {
-            customerId: newCustomer.id,
-            customerName: newCustomer.name,
-            remarks: updatedRemarks,
-            updatedAt: new Date(),
-          },
-        },
+        { $set: updateFields },
         { session, new: true },
       )
         .lean()
@@ -106,6 +121,7 @@ export async function transferOwnership(
               totalPaid: rentBal.totalPaid,
               remainingBalance: rentBal.remainingBalance,
               paymentStatus: rentBal.paymentStatus,
+              rentState: rentBal.rentState,
             },
             remarks: input.remarks.trim(),
             performedBy: userId,
