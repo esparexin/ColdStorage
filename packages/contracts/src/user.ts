@@ -1,30 +1,41 @@
 import { z } from 'zod';
 import { facilityIdSchema, indianMobileSchema } from './common.js';
-import { roleSchema } from './permissions.js';
+import { roleIdSchema, roleSchema } from './permissions.js';
 
 export { roleSchema, type Role } from './permissions.js';
+
+/** System role keys seeded from the static matrix; custom keys are UPPER_SNAKE. */
+export const SYSTEM_ROLE_KEYS = ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'] as const;
 
 export const userStatusSchema = z.enum(['ACTIVE', 'DISABLED']);
 export type UserStatus = z.infer<typeof userStatusSchema>;
 
 /**
  * P0-Decision 8: Admin sets initial temporary password; forced password change on first login.
+ * `role` is the legacy enum path; `roleId` references a RoleDefinition (system or custom).
+ * At least one must be provided so old clients keep working while new UI sends roleId.
  */
-export const createUserSchema = z.object({
-  fullName: z.string().trim().min(1).max(120),
-  username: z
-    .string()
-    .trim()
-    .min(3)
-    .max(40)
-    .regex(/^[a-zA-Z0-9_.-]+$/, 'Username may only contain letters, numbers, dots, hyphens, and underscores'),
-  employeeId: z.string().trim().min(1).max(40),
-  mobile: indianMobileSchema,
-  email: z.string().trim().email().max(160),
-  role: roleSchema,
-  facilityIds: z.array(facilityIdSchema).min(1, 'User must be assigned to at least one facility'),
-  temporaryPassword: z.string().min(8).max(128),
-});
+export const createUserSchema = z
+  .object({
+    fullName: z.string().trim().min(1).max(120),
+    username: z
+      .string()
+      .trim()
+      .min(3)
+      .max(40)
+      .regex(/^[a-zA-Z0-9_.-]+$/, 'Username may only contain letters, numbers, dots, hyphens, and underscores'),
+    employeeId: z.string().trim().min(1).max(40),
+    mobile: indianMobileSchema,
+    email: z.string().trim().email().max(160),
+    role: roleSchema.optional(),
+    roleId: roleIdSchema.optional(),
+    facilityIds: z.array(facilityIdSchema).min(1, 'User must be assigned to at least one facility'),
+    temporaryPassword: z.string().min(8).max(128),
+  })
+  .refine((value) => value.role !== undefined || value.roleId !== undefined, {
+    message: 'Either role or roleId must be provided',
+    path: ['roleId'],
+  });
 
 export type CreateUser = z.infer<typeof createUserSchema>;
 
@@ -40,6 +51,7 @@ export const updateUserSchema = z
     mobile: indianMobileSchema,
     email: z.string().trim().email().max(160),
     role: roleSchema,
+    roleId: roleIdSchema,
     facilityIds: z.array(facilityIdSchema).min(1, 'User must be assigned to at least one facility'),
     status: userStatusSchema,
   })
@@ -68,6 +80,8 @@ export const userSummarySchema = z.object({
   mobile: z.string(),
   email: z.string().email(),
   role: roleSchema,
+  roleId: roleIdSchema.optional(),
+  permissions: z.array(z.string()).optional(),
   facilityIds: z.array(facilityIdSchema),
   status: userStatusSchema,
   mustChangePassword: z.boolean(),

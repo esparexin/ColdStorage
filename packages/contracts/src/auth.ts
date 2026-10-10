@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { roleSchema } from './permissions.js';
+import { permissionKeySchema, roleIdSchema, roleSchema } from './permissions.js';
 import { userSummarySchema } from './user.js';
 
 export const loginInputSchema = z.object({
@@ -20,6 +20,8 @@ export const tokenPayloadSchema = z.object({
   userId: z.string().min(1),
   username: z.string().min(1),
   role: roleSchema,
+  roleId: roleIdSchema.optional(),
+  permissions: z.array(permissionKeySchema).optional(),
   facilityIds: z.array(z.string()),
   mustChangePassword: z.boolean(),
 });
