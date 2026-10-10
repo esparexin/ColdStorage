@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   CANONICAL_BAG_RATES,
-  calculateMonthlyCharge,
   calculateMonthlyOccupancy,
   calculateRentAmount,
   calculateSeasonalRenewal,
@@ -67,17 +66,6 @@ describe('Authoritative Bag Pricing & Rental Calculation SSOT', () => {
     });
     // 60 × 8 + 40 × 12 = ₹960
     expect(monthlyMixed).toBe(960);
-  });
-
-  it('4. calculates monthly period charge against remaining bags (Section 7 rule)', () => {
-    // 100 bags remaining
-    expect(calculateMonthlyCharge(100, 10)).toBe(1000);
-    // After 10 bags delivered -> 90 remaining
-    expect(calculateMonthlyCharge(90, 10)).toBe(900);
-    // After 20 bags delivered -> 70 remaining
-    expect(calculateMonthlyCharge(70, 10)).toBe(700);
-    // When remaining bags = 0 -> 0
-    expect(calculateMonthlyCharge(0, 10)).toBe(0);
   });
 
   it('5. derives effective bag price accurately and falls back gracefully for historical records', () => {

@@ -97,12 +97,6 @@ export function deriveBagPrice(input: {
   return null;
 }
 
-/** Monthly Charge = Remaining Bags × Applicable Bag Price (single cycle). */
-export function calculateMonthlyCharge(remainingBags: number, bagPrice: number): number {
-  if (remainingBags <= 0 || bagPrice <= 0) return 0;
-  return Number((remainingBags * bagPrice).toFixed(2));
-}
-
 /** Billing cycle label: Seasonal is fixed; Monthly is the day-of-month cycle. */
 export function deriveBillingCycle(
   inwardDate: Date,

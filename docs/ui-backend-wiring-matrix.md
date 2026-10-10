@@ -38,6 +38,16 @@
 | Users provision/list/update/reset | `GET /api/users?page&limit`, `POST /api/users` (`useUsersData:23`, `useProvisionUserForm:57`), `PATCH /api/users/:id` + `POST /api/users/:id/reset-password` (`useUserLifecycle:54,92`) | `user.routes.ts` (SUPER_ADMIN only) | `createUserSchema`, `paginationSchema`, `updateUserSchema`, `resetUserPasswordSchema` | ✅ wired |
 | Audit list | `GET /api/audit-logs?...` (`useAuditLogs:34`) | `audit.routes.ts` | `auditQuerySchema` | ✅ wired (detail prop-based) |
 | Backup trigger/list/status | `POST /api/backups/trigger`, `GET /api/backups?...`, `GET /api/backups/status` | `backup.routes.ts` | `backupTriggerSchema`, `backupQuerySchema` | ✅ wired |
+
+## 4. Addendum — same-GRN seasonal/monthly lifecycle (`feat/same-grn-seasonal-monthly-lifecycle`)
+
+| UI action | Frontend call | Backend route | Contract | Verdict |
+|---|---|---|---|---|
+| Commodity rate lookup (Inward read-only rates) | `GET /api/commodities/:id/rates?rentType=` (`useCommodityRate`) | `commodity.routes.ts` | `commodityRateQuerySchema`, `commodityRateSchema` | ✅ wired |
+| Commodity rate upsert (managers only) | Settings/ops tooling via `PUT /api/commodities/:id/rates` | `commodity.routes.ts` (`commodity:manage`) | `upsertCommodityRateSchema` | ✅ wired |
+| Inward with controller rates | `POST .../grns` (read-only agreed rates from lookup) | `grn.routes.ts` (mismatch → 400, unconfigured → legacy path) | `createGrnSchema` | ✅ wired |
+| Seasonal renewal + Jan/Feb finalize/override/list | `POST .../rent/extensions/finalize`, `PATCH .../rent/extensions/:id/override`, `GET .../rent/grn/:id/extensions` | `rent.routes.ts` (`rent:extend` for writes) | `finalizeExtensionInputSchema` (`JANUARY\|FEBRUARY\|SEASON`), `overrideExtensionInputSchema` | ✅ wired |
+| Billing-period history | `RentHistoryModal` billing-periods section over `RentSummaryDto.extensions/totalDue` | `rent.routes.ts` (`GET .../rent/grn/:id`) | `rentSummaryDtoSchema`, `rentExtensionSchema` | ✅ wired (display only, no math duplicated) |
 | Settings get/put + logo | `GET/PUT /api/settings`, `POST/DELETE /api/settings/logo`, `GET /api/assets/:id` (`AppHeader`, `BrandLogoSection`) | `settings.routes.ts`, `asset.routes.ts` | `systemSettingsSchema` | ✅ wired |
 | Import / Export | `POST .../import/customers|grns` (FormData `file`), `GET .../export/grns|deliveries|inventory-ledger|customers|stock-summary` | `import-export.routes.ts` | `exportDateRangeQuerySchema`, `stockSummaryExportQuerySchema` | ✅ wired |
 | Dashboard summary | `GET .../dashboard/summary` | `dashboard.routes.ts` | `dashboardSummarySchema` | ✅ wired |
