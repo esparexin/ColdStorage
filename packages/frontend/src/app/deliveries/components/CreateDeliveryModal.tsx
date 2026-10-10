@@ -53,8 +53,6 @@ export function CreateDeliveryModal({
     if (rentPaidTick > 0 && createGrnId) void refreshRentGate(facilityId, createGrnId);
   }, [rentPaidTick, createGrnId, facilityId, refreshRentGate]);
 
-  const grnError = form.fieldErrors.grn;
-
   return (
     <Modal
       isOpen
@@ -83,7 +81,7 @@ export function CreateDeliveryModal({
               id="delivery-grn"
               label="Select Inward GRN"
               required
-              error={grnError}
+              error={form.fieldErrors.grn}
               value={form.createGrnId}
               onChange={(e) => void form.handleSelectGrn(e.target.value)}
             >
@@ -162,7 +160,9 @@ export function CreateDeliveryModal({
                       {form.rentSummary.totalPaid > 0 ? ` (₹${form.rentSummary.totalPaid.toLocaleString('en-IN')} paid)` : ''}
                     </span>
                     <span className={styles.pendingRentSub}>
-                      Challan can be issued; rent remains payable in Rent Billing.
+                      {form.isLoanHoldActive
+                        ? 'Rent remains payable in Rent Billing; outward stays blocked by the loan hold above.'
+                        : 'Challan can be issued; rent remains payable in Rent Billing.'}
                     </span>
                   </div>
                   {canPayRent && (
@@ -179,7 +179,15 @@ export function CreateDeliveryModal({
                 </div>
               )}
 
-              {form.grnSummary && form.selectedGrn && (
+              {form.isLoanHoldActive && form.selectedGrn && (
+                <Banner
+                  variant="info"
+                  id="loan-hold-guidance"
+                  message="Complete the loan clearance above to continue — delivery details unlock after the hold is lifted."
+                />
+              )}
+
+              {form.grnSummary && form.selectedGrn && !form.isLoanHoldActive && (
                 <>
                   <DeliveryBagCompositionFields
                     summary={form.grnSummary}

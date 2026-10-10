@@ -38,6 +38,7 @@ export function InternalMovementMergeTab({
   const totalSourceBags = useMemo(() => selectedSources.reduce((acc, g) => acc + (g.closingBags ?? g.bags), 0), [selectedSources]);
   const targetCurrentRemaining = targetGrn.closingBags ?? targetGrn.bags;
   const targetNewRemaining = targetCurrentRemaining + totalSourceBags;
+  const isTargetLoanHold = targetGrn.loanStatus === 'TAKEN';
 
   const toggleSource = (id: string) => {
     setSelectedSourceIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
@@ -48,6 +49,9 @@ export function InternalMovementMergeTab({
     setValidationError(null);
     if (selectedSourceIds.length === 0) return setValidationError('Select at least one source GRN to merge.');
     if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
+    // Client-side mirror of the backend guard (merge-grn.handler rejects TAKEN
+    // targets) so the operator learns before the round-trip, with identical wording.
+    if (isTargetLoanHold) return setValidationError(`Target GRN '${targetGrn.grnNumber}' has an active loan hold — clear the loan before merging into it.`);
     await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate);
   };
 
@@ -56,6 +60,11 @@ export function InternalMovementMergeTab({
       {validationError && (
         <div className={styles.noticeBox} style={{ color: 'var(--color-danger-text)', borderColor: 'var(--color-danger)' }}>
           {validationError}
+        </div>
+      )}
+      {isTargetLoanHold && (
+        <div className={styles.noticeBox} style={{ color: 'var(--color-danger-text)', borderColor: 'var(--color-danger)' }}>
+          Target GRN {targetGrn.grnNumber} has an active loan hold — merge is blocked until the loan is cleared.
         </div>
       )}
 

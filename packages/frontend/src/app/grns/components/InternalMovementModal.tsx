@@ -7,6 +7,7 @@ import { Banner, Button, Modal } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
 import { InternalMovementMergeTab } from './InternalMovementMergeTab';
 import { InternalMovementTransferTab } from './InternalMovementTransferTab';
+import { buildMergePayload, buildTransferPayload } from './internalMovementPayload.helper';
 import styles from './InternalMovementModal.module.css';
 
 interface InternalMovementModalProps {
@@ -63,18 +64,14 @@ export function InternalMovementModal({
     setSubmitting(true);
     setError(null);
     try {
-      const mappedRemarks = remarks?.trim() ? `${reason.trim()}. ${remarks.trim()}` : reason.trim();
       const res = await requestWithAuth(
         `/api/facilities/${encodeURIComponent(facilityId)}/internal-movements/merge`,
         {
           method: 'POST',
-          body: JSON.stringify({
-            targetGrnId,
-            sourceGrnIds,
-            movementDate: movementDate || new Date().toISOString(),
-            remarks: mappedRemarks,
-            additionalRentAmount: 0,
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(
+            buildMergePayload(targetGrnId, sourceGrnIds, reason, remarks, movementDate),
+          ),
         },
       );
       const data = (await res.json()) as ApiErrorResponse;
@@ -98,17 +95,14 @@ export function InternalMovementModal({
     setSubmitting(true);
     setError(null);
     try {
-      const mappedRemarks = remarks?.trim() ? `${reason.trim()}. ${remarks.trim()}` : reason.trim();
       const res = await requestWithAuth(
         `/api/facilities/${encodeURIComponent(facilityId)}/internal-movements/transfer-ownership`,
         {
           method: 'POST',
-          body: JSON.stringify({
-            grnId: grn.id,
-            newCustomerId,
-            movementDate: movementDate || new Date().toISOString(),
-            remarks: mappedRemarks,
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(
+            buildTransferPayload(grn.id, newCustomerId, reason, remarks, movementDate),
+          ),
         },
       );
       const data = (await res.json()) as ApiErrorResponse;
