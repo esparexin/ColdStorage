@@ -140,6 +140,8 @@ export async function correctGrn(
           input.commodityId ?? grn.commodityId,
           input.rentType ?? grn.rentType,
           { smallBagPrice: input.smallBagPrice, bigBagPrice: input.bigBagPrice },
+          // Fail-closed correction gate lands in Phase 4; behavior unchanged here.
+          { requireRates: false },
         );
       }
 

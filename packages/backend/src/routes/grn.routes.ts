@@ -56,7 +56,7 @@ grnRouter.post(
         message.includes('inactive') ||
         message.includes('not registered') ||
         message.includes('does not belong') || message.includes('do not match') ||
-        message.includes('future') ||
+        message.includes('controller rate') || message.includes('future') ||
         message.includes('exceeds permitted') ||
         message.includes('Financial Year')
           ? 400

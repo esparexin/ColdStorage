@@ -1,11 +1,39 @@
 import { randomUUID } from 'node:crypto';
-import type {
-  CommodityRate,
-  RentType,
-  UpsertCommodityRateInput,
+import {
+  calculateRentAmount,
+  type BagType,
+  type CommodityRate,
+  type RentType,
+  type UpsertCommodityRateInput,
 } from '@cold-storage/contracts';
 import { CommodityModel } from '../../database/models/commodity.model.js';
 import { CommodityRateModel, type CommodityRateDoc } from '../../database/models/commodity-rate.model.js';
+
+export interface SubmittedRateAgreement {
+  bagType?: BagType | null;
+  smallBagPrice?: number | null;
+  bigBagPrice?: number | null;
+  bagPrice?: number | null;
+  rentAmount?: number | null;
+  bags?: number | null;
+  smallBags?: number | null;
+  bigBags?: number | null;
+  rentMonths?: number | null;
+}
+
+export interface RateValidationOptions {
+  /**
+   * Fail closed when true: a configured pair requires submitted rates (B4).
+   * False preserves the legacy path (unconfigured commodities, CSV imports
+   * pending an approved compatibility policy). Always explicit per caller.
+   */
+  requireRates: boolean;
+}
+
+const rateMismatch = (commodityId: string, rentType: RentType, detail: string): Error =>
+  new Error(
+    `Submitted rates do not match the active ${rentType} controller rate for commodity '${commodityId}': ${detail}`,
+  );
 
 export class CommodityRateService {
   /**
@@ -97,29 +125,70 @@ export class CommodityRateService {
 
   /**
    * Enforces controller authority on newly submitted agreed rates.
-   * When an active row exists for (commodity, rent type), explicitly submitted
-   * small/big rates must equal it exactly (2dp); anything else is a stale or
-   * tampered submission and is rejected. When no active row exists the legacy
-   * path is preserved untouched so unconfigured commodities, historical flows,
-   * and bulk imports keep working — the Inward UI blocks submission until a
-   * rate is configured, so this fallback is a backstop, not an editing path.
+   * When an active row exists for (commodity, rent type):
+   * - each submitted side must equal it exactly (2dp); single `bagPrice` is
+   *   mapped by bag type (S/S-B→small, B→big); S+B requires the split pair;
+   * - a positive `rentAmount` must equal the SSOT-derived obligation, so lump
+   *   sums cannot contradict the agreed rates (dynamic `0` always passes);
+   * - with `requireRates`, omitted rates are rejected instead of vacuously passing.
+   * When no active row exists the legacy path is preserved untouched.
    */
   public async validateSubmittedRates(
     commodityId: string,
     rentType: RentType,
-    submitted: { smallBagPrice?: number | null; bigBagPrice?: number | null },
+    submitted: SubmittedRateAgreement,
+    opts: RateValidationOptions,
   ): Promise<void> {
-    if (submitted.smallBagPrice == null && submitted.bigBagPrice == null) return;
     const rate = await this.getRate(commodityId, rentType);
     if (!rate) return;
     const norm = (n: number) => Number(n.toFixed(2));
+    const useSplit = submitted.bagType === 'S+B';
+    const singleSide = submitted.bagType === 'B' ? rate.bigRate : rate.smallRate;
+    const hasAnyRate =
+      submitted.smallBagPrice != null || submitted.bigBagPrice != null || submitted.bagPrice != null;
+    if (opts.requireRates && !hasAnyRate) {
+      throw rateMismatch(
+        commodityId, rentType,
+        `no bag rates submitted (Small ₹${rate.smallRate}, Big ₹${rate.bigRate} required)`,
+      );
+    }
+    if (!hasAnyRate) return;
+    if (useSplit && (submitted.smallBagPrice == null || submitted.bigBagPrice == null)) {
+      throw rateMismatch(commodityId, rentType, 'S+B requires both Small and Big bag rates');
+    }
     const mismatch =
       (submitted.smallBagPrice != null && norm(submitted.smallBagPrice) !== norm(rate.smallRate)) ||
-      (submitted.bigBagPrice != null && norm(submitted.bigBagPrice) !== norm(rate.bigRate));
+      (submitted.bigBagPrice != null && norm(submitted.bigBagPrice) !== norm(rate.bigRate)) ||
+      (submitted.bagPrice != null && !useSplit && norm(submitted.bagPrice) !== norm(singleSide));
     if (mismatch) {
-      throw new Error(
-        `Submitted bag rates do not match the active ${rentType} controller rate for commodity '${commodityId}' (Small ₹${rate.smallRate}, Big ₹${rate.bigRate})`,
+      throw rateMismatch(
+        commodityId, rentType, `Small ₹${rate.smallRate}, Big ₹${rate.bigRate} required`,
       );
+    }
+    // Lump-sum invariant: a positive rentAmount must equal the SSOT derivation
+    // from the (now verified) agreed rates. Skipped when underivable.
+    if (
+      submitted.rentAmount != null && submitted.rentAmount > 0 &&
+      submitted.bags != null && submitted.bags > 0 &&
+      (!useSplit || (submitted.smallBags != null && submitted.bigBags != null))
+    ) {
+      const expected = calculateRentAmount({
+        rentType,
+        bags: submitted.bags,
+        bagType: submitted.bagType ?? undefined,
+        smallBags: submitted.smallBags,
+        bigBags: submitted.bigBags,
+        smallBagPrice: useSplit ? rate.smallRate : undefined,
+        bigBagPrice: useSplit ? rate.bigRate : undefined,
+        bagPrice: useSplit ? undefined : singleSide,
+        rentMonths: submitted.rentMonths,
+      });
+      if (Math.abs(norm(submitted.rentAmount) - expected) > 0.01) {
+        throw rateMismatch(
+          commodityId, rentType,
+          `rent amount ₹${submitted.rentAmount} contradicts the derived ₹${expected}`,
+        );
+      }
     }
   }
 

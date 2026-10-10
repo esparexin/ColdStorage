@@ -25,8 +25,9 @@ export class GrnService {
     facilityId: string,
     input: CreateGrnInput,
     userId: string,
+    opts?: { requireRates?: boolean },
   ): Promise<{ grn: Grn; acknowledgement: GrnAcknowledgement }> {
-    return createGrn(facilityId, input, userId);
+    return createGrn(facilityId, input, userId, opts);
   }
 
   /** Authorized receipt correction; audits the before/after state. */
