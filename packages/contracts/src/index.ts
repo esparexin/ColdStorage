@@ -9,6 +9,7 @@ export * from './user.js';
 export * from './auth.js';
 export * from './customer.js';
 export * from './commodity.js';
+export * from './commodity-rate.js';
 export * from './financial-year.js';
 export * from './grn-rent.js';
 export * from './grn-correction.js';
