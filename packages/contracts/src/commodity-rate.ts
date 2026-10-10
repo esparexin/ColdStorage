@@ -86,3 +86,21 @@ export function calculatePeriodRent(input: {
     rentMonths: 1,
   });
 }
+
+/**
+ * Period charge plus the effective per-bag rate actually charged (weighted
+ * average across the snapshot for S+B splits). Canonical home for the
+ * effective-rate derivation so services never divide outside contracts.
+ */
+export function resolvePeriodEffectiveRate(input: {
+  period: ExtensionPeriod;
+  bagType: BagType | null | undefined;
+  snapshotSmallBags: number;
+  snapshotBigBags: number;
+  smallRate: number;
+  bigRate: number;
+}): { calculatedAmount: number; bagRate: number } {
+  const calculatedAmount = calculatePeriodRent(input);
+  const total = input.snapshotSmallBags + input.snapshotBigBags;
+  return { calculatedAmount, bagRate: total > 0 ? Number((calculatedAmount / total).toFixed(2)) : 0 };
+}

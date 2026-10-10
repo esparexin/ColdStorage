@@ -4,6 +4,7 @@ import {
   commodityRateQuerySchema,
   commodityRateSchema,
   pickRateForBags,
+  resolvePeriodEffectiveRate,
   upsertCommodityRateSchema,
 } from '../index.js';
 
@@ -90,6 +91,40 @@ describe('Price Controller commodity rates', () => {
         }),
       ).toBe(1200);
     }
+  });
+
+  it('derives the effective per-bag rate alongside the period charge', () => {
+    expect(
+      resolvePeriodEffectiveRate({
+        period: 'JANUARY',
+        bagType: 'S',
+        snapshotSmallBags: 100,
+        snapshotBigBags: 0,
+        smallRate: 12,
+        bigRate: 18,
+      }),
+    ).toEqual({ calculatedAmount: 1200, bagRate: 12 });
+    // S+B split: weighted average across the snapshot
+    expect(
+      resolvePeriodEffectiveRate({
+        period: 'SEASON',
+        bagType: 'S+B',
+        snapshotSmallBags: 60,
+        snapshotBigBags: 40,
+        smallRate: 10,
+        bigRate: 15,
+      }),
+    ).toEqual({ calculatedAmount: 1200, bagRate: 12 });
+    expect(
+      resolvePeriodEffectiveRate({
+        period: 'SEASON',
+        bagType: 'S',
+        snapshotSmallBags: 0,
+        snapshotBigBags: 0,
+        smallRate: 12,
+        bigRate: 18,
+      }),
+    ).toEqual({ calculatedAmount: 0, bagRate: 0 });
   });
 
   it('validates rate lookup queries', () => {

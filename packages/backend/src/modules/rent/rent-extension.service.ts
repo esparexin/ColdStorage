@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
-  calculatePeriodRent,
+  resolvePeriodEffectiveRate,
   deriveBagPrice,
   extensionSnapshotDate,
   resolveExtensionFinalAmount,
@@ -109,7 +109,7 @@ export class RentExtensionService {
           );
         }
 
-        const calculatedAmount = calculatePeriodRent({
+        const { calculatedAmount, bagRate } = resolvePeriodEffectiveRate({
           period: input.period,
           bagType: grn.bagType,
           snapshotSmallBags: snapshot.smallBags,
@@ -117,8 +117,6 @@ export class RentExtensionService {
           smallRate: pair.smallRate,
           bigRate: pair.bigRate,
         });
-        // Effective per-bag rate actually charged (weighted average for splits).
-        const bagRate = Number((calculatedAmount / snapshot.total).toFixed(2));
         const now = new Date();
         const docs = await RentExtensionModel.create(
           [
