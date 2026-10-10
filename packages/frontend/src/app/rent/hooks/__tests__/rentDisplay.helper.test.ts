@@ -35,6 +35,10 @@ describe('rentDisplay.helper', () => {
     it('returns formatted INR currency string for positive rentAmount', () => {
       expect(formatRentStructure({ rentType: 'Seasonal', rentAmount: 4000 })).toBe('₹4,000');
     });
+
+    it('prefers the pooled total due when finalized periods exist', () => {
+      expect(formatRentStructure({ rentType: 'Seasonal', rentAmount: 1200, totalDue: 3600 })).toBe('₹3,600');
+    });
   });
 
   describe('formatRemainingDue', () => {

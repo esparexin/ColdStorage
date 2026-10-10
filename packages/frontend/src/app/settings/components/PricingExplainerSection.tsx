@@ -21,18 +21,23 @@ export function PricingExplainerSection() {
       </h2>
 
       <p className={styles.lede}>
-        Rent is fixed at inward time and stored once as <code>Grn.rentAmount</code>. Delivery never
-        rewrites that original amount — it only reduces remaining bags. Extra months after December
-        are additive extensions. Balances are always <code>Total due − Amount paid</code>.
+        Seasonal rent is the whole-season total (<code>bags × seasonal rate</code>) fixed at inward
+        time and stored once as <code>Grn.rentAmount</code>. Delivery never rewrites that original
+        amount — it only reduces remaining bags. Later seasons and months after December are
+        additive periods under the same GRN. Balances are always <code>Total due − Amount paid</code>.
       </p>
 
       <ul className={styles.list}>
         <li>
-          <strong>Seasonal (Mar–Dec):</strong> {ex.seasonalMonths} months fixed.
+          <strong>Seasonal (Mar–Dec):</strong> whole-season total; {ex.seasonalMonths} months informational only.
         </li>
         <li>
-          <strong>January &amp; February extensions:</strong> if bags remain after December, one
+          <strong>January &amp; February periods:</strong> if bags remain after December, one
           Monthly charge per month applies, based on bags remaining at the month-start snapshot.
+        </li>
+        <li>
+          <strong>Seasonal renewals:</strong> each subsequent season is recorded as its own period
+          under the same GRN, priced at the applicable seasonal rate from the Mar 01 snapshot.
         </li>
         <li>
           <strong>Manual override:</strong> an authorized user may set a manual extension amount with

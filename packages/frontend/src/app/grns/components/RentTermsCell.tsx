@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Info, X } from 'lucide-react';
 import {
   deriveBagPrice,
-  SEASONAL_RENT_MONTHS,
   type Grn,
 } from '@cold-storage/contracts';
 import { Button } from '@/components/ui';
@@ -63,8 +62,8 @@ export function RentTermsCell({ row }: RentTermsCellProps) {
     };
   }, [isOpen]);
 
-  const termMonths =
-    row.rentType === 'Seasonal' ? SEASONAL_RENT_MONTHS : Math.max(1, row.rentMonths ?? 1);
+  const isSeasonal = row.rentType === 'Seasonal';
+  const termMonths = isSeasonal ? null : Math.max(1, row.rentMonths ?? 1);
 
   const effectiveRate =
     row.bagPrice ??
@@ -89,7 +88,7 @@ export function RentTermsCell({ row }: RentTermsCellProps) {
 
   const elapsed = getElapsedDuration(row.date, asOfDate);
   const contractTermText =
-    row.rentType === 'Seasonal' ? '10 months' : `${row.rentMonths ?? 1} months`;
+    isSeasonal ? 'Whole season (Mar–Dec)' : `${row.rentMonths ?? 1} months`;
 
   /** True when this is a Monthly GRN with no upfront fixed contract rent obligation. */
   const isDynamicMonthly = row.rentType === 'Monthly' && (row.rentAmount == null || row.rentAmount === 0);
@@ -166,7 +165,7 @@ export function RentTermsCell({ row }: RentTermsCellProps) {
               <span className={styles.label}>Rate:</span>
               <span className={styles.value}>
                 {effectiveRate != null
-                  ? `₹${effectiveRate.toFixed(2)} / bag / month`
+                  ? `₹${effectiveRate.toFixed(2)} / bag${isSeasonal ? ' / season' : ' / month'}`
                   : '—'}
               </span>
             </div>
@@ -200,7 +199,9 @@ export function RentTermsCell({ row }: RentTermsCellProps) {
             <>
               <div className={styles.divider} />
               <div className={styles.formulaNote}>
-                {row.bags.toLocaleString('en-IN')} bags × ₹{effectiveRate.toFixed(2)}/bag/mo × {termMonths}m{row.rentAmount ? ` = ₹${row.rentAmount.toLocaleString('en-IN')}` : ''}
+                {isSeasonal
+                  ? `${row.bags.toLocaleString('en-IN')} bags × ₹${effectiveRate.toFixed(2)}/bag (whole-season total)${row.rentAmount ? ` = ₹${row.rentAmount.toLocaleString('en-IN')}` : ''}`
+                  : `${row.bags.toLocaleString('en-IN')} bags × ₹${effectiveRate.toFixed(2)}/bag/mo × ${termMonths}m${row.rentAmount ? ` = ₹${row.rentAmount.toLocaleString('en-IN')}` : ''}`}
               </div>
             </>
           )}

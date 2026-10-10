@@ -110,7 +110,7 @@ export function deriveBillingCycle(
   asOfDate: Date = new Date(),
 ): string {
   if (rentType === 'Seasonal') {
-    return 'Fixed 10-Month Season';
+    return 'Season total (Mar–Dec)';
   }
   const inDate = new Date(inwardDate);
   const now = new Date(asOfDate);
