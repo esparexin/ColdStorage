@@ -4,20 +4,21 @@ import {
   calculateMonthlyCharge,
   calculateMonthlyOccupancy,
   calculateRentAmount,
+  calculateSeasonalRenewal,
   deriveBagPrice,
   resolveOutwardRates,
   SEASONAL_RENT_MONTHS,
 } from '../index.js';
 
 describe('Authoritative Bag Pricing & Rental Calculation SSOT', () => {
-  it('1. calculates seasonal rent as Original Inward Bags × Bag Price × 10 Months', () => {
+  it('1. calculates seasonal rent as Applicable Bags × Seasonal Rate (whole-season total)', () => {
     const rent = calculateRentAmount({
       rentType: 'Seasonal',
       bags: 100,
       bagPrice: 10,
     });
-    // 100 bags × ₹10 × 10 months = ₹10,000
-    expect(rent).toBe(10000);
+    // 100 bags × ₹10 seasonal total = ₹1,000 (10-month duration is informational, never ×10)
+    expect(rent).toBe(1000);
     expect(SEASONAL_RENT_MONTHS).toBe(10);
   });
 
@@ -51,8 +52,8 @@ describe('Authoritative Bag Pricing & Rental Calculation SSOT', () => {
       smallBagPrice: 8,
       bigBagPrice: 12,
     });
-    // (60 × 8 + 40 × 12) × 10 = (480 + 480) × 10 = 960 × 10 = ₹9,600
-    expect(seasonalMixed).toBe(9600);
+    // 60 × 8 + 40 × 12 = 480 + 480 = ₹960 whole-season total (never ×10)
+    expect(seasonalMixed).toBe(960);
 
     const monthlyMixed = calculateRentAmount({
       rentType: 'Monthly',
@@ -81,10 +82,43 @@ describe('Authoritative Bag Pricing & Rental Calculation SSOT', () => {
 
   it('5. derives effective bag price accurately and falls back gracefully for historical records', () => {
     expect(deriveBagPrice({ rentType: 'Seasonal', bags: 100, bagPrice: 15 })).toBe(15);
-    // Derived from historical lump-sum: ₹10,000 / (100 bags × 10 months) = ₹10
-    expect(deriveBagPrice({ rentType: 'Seasonal', bags: 100, rentAmount: 10000 })).toBe(10);
+    // Seasonal total rate: ₹1,000 / 100 bags = ₹10 (whole-season total, never ÷10)
+    expect(deriveBagPrice({ rentType: 'Seasonal', bags: 100, rentAmount: 1000 })).toBe(10);
     // Derived from monthly lump-sum: ₹3,000 / (100 bags × 3 months) = ₹10
     expect(deriveBagPrice({ rentType: 'Monthly', bags: 100, rentMonths: 3, rentAmount: 3000 })).toBe(10);
+  });
+
+  it('5b. locks the acceptance criterion: 100 bags at rate 12 costs 1,200 both ways', () => {
+    // Seasonal: 100 × ₹12 whole-season total = ₹1,200
+    expect(calculateRentAmount({ rentType: 'Seasonal', bags: 100, bagPrice: 12 })).toBe(1200);
+    // Seasonal ignores any rentMonths input: never ×10
+    expect(
+      calculateRentAmount({ rentType: 'Seasonal', bags: 100, bagPrice: 12, rentMonths: 10 }),
+    ).toBe(1200);
+    // Monthly one month: 100 × ₹12 × 1 = ₹1,200
+    expect(
+      calculateRentAmount({ rentType: 'Monthly', bags: 100, bagPrice: 12, rentMonths: 1 }),
+    ).toBe(1200);
+    // Monthly two months: 100 × ₹12 × 2 = ₹2,400
+    expect(
+      calculateRentAmount({ rentType: 'Monthly', bags: 100, bagPrice: 12, rentMonths: 2 }),
+    ).toBe(2400);
+    // S+B seasonal total: 60 × ₹10 + 40 × ₹15 = ₹1,200
+    expect(
+      calculateRentAmount({
+        rentType: 'Seasonal',
+        bags: 100,
+        bagType: 'S+B',
+        smallBags: 60,
+        bigBags: 40,
+        smallBagPrice: 10,
+        bigBagPrice: 15,
+      }),
+    ).toBe(1200);
+    // Seasonal renewal helper matches the seasonal total
+    expect(calculateSeasonalRenewal({ rentType: 'Seasonal', bags: 100, bagPrice: 12 })).toBe(
+      1200,
+    );
   });
 
   it('6. calculates deterministic monthly occupancy periods across partial and final outward lifecycle', () => {

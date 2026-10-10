@@ -205,8 +205,9 @@ export function calculateSeasonalOccupancy(input: SeasonalOccupancyCalculationIn
     }
   }
 
+  // Informational season length; the charge is the whole-season total.
   const seasonMonths = 10;
-  const calculatedCharge = Number((totalBags * bagRate * seasonMonths).toFixed(2));
+  const calculatedCharge = Number((totalBags * bagRate).toFixed(2));
 
   return {
     grnId,

@@ -1,13 +1,11 @@
 import { z } from 'zod';
 import type { BagType } from './bags.js';
-import { SEASONAL_RENT_MONTHS, type RentType } from './grn-rent.js';
+import type { RentType } from './grn-rent.js';
 
 /**
- * Single Authoritative Bag Price & Rental Calculation SSOT.
- * Supports:
- * - Seasonal: Fixed 10 months (Original Inward Bags × Bag Price × 10).
- * - Monthly: Remaining Bags × Bag Price per billing cycle.
- * - S & B (Mixed): Preserves distinct small/big bag counts and prices.
+ * Bag Price & Rental Calculation SSOT.
+ * Seasonal = Bags × Seasonal Rate (whole-season total, never ×10).
+ * Monthly = Bags × Monthly Rate × months. S+B keeps small/big split.
  */
 export const bagPriceSchema = z
   .number({ invalid_type_error: 'Bag price must be a number' })
@@ -47,20 +45,18 @@ export interface RentalCalculationInput {
   rentAmount?: number | null;
 }
 
-/**
- * Authoritative rent calculation.
- * Derives the total rent obligation strictly from bag pricing and subscription term.
- */
+/** Authoritative rent calculation: Seasonal ignores `rentMonths` (whole-season total). */
 export function calculateRentAmount(input: RentalCalculationInput): number {
-  const months = input.rentType === 'Seasonal' ? SEASONAL_RENT_MONTHS : Math.max(1, input.rentMonths ?? 1);
+  const isSeasonal = input.rentType === 'Seasonal';
+  // Seasonal total ignores rentMonths; Monthly bills per billable month.
+  const months = isSeasonal ? 1 : Math.max(1, input.rentMonths ?? 1);
 
   if (input.bagType === 'S+B' && (input.smallBagPrice != null || input.bigBagPrice != null)) {
     const sCount = input.smallBags ?? 0;
     const bCount = input.bigBags ?? 0;
     const sRate = input.smallBagPrice ?? input.bagPrice ?? 0;
     const bRate = input.bigBagPrice ?? input.bagPrice ?? 0;
-    const monthlySum = sCount * sRate + bCount * bRate;
-    return Number((monthlySum * months).toFixed(2));
+    return Number(((sCount * sRate + bCount * bRate) * months).toFixed(2));
   }
 
   if (typeof input.bagPrice === 'number' && input.bagPrice > 0) {
@@ -71,8 +67,15 @@ export function calculateRentAmount(input: RentalCalculationInput): number {
   return Number((input.rentAmount ?? 0).toFixed(2));
 }
 
+/** Seasonal renewal under the same GRN: Applicable Bags × Seasonal Rate. */
+export function calculateSeasonalRenewal(input: RentalCalculationInput): number {
+  return calculateRentAmount({ ...input, rentType: 'Seasonal' });
+}
+
 /**
- * Derives effective unit price per bag per month from an obligation.
+ * Derives the effective per-bag rate from an obligation.
+ * - Seasonal: seasonal total rate = rentAmount / bags (whole-season total).
+ * - Monthly: monthly rate = rentAmount / (bags × months).
  */
 export function deriveBagPrice(input: {
   rentType: RentType;
@@ -85,26 +88,22 @@ export function deriveBagPrice(input: {
     return input.bagPrice;
   }
   if (typeof input.rentAmount === 'number' && input.bags > 0) {
-    const months = input.rentType === 'Seasonal' ? SEASONAL_RENT_MONTHS : Math.max(1, input.rentMonths ?? 1);
+    if (input.rentType === 'Seasonal') {
+      return Number((input.rentAmount / input.bags).toFixed(2));
+    }
+    const months = Math.max(1, input.rentMonths ?? 1);
     return Number((input.rentAmount / (input.bags * months)).toFixed(2));
   }
   return null;
 }
 
-/**
- * Section 7: Monthly Charge = Remaining Bags × Applicable Bag Price.
- * Used for monthly cycle billing against remaining inward quantity.
- */
+/** Monthly Charge = Remaining Bags × Applicable Bag Price (single cycle). */
 export function calculateMonthlyCharge(remainingBags: number, bagPrice: number): number {
   if (remainingBags <= 0 || bagPrice <= 0) return 0;
   return Number((remainingBags * bagPrice).toFixed(2));
 }
 
-/**
- * Derives the active billing cycle period based on the inward entry date.
- * For Seasonal: Fixed 10-Month Season.
- * For Monthly: Exact day-of-month cycle (e.g. 15 Apr 2026 – 14 May 2026).
- */
+/** Billing cycle label: Seasonal is fixed; Monthly is the day-of-month cycle. */
 export function deriveBillingCycle(
   inwardDate: Date,
   rentType: RentType,
@@ -148,26 +147,13 @@ export interface OccupancyCalculationInput {
   totalBags: number;
   bagRate: number;
   movements: MovementSnapshot[];
-  /** End boundary for calculation; defaults to current date. */
+  /** End boundary; defaults to current date. */
   asOfDate?: Date;
-  /**
-   * DESIGN BOUNDARY NOTE:
-   * Standard Indian cold storage billing operates on full monthly billing periods based on the
-   * opening occupancy of each cycle ('full_month'). If mid-month daily proration is ever requested,
-   * 'daily_prorate' calculates day-weighted bag occupancy. Defaults to 'full_month'.
-   */
+  /** Billing uses opening occupancy per cycle ('full_month'); 'daily_prorate' is opt-in. */
   prorationMode?: 'full_month' | 'daily_prorate';
 }
 
-/**
- * Single Authoritative Monthly Occupancy Rent Calculation.
- *
- * Breaks down storage rent month-by-month across the lifecycle:
- * - Period starts on inward date day-of-month.
- * - Period ends when next cycle begins or when stock is depleted.
- * - Occupancy is based on opening bags in the period.
- * - Stops billing once GRN reaches 0 remaining bags.
- */
+/** Monthly occupancy: per-cycle opening bags × rate, stops at 0 remaining. */
 export function calculateMonthlyOccupancy(input: OccupancyCalculationInput) {
   const { grnId, grnNumber, inwardDate, totalBags, bagRate, movements } = input;
   if (totalBags <= 0 || bagRate <= 0) return [];

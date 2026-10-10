@@ -22,6 +22,10 @@ describe('rent-extension contracts', () => {
     expect(extensionSnapshotDate(2026, 'FEBRUARY')).toEqual(new Date(2027, 1, 1));
   });
 
+  it('freezes the seasonal renewal snapshot to Mar 01 of the season year', () => {
+    expect(extensionSnapshotDate(2027, 'SEASON')).toEqual(new Date(2027, 2, 1));
+  });
+
   it('charges a full month on snapshot bags with no proration', () => {
     expect(calculateExtensionRent(80, 300)).toBe(24000);
     expect(calculateExtensionRent(50, 300)).toBe(15000);
@@ -40,9 +44,18 @@ describe('rent-extension contracts', () => {
     expect(totalRentDue(30000, [24000, 15000])).toBe(69000);
   });
 
+  it('totals a recurring same-GRN lifecycle across seasons', () => {
+    // Season 2026 (1200) + Jan (120) + Feb (120) + Season 2027 renewal (1200)
+    expect(totalRentDue(1200, [120, 120, 1200])).toBe(2640);
+  });
+
   it('validates finalize and override inputs', () => {
     expect(
       finalizeExtensionInputSchema.safeParse({ grnId: 'grn-1', seasonYear: 2026, period: 'JANUARY' })
+        .success,
+    ).toBe(true);
+    expect(
+      finalizeExtensionInputSchema.safeParse({ grnId: 'grn-1', seasonYear: 2027, period: 'SEASON' })
         .success,
     ).toBe(true);
     expect(
