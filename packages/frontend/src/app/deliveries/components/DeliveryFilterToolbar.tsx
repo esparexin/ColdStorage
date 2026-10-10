@@ -1,15 +1,12 @@
 'use client';
 
 import React from 'react';
-import type { DeliveryStatus } from '@cold-storage/contracts';
 import { FilterToolbar } from '@/components/ui';
 import type { DeliveryRentStatusFilter } from '../hooks/deliveryFilter.helper';
 
 export interface DeliveryFilterToolbarProps {
   searchTerm: string;
   onSearchChange: (v: string) => void;
-  statusFilter: '' | DeliveryStatus;
-  onStatusChange: (v: '' | DeliveryStatus) => void;
   rentStatusFilter: DeliveryRentStatusFilter;
   onRentStatusChange: (v: DeliveryRentStatusFilter) => void;
   onReset: () => void;
@@ -18,8 +15,6 @@ export interface DeliveryFilterToolbarProps {
 export function DeliveryFilterToolbar({
   searchTerm,
   onSearchChange,
-  statusFilter,
-  onStatusChange,
   rentStatusFilter,
   onRentStatusChange,
   onReset,
@@ -33,17 +28,6 @@ export function DeliveryFilterToolbar({
       searchInputId="delivery-search-input"
       selects={[
         {
-          id: 'delivery-status-filter',
-          ariaLabel: 'Filter by Delivery Status',
-          value: statusFilter,
-          onChange: (v) => onStatusChange(v as '' | DeliveryStatus),
-          options: [
-            { value: '', label: 'All Statuses' },
-            { value: 'ISSUED', label: 'Issued (Active)' },
-            { value: 'REVERSED', label: 'Reversed' },
-          ],
-        },
-        {
           id: 'delivery-rent-status-filter',
           ariaLabel: 'Filter by Rent Settlement Status',
           value: rentStatusFilter,
@@ -56,7 +40,7 @@ export function DeliveryFilterToolbar({
         },
       ]}
       onReset={onReset}
-      hasActiveFilters={Boolean(statusFilter || rentStatusFilter || searchTerm)}
+      hasActiveFilters={Boolean(rentStatusFilter || searchTerm)}
     />
   );
 }

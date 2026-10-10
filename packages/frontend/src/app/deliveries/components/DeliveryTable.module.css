@@ -1,0 +1,121 @@
+.challanCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.challanNumber {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dateSub {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.customerCell {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+}
+
+.grnCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.grnNumber {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.grnCommodityChamber {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.bagsCell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: var(--text-xs);
+}
+
+.bagsTotal {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.bagsSplit {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.weightCell {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.remainingCell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: var(--text-xs);
+}
+
+.remainingMain {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.remainingActive {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.origBagsSub {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rentCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rentChargeSub {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.textMuted {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}

@@ -1,0 +1,33 @@
+.navTabs {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 3px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  width: fit-content;
+}
+
+.navTab {
+  font-size: var(--text-xs) !important;
+  font-weight: var(--font-medium) !important;
+  color: var(--color-text-secondary) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: var(--space-1-5) var(--space-3) !important;
+  border: 1px solid transparent !important;
+  transition: all var(--transition-fast);
+}
+
+.navTab:hover {
+  color: var(--color-text-primary) !important;
+  background: var(--color-surface-1) !important;
+}
+
+.navTabActive {
+  background: var(--color-surface-1) !important;
+  color: var(--color-text-primary) !important;
+  font-weight: var(--font-semibold) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}

@@ -1,26 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
-import { can, type DeliveryChallan, type Grn,
-  type Role, type RentSummaryDto } from '@cold-storage/contracts';
+import React, { useEffect, useState } from 'react';
+import { can, type DeliveryChallan, type Grn, type Role, type RentSummaryDto } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { Banner } from '@/components/ui/Banner';
-import { Button } from '@/components/ui';
-import {
-  EMPTY_MESSAGES,
-  ERROR_TITLES,
-  LOADING_LABELS,
-  PRINT_MESSAGES,
-  emptyForFacility,
-} from '@/components/ui/stateCopy';
+import { EMPTY_MESSAGES, ERROR_TITLES, LOADING_LABELS, PRINT_MESSAGES, emptyForFacility } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { printHtmlDocument } from '@/lib/print-document';
 import { requestWithAuth } from '@/lib/api-client';
 import { DeliveryFilterToolbar } from './components/DeliveryFilterToolbar';
+import { DeliveryNavTabs } from './components/DeliveryNavTabs';
 import { DeliveryPageModals } from './components/DeliveryPageModals';
+import { DeliveryStatusTabs } from './components/DeliveryStatusTabs';
 import { DeliveryTable } from './components/DeliveryTable';
+import { IssueDeliveryChallanPanel } from './components/IssueDeliveryChallanPanel';
+import type { DeliveryViewTab } from './hooks/deliveryTabPersistence.helper';
 import { useDeliveries } from './hooks/useDeliveries';
 import styles from './page.module.css';
 
@@ -29,29 +24,24 @@ export default function DeliveriesPage() {
   const { selectedFacilityId, availableFacilities } = useFacility();
   const deliveryData = useDeliveries(selectedFacilityId, availableFacilities);
 
+  const [activeView, setActiveView] = useState<DeliveryViewTab>('listing');
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryChallan | null>(null);
   const [printingId, setPrintingId] = useState<string | null>(null);
   const [printError, setPrintError] = useState<string | null>(null);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [reverseDelivery, setReverseDelivery] = useState<DeliveryChallan | null>(null);
   const [rentPayAccount, setRentPayAccount] = useState<RentSummaryDto | null>(null);
   const [rentPaidTick, setRentPaidTick] = useState(0);
   const [loanClearGrn, setLoanClearGrn] = useState<Grn | null>(null);
   const [loanClearedTick, setLoanClearedTick] = useState(0);
   const [initialGrnId, setInitialGrnId] = useState<string | undefined>(undefined);
 
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const action = params.get('action');
-      const grnId = params.get('grnId');
-      if (action === 'create') {
-        setIsCreateOpen(true);
-      }
-      if (grnId) {
-        setInitialGrnId(grnId);
-      }
-    }
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('action');
+    const tab = params.get('tab')?.toLowerCase();
+    const grnId = params.get('grnId');
+    if (action === 'create' || tab === 'issue') setActiveView('issue');
+    if (grnId) setInitialGrnId(grnId);
   }, []);
 
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
@@ -59,7 +49,19 @@ export default function DeliveriesPage() {
   const canPrint = can(userRole, 'document:print');
   const canCollectRent = can(userRole, 'rent:collect');
   const canUpdateLoan = can(userRole, 'grn:create');
-  const canReverse = can(userRole, 'delivery:reversal');
+
+  const handleViewChange = (view: DeliveryViewTab) => {
+    setActiveView(view);
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (view === 'issue') {
+      url.searchParams.set('tab', 'issue');
+    } else {
+      const tabVal = deliveryData.statusTab === 'CLOSED' ? 'closed' : deliveryData.statusTab === '' ? 'all' : 'active';
+      url.searchParams.set('tab', tabVal);
+    }
+    window.history.replaceState({}, '', url.toString());
+  };
 
   const handleRentPaidFromDelivery = () => {
     setRentPayAccount(null);
@@ -76,14 +78,9 @@ export default function DeliveriesPage() {
   const handleCollectRent = async (delivery: DeliveryChallan) => {
     if (!selectedFacilityId) return;
     try {
-      const res = await requestWithAuth(
-        `/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/grn/${encodeURIComponent(delivery.grnId)}`,
-      );
-      if (!res.ok) {
-        throw new Error('Failed to load rent details for this GRN');
-      }
-      const summary: RentSummaryDto = await res.json();
-      setRentPayAccount(summary);
+      const res = await requestWithAuth(`/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/grn/${encodeURIComponent(delivery.grnId)}`);
+      if (!res.ok) throw new Error('Failed to load rent details for this GRN');
+      setRentPayAccount(await res.json());
     } catch (err: unknown) {
       setPrintError(err instanceof Error ? err.message : 'Failed to load rent details');
     }
@@ -106,6 +103,13 @@ export default function DeliveriesPage() {
     }
   };
 
+  const getFilteredEmptyMessage = () => {
+    if (deliveryData.searchTerm) return `No delivery challans matching "${deliveryData.searchTerm}".`;
+    if (deliveryData.statusTab === 'CLOSED') return 'No closed delivery challans found for this facility.';
+    if (deliveryData.statusTab === 'ACTIVE') return 'No active delivery challans found for this facility.';
+    return 'No delivery challans found matching the selected filters.';
+  };
+
   return (
     <div className={styles.page}>
       {printError && <Banner message={printError} />}
@@ -114,35 +118,44 @@ export default function DeliveriesPage() {
         <div className={styles.titleArea}>
           <h1 className={styles.pageTitle}>Outward Deliveries</h1>
         </div>
-
         <div className={styles.headerActions}>
-          {canCreate && selectedFacilityId && (
-            <Button
-              id="create-delivery-btn"
-              variant="primary"
-              onClick={() => setIsCreateOpen(true)}
-              leftIcon={<Plus size={16} aria-hidden="true" />}
-            >
-              Issue Delivery Challan
-            </Button>
-          )}
+          <DeliveryNavTabs
+            activeTab={activeView}
+            canCreate={canCreate && Boolean(selectedFacilityId)}
+            onTabChange={handleViewChange}
+          />
         </div>
       </div>
 
       {!selectedFacilityId ? (
         <FeedbackStates.Empty message={EMPTY_MESSAGES.noFacilityDeliveries} />
+      ) : activeView === 'issue' ? (
+        <IssueDeliveryChallanPanel
+          facilityId={selectedFacilityId}
+          initialGrnId={initialGrnId}
+          onCancel={() => handleViewChange('listing')}
+          onSuccess={(newDelivery) => {
+            handleViewChange('listing');
+            void deliveryData.fetchDeliveries();
+            setSelectedDelivery(newDelivery);
+          }}
+          onPayRent={setRentPayAccount}
+          rentPaidTick={rentPaidTick}
+          canPayRent={canCollectRent}
+          onClearLoan={setLoanClearGrn}
+          loanClearedTick={loanClearedTick}
+          canClearLoan={canUpdateLoan}
+        />
       ) : (
         <>
+          <DeliveryStatusTabs currentTab={deliveryData.statusTab} onTabChange={deliveryData.setStatusTab} />
           <DeliveryFilterToolbar
             searchTerm={deliveryData.searchTerm}
             onSearchChange={deliveryData.setSearchTerm}
-            statusFilter={deliveryData.statusFilter}
-            onStatusChange={deliveryData.setStatusFilter}
             rentStatusFilter={deliveryData.rentStatusFilter}
             onRentStatusChange={deliveryData.setRentStatusFilter}
             onReset={deliveryData.resetFilters}
           />
-
           {deliveryData.loading ? (
             <FeedbackStates.Loading label={LOADING_LABELS.deliveries} />
           ) : deliveryData.error ? (
@@ -154,27 +167,16 @@ export default function DeliveriesPage() {
           ) : deliveryData.deliveries.length === 0 ? (
             <FeedbackStates.Empty
               message={emptyForFacility(deliveryData.currentFacilityName, 'deliveries')}
-              action={
-                canCreate
-                  ? {
-                      label: '+ Issue Delivery Challan',
-                      onClick: () => setIsCreateOpen(true),
-                      id: 'create-delivery-empty-btn',
-                    }
-                  : undefined
-              }
+              action={canCreate ? { label: '+ Issue Delivery Challan', onClick: () => handleViewChange('issue'), id: 'create-delivery-empty-btn' } : undefined}
             />
           ) : deliveryData.filteredDeliveries.length === 0 ? (
-            <FeedbackStates.Empty
-              message={`No delivery challans matching "${deliveryData.searchTerm}".`}
-            />
+            <FeedbackStates.Empty message={getFilteredEmptyMessage()} />
           ) : (
             <DeliveryTable
               deliveries={deliveryData.filteredDeliveries}
               caption={`Delivery Challans for ${deliveryData.currentFacilityName}`}
               canPrint={canPrint}
               canCollectRent={canCollectRent}
-              canReverse={canReverse}
               printingId={printingId}
               page={deliveryData.page}
               pageSize={deliveryData.pageSize}
@@ -184,7 +186,6 @@ export default function DeliveriesPage() {
               onSelectDelivery={setSelectedDelivery}
               onPrintChallan={handlePrintChallan}
               onCollectRent={handleCollectRent}
-              onReverse={setReverseDelivery}
             />
           )}
         </>
@@ -193,36 +194,15 @@ export default function DeliveriesPage() {
       <DeliveryPageModals
         selectedFacilityId={selectedFacilityId}
         selectedDelivery={selectedDelivery}
-        isCreateOpen={isCreateOpen}
-        initialGrnId={initialGrnId}
         loanClearGrn={loanClearGrn}
         rentPayAccount={rentPayAccount}
-        reverseDelivery={reverseDelivery}
         canPrint={canPrint}
-        canCollectRent={canCollectRent}
-        canUpdateLoan={canUpdateLoan}
         printingId={printingId}
-        rentPaidTick={rentPaidTick}
-        loanClearedTick={loanClearedTick}
         onCloseDetail={() => setSelectedDelivery(null)}
-        onCloseCreate={() => setIsCreateOpen(false)}
         onCloseLoanClear={() => setLoanClearGrn(null)}
-        onCreateSuccess={(newDelivery, summary) => {
-          setIsCreateOpen(false);
-          void deliveryData.fetchDeliveries();
-          setSelectedDelivery(newDelivery);
-          void summary;
-        }}
-        onPayRent={setRentPayAccount}
-        onClearLoan={setLoanClearGrn}
         onLoanCleared={handleLoanClearedFromDelivery}
         onCloseRentPay={() => setRentPayAccount(null)}
         onRentPaid={handleRentPaidFromDelivery}
-        onCloseReverse={() => setReverseDelivery(null)}
-        onReversed={() => {
-          setReverseDelivery(null);
-          void deliveryData.fetchDeliveries();
-        }}
         onPrintChallan={handlePrintChallan}
       />
     </div>
