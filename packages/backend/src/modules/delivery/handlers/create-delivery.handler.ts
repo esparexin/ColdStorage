@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
-  CANONICAL_BAG_RATES,
   calculateRentAmount,
+  resolveOutwardRates,
   type BagComposition,
   type CreateDeliveryInput,
   type DeliveryChallan,
@@ -103,21 +103,31 @@ async function executeDeliveryTransaction(
 
       const available = await validateStockAndBalances(facilityId, grn, withdrawal, session);
 
-      // Actual rent/charge calculation happens at Outward delivery using existing canonical rules.
-      const rates = CANONICAL_BAG_RATES[grn.rentType];
-      const deliveryRentCharge =
-        input.rentCharge != null && input.rentCharge >= 0
-          ? input.rentCharge
-          : calculateRentAmount({
-              rentType: grn.rentType,
-              bags: withdrawnTotal,
-              bagType: 'S+B',
-              smallBags: resolvedSmall,
-              bigBags: resolvedBig,
-              smallBagPrice: grn.smallBagPrice ?? grn.bagPrice ?? rates.small,
-              bigBagPrice: grn.bigBagPrice ?? grn.bagPrice ?? rates.big,
-              rentMonths: grn.rentMonths ?? 1,
-            });
+      // Actual rent/charge calculation happens at Outward delivery using the single
+      // effective-rate source of truth. Client rentCharge is reconciled, never trusted blindly.
+      const effectiveRates = resolveOutwardRates(grn.rentType, {
+        smallBagPrice: grn.smallBagPrice,
+        bigBagPrice: grn.bigBagPrice,
+        bagPrice: grn.bagPrice,
+      });
+      const expectedRentCharge = calculateRentAmount({
+        rentType: grn.rentType,
+        bags: withdrawnTotal,
+        bagType: 'S+B',
+        smallBags: resolvedSmall,
+        bigBags: resolvedBig,
+        smallBagPrice: effectiveRates.small,
+        bigBagPrice: effectiveRates.big,
+        rentMonths: grn.rentMonths ?? 1,
+      });
+      if (input.rentCharge != null && input.rentCharge >= 0) {
+        if (Math.abs(input.rentCharge - expectedRentCharge) > 0.01) {
+          throw new Error(
+            `rentCharge mismatch: expected ₹${expectedRentCharge.toLocaleString('en-IN')} for ${resolvedSmall} Small × ₹${effectiveRates.small} + ${resolvedBig} Big × ₹${effectiveRates.big} over ${grn.rentType === 'Seasonal' ? '10 mos season' : `${grn.rentMonths ?? 1} mo`}, received ₹${input.rentCharge.toLocaleString('en-IN')}`,
+          );
+        }
+      }
+      const deliveryRentCharge = expectedRentCharge;
 
       const rentBalance = await assertRentAllowedForOutward(
         facilityId,

@@ -65,7 +65,9 @@ deliveryRouter.post(
               message.includes('Outward blocked') ||
               message.includes('belongs to chamber') ||
               message.includes('future') ||
-              message.includes('Financial Year')
+              message.includes('Financial Year') ||
+              message.includes('mismatch') ||
+              message.includes('rentCharge')
             ? 400
             : 500;
       res.status(status).json({ error: message });

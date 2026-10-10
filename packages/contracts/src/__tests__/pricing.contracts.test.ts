@@ -5,6 +5,7 @@ import {
   calculateMonthlyOccupancy,
   calculateRentAmount,
   deriveBagPrice,
+  resolveOutwardRates,
   SEASONAL_RENT_MONTHS,
 } from '../index.js';
 
@@ -146,6 +147,18 @@ describe('Authoritative Bag Pricing & Rental Calculation SSOT', () => {
   it('7. exposes canonical bag rates for Seasonal and Monthly Small and Big bags', () => {
     expect(CANONICAL_BAG_RATES.Seasonal).toEqual({ small: 10, big: 15 });
     expect(CANONICAL_BAG_RATES.Monthly).toEqual({ small: 10, big: 15 });
+  });
+
+  it('8. resolves outward effective rates with GRN overrides falling back to canonical', () => {
+    expect(resolveOutwardRates('Seasonal', {})).toEqual({ small: 10, big: 15 });
+    expect(resolveOutwardRates('Seasonal', null)).toEqual({ small: 10, big: 15 });
+    expect(resolveOutwardRates('Seasonal', { smallBagPrice: 12, bigBagPrice: 12 })).toEqual({
+      small: 12,
+      big: 12,
+    });
+    expect(resolveOutwardRates('Seasonal', { bagPrice: 12 })).toEqual({ small: 12, big: 12 });
+    // Partial override falls back per side, not to zero
+    expect(resolveOutwardRates('Seasonal', { smallBagPrice: 9 })).toEqual({ small: 9, big: 15 });
   });
 });
 
