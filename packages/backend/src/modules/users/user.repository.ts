@@ -64,6 +64,7 @@ export class UserRepository {
       mobile: process.env.BOOTSTRAP_ADMIN_MOBILE || '9999999999',
       email: process.env.BOOTSTRAP_ADMIN_EMAIL || `${username}@coldstorage.local`,
       role: 'SUPER_ADMIN',
+      roleId: 'rol-system-super-admin',
       facilityIds,
       status: 'ACTIVE',
       passwordHash,
@@ -97,6 +98,7 @@ export class UserRepository {
       mobile: user.mobile,
       email: user.email.toLowerCase().trim(),
       role: user.role,
+      roleId: user.roleId ?? null,
       facilityIds: user.facilityIds,
       status: user.status,
       passwordHash: user.passwordHash,
@@ -127,19 +129,26 @@ export class UserRepository {
    * Gate state used by authentication guards. Both `status` and `mustChangePassword`
    * resolve from the canonical MongoDB record so a stale JWT claim can never force
    * an outdated password-change requirement (or bypass a fresh one).
+   * Role and facility scope also resolve here so role changes take effect immediately.
    */
   public async findGateStateById(
     id: string,
-  ): Promise<Pick<UserEntity, 'status' | 'mustChangePassword'> | null> {
+  ): Promise<Pick<UserEntity, 'status' | 'mustChangePassword' | 'role' | 'roleId' | 'facilityIds'> | null> {
     const doc = await UserModel.findOne({ id: { $eq: sanitizeId(id) } })
-      .select('status mustChangePassword')
+      .select('status mustChangePassword role roleId facilityIds')
       .lean()
       .exec();
     if (!doc) {
       return null;
     }
     const entity = doc as unknown as UserEntity;
-    return { status: entity.status, mustChangePassword: entity.mustChangePassword ?? false };
+    return {
+      status: entity.status,
+      mustChangePassword: entity.mustChangePassword ?? false,
+      role: entity.role,
+      roleId: (entity.roleId ?? null) as UserEntity['roleId'],
+      facilityIds: entity.facilityIds ?? [],
+    };
   }
 
   public async listUsers(page = 1, limit = 20): Promise<{ items: UserEntity[]; total: number }> {
@@ -185,7 +194,7 @@ export class UserRepository {
   public async updateFields(
     userId: string,
     fields: Partial<
-      Pick<UserEntity, 'fullName' | 'mobile' | 'email' | 'role' | 'facilityIds' | 'status'>
+      Pick<UserEntity, 'fullName' | 'mobile' | 'email' | 'role' | 'roleId' | 'facilityIds' | 'status'>
     >,
   ): Promise<UserEntity | null> {
     const doc = await UserModel.findOneAndUpdate(

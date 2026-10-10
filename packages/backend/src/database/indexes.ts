@@ -13,6 +13,7 @@ import { GrnModel } from './models/grn.model.js';
 import { InventoryTransactionModel } from './models/inventory-transaction.model.js';
 import { RentExtensionModel } from './models/rent-extension.model.js';
 import { RentPaymentModel } from './models/rent-payment.model.js';
+import { RoleModel } from './models/role.model.js';
 import { SessionModel } from './models/session.model.js';
 import { SystemSettingsModel } from './models/system-settings.model.js';
 import { UserModel } from './models/user.model.js';
@@ -40,6 +41,7 @@ const MONITORED_MODELS: Array<{ name: string; model: Model<unknown> }> = [
   { name: 'InventoryTransaction', model: InventoryTransactionModel as unknown as Model<unknown> },
   { name: 'RentExtension', model: RentExtensionModel as unknown as Model<unknown> },
   { name: 'RentPayment', model: RentPaymentModel as unknown as Model<unknown> },
+  { name: 'Role', model: RoleModel as unknown as Model<unknown> },
   { name: 'Session', model: SessionModel as unknown as Model<unknown> },
   { name: 'SystemSettings', model: SystemSettingsModel as unknown as Model<unknown> },
   { name: 'User', model: UserModel as unknown as Model<unknown> },

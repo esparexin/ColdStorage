@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import {
   type CreateUser,
   type ResetUserPassword,
+  type Role,
   type UpdateUser,
   type UserSummary,
 } from '@cold-storage/contracts';
@@ -23,6 +24,7 @@ export class UserService {
       mobile: user.mobile,
       email: user.email,
       role: user.role,
+      roleId: user.roleId ?? undefined,
       facilityIds: user.facilityIds,
       status: user.status,
       mustChangePassword: user.mustChangePassword,
@@ -48,6 +50,8 @@ export class UserService {
 
     const passwordHash = await hashPassword(input.temporaryPassword);
 
+    const resolved = await this.resolveRole(input.role, input.roleId);
+
     const entity: UserEntity = {
       id,
       fullName: input.fullName,
@@ -55,7 +59,8 @@ export class UserService {
       employeeId: input.employeeId,
       mobile: input.mobile,
       email: input.email,
-      role: input.role,
+      role: resolved.role,
+      roleId: resolved.roleId,
       facilityIds: input.facilityIds,
       status: 'ACTIVE',
       passwordHash,
@@ -77,11 +82,39 @@ export class UserService {
       details: {
         username: saved.username,
         role: saved.role,
+        roleId: saved.roleId ?? null,
         facilityIds: saved.facilityIds,
       },
     });
 
     return this.toSummary(saved);
+  }
+
+  /**
+   * Resolves legacy `role` enum and new `roleId` reference to a canonical pair.
+   * `roleId` wins when provided; otherwise the legacy enum maps to its system role id.
+   * Dynamic import avoids a hard users↔roles module cycle.
+   */
+  private async resolveRole(
+    role: Role | undefined,
+    roleId: string | undefined,
+  ): Promise<{ role: Role; roleId: string | null }> {
+    if (roleId) {
+      const { roleRepository } = await import('../roles/role.repository.js');
+      const found = await roleRepository.findById(roleId);
+      if (!found) {
+        throw new Error(`Role '${roleId}' not found`);
+      }
+      const legacy = (['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'] as Role[]).includes(
+        found.key as Role,
+      )
+        ? (found.key as Role)
+        : (role ?? 'OPERATOR');
+      return { role: legacy, roleId: found.id };
+    }
+    const legacyRole = role ?? 'OPERATOR';
+    const systemId = `rol-system-${legacyRole.toLowerCase().replace(/_/g, '-')}`;
+    return { role: legacyRole, roleId: systemId };
   }
 
   /**
@@ -104,10 +137,15 @@ export class UserService {
     // with a single request. A separate "last Super Admin" rule is unnecessary: `user:manage` is
     // held only by Super Admins, so any actor performing this change is themselves an active
     // Super Admin and can never be the last one.
+    const nextRole = input.roleId
+      ? (await this.resolveRole(input.role, input.roleId)).role
+      : (input.role ?? existing.role);
     const stripsOwnAuthority =
       existing.role === 'SUPER_ADMIN' &&
       existing.id === actingUserId &&
       ((input.role !== undefined && input.role !== 'SUPER_ADMIN') ||
+        (input.roleId !== undefined &&
+          (await this.resolveRole(input.role, input.roleId)).role !== 'SUPER_ADMIN') ||
         input.status === 'DISABLED');
 
     if (stripsOwnAuthority) {
@@ -121,16 +159,25 @@ export class UserService {
       }
     }
 
+    const resolvedRoleId =
+      input.roleId !== undefined || input.role !== undefined
+        ? (await this.resolveRole(input.role, input.roleId)).roleId
+        : undefined;
+
     const saved = await this.repo.updateFields(id, {
       ...(input.fullName !== undefined ? { fullName: input.fullName } : {}),
       ...(input.mobile !== undefined ? { mobile: input.mobile } : {}),
       ...(input.email !== undefined ? { email: input.email } : {}),
-      ...(input.role !== undefined ? { role: input.role } : {}),
+      ...((input.role !== undefined || input.roleId !== undefined) ? { role: nextRole } : {}),
+      ...(resolvedRoleId !== undefined ? { roleId: resolvedRoleId } : {}),
       ...(input.facilityIds !== undefined ? { facilityIds: input.facilityIds } : {}),
       ...(input.status !== undefined ? { status: input.status } : {}),
     });
 
     if (input.status === 'DISABLED' && existing.status !== 'DISABLED') {
+      await sessionRepository.revokeAllUserSessions(id);
+    }
+    if ((input.role !== undefined || input.roleId !== undefined || input.facilityIds !== undefined) && id !== actingUserId) {
       await sessionRepository.revokeAllUserSessions(id);
     }
 
