@@ -61,11 +61,6 @@ export function CreateGroupModal({
     }
   };
 
-  const customerOptions = [
-    { value: '', label: 'None (Standalone Trader Group)' },
-    ...customers.map((c) => ({ value: c.id, label: c.name })),
-  ];
-
   return (
     <Modal isOpen onClose={onClose} title="Create Group" size="md">
       <form onSubmit={handleSubmit} className={styles.modalForm}>

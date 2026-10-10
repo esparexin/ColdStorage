@@ -29,14 +29,6 @@ export function MoveGrnsModal({
 
   const eligibleTargets = availableGroups.filter((g) => g.id !== sourceGroup.id);
 
-  const options = [
-    { value: '', label: 'Select Target Group…' },
-    ...eligibleTargets.map((g) => ({
-      value: g.id,
-      label: `${g.name} (${g.grnCount} GRNs)`,
-    })),
-  ];
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetGroupId) {
