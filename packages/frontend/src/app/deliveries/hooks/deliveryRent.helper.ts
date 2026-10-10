@@ -55,7 +55,7 @@ export function formatOutwardRentFormula(
   bigRate: number,
   months?: number | null,
 ): string {
-  const term = rentType === 'Seasonal' ? '10 mos season' : `${months ?? 1} mo`;
+  const term = rentType === 'Seasonal' ? 'season total' : `${months ?? 1} mo`;
   if (category === 'Small') {
     return `${smallQty} bags × ₹${smallRate}/bag × ${term}`;
   }

@@ -187,8 +187,8 @@ describe('Phase 12: Rent Collection & Billing Contracts', () => {
     expect(summary.remainingBags).toBe(0);
     expect(summary.status).toBe('CLOSED');
     expect(summary.finalOutwardDate).toEqual(nov10);
-    // 100 bags × ₹15/bag/mo × 10 months = ₹15,000
-    expect(summary.calculatedCharge).toBe(15000);
+    // 100 bags × ₹15 whole-season total = ₹1,500 (never ×10)
+    expect(summary.calculatedCharge).toBe(1500);
     expect(seasonalOccupancySummarySchema.safeParse(summary).success).toBe(true);
   });
 });

@@ -127,6 +127,8 @@ export async function correctGrn(
         update.totalBagsWeight = input.totalBagsWeight ?? null;
       }
 
+      // Rate enforcement lives inside resolveRentEdit, which validates touched
+      // fields and agreement switches against final values with fail-closed omission.
       if (wantsRentChange(input, bagEdit.wantsBagsChange)) {
         Object.assign(
           update,
@@ -135,6 +137,7 @@ export async function correctGrn(
             grnId: grn.id,
             grnNumber: grn.grnNumber,
             grn: {
+              commodityId: grn.commodityId,
               rentType: grn.rentType,
               rentMonths: grn.rentMonths,
               rentAmount: grn.rentAmount,
@@ -142,6 +145,7 @@ export async function correctGrn(
               smallBagPrice: grn.smallBagPrice,
               bigBagPrice: grn.bigBagPrice,
             },
+            finalCommodityId: input.commodityId ?? grn.commodityId,
             input,
             finalBags: bagEdit.finalBags,
             finalBagType: bagEdit.finalBagType,

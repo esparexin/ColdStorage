@@ -42,6 +42,11 @@
   cursor: pointer;
 }
 
+.formHint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
 /* Form-scoped action row. It sits inside the <form> in the modal body, so it
    cannot use Modal's footer slot; mirrors the Modal footer separator. */
 .modalFooter {

@@ -74,23 +74,23 @@ describe('Outward Rent Regression: screenshot 50k vs 48k + mismatch guard', () =
     ).rejects.toThrow(/rentCharge mismatch/);
   });
 
-  it('screenshot: 200 Small + 200 Big canonical = Rs 50,000', async () => {
+  it('screenshot: 200 Small + 200 Big canonical = Rs 5,000 season total', async () => {
     const { grn } = await createGrn('9002');
     const del = await deliveryService.createDelivery(
       facilityId,
       { grnId: grn.id, smallBags: 200, bigBags: 200, bagCategory: 'Small & Big' },
       USER_ID,
     );
-    expect(del.delivery.rentCharge).toBe(50000);
+    expect(del.delivery.rentCharge).toBe(5000);
   });
 
-  it('screenshot divergence: uniform Rs 12 agreed rate = Rs 48,000', async () => {
+  it('screenshot divergence: uniform Rs 12 agreed rate = Rs 4,800 season total', async () => {
     const { grn } = await createGrn('9003', { smallBagPrice: 12, bigBagPrice: 12 });
     const del = await deliveryService.createDelivery(
       facilityId,
       { grnId: grn.id, smallBags: 200, bigBags: 200, bagCategory: 'Small & Big' },
       USER_ID,
     );
-    expect(del.delivery.rentCharge).toBe(48000);
+    expect(del.delivery.rentCharge).toBe(4800);
   });
 });

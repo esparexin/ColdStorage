@@ -30,7 +30,7 @@ const rentExtensionSchema = new Schema<RentExtensionDoc>(
     grnId: { type: String, required: true, index: true },
     grnNumber: { type: String, required: true, index: true },
     seasonYear: { type: Number, required: true, min: 2000, max: 2100 },
-    period: { type: String, required: true, enum: ['JANUARY', 'FEBRUARY'] },
+    period: { type: String, required: true, enum: ['JANUARY', 'FEBRUARY', 'SEASON'] },
     snapshotDate: { type: Date, required: true },
     snapshotBags: { type: Number, required: true, min: 0 },
     bagRate: { type: Number, required: true, min: 0 },

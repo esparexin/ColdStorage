@@ -172,7 +172,11 @@ export async function executeGrnImport(
         remarks: row.remarks ?? null,
       };
 
-      const { grn } = await grnServiceInstance.createGrn(facilityId, createGrnInput, userId);
+      // Legacy import path preserved pending an approved CSV compatibility policy:
+      // fail-open rate validation keeps historical rentAmount-only rows importable.
+      const { grn } = await grnServiceInstance.createGrn(facilityId, createGrnInput, userId, {
+        requireRates: false,
+      });
       results.push({
         row: row.rowNumber,
         status: 'committed',

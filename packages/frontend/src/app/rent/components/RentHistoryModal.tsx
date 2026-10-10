@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Printer } from 'lucide-react';
-import type { RentSummaryDto } from '@cold-storage/contracts';
+import { seasonYearForInwardDate, type RentExtension, type RentSummaryDto } from '@cold-storage/contracts';
 import { Badge, Button, FeedbackStates, Modal, StatCard, StatGrid } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { PRINT_MESSAGES } from '@/components/ui/stateCopy';
@@ -28,6 +28,13 @@ export function RentHistoryModal({
 }: RentHistoryModalProps) {
   const [printingReceiptNum, setPrintingReceiptNum] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const originSeason = seasonYearForInwardDate(new Date(account.inwardDate));
+
+  function periodLabel(ext: RentExtension): string {
+    if (ext.period === 'SEASON') return `Season ${ext.seasonYear} renewal`;
+    return `${ext.period === 'JANUARY' ? 'January' : 'February'} ${ext.seasonYear + 1}`;
+  }
 
   const handlePrintReceipt = async (receiptNumber: string) => {
     if (!selectedFacilityId) return;
@@ -75,6 +82,61 @@ export function RentHistoryModal({
               accent="warning"
             />
           </StatGrid>
+
+          <h4 className={styles.sectionLabel}>
+            Billing Periods ({account.extensions.length + 1})
+          </h4>
+          <div className={styles.paymentsList}>
+            <div className={styles.paymentItem}>
+              <div>
+                <div className={styles.paymentHead}>
+                  <strong className={styles.receiptNumber}>Season {originSeason} — Original</strong>
+                  <Badge variant="primary">{account.rentType}</Badge>
+                </div>
+                <span className={styles.paymentMeta}>
+                  {account.totalBags.toLocaleString('en-IN')} bags · agreed rate on record
+                </span>
+              </div>
+              <strong className={styles.paymentAmount}>
+                ₹{account.rentAmount.toLocaleString('en-IN')}
+              </strong>
+            </div>
+            {account.extensions.map((ext) => (
+              <div key={ext.id} className={styles.paymentItem}>
+                <div>
+                  <div className={styles.paymentHead}>
+                    <strong className={styles.receiptNumber}>{periodLabel(ext)}</strong>
+                    <Badge variant={ext.manualAmount != null ? 'warning' : 'neutral'}>
+                      {ext.manualAmount != null ? 'Overridden' : 'Finalized'}
+                    </Badge>
+                  </div>
+                  <span className={styles.paymentMeta}>
+                    Snapshot {ext.snapshotBags.toLocaleString('en-IN')} bags · ₹{ext.bagRate.toFixed(2)}/bag ·{' '}
+                    {new Date(ext.finalizedAt).toLocaleDateString('en-IN')} · by {ext.finalizedBy}
+                  </span>
+                  {ext.manualAmount != null && (
+                    <span className={styles.paymentNotes}>
+                      Calculated ₹{ext.calculatedAmount.toLocaleString('en-IN')}
+                      {ext.overrideReason ? ` · ${ext.overrideReason}` : ''}
+                    </span>
+                  )}
+                </div>
+                <strong className={styles.paymentAmount}>
+                  ₹{ext.finalAmount.toLocaleString('en-IN')}
+                </strong>
+              </div>
+            ))}
+            <div className={styles.paymentItem}>
+              <div>
+                <div className={styles.paymentHead}>
+                  <strong className={styles.receiptNumber}>Total Due</strong>
+                </div>
+              </div>
+              <strong className={styles.paymentAmount}>
+                ₹{account.totalDue.toLocaleString('en-IN')}
+              </strong>
+            </div>
+          </div>
 
           <h4 className={styles.sectionLabel}>
             Issued Official Cash Memos ({account.payments.length})

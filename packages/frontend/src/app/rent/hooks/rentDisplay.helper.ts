@@ -2,6 +2,8 @@ export interface RentAccountDisplayInput {
   rentType: 'Seasonal' | 'Monthly' | string;
   rentMonths?: number | null;
   rentAmount: number;
+  /** Pooled obligation incl. finalized periods; falls back to rentAmount. */
+  totalDue?: number;
   totalPaid?: number;
   remainingBalance?: number;
   paymentStatus?: 'Settled' | 'Not Settled';
@@ -13,7 +15,8 @@ export interface RentAccountDisplayInput {
 }
 
 /**
- * Returns user-friendly rent structure label for tables and overview cards.
+ * Billed total for tables and overview cards: pooled total due when finalized
+ * periods exist, else the original obligation. Pure display, no math duplicated.
  */
 export function formatRentStructure(input: RentAccountDisplayInput): string {
   if (input.rentType === 'Monthly' && input.rentAmount === 0) {
@@ -22,7 +25,7 @@ export function formatRentStructure(input: RentAccountDisplayInput): string {
   if (input.rentAmount === 0) {
     return 'At Outward';
   }
-  return `₹${input.rentAmount.toLocaleString('en-IN')}`;
+  return `₹${(input.totalDue ?? input.rentAmount).toLocaleString('en-IN')}`;
 }
 
 /**

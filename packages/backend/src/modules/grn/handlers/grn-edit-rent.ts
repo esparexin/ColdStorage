@@ -9,8 +9,10 @@ import {
   type RentType,
 } from '@cold-storage/contracts';
 import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
+import { commodityRateService } from '../../commodities/commodity-rate.service.js';
 
 export interface StoredRentState {
+  commodityId: string;
   rentType: RentType;
   rentMonths: number | null;
   rentAmount: number;
@@ -24,6 +26,8 @@ interface ResolveRentEditParams {
   grnId: string;
   grnNumber: string;
   grn: StoredRentState;
+  /** Post-edit commodity (input override or stored). Compared for B7 switches. */
+  finalCommodityId: string;
   input: CorrectGrnInput;
   finalBags: number;
   finalBagType: BagType;
@@ -41,6 +45,9 @@ export function wantsRentChange(input: CorrectGrnInput, bagsChanged: boolean): b
     input.bagPrice !== undefined ||
     input.smallBagPrice !== undefined ||
     input.bigBagPrice !== undefined ||
+    // Commodity switches route through rent resolution so carried-forward rates
+    // re-validate against the new commodity (B7); amounts are preserved as-is.
+    input.commodityId !== undefined ||
     bagsChanged
   );
 }
@@ -109,6 +116,36 @@ export async function resolveRentEdit(
     });
   } else {
     finalRentAmount = grn.rentAmount;
+  }
+
+  // Correction-path controller enforcement (B5–B7): any touched rate field or
+  // agreement switch re-validates against the final commodity/rentType with
+  // fail-closed omission. Untouched history is never checked. Explicit lump
+  // sums must equal the SSOT derivation from the final agreed rates.
+  const ratesTouched =
+    input.smallBagPrice !== undefined ||
+    input.bigBagPrice !== undefined ||
+    input.bagPrice !== undefined ||
+    input.rentAmount !== undefined;
+  const agreementSwitched =
+    params.finalCommodityId !== grn.commodityId || finalRentType !== grn.rentType;
+  if (ratesTouched || agreementSwitched) {
+    await commodityRateService.validateSubmittedRates(
+      params.finalCommodityId,
+      finalRentType,
+      {
+        bagType: finalBagType,
+        smallBagPrice: finalSmallBagPrice,
+        bigBagPrice: finalBigBagPrice,
+        bagPrice: finalBagPrice,
+        rentAmount: input.rentAmount,
+        bags: finalBags,
+        smallBags: finalSmallBags,
+        bigBags: finalBigBags,
+        rentMonths: finalRentMonths,
+      },
+      { requireRates: true },
+    );
   }
 
   const payments = await RentPaymentModel.find({ facilityId, grnId }, null, { session })

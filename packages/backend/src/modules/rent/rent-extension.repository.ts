@@ -1,5 +1,5 @@
 import type mongoose from 'mongoose';
-import type { RentExtension } from '@cold-storage/contracts';
+import { totalRentDue, type RentExtension } from '@cold-storage/contracts';
 import { RentExtensionModel, type RentExtensionDoc } from '../../database/models/rent-extension.model.js';
 
 export function toExtensionEntity(doc: RentExtensionDoc): RentExtension {
@@ -77,6 +77,7 @@ export class RentExtensionRepository {
   /**
    * Total rent due: original Seasonal obligation plus finalized extensions.
    * With no extensions this equals Grn.rentAmount exactly (migration-safe).
+   * Delegates the arithmetic to the canonical `totalRentDue` SSOT.
    */
   public async resolveTotalDue(
     facilityId: string,
@@ -87,8 +88,7 @@ export class RentExtensionRepository {
       { $match: { facilityId, grnId: grn.id } },
       { $group: { _id: null, total: { $sum: '$finalAmount' } } },
     ]).session(session ?? null);
-    const extensions = Number(agg[0]?.total ?? 0);
-    return Number((Number(grn.rentAmount ?? 0) + extensions).toFixed(2));
+    return totalRentDue(Number(grn.rentAmount ?? 0), [Number(agg[0]?.total ?? 0)]);
   }
 }
 

@@ -3,6 +3,7 @@ import { AssetModel } from './models/asset.model.js';
 import { AuditLogModel } from './models/audit-log.model.js';
 import { BackupLogModel } from './models/backup-log.model.js';
 import { CommodityModel } from './models/commodity.model.js';
+import { CommodityRateModel } from './models/commodity-rate.model.js';
 import { CounterModel } from './models/counter.model.js';
 import { CustomerModel } from './models/customer.model.js';
 import { DeliveryChallanModel } from './models/delivery-challan.model.js';
@@ -10,6 +11,7 @@ import { DeliveryReversalModel } from './models/delivery-reversal.model.js';
 import { FacilityModel } from './models/facility.model.js';
 import { GrnModel } from './models/grn.model.js';
 import { InventoryTransactionModel } from './models/inventory-transaction.model.js';
+import { RentExtensionModel } from './models/rent-extension.model.js';
 import { RentPaymentModel } from './models/rent-payment.model.js';
 import { SessionModel } from './models/session.model.js';
 import { SystemSettingsModel } from './models/system-settings.model.js';
@@ -28,6 +30,7 @@ const MONITORED_MODELS: Array<{ name: string; model: Model<unknown> }> = [
   { name: 'AuditLog', model: AuditLogModel as unknown as Model<unknown> },
   { name: 'BackupLog', model: BackupLogModel as unknown as Model<unknown> },
   { name: 'Commodity', model: CommodityModel as unknown as Model<unknown> },
+  { name: 'CommodityRate', model: CommodityRateModel as unknown as Model<unknown> },
   { name: 'Counter', model: CounterModel as unknown as Model<unknown> },
   { name: 'Customer', model: CustomerModel as unknown as Model<unknown> },
   { name: 'DeliveryChallan', model: DeliveryChallanModel as unknown as Model<unknown> },
@@ -35,6 +38,7 @@ const MONITORED_MODELS: Array<{ name: string; model: Model<unknown> }> = [
   { name: 'Facility', model: FacilityModel as unknown as Model<unknown> },
   { name: 'GRN', model: GrnModel as unknown as Model<unknown> },
   { name: 'InventoryTransaction', model: InventoryTransactionModel as unknown as Model<unknown> },
+  { name: 'RentExtension', model: RentExtensionModel as unknown as Model<unknown> },
   { name: 'RentPayment', model: RentPaymentModel as unknown as Model<unknown> },
   { name: 'Session', model: SessionModel as unknown as Model<unknown> },
   { name: 'SystemSettings', model: SystemSettingsModel as unknown as Model<unknown> },

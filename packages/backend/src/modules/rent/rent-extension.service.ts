@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
-  calculateExtensionRent,
+  resolvePeriodEffectiveRate,
   deriveBagPrice,
   extensionSnapshotDate,
   resolveExtensionFinalAmount,
@@ -15,16 +15,17 @@ import { GrnModel } from '../../database/models/grn.model.js';
 import { RentExtensionModel, type RentExtensionDoc } from '../../database/models/rent-extension.model.js';
 import { auditService } from '../audit/audit.service.js';
 import { readLedgerBalanceAsOf } from '../inventory/ledger-balance-asof.js';
+import { commodityRateService } from '../commodities/commodity-rate.service.js';
 import { toExtensionEntity, rentExtensionRepository } from './rent-extension.repository.js';
 
 export class RentExtensionService {
   /**
-   * Finalize one monthly extension for a Seasonal GRN.
+   * Finalize one recurring billing period (SEASON renewal or JANUARY/FEBRUARY
+   * monthly) under the same Seasonal GRN.
    *
-   * Idempotent per (facility, GRN, season year, period): the unique index makes
-   * a month billable exactly once. The charge uses the month-start snapshot
-   * (bags remaining on Jan 01 / Feb 01), so later dispatches in the same month
-   * never change the finalized amount. The original Grn.rentAmount is untouched.
+   * Idempotent per (facility, GRN, season year, period): the unique index bills
+   * each period exactly once. The charge uses the period-start snapshot, so
+   * later dispatches never change it. The original Grn.rentAmount is untouched.
    */
   public async finalizeExtension(
     facilityId: string,
@@ -40,16 +41,25 @@ export class RentExtensionService {
         `Seasonal extensions apply only to Seasonal GRNs (GRN '${grn.grnNumber}' is '${grn.rentType}')`,
       );
     }
-    if (seasonYearForInwardDate(grn.date) !== input.seasonYear) {
+    // Same GRN spans successive seasons: later season years are valid, earlier ones are not.
+    // The origin season's seasonal rent already lives on Grn.rentAmount, so a
+    // SEASON period is only valid for a subsequent season (no double-billing).
+    const originSeason = seasonYearForInwardDate(grn.date);
+    if (input.seasonYear < originSeason) {
       throw new Error(
-        `GRN '${grn.grnNumber}' belongs to season ${seasonYearForInwardDate(grn.date)}, not ${input.seasonYear}`,
+        `GRN '${grn.grnNumber}' belongs to season ${originSeason}, not ${input.seasonYear}`,
+      );
+    }
+    if (input.period === 'SEASON' && input.seasonYear === originSeason) {
+      throw new Error(
+        `Season ${originSeason} for GRN '${grn.grnNumber}' is already covered by its original seasonal rent`,
       );
     }
 
     const snapshotDate = extensionSnapshotDate(input.seasonYear, input.period);
     if (snapshotDate.getTime() > Date.now()) {
       throw new Error(
-        `Cannot finalize ${input.period} ${input.seasonYear + 1} before it begins`,
+        `Cannot finalize ${input.period} for season ${input.seasonYear} before it begins`,
       );
     }
 
@@ -76,7 +86,9 @@ export class RentExtensionService {
           );
         }
 
-        const bagRate =
+        // Period pair: controller rate for the period kind, else the legacy
+        // single rate on both sides. S+B snapshots keep their split via SSOT.
+        const legacySingle =
           grn.bagPrice ??
           deriveBagPrice({
             rentType: grn.rentType,
@@ -85,14 +97,26 @@ export class RentExtensionService {
             rentMonths: grn.rentMonths,
             rentAmount: grn.rentAmount,
           }) ??
-          0;
-        if (!(bagRate > 0)) {
+          null;
+        const pair = await commodityRateService.resolvePeriodPair(
+          grn.commodityId,
+          input.period,
+          legacySingle,
+        );
+        if (!pair) {
           throw new Error(
             `Cannot price the ${input.period} extension for GRN '${grn.grnNumber}': no bag rate`,
           );
         }
 
-        const calculatedAmount = calculateExtensionRent(snapshot.total, bagRate);
+        const { calculatedAmount, bagRate } = resolvePeriodEffectiveRate({
+          period: input.period,
+          bagType: grn.bagType,
+          snapshotSmallBags: snapshot.smallBags,
+          snapshotBigBags: snapshot.bigBags,
+          smallRate: pair.smallRate,
+          bigRate: pair.bigRate,
+        });
         const now = new Date();
         const docs = await RentExtensionModel.create(
           [

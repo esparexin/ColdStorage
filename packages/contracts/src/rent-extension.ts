@@ -2,17 +2,21 @@ import { z } from 'zod';
 import { rentalAmountSchema } from './common.js';
 
 /**
- * Seasonal extension SSOT (approved business rules).
+ * Same-GRN recurring rent SSOT (approved business rules).
  *
- * Seasonal period = March–December (10 months). A Seasonal GRN that remains open
- * past December accrues additive Monthly extensions for January and February:
+ * Seasonal period = March–December (10 months, informational). The seasonal rate
+ * is the total for the whole season: `bags × seasonal rate`, never `× 10`.
+ * A Seasonal GRN that remains open past December accrues additive Monthly
+ * periods for January and February at the monthly rate. Each subsequent season
+ * is recorded as a separate `SEASON` period under the same GRN:
  *
- *   Total Due = Original Seasonal Rent + January Extension + February Extension
+ *   Total Due = Season(seasonYear) + Jan(seasonYear) + Feb(seasonYear) + …
  *
- * The original `Grn.rentAmount` is never modified. Each extension is a persisted,
- * idempotent monthly record keyed by (facility, GRN, season year, period).
+ * Season 1 lives on `Grn.rentAmount` (immutable); every later period lives in
+ * `rentextensions`. Each period is a persisted, idempotent record keyed by
+ * (facility, GRN, season year, period).
  */
-export const extensionPeriodSchema = z.enum(['JANUARY', 'FEBRUARY']);
+export const extensionPeriodSchema = z.enum(['JANUARY', 'FEBRUARY', 'SEASON']);
 export type ExtensionPeriod = z.infer<typeof extensionPeriodSchema>;
 
 /** Seasonal cycle boundaries as zero-based month indexes. */
@@ -29,11 +33,14 @@ export function seasonYearForInwardDate(inward: Date): number {
 }
 
 /**
- * Month-start snapshot instant for an extension period: Jan 01 / Feb 01 of the
- * year following the season, at local start-of-day. The charge is based on the
- * bags remaining at this instant — never on dispatch timing within the month.
+ * Month-start snapshot instant for a billing period:
+ * - JANUARY / FEBRUARY: Jan 01 / Feb 01 of the year following the season.
+ * - SEASON: Mar 01 of the season year (seasonal renewal snapshot).
+ * At local start-of-day. The charge is based on the bags remaining at this
+ * instant — never on dispatch timing within the period.
  */
 export function extensionSnapshotDate(seasonYear: number, period: ExtensionPeriod): Date {
+  if (period === 'SEASON') return new Date(seasonYear, 2, 1);
   return period === 'JANUARY'
     ? new Date(seasonYear + 1, 0, 1)
     : new Date(seasonYear + 1, 1, 1);
@@ -61,9 +68,10 @@ export function resolveExtensionFinalAmount(
 }
 
 /**
- * Total rent due: original Seasonal obligation plus every finalized extension.
- * With no extensions this equals the original amount exactly, so existing
- * balances are unchanged by the extension model.
+ * Total rent due: initial seasonal obligation plus every finalized period
+ * (seasonal renewals and January/February monthly periods).
+ * With no additional periods this equals the original amount exactly, so
+ * existing balances are unchanged by the recurring-period model.
  */
 export function totalRentDue(
   originalRentAmount: number,

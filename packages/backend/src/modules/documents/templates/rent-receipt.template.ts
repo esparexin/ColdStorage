@@ -37,7 +37,7 @@ export function renderRentReceiptTemplate(
         <th>Bag Price / Rate</th>
         <td>${priceStr}</td>
         <th>Billing Cycle / Term</th>
-        <td>${escapeHtml(dto.billingCyclePeriod || (dto.rentType ? `${dto.rentType}${dto.rentMonths ? ` (${dto.rentMonths}m)` : ''}` : 'Fixed 10-Month Season'))}</td>
+        <td>${escapeHtml(dto.billingCyclePeriod || (dto.rentType ? `${dto.rentType}${dto.rentMonths ? ` (${dto.rentMonths}m)` : ''}` : 'Season total (Mar–Dec)'))}</td>
       </tr>
       <tr>
         <th>Total Rent Obligation</th>

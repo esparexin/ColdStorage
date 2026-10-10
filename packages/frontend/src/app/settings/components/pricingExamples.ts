@@ -46,7 +46,7 @@ const januaryExtension = calculateExtensionRent(januarySnapshotBags, januaryRate
 const februaryExtension = 0;
 
 const totalDueExample = totalRentDue(seasonalOriginal, [januaryExtension]);
-const paidExample = 5000;
+const paidExample = 500;
 // Mirrors computeRentBalance clamping: negative balances are never surfaced as credit.
 const remainingExample = Math.max(0, Number((totalDueExample - paidExample).toFixed(2)));
 
@@ -55,9 +55,9 @@ export const pricingExamples = {
   seasonalBagRate,
   seasonalMonths: SEASONAL_RENT_MONTHS,
   seasonalOriginal,
-  seasonalFormula: `${seasonalBags} bags × ${inr(seasonalBagRate)} × ${SEASONAL_RENT_MONTHS} months = ${inr(seasonalOriginal)}`,
+  seasonalFormula: `${seasonalBags} bags × ${inr(seasonalBagRate)} whole-season total = ${inr(seasonalOriginal)} (10 months informational)`,
   mixedOriginal,
-  mixedFormula: `(60 small × ₹10 + 40 big × ₹15) × ${SEASONAL_RENT_MONTHS} months = ${inr(mixedOriginal)}`,
+  mixedFormula: `(60 small × ₹10 + 40 big × ₹15) whole-season total = ${inr(mixedOriginal)}`,
   januarySnapshotBags,
   januaryRate,
   januaryExtension,

@@ -217,6 +217,23 @@ describe('createGrnForm Monthly vs Seasonal rent terms validation', () => {
     expect(invalid.errors.totalBagsWeight).toBe('Total bags weight must be a positive number');
   });
 
+  it('requires a resolved controller rate when rateRequired is set', () => {
+    const base = makeState({ createSmallBagPrice: 12, createBigBagPrice: 18 });
+    const match = { controllerRate: { small: 12, big: 18 }, rateRequired: true } as const;
+    expect(validateCreateGrnForm(base, match).errors.rate).toBeUndefined();
+    expect(validateCreateGrnForm(base, { controllerRate: null, rateRequired: true }).errors.rate).toBe(
+      'No active rate is configured for this commodity and rent type',
+    );
+    expect(validateCreateGrnForm(base, { controllerRate: null, rateRequired: true, rateLoading: true }).errors.rate).toContain('still loading');
+    expect(validateCreateGrnForm(
+      makeState({ createSmallBagPrice: 10, createBigBagPrice: 18 }), match,
+    ).errors.rate).toBe('Agreed rates must match the Price Controller rate');
+  });
+
+  it('skips the controller check when no rate is required', () => {
+    expect(validateCreateGrnForm(makeState({ createSmallBagPrice: 12 })).errors.rate).toBeUndefined();
+  });
+
   it('buildCreateGrnPayload maps operator agreed rates and total bags weight into payload', () => {
     const payload = buildCreateGrnPayload({
       facilityId: 'fac-1', inwardDate: new Date('2026-10-06T00:00:00Z'),

@@ -76,7 +76,7 @@ export function CreateGrnModal({
           </Button>
           <Button
             id="submit-create-grn-btn" form="create-grn-form" type="submit" variant="primary" size="sm"
-            disabled={form.submitting || isClosed || (!isEdit && form.isGrnInvalid)} isLoading={form.submitting}
+            disabled={form.submitting || isClosed || (!isEdit && (form.isGrnInvalid || form.isRateUnresolved))} isLoading={form.submitting}
           >
             {isEdit ? 'Save Changes' : 'Create Inward of Goods'}
           </Button>
@@ -209,10 +209,8 @@ export function CreateGrnModal({
             {form.createCommodityId && form.createRentType && (
               <CustomerAgreedRateSection
                 rentType={form.createRentType} rentMonths={form.createRentMonths}
-                smallBagPrice={form.createSmallBagPrice} bigBagPrice={form.createBigBagPrice}
-                onSmallBagPriceChange={form.handleSmallBagPriceChange} onBigBagPriceChange={form.handleBigBagPriceChange}
-                smallBagPriceError={form.fieldErrors.smallBagPrice} bigBagPriceError={form.fieldErrors.bigBagPrice}
-                disabled={structuralLocked}
+                rate={form.displayRate} loading={form.rateLoading}
+                error={form.fieldErrors.rate ?? form.rateError} onRetry={form.retryRate}
               />
             )}
           </div>

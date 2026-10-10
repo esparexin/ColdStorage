@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { can, type Role } from '@cold-storage/contracts';
+import { can, type Commodity, type Role } from '@cold-storage/contracts';
 import { Button, FeedbackStates, SearchBar } from '@/components/ui';
 import {
   EMPTY_MESSAGES,
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { CommodityFormModal } from './components/CommodityFormModal';
+import { CommodityRatesModal } from './components/CommodityRatesModal';
 import { CommodityTable } from './components/CommodityTable';
 import { useCommodities } from './hooks/useCommodities';
 import styles from './page.module.css';
@@ -35,6 +36,7 @@ export default function CommoditiesPage() {
   } = useCommodities();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [ratesCommodity, setRatesCommodity] = useState<Commodity | null>(null);
 
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const canManage = can(userRole, 'commodity:manage');
@@ -107,6 +109,7 @@ export default function CommoditiesPage() {
           totalCommodities={totalCommodities}
           onPageChange={setPage}
           onToggleActive={handleToggleActive}
+          onManageRates={setRatesCommodity}
         />
       )}
 
@@ -117,6 +120,14 @@ export default function CommoditiesPage() {
             closeModal();
             void fetchCommodities();
           }}
+        />
+      )}
+
+      {ratesCommodity && (
+        <CommodityRatesModal
+          commodity={ratesCommodity}
+          onClose={() => setRatesCommodity(null)}
+          onSaved={() => setRatesCommodity(null)}
         />
       )}
     </div>

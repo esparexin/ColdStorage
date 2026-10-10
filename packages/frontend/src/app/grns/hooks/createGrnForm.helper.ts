@@ -31,12 +31,34 @@ export interface CreateGrnState {
   createVehicleNumber: string;
 }
 
-export function validateCreateGrnForm(state: CreateGrnState): {
+/** Price Controller requirement for submit: resolved pair, or why it is missing. */
+export interface ControllerRateCheck {
+  controllerRate?: { small: number; big: number } | null;
+  rateRequired?: boolean;
+  rateError?: string | null;
+  rateLoading?: boolean;
+}
+
+export function validateCreateGrnForm(state: CreateGrnState, rateCheck?: ControllerRateCheck): {
   errors: Record<string, string>;
   parsedChamber?: string;
   normalizedVehicle?: string;
 } {
   const errors: Record<string, string> = {};
+
+  if (rateCheck?.rateRequired) {
+    if (rateCheck.rateLoading) {
+      errors.rate = 'Controller rates are still loading. Please wait and retry.';
+    } else if (!rateCheck.controllerRate) {
+      errors.rate = rateCheck.rateError
+        ?? 'No active rate is configured for this commodity and rent type';
+    } else if (
+      state.createSmallBagPrice !== rateCheck.controllerRate.small ||
+      state.createBigBagPrice !== rateCheck.controllerRate.big
+    ) {
+      errors.rate = 'Agreed rates must match the Price Controller rate';
+    }
+  }
 
   // Same rule the server enforces, so the form cannot submit a GR Number the contract rejects.
   const parsedGrnNumber = grnNumberInputSchema.safeParse(state.createGrnNumber.trim());
@@ -216,6 +238,7 @@ export const GRN_FIELD_ID_MAP: Record<string, string> = {
   customer: 'create-customer-search', commodity: 'create-commodity', chamber: 'create-chamber',
   partyMark: 'create-party-mark', bags: 'create-bags', totalBagsWeight: 'create-total-bags-weight',
   grnNumber: 'create-gr-number', rentMonths: 'create-rent-months', rentAmount: 'create-rent-amount',
+  rate: 'create-rate-section',
   smallBagPrice: 'create-small-bag-price', bigBagPrice: 'create-big-bag-price', vehicleNumber: 'create-vehicle',
 };
 

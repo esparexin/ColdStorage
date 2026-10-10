@@ -35,7 +35,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
     });
   });
 
-  it('Seasonal Outward: calculates rent for Small bags (rate ₹10 × 10 months)', async () => {
+  it('Seasonal Outward: charges withdrawn bags at the seasonal total rate', async () => {
     // 1. Inward records storage and rent type only — rentAmount is 0
     const { grn } = await grnService.createGrn(
       facilityId,
@@ -60,13 +60,13 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
       USER_ID,
     );
 
-    // 40 bags × ₹10/bag × 10 months = ₹4,000
-    expect(del.delivery.rentCharge).toBe(4000);
+    // 40 bags × ₹10/bag season total = ₹400
+    expect(del.delivery.rentCharge).toBe(400);
     const challanDoc = await DeliveryChallanModel.findOne({ id: del.delivery.id }).exec();
-    expect(challanDoc?.rentCharge).toBe(4000);
+    expect(challanDoc?.rentCharge).toBe(400);
   });
 
-  it('Seasonal Outward: calculates rent for Big bags (rate ₹15 × 10 months)', async () => {
+  it('Seasonal Outward: charges withdrawn big bags at the seasonal total rate', async () => {
     const { grn } = await grnService.createGrn(
       facilityId,
       {
@@ -88,11 +88,11 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
       USER_ID,
     );
 
-    // 30 bags × ₹15/bag × 10 months = ₹4,500
-    expect(del.delivery.rentCharge).toBe(4500);
+    // 30 bags × ₹15/bag season total = ₹450
+    expect(del.delivery.rentCharge).toBe(450);
   });
 
-  it('Seasonal Outward: calculates rent for Small & Big split bags', async () => {
+  it('Seasonal Outward: charges split withdrawals preserving the S+B split', async () => {
     const { grn } = await grnService.createGrn(
       facilityId,
       {
@@ -116,8 +116,8 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
       USER_ID,
     );
 
-    // (20 × ₹10 + 30 × ₹15) × 10 months = (200 + 450) × 10 = ₹6,500
-    expect(del.delivery.rentCharge).toBe(6500);
+    // 20 × ₹10 + 30 × ₹15 = 200 + 450 = ₹650 season total
+    expect(del.delivery.rentCharge).toBe(650);
   });
 
   it('Monthly Outward: calculates rent using canonical rates and rentMonths', async () => {
@@ -172,7 +172,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
     );
     expect(d1.summary.remainingDeliveryBalance).toBe(60);
     expect(d1.summary.grnStatus).toBe('OPEN');
-    expect(d1.delivery.rentCharge).toBe(4000);
+    expect(d1.delivery.rentCharge).toBe(400);
 
     // Second delivery of remaining bags
     const d2 = await deliveryService.createDelivery(
@@ -181,7 +181,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
       USER_ID,
     );
     expect(d2.summary.remainingDeliveryBalance).toBe(0);
-    expect(d2.delivery.rentCharge).toBe(6000);
+    expect(d2.delivery.rentCharge).toBe(600);
   });
 
   it('accepts explicitly provided rentCharge when it matches recomputed rent', async () => {
@@ -200,17 +200,17 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
       USER_ID,
     );
 
-    // 20 bags × ₹10/bag × 10 months = ₹2,000 (matches server recomputation)
+    // 20 bags × ₹10/bag season total = ₹200 (matches server recomputation)
     const del = await deliveryService.createDelivery(
       facilityId,
-      { grnId: grn.id, smallBags: 20, bigBags: 0, rentCharge: 2000 },
+      { grnId: grn.id, smallBags: 20, bigBags: 0, rentCharge: 200 },
       USER_ID,
     );
 
-    expect(del.delivery.rentCharge).toBe(2000);
+    expect(del.delivery.rentCharge).toBe(200);
   });
 
-  it('Seasonal Outward: calculates rent using agreed smallBagPrice from GRN', async () => {
+  it('Seasonal Outward: charges withdrawals at the agreed GRN rate', async () => {
     const { grn } = await grnService.createGrn(
       facilityId,
       {
@@ -234,7 +234,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
       USER_ID,
     );
 
-    // 40 bags × ₹12/bag × 10 months = ₹4,800
-    expect(del.delivery.rentCharge).toBe(4800);
+    // 40 bags × ₹12/bag season total = ₹480
+    expect(del.delivery.rentCharge).toBe(480);
   });
 });

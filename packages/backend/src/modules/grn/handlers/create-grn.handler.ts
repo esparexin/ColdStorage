@@ -16,12 +16,19 @@ import { InventoryTransactionModel } from '../../../database/models/inventory-tr
 import { auditService } from '../../audit/audit.service.js';
 import { counterService, DOCUMENT_PREFIXES } from '../../common/counter.service.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
+import { commodityRateService } from '../../commodities/commodity-rate.service.js';
 import { toGrnAcknowledgement, toGrnEntity } from '../grn.mappers.js';
+
+export interface CreateGrnOptions {
+  /** Fail closed when true (interactive writes). False keeps the CSV legacy path. */
+  requireRates?: boolean;
+}
 
 export async function createGrn(
   facilityId: string,
   input: CreateGrnInput,
   userId: string,
+  opts?: CreateGrnOptions,
 ): Promise<{ grn: Grn; acknowledgement: GrnAcknowledgement }> {
   // 1. Verify Facility exists and is active
   const facility = await FacilityModel.findOne({ id: facilityId }).lean().exec();
@@ -54,6 +61,15 @@ export async function createGrn(
   }
 
   // 4. Chamber is free text supplied by the operator, already length-validated by the contract.
+
+  // 4b. Price Controller authority: agreed rates and lump sums must match the
+  // active controller row when one exists; otherwise the legacy path applies.
+  const { bagType, smallBagPrice, bigBagPrice, bagPrice, rentAmount, bags, smallBags, bigBags } = input;
+  await commodityRateService.validateSubmittedRates(
+    input.commodityId, input.rentType,
+    { bagType, smallBagPrice, bigBagPrice, bagPrice, rentAmount, bags, smallBags, bigBags, rentMonths: input.rentMonths },
+    { requireRates: opts?.requireRates ?? true },
+  );
 
   // 5. Inward Date and FY validation
   const inwardDate = validateOperationalDate(input.date, { label: 'Inward' });

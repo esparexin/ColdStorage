@@ -123,7 +123,7 @@ async function executeDeliveryTransaction(
       if (input.rentCharge != null && input.rentCharge >= 0) {
         if (Math.abs(input.rentCharge - expectedRentCharge) > 0.01) {
           throw new Error(
-            `rentCharge mismatch: expected ₹${expectedRentCharge.toLocaleString('en-IN')} for ${resolvedSmall} Small × ₹${effectiveRates.small} + ${resolvedBig} Big × ₹${effectiveRates.big} over ${grn.rentType === 'Seasonal' ? '10 mos season' : `${grn.rentMonths ?? 1} mo`}, received ₹${input.rentCharge.toLocaleString('en-IN')}`,
+            `rentCharge mismatch: expected ₹${expectedRentCharge.toLocaleString('en-IN')} for ${resolvedSmall} Small × ₹${effectiveRates.small} + ${resolvedBig} Big × ₹${effectiveRates.big} over ${grn.rentType === 'Seasonal' ? 'season total' : `${grn.rentMonths ?? 1} mo`}, received ₹${input.rentCharge.toLocaleString('en-IN')}`,
           );
         }
       }
