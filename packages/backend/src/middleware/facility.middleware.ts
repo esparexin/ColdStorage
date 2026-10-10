@@ -8,8 +8,9 @@ type FacilityIdExtractor = (
 
 /**
  * Facility-scoped authorization middleware consuming the SSOT from @cold-storage/contracts.
- * - SUPER_ADMIN has global facility scope.
+ * - System Super Admin (or any role flagged `hasGlobalFacilityScope`) has global scope.
  * - Other roles must be explicitly assigned to the target facility ID.
+ * Scope resolves from DB-authoritative `gateState` when present so role changes apply immediately.
  */
 export function requireFacilityScope(extractor: FacilityIdExtractor) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -31,7 +32,14 @@ export function requireFacilityScope(extractor: FacilityIdExtractor) {
       return;
     }
 
-    const permitted = inFacilityScope(req.user.role, req.user.facilityIds, targetFacilityId);
+    const gateFacilityIds = req.gateState?.facilityIds ?? req.user.facilityIds;
+    const hasGlobal = req.gateState?.hasGlobalScope;
+    let permitted: boolean;
+    if (hasGlobal !== undefined) {
+      permitted = hasGlobal ? true : gateFacilityIds.includes(targetFacilityId);
+    } else {
+      permitted = inFacilityScope(req.user.role, gateFacilityIds, targetFacilityId);
+    }
     if (!permitted) {
       void auditService.log({
         eventType: 'ACCESS_DENIED',

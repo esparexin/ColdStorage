@@ -1,16 +1,16 @@
 import type { ChangePasswordInput, LoginInput, UserSummary } from '@cold-storage/contracts';
 import { config } from '../../config.js';
-import {
-  generateAccessToken,
-  generateOpaqueToken,
-  hashPassword,
-  verifyPassword,
-} from '../../utils/crypto.js';
+import { generateOpaqueToken, hashPassword, verifyPassword } from '../../utils/crypto.js';
 import { logger } from '../../utils/logger.js';
 import { auditService } from '../audit/audit.service.js';
 import { userRepository, type UserRepository } from '../users/user.repository.js';
 import { userService, type UserService } from '../users/user.service.js';
 import { sessionRepository, type SessionRepository } from './session.repository.js';
+import {
+  mintAccessToken,
+  resolveUserPermissions,
+  toAuthenticatedSummary,
+} from './auth-tokens.helper.js';
 
 export interface LoginResult {
   accessToken: string;
@@ -82,17 +82,8 @@ export class AuthService {
     await this.userRepo.updateLastLogin(user.id);
     tm.updateLastLoginMs = Date.now() - s;
 
-    const accessToken = generateAccessToken(
-      {
-        userId: user.id,
-        username: user.username,
-        role: user.role,
-        facilityIds: user.facilityIds,
-        mustChangePassword: user.mustChangePassword,
-      },
-      config.jwtSecret,
-      config.accessTokenExpirySeconds, // 15 minutes default
-    );
+    const permissions = await resolveUserPermissions(user);
+    const accessToken = mintAccessToken(user, permissions);
 
     const refreshToken = generateOpaqueToken(32);
     s = Date.now();
@@ -116,7 +107,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: this.userSvc.toSummary(user),
+      user: toAuthenticatedSummary(user, permissions),
       mustChangePassword: user.mustChangePassword,
     };
   }
@@ -144,17 +135,8 @@ export class AuthService {
     await this.sessionRepo.rotateSession(currentRefreshToken, newRefreshToken, config.refreshTokenExpiryDays);
     const rotateMs = Date.now() - s;
 
-    const accessToken = generateAccessToken(
-      {
-        userId: user.id,
-        username: user.username,
-        role: user.role,
-        facilityIds: user.facilityIds,
-        mustChangePassword: user.mustChangePassword,
-      },
-      config.jwtSecret,
-      config.accessTokenExpirySeconds,
-    );
+    const permissions = await resolveUserPermissions(user);
+    const accessToken = mintAccessToken(user, permissions);
 
     const totalMs = Date.now() - opStart;
     if (totalMs > 1000) logger.warn('auth.refresh slow', { findSessionMs, findUserMs, rotateMs, totalMs });
@@ -162,7 +144,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken: newRefreshToken,
-      user: this.userSvc.toSummary(user),
+      user: toAuthenticatedSummary(user, permissions),
     };
   }
 
@@ -237,7 +219,8 @@ export class AuthService {
     if (!user) {
       throw new Error('User not found');
     }
-    return this.userSvc.toSummary(user);
+    const permissions = await resolveUserPermissions(user);
+    return toAuthenticatedSummary(user, permissions);
   }
 }
 

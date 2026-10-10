@@ -1,9 +1,12 @@
 import type { NextFunction, Request, Response } from 'express';
-import { can, type PermissionKey } from '@cold-storage/contracts';
+import { can, hasPermission, type PermissionKey } from '@cold-storage/contracts';
 import { auditService } from '../modules/audit/audit.service.js';
 
 /**
  * RBAC permission guard consuming the machine-readable permissions SSOT from @cold-storage/contracts.
+ * Prefers DB-resolved permissions (`authenticate` populates `gateState`/`req.user.permissions`)
+ * so customizable roles take effect immediately; falls back to the static matrix for
+ * requests minted before role seeding.
  */
 export function requirePermission(permission: PermissionKey) {
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -12,7 +15,12 @@ export function requirePermission(permission: PermissionKey) {
       return;
     }
 
-    if (!can(req.user.role, permission)) {
+    const resolved = (req.gateState?.permissions ?? req.user.permissions) as
+      | PermissionKey[]
+      | undefined;
+    const granted = resolved ? hasPermission(resolved, permission) : can(req.user.role, permission);
+
+    if (!granted) {
       void auditService.log({
         eventType: 'ACCESS_DENIED',
         severity: 'SECURITY',

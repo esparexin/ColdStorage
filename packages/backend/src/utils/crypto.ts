@@ -104,6 +104,8 @@ export function verifyAccessToken(token: string, secret: string): TokenPayload |
       userId: decodedPayload.userId,
       username: decodedPayload.username,
       role: decodedPayload.role,
+      roleId: decodedPayload.roleId,
+      permissions: decodedPayload.permissions,
       facilityIds: decodedPayload.facilityIds,
       mustChangePassword: decodedPayload.mustChangePassword,
     };

@@ -23,6 +23,7 @@ import { inventoryRouter } from './routes/inventory.routes.js';
 import { documentRouter } from './routes/document.routes.js';
 import { settingsRouter } from './routes/settings.routes.js';
 import { userRouter } from './routes/user.routes.js';
+import { roleRouter } from './routes/role.routes.js';
 import { auditRouter } from './routes/audit.routes.js';
 import { backupRouter } from './routes/backup.routes.js';
 import { rentRouter } from './routes/rent.routes.js';
@@ -76,6 +77,7 @@ export function createApp(): Express {
   app.use('/api/auth', authRouter);
   app.use('/api', assetRouter);
   app.use('/api/users', userRouter);
+  app.use('/api/roles', roleRouter);
   app.use('/api/facilities', facilityRouter);
   app.use('/api/customers', customerRouter);
   app.use('/api/commodities', commodityRouter);

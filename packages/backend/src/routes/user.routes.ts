@@ -4,10 +4,12 @@ import {
   paginationSchema,
   resetUserPasswordSchema,
   updateUserSchema,
+  type PermissionKey,
 } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { userService } from '../modules/users/user.service.js';
+import { roleService } from '../modules/roles/role.service.js';
 import { getParamId } from '../utils/params.js';
 
 export const userRouter = Router();
@@ -17,6 +19,36 @@ userRouter.use(authenticate);
 userRouter.use(requirePasswordChanged);
 userRouter.use(requirePermission('user:manage'));
 
+/**
+ * Prevents privilege escalation: the actor may only assign roles whose
+ * permissions are a subset of their own, and may not grant global facility
+ * scope unless they hold it themselves.
+ */
+async function assertAssignable(actorUserId: string, roleId?: string, role?: string): Promise<void> {
+  if (!roleId && !role) return;
+  const target = roleId
+    ? await roleService.getRole(roleId)
+    : await roleService.getRole(role as string);
+  if (!target) {
+    throw new Error(`Role '${roleId ?? role}' not found`);
+  }
+  // Resolve actor from gateState-backed request context via DB lookup of the actor user.
+  const { userRepository } = await import('../modules/users/user.repository.js');
+  const actorUser = await userRepository.findById(actorUserId);
+  if (!actorUser) {
+    throw new Error('Acting user not found');
+  }
+  const actorResolved = await roleService.resolvePermissionsForUser(actorUser);
+  const actorPerms = new Set<string>(actorResolved.permissions);
+  const unheld = target.permissions.filter((perm: PermissionKey) => !actorPerms.has(perm));
+  if (unheld.length > 0) {
+    throw new Error(`Cannot assign permissions you do not hold: ${unheld.join(', ')}`);
+  }
+  if (target.hasGlobalFacilityScope && !actorResolved.hasGlobalScope) {
+    throw new Error('Cannot grant global facility scope without holding it');
+  }
+}
+
 userRouter.post('/', async (req: Request, res: Response): Promise<void> => {
   const parseResult = createUserSchema.safeParse(req.body);
   if (!parseResult.success) {
@@ -25,6 +57,7 @@ userRouter.post('/', async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    await assertAssignable(req.user!.userId, parseResult.data.roleId, parseResult.data.role);
     const user = await userService.createUser(parseResult.data, req.user!.userId);
     res.status(201).json({ user });
   } catch (err: unknown) {
@@ -66,6 +99,7 @@ userRouter.patch('/:id', async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    await assertAssignable(req.user!.userId, parseResult.data.roleId, parseResult.data.role);
     const user = await userService.updateUser(targetId, parseResult.data, req.user!.userId);
     if (!user) {
       res.status(404).json({ error: 'User not found' });
