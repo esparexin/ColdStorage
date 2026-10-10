@@ -58,6 +58,7 @@ export interface GrnDoc extends Document {
   /** Surviving target of a merge; null unless this GRN was merged. Lifecycle status stays CLOSED. */
   mergedIntoGrnId: string | null;
   mergedIntoGrnNumber: string | null;
+  groupId: string | null;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -124,6 +125,7 @@ const grnSchema = new Schema<GrnDoc>(
     loanSettlementReceiverAadhaar: { type: String, trim: true, default: null },
     mergedIntoGrnId: { type: String, default: null, index: true },
     mergedIntoGrnNumber: { type: String, trim: true, default: null },
+    groupId: { type: String, default: null },
     createdBy: { type: String, required: true },
   },
   {
@@ -140,6 +142,7 @@ grnSchema.index(
 grnSchema.index({ facilityId: 1, date: -1 });
 grnSchema.index({ customerId: 1, facilityId: 1 });
 grnSchema.index({ facilityId: 1, loanStatus: 1 });
+grnSchema.index({ facilityId: 1, groupId: 1 });
 
 // `bags` is the sum of the composition, never an independent figure. Enforcing it here means a
 // receipt can never state a total that disagrees with the parts it is made of.

@@ -80,6 +80,9 @@ export class GrnService {
     if (query.status) {
       filter.status = query.status;
     }
+    if (query.groupId) {
+      filter.groupId = query.groupId;
+    }
     if (query.search && query.search.trim()) {
       // grnNumber is the sole business key and therefore the only identifier searched.
       // inwardReceiptNumber and bondNumber are reference-only: they may be printed on

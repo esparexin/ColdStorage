@@ -29,3 +29,4 @@ export * from './movement.js';
 export * from './storage-audit.js';
 export * from './loan.js';
 export * from './internal-movement.js';
+export * from './group.js';
