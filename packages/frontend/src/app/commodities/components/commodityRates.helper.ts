@@ -42,6 +42,24 @@ export interface RateUpsertPayload {
   bigRate: number;
 }
 
+export interface StoredCommodityRate {
+  rentType: 'Seasonal' | 'Monthly';
+  smallRate: number;
+  bigRate: number;
+}
+
+/** Maps fetched controller rows onto the form; null when nothing is configured yet. */
+export function hydrateRatesForm(rates: StoredCommodityRate[]): CommodityRatesFormState | null {
+  if (rates.length === 0) return null;
+  const byType = new Map(rates.map((r) => [r.rentType, r]));
+  return {
+    seasonalSmall: byType.get('Seasonal')?.smallRate ?? '',
+    seasonalBig: byType.get('Seasonal')?.bigRate ?? '',
+    monthlySmall: byType.get('Monthly')?.smallRate ?? '',
+    monthlyBig: byType.get('Monthly')?.bigRate ?? '',
+  };
+}
+
 /** Both payloads are always sent together so seasonal/monthly stay in sync. */
 export function buildRatePayloads(state: CommodityRatesFormState): RateUpsertPayload[] {
   return [
