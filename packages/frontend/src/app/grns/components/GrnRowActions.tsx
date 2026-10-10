@@ -32,7 +32,7 @@ export function GrnRowActions({
   row,
   canCorrect,
   canCreateChallan,
-  canInternalMove,
+  canInternalMove = false,
   canPrint,
   printingId,
   onSelectGrn,
@@ -48,11 +48,9 @@ export function GrnRowActions({
   // Heuristic hint only — CreateGrnModal enforces the ledger-derived rule (any
   // challan/reversal history locks structural fields; descriptive fields remain editable).
   const hasMovedHint = (row.netDeliveredBags ?? 0) > 0;
-  const editTitle = isClosed
-    ? 'Closed GRN cannot be edited'
-    : hasMovedHint
-      ? 'Stock has moved — core identity is locked; chamber, marks and logistics may be edited'
-      : 'Edit GRN';
+  const editTitle = hasMovedHint
+    ? 'Stock has moved — core identity is locked; chamber, marks and logistics may be edited'
+    : 'Edit GRN';
   const hasRemainingStock = (row.closingBags ?? row.bags) > 0;
   const isLoanHold = row.loanStatus === 'TAKEN';
 
@@ -76,7 +74,36 @@ export function GrnRowActions({
 
   return (
     <div className={styles.actionGroup}>
-      {/* 3-Dot Actions Menu (View, Edit, Move) */}
+      {/* Primary Action 1: Edit (Only shown for open GRNs) */}
+      {!isClosed && canCorrect && onCorrectGrn && (
+        <Button
+          variant="outline"
+          size="sm"
+          title={editTitle}
+          aria-label={`Edit GRN ${row.grnNumber}`}
+          onClick={() => onCorrectGrn(row)}
+          leftIcon={<Edit2 size={12} aria-hidden="true" />}
+        >
+          Edit
+        </Button>
+      )}
+
+      {/* Primary Action 2: Internal Move (Only shown for open GRNs with stock) */}
+      {!isClosed && canInternalMove && onInternalMove && (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isLoanHold}
+          title={isLoanHold ? 'Movement blocked — Loan hold' : 'Internal Move'}
+          aria-label={`Internal move for GRN ${row.grnNumber}`}
+          onClick={() => onInternalMove(row)}
+          leftIcon={<ArrowRightLeft size={12} aria-hidden="true" />}
+        >
+          Move
+        </Button>
+      )}
+
+      {/* 3-Dot Actions Menu (View, Print, Challan) */}
       <div className={styles.menuContainer} ref={menuRef}>
         <Button
           variant="outline"
@@ -84,7 +111,7 @@ export function GrnRowActions({
           onClick={() => setMenuOpen((prev) => !prev)}
           aria-haspopup="true"
           aria-expanded={menuOpen}
-          aria-label={`Actions for GRN ${row.grnNumber}`}
+          aria-label={`More actions for GRN ${row.grnNumber}`}
           title="More actions"
           leftIcon={<MoreVertical size={13} aria-hidden="true" />}
         />
@@ -102,89 +129,65 @@ export function GrnRowActions({
               }}
               leftIcon={<Eye size={13} aria-hidden="true" />}
             >
-              View
+              View Details
             </Button>
 
-            {canCorrect && onCorrectGrn && (
-              <Button
-                variant="ghost"
-                size="sm"
-                role="menuitem"
-                className={styles.menuItemBtn}
-                disabled={isClosed}
-                title={editTitle}
-                onClick={() => {
-                  setMenuOpen(false);
-                  onCorrectGrn(row);
-                }}
-                leftIcon={<Edit2 size={13} aria-hidden="true" />}
-              >
-                Edit
-              </Button>
+            {canPrint && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  role="menuitem"
+                  className={styles.menuItemBtn}
+                  disabled={printingId === `grn-${row.id}`}
+                  isLoading={printingId === `grn-${row.id}`}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onPrint('grn', row.id);
+                  }}
+                  leftIcon={<Printer size={13} aria-hidden="true" />}
+                >
+                  Print GRN
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  role="menuitem"
+                  className={styles.menuItemBtn}
+                  disabled={printingId === `receipt-${row.id}`}
+                  isLoading={printingId === `receipt-${row.id}`}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onPrint('receipt', row.id);
+                  }}
+                  leftIcon={<FileText size={13} aria-hidden="true" />}
+                >
+                  Print Receipt (Ack)
+                </Button>
+              </>
             )}
 
-            {canInternalMove && onInternalMove && !isClosed && (
+            {!isClosed && canCreateChallan && onCreateChallan && hasRemainingStock && (
               <Button
                 variant="ghost"
                 size="sm"
                 role="menuitem"
                 className={styles.menuItemBtn}
                 disabled={isLoanHold}
-                title={isLoanHold ? 'Movement blocked — Loan hold' : 'Internal Move'}
+                title={isLoanHold ? 'Outward blocked — Active loan hold' : 'Create Outward Challan'}
                 onClick={() => {
                   setMenuOpen(false);
-                  onInternalMove(row);
+                  onCreateChallan(row);
                 }}
-                leftIcon={<ArrowRightLeft size={13} aria-hidden="true" />}
+                leftIcon={<Truck size={13} aria-hidden="true" />}
               >
-                Internal Move
+                Outward Challan
               </Button>
             )}
           </div>
         )}
       </div>
-
-      {/* Quick Outward Challan Button */}
-      {canCreateChallan && onCreateChallan && !isClosed && hasRemainingStock && (
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => onCreateChallan(row)}
-          disabled={isLoanHold}
-          title={isLoanHold ? 'Outward blocked — Active loan hold' : 'Create Outward Challan'}
-          leftIcon={<Truck size={12} aria-hidden="true" />}
-        >
-          Challan
-        </Button>
-      )}
-
-      {/* Quick Print Actions */}
-      {canPrint && (
-        <>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => onPrint('grn', row.id)}
-            disabled={printingId === `grn-${row.id}`}
-            isLoading={printingId === `grn-${row.id}`}
-            title="Print Official GRN"
-            leftIcon={<Printer size={12} aria-hidden="true" />}
-          >
-            GRN
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => onPrint('receipt', row.id)}
-            disabled={printingId === `receipt-${row.id}`}
-            isLoading={printingId === `receipt-${row.id}`}
-            title="Print Farmer Inward Receipt"
-            leftIcon={<FileText size={12} aria-hidden="true" />}
-          >
-            Ack
-          </Button>
-        </>
-      )}
     </div>
   );
 }
+
