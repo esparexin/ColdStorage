@@ -58,6 +58,7 @@ export function buildRentSummary(
     totalPaid: balance.totalPaid,
     remainingBalance: balance.remainingBalance,
     paymentStatus: balance.paymentStatus,
+    rentState: balance.rentState,
     payments: payments.map((p) => toPaymentEntity(p)),
     extensions,
     totalDue: balance.rentAmount,

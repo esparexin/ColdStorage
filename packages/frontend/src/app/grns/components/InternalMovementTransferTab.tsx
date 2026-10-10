@@ -106,10 +106,26 @@ export function InternalMovementTransferTab({
           <span className={styles.metaLabel}>Rent State</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
             <span className={styles.metaValue}>
-              ₹{totalPaid.toLocaleString('en-IN')} paid / ₹{pendingAmount.toLocaleString('en-IN')} due
+              {totalPaid === 0 && pendingAmount === 0 && (rentSummary?.rentAmount ?? 0) === 0
+                ? '₹0 due (At Outward / Dynamic)'
+                : `₹${totalPaid.toLocaleString('en-IN')} paid / ₹${pendingAmount.toLocaleString('en-IN')} due`}
             </span>
-            <Badge variant={pendingAmount > 0 ? 'warning' : 'success'}>
-              {rentLoading ? '...' : pendingAmount > 0 ? 'Dues' : 'Settled'}
+            <Badge
+              variant={
+                totalPaid === 0 && pendingAmount === 0 && (rentSummary?.rentAmount ?? 0) === 0
+                  ? 'neutral'
+                  : pendingAmount > 0
+                  ? 'warning'
+                  : 'success'
+              }
+            >
+              {rentLoading
+                ? '...'
+                : totalPaid === 0 && pendingAmount === 0 && (rentSummary?.rentAmount ?? 0) === 0
+                ? 'Unbilled'
+                : pendingAmount > 0
+                ? 'Pending Dues'
+                : 'Settled'}
             </Badge>
           </div>
         </div>
@@ -158,7 +174,11 @@ export function InternalMovementTransferTab({
           </div>
 
           <div className={styles.noticeBox}>
-            Collected amount remains locked to historical Cash Memos. Outstanding obligation (₹{pendingAmount.toLocaleString('en-IN')}) transfers to new owner.
+            {pendingAmount > 0
+              ? `Collected amount remains locked to historical Cash Memos. Outstanding obligation (₹${pendingAmount.toLocaleString('en-IN')}) transfers to new owner.`
+              : (rentSummary?.rentAmount ?? 0) === 0 && totalPaid === 0
+              ? 'No upfront rent assessed yet. Billing will accrue dynamically or assess at outward dispatch.'
+              : 'Rent obligation has been fully settled for this lot.'}
           </div>
         </div>
 

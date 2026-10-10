@@ -3,6 +3,7 @@ import { rentReceiptDocumentDtoSchema } from '../documents.js';
 import {
   paymentModeSchema,
   paymentStatusSchema,
+  rentStateSchema,
   recordRentPaymentInputSchema,
   rentPaymentSchema,
   rentSummaryDtoSchema,
@@ -121,6 +122,11 @@ describe('Phase 12: Rent Collection & Billing Contracts', () => {
     expect(paymentStatusSchema.safeParse('Settled').success).toBe(true);
     expect(paymentStatusSchema.safeParse('Not Settled').success).toBe(true);
     expect(paymentStatusSchema.safeParse('PARTIAL').success).toBe(false);
+    expect(rentStateSchema.safeParse('SETTLED').success).toBe(true);
+    expect(rentStateSchema.safeParse('PENDING').success).toBe(true);
+    expect(rentStateSchema.safeParse('UNBILLED').success).toBe(true);
+    expect(rentStateSchema.safeParse('UNKNOWN').success).toBe(false);
+    expect(rentSummaryDtoSchema.parse(validSummary).rentState).toBe('UNBILLED');
   });
 
   it('6. validates RentReceiptDocumentDto schema', () => {
