@@ -52,6 +52,7 @@ export interface DataTableProps<T> {
     id?: string;
   };
   pagination?: DataTablePagination;
+  onRowClick?: (row: T, index: number) => void;
 }
 
 export function DataTable<T>({
@@ -67,6 +68,7 @@ export function DataTable<T>({
   emptyMessage,
   emptyAction,
   pagination,
+  onRowClick,
 }: DataTableProps<T>) {
   if (loading) {
     return <FeedbackStates.Loading label={loadingLabel ?? 'Loading data…'} />;
@@ -182,22 +184,40 @@ export function DataTable<T>({
                 </td>
               </tr>
             ) : (
-              rows.map((row, index) => (
-                <tr key={rowKey(row, index)} className={styles.tr}>
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className={styles.td}
-                      style={{
-                        textAlign: col.align ?? 'left',
-                        borderLeft: col.borderLeft ? '1px solid var(--color-border)' : undefined,
-                      }}
-                    >
-                      {col.render(row, index)}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              rows.map((row, index) => {
+                const isClickable = Boolean(onRowClick);
+                return (
+                  <tr
+                    key={rowKey(row, index)}
+                    className={`${styles.tr} ${isClickable ? styles.clickableRow : ''}`.trim()}
+                    onClick={isClickable ? () => onRowClick?.(row, index) : undefined}
+                    onKeyDown={
+                      isClickable
+                        ? (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              onRowClick?.(row, index);
+                            }
+                          }
+                        : undefined
+                    }
+                    tabIndex={isClickable ? 0 : undefined}
+                  >
+                    {columns.map((col) => (
+                      <td
+                        key={col.key}
+                        className={styles.td}
+                        style={{
+                          textAlign: col.align ?? 'left',
+                          borderLeft: col.borderLeft ? '1px solid var(--color-border)' : undefined,
+                        }}
+                      >
+                        {col.render(row, index)}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

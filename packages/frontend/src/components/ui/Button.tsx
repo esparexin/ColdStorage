@@ -48,7 +48,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ) : (
           leftIcon
         )}
-        <span>{children}</span>
+        {children != null && children !== '' ? <span>{children}</span> : null}
         {!isLoading && rightIcon}
       </button>
     );

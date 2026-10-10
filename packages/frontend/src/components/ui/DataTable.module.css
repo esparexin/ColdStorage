@@ -52,6 +52,19 @@
   background: var(--color-surface-2);
 }
 
+.clickableRow {
+  cursor: pointer;
+}
+
+.clickableRow:hover {
+  background: var(--color-primary-subtle);
+}
+
+.clickableRow:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-primary);
+  outline-offset: -1px;
+}
+
 .td {
   padding: var(--space-2) var(--space-3);
   color: var(--color-text-primary);
