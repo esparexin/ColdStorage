@@ -7,7 +7,15 @@ import type {
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
 
-export type GrnStatusTab = '' | 'OPEN' | 'CLOSED' | 'MERGED';
+import {
+  type GrnStatusTab,
+  VALID_GRN_TABS,
+  resolveInitialGrnTab,
+  syncGrnTabToLocation,
+} from './grnTabPersistence.helper';
+
+export type { GrnStatusTab };
+export { VALID_GRN_TABS, resolveInitialGrnTab };
 
 export const GRN_PAGE_SIZE = 20;
 
@@ -29,14 +37,18 @@ export function useGrns(
 
   // Filter states
   const [searchTerm, setSearchTermRaw] = useState('');
-  const [statusFilter, setStatusFilterRaw] = useState<GrnStatusTab>('');
+  const [statusFilter, setStatusFilterRaw] = useState<GrnStatusTab>(() => resolveInitialGrnTab());
   const [customerFilter, setCustomerFilterRaw] = useState('');
   const [commodityFilter, setCommodityFilterRaw] = useState('');
 
   // Server-side filters narrow the result set, so the current page number is
   // reset to 1 whenever a filter or search term changes.
   const setSearchTerm = useCallback((v: string) => { setSearchTermRaw(v); setPage(1); }, []);
-  const setStatusFilter = useCallback((v: GrnStatusTab) => { setStatusFilterRaw(v); setPage(1); }, []);
+  const setStatusFilter = useCallback((v: GrnStatusTab) => {
+    setStatusFilterRaw(v);
+    setPage(1);
+    syncGrnTabToLocation(v);
+  }, []);
   const setCustomerFilter = useCallback((v: string) => { setCustomerFilterRaw(v); setPage(1); }, []);
   const setCommodityFilter = useCallback((v: string) => { setCommodityFilterRaw(v); setPage(1); }, []);
 
@@ -112,6 +124,36 @@ export function useGrns(
   useEffect(() => {
     void fetchGrns();
   }, [fetchGrns]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const url = new URL(window.location.href);
+      const urlTab = url.searchParams.get('tab') || url.searchParams.get('status');
+      if (statusFilter && !urlTab) {
+        url.searchParams.set('tab', statusFilter.toLowerCase());
+        window.history.replaceState({}, '', url.toString());
+      }
+    } catch {
+      // ignore
+    }
+  }, [statusFilter]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = (params.get('tab') || params.get('status'))?.trim().toUpperCase();
+      if (tabParam && tabParam in VALID_GRN_TABS) {
+        setStatusFilterRaw(VALID_GRN_TABS[tabParam]);
+        setPage(1);
+      } else if (!tabParam) {
+        setStatusFilterRaw('');
+        setPage(1);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   // Tab-filtered records (partitions Closed vs Merged cleanly)
   const filteredGrns = useMemo(() => {

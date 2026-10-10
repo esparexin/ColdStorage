@@ -218,6 +218,7 @@ export function GrnTable({
       rowKey={(r) => r.id}
       caption={caption}
       pagination={{ page, pageSize, totalPages, totalRecords: totalGrns, onPageChange }}
+      onRowClick={onSelectGrn}
     />
   );
 }
