@@ -16,6 +16,7 @@ import { InventoryTransactionModel } from '../../../database/models/inventory-tr
 import { auditService } from '../../audit/audit.service.js';
 import { counterService, DOCUMENT_PREFIXES } from '../../common/counter.service.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
+import { commodityRateService } from '../../commodities/commodity-rate.service.js';
 import { toGrnAcknowledgement, toGrnEntity } from '../grn.mappers.js';
 
 export async function createGrn(
@@ -54,6 +55,13 @@ export async function createGrn(
   }
 
   // 4. Chamber is free text supplied by the operator, already length-validated by the contract.
+
+  // 4b. Price Controller authority: submitted agreed rates must match the
+  // active controller row when one exists; otherwise the legacy path applies.
+  await commodityRateService.validateSubmittedRates(input.commodityId, input.rentType, {
+    smallBagPrice: input.smallBagPrice,
+    bigBagPrice: input.bigBagPrice,
+  });
 
   // 5. Inward Date and FY validation
   const inwardDate = validateOperationalDate(input.date, { label: 'Inward' });

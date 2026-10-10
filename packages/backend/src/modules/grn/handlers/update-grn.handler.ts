@@ -7,6 +7,7 @@ import { DeliveryReversalModel } from '../../../database/models/delivery-reversa
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
+import { commodityRateService } from '../../commodities/commodity-rate.service.js';
 import { toGrnEntity } from '../grn.mappers.js';
 import { resolveBagEdit, wantsBagsChange } from './grn-edit-bags.js';
 import { resolveRentEdit, wantsRentChange } from './grn-edit-rent.js';
@@ -125,6 +126,21 @@ export async function correctGrn(
       }
       if (input.totalBagsWeight !== undefined) {
         update.totalBagsWeight = input.totalBagsWeight ?? null;
+      }
+
+      if (
+        input.smallBagPrice !== undefined ||
+        input.bigBagPrice !== undefined ||
+        input.commodityId !== undefined ||
+        input.rentType !== undefined
+      ) {
+        // Submitted agreed rates must match the active controller row when one
+        // exists. Stored-but-unsubmitted values are history and never checked.
+        await commodityRateService.validateSubmittedRates(
+          input.commodityId ?? grn.commodityId,
+          input.rentType ?? grn.rentType,
+          { smallBagPrice: input.smallBagPrice, bigBagPrice: input.bigBagPrice },
+        );
       }
 
       if (wantsRentChange(input, bagEdit.wantsBagsChange)) {

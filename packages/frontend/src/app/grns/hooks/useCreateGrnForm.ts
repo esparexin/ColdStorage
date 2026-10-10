@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { SEASONAL_RENT_MONTHS } from '@cold-storage/contracts';
 import type { BagType, Commodity, Customer, Grn, LoanStatus, RentType } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
+import { useCommodityRate } from './useCommodityRate';
 import {
   buildCreateGrnPayload,
   focusField,
@@ -36,11 +36,11 @@ export function useCreateGrnForm(
   const [createCustomerId, setCreateCustomerId] = useState(isEdit ? initialGrn!.customerId : '');
   const [createCommodityId, setCreateCommodityId] = useState(isEdit ? initialGrn!.commodityId : '');
   const [createChamber, setCreateChamber] = useState(isEdit ? initialGrn!.chamber : '');
-  const [createBagType, setCreateBagType] = useState<BagType>(isEdit ? initialGrn!.bagType : 'S/B');
+  const [createBagType] = useState<BagType>(isEdit ? initialGrn!.bagType : 'S/B');
   const [createBags, setCreateBags] = useState<number | ''>(isEdit ? initialGrn!.bags : '');
   const [createRentType, setCreateRentType] = useState<RentType>(isEdit ? initialGrn!.rentType : 'Seasonal');
   const [createRentMonths, setCreateRentMonths] = useState<number | ''>(isEdit ? (initialGrn!.rentMonths ?? '') : '');
-  const [createBagPrice, setCreateBagPrice] = useState<number | ''>(isEdit ? (initialGrn!.bagPrice ?? '') : '');
+  const [createBagPrice] = useState<number | ''>(isEdit ? (initialGrn!.bagPrice ?? '') : '');
   const [createSmallBagPrice, setCreateSmallBagPrice] = useState<number | ''>(isEdit ? (initialGrn?.smallBagPrice ?? '') : '');
   const [createBigBagPrice, setCreateBigBagPrice] = useState<number | ''>(isEdit ? (initialGrn?.bigBagPrice ?? '') : '');
   const [createTotalBagsWeight, setCreateTotalBagsWeight] = useState<number | ''>(isEdit ? (initialGrn?.totalBagsWeight ?? '') : '');
@@ -89,14 +89,30 @@ export function useCreateGrnForm(
     setFieldErrors,
   });
 
+  // Price Controller authority: agreed rates come from the active controller
+  // row, never from operator input. Locked edits show stored history instead.
+  const {
+    rate: controllerRate, loading: rateLoading, error: rateError, retry: retryRate,
+  } = useCommodityRate(createCommodityId, createRentType, { disabled: structuralLocked });
+
+  useEffect(() => {
+    if (!structuralLocked && controllerRate) {
+      setCreateSmallBagPrice(controllerRate.small);
+      setCreateBigBagPrice(controllerRate.big);
+      clearFieldError('rate');
+    }
+  }, [controllerRate, structuralLocked]);
+
+  const num = (v: number | ''): number | null => (typeof v === 'number' ? v : null);
+  const sRate = num(createSmallBagPrice) ?? num(createBagPrice);
+  const bRate = num(createBigBagPrice) ?? num(createBagPrice);
+  const displayRate = structuralLocked
+    ? sRate == null && bRate == null ? null : { small: sRate ?? 0, big: bRate ?? 0 }
+    : controllerRate;
+  const isRateUnresolved = !structuralLocked && Boolean(createCommodityId) && (rateLoading || !controllerRate);
+
   const handleBagsChange = (val: number | '') => {
     setCreateBags(val);
-    clearFieldError('bags');
-  };
-
-  const handleBagTypeChange = (val: BagType) => {
-    setCreateBagType(val);
-    setCreateBags('');
     clearFieldError('bags');
   };
 
@@ -137,6 +153,8 @@ export function useCreateGrnForm(
       createGrnNumber, createRentType, createRentMonths, createRentAmount,
       createBagPrice, createSmallBagPrice, createBigBagPrice, createTotalBagsWeight,
       createPartyMark, createVehicleNumber,
+    }, {
+      controllerRate, rateRequired: Boolean(createCommodityId), rateError, rateLoading,
     });
 
     if (Object.keys(errors).length > 0) {
@@ -201,19 +219,19 @@ export function useCreateGrnForm(
   return {
     createDate, setCreateDate,
     createCustomerId, setCreateCustomerId: (id: string) => { setCreateCustomerId(id); clearFieldError('customer'); },
-    createCommodityId, setCreateCommodityId: (id: string) => { setCreateCommodityId(id); clearFieldError('commodity'); },
+    createCommodityId, setCreateCommodityId: (id: string) => { setCreateCommodityId(id); clearFieldError('commodity'); clearFieldError('rate'); },
     createChamber, setCreateChamber: (value: string) => { setCreateChamber(value); clearFieldError('chamber'); },
-    seasonalRentMonths: SEASONAL_RENT_MONTHS,
     createBags, handleBagsChange,
-    createBagType, handleBagTypeChange,
+    createBagType,
     createRentType, handleRentTypeChange: (val: RentType) => {
       setCreateRentType(val);
       clearFieldError('rentMonths');
+      clearFieldError('rate');
     },
     createRentMonths, handleRentMonthsChange,
-    createBagPrice, handleBagPriceChange: (val: number | '') => { setCreateBagPrice(val); },
-    createSmallBagPrice, handleSmallBagPriceChange: (val: number | '') => { setCreateSmallBagPrice(val); clearFieldError('smallBagPrice'); },
-    createBigBagPrice, handleBigBagPriceChange: (val: number | '') => { setCreateBigBagPrice(val); clearFieldError('bigBagPrice'); },
+    createBagPrice,
+    createSmallBagPrice, createBigBagPrice,
+    displayRate, rateLoading, rateError, retryRate, isRateUnresolved,
     createTotalBagsWeight, handleTotalBagsWeightChange,
     createRentAmount, setCreateRentAmount: (val: number | '') => { setCreateRentAmount(val); },
     createGrnNumber, setCreateGrnNumber: (val: string) => {
