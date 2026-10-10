@@ -144,7 +144,7 @@ rentRouter.get(
   },
 );
 
-// 6. Finalize a January/February seasonal extension (additive obligation)
+// 6. Finalize a recurring billing period: seasonal renewal or Jan/Feb monthly (additive)
 rentRouter.post(
   '/facilities/:facilityId/rent/extensions/finalize',
   requirePermission('rent:extend'),
@@ -171,6 +171,7 @@ rentRouter.post(
         ? 404
         : message.includes('only to Seasonal') ||
             message.includes('belongs to season') ||
+            message.includes('already covered') ||
             message.includes('before it begins') ||
             message.includes('No bags remained') ||
             message.includes('no bag rate')

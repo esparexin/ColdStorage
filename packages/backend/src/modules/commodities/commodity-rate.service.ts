@@ -76,6 +76,53 @@ export class CommodityRateService {
     return rate;
   }
 
+  /**
+   * Period pair for finalization: the active controller row for the period
+   * kind (SEASON → Seasonal, JANUARY/FEBRUARY → Monthly), else the legacy
+   * single rate mapped to both sides when it is positive, else null.
+   * Legacy fallback keeps unconfigured commodities billing exactly as before.
+   */
+  public async resolvePeriodPair(
+    commodityId: string,
+    period: 'SEASON' | 'JANUARY' | 'FEBRUARY',
+    legacySingleRate: number | null,
+  ): Promise<{ smallRate: number; bigRate: number } | null> {
+    const rate = await this.getRate(commodityId, period === 'SEASON' ? 'Seasonal' : 'Monthly');
+    if (rate) return { smallRate: rate.smallRate, bigRate: rate.bigRate };
+    if (typeof legacySingleRate === 'number' && legacySingleRate > 0) {
+      return { smallRate: legacySingleRate, bigRate: legacySingleRate };
+    }
+    return null;
+  }
+
+  /**
+   * Enforces controller authority on newly submitted agreed rates.
+   * When an active row exists for (commodity, rent type), explicitly submitted
+   * small/big rates must equal it exactly (2dp); anything else is a stale or
+   * tampered submission and is rejected. When no active row exists the legacy
+   * path is preserved untouched so unconfigured commodities, historical flows,
+   * and bulk imports keep working — the Inward UI blocks submission until a
+   * rate is configured, so this fallback is a backstop, not an editing path.
+   */
+  public async validateSubmittedRates(
+    commodityId: string,
+    rentType: RentType,
+    submitted: { smallBagPrice?: number | null; bigBagPrice?: number | null },
+  ): Promise<void> {
+    if (submitted.smallBagPrice == null && submitted.bigBagPrice == null) return;
+    const rate = await this.getRate(commodityId, rentType);
+    if (!rate) return;
+    const norm = (n: number) => Number(n.toFixed(2));
+    const mismatch =
+      (submitted.smallBagPrice != null && norm(submitted.smallBagPrice) !== norm(rate.smallRate)) ||
+      (submitted.bigBagPrice != null && norm(submitted.bigBagPrice) !== norm(rate.bigRate));
+    if (mismatch) {
+      throw new Error(
+        `Submitted bag rates do not match the active ${rentType} controller rate for commodity '${commodityId}' (Small ₹${rate.smallRate}, Big ₹${rate.bigRate})`,
+      );
+    }
+  }
+
   private toEntity(doc: CommodityRateDoc | CommodityRate): CommodityRate {
     return {
       id: doc.id,

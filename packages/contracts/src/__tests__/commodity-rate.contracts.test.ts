@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  calculatePeriodRent,
   commodityRateQuerySchema,
   commodityRateSchema,
   pickRateForBags,
@@ -51,6 +52,44 @@ describe('Price Controller commodity rates', () => {
       isActive: true,
     });
     expect(pickRateForBags(row)).toEqual({ small: 10, big: 15 });
+  });
+
+  it('charges seasonal renewals as whole-season totals and Jan/Feb as one month', () => {
+    // SEASON: 100 bags × ₹12 whole-season total = ₹1,200 (never × months)
+    expect(
+      calculatePeriodRent({
+        period: 'SEASON',
+        bagType: 'S',
+        snapshotSmallBags: 100,
+        snapshotBigBags: 0,
+        smallRate: 12,
+        bigRate: 18,
+      }),
+    ).toBe(1200);
+    // JANUARY: 100 bags × ₹12 × 1 month = ₹1,200
+    expect(
+      calculatePeriodRent({
+        period: 'JANUARY',
+        bagType: 'S',
+        snapshotSmallBags: 100,
+        snapshotBigBags: 0,
+        smallRate: 12,
+        bigRate: 18,
+      }),
+    ).toBe(1200);
+    // S+B split preserved: 60 × 10 + 40 × 15 = ₹1,200 either period kind
+    for (const period of ['SEASON', 'FEBRUARY'] as const) {
+      expect(
+        calculatePeriodRent({
+          period,
+          bagType: 'S+B',
+          snapshotSmallBags: 60,
+          snapshotBigBags: 40,
+          smallRate: 10,
+          bigRate: 15,
+        }),
+      ).toBe(1200);
+    }
   });
 
   it('validates rate lookup queries', () => {

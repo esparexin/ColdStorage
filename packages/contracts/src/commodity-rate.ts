@@ -1,6 +1,8 @@
 import { z } from 'zod';
-import { bagPriceSchema } from './pricing.js';
+import type { BagType } from './bags.js';
+import { bagPriceSchema, calculateRentAmount } from './pricing.js';
 import { rentTypeSchema } from './grn-rent.js';
+import type { ExtensionPeriod } from './rent-extension.js';
 
 /**
  * Price Controller rate SSOT (same-GRN lifecycle).
@@ -52,4 +54,35 @@ export interface RateForBags {
 /** Picks the applicable small/big pair from an active rate row. */
 export function pickRateForBags(rate: Pick<CommodityRate, 'smallRate' | 'bigRate'>): RateForBags {
   return { small: rate.smallRate, big: rate.bigRate };
+}
+
+/**
+ * Same-GRN period charge from a month-start snapshot, via the canonical
+ * `calculateRentAmount` SSOT (no duplicated formula).
+ * - SEASON: whole-season total (never × months).
+ * - JANUARY/FEBRUARY: one month at the monthly rate.
+ * S+B snapshots keep their small/big split; single bag types resolve to the
+ * matching side (S and informational S/B resolve to the small-bag rate).
+ */
+export function calculatePeriodRent(input: {
+  period: ExtensionPeriod;
+  bagType: BagType | null | undefined;
+  snapshotSmallBags: number;
+  snapshotBigBags: number;
+  smallRate: number;
+  bigRate: number;
+}): number {
+  const total = input.snapshotSmallBags + input.snapshotBigBags;
+  const useSplit = input.bagType === 'S+B';
+  return calculateRentAmount({
+    rentType: input.period === 'SEASON' ? 'Seasonal' : 'Monthly',
+    bags: total,
+    bagType: input.bagType ?? undefined,
+    smallBags: input.snapshotSmallBags,
+    bigBags: input.snapshotBigBags,
+    smallBagPrice: useSplit ? input.smallRate : undefined,
+    bigBagPrice: useSplit ? input.bigRate : undefined,
+    bagPrice: useSplit ? undefined : input.bagType === 'B' ? input.bigRate : input.smallRate,
+    rentMonths: 1,
+  });
 }
