@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowRightLeft,
   Edit2,
@@ -42,6 +42,7 @@ export function GrnRowActions({
   onPrint,
 }: GrnRowActionsProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isClosed = row.status === 'CLOSED';
@@ -54,8 +55,40 @@ export function GrnRowActions({
   const hasRemainingStock = (row.closingBags ?? row.bags) > 0;
   const isLoanHold = row.loanStatus === 'TAKEN';
 
+  const checkPosition = useCallback(() => {
+    if (!menuRef.current) return;
+    const rect = menuRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    // Check closest scrollable table container or card
+    const scrollParent = menuRef.current.closest('[class*="tableWrapper"]');
+    let containerSpaceBelow = spaceBelow;
+    if (scrollParent) {
+      const parentRect = scrollParent.getBoundingClientRect();
+      containerSpaceBelow = parentRect.bottom - rect.bottom;
+    }
+
+    // Dropdown height with 4 items is ~160-175px
+    const menuEstimatedHeight = 180;
+    const hasEnoughBelow = spaceBelow >= menuEstimatedHeight && containerSpaceBelow >= menuEstimatedHeight;
+    const shouldOpenUp = !hasEnoughBelow && (spaceAbove > spaceBelow || spaceAbove >= menuEstimatedHeight);
+    setOpenUpward(shouldOpenUp);
+  }, []);
+
+  const handleToggleMenu = () => {
+    if (!menuOpen) {
+      checkPosition();
+      setMenuOpen(true);
+    } else {
+      setMenuOpen(false);
+    }
+  };
+
   useEffect(() => {
     if (!menuOpen) return;
+    checkPosition();
+
     const handleOutsideClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
@@ -64,16 +97,28 @@ export function GrnRowActions({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setMenuOpen(false);
     };
+    const handleScrollOrResize = () => {
+      checkPosition();
+    };
+
     document.addEventListener('mousedown', handleOutsideClick);
     document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', handleScrollOrResize);
+    window.addEventListener('scroll', handleScrollOrResize, true);
     return () => {
       document.removeEventListener('mousedown', handleOutsideClick);
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', handleScrollOrResize);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
     };
-  }, [menuOpen]);
+  }, [menuOpen, checkPosition]);
 
   return (
-    <div className={styles.actionGroup}>
+    <div
+      className={styles.actionGroup}
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+    >
       {/* Primary Action 1: Edit (Only shown for open GRNs) */}
       {!isClosed && canCorrect && onCorrectGrn && (
         <Button
@@ -108,7 +153,7 @@ export function GrnRowActions({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setMenuOpen((prev) => !prev)}
+          onClick={handleToggleMenu}
           aria-haspopup="true"
           aria-expanded={menuOpen}
           aria-label={`More actions for GRN ${row.grnNumber}`}
@@ -117,7 +162,10 @@ export function GrnRowActions({
         />
 
         {menuOpen && (
-          <div className={styles.dropdownMenu} role="menu">
+          <div
+            className={`${styles.dropdownMenu} ${openUpward ? styles.dropdownMenuUpward : ''}`}
+            role="menu"
+          >
             <Button
               variant="ghost"
               size="sm"

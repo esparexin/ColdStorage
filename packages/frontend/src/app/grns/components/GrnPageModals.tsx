@@ -117,6 +117,7 @@ export function GrnPageModals({
       {selectedGrn && (
         <GrnDetailModal
           grn={selectedGrn}
+          allGrns={allGrns}
           onClose={onCloseDetail}
           canPrint={canPrint}
           canCorrect={canCorrect}
