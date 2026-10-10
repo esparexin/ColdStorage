@@ -3,10 +3,11 @@ import type {
   Commodity,
   Customer,
   Grn,
-  GrnStatus,
 } from '@cold-storage/contracts';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
+
+export type GrnStatusTab = '' | 'OPEN' | 'CLOSED' | 'MERGED';
 
 export const GRN_PAGE_SIZE = 20;
 
@@ -28,14 +29,14 @@ export function useGrns(
 
   // Filter states
   const [searchTerm, setSearchTermRaw] = useState('');
-  const [statusFilter, setStatusFilterRaw] = useState<'' | GrnStatus>('');
+  const [statusFilter, setStatusFilterRaw] = useState<GrnStatusTab>('');
   const [customerFilter, setCustomerFilterRaw] = useState('');
   const [commodityFilter, setCommodityFilterRaw] = useState('');
 
   // Server-side filters narrow the result set, so the current page number is
   // reset to 1 whenever a filter or search term changes.
   const setSearchTerm = useCallback((v: string) => { setSearchTermRaw(v); setPage(1); }, []);
-  const setStatusFilter = useCallback((v: '' | GrnStatus) => { setStatusFilterRaw(v); setPage(1); }, []);
+  const setStatusFilter = useCallback((v: GrnStatusTab) => { setStatusFilterRaw(v); setPage(1); }, []);
   const setCustomerFilter = useCallback((v: string) => { setCustomerFilterRaw(v); setPage(1); }, []);
   const setCommodityFilter = useCallback((v: string) => { setCommodityFilterRaw(v); setPage(1); }, []);
 
@@ -76,7 +77,11 @@ export function useGrns(
       const params = new URLSearchParams();
       params.set('page', String(page));
       params.set('limit', String(GRN_PAGE_SIZE));
-      if (statusFilter) params.set('status', statusFilter);
+      if (statusFilter === 'OPEN') {
+        params.set('status', 'OPEN');
+      } else if (statusFilter === 'CLOSED' || statusFilter === 'MERGED') {
+        params.set('status', 'CLOSED');
+      }
       if (customerFilter) params.set('customerId', customerFilter);
       if (commodityFilter) params.set('commodityId', commodityFilter);
       if (searchTerm.trim()) params.set('search', searchTerm.trim());
@@ -108,8 +113,30 @@ export function useGrns(
     void fetchGrns();
   }, [fetchGrns]);
 
-  // Server-side filtered records
-  const filteredGrns = grns;
+  // Tab-filtered records (partitions Closed vs Merged cleanly)
+  const filteredGrns = useMemo(() => {
+    if (statusFilter === 'MERGED') {
+      return grns.filter((g) => Boolean(g.mergedIntoGrnNumber));
+    }
+    if (statusFilter === 'CLOSED') {
+      return grns.filter((g) => !g.mergedIntoGrnNumber);
+    }
+    return grns;
+  }, [grns, statusFilter]);
+
+  const displayTotalGrns = useMemo(() => {
+    if (statusFilter === 'MERGED' || statusFilter === 'CLOSED') {
+      return filteredGrns.length;
+    }
+    return totalGrns;
+  }, [filteredGrns.length, statusFilter, totalGrns]);
+
+  const displayTotalPages = useMemo(() => {
+    if (statusFilter === 'MERGED' || statusFilter === 'CLOSED') {
+      return Math.max(1, Math.ceil(filteredGrns.length / GRN_PAGE_SIZE));
+    }
+    return totalPages;
+  }, [filteredGrns.length, statusFilter, totalPages]);
 
   const currentFacilityName = useMemo(() => {
     return (
@@ -129,8 +156,8 @@ export function useGrns(
   return {
     grns,
     filteredGrns,
-    totalGrns,
-    totalPages,
+    totalGrns: displayTotalGrns,
+    totalPages: displayTotalPages,
     page,
     setPage,
     pageSize: GRN_PAGE_SIZE,

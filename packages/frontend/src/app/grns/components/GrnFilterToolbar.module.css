@@ -1,0 +1,10 @@
+.filterSelect select {
+  min-width: 160px;
+}
+
+.activeFilter select {
+  border-color: var(--color-primary-text);
+  background-color: var(--color-surface-2);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+}

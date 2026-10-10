@@ -1,14 +1,15 @@
 'use client';
 
 import React from 'react';
-import type { Commodity, Customer, GrnStatus } from '@cold-storage/contracts';
+import type { Commodity, Customer } from '@cold-storage/contracts';
 import { FilterToolbar, Select } from '@/components/ui';
+import type { GrnStatusTab } from '../hooks/useGrns';
+import styles from './GrnFilterToolbar.module.css';
 
 interface GrnFilterToolbarProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  statusFilter: '' | GrnStatus;
-  onStatusChange: (status: '' | GrnStatus) => void;
+  statusFilter: GrnStatusTab;
   customerFilter: string;
   onCustomerChange: (customerId: string) => void;
   commodityFilter: string;
@@ -22,7 +23,6 @@ export function GrnFilterToolbar({
   searchTerm,
   onSearchChange,
   statusFilter,
-  onStatusChange,
   customerFilter,
   onCustomerChange,
   commodityFilter,
@@ -43,21 +43,12 @@ export function GrnFilterToolbar({
         statusFilter || customerFilter || commodityFilter || searchTerm,
       )}
     >
-      <Select
-        id="grn-status-filter"
-        aria-label="Filter by GRN Status"
-        value={statusFilter}
-        onChange={(e) => onStatusChange(e.target.value as '' | GrnStatus)}
-      >
-        <option value="">All Statuses</option>
-        <option value="OPEN">Open (Active)</option>
-        <option value="CLOSED">Closed (Completed)</option>
-      </Select>
 
       <Select
         id="grn-customer-filter"
         aria-label="Filter by Customer"
         value={customerFilter}
+        className={`${styles.filterSelect} ${customerFilter ? styles.activeFilter : ''}`}
         onChange={(e) => onCustomerChange(e.target.value)}
       >
         <option value="">All Customers</option>
@@ -72,6 +63,7 @@ export function GrnFilterToolbar({
         id="grn-commodity-filter"
         aria-label="Filter by Commodity"
         value={commodityFilter}
+        className={`${styles.filterSelect} ${commodityFilter ? styles.activeFilter : ''}`}
         onChange={(e) => onCommodityChange(e.target.value)}
       >
         <option value="">All Commodities</option>

@@ -19,6 +19,7 @@ import { useFacility } from '@/context/FacilityContext';
 import { printHtmlDocument } from '@/lib/print-document';
 import { GrnFilterToolbar } from './components/GrnFilterToolbar';
 import { GrnPageModals } from './components/GrnPageModals';
+import { GrnStatusTabs } from './components/GrnStatusTabs';
 import { GrnTable } from './components/GrnTable';
 import { useGrns } from './hooks/useGrns';
 import styles from './page.module.css';
@@ -118,11 +119,15 @@ export default function GrnsPage() {
         <FeedbackStates.Empty message={EMPTY_MESSAGES.noFacilityGrns} />
       ) : (
         <>
+          <GrnStatusTabs
+            currentTab={grnData.statusFilter}
+            onTabChange={grnData.setStatusFilter}
+          />
+
           <GrnFilterToolbar
             searchTerm={grnData.searchTerm}
             onSearchChange={grnData.setSearchTerm}
             statusFilter={grnData.statusFilter}
-            onStatusChange={grnData.setStatusFilter}
             customerFilter={grnData.customerFilter}
             onCustomerChange={grnData.setCustomerFilter}
             commodityFilter={grnData.commodityFilter}
@@ -140,14 +145,14 @@ export default function GrnsPage() {
               message={grnData.error}
               onRetry={() => void grnData.fetchGrns()}
             />
-          ) : grnData.grns.length === 0 ? (
+          ) : grnData.filteredGrns.length === 0 ? (
             grnData.searchTerm ? (
               <FeedbackStates.Empty
                 message={`No Inward of Goods matching "${grnData.searchTerm}".`}
               />
             ) : grnData.statusFilter || grnData.customerFilter || grnData.commodityFilter ? (
               <FeedbackStates.Empty
-                message="No Inward of Goods found matching the selected filters."
+                message={`No Inward of Goods found matching the selected filters${grnData.statusFilter === 'MERGED' ? ' (Merged)' : ''}.`}
               />
             ) : (
               <FeedbackStates.Empty

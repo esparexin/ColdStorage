@@ -1,16 +1,12 @@
 'use client';
 
-import React from 'react';
-import {
-  CheckCircle2,
-  Clock,
-} from 'lucide-react';
+import { Clock, X } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
-import { Badge } from '@/components/ui';
+import { Badge, Button } from '@/components/ui';
 import { GrnRowActions } from './GrnRowActions';
 import { RentTermsCell } from './RentTermsCell';
-import styles from '../page.module.css';
+import styles from './GrnTable.module.css';
 
 interface GrnTableProps {
   grns: Grn[];
@@ -32,31 +28,29 @@ interface GrnTableProps {
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
 }
 
-export function GrnTable({
-  grns,
-  caption,
-  canPrint,
-  canCorrect = false,
-  canCreateChallan = false,
-  canInternalMove = false,
-  printingId,
-  page,
-  pageSize,
-  totalPages,
-  totalGrns,
-  onPageChange,
-  onSelectGrn,
-  onCorrectGrn,
-  onCreateChallan,
-  onInternalMove,
-  onPrint,
-}: GrnTableProps) {
-  const columns: DataTableColumn<Grn>[] = [
+export interface CreateGrnTableColumnsParams {
+  canPrint: boolean;
+  canCorrect?: boolean;
+  canCreateChallan?: boolean;
+  canInternalMove?: boolean;
+  printingId: string | null;
+  onSelectGrn: (grn: Grn) => void;
+  onCorrectGrn?: (grn: Grn) => void;
+  onCreateChallan?: (grn: Grn) => void;
+  onInternalMove?: (grn: Grn) => void;
+  onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
+}
+
+export function createGrnTableColumns({
+  canPrint, canCorrect = false, canCreateChallan = false, canInternalMove = false,
+  printingId, onSelectGrn, onCorrectGrn, onCreateChallan, onInternalMove, onPrint,
+}: CreateGrnTableColumnsParams): DataTableColumn<Grn>[] {
+  return [
     {
       key: 'date',
       header: 'Date',
       render: (row) => (
-        <span style={{ fontSize: 'var(--text-xs)', whiteSpace: 'nowrap', fontWeight: 'var(--font-medium)' }}>
+        <span className={styles.dateCell}>
           {new Date(row.date).toLocaleDateString('en-IN', {
             day: '2-digit',
             month: 'short',
@@ -69,43 +63,56 @@ export function GrnTable({
       key: 'grnNumber',
       header: 'GRN #',
       render: (row) => (
-        <span className={styles.grnNumber} style={{ fontSize: 'var(--text-xs)' }}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={styles.grnLink}
+          onClick={() => onSelectGrn(row)}
+          aria-label={`View details for GRN ${row.grnNumber}`}
+        >
           {row.grnNumber}
-        </span>
+        </Button>
       ),
     },
     {
       key: 'customerName',
       header: 'Customer',
       render: (row) => (
-        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)' }}>
+        <span className={styles.customerCell}>
           {row.customerName}
         </span>
       ),
     },
     {
       key: 'commodityName',
-      header: 'Commodity & Chamber',
+      header: 'Commodity',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
-          <span>{row.commodityName}</span>
-          <span className={styles.tagChamber}>{row.mergedIntoGrnNumber ? '—' : row.chamber}</span>
-        </div>
+        <span className={styles.commodityName}>{row.commodityName}</span>
       ),
     },
     {
       key: 'bags',
-      header: 'Bags',
+      header: 'Inward Bags',
       align: 'right',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
-          <span style={{ fontWeight: 'var(--font-semibold)' }}>{row.bags.toLocaleString('en-IN')} in</span>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-            S/B: {row.bagType ?? 'S/B'}
-          </span>
+        <div className={styles.bagsCell}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={styles.inwardLink}
+            onClick={() => onSelectGrn(row)}
+            aria-label={`View details for GRN ${row.grnNumber}`}
+          >
+            {row.bags.toLocaleString('en-IN')} bags
+          </Button>
+          {row.bagType && (
+            <span className={styles.bagTypeSub}>
+              S/B: {row.bagType}
+            </span>
+          )}
           {row.netDeliveredBags != null && row.netDeliveredBags > 0 && (
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
-              Del: {row.netDeliveredBags.toLocaleString('en-IN')}
+            <span className={styles.deliveredSub}>
+              Out: {row.netDeliveredBags.toLocaleString('en-IN')}
             </span>
           )}
         </div>
@@ -118,30 +125,14 @@ export function GrnTable({
       render: (row) => {
         const closing = row.closingBags ?? 0;
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--space-0-5)', fontSize: 'var(--text-xs)' }}>
-            <span
-              style={{
-                fontWeight: 'var(--font-bold)',
-                color: closing === 0 ? 'var(--color-text-muted)' : 'var(--color-primary-text)',
-              }}
-            >
-              {closing.toLocaleString('en-IN')}
-            </span>
-            {closing === 0 && (
-              <span
-                style={{
-                  fontSize: 'var(--text-xs)',
-                  fontWeight: 'var(--font-bold)',
-                  color: 'var(--color-text-muted)',
-                  background: 'var(--color-surface-2)',
-                  padding: '0 var(--space-1)',
-                  borderRadius: 'var(--radius-sm)',
-                }}
-              >
-                {row.mergedIntoGrnNumber ? `Merged → ${row.mergedIntoGrnNumber}` : 'CLOSED'}
-              </span>
-            )}
-          </div>
+          <span
+            className={styles.balanceCell}
+            style={{
+              color: closing === 0 ? 'var(--color-text-muted)' : 'var(--color-text-primary)',
+            }}
+          >
+            {closing.toLocaleString('en-IN')} bags
+          </span>
         );
       },
     },
@@ -151,34 +142,38 @@ export function GrnTable({
       render: (row) => <RentTermsCell row={row} />,
     },
     {
-      key: 'vehicleNumber',
-      header: 'Vehicle',
-      render: (row) => (
-        <span style={{ fontSize: 'var(--text-xs)' }}>
-          {row.vehicleNumber || '—'}
-        </span>
-      ),
+      key: 'loanStatus',
+      header: 'Loan Status',
+      align: 'center',
+      render: (row) => {
+        if (row.loanStatus === 'CLEARED') {
+          return <Badge variant="success">Loan Cleared</Badge>;
+        }
+        if (row.loanStatus === 'TAKEN') {
+          return <Badge variant="danger">Loan Hold</Badge>;
+        }
+        if (row.loanStatus === 'NOT_TAKEN') {
+          return <Badge variant="neutral">Pledged</Badge>;
+        }
+        return <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}>—</span>;
+      },
     },
     {
       key: 'status',
       header: 'Status',
       align: 'center',
       render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-1)' }}>
+        <div className={styles.statusGroup}>
           <Badge
             variant={row.status === 'OPEN' ? 'warning' : 'neutral'}
-            icon={row.status === 'OPEN' ? <Clock size={11} aria-hidden="true" /> : <CheckCircle2 size={11} aria-hidden="true" />}
+            icon={row.status === 'OPEN' ? <Clock size={11} aria-hidden="true" /> : <X size={11} aria-hidden="true" />}
           >
-            {row.status}
+            {row.status === 'OPEN' ? 'Open' : 'Closed'}
           </Badge>
-          {row.loanStatus === 'TAKEN' && (
-            <Badge variant="danger">Loan Hold</Badge>
-          )}
-          {row.loanStatus === 'CLEARED' && (
-            <Badge variant="success">Loan Cleared</Badge>
-          )}
-          {row.loanStatus === 'NOT_TAKEN' && (
-            <Badge variant="neutral">Pledged</Badge>
+          {row.mergedIntoGrnNumber && (
+            <span className={styles.mergedReference}>
+              Merged → {row.mergedIntoGrnNumber}
+            </span>
           )}
         </div>
       ),
@@ -204,6 +199,17 @@ export function GrnTable({
       ),
     },
   ];
+}
+
+export function GrnTable({
+  grns, caption, canPrint, canCorrect = false, canCreateChallan = false,
+  canInternalMove = false, printingId, page, pageSize, totalPages, totalGrns,
+  onPageChange, onSelectGrn, onCorrectGrn, onCreateChallan, onInternalMove, onPrint,
+}: GrnTableProps) {
+  const columns = createGrnTableColumns({
+    canPrint, canCorrect, canCreateChallan, canInternalMove,
+    printingId, onSelectGrn, onCorrectGrn, onCreateChallan, onInternalMove, onPrint,
+  });
 
   return (
     <DataTable
