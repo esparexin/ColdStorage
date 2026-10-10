@@ -10,7 +10,9 @@ function makeInput(overrides: Partial<ValidateDeliveryFormInput> = {}): Validate
     totalWithdrawingBags: 10,
     availableSmall: 50,
     availableBig: 50,
-    createVehicleNumber: '',
+    createVehicleNumber: 'UP32AA1111',
+    createGpNumber: 'GP-0001',
+    createDriverName: 'Ramesh Singh',
     isLoanHoldActive: false,
     selectedGrnNumber: 'GRN-26-27-0001',
     ...overrides,
@@ -82,6 +84,12 @@ describe('validateDeliveryForm', () => {
     expect(result.errors.bigBags).toBe('Cannot deliver 60 big bags (only 50 available)');
   });
 
+  it('rejects missing vehicle registration', () => {
+    const result = validateDeliveryForm(makeInput({ createVehicleNumber: '' }));
+    expect(result.isValid).toBe(false);
+    expect(result.errors.vehicleNumber).toBe('Vehicle registration is required');
+  });
+
   it('rejects invalid vehicle registration format', () => {
     const result = validateDeliveryForm(makeInput({ createVehicleNumber: 'INVALID_VEHICLE' }));
     expect(result.isValid).toBe(false);
@@ -92,5 +100,17 @@ describe('validateDeliveryForm', () => {
     const result = validateDeliveryForm(makeInput({ createVehicleNumber: 'UP32AA1111' }));
     expect(result.isValid).toBe(true);
     expect(result.errors.vehicleNumber).toBeUndefined();
+  });
+
+  it('rejects missing Gate Pass number', () => {
+    const result = validateDeliveryForm(makeInput({ createGpNumber: '' }));
+    expect(result.isValid).toBe(false);
+    expect(result.errors.gpNumber).toBe('Gate Pass number is required');
+  });
+
+  it('rejects missing driver name', () => {
+    const result = validateDeliveryForm(makeInput({ createDriverName: '' }));
+    expect(result.isValid).toBe(false);
+    expect(result.errors.driverName).toBe('Driver name is required');
   });
 });

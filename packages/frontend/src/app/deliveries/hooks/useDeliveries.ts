@@ -1,8 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { DeliveryChallan, DeliveryStatus } from '@cold-storage/contracts';
+import type { DeliveryChallan } from '@cold-storage/contracts';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
-import { filterDeliveries, type DeliveryRentStatusFilter } from './deliveryFilter.helper';
+import {
+  filterDeliveries,
+  type DeliveryRentStatusFilter,
+  type DeliveryStatusTab,
+} from './deliveryFilter.helper';
+import {
+  VALID_DELIVERY_STATUS_TABS,
+  resolveInitialDeliveryStatusTab,
+  syncDeliveryStatusTabToLocation,
+} from './deliveryTabPersistence.helper';
 
 export const DELIVERY_PAGE_SIZE = 20;
 
@@ -20,13 +29,27 @@ export function useDeliveries(
 
   // Filter states
   const [searchTerm, setSearchTermRaw] = useState('');
-  const [statusFilter, setStatusFilterRaw] = useState<'' | DeliveryStatus>('');
+  const [statusTab, setStatusTabRaw] = useState<DeliveryStatusTab>(() =>
+    resolveInitialDeliveryStatusTab(),
+  );
   const [rentStatusFilter, setRentStatusFilterRaw] = useState<DeliveryRentStatusFilter>('');
 
   // Narrowing a filter resets pagination to page 1.
-  const setSearchTerm = useCallback((v: string) => { setSearchTermRaw(v); setPage(1); }, []);
-  const setStatusFilter = useCallback((v: '' | DeliveryStatus) => { setStatusFilterRaw(v); setPage(1); }, []);
-  const setRentStatusFilter = useCallback((v: DeliveryRentStatusFilter) => { setRentStatusFilterRaw(v); setPage(1); }, []);
+  const setSearchTerm = useCallback((v: string) => {
+    setSearchTermRaw(v);
+    setPage(1);
+  }, []);
+
+  const setStatusTab = useCallback((v: DeliveryStatusTab) => {
+    setStatusTabRaw(v);
+    setPage(1);
+    syncDeliveryStatusTabToLocation(v);
+  }, []);
+
+  const setRentStatusFilter = useCallback((v: DeliveryRentStatusFilter) => {
+    setRentStatusFilterRaw(v);
+    setPage(1);
+  }, []);
 
   const fetchDeliveries = useCallback(async () => {
     if (!selectedFacilityId) {
@@ -42,7 +65,11 @@ export function useDeliveries(
       const params = new URLSearchParams();
       params.set('page', String(page));
       params.set('limit', String(DELIVERY_PAGE_SIZE));
-      if (statusFilter) params.set('status', statusFilter);
+
+      // When tab is ACTIVE, fetch ISSUED from server. Closed challans are also ISSUED with 0 remaining bags.
+      if (statusTab === 'ACTIVE') {
+        params.set('status', 'ISSUED');
+      }
 
       const url = `/api/facilities/${encodeURIComponent(selectedFacilityId)}/deliveries?${params.toString()}`;
       const res = await requestWithAuth(url);
@@ -61,15 +88,46 @@ export function useDeliveries(
     } finally {
       if (isCurrent()) setLoading(false);
     }
-  }, [selectedFacilityId, page, statusFilter]);
+  }, [selectedFacilityId, page, statusTab, beginRequest]);
 
   useEffect(() => {
     void fetchDeliveries();
   }, [fetchDeliveries]);
 
+  // Sync tab with browser URL history popstate
+  useEffect(() => {
+    const onPopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = (params.get('tab') || params.get('status'))?.trim().toUpperCase();
+      if (tabParam && tabParam in VALID_DELIVERY_STATUS_TABS) {
+        setStatusTabRaw(VALID_DELIVERY_STATUS_TABS[tabParam]);
+        setPage(1);
+      } else if (!tabParam) {
+        setStatusTabRaw('ACTIVE');
+        setPage(1);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
   const filteredDeliveries = useMemo(() => {
-    return filterDeliveries(deliveries, searchTerm, rentStatusFilter);
-  }, [deliveries, searchTerm, rentStatusFilter]);
+    return filterDeliveries(deliveries, searchTerm, rentStatusFilter, statusTab);
+  }, [deliveries, searchTerm, rentStatusFilter, statusTab]);
+
+  const displayTotalDeliveries = useMemo(() => {
+    if (statusTab === 'ACTIVE' || statusTab === 'CLOSED') {
+      return filteredDeliveries.length;
+    }
+    return totalDeliveries;
+  }, [filteredDeliveries.length, statusTab, totalDeliveries]);
+
+  const displayTotalPages = useMemo(() => {
+    if (statusTab === 'ACTIVE' || statusTab === 'CLOSED') {
+      return Math.max(1, Math.ceil(filteredDeliveries.length / DELIVERY_PAGE_SIZE));
+    }
+    return totalPages;
+  }, [filteredDeliveries.length, statusTab, totalPages]);
 
   const currentFacilityName = useMemo(() => {
     return (
@@ -80,7 +138,7 @@ export function useDeliveries(
   }, [availableFacilities, selectedFacilityId]);
 
   const resetFilters = () => {
-    setStatusFilter('');
+    setStatusTab('ACTIVE');
     setRentStatusFilter('');
     setSearchTerm('');
   };
@@ -88,8 +146,8 @@ export function useDeliveries(
   return {
     deliveries,
     filteredDeliveries,
-    totalDeliveries,
-    totalPages,
+    totalDeliveries: displayTotalDeliveries,
+    totalPages: displayTotalPages,
     page,
     setPage,
     pageSize: DELIVERY_PAGE_SIZE,
@@ -97,8 +155,8 @@ export function useDeliveries(
     error,
     searchTerm,
     setSearchTerm,
-    statusFilter,
-    setStatusFilter,
+    statusTab,
+    setStatusTab,
     rentStatusFilter,
     setRentStatusFilter,
     currentFacilityName,

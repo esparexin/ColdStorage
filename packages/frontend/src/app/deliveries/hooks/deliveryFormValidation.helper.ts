@@ -9,6 +9,8 @@ export interface ValidateDeliveryFormInput {
   availableSmall: number;
   availableBig: number;
   createVehicleNumber: string;
+  createGpNumber?: string;
+  createDriverName?: string;
   isLoanHoldActive: boolean;
   selectedGrnNumber?: string;
 }
@@ -62,10 +64,18 @@ export function validateDeliveryForm(input: ValidateDeliveryFormInput): Delivery
     }
   }
 
-  if (input.createVehicleNumber.trim()) {
-    if (!indianVehicleSchema.safeParse(input.createVehicleNumber.trim()).success) {
-      errors.vehicleNumber = 'Vehicle registration must be in standard Indian format (e.g. UP32AA1111)';
-    }
+  if (!input.createVehicleNumber?.trim()) {
+    errors.vehicleNumber = 'Vehicle registration is required';
+  } else if (!indianVehicleSchema.safeParse(input.createVehicleNumber.trim()).success) {
+    errors.vehicleNumber = 'Vehicle registration must be in standard Indian format (e.g. UP32AA1111)';
+  }
+
+  if (!input.createGpNumber?.trim()) {
+    errors.gpNumber = 'Gate Pass number is required';
+  }
+
+  if (!input.createDriverName?.trim()) {
+    errors.driverName = 'Driver name is required';
   }
 
   const isValid = Object.keys(errors).length === 0;

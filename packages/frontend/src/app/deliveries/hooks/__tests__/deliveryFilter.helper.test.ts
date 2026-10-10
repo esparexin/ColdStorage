@@ -112,4 +112,26 @@ describe('filterDeliveries', () => {
     const res2 = filterDeliveries(all, 'ravi', 'PENDING');
     expect(res2).toHaveLength(0);
   });
+
+  it('filters by statusTab ACTIVE (issued with remaining stock)', () => {
+    const activeDel = makeMockDelivery({ id: 'del-act', status: 'ISSUED', remainingTotalBags: 100 });
+    const closedDel = makeMockDelivery({ id: 'del-cls', status: 'ISSUED', remainingTotalBags: 0 });
+    const reversedDel = makeMockDelivery({ id: 'del-rev', status: 'REVERSED', remainingTotalBags: 50 });
+
+    const testSet = [activeDel, closedDel, reversedDel];
+    const res = filterDeliveries(testSet, '', '', 'ACTIVE');
+    expect(res).toHaveLength(1);
+    expect(res[0].id).toBe('del-act');
+  });
+
+  it('filters by statusTab CLOSED (remaining stock is 0)', () => {
+    const activeDel = makeMockDelivery({ id: 'del-act', status: 'ISSUED', remainingTotalBags: 100 });
+    const closedDel = makeMockDelivery({ id: 'del-cls', status: 'ISSUED', remainingTotalBags: 0 });
+
+    const testSet = [activeDel, closedDel];
+    const res = filterDeliveries(testSet, '', '', 'CLOSED');
+    expect(res).toHaveLength(1);
+    expect(res[0].id).toBe('del-cls');
+  });
 });
+

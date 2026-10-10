@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type {
-  DeliveryChallan,
-  DeliverySummary,
-  Grn,
-  GrnInventorySummary,
-} from '@cold-storage/contracts';
+import type { DeliveryChallan, DeliverySummary, Grn, GrnInventorySummary } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { useRentGate } from '@/hooks/useRentGate';
 import { validateDeliveryForm } from './deliveryFormValidation.helper';
@@ -60,6 +55,21 @@ export function useCreateDeliveryForm(
     } catch { /* Graceful */ }
   }, [facilityId]);
 
+  const fetchNextGpNumber = useCallback(async () => {
+    if (!facilityId) return;
+    try {
+      const res = await requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/deliveries/next-gp-number`);
+      if (res.ok) {
+        const data = (await res.json()) as { nextGpNumber?: string };
+        if (data.nextGpNumber) setCreateGpNumber((prev) => (prev ? prev : data.nextGpNumber!));
+      }
+    } catch {
+      setCreateGpNumber((prev) => (prev ? prev : 'GP-0001'));
+    }
+  }, [facilityId]);
+
+  useEffect(() => { void fetchNextGpNumber(); }, [fetchNextGpNumber]);
+
   const handleSelectGrn = useCallback(
     async (grnId: string) => {
       setCreateGrnId(grnId);
@@ -94,9 +104,7 @@ export function useCreateDeliveryForm(
 
   useEffect(() => {
     if (initialGrnId && availableGrns.length > 0 && !createGrnId) {
-      if (availableGrns.some((g) => g.id === initialGrnId)) {
-        void handleSelectGrn(initialGrnId);
-      }
+      if (availableGrns.some((g) => g.id === initialGrnId)) void handleSelectGrn(initialGrnId);
     }
   }, [initialGrnId, availableGrns, createGrnId, handleSelectGrn]);
 
@@ -119,36 +127,23 @@ export function useCreateDeliveryForm(
 
   const handleBagCategoryChange = (cat: OutwardBagCategory) => {
     setBagCategory(cat);
-    setWithdrawal((prev) => {
-      if (cat === 'Small') return { ...prev, bigBags: 0 };
-      if (cat === 'Big') return { ...prev, smallBags: 0 };
-      return prev;
-    });
-    clearFieldError('bags');
-    clearFieldError('smallBags');
-    clearFieldError('bigBags');
+    setWithdrawal((prev) => (cat === 'Small' ? { ...prev, bigBags: 0 } : cat === 'Big' ? { ...prev, smallBags: 0 } : prev));
+    clearFieldError('bags'); clearFieldError('smallBags'); clearFieldError('bigBags');
   };
 
   const handleQuantityChange = (val: number | '') => {
-    setWithdrawal((prev) => {
-      if (bagCategory === 'Big') return { ...prev, smallBags: 0, bigBags: val };
-      return { ...prev, smallBags: val, bigBags: 0 };
-    });
-    clearFieldError('bags');
-    clearFieldError('smallBags');
-    clearFieldError('bigBags');
+    setWithdrawal((prev) => (bagCategory === 'Big' ? { ...prev, smallBags: 0, bigBags: val } : { ...prev, smallBags: val, bigBags: 0 }));
+    clearFieldError('bags'); clearFieldError('smallBags'); clearFieldError('bigBags');
   };
 
   const setWithdrawalSmallBags = (val: number | '') => {
     setWithdrawal((prev) => ({ ...prev, smallBags: val }));
-    clearFieldError('bags');
-    clearFieldError('smallBags');
+    clearFieldError('bags'); clearFieldError('smallBags');
   };
 
   const setWithdrawalBigBags = (val: number | '') => {
     setWithdrawal((prev) => ({ ...prev, bigBags: val }));
-    clearFieldError('bags');
-    clearFieldError('bigBags');
+    clearFieldError('bags'); clearFieldError('bigBags');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -156,15 +151,9 @@ export function useCreateDeliveryForm(
     if (!facilityId) return;
 
     const validation = validateDeliveryForm({
-      createGrnId,
-      createDate,
-      smallBags,
-      bigBags,
-      totalWithdrawingBags,
-      availableSmall: withdrawal.availableSmall,
-      availableBig: withdrawal.availableBig,
-      createVehicleNumber,
-      isLoanHoldActive,
+      createGrnId, createDate, smallBags, bigBags, totalWithdrawingBags,
+      availableSmall: withdrawal.availableSmall, availableBig: withdrawal.availableBig,
+      createVehicleNumber, createGpNumber, createDriverName, isLoanHoldActive,
       selectedGrnNumber: selectedGrn?.grnNumber,
     });
 
@@ -180,19 +169,10 @@ export function useCreateDeliveryForm(
 
     try {
       const payload = buildDeliveryPayload({
-        grnId: createGrnId,
-        createDate,
-        smallBags,
-        bigBags,
-        bagCategory,
-        rentCharge: outwardRent,
-        createVehicleNumber,
-        createDriverName,
-        createWeight,
-        createGpNumber,
-        createRemarks,
+        grnId: createGrnId, createDate, smallBags, bigBags, bagCategory,
+        rentCharge: outwardRent, createVehicleNumber, createDriverName,
+        createWeight, createGpNumber, createRemarks,
       });
-
       const responseData = await submitDeliveryRequest(facilityId, payload);
       onSuccess(responseData.delivery, responseData.summary);
     } catch (err: unknown) {
@@ -203,41 +183,16 @@ export function useCreateDeliveryForm(
   };
 
   return {
-    availableGrns,
-    createGrnId,
-    grnSummary,
-    loadingGrnSummary,
-    createDate,
+    availableGrns, createGrnId, grnSummary, loadingGrnSummary, createDate,
     setCreateDate: (v: string) => { setCreateDate(v); clearFieldError('date'); },
-    bagCategory,
-    setBagCategory: handleBagCategoryChange,
-    outwardRent,
-    withdrawal,
-    setWithdrawalSmallBags,
-    setWithdrawalBigBags,
-    setWithdrawalQuantity: handleQuantityChange,
-    createVehicleNumber,
-    setCreateVehicleNumber: (v: string) => { setCreateVehicleNumber(v); clearFieldError('vehicleNumber'); },
-    createDriverName,
-    setCreateDriverName,
-    createWeight,
-    setCreateWeight,
-    createGpNumber,
-    setCreateGpNumber,
-    createRemarks,
-    setCreateRemarks,
-    modalError,
-    fieldErrors,
-    clearFieldError,
-    submitting,
-    totalWithdrawingBags,
-    fetchAvailableGrns,
-    handleSelectGrn,
-    handleSubmit,
-    selectedGrn,
-    isLoanHoldActive,
-    rentSummary: rentGate.rentSummary,
-    rentLoading: rentGate.rentLoading,
-    refreshRentGate: rentGate.refreshRentGate,
+    bagCategory, setBagCategory: handleBagCategoryChange, outwardRent, withdrawal,
+    setWithdrawalSmallBags, setWithdrawalBigBags, setWithdrawalQuantity: handleQuantityChange,
+    createVehicleNumber, setCreateVehicleNumber: (v: string) => { setCreateVehicleNumber(v); clearFieldError('vehicleNumber'); },
+    createDriverName, setCreateDriverName: (v: string) => { setCreateDriverName(v); clearFieldError('driverName'); },
+    createWeight, setCreateWeight, createGpNumber,
+    setCreateGpNumber: (v: string) => { setCreateGpNumber(v); clearFieldError('gpNumber'); },
+    createRemarks, setCreateRemarks, modalError, fieldErrors, clearFieldError, submitting,
+    totalWithdrawingBags, fetchAvailableGrns, handleSelectGrn, handleSubmit, selectedGrn, isLoanHoldActive,
+    rentSummary: rentGate.rentSummary, rentLoading: rentGate.rentLoading, refreshRentGate: rentGate.refreshRentGate,
   };
 }

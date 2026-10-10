@@ -1,13 +1,26 @@
 import type { DeliveryChallan } from '@cold-storage/contracts';
+import type { DeliveryStatusTab } from './deliveryTabPersistence.helper';
 
+export type { DeliveryStatusTab };
 export type DeliveryRentStatusFilter = '' | 'SETTLED' | 'PENDING';
 
 export function filterDeliveries(
   deliveries: DeliveryChallan[],
   searchTerm: string,
   rentStatusFilter: DeliveryRentStatusFilter = '',
+  statusTab: DeliveryStatusTab = '',
 ): DeliveryChallan[] {
   let result = deliveries;
+
+  if (statusTab === 'ACTIVE') {
+    result = result.filter(
+      (d) =>
+        d.status === 'ISSUED' &&
+        (d.remainingTotalBags === undefined || d.remainingTotalBags > 0),
+    );
+  } else if (statusTab === 'CLOSED') {
+    result = result.filter((d) => d.remainingTotalBags === 0);
+  }
 
   if (rentStatusFilter === 'SETTLED') {
     result = result.filter((d) => d.rentPaymentStatus === 'Settled');

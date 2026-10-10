@@ -11,6 +11,7 @@ export interface ModalProps {
   onClose: () => void;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
+  headerActions?: React.ReactNode;
   size?: ModalSize;
   children: React.ReactNode;
   footer?: React.ReactNode;
@@ -22,6 +23,7 @@ export function Modal({
   onClose,
   title,
   subtitle,
+  headerActions,
   size = 'md',
   children,
   footer,
@@ -107,14 +109,17 @@ export function Modal({
               </span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className={styles.closeButton}
-            aria-label="Close dialog"
-          >
-            <X size={16} aria-hidden="true" />
-          </button>
+          <div className={styles.headerRight}>
+            {headerActions}
+            <button
+              type="button"
+              onClick={onClose}
+              className={styles.closeButton}
+              aria-label="Close dialog"
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
         <div className={styles.body}>{children}</div>

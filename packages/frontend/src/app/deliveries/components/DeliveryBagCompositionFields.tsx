@@ -3,8 +3,10 @@ import {
   resolveOutwardRates,
   type BagType,
   type GrnInventorySummary,
+  type RentSummaryDto,
   type RentType,
 } from '@cold-storage/contracts';
+import { IndianRupee } from 'lucide-react';
 import { Button } from '@/components/ui';
 import type { GrnWithdrawal } from '../types';
 import { formatOutwardRentFormula, type OutwardBagCategory } from '../hooks/deliveryRent.helper';
@@ -27,6 +29,9 @@ interface DeliveryBagCompositionFieldsProps {
   onBigBagsChange: (value: number | '') => void;
   outwardRent: number;
   fieldErrors?: Record<string, string>;
+  onPayRent?: (account: RentSummaryDto) => void;
+  canPayRent?: boolean;
+  rentSummary?: RentSummaryDto | null;
 }
 
 const BAG_TYPE_LABEL: Record<BagType, string> = {
@@ -52,6 +57,9 @@ export function DeliveryBagCompositionFields({
   onBigBagsChange,
   outwardRent,
   fieldErrors = {},
+  onPayRent,
+  canPayRent,
+  rentSummary,
 }: DeliveryBagCompositionFieldsProps) {
   const { bags: bagsError, smallBags: smallError, bigBags: bigError } = fieldErrors;
   const availableTotal = summary.availableSmallBags + summary.availableBigBags;
@@ -196,14 +204,37 @@ export function DeliveryBagCompositionFields({
       )}
 
       <div className={styles.outwardRentCard}>
-        <div className={styles.outwardRentHeader}>
-          <span className={styles.outwardRentTitle}>Calculated Outward Rent</span>
-          <span className={styles.outwardRentTypeBadge}>{rentType}</span>
+        <div className={styles.outwardRentLeft}>
+          <div className={styles.outwardRentHeader}>
+            <span className={styles.outwardRentTitle}>Calculated Outward Rent</span>
+            <span className={styles.outwardRentTypeBadge}>{rentType}</span>
+            {rentSummary && rentSummary.remainingBalance > 0 && (
+              <span className={styles.pendingBadge}>
+                Pending GRN Balance: ₹{rentSummary.remainingBalance.toLocaleString('en-IN')}
+              </span>
+            )}
+          </div>
+          <div className={styles.outwardRentAmountRow}>
+            <span className={styles.outwardRentAmount}>₹{outwardRent.toLocaleString('en-IN')}</span>
+            <span className={styles.outwardRentFormula}>
+              {formatOutwardRentFormula(rentType, bagCategory, smallQty, bigQty, rates.small, rates.big, rentMonths)}
+            </span>
+          </div>
         </div>
-        <div className={styles.outwardRentAmount}>₹{outwardRent.toLocaleString('en-IN')}</div>
-        <div className={styles.outwardRentFormula}>
-          {formatOutwardRentFormula(rentType, bagCategory, smallQty, bigQty, rates.small, rates.big, rentMonths)}
-        </div>
+        {canPayRent && onPayRent && rentSummary && (
+          <div className={styles.outwardRentAction}>
+            <Button
+              id="delivery-pay-rent-now-btn"
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => onPayRent(rentSummary)}
+              leftIcon={<IndianRupee size={12} aria-hidden="true" />}
+            >
+              Pay Now
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className={pageStyles.totalDelivering}>
