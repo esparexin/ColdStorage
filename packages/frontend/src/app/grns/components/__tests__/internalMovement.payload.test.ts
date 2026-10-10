@@ -53,4 +53,19 @@ describe('internalMovement payload helpers', () => {
       transferOwnershipInputSchema.safeParse(buildTransferPayload('g', 'c', 'Rebagging')).success,
     ).toBe(true);
   });
+
+  it('builds a transfer payload with SETTLE_NOW decision satisfying the contract', () => {
+    const payload = buildTransferPayload(
+      'grn-1',
+      'cust-2',
+      'Ownership sale',
+      'Paid at counter',
+      '2026-10-10',
+      'SETTLE_NOW',
+      { amountPaid: 1500, paymentMode: 'Cash', paymentNotes: 'Full clearance' },
+    );
+    expect(payload.paymentDecision).toBe('SETTLE_NOW');
+    expect(payload.settlementDetails?.amountPaid).toBe(1500);
+    expect(transferOwnershipInputSchema.safeParse(payload).success).toBe(true);
+  });
 });

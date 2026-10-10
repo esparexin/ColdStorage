@@ -96,7 +96,8 @@ describe('Transfer Ownership: Monthly & Seasonal Rent Accrual (Phase 2)', () => 
     const updated = await GrnModel.findOne({ id: monthlyGrn }).lean().exec();
     expect(updated?.customerId).toBe(customerB);
     expect(updated?.rentAmount).toBe(res.body.movement.financialSnapshot.rentAmount);
-    expect(updated?.remarks).toContain('Pending rent:');
+    expect(updated?.remarks).toContain('Pending rent: ₹3000 of ₹3000');
+    expect(updated?.remarks).toContain('Transferee agreed to assume pending balance');
   });
 
   it('seasonal lot preserves agreed seasonal contract amount during transfer', async () => {
@@ -132,5 +133,50 @@ describe('Transfer Ownership: Monthly & Seasonal Rent Accrual (Phase 2)', () => 
 
     const updated = await GrnModel.findOne({ id: seasonalGrn }).lean().exec();
     expect(updated?.rentAmount).toBe(3000);
+  });
+
+  it('settles outstanding rent during ownership transfer with receipt generation (SETTLE_NOW)', async () => {
+    const seasonalGrn = await seedGrn({
+      facilityId,
+      customerId: customerA,
+      customerName: 'Farmer Ramesh',
+      commodityId,
+      commodityName: 'Wheat',
+      chamber: 'CH-01',
+      bags: 100,
+      rentType: 'Seasonal',
+      rentAmount: 2500,
+      grnNumber: 'GRN-26-27-0093',
+    });
+
+    const res = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/transfer-ownership`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        grnId: seasonalGrn,
+        newCustomerId: customerB,
+        movementDate: new Date(),
+        remarks: 'Transfer lot with full rent settlement',
+        paymentDecision: 'SETTLE_NOW',
+        settlementDetails: {
+          amountPaid: 2500,
+          paymentMode: 'Cash',
+          paymentNotes: 'Settled by seller before transfer',
+        },
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.payment).toBeDefined();
+    expect(res.body.payment.amountPaid).toBe(2500);
+    expect(res.body.payment.receiptNumber).toMatch(/^RRCPT-\d{2}-\d{2}-\d{4}$/);
+    expect(res.body.movement.financialSnapshot.remainingBalance).toBe(0);
+    expect(res.body.movement.financialSnapshot.paymentStatus).toBe('Settled');
+    expect(res.body.movement.financialSnapshot.rentState).toBe('SETTLED');
+
+    const updated = await GrnModel.findOne({ id: seasonalGrn }).lean().exec();
+    expect(updated?.customerId).toBe(customerB);
+    expect(updated?.remarks).toContain('Settled at transfer: ₹2500');
+    expect(updated?.remarks).toContain(res.body.payment.receiptNumber);
   });
 });

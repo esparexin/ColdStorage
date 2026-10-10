@@ -11,6 +11,8 @@
  * without importing React/CSS.
  */
 
+import type { TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
+
 export interface MergePayload {
   targetGrnId: string;
   sourceGrnIds: string[];
@@ -24,6 +26,8 @@ export interface TransferPayload {
   newCustomerId: string;
   movementDate: string;
   remarks: string;
+  paymentDecision?: TransferPaymentDecision;
+  settlementDetails?: TransferSettlementDetails;
 }
 
 /** Single SSOT for the `reason. remarks` audit composition both flows share. */
@@ -53,11 +57,15 @@ export function buildTransferPayload(
   reason: string,
   remarks?: string,
   movementDate?: string,
+  paymentDecision?: TransferPaymentDecision,
+  settlementDetails?: TransferSettlementDetails,
 ): TransferPayload {
   return {
     grnId,
     newCustomerId,
     movementDate: movementDate || new Date().toISOString(),
     remarks: composeRemarks(reason, remarks),
+    paymentDecision: paymentDecision || 'AGREED_PENDING',
+    settlementDetails,
   };
 }

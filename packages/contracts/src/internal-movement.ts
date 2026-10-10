@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { paymentModeSchema } from './rent.js';
 
 export const internalMovementTypeSchema = z.enum(['MERGE', 'TRANSFER_OWNERSHIP']);
 export type InternalMovementType = z.infer<typeof internalMovementTypeSchema>;
@@ -12,11 +13,23 @@ export const mergeGrnInputSchema = z.object({
 });
 export type MergeGrnInput = z.infer<typeof mergeGrnInputSchema>;
 
+export const transferPaymentDecisionSchema = z.enum(['SETTLE_NOW', 'AGREED_PENDING']);
+export type TransferPaymentDecision = z.infer<typeof transferPaymentDecisionSchema>;
+
+export const transferSettlementDetailsSchema = z.object({
+  amountPaid: z.number().positive('Payment amount must be greater than zero'),
+  paymentMode: paymentModeSchema,
+  paymentNotes: z.string().trim().max(500).nullish(),
+});
+export type TransferSettlementDetails = z.infer<typeof transferSettlementDetailsSchema>;
+
 export const transferOwnershipInputSchema = z.object({
   grnId: z.string().trim().min(1, 'GRN ID is required'),
   newCustomerId: z.string().trim().min(1, 'New Customer ID is required'),
   movementDate: z.coerce.date().default(() => new Date()),
   remarks: z.string().trim().min(3, 'Remarks must be at least 3 characters').max(500),
+  paymentDecision: transferPaymentDecisionSchema.default('AGREED_PENDING'),
+  settlementDetails: transferSettlementDetailsSchema.optional(),
 });
 export type TransferOwnershipInput = z.infer<typeof transferOwnershipInputSchema>;
 
