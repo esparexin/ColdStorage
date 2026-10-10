@@ -7,9 +7,8 @@ import {
   type AuditLogRecord,
   type AuditLogsResponse,
   type AuditSeverity,
-  type Role,
 } from '@cold-storage/contracts';
-import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useFacility } from '@/context/FacilityContext';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
@@ -17,10 +16,8 @@ import { requestWithAuth } from '@/lib/api-client';
 export const AUDIT_PAGE_SIZE = 50;
 
 export function useAuditLogs(canViewAudit: boolean) {
-  const { user } = useAuth();
+  const { userRole } = usePermissions();
   const { selectedFacilityId, availableFacilities } = useFacility();
-  const userRole = (user?.role ?? 'READ_ONLY') as Role;
-
   const [logs, setLogs] = useState<AuditLogRecord[]>([]);
   const [totalLogs, setTotalLogs] = useState(0);
   const [totalPages, setTotalPages] = useState(0);

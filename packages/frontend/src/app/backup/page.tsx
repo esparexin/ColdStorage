@@ -2,19 +2,18 @@
 
 import React from 'react';
 import { Play, RefreshCw, ShieldAlert } from 'lucide-react';
-import { can, type BackupStatus, type Role } from '@cold-storage/contracts';
+import { type BackupStatus } from '@cold-storage/contracts';
 import { Banner, Button, Card, FeedbackStates } from '@/components/ui';
 import { ACCESS_MESSAGES, ERROR_TITLES, LOADING_LABELS } from '@/components/ui/stateCopy';
-import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { BackupLogTable } from './components/BackupLogTable';
 import { BackupStatusCards } from './components/BackupStatusCards';
 import { useBackupData } from './hooks/useBackupData';
 import styles from './page.module.css';
 
 export default function BackupPage() {
-  const { user } = useAuth();
-  const userRole = (user?.role ?? 'READ_ONLY') as Role;
-  const canManage = can(userRole, 'backup:manage');
+  const { hasPermission } = usePermissions();
+  const canManage = hasPermission('backup:manage');
 
   const {
     backupStatus,

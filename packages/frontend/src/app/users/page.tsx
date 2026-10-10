@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { Plus, RefreshCw, ShieldAlert } from 'lucide-react';
-import { can, type Role, type UserSummary } from '@cold-storage/contracts';
+import { type UserSummary } from '@cold-storage/contracts';
 import { Banner, Button, Card } from '@/components/ui';
 import { ACCESS_MESSAGES } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useFacility } from '@/context/FacilityContext';
 import { UserFilterBar } from './components/UserFilterBar';
 import { UserLifecycleModals } from './components/UserLifecycleModals';
@@ -16,8 +17,8 @@ import styles from './page.module.css';
 
 export default function UsersPage() {
   const { user } = useAuth();
-  const userRole = (user?.role ?? 'READ_ONLY') as Role;
-  const canManage = can(userRole, 'user:manage');
+  const { hasPermission } = usePermissions();
+  const canManage = hasPermission('user:manage');
   const { availableFacilities } = useFacility();
 
   const {

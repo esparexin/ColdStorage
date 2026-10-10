@@ -21,6 +21,8 @@ export interface AuthUser {
   username: string;
   fullName: string;
   role: string;
+  roleId?: string;
+  permissions?: string[];
   facilityIds: string[];
   mustChangePassword?: boolean;
 }
@@ -31,6 +33,8 @@ interface RawAuthUserData {
   username: string;
   fullName: string;
   role: string;
+  roleId?: string;
+  permissions?: string[];
   facilityIds: string[];
   mustChangePassword?: boolean;
 }
@@ -51,6 +55,8 @@ function toAuthUser(raw: RawAuthUserData): AuthUser {
     username: raw.username,
     fullName: raw.fullName,
     role: raw.role,
+    roleId: raw.roleId,
+    permissions: raw.permissions,
     facilityIds: raw.facilityIds,
     mustChangePassword: Boolean(raw.mustChangePassword),
   };
