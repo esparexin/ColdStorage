@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { can, type Commodity, type Role } from '@cold-storage/contracts';
-import { Button, FeedbackStates, SearchBar } from '@/components/ui';
+import { Button, ConfirmDialog, FeedbackStates, SearchBar } from '@/components/ui';
 import {
   EMPTY_MESSAGES,
   ERROR_TITLES,
@@ -21,6 +21,8 @@ export default function CommoditiesPage() {
   const { user } = useAuth();
   const {
     commodities,
+    ratesMap,
+    ratesLoading,
     loading,
     error,
     searchTerm,
@@ -37,6 +39,8 @@ export default function CommoditiesPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [ratesCommodity, setRatesCommodity] = useState<Commodity | null>(null);
+  const [deactivatingCommodity, setDeactivatingCommodity] = useState<Commodity | null>(null);
+  const [isDeactivating, setIsDeactivating] = useState(false);
 
   const userRole = (user?.role ?? 'READ_ONLY') as Role;
   const canManage = can(userRole, 'commodity:manage');
@@ -102,6 +106,8 @@ export default function CommoditiesPage() {
       ) : (
         <CommodityTable
           commodities={commodities}
+          ratesMap={ratesMap}
+          ratesLoading={ratesLoading}
           canManage={canManage}
           page={page}
           pageSize={pageSize}
@@ -109,6 +115,7 @@ export default function CommoditiesPage() {
           totalCommodities={totalCommodities}
           onPageChange={setPage}
           onToggleActive={handleToggleActive}
+          onRequestDeactivate={setDeactivatingCommodity}
           onManageRates={setRatesCommodity}
         />
       )}
@@ -127,9 +134,39 @@ export default function CommoditiesPage() {
         <CommodityRatesModal
           commodity={ratesCommodity}
           onClose={() => setRatesCommodity(null)}
-          onSaved={() => setRatesCommodity(null)}
+          onSaved={() => {
+            setRatesCommodity(null);
+            void fetchCommodities();
+          }}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={Boolean(deactivatingCommodity)}
+        title="Deactivate Commodity"
+        confirmLabel="Deactivate"
+        cancelLabel="Cancel"
+        isBusy={isDeactivating}
+        onCancel={() => setDeactivatingCommodity(null)}
+        onConfirm={async () => {
+          if (!deactivatingCommodity) return;
+          setIsDeactivating(true);
+          try {
+            await handleToggleActive(deactivatingCommodity);
+          } finally {
+            setIsDeactivating(false);
+            setDeactivatingCommodity(null);
+          }
+        }}
+        message={
+          <>
+            Are you sure you want to deactivate <strong>{deactivatingCommodity?.name}</strong>?
+            Existing inward receipts, stock ledger records, and rent billing history will be
+            safely preserved, but this commodity cannot be selected for new inward receipts. You can
+            reactivate it at any time.
+          </>
+        }
+      />
     </div>
   );
 }

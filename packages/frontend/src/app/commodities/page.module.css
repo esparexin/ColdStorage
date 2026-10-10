@@ -74,6 +74,55 @@
   }
 }
 
+.matrixContainer {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.matrixTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface-1);
+}
+
+.matrixTh {
+  background: var(--color-surface-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.matrixTd {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.matrixTr:last-child .matrixTd {
+  border-bottom: none;
+}
+
+.matrixRowTitle {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.matrixRowSubtitle {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-0-5);
+}
+
 /* Form-scoped action row. It sits inside the <form> in the modal body, so it
    cannot use Modal's footer slot; mirrors the Modal footer separator. */
 .modalFooter {

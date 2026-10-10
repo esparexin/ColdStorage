@@ -10,6 +10,7 @@ interface CustomerAgreedRateSectionProps {
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+  onAddRate?: () => void;
 }
 
 function formatRate(value: number): string {
@@ -23,6 +24,7 @@ export function CustomerAgreedRateSection({
   loading,
   error,
   onRetry,
+  onAddRate,
 }: CustomerAgreedRateSectionProps) {
   const isSeasonal = rentType === 'Seasonal';
   const termBadgeText = isSeasonal
@@ -49,7 +51,15 @@ export function CustomerAgreedRateSection({
           <span className={styles.fieldErrorText} role="alert">
             No active {isSeasonal ? 'seasonal' : 'monthly'} rate is configured for this commodity. Ask an administrator to configure it in the Price Controller, then retry.
           </span>
-          <Button type="button" variant="outline" size="sm" onClick={onRetry}>Retry</Button>
+          {onAddRate ? (
+            <Button id="add-rate-btn" type="button" variant="outline" size="sm" onClick={onAddRate}>
+              Add Rate
+            </Button>
+          ) : (
+            <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+              Retry
+            </Button>
+          )}
         </div>
       ) : (
         <div className={styles.rateInputsGrid}>
