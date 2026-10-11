@@ -99,8 +99,16 @@ export function useCreateDeliveryForm(
           const data = (await invRes.json()) as { summary: GrnInventorySummary };
           setGrnSummary(data.summary);
           const { availableSmallBags: s, availableBigBags: b } = data.summary;
-          setBagCategory(s > 0 && b > 0 ? 'Small & Big' : b > 0 ? 'Big' : 'Small');
-          setWithdrawal({ availableSmall: s, availableBig: b, smallBags: '', bigBags: '' });
+          const totalStock = s + b;
+          const isSb = matched?.bagType === 'S+B' || matched?.bagType === 'S/B';
+          const isSeg = s > 0 && b > 0;
+          const isComb = isSb && !isSeg;
+          setBagCategory(isComb || isSeg ? 'Small & Big' : b > 0 ? 'Big' : 'Small');
+          setWithdrawal({
+            availableSmall: isComb ? totalStock : s,
+            availableBig: isComb ? totalStock : b,
+            smallBags: '', bigBags: '',
+          });
         }
         if (rateRes && rateRes.ok) {
           const rData = (await rateRes.json()) as { rate?: { smallRate: number; bigRate: number } };
@@ -137,18 +145,10 @@ export function useCreateDeliveryForm(
   });
 
   const outwardRent = computeOutwardRentCharge({
-    rentType: selectedGrn?.rentType ?? 'Seasonal',
-    bagCategory,
-    smallBags,
-    bigBags,
-    rentMonths: billableRentMonths,
-    inwardDate: selectedGrn?.date,
-    deliveryDate: deliveryDateVal,
-    smallBagPrice: selectedGrn?.smallBagPrice,
-    bigBagPrice: selectedGrn?.bigBagPrice,
-    bagPrice: selectedGrn?.bagPrice,
-    monthlySmallBagPrice: monthlyCommodityRates?.small,
-    monthlyBigBagPrice: monthlyCommodityRates?.big,
+    rentType: selectedGrn?.rentType ?? 'Seasonal', bagCategory, smallBags, bigBags,
+    rentMonths: billableRentMonths, inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal,
+    smallBagPrice: selectedGrn?.smallBagPrice, bigBagPrice: selectedGrn?.bigBagPrice, bagPrice: selectedGrn?.bagPrice,
+    monthlySmallBagPrice: monthlyCommodityRates?.small, monthlyBigBagPrice: monthlyCommodityRates?.big,
   });
 
   const handleBagCategoryChange = (cat: OutwardBagCategory) => {
@@ -186,9 +186,14 @@ export function useCreateDeliveryForm(
     e.preventDefault();
     if (!facilityId) return;
 
+    const isSb = selectedGrn?.bagType === 'S+B' || selectedGrn?.bagType === 'S/B';
+    const isSeg = (grnSummary?.availableSmallBags ?? 0) > 0 && (grnSummary?.availableBigBags ?? 0) > 0;
+    const totalAvail = (grnSummary?.availableSmallBags ?? 0) + (grnSummary?.availableBigBags ?? 0);
+
     const validation = validateDeliveryForm({
       createGrnId, createDate, smallBags, bigBags, totalWithdrawingBags,
       availableSmall: withdrawal.availableSmall, availableBig: withdrawal.availableBig,
+      availableTotal: totalAvail, isCombinedPool: isSb && !isSeg,
       createVehicleNumber, createGpNumber, createDriverName, isLoanHoldActive,
       selectedGrnNumber: selectedGrn?.grnNumber,
       selectedGrnDate: selectedGrn?.date,

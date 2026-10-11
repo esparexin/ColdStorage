@@ -55,10 +55,27 @@ export function DeliveryBagCompositionFields({
 }: DeliveryBagCompositionFieldsProps) {
   const { bags: bagsError, smallBags: smallError, bigBags: bigError } = fieldErrors;
   const availableTotal = summary.availableSmallBags + summary.availableBigBags;
+  const isSbLot = bagType === 'S+B' || bagType === 'S/B';
+  const isSegregated = summary.availableSmallBags > 0 && summary.availableBigBags > 0;
+  const isCombinedPool = isSbLot && !isSegregated;
+
+  const maxSmall = isCombinedPool ? availableTotal : summary.availableSmallBags;
+  const maxBig = isCombinedPool ? availableTotal : summary.availableBigBags;
+
   const rates = resolveOutwardRates(rentType, { smallBagPrice, bigBagPrice, bagPrice });
   const smallQty = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigQty = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
   const quantity = smallQty + bigQty;
+  const remainingStock = availableTotal - quantity;
+  const isOverLimit = quantity > availableTotal;
+
+  const smallHint = isCombinedPool
+    ? `Available in Lot: ${availableTotal.toLocaleString('en-IN')} • Rate: ₹${rates.small}/bag`
+    : `Available: ${summary.availableSmallBags.toLocaleString('en-IN')} • Rate: ₹${rates.small}/bag`;
+
+  const bigHint = isCombinedPool
+    ? `Available in Lot: ${availableTotal.toLocaleString('en-IN')} • Rate: ₹${rates.big}/bag`
+    : `Available: ${summary.availableBigBags.toLocaleString('en-IN')} • Rate: ₹${rates.big}/bag`;
 
   return (
     <>
@@ -72,7 +89,7 @@ export function DeliveryBagCompositionFields({
             type="number"
             inputMode="numeric"
             min={0}
-            max={summary.availableSmallBags}
+            max={maxSmall}
             placeholder="0"
             className={`${pageStyles.fieldInput} ${bagsError || smallError ? styles.inputError : ''}`}
             value={withdrawal.smallBags}
@@ -80,9 +97,7 @@ export function DeliveryBagCompositionFields({
             aria-describedby={smallError ? 'delivery-small-error' : undefined}
             onChange={(e) => onSmallBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')}
           />
-          <span className={styles.rateHint}>
-            Available: {summary.availableSmallBags.toLocaleString('en-IN')} • Rate: ₹{rates.small}/bag
-          </span>
+          <span className={styles.rateHint}>{smallHint}</span>
           {smallError && (
             <span id="delivery-small-error" className={styles.fieldErrorText} role="alert">
               {smallError}
@@ -99,7 +114,7 @@ export function DeliveryBagCompositionFields({
             type="number"
             inputMode="numeric"
             min={0}
-            max={summary.availableBigBags}
+            max={maxBig}
             placeholder="0"
             className={`${pageStyles.fieldInput} ${bagsError || bigError ? styles.inputError : ''}`}
             value={withdrawal.bigBags}
@@ -107,9 +122,7 @@ export function DeliveryBagCompositionFields({
             aria-describedby={bigError ? 'delivery-big-error' : undefined}
             onChange={(e) => onBigBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')}
           />
-          <span className={styles.rateHint}>
-            Available: {summary.availableBigBags.toLocaleString('en-IN')} • Rate: ₹{rates.big}/bag
-          </span>
+          <span className={styles.rateHint}>{bigHint}</span>
           {bigError && (
             <span id="delivery-big-error" className={styles.fieldErrorText} role="alert">
               {bigError}
@@ -126,8 +139,13 @@ export function DeliveryBagCompositionFields({
 
       <div className={styles.totalDeliveringRow}>
         <span>Total Delivering Quantity:</span>
-        <span className={styles.totalHighlight}>
+        <span className={`${styles.totalHighlight} ${isOverLimit ? styles.overLimit : ''}`}>
           {quantity.toLocaleString('en-IN')} of {availableTotal.toLocaleString('en-IN')} bags
+          <span className={styles.remainingHighlight}>
+            ({isOverLimit
+              ? `Exceeds stock by ${(quantity - availableTotal).toLocaleString('en-IN')} bags`
+              : `Remaining: ${remainingStock.toLocaleString('en-IN')} bags`})
+          </span>
         </span>
       </div>
 

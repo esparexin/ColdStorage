@@ -32,6 +32,16 @@
   color: var(--color-primary);
 }
 
+.remainingHighlight {
+  font-weight: var(--font-normal);
+  color: var(--color-text-secondary);
+  margin-left: var(--space-1);
+}
+
+.overLimit {
+  color: var(--color-danger);
+}
+
 
 
 .inputError {
