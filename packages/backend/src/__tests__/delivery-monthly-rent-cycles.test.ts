@@ -18,7 +18,7 @@ describe('Outward Delivery Monthly Rent Dynamic Cycle Calculation', () => {
 
   beforeAll(async () => {
     await connectToTestDatabase();
-  });
+  }, 30000);
 
   afterAll(disconnectTestDatabase);
 
