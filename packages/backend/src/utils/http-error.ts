@@ -76,6 +76,11 @@ export function statusForDomainError(message: string): 400 | 403 | 404 | 409 {
 /**
  * Writes a domain error to the response using the canonical classification.
  * `fallbackMessage` is used when the thrown value carries no message.
+ *
+ * Response envelope SSOT note (F29, non-breaking): success shapes vary by
+ * domain ({entity} vs {items,total} vs {success:true}) and are preserved for
+ * frontend compatibility. Error shape is uniforme {error:message}. Do not add
+ * a second `code` field without a contract minor + frontend trace.
  */
 export function sendServiceError(res: Response, err: unknown, fallbackMessage: string): void {
   const message = err instanceof Error ? err.message : fallbackMessage;
