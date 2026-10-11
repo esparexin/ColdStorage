@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { can, type DeliveryChallan, type Grn, type Role, type RentSummaryDto } from '@cold-storage/contracts';
+import { type DeliveryChallan, type Grn, type RentSummaryDto } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { Banner } from '@/components/ui/Banner';
 import { EMPTY_MESSAGES, ERROR_TITLES, LOADING_LABELS, PRINT_MESSAGES, emptyForFacility } from '@/components/ui/stateCopy';
-import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useFacility } from '@/context/FacilityContext';
 import { printHtmlDocument } from '@/lib/print-document';
 import { requestWithAuth } from '@/lib/api-client';
@@ -20,7 +20,7 @@ import { useDeliveries } from './hooks/useDeliveries';
 import styles from './page.module.css';
 
 export default function DeliveriesPage() {
-  const { user } = useAuth();
+  const { hasPermission } = usePermissions();
   const { selectedFacilityId, availableFacilities } = useFacility();
   const deliveryData = useDeliveries(selectedFacilityId, availableFacilities);
 
@@ -43,12 +43,10 @@ export default function DeliveriesPage() {
     if (action === 'create' || tab === 'issue') setActiveView('issue');
     if (grnId) setInitialGrnId(grnId);
   }, []);
-
-  const userRole = (user?.role ?? 'READ_ONLY') as Role;
-  const canCreate = can(userRole, 'delivery:create');
-  const canPrint = can(userRole, 'document:print');
-  const canCollectRent = can(userRole, 'rent:collect');
-  const canUpdateLoan = can(userRole, 'grn:create');
+  const canCreate = hasPermission('delivery:create');
+  const canPrint = hasPermission('document:print');
+  const canCollectRent = hasPermission('rent:collect');
+  const canUpdateLoan = hasPermission('grn:create');
 
   const handleViewChange = (view: DeliveryViewTab) => {
     setActiveView(view);

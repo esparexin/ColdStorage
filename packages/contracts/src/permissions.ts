@@ -41,6 +41,8 @@ export const PERMISSIONS = {
   'commodity:manage': ['SUPER_ADMIN', 'ADMIN'],
   'commodity:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   'user:manage': ['SUPER_ADMIN'],
+  /** Create, update and delete customizable role definitions. */
+  'role:manage': ['SUPER_ADMIN'],
   'document:print': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
   'import:execute': ['SUPER_ADMIN', 'ADMIN'],
   'export:execute': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
@@ -55,12 +57,117 @@ export const PERMISSIONS = {
 
 export type PermissionKey = keyof typeof PERMISSIONS;
 
+/** Stable catalog of every assignable permission key. */
+export const PERMISSION_KEYS = Object.keys(PERMISSIONS) as PermissionKey[];
+
+export const permissionKeySchema = z.enum(PERMISSION_KEYS as [PermissionKey, ...PermissionKey[]]);
+
+/**
+ * Sidebar-aligned grouping so role editors render the same sections
+ * as the application menu without hardcoding a second list.
+ */
+export const PERMISSION_GROUPS = {
+  Operations: [
+    'dashboard:view',
+    'grn:create',
+    'grn:view',
+    'grn:correct',
+    'allocation:manage',
+    'inventory:view',
+    'delivery:create',
+    'delivery:view',
+    'delivery:reversal',
+    'rent:collect',
+    'rent:view',
+    'rent:print',
+    'rent:extend',
+    'document:print',
+    'group:view',
+    'group:manage',
+    'group:delete',
+  ],
+  'Master Data': ['customer:view', 'customer:manage', 'commodity:view', 'commodity:manage', 'facility:view'],
+  Administration: [
+    'user:manage',
+    'role:manage',
+    'settings:manage',
+    'audit:view',
+    'backup:manage',
+    'import:execute',
+    'export:execute',
+  ],
+} as const satisfies Record<string, readonly PermissionKey[]>;
+
+export type PermissionGroupName = keyof typeof PERMISSION_GROUPS;
+
+/** Reusable role-definition identity: UPPER_SNAKE, e.g. BILLING_CLERK. */
+export const roleKeySchema = z
+  .string()
+  .trim()
+  .min(2)
+  .max(40)
+  .regex(/^[A-Z][A-Z0-9_]*$/, 'Role key must be UPPER_SNAKE (letters, numbers, underscores)');
+
+export const roleIdSchema = z.string().trim().min(1).max(80);
+
+export const roleDefinitionSchema = z.object({
+  id: roleIdSchema,
+  key: roleKeySchema,
+  displayName: z.string().trim().min(2).max(80),
+  description: z.string().trim().max(280).default(''),
+  permissions: z.array(permissionKeySchema).min(1, 'Role must grant at least one permission'),
+  hasGlobalFacilityScope: z.boolean().default(false),
+  isSystem: z.boolean().default(false),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+
+export type RoleDefinition = z.infer<typeof roleDefinitionSchema>;
+
+export const createRoleSchema = z.object({
+  key: roleKeySchema,
+  displayName: z.string().trim().min(2).max(80),
+  description: z.string().trim().max(280).default(''),
+  permissions: z.array(permissionKeySchema).min(1, 'Role must grant at least one permission'),
+  hasGlobalFacilityScope: z.boolean().default(false),
+});
+
+export type CreateRole = z.infer<typeof createRoleSchema>;
+
+export const updateRoleSchema = z
+  .object({
+    displayName: z.string().trim().min(2).max(80),
+    description: z.string().trim().max(280),
+    permissions: z.array(permissionKeySchema).min(1, 'Role must grant at least one permission'),
+    hasGlobalFacilityScope: z.boolean(),
+  })
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'At least one updatable field must be provided',
+  });
+
+export type UpdateRole = z.infer<typeof updateRoleSchema>;
+
 /**
  * Checks if a given role is granted a specific permission.
+ * Legacy static-matrix check. Prefer `hasPermission` for DB-resolved roles.
  */
 export function can(role: Role, permission: PermissionKey): boolean {
   const allowedRoles = PERMISSIONS[permission] as readonly Role[];
   return allowedRoles.includes(role);
+}
+
+/** Permission-set check for customizable roles resolved from the database. */
+export function hasPermission(granted: readonly PermissionKey[], permission: PermissionKey): boolean {
+  return granted.includes(permission);
+}
+
+/**
+ * Derives the static permission set for a legacy system role.
+ * Used to seed system RoleDefinitions so behavior stays bit-for-bit identical.
+ */
+export function permissionsForRole(role: Role): PermissionKey[] {
+  return (Object.keys(PERMISSIONS) as PermissionKey[]).filter((key) => can(role, key));
 }
 
 /**

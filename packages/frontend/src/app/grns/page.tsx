@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
-import { can, type Grn, type Role } from '@cold-storage/contracts';
+import { type Grn } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { Banner } from '@/components/ui/Banner';
 import { Button } from '@/components/ui/Button';
@@ -14,7 +14,7 @@ import {
   PRINT_MESSAGES,
   emptyForFacility,
 } from '@/components/ui/stateCopy';
-import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useFacility } from '@/context/FacilityContext';
 import { printHtmlDocument } from '@/lib/print-document';
 import { GrnFilterToolbar } from './components/GrnFilterToolbar';
@@ -25,9 +25,8 @@ import { useGrns } from './hooks/useGrns';
 import styles from './page.module.css';
 
 export default function GrnsPage() {
-  const router = useRouter();
-  const { user } = useAuth();
-  const { selectedFacilityId, availableFacilities } = useFacility();
+  const { hasPermission } = usePermissions();
+  const router = useRouter();  const { selectedFacilityId, availableFacilities } = useFacility();
   const grnData = useGrns(selectedFacilityId, availableFacilities);
 
   const [selectedGrn, setSelectedGrn] = useState<Grn | null>(null);
@@ -53,13 +52,11 @@ export default function GrnsPage() {
     }
     return () => window.removeEventListener('select-grn', handleSelectEvent);
   }, [grnData.grns]);
-
-  const userRole = (user?.role ?? 'READ_ONLY') as Role;
-  const canCreate = can(userRole, 'grn:create');
-  const canPrint = can(userRole, 'document:print');
-  const canManageLoan = can(userRole, 'grn:create');
-  const canCorrect = can(userRole, 'grn:correct');
-  const canCreateChallan = can(userRole, 'delivery:create');
+  const canCreate = hasPermission('grn:create');
+  const canPrint = hasPermission('document:print');
+  const canManageLoan = hasPermission('grn:create');
+  const canCorrect = hasPermission('grn:correct');
+  const canCreateChallan = hasPermission('delivery:create');
 
   const handlePrint = async (type: 'grn' | 'receipt', grnId: string) => {
     if (!selectedFacilityId) return;

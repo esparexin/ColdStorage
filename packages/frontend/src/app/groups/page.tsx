@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { can, type Group, type Role } from '@cold-storage/contracts';
+import { type Group } from '@cold-storage/contracts';
 import { Button, FeedbackStates, SearchBar } from '@/components/ui';
 import {
   EMPTY_MESSAGES,
@@ -10,7 +10,7 @@ import {
   LOADING_LABELS,
   noMatchMessage,
 } from '@/components/ui/stateCopy';
-import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useFacility } from '@/context/FacilityContext';
 import { AssignGrnsModal } from './components/AssignGrnsModal';
 import { CreateGroupModal } from './components/CreateGroupModal';
@@ -23,7 +23,7 @@ import { useGroupsData } from './hooks/useGroupsData';
 import styles from './page.module.css';
 
 export default function GroupsPage() {
-  const { user } = useAuth();
+  const { hasPermission } = usePermissions();
   const { selectedFacilityId } = useFacility();
   const {
     groups,
@@ -46,10 +46,8 @@ export default function GroupsPage() {
   const [assignGroup, setAssignGroup] = useState<Group | null>(null);
   const [deleteGroup, setDeleteGroup] = useState<Group | null>(null);
   const [moveState, setMoveState] = useState<{ sourceGroup: Group; grnIds: string[] } | null>(null);
-
-  const userRole = (user?.role ?? 'READ_ONLY') as Role;
-  const canManage = can(userRole, 'group:manage');
-  const canDelete = can(userRole, 'group:delete');
+  const canManage = hasPermission('group:manage');
+  const canDelete = hasPermission('group:delete');
 
   return (
     <div className={styles.page}>

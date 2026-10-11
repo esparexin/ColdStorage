@@ -1,10 +1,9 @@
 'use client';
 
 import React, { Suspense, useCallback, useState } from 'react';
-import { can, type Role } from '@cold-storage/contracts';
 import { ConfirmDialog, FeedbackStates } from '@/components/ui';
 import { ACCESS_MESSAGES, ERROR_TITLES, LOADING_LABELS } from '@/components/ui/stateCopy';
-import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { BackupTab } from './components/BackupTab';
@@ -22,9 +21,8 @@ function SettingsPageInner() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
-  const userRole = (user?.role ?? 'READ_ONLY') as Role;
-  const canManageSettings = can(userRole, 'settings:manage');
+  const { hasPermission } = usePermissions();
+  const canManageSettings = hasPermission('settings:manage');
 
   const rawTab = searchParams.get('tab');
   const activeTab: SettingsTabId = isTabId(rawTab) ? rawTab : 'organization';

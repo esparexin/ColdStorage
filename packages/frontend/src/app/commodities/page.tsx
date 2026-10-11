@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { can, type Commodity, type Role } from '@cold-storage/contracts';
+import { type Commodity } from '@cold-storage/contracts';
 import { Button, ConfirmDialog, FeedbackStates, SearchBar } from '@/components/ui';
 import {
   EMPTY_MESSAGES,
@@ -10,7 +10,7 @@ import {
   LOADING_LABELS,
   noMatchMessage,
 } from '@/components/ui/stateCopy';
-import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { CommodityFormModal } from './components/CommodityFormModal';
 import { CommodityRatesModal } from './components/CommodityRatesModal';
 import { CommodityTable } from './components/CommodityTable';
@@ -18,7 +18,7 @@ import { useCommodities } from './hooks/useCommodities';
 import styles from './page.module.css';
 
 export default function CommoditiesPage() {
-  const { user } = useAuth();
+  const { hasPermission } = usePermissions();
   const {
     commodities,
     ratesMap,
@@ -41,9 +41,7 @@ export default function CommoditiesPage() {
   const [ratesCommodity, setRatesCommodity] = useState<Commodity | null>(null);
   const [deactivatingCommodity, setDeactivatingCommodity] = useState<Commodity | null>(null);
   const [isDeactivating, setIsDeactivating] = useState(false);
-
-  const userRole = (user?.role ?? 'READ_ONLY') as Role;
-  const canManage = can(userRole, 'commodity:manage');
+  const canManage = hasPermission('commodity:manage');
 
   const openCreateModal = () => {
     setIsModalOpen(true);

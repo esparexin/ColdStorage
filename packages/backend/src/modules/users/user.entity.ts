@@ -8,6 +8,7 @@ export interface UserEntity {
   mobile: string;
   email: string;
   role: Role;
+  roleId?: string | null;
   facilityIds: string[];
   status: UserStatus;
   passwordHash: string;

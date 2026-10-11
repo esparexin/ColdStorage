@@ -12,6 +12,11 @@ import { verifyAccessToken } from '../utils/crypto.js';
 export interface GateState {
   status: string;
   mustChangePassword: boolean;
+  role: string;
+  roleId: string | null;
+  facilityIds: string[];
+  permissions: string[];
+  hasGlobalScope: boolean;
 }
 
 declare global {
@@ -48,7 +53,15 @@ export async function authenticate(
   // forced-password-change flag must take effect immediately rather than lingering
   // until the access token expires, so both resolve from the canonical MongoDB
   // record rather than the (potentially stale) token claims.
-  let gate: { status: string; mustChangePassword: boolean } | null;
+  // Role, facility scope and permissions resolve the same way so role changes
+  // take effect on the very next request instead of waiting for token refresh.
+  let gate: {
+    status: string;
+    mustChangePassword: boolean;
+    role: string;
+    roleId?: string | null;
+    facilityIds: string[];
+  } | null;
   try {
     gate = await userRepository.findGateStateById(payload.userId);
   } catch {
@@ -64,10 +77,41 @@ export async function authenticate(
     return;
   }
 
+  let permissions: string[] = [];
+  let hasGlobalScope = false;
+  try {
+    const { roleService } = await import('../modules/roles/role.service.js');
+    const resolved = await roleService.resolvePermissionsForUser({
+      role: gate.role as never,
+      roleId: gate.roleId ?? null,
+    });
+    permissions = [...resolved.permissions];
+    hasGlobalScope = resolved.hasGlobalScope;
+  } catch {
+    const { permissionsForRole, hasGlobalFacilityScope } = await import('@cold-storage/contracts');
+    permissions = [...permissionsForRole(gate.role as never)];
+    hasGlobalScope = hasGlobalFacilityScope(gate.role as never);
+  }
+
   // Stash it so requirePasswordChanged, which runs immediately after this on
   // the same request, does not issue the identical query a second time.
-  req.gateState = { status: gate.status, mustChangePassword: gate.mustChangePassword };
-  req.user = { ...payload, mustChangePassword: gate.mustChangePassword };
+  req.gateState = {
+    status: gate.status,
+    mustChangePassword: gate.mustChangePassword,
+    role: gate.role,
+    roleId: gate.roleId ?? null,
+    facilityIds: gate.facilityIds,
+    permissions,
+    hasGlobalScope,
+  };
+  req.user = {
+    ...payload,
+    role: gate.role as never,
+    roleId: gate.roleId ?? payload.roleId,
+    permissions: permissions as never,
+    facilityIds: gate.facilityIds,
+    mustChangePassword: gate.mustChangePassword,
+  };
   next();
 }
 

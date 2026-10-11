@@ -2,23 +2,30 @@
 
 import React, { useState } from 'react';
 import { Plus, RefreshCw, ShieldAlert } from 'lucide-react';
-import { can, type Role, type UserSummary } from '@cold-storage/contracts';
+import { type UserSummary } from '@cold-storage/contracts';
 import { Banner, Button, Card } from '@/components/ui';
 import { ACCESS_MESSAGES } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useFacility } from '@/context/FacilityContext';
 import { UserFilterBar } from './components/UserFilterBar';
 import { UserLifecycleModals } from './components/UserLifecycleModals';
 import { UserTable } from './components/UserTable';
+import { RolesSection } from './components/RolesSection';
 import { useUserLifecycle, type UserEditDraft } from './hooks/useUserLifecycle';
+import { useRolesData } from './hooks/useRolesData';
 import { useUsersData } from './hooks/useUsersData';
 import styles from './page.module.css';
 
 export default function UsersPage() {
   const { user } = useAuth();
-  const userRole = (user?.role ?? 'READ_ONLY') as Role;
-  const canManage = can(userRole, 'user:manage');
+  const { hasPermission } = usePermissions();
+  const canManage = hasPermission('user:manage');
+  const canManageRoles = hasPermission('role:manage');
   const { availableFacilities } = useFacility();
+  const [activeTab, setActiveTab] = useState<'users' | 'roles'>('users');
+
+  const { roles, fetchRoles } = useRolesData(canManage);
 
   const {
     totalUsers,
@@ -34,7 +41,12 @@ export default function UsersPage() {
     setRoleFilter,
     filteredUsers,
     fetchUsers,
-  } = useUsersData(canManage);
+  } = useUsersData(canManage, roles);
+
+  const roleDisplayById = React.useMemo(
+    () => new Map(roles.map((r) => [r.id, `${r.displayName} (${r.key})`])),
+    [roles],
+  );
 
   const [showModal, setShowModal] = useState(false);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -116,40 +128,67 @@ export default function UsersPage() {
 
       {actionSuccess && <Banner variant="success" message={actionSuccess} />}
 
-      <UserFilterBar
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        roleFilter={roleFilter}
-        onRoleFilterChange={setRoleFilter}
-      />
+      <div role="tablist" aria-label="User management views" className={styles.headerActions}>
+        <Button variant={activeTab === 'users' ? 'primary' : 'outline'} onClick={() => setActiveTab('users')} aria-selected={activeTab === 'users'} role="tab">
+          Users
+        </Button>
+        <Button variant={activeTab === 'roles' ? 'primary' : 'outline'} onClick={() => setActiveTab('roles')} aria-selected={activeTab === 'roles'} role="tab">
+          Roles
+        </Button>
+      </div>
 
-      <section className={styles.tableSection}>
-        <UserTable
+      {activeTab === 'users' && (
+        <>
+          <UserFilterBar
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            roleFilter={roleFilter}
+            onRoleFilterChange={setRoleFilter}
+            availableRoles={roles}
+          />
+
+          <section className={styles.tableSection}>
+            <UserTable
+              users={filteredUsers}
+              totalUsers={totalUsers}
+              loading={loadingUsers}
+              error={loadError}
+              onRetry={() => void fetchUsers()}
+              page={page}
+              totalPages={totalPages}
+              searchTerm={searchTerm}
+              roleFilter={roleFilter}
+              facilityNameMap={facilityNameMap}
+              roleDisplayById={roleDisplayById}
+              currentUserId={user?.userId ?? null}
+              actionsBusy={lifecycle.saving}
+              onPageChange={setPage}
+              onOpenCreate={() => setShowModal(true)}
+              onEditUser={setEditingUser}
+              onResetPassword={setResettingUser}
+              onToggleStatus={(target) => void handleToggleStatus(target)}
+            />
+          </section>
+        </>
+      )}
+
+      {activeTab === 'roles' && (
+        <RolesSection
           users={filteredUsers}
-          totalUsers={totalUsers}
-          loading={loadingUsers}
-          error={loadError}
-          onRetry={() => void fetchUsers()}
-          page={page}
-          totalPages={totalPages}
-          searchTerm={searchTerm}
-          roleFilter={roleFilter}
-          facilityNameMap={facilityNameMap}
-          currentUserId={user?.userId ?? null}
-          actionsBusy={lifecycle.saving}
-          onPageChange={setPage}
-          onOpenCreate={() => setShowModal(true)}
-          onEditUser={setEditingUser}
-          onResetPassword={setResettingUser}
-          onToggleStatus={(target) => void handleToggleStatus(target)}
+          canManageRoles={canManageRoles}
+          onChanged={() => {
+            void fetchRoles();
+            void fetchUsers();
+          }}
         />
-      </section>
+      )}
 
       <UserLifecycleModals
         provisioningOpen={showModal}
         editingUser={editingUser}
         resettingUser={resettingUser}
         availableFacilities={availableFacilities}
+        availableRoles={roles}
         saving={lifecycle.saving}
         error={lifecycle.actionError}
         onCloseProvisioning={() => setShowModal(false)}

@@ -1,19 +1,21 @@
 'use client';
 
-import { useState } from 'react';
-import type { Role } from '@cold-storage/contracts';
+import { useMemo, useState } from 'react';
+import type { RoleDefinition } from '@cold-storage/contracts';
 import { indianMobileSchema } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import type { FacilityOption } from '@/context/FacilityContext';
 
 interface UseProvisionUserFormProps {
   availableFacilities: FacilityOption[];
+  availableRoles: RoleDefinition[];
   onClose: () => void;
   onSuccess: (message: string) => void;
 }
 
 export function useProvisionUserForm({
   availableFacilities,
+  availableRoles,
   onClose,
   onSuccess,
 }: UseProvisionUserFormProps) {
@@ -22,7 +24,20 @@ export function useProvisionUserForm({
   const [employeeId, setEmployeeId] = useState('');
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<Role>('OPERATOR');
+  const defaultRoleId = useMemo(
+    () =>
+      availableRoles.find((r) => r.key === 'OPERATOR')?.id ??
+      availableRoles.find((r) => !r.isSystem)?.id ??
+      availableRoles[0]?.id ??
+      '',
+    [availableRoles],
+  );
+  const [roleId, setRoleId] = useState(defaultRoleId);
+  const effectiveRoleId = roleId || defaultRoleId;
+  const selectedRole = useMemo(
+    () => availableRoles.find((r) => r.id === effectiveRoleId) ?? null,
+    [availableRoles, effectiveRoleId],
+  );
   const [selectedFacilityIds, setSelectedFacilityIds] = useState<string[]>(
     availableFacilities.length > 0 ? [availableFacilities[0].id] : [],
   );
@@ -48,6 +63,7 @@ export function useProvisionUserForm({
       return setCreateError('Mobile must be a valid 10-digit Indian number starting with 6-9.');
     if (!email.trim() || !email.includes('@'))
       return setCreateError('A valid email address is required.');
+    if (!effectiveRoleId) return setCreateError('A role must be selected.');
     if (selectedFacilityIds.length === 0)
       return setCreateError('User must be assigned to at least one facility.');
     if (temporaryPassword.length < 8)
@@ -64,7 +80,10 @@ export function useProvisionUserForm({
           employeeId: employeeId.trim(),
           mobile: mobile.trim(),
           email: email.trim(),
-          role,
+          roleId: effectiveRoleId,
+          role: selectedRole && ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'].includes(selectedRole.key)
+            ? selectedRole.key
+            : undefined,
           facilityIds: selectedFacilityIds,
           temporaryPassword,
         }),
@@ -95,8 +114,10 @@ export function useProvisionUserForm({
     setMobile,
     email,
     setEmail,
-    role,
-    setRole,
+    roleId: effectiveRoleId,
+    setRoleId,
+    selectedRole,
+    availableRoles,
     selectedFacilityIds,
     handleFacilityToggle,
     temporaryPassword,

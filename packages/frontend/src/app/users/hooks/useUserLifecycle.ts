@@ -9,6 +9,7 @@ export interface UserEditDraft {
   mobile: string;
   email: string;
   role: Role;
+  roleId?: string;
   facilityIds: string[];
 }
 
@@ -18,6 +19,7 @@ export function toUserEditDraft(user: UserSummary): UserEditDraft {
     mobile: user.mobile,
     email: user.email,
     role: user.role,
+    roleId: user.roleId,
     facilityIds: [...user.facilityIds],
   };
 }
@@ -44,6 +46,7 @@ export function useUserLifecycle(onMutated: () => void) {
         mobile: string;
         email: string;
         role: Role;
+        roleId: string;
         facilityIds: string[];
         status: UserStatus;
       }>,
@@ -122,6 +125,7 @@ export function useUserLifecycle(onMutated: () => void) {
         mobile: draft.mobile.trim(),
         email: draft.email.trim(),
         role: draft.role,
+        ...(draft.roleId ? { roleId: draft.roleId } : {}),
         facilityIds: draft.facilityIds,
       }),
     [patchUser],

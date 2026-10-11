@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { can, type AuditLogRecord, type Role } from '@cold-storage/contracts';
+import { type AuditLogRecord } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import {
   ACCESS_MESSAGES,
@@ -9,7 +9,7 @@ import {
   ERROR_TITLES,
   LOADING_LABELS,
 } from '@/components/ui/stateCopy';
-import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { AuditDetailModal } from './components/AuditDetailModal';
 import { AuditFilterToolbar } from './components/AuditFilterToolbar';
 import { AuditTable } from './components/AuditTable';
@@ -17,9 +17,8 @@ import { useAuditLogs } from './hooks/useAuditLogs';
 import styles from './page.module.css';
 
 export default function AuditLogsPage() {
-  const { user } = useAuth();
-  const userRole = (user?.role ?? 'READ_ONLY') as Role;
-  const canViewAudit = can(userRole, 'audit:view');
+  const { hasPermission } = usePermissions();
+  const canViewAudit = hasPermission('audit:view');
 
   const {
     logs,

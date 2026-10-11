@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { can, type Role, type RentSummaryDto } from '@cold-storage/contracts';
+import { type RentSummaryDto } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import {
   EMPTY_MESSAGES,
@@ -9,7 +9,7 @@ import {
   LOADING_LABELS,
   emptyForFacility,
 } from '@/components/ui/stateCopy';
-import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { CollectPaymentModal } from './components/CollectPaymentModal';
 import { RentFilterToolbar } from './components/RentFilterToolbar';
 import { RentHistoryModal } from './components/RentHistoryModal';
@@ -19,7 +19,7 @@ import { useRentData } from './hooks/useRentData';
 import styles from './page.module.css';
 
 export default function RentPage() {
-  const { user } = useAuth();
+  const { hasPermission } = usePermissions();
   const {
     selectedFacilityId,
     currentFacilityName,
@@ -44,10 +44,8 @@ export default function RentPage() {
 
   const [collectAccount, setCollectAccount] = useState<RentSummaryDto | null>(null);
   const [historyAccount, setHistoryAccount] = useState<RentSummaryDto | null>(null);
-
-  const userRole = (user?.role ?? 'READ_ONLY') as Role;
-  const canCollect = can(userRole, 'rent:collect');
-  const canPrint = can(userRole, 'rent:print');
+  const canCollect = hasPermission('rent:collect');
+  const canPrint = hasPermission('rent:print');
 
   const handlePaymentSuccess = (summary?: RentSummaryDto) => {
     setCollectAccount(null);

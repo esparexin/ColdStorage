@@ -1,14 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { Role, UserSummary } from '@cold-storage/contracts';
+import type { RoleDefinition, UserSummary } from '@cold-storage/contracts';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
 import { useFacility } from '@/context/FacilityContext';
 
 export const PAGE_SIZE = 20;
 
-export function useUsersData(canManage: boolean) {
+export function useUsersData(canManage: boolean, roles: RoleDefinition[] = []) {
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [page, setPage] = useState(1);
@@ -16,11 +16,11 @@ export function useUsersData(canManage: boolean) {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [searchTerm, setSearchTermRaw] = useState('');
-  const [roleFilter, setRoleFilterRaw] = useState<'' | Role>('');
+  const [roleFilter, setRoleFilterRaw] = useState<string>('');
 
   // Any filter change invalidates the current page number; without this the
   // table can land on an empty page of a shorter result set.
-  const setRoleFilter = useCallback((role: '' | Role) => {
+  const setRoleFilter = useCallback((role: string) => {
     setRoleFilterRaw(role);
     setPage(1);
   }, []);
@@ -70,8 +70,10 @@ export function useUsersData(canManage: boolean) {
   }, [canManage, fetchUsers]);
 
   const filteredUsers = useMemo(() => {
+    const roleKeyById = new Map(roles.map((r) => [r.id, r.key]));
     return users.filter((u) => {
-      const matchesRole = !roleFilter || u.role === roleFilter;
+      const userKey = (u.roleId && roleKeyById.get(u.roleId)) || u.role;
+      const matchesRole = !roleFilter || userKey === roleFilter || u.roleId === roleFilter;
       const term = searchTerm.toLowerCase();
       const matchesSearch =
         !searchTerm ||
@@ -82,7 +84,7 @@ export function useUsersData(canManage: boolean) {
         u.mobile.includes(term);
       return matchesRole && matchesSearch;
     });
-  }, [users, roleFilter, searchTerm]);
+  }, [users, roleFilter, searchTerm, roles]);
 
   const facilityNameMap = useMemo(() => {
     return new Map(availableFacilities.map((f) => [f.id, f.name || f.code]));

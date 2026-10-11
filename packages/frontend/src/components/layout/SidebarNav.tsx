@@ -20,8 +20,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { can, type PermissionKey, type Role } from '@cold-storage/contracts';
-import { useAuth } from '@/context/AuthContext';
+import type { PermissionKey } from '@cold-storage/contracts';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useSettings } from '@/context/SettingsContext';
 import { ORG_NAME_FALLBACK } from '@/lib/branding';
 import styles from './SidebarNav.module.css';
@@ -77,12 +77,10 @@ interface SidebarNavProps {
 
 export function SidebarNav({ isOpen = false, onClose }: SidebarNavProps) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { hasPermission } = usePermissions();
   // Same source as the header, so the two cannot show different names.
   const { settings } = useSettings();
   const orgName = settings?.orgName || ORG_NAME_FALLBACK;
-
-  const userRole = (user?.role ?? 'READ_ONLY') as Role;
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -130,7 +128,7 @@ export function SidebarNav({ isOpen = false, onClose }: SidebarNavProps) {
         </div>
 
       {NAV_SECTIONS.map((section) => {
-        const allowedItems = section.items.filter((item) => can(userRole, item.permission));
+        const allowedItems = section.items.filter((item) => hasPermission(item.permission));
         if (allowedItems.length === 0) {
           return null;
         }

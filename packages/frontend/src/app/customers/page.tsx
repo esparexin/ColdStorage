@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { can, type Customer, type Role } from '@cold-storage/contracts';
+import { type Customer } from '@cold-storage/contracts';
 import { Button, FeedbackStates, SearchBar } from '@/components/ui';
 import {
   EMPTY_MESSAGES,
@@ -10,7 +10,7 @@ import {
   LOADING_LABELS,
   noMatchMessage,
 } from '@/components/ui/stateCopy';
-import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useFacility } from '@/context/FacilityContext';
 import { CustomerFormModal } from './components/CustomerFormModal';
 import { CustomerTable } from './components/CustomerTable';
@@ -18,7 +18,7 @@ import { useCustomersData } from './hooks/useCustomersData';
 import styles from './page.module.css';
 
 export default function CustomersPage() {
-  const { user } = useAuth();
+  const { hasPermission } = usePermissions();
   const { selectedFacilityId } = useFacility();
   const {
     customers,
@@ -37,9 +37,7 @@ export default function CustomersPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-
-  const userRole = (user?.role ?? 'READ_ONLY') as Role;
-  const canManage = can(userRole, 'customer:manage');
+  const canManage = hasPermission('customer:manage');
 
   const openCreateModal = () => {
     setEditingCustomer(null);

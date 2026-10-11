@@ -9,6 +9,7 @@ export interface IUserDocument extends Document {
   mobile: string;
   email: string;
   role: Role;
+  roleId: string | null;
   facilityIds: string[];
   status: UserStatus;
   passwordHash: string;
@@ -27,6 +28,7 @@ const userSchema = new Schema<IUserDocument>(
     mobile: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, trim: true, lowercase: true, index: true },
     role: { type: String, enum: ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'], required: true },
+    roleId: { type: String, default: null, index: true },
     facilityIds: { type: [String], required: true, default: [] },
     status: { type: String, enum: ['ACTIVE', 'DISABLED'], default: 'ACTIVE' },
     passwordHash: { type: String, required: true },

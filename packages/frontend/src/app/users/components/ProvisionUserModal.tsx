@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { Role } from '@cold-storage/contracts';
+import type { RoleDefinition } from '@cold-storage/contracts';
 import { Button, Modal, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { useProvisionUserForm } from '../hooks/useProvisionUserForm';
@@ -10,12 +10,14 @@ import styles from '../page.module.css';
 
 interface ProvisionUserModalProps {
   availableFacilities: FacilityOption[];
+  availableRoles: RoleDefinition[];
   onClose: () => void;
   onSuccess: (message: string) => void;
 }
 
 export function ProvisionUserModal({
   availableFacilities,
+  availableRoles,
   onClose,
   onSuccess,
 }: ProvisionUserModalProps) {
@@ -30,8 +32,9 @@ export function ProvisionUserModal({
     setMobile,
     email,
     setEmail,
-    role,
-    setRole,
+    roleId,
+    setRoleId,
+    selectedRole,
     selectedFacilityIds,
     handleFacilityToggle,
     temporaryPassword,
@@ -41,6 +44,7 @@ export function ProvisionUserModal({
     handleCreateUser,
   } = useProvisionUserForm({
     availableFacilities,
+    availableRoles,
     onClose,
     onSuccess,
   });
@@ -117,14 +121,22 @@ export function ProvisionUserModal({
                   id="user-role"
                   label="Role"
                   required
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as Role)}
+                  value={roleId}
+                  onChange={(e) => setRoleId(e.target.value)}
                 >
-                  <option value="OPERATOR">OPERATOR (Weighbridge, GRN, Put-away, Challan)</option>
-                  <option value="ADMIN">ADMIN (Facility Supervisor, Approvals)</option>
-                  <option value="READ_ONLY">READ_ONLY (Auditor, Viewer)</option>
-                  <option value="SUPER_ADMIN">SUPER_ADMIN (Complete System Authority)</option>
+                  {availableRoles.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.displayName} ({r.key})
+                    </option>
+                  ))}
                 </Select>
+                {selectedRole && (
+                  <p className={styles.warningNote} aria-live="polite">
+                    {selectedRole.permissions.length} permissions
+                    {selectedRole.hasGlobalFacilityScope ? ' · all facilities' : ''} —{' '}
+                    {selectedRole.description || selectedRole.key}
+                  </p>
+                )}
               </div>
 
               <div className={styles.formGroup}>

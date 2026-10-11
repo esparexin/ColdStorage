@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import { can, type Role } from '@cold-storage/contracts';
+import { } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { EMPTY_MESSAGES } from '@/components/ui/stateCopy';
-import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useFacility } from '@/context/FacilityContext';
 import { ExportPanel } from './components/ExportPanel';
 import { ImportPanel } from './components/ImportPanel';
@@ -12,12 +12,10 @@ import { useImportExport } from './hooks/useImportExport';
 import styles from './page.module.css';
 
 export default function ImportExportPage() {
-  const { user } = useAuth();
+  const { hasPermission } = usePermissions();
   const { selectedFacilityId } = useFacility();
-
-  const userRole = (user?.role ?? 'READ_ONLY') as Role;
-  const canImport = can(userRole, 'import:execute');
-  const canExport = can(userRole, 'export:execute');
+  const canImport = hasPermission('import:execute');
+  const canExport = hasPermission('export:execute');
 
   const {
     importTarget,
