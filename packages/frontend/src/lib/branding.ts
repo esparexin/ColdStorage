@@ -13,3 +13,11 @@ export const PRODUCT_NAME = 'Cold Storage Management';
  * header and the sidebar both read this so they cannot disagree.
  */
 export const ORG_NAME_FALLBACK = 'Cold Storage';
+
+/**
+ * Login page background image URL hosted securely on Cloudinary.
+ * Can be overridden via NEXT_PUBLIC_LOGIN_BACKGROUND_URL if needed.
+ */
+export const LOGIN_BACKGROUND_IMAGE_URL =
+  process.env.NEXT_PUBLIC_LOGIN_BACKGROUND_URL ||
+  'https://res.cloudinary.com/x5lea85k/image/upload/v1791726394/cold_storage/branding/login_bg_3d.jpg';

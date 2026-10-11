@@ -11,7 +11,7 @@ import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { LOADING_LABELS } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { useNumberInputWheel } from '@/hooks/useNumberInputWheel';
-import { PRODUCT_NAME } from '@/lib/branding';
+import { LOGIN_BACKGROUND_IMAGE_URL, PRODUCT_NAME } from '@/lib/branding';
 import styles from './ResponsiveShell.module.css';
 
 interface ResponsiveShellProps {
@@ -60,7 +60,11 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
     };
 
     return (
-      <div className={styles.loginContainer}>
+      <div
+        className={styles.loginContainer}
+        style={{ backgroundImage: `url(${LOGIN_BACKGROUND_IMAGE_URL})` }}
+      >
+        <div className={styles.loginOverlay} aria-hidden="true" />
         <div className={styles.loginCard}>
           <div className={styles.loginHeader}>
             <h1 className={styles.loginTitle}>{PRODUCT_NAME}</h1>
