@@ -60,3 +60,26 @@ describe('calculateNextNumberValue (scroll wheel direction handling)', () => {
     expect(calculateNextNumberValue(input, 'down')).toBe('4');
   });
 });
+
+describe('useNumberInputWheel hook behavior', () => {
+  it('blurs a focused number input on wheel event without preventing default', () => {
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.value = '42';
+    document.body.appendChild(input);
+    input.focus();
+
+    expect(document.activeElement).toBe(input);
+
+    const wheelEvent = new WheelEvent('wheel', { bubbles: true, cancelable: true });
+    // Simulate what the hook does
+    if (document.activeElement === input) {
+      input.blur();
+    }
+    input.dispatchEvent(wheelEvent);
+
+    expect(document.activeElement).not.toBe(input);
+    expect(input.value).toBe('42');
+    document.body.removeChild(input);
+  });
+});

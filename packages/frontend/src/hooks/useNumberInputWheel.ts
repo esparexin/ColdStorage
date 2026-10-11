@@ -87,90 +87,34 @@ export function applyInputValue(input: HTMLInputElement, nextValueStr: string): 
 }
 
 /**
- * Hook to normalize mouse wheel / trackpad scrolling on number fields across the application.
+ * Hook to prevent accidental increment/decrement of numeric input fields
+ * during mouse-wheel or trackpad scrolling across the entire application.
  *
  * Requirements:
- * - Scroll up -> increase value.
- * - Scroll down -> decrease value.
- * - Normal page scrolling does not change number values (only adjusts when actively focused).
- * - Prevents container/modal from scrolling while adjusting a focused number input.
+ * - Scrolling the page or modal must not accidentally change a numeric field's value.
+ * - Preserve normal page and modal scrolling (never call preventDefault).
+ * - Preserve direct keyboard entry and existing validation.
  */
 export function useNumberInputWheel(): void {
   useEffect(() => {
-    let accumulatedDelta = 0;
-    let lastTarget: HTMLInputElement | null = null;
-    let resetTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const TRACKPAD_THRESHOLD = 35;
-
     const handleWheel = (e: WheelEvent) => {
       const target = e.target;
       if (!(target instanceof HTMLInputElement) || target.type !== 'number') {
         return;
       }
 
-      // Ensure normal page scrolling does not accidentally change value.
-      // Only adjust value if the input is actively focused by the user.
-      if (document.activeElement !== target) {
-        return;
-      }
-
-      // Do not alter read-only or disabled fields
-      if (target.readOnly || target.disabled) {
-        return;
-      }
-
-      // Prevent container / page from scrolling while user is scrolling the focused number input
-      e.preventDefault();
-
-      if (target !== lastTarget) {
-        accumulatedDelta = 0;
-        lastTarget = target;
-      }
-
-      if (resetTimer) clearTimeout(resetTimer);
-      resetTimer = setTimeout(() => {
-        accumulatedDelta = 0;
-      }, 200);
-
-      const isDiscreteTick = Math.abs(e.deltaY) >= 50;
-      let direction: 'up' | 'down' | null = null;
-
-      if (isDiscreteTick) {
-        direction = e.deltaY < 0 ? 'up' : 'down';
-        accumulatedDelta = 0;
-      } else {
-        accumulatedDelta += e.deltaY;
-        if (accumulatedDelta <= -TRACKPAD_THRESHOLD) {
-          direction = 'up';
-          accumulatedDelta += TRACKPAD_THRESHOLD;
-        } else if (accumulatedDelta >= TRACKPAD_THRESHOLD) {
-          direction = 'down';
-          accumulatedDelta -= TRACKPAD_THRESHOLD;
-        }
-      }
-
-      if (direction) {
-        const nextValue = calculateNextNumberValue(target, direction);
-        if (nextValue !== null) {
-          applyInputValue(target, nextValue);
-        }
+      // If a number input is focused while the user scrolls, blur it immediately.
+      // This suppresses native browser step modification and allows container
+      // scroll to proceed smoothly without preventing default.
+      if (document.activeElement === target) {
+        target.blur();
       }
     };
 
-    const handleBlur = () => {
-      accumulatedDelta = 0;
-      lastTarget = null;
-      if (resetTimer) clearTimeout(resetTimer);
-    };
-
-    document.addEventListener('wheel', handleWheel, { capture: true, passive: false });
-    document.addEventListener('focusout', handleBlur, { capture: true });
+    document.addEventListener('wheel', handleWheel, { capture: true, passive: true });
 
     return () => {
       document.removeEventListener('wheel', handleWheel, { capture: true });
-      document.removeEventListener('focusout', handleBlur, { capture: true });
-      if (resetTimer) clearTimeout(resetTimer);
     };
   }, []);
 }

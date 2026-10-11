@@ -66,7 +66,7 @@ export function OutwardRentBreakdown({
         <table className={styles.breakdownTable}>
           <thead>
             <tr>
-              <th style={{ textAlign: 'left' }}>Period</th>
+              <th style={{ textAlign: 'left' }}>Rent Dates</th>
               <th style={{ textAlign: 'left' }}>Rent Details</th>
               <th style={{ textAlign: 'right' }}>Amount</th>
             </tr>

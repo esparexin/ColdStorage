@@ -126,8 +126,8 @@ export function useCreateDeliveryForm(
   );
 
   useEffect(() => {
-    if (initialGrnId && availableGrns.length > 0 && !createGrnId) {
-      if (availableGrns.some((g) => g.id === initialGrnId)) void handleSelectGrn(initialGrnId);
+    if (initialGrnId && availableGrns.length > 0 && !createGrnId && availableGrns.some((g) => g.id === initialGrnId)) {
+      void handleSelectGrn(initialGrnId);
     }
   }, [initialGrnId, availableGrns, createGrnId, handleSelectGrn]);
 
@@ -224,6 +224,15 @@ export function useCreateDeliveryForm(
     }
   };
 
+  const availableStock = grnSummary
+    ? grnSummary.availableSmallBags + grnSummary.availableBigBags
+    : (selectedGrn?.closingBags ?? selectedGrn?.bags ?? 0);
+  const isFormValid = Boolean(
+    selectedGrn && totalWithdrawingBags > 0 && totalWithdrawingBags <= availableStock &&
+    createDate.trim() && createVehicleNumber.trim() && createGpNumber.trim() &&
+    createDriverName.trim() && !isLoanHoldActive && !submitting,
+  );
+
   return {
     availableGrns, createGrnId, grnSummary, loadingGrnSummary, createDate,
     setCreateDate: (v: string) => { setCreateDate(v); clearFieldError('date'); },
@@ -231,12 +240,10 @@ export function useCreateDeliveryForm(
     setWithdrawalSmallBags, setWithdrawalBigBags, setWithdrawalQuantity: handleQuantityChange,
     createVehicleNumber, setCreateVehicleNumber: (v: string) => { setCreateVehicleNumber(v); clearFieldError('vehicleNumber'); },
     createDriverName, setCreateDriverName: (v: string) => { setCreateDriverName(v); clearFieldError('driverName'); },
-    createWeight, setCreateWeight, createGpNumber,
-    setCreateGpNumber: (v: string) => { setCreateGpNumber(v); clearFieldError('gpNumber'); },
+    createWeight, setCreateWeight, createGpNumber, setCreateGpNumber: (v: string) => { setCreateGpNumber(v); clearFieldError('gpNumber'); },
     createRemarks, setCreateRemarks, modalError, fieldErrors, clearFieldError, submitting,
     totalWithdrawingBags, fetchAvailableGrns, handleSelectGrn, handleSubmit, selectedGrn, isLoanHoldActive,
-    billableRentMonths,
-    monthlyCommodityRates,
-    rentSummary: rentGate.rentSummary, rentLoading: rentGate.rentLoading, refreshRentGate: rentGate.refreshRentGate,
+    billableRentMonths, monthlyCommodityRates, isFormValid, rentSummary: rentGate.rentSummary,
+    rentLoading: rentGate.rentLoading, refreshRentGate: rentGate.refreshRentGate,
   };
 }

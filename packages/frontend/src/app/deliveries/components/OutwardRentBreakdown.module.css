@@ -33,6 +33,8 @@
 
 .tableWrapper {
   overflow-x: auto;
+  max-height: 220px;
+  overflow-y: auto;
 }
 
 .breakdownTable {
