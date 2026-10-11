@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
+  calculateMonthlyElapsedCycles,
   calculateRentAmount,
   resolveOutwardRates,
   type BagComposition,
@@ -89,6 +90,7 @@ async function executeDeliveryTransaction(
       const withdrawnTotal = resolvedSmall + resolvedBig;
 
       const available = await validateStockAndBalances(facilityId, grn, withdrawal, session);
+      const deliveryDate = validateDeliveryDate(input.date);
 
       // Actual rent/charge calculation happens at Outward delivery using the single
       // effective-rate source of truth. Client rentCharge is reconciled, never trusted blindly.
@@ -97,6 +99,11 @@ async function executeDeliveryTransaction(
         bigBagPrice: grn.bigBagPrice,
         bagPrice: grn.bagPrice,
       });
+      const billableMonths =
+        grn.rentType === 'Monthly'
+          ? calculateMonthlyElapsedCycles(grn.date, deliveryDate)
+          : 1;
+
       const expectedRentCharge = calculateRentAmount({
         rentType: grn.rentType,
         bags: withdrawnTotal,
@@ -105,12 +112,12 @@ async function executeDeliveryTransaction(
         bigBags: resolvedBig,
         smallBagPrice: effectiveRates.small,
         bigBagPrice: effectiveRates.big,
-        rentMonths: grn.rentMonths ?? 1,
+        rentMonths: billableMonths,
       });
       if (input.rentCharge != null && input.rentCharge >= 0) {
         if (Math.abs(input.rentCharge - expectedRentCharge) > 0.01) {
           throw new Error(
-            `rentCharge mismatch: expected ₹${expectedRentCharge.toLocaleString('en-IN')} for ${resolvedSmall} Small × ₹${effectiveRates.small} + ${resolvedBig} Big × ₹${effectiveRates.big} over ${grn.rentType === 'Seasonal' ? 'season total' : `${grn.rentMonths ?? 1} mo`}, received ₹${input.rentCharge.toLocaleString('en-IN')}`,
+            `rentCharge mismatch: expected ₹${expectedRentCharge.toLocaleString('en-IN')} for ${resolvedSmall} Small × ₹${effectiveRates.small} + ${resolvedBig} Big × ₹${effectiveRates.big} over ${grn.rentType === 'Seasonal' ? 'season total' : `${billableMonths} mo`}, received ₹${input.rentCharge.toLocaleString('en-IN')}`,
           );
         }
       }
@@ -121,8 +128,6 @@ async function executeDeliveryTransaction(
         { id: grn.id, grnNumber: grn.grnNumber, rentAmount: grn.rentAmount ?? 0 },
         session,
       );
-
-      const deliveryDate = validateDeliveryDate(input.date);
 
       const challanNumber = await counterService.generateDeliveryChallanNumber(facilityId, deliveryDate, session);
       const deliveryId = `del-${randomUUID()}`;
@@ -215,10 +220,12 @@ async function executeDeliveryTransaction(
       );
 
       const closingTotal = available.total - withdrawnTotal;
+      const effectiveObligation = grn.rentAmount > 0 ? rentBalance.rentAmount : rentBalance.rentAmount + deliveryRentCharge;
+      const effectiveRemaining = Math.max(0, Number((effectiveObligation - rentBalance.totalPaid).toFixed(2)));
 
       // Closure invariant: A GRN is CLOSED only when both remainingBags === 0 AND remainingBalance === 0.
       // If bags reach 0 but rent balance remains, the GRN remains OPEN so outstanding dues are tracked.
-      if (closingTotal === 0 && rentBalance.remainingBalance === 0) {
+      if (closingTotal === 0 && effectiveRemaining === 0) {
         await GrnModel.updateOne({ id: grn.id }, { $set: { status: 'CLOSED' } }, { session });
       }
     });
