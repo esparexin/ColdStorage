@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import type { CreateRole, RoleDefinition, UpdateRole, UserSummary } from '@cold-storage/contracts';
 import { Banner, ConfirmDialog } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
+import { countUsersByRole } from '../hooks/roleCounts.helper';
 import { RoleFormModal } from './RoleFormModal';
 import { RolesTable } from './RolesTable';
 import styles from '../page.module.css';
@@ -49,19 +50,7 @@ export function RolesSection({
   const [deleting, setDeleting] = useState<RoleDefinition | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const userCountByRole = useMemo(() => {
-    const rolesById = new Map(roles.map((r) => [r.id, r]));
-    const rolesByKey = new Map(roles.map((r) => [r.key, r]));
-    const counts = new Map<string, number>();
-    for (const user of users) {
-      const byId = user.roleId ? rolesById.get(user.roleId) : undefined;
-      const key = byId?.key ?? user.role;
-      const target = rolesByKey.get(key);
-      const id = target?.id ?? user.roleId ?? user.role;
-      counts.set(id, (counts.get(id) ?? 0) + 1);
-    }
-    return counts;
-  }, [users, roles]);
+  const userCountByRole = useMemo(() => countUsersByRole(users, roles), [users, roles]);
 
   const assignedCount = (role: RoleDefinition): number => userCountByRole.get(role.id) ?? 0;
 
