@@ -32,7 +32,12 @@ const upload = multer({
 });
 
 const uploadSingleLogo = (req: Request, res: Response, next: NextFunction): void => {
-  upload.single('file')(req, res, (err: unknown) => {
+  const handler = upload.single('file') as unknown as (
+    req: Request,
+    res: Response,
+    next: (err?: unknown) => void,
+  ) => void;
+  handler(req, res, (err: unknown) => {
     if (err) {
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
