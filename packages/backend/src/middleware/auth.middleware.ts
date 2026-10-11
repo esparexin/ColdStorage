@@ -106,10 +106,10 @@ export async function authenticate(
   };
   req.user = {
     ...payload,
-    role: (gate.role as never) ?? payload.role,
+    role: gate.role as never,
     roleId: gate.roleId ?? payload.roleId,
-    permissions: (permissions as never) ?? payload.permissions,
-    facilityIds: gate.facilityIds ?? payload.facilityIds,
+    permissions: permissions as never,
+    facilityIds: gate.facilityIds,
     mustChangePassword: gate.mustChangePassword,
   };
   next();
