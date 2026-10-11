@@ -72,10 +72,10 @@ export function RolesTable({
           <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Locked</span>
         ) : (
           <span className={styles.rowActions}>
-            <Button variant="outline" aria-label={`Edit role ${r.key}`} onClick={() => onEdit(r)}>
+            <Button variant="outline" size="sm" aria-label={`Edit role ${r.key}`} onClick={() => onEdit(r)}>
               <Pencil size={14} aria-hidden="true" />
             </Button>
-            <Button variant="outline" aria-label={`Delete role ${r.key}`} onClick={() => onDelete(r)}>
+            <Button variant="outline" size="sm" aria-label={`Delete role ${r.key}`} onClick={() => onDelete(r)}>
               <Trash2 size={14} aria-hidden="true" />
             </Button>
           </span>

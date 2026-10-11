@@ -264,14 +264,13 @@ fi
 
 # 27. Single Bordered Surface SSOT:
 # DataTable renders its own bordered container; wrapping it in Card creates a duplicate outer border.
-# Baseline exception during active remediation: ConnectivitySection.tsx (remediated in Phase 3).
 DOUBLE_BORDER_HITS=$(python3 - <<EOF
 import os, re
 root = "$ROOT/packages/frontend/src/app"
 violations = []
 for dirpath, _, filenames in os.walk(root):
     for f in filenames:
-        if f.endswith('.tsx') and f != "ConnectivitySection.tsx":
+        if f.endswith('.tsx'):
             p = os.path.join(dirpath, f)
             with open(p, 'r', encoding='utf-8') as fp:
                 c = fp.read()
@@ -309,9 +308,7 @@ fi
 
 # 29. Shared Button Primitive SSOT:
 # Feature and utility components must consume Button primitive rather than raw <button>.
-# Baseline exception during active remediation: FeedbackStates.tsx (remediated in Phase 3).
-RAW_FEEDBACK_BTN_HITS=$(grep -rnE "<button(\b|[ >])" "$ROOT/packages/frontend/src/components/ui/FeedbackStates.tsx" 2>/dev/null \
-  | grep -v "FeedbackStates.tsx" || true)
+RAW_FEEDBACK_BTN_HITS=$(grep -rnE "<button(\b|[ >])" "$ROOT/packages/frontend/src/components/ui/FeedbackStates.tsx" 2>/dev/null || true)
 if [ -n "$RAW_FEEDBACK_BTN_HITS" ]; then
   echo "$RAW_FEEDBACK_BTN_HITS"
   fail "UI SSOT violation: raw <button> found in FeedbackStates.tsx. Use canonical Button primitive."

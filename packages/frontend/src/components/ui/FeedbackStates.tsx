@@ -4,6 +4,7 @@
  */
 
 import { AlertCircle, Inbox, Loader2 } from 'lucide-react';
+import { Button } from './Button';
 import styles from './FeedbackStates.module.css';
 
 // ---------------------------------------------------------------------------
@@ -46,9 +47,9 @@ function ErrorState({ title = 'Something went wrong', message, onRetry }: ErrorP
       {title && <h3 className={styles.title}>{title}</h3>}
       <p className={styles.message}>{message}</p>
       {onRetry && (
-        <button id="retry-button" className={styles.retryBtn} onClick={onRetry}>
+        <Button id="retry-button" variant="primary" size="sm" onClick={onRetry}>
           Try again
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -73,14 +74,14 @@ function Empty({ message = 'No data available.', action }: EmptyProps) {
       <Inbox size={32} className={styles.emptyIcon} aria-hidden="true" />
       <p className={styles.message}>{message}</p>
       {action && (
-        <button
+        <Button
           id={action.id ?? 'empty-state-action'}
-          type="button"
-          className={styles.retryBtn}
+          variant="secondary"
+          size="sm"
           onClick={action.onClick}
         >
           {action.label}
-        </button>
+        </Button>
       )}
     </div>
   );

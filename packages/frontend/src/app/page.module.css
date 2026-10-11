@@ -67,18 +67,6 @@
 
 /* ---- Activity ---- */
 
-.typeBadge {
-  display: inline-block;
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  border-radius: var(--radius-full);
-  padding: 1px var(--space-2);
-}
-
-.typeInward  { background: var(--color-success-subtle); color: var(--color-success-text); }
-.typeOutward { background: var(--color-warning-subtle); color: var(--color-warning-text); }
-.typeReversal { background: var(--color-danger-subtle);  color: var(--color-danger-text);  }
-
 .refCode {
   font-family: var(--font-mono);
   font-size: var(--text-xs);

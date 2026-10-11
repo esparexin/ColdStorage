@@ -1,4 +1,8 @@
-/* Removed: the bordered surface now comes from the Card primitive. */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
 
 .header {
   display: flex;
