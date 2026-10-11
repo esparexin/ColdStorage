@@ -128,6 +128,19 @@ async function executeReversalTransaction(
 
       createdReversalDoc = reversalDocs[0];
 
+      const outwardTx = await InventoryTransactionModel.findOne({
+        facilityId,
+        referenceType: 'DELIVERY',
+        referenceId: existingChallan.id,
+        transactionType: 'OUTWARD_DELIVERY',
+      })
+        .session(session)
+        .lean()
+        .exec();
+
+      const restoredSmall = outwardTx ? outwardTx.smallQuantity : existingChallan.smallBags;
+      const restoredBig = outwardTx ? outwardTx.bigQuantity : existingChallan.bigBags;
+
       await InventoryTransactionModel.create(
         [
           {
@@ -139,10 +152,8 @@ async function executeReversalTransaction(
             commodityId: grn.commodityId,
             bagType: grn.bagType,
             transactionType: 'DELIVERY_REVERSAL' as const,
-            // Restores exactly the composition the challan dispatched, so the GRN's per-type
-            // balance returns to its pre-delivery state without any stored snapshot to repair.
-            smallQuantity: existingChallan.smallBags,
-            bigQuantity: existingChallan.bigBags,
+            smallQuantity: restoredSmall,
+            bigQuantity: restoredBig,
             referenceType: 'DELIVERY_REVERSAL' as const,
             referenceId: reversalId,
             notes: `Reversal of challan ${existingChallan.challanNumber}: ${input.reason.trim()}`,

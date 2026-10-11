@@ -129,4 +129,55 @@ describe('Delivery stored agreement — delivery-stored-agreement.test.ts', () =
 
     expect(deliveryRes.delivery.rentCharge).toBe(61200);
   });
+
+  it('supports unsegregated S+B inward lots with partial delivery of small and big bags', async () => {
+    const { grn } = await grnService.createGrn(
+      FACILITY_ID,
+      {
+        grnNumber: '8003',
+        date: new Date('2026-04-10T00:00:00.000Z'),
+        customerId,
+        commodityId: 'cmd-agr',
+        chamber: 'CH-01',
+        bags: 200,
+        bagType: 'S+B',
+        rentType: 'Seasonal',
+        smallBagPrice: 150,
+        bigBagPrice: 210,
+      },
+      USER_ID,
+    );
+
+    // Operator enters 50 small and 20 big bags = 70 total
+    const del = await deliveryService.createDelivery(
+      FACILITY_ID,
+      {
+        grnId: grn.id,
+        date: new Date('2026-05-15T00:00:00.000Z'),
+        smallBags: 50,
+        bigBags: 20,
+        bagCategory: 'Small & Big',
+      },
+      USER_ID,
+    );
+
+    // Dispatched = 70, remaining stock = 200 - 70 = 130
+    expect(del.delivery.smallBags).toBe(50);
+    expect(del.delivery.bigBags).toBe(20);
+    expect(del.delivery.totalBags).toBe(70);
+    expect(del.summary.remainingDeliveryBalance).toBe(130);
+    expect(del.summary.physicallyStoredBags).toBe(130);
+    // Rent = 50 * 150 + 20 * 210 = 7,500 + 4,200 = 11,700
+    expect(del.delivery.rentCharge).toBe(11700);
+
+    // Reversal restores exact 200 bags without fragmenting single pool
+    const rev = await deliveryService.reverseDelivery(
+      FACILITY_ID,
+      del.delivery.id,
+      { reason: 'Customer changed delivery request' },
+      USER_ID,
+    );
+    expect(rev.summary.remainingDeliveryBalance).toBe(200);
+    expect(rev.summary.physicallyStoredBags).toBe(200);
+  });
 });
