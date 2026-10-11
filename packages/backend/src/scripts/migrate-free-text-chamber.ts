@@ -1,5 +1,6 @@
 /**
- * One-off data migration: free-text chamber + name-only customer.
+ * One-off historical migration (F24, legacy): free-text chamber + name-only customer.
+ * Do not extend; kept for audit trail only. Run only with DBA approval + backup.
  *
  * Run with `npm run migrate:free-text-chamber --workspace=@cold-storage/backend` from the repo
  * root, with MONGODB_URI pointing at the target database. Defaults to a DRY RUN: it prints the
