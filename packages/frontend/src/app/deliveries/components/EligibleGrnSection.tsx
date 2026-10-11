@@ -45,7 +45,7 @@ export function EligibleGrnSection({
     <div className={styles.section}>
       <div className={styles.sectionHeader}>
         <span className={styles.sectionTitle}>
-          Eligible Inward Stock ({filteredGrns.length} of {grns.length})
+          Inward Stock
         </span>
         <div className={styles.searchWrapper}>
           <SearchBar
@@ -53,7 +53,7 @@ export function EligibleGrnSection({
             value={filterQuery}
             onChange={setFilterQuery}
             placeholder="Search GRN, Customer, Commodity…"
-            ariaLabel="Search eligible inward GRNs"
+            ariaLabel="Search inward stock"
           />
         </div>
       </div>

@@ -67,23 +67,22 @@ export function DeliveryBagCompositionFields({
   const smallQty = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigQty = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
   const quantity = smallQty + bigQty;
-  const remainingStock = availableTotal - quantity;
-  const isOverLimit = quantity > availableTotal;
+  const remainingStock = Math.max(0, availableTotal - quantity);
 
-  const smallHint = isCombinedPool
-    ? `Available in Lot: ${availableTotal.toLocaleString('en-IN')} • Rate: ₹${rates.small}/bag`
-    : `Available: ${summary.availableSmallBags.toLocaleString('en-IN')} • Rate: ₹${rates.small}/bag`;
+  const smallRemainingCount = isCombinedPool
+    ? `${remainingStock.toLocaleString('en-IN')} / ${availableTotal.toLocaleString('en-IN')}`
+    : `${Math.max(0, summary.availableSmallBags - smallQty).toLocaleString('en-IN')} / ${summary.availableSmallBags.toLocaleString('en-IN')}`;
 
-  const bigHint = isCombinedPool
-    ? `Available in Lot: ${availableTotal.toLocaleString('en-IN')} • Rate: ₹${rates.big}/bag`
-    : `Available: ${summary.availableBigBags.toLocaleString('en-IN')} • Rate: ₹${rates.big}/bag`;
+  const bigRemainingCount = isCombinedPool
+    ? `${remainingStock.toLocaleString('en-IN')} / ${availableTotal.toLocaleString('en-IN')}`
+    : `${Math.max(0, summary.availableBigBags - bigQty).toLocaleString('en-IN')} / ${summary.availableBigBags.toLocaleString('en-IN')}`;
 
   return (
     <>
       <div className={styles.compositionGrid}>
         <div className={pageStyles.fieldGroup}>
           <label htmlFor="delivery-small-bags" className={pageStyles.fieldLabel}>
-            Small Bags to Deliver
+            Small Bags <span className={styles.stockLabel}>— Remaining stock: {smallRemainingCount} bags</span>
           </label>
           <input
             id="delivery-small-bags"
@@ -98,7 +97,7 @@ export function DeliveryBagCompositionFields({
             aria-describedby={smallError ? 'delivery-small-error' : undefined}
             onChange={(e) => onSmallBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')}
           />
-          <span className={styles.rateHint}>{smallHint}</span>
+          <span className={styles.rateHint}>Rate: ₹{rates.small}/bag</span>
           {smallError && (
             <span id="delivery-small-error" className={styles.fieldErrorText} role="alert">
               {smallError}
@@ -108,7 +107,7 @@ export function DeliveryBagCompositionFields({
 
         <div className={pageStyles.fieldGroup}>
           <label htmlFor="delivery-big-bags" className={pageStyles.fieldLabel}>
-            Big Bags to Deliver
+            Big Bags <span className={styles.stockLabel}>— Remaining stock: {bigRemainingCount} bags</span>
           </label>
           <input
             id="delivery-big-bags"
@@ -123,7 +122,7 @@ export function DeliveryBagCompositionFields({
             aria-describedby={bigError ? 'delivery-big-error' : undefined}
             onChange={(e) => onBigBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')}
           />
-          <span className={styles.rateHint}>{bigHint}</span>
+          <span className={styles.rateHint}>Rate: ₹{rates.big}/bag</span>
           {bigError && (
             <span id="delivery-big-error" className={styles.fieldErrorText} role="alert">
               {bigError}
@@ -137,18 +136,6 @@ export function DeliveryBagCompositionFields({
           {bagsError}
         </span>
       )}
-
-      <div className={styles.totalDeliveringRow}>
-        <span>Total Delivering Quantity:</span>
-        <span className={`${styles.totalHighlight} ${isOverLimit ? styles.overLimit : ''}`}>
-          {quantity.toLocaleString('en-IN')} of {availableTotal.toLocaleString('en-IN')} bags
-          <span className={styles.remainingHighlight}>
-            ({isOverLimit
-              ? `Exceeds stock by ${(quantity - availableTotal).toLocaleString('en-IN')} bags`
-              : `Remaining: ${remainingStock.toLocaleString('en-IN')} bags`})
-          </span>
-        </span>
-      </div>
 
       <OutwardRentBreakdown
         rentType={rentType}

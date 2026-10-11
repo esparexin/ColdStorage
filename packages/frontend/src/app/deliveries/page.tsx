@@ -14,7 +14,7 @@ import { DeliveryNavTabs } from './components/DeliveryNavTabs';
 import { DeliveryPageModals } from './components/DeliveryPageModals';
 import { DeliveryStatusTabs } from './components/DeliveryStatusTabs';
 import { DeliveryTable } from './components/DeliveryTable';
-import { IssueDeliveryChallanModal } from './components/IssueDeliveryChallanModal';
+import { IssueDeliveryChallanPanel } from './components/IssueDeliveryChallanPanel';
 import type { DeliveryViewTab } from './hooks/deliveryTabPersistence.helper';
 import { useDeliveries } from './hooks/useDeliveries';
 import styles from './page.module.css';
@@ -127,6 +127,23 @@ export default function DeliveriesPage() {
 
       {!selectedFacilityId ? (
         <FeedbackStates.Empty message={EMPTY_MESSAGES.noFacilityDeliveries} />
+      ) : activeView === 'issue' ? (
+        <IssueDeliveryChallanPanel
+          facilityId={selectedFacilityId}
+          initialGrnId={initialGrnId}
+          onCancel={() => handleViewChange('listing')}
+          onSuccess={(newDelivery) => {
+            handleViewChange('listing');
+            void deliveryData.fetchDeliveries();
+            setSelectedDelivery(newDelivery);
+          }}
+          onPayRent={setRentPayAccount}
+          rentPaidTick={rentPaidTick}
+          canPayRent={canCollectRent}
+          onClearLoan={setLoanClearGrn}
+          loanClearedTick={loanClearedTick}
+          canClearLoan={canUpdateLoan}
+        />
       ) : (
         <>
           <DeliveryStatusTabs currentTab={deliveryData.statusTab} onTabChange={deliveryData.setStatusTab} />
@@ -167,26 +184,6 @@ export default function DeliveriesPage() {
               onSelectDelivery={setSelectedDelivery}
               onPrintChallan={handlePrintChallan}
               onCollectRent={handleCollectRent}
-            />
-          )}
-
-          {activeView === 'issue' && (
-            <IssueDeliveryChallanModal
-              facilityId={selectedFacilityId}
-              isOpen={true}
-              initialGrnId={initialGrnId}
-              onClose={() => handleViewChange('listing')}
-              onSuccess={(newDelivery) => {
-                handleViewChange('listing');
-                void deliveryData.fetchDeliveries();
-                setSelectedDelivery(newDelivery);
-              }}
-              onPayRent={setRentPayAccount}
-              rentPaidTick={rentPaidTick}
-              canPayRent={canCollectRent}
-              onClearLoan={setLoanClearGrn}
-              loanClearedTick={loanClearedTick}
-              canClearLoan={canUpdateLoan}
             />
           )}
         </>
