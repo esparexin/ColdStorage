@@ -10,6 +10,8 @@ import { DeliveryChallanModel } from './models/delivery-challan.model.js';
 import { DeliveryReversalModel } from './models/delivery-reversal.model.js';
 import { FacilityModel } from './models/facility.model.js';
 import { GrnModel } from './models/grn.model.js';
+import { GroupModel } from './models/group.model.js';
+import { InternalMovementModel } from './models/internal-movement.model.js';
 import { InventoryTransactionModel } from './models/inventory-transaction.model.js';
 import { RentExtensionModel } from './models/rent-extension.model.js';
 import { RentPaymentModel } from './models/rent-payment.model.js';
@@ -38,6 +40,8 @@ const MONITORED_MODELS: Array<{ name: string; model: Model<unknown> }> = [
   { name: 'DeliveryReversal', model: DeliveryReversalModel as unknown as Model<unknown> },
   { name: 'Facility', model: FacilityModel as unknown as Model<unknown> },
   { name: 'GRN', model: GrnModel as unknown as Model<unknown> },
+  { name: 'Group', model: GroupModel as unknown as Model<unknown> },
+  { name: 'InternalMovement', model: InternalMovementModel as unknown as Model<unknown> },
   { name: 'InventoryTransaction', model: InventoryTransactionModel as unknown as Model<unknown> },
   { name: 'RentExtension', model: RentExtensionModel as unknown as Model<unknown> },
   { name: 'RentPayment', model: RentPaymentModel as unknown as Model<unknown> },

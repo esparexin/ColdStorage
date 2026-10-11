@@ -17,7 +17,17 @@ export interface IRoleDocument extends Document {
 const roleSchema = new Schema<IRoleDocument>(
   {
     id: { type: String, required: true, unique: true, index: true },
-    key: { type: String, required: true, unique: true, trim: true, uppercase: true, index: true },
+    key: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      uppercase: true,
+      index: true,
+      minlength: 2,
+      maxlength: 40,
+      match: [/^[A-Z][A-Z0-9_]*$/, 'Invalid role key format'],
+    },
     displayName: { type: String, required: true, trim: true },
     description: { type: String, default: '', trim: true },
     permissions: { type: [String], required: true, default: [] },
