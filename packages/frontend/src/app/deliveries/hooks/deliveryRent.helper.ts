@@ -1,4 +1,9 @@
-import { calculateRentAmount, resolveOutwardRates, type RentType } from '@cold-storage/contracts';
+import {
+  calculateMonthlyElapsedCycles,
+  calculateRentAmount,
+  resolveOutwardRates,
+  type RentType,
+} from '@cold-storage/contracts';
 
 export type OutwardBagCategory = 'Small' | 'Big' | 'Small & Big';
 
@@ -8,9 +13,23 @@ export interface ComputeOutwardRentParams {
   smallBags: number;
   bigBags: number;
   rentMonths?: number | null;
+  inwardDate?: Date | string | null;
+  deliveryDate?: Date | string | null;
   smallBagPrice?: number | null;
   bigBagPrice?: number | null;
   bagPrice?: number | null;
+}
+
+export function resolveOutwardBillableMonths(params: {
+  rentType: RentType;
+  inwardDate?: Date | string | null;
+  deliveryDate?: Date | string | null;
+  rentMonths?: number | null;
+}): number {
+  if (params.rentType === 'Monthly' && params.inwardDate && params.deliveryDate) {
+    return calculateMonthlyElapsedCycles(params.inwardDate, params.deliveryDate);
+  }
+  return params.rentMonths ?? 1;
 }
 
 export function getOutwardEffectiveRates(
@@ -21,7 +40,7 @@ export function getOutwardEffectiveRates(
 }
 
 export function computeOutwardRentCharge(params: ComputeOutwardRentParams): number {
-  const { rentType, bagCategory, smallBags, bigBags, rentMonths } = params;
+  const { rentType, bagCategory, smallBags, bigBags } = params;
   const { small: smallRate, big: bigRate } = resolveOutwardRates(rentType, {
     smallBagPrice: params.smallBagPrice,
     bigBagPrice: params.bigBagPrice,
@@ -34,6 +53,13 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
 
   if (totalBags <= 0) return 0;
 
+  const billableMonths = resolveOutwardBillableMonths({
+    rentType,
+    inwardDate: params.inwardDate,
+    deliveryDate: params.deliveryDate,
+    rentMonths: params.rentMonths,
+  });
+
   return calculateRentAmount({
     rentType,
     bags: totalBags,
@@ -42,7 +68,7 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
     bigBags: effectiveBig,
     smallBagPrice: smallRate,
     bigBagPrice: bigRate,
-    rentMonths: rentMonths ?? 1,
+    rentMonths: billableMonths,
   });
 }
 

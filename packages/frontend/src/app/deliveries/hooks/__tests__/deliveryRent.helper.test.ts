@@ -4,6 +4,7 @@ import {
   computeOutwardRentCharge,
   formatOutwardRentFormula,
   getOutwardEffectiveRates,
+  resolveOutwardBillableMonths,
 } from '../deliveryRent.helper';
 
 describe('deliveryRent.helper', () => {
@@ -51,6 +52,32 @@ describe('deliveryRent.helper', () => {
       });
       // 25 bags * 10 rate * 3 months = 750
       expect(rent).toBe(750);
+    });
+
+    it('calculates Monthly rent dynamically for 1-day storage (Jan 1 to Jan 2 = 1 full month)', () => {
+      const rent = computeOutwardRentCharge({
+        rentType: 'Monthly',
+        bagCategory: 'Small',
+        smallBags: 50,
+        bigBags: 0,
+        inwardDate: new Date(2026, 0, 1),
+        deliveryDate: new Date(2026, 0, 2),
+      });
+      // 50 bags * 10 rate * 1 month = 500
+      expect(rent).toBe(500);
+    });
+
+    it('calculates Monthly rent dynamically across multi-month storage (Mar 15 to Jun 20 = 4 cycles)', () => {
+      const rent = computeOutwardRentCharge({
+        rentType: 'Monthly',
+        bagCategory: 'Small',
+        smallBags: 50,
+        bigBags: 0,
+        inwardDate: new Date(2026, 2, 15),
+        deliveryDate: new Date(2026, 5, 20),
+      });
+      // 50 bags * 10 rate * 4 months = 2000
+      expect(rent).toBe(2000);
     });
 
     it('calculates Monthly rent defaulting to 1 month when rentMonths not provided', () => {
@@ -150,6 +177,34 @@ describe('deliveryRent.helper', () => {
     it('formats Monthly formula correctly for Small & Big bags', () => {
       const text = formatOutwardRentFormula('Monthly', 'Small & Big', 10, 20, 10, 15, 2);
       expect(text).toBe('(10 Small × ₹10 + 20 Big × ₹15) × 2 mo');
+    });
+  });
+
+  describe('resolveOutwardBillableMonths', () => {
+    it('calculates dynamic elapsed cycles for Monthly rent when dates provided', () => {
+      const months = resolveOutwardBillableMonths({
+        rentType: 'Monthly',
+        inwardDate: new Date(2026, 3, 15),
+        deliveryDate: new Date(2026, 4, 20),
+      });
+      expect(months).toBe(2);
+    });
+
+    it('preserves existing rentMonths for Seasonal rent or when dates missing', () => {
+      expect(
+        resolveOutwardBillableMonths({
+          rentType: 'Seasonal',
+          rentMonths: 1,
+        }),
+      ).toBe(1);
+    });
+
+    it('defaults to 1 when rentMonths is null or undefined and not Monthly with dates', () => {
+      expect(
+        resolveOutwardBillableMonths({
+          rentType: 'Seasonal',
+        }),
+      ).toBe(1);
     });
   });
 });

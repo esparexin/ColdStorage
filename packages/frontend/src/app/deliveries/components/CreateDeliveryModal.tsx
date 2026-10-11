@@ -158,7 +158,7 @@ export function CreateDeliveryModal({
                     summary={form.grnSummary}
                     bagType={form.selectedGrn.bagType}
                     rentType={form.selectedGrn.rentType}
-                    rentMonths={form.selectedGrn.rentMonths}
+                    rentMonths={form.billableRentMonths}
                     smallBagPrice={form.selectedGrn.smallBagPrice}
                     bigBagPrice={form.selectedGrn.bigBagPrice}
                     bagPrice={form.selectedGrn.bagPrice}

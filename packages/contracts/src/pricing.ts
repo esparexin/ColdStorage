@@ -48,7 +48,6 @@ export interface RentalCalculationInput {
 /** Authoritative rent calculation: Seasonal ignores `rentMonths` (whole-season total). */
 export function calculateRentAmount(input: RentalCalculationInput): number {
   const isSeasonal = input.rentType === 'Seasonal';
-  // Seasonal total ignores rentMonths; Monthly bills per billable month.
   const months = isSeasonal ? 1 : Math.max(1, input.rentMonths ?? 1);
 
   if (input.bagType === 'S+B' && (input.smallBagPrice != null || input.bigBagPrice != null)) {
@@ -63,7 +62,6 @@ export function calculateRentAmount(input: RentalCalculationInput): number {
     return Number((input.bags * input.bagPrice * months).toFixed(2));
   }
 
-  // Fallback for historical records where rentAmount was manually entered
   return Number((input.rentAmount ?? 0).toFixed(2));
 }
 
@@ -72,11 +70,7 @@ export function calculateSeasonalRenewal(input: RentalCalculationInput): number 
   return calculateRentAmount({ ...input, rentType: 'Seasonal' });
 }
 
-/**
- * Derives the effective per-bag rate from an obligation.
- * - Seasonal: seasonal total rate = rentAmount / bags (whole-season total).
- * - Monthly: monthly rate = rentAmount / (bags × months).
- */
+/** Derives the effective per-bag rate from an obligation. */
 export function deriveBagPrice(input: {
   rentType: RentType;
   bags: number;
@@ -84,13 +78,9 @@ export function deriveBagPrice(input: {
   rentMonths?: number | null;
   rentAmount?: number | null;
 }): number | null {
-  if (typeof input.bagPrice === 'number' && input.bagPrice > 0) {
-    return input.bagPrice;
-  }
+  if (typeof input.bagPrice === 'number' && input.bagPrice > 0) return input.bagPrice;
   if (typeof input.rentAmount === 'number' && input.bags > 0) {
-    if (input.rentType === 'Seasonal') {
-      return Number((input.rentAmount / input.bags).toFixed(2));
-    }
+    if (input.rentType === 'Seasonal') return Number((input.rentAmount / input.bags).toFixed(2));
     const months = Math.max(1, input.rentMonths ?? 1);
     return Number((input.rentAmount / (input.bags * months)).toFixed(2));
   }
@@ -103,19 +93,14 @@ export function deriveBillingCycle(
   rentType: RentType,
   asOfDate: Date = new Date(),
 ): string {
-  if (rentType === 'Seasonal') {
-    return 'Season total (Mar–Dec)';
-  }
+  if (rentType === 'Seasonal') return 'Season total (Mar–Dec)';
   const inDate = new Date(inwardDate);
   const now = new Date(asOfDate);
   const day = inDate.getDate();
 
   let cycleStartYear = now.getFullYear();
   let cycleStartMonth = now.getMonth();
-
-  if (now.getDate() < day) {
-    cycleStartMonth -= 1;
-  }
+  if (now.getDate() < day) cycleStartMonth -= 1;
 
   const cycleStart = new Date(cycleStartYear, cycleStartMonth, day);
   const nextMonth = new Date(cycleStartYear, cycleStartMonth + 1, day);
@@ -123,8 +108,35 @@ export function deriveBillingCycle(
 
   const fmt = (d: Date) =>
     d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-
   return `${fmt(cycleStart)} – ${fmt(cycleEnd)}`;
+}
+
+/**
+ * Authoritative elapsed monthly billing cycle calculation (1-day storage = full month minimum).
+ */
+export function calculateMonthlyElapsedCycles(
+  inwardDate: Date | string,
+  outwardDate: Date | string = new Date(),
+): number {
+  const inD = new Date(inwardDate);
+  const outD = new Date(outwardDate);
+  const inTime = new Date(inD.getFullYear(), inD.getMonth(), inD.getDate()).getTime();
+  const outTime = new Date(outD.getFullYear(), outD.getMonth(), outD.getDate()).getTime();
+  if (outTime <= inTime) return 1;
+
+  const anchorDay = inD.getDate();
+  let cycles = 1;
+  while (true) {
+    const targetMonthIndex = inD.getMonth() + cycles;
+    const targetYear = inD.getFullYear() + Math.floor(targetMonthIndex / 12);
+    const targetMonth = ((targetMonthIndex % 12) + 12) % 12;
+    const maxDays = new Date(targetYear, targetMonth + 1, 0).getDate();
+    const cycleDay = Math.min(anchorDay, maxDays);
+    const nextCycleStart = new Date(targetYear, targetMonth, cycleDay).getTime();
+    if (outTime >= nextCycleStart) cycles++;
+    else break;
+  }
+  return Math.max(1, cycles);
 }
 
 export interface MovementSnapshot {
