@@ -164,6 +164,9 @@ export function IssueDeliveryChallanPanel({
                   smallBagPrice={form.selectedGrn.smallBagPrice}
                   bigBagPrice={form.selectedGrn.bigBagPrice}
                   bagPrice={form.selectedGrn.bagPrice}
+                  inwardDate={form.selectedGrn.date}
+                  deliveryDate={form.createDate}
+                  monthlyRates={form.monthlyCommodityRates}
                   bagCategory={form.bagCategory}
                   onBagCategoryChange={form.setBagCategory}
                   outwardRent={form.outwardRent}
@@ -172,8 +175,6 @@ export function IssueDeliveryChallanPanel({
                   onSmallBagsChange={form.setWithdrawalSmallBags}
                   onBigBagsChange={form.setWithdrawalBigBags}
                   fieldErrors={form.fieldErrors}
-                  onPayRent={onPayRent}
-                  canPayRent={canPayRent}
                   rentSummary={form.rentSummary}
                 />
 

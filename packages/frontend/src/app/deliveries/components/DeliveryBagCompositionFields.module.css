@@ -32,69 +32,7 @@
   color: var(--color-primary);
 }
 
-.outwardRentCard {
-  margin-top: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
 
-.outwardRentHeader {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
-.outwardRentTitle {
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
-}
-
-.outwardRentTypeBadge {
-  font-size: var(--text-xs);
-  font-weight: var(--font-bold);
-  padding: 1px var(--space-1-5);
-  background: var(--color-surface-1);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-}
-
-.pendingBadge {
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  padding: 1px var(--space-2);
-  background: var(--color-warning-subtle);
-  color: var(--color-warning-text);
-  border-radius: var(--radius-full);
-}
-
-.outwardRentAmountRow {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
-.outwardRentAmount {
-  font-size: var(--text-base);
-  font-weight: var(--font-bold);
-  color: var(--color-primary);
-  line-height: 1.2;
-}
-
-.outwardRentFormula {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-}
 
 .inputError {
   border-color: var(--color-danger) !important;

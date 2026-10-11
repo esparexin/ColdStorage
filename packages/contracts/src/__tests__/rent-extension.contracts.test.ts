@@ -8,6 +8,10 @@ import {
   seasonYearForInwardDate,
   totalRentDue,
 } from '../rent-extension.js';
+import {
+  calculateOutwardSeasonalBreakdown,
+  resolveSeasonalElapsedPeriods,
+} from '../seasonal-periods.js';
 
 describe('rent-extension contracts', () => {
   it('maps inward dates to the owning season year', () => {
@@ -73,5 +77,56 @@ describe('rent-extension contracts', () => {
       overrideExtensionInputSchema.safeParse({ manualAmount: -5, reason: 'Valid reason here' })
         .success,
     ).toBe(false);
+  });
+
+  it('resolves elapsed seasonal and extension periods correctly under Option A', () => {
+    // 1. Same season delivery (Jul 2024 to Nov 2024): 1 season only
+    const p1 = resolveSeasonalElapsedPeriods('2024-07-10', '2024-11-20');
+    expect(p1.map((p) => p.key)).toEqual(['SEASON_2024']);
+
+    // 2. Extends into Jan 2025: Season 2024 + January 2025
+    const p2 = resolveSeasonalElapsedPeriods('2024-07-10', '2025-01-15');
+    expect(p2.map((p) => p.key)).toEqual(['SEASON_2024', 'JANUARY_2025']);
+
+    // 3. Extends into Feb 2025: Season 2024 + January 2025 + February 2025
+    const p3 = resolveSeasonalElapsedPeriods('2024-07-10', '2025-02-15');
+    expect(p3.map((p) => p.key)).toEqual(['SEASON_2024', 'JANUARY_2025', 'FEBRUARY_2025']);
+
+    // 4. Extends into March 2025: renewal triggered on March 1
+    const p4 = resolveSeasonalElapsedPeriods('2024-07-10', '2025-03-05');
+    expect(p4.map((p) => p.key)).toEqual(['SEASON_2024', 'JANUARY_2025', 'FEBRUARY_2025', 'SEASON_2025']);
+
+    // 5. Multi-year storage (Jul 2024 to Oct 2026): 7 periods
+    const p5 = resolveSeasonalElapsedPeriods('2024-07-10', '2026-10-11');
+    expect(p5.map((p) => p.key)).toEqual([
+      'SEASON_2024',
+      'JANUARY_2025',
+      'FEBRUARY_2025',
+      'SEASON_2025',
+      'JANUARY_2026',
+      'FEBRUARY_2026',
+      'SEASON_2026',
+    ]);
+  });
+
+  it('calculates outward seasonal rent breakdown matching confirmed rates', () => {
+    const res = calculateOutwardSeasonalBreakdown({
+      inwardDate: '2024-07-10',
+      deliveryDate: '2026-10-11',
+      smallBags: 50,
+      bigBags: 50,
+      seasonalRates: { small: 150, big: 210 },
+      monthlyRates: { small: 15, big: 21 },
+    });
+
+    // 3 seasons @ 18,000 = 54,000
+    // 4 monthly @ 1,800 = 7,200
+    // Total = 61,200
+    expect(res.totalRent).toBe(61200);
+    expect(res.periods).toHaveLength(7);
+    expect(res.periods[0].amount).toBe(18000);
+    expect(res.periods[1].amount).toBe(1800);
+    expect(res.periods[2].amount).toBe(1800);
+    expect(res.periods[3].amount).toBe(18000);
   });
 });

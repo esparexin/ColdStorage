@@ -206,5 +206,22 @@ describe('deliveryRent.helper', () => {
         }),
       ).toBe(1);
     });
+
+    it('calculates multi-period seasonal outward rent with monthly rates', () => {
+      const rent = computeOutwardRentCharge({
+        rentType: 'Seasonal',
+        bagCategory: 'Small & Big',
+        smallBags: 50,
+        bigBags: 50,
+        smallBagPrice: 150,
+        bigBagPrice: 210,
+        monthlySmallBagPrice: 15,
+        monthlyBigBagPrice: 21,
+        inwardDate: '2024-07-10',
+        deliveryDate: '2026-10-11',
+      });
+      // 3 seasons @ 18,000 + 4 monthly @ 1,800 = 61,200
+      expect(rent).toBe(61200);
+    });
   });
 });

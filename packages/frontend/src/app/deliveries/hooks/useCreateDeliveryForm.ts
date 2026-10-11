@@ -37,6 +37,7 @@ export function useCreateDeliveryForm(
   const [modalError, setModalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [monthlyCommodityRates, setMonthlyCommodityRates] = useState<{ small: number; big: number } | null>(null);
   const rentGate = useRentGate();
 
   const clearFieldError = (key: string) => {
@@ -80,15 +81,19 @@ export function useCreateDeliveryForm(
       setGrnSummary(null);
       setWithdrawal({ availableSmall: 0, availableBig: 0, smallBags: '', bigBags: '' });
       setFieldErrors({});
+      setMonthlyCommodityRates(null);
       rentGate.resetRentGate();
       if (!facilityId || !grnId) return;
 
       setLoadingGrnSummary(true);
       setModalError(null);
+      const matched = availableGrns.find((g) => g.id === grnId);
+      const commodityId = matched?.commodityId;
       try {
-        const [invRes] = await Promise.all([
+        const [invRes, _rg, rateRes] = await Promise.all([
           requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns/${encodeURIComponent(grnId)}/inventory-summary`),
           rentGate.refreshRentGate(facilityId, grnId),
+          commodityId ? requestWithAuth(`/api/commodities/${encodeURIComponent(commodityId)}/rates?rentType=Monthly`) : Promise.resolve(null),
         ]);
         if (invRes.ok) {
           const data = (await invRes.json()) as { summary: GrnInventorySummary };
@@ -97,13 +102,19 @@ export function useCreateDeliveryForm(
           setBagCategory(s > 0 && b > 0 ? 'Small & Big' : b > 0 ? 'Big' : 'Small');
           setWithdrawal({ availableSmall: s, availableBig: b, smallBags: '', bigBags: '' });
         }
+        if (rateRes && rateRes.ok) {
+          const rData = (await rateRes.json()) as { rate?: { smallRate: number; bigRate: number } };
+          if (rData.rate) {
+            setMonthlyCommodityRates({ small: rData.rate.smallRate, big: rData.rate.bigRate });
+          }
+        }
       } catch {
         setModalError('Failed to load GRN stock summary');
       } finally {
         setLoadingGrnSummary(false);
       }
     },
-    [facilityId, rentGate],
+    [facilityId, rentGate, availableGrns],
   );
 
   useEffect(() => {
@@ -136,6 +147,8 @@ export function useCreateDeliveryForm(
     smallBagPrice: selectedGrn?.smallBagPrice,
     bigBagPrice: selectedGrn?.bigBagPrice,
     bagPrice: selectedGrn?.bagPrice,
+    monthlySmallBagPrice: monthlyCommodityRates?.small,
+    monthlyBigBagPrice: monthlyCommodityRates?.big,
   });
 
   const handleBagCategoryChange = (cat: OutwardBagCategory) => {
@@ -218,6 +231,7 @@ export function useCreateDeliveryForm(
     createRemarks, setCreateRemarks, modalError, fieldErrors, clearFieldError, submitting,
     totalWithdrawingBags, fetchAvailableGrns, handleSelectGrn, handleSubmit, selectedGrn, isLoanHoldActive,
     billableRentMonths,
+    monthlyCommodityRates,
     rentSummary: rentGate.rentSummary, rentLoading: rentGate.rentLoading, refreshRentGate: rentGate.refreshRentGate,
   };
 }

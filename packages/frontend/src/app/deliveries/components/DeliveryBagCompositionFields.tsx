@@ -7,7 +7,8 @@ import {
   type RentType,
 } from '@cold-storage/contracts';
 import type { GrnWithdrawal } from '../types';
-import { formatOutwardRentFormula, type OutwardBagCategory } from '../hooks/deliveryRent.helper';
+import type { OutwardBagCategory } from '../hooks/deliveryRent.helper';
+import { OutwardRentBreakdown } from './OutwardRentBreakdown';
 import pageStyles from '../page.module.css';
 import styles from './DeliveryBagCompositionFields.module.css';
 
@@ -19,8 +20,11 @@ interface DeliveryBagCompositionFieldsProps {
   smallBagPrice?: number | null;
   bigBagPrice?: number | null;
   bagPrice?: number | null;
+  inwardDate?: Date | string | null;
+  deliveryDate?: Date | string | null;
+  monthlyRates?: { small: number; big: number } | null;
   withdrawal: GrnWithdrawal;
-  bagCategory: OutwardBagCategory;
+  bagCategory?: OutwardBagCategory;
   onBagCategoryChange?: (category: OutwardBagCategory) => void;
   onQuantityChange?: (value: number | '') => void;
   onSmallBagsChange: (value: number | '') => void;
@@ -39,8 +43,10 @@ export function DeliveryBagCompositionFields({
   smallBagPrice,
   bigBagPrice,
   bagPrice,
+  inwardDate,
+  deliveryDate,
+  monthlyRates,
   withdrawal,
-  bagCategory,
   onSmallBagsChange,
   onBigBagsChange,
   outwardRent,
@@ -125,23 +131,18 @@ export function DeliveryBagCompositionFields({
         </span>
       </div>
 
-      <div className={styles.outwardRentCard}>
-        <div className={styles.outwardRentHeader}>
-          <span className={styles.outwardRentTitle}>Calculated Outward Rent</span>
-          <span className={styles.outwardRentTypeBadge}>{rentType}</span>
-          {rentSummary && rentSummary.remainingBalance > 0 && (
-            <span className={styles.pendingBadge}>
-              Pending GRN Balance: ₹{rentSummary.remainingBalance.toLocaleString('en-IN')}
-            </span>
-          )}
-        </div>
-        <div className={styles.outwardRentAmountRow}>
-          <span className={styles.outwardRentAmount}>₹{outwardRent.toLocaleString('en-IN')}</span>
-          <span className={styles.outwardRentFormula}>
-            {formatOutwardRentFormula(rentType, bagCategory, smallQty, bigQty, rates.small, rates.big, rentMonths)}
-          </span>
-        </div>
-      </div>
+      <OutwardRentBreakdown
+        rentType={rentType}
+        inwardDate={inwardDate}
+        deliveryDate={deliveryDate || new Date().toISOString().split('T')[0]}
+        smallBags={smallQty}
+        bigBags={bigQty}
+        seasonalRates={rates}
+        monthlyRates={monthlyRates ?? rates}
+        rentMonths={rentMonths}
+        totalRent={outwardRent}
+        pendingBalance={rentSummary?.remainingBalance}
+      />
     </>
   );
 }

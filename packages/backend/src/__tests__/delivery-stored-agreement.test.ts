@@ -83,4 +83,50 @@ describe('Delivery stored agreement — delivery-stored-agreement.test.ts', () =
     );
     expect(second.delivery.rentCharge).toBe(480);
   });
+
+  it('calculates multi-period seasonal outward rent with January and February monthly rates', async () => {
+    // Configure Monthly commodity rate
+    await commodityRateService.upsertRate({
+      commodityId: 'cmd-agr',
+      rentType: 'Monthly',
+      smallRate: 15,
+      bigRate: 21,
+    });
+
+    const { grn } = await grnService.createGrn(
+      FACILITY_ID,
+      {
+        grnNumber: '8002',
+        date: new Date('2024-07-10T00:00:00.000Z'),
+        customerId,
+        commodityId: 'cmd-agr',
+        chamber: 'CH-01',
+        bags: 200,
+        bagType: 'S/B',
+        rentType: 'Seasonal',
+        smallBagPrice: 150,
+        bigBagPrice: 210,
+      },
+      USER_ID,
+    );
+
+    // Deliver on Oct 11, 2026 (spans Season 2024, Jan 2025, Feb 2025, Season 2025, Jan 2026, Feb 2026, Season 2026)
+    // 50 Small + 50 Big
+    // Seasonal period: 50*150 + 50*210 = 18,000 (3 seasons = 54,000)
+    // Monthly period: 50*15 + 50*21 = 1,800 (4 months = 7,200)
+    // Total = 61,200
+    const deliveryRes = await deliveryService.createDelivery(
+      FACILITY_ID,
+      {
+        grnId: grn.id,
+        date: new Date('2026-10-11T00:00:00.000Z'),
+        smallBags: 50,
+        bigBags: 50,
+        bagCategory: 'Small & Big',
+      },
+      USER_ID,
+    );
+
+    expect(deliveryRes.delivery.rentCharge).toBe(61200);
+  });
 });
