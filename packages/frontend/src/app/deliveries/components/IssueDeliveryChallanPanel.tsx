@@ -1,12 +1,10 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import type { DeliveryChallan, DeliverySummary, Grn, RentSummaryDto } from '@cold-storage/contracts';
 import { Button } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
-import { FeedbackStates } from '@/components/ui/FeedbackStates';
-import { LOADING_LABELS } from '@/components/ui/stateCopy';
-import { requestWithAuth } from '@/lib/api-client';
+import { useCreateDeliveryForm } from '../hooks/useCreateDeliveryForm';
 import { EligibleGrnSection } from './EligibleGrnSection';
 import { IssueDeliveryChallanModal } from './IssueDeliveryChallanModal';
 import styles from './IssueDeliveryChallanPanel.module.css';
@@ -36,40 +34,20 @@ export function IssueDeliveryChallanPanel({
   canClearLoan = false,
   initialGrnId,
 }: IssueDeliveryChallanPanelProps) {
-  const [selectedGrnId, setSelectedGrnId] = useState<string | null>(initialGrnId ?? null);
-  const [availableGrns, setAvailableGrns] = useState<Grn[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-
-  const fetchGrns = useCallback(async () => {
-    if (!facilityId) return;
-    setLoading(true);
-    setFetchError(null);
-    try {
-      const res = await requestWithAuth(
-        `/api/facilities/${encodeURIComponent(facilityId)}/grns?status=ACTIVE&limit=100`,
-      );
-      if (!res.ok) throw new Error('Failed to load eligible GRNs');
-      const data = (await res.json()) as { items?: Grn[] };
-      setAvailableGrns(data.items || []);
-    } catch (err: unknown) {
-      setFetchError(err instanceof Error ? err.message : 'Failed to load eligible stock');
-    } finally {
-      setLoading(false);
-    }
-  }, [facilityId]);
+  const form = useCreateDeliveryForm(facilityId, onSuccess, initialGrnId);
+  const { createGrnId, refreshRentGate } = form;
 
   useEffect(() => {
-    void fetchGrns();
-  }, [fetchGrns]);
+    void form.fetchAvailableGrns();
+  }, [form.fetchAvailableGrns]);
 
   useEffect(() => {
-    if (loanClearedTick > 0) void fetchGrns();
-  }, [loanClearedTick, fetchGrns]);
+    if (loanClearedTick > 0 && createGrnId) void form.fetchAvailableGrns();
+  }, [loanClearedTick, createGrnId, form.fetchAvailableGrns]);
 
   useEffect(() => {
-    if (initialGrnId) setSelectedGrnId(initialGrnId);
-  }, [initialGrnId]);
+    if (rentPaidTick > 0 && createGrnId) void refreshRentGate(facilityId, createGrnId);
+  }, [rentPaidTick, createGrnId, facilityId, refreshRentGate]);
 
   return (
     <div className={styles.issuePanel}>
@@ -80,41 +58,29 @@ export function IssueDeliveryChallanPanel({
         </p>
       </div>
 
-      {fetchError && <Banner message={fetchError} />}
+      {form.modalError && <Banner message={form.modalError} />}
 
-      {loading ? (
-        <FeedbackStates.Loading label={LOADING_LABELS.data} />
-      ) : (
-        <>
-          <EligibleGrnSection
-            grns={availableGrns}
-            selectedGrnId={selectedGrnId ?? undefined}
-            onSelectGrn={(id) => setSelectedGrnId(id)}
-          />
-          <div className={styles.stockFooter}>
-            <Button variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-          </div>
-        </>
-      )}
+      <EligibleGrnSection
+        grns={form.availableGrns}
+        selectedGrnId={form.createGrnId}
+        onSelectGrn={(id) => void form.handleSelectGrn(id)}
+      />
+      <div className={styles.stockFooter}>
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
 
-      {selectedGrnId && (
+      {form.selectedGrn && (
         <IssueDeliveryChallanModal
+          form={form}
           facilityId={facilityId}
-          isOpen={Boolean(selectedGrnId)}
-          initialGrnId={selectedGrnId}
-          onClose={() => setSelectedGrnId(null)}
-          onChangeGrn={() => setSelectedGrnId(null)}
-          onSuccess={(del, summary) => {
-            setSelectedGrnId(null);
-            onSuccess(del, summary);
-          }}
+          isOpen={Boolean(form.selectedGrn)}
+          onClose={() => void form.handleSelectGrn('')}
+          onChangeGrn={() => void form.handleSelectGrn('')}
           onPayRent={onPayRent}
-          rentPaidTick={rentPaidTick}
           canPayRent={canPayRent}
           onClearLoan={onClearLoan}
-          loanClearedTick={loanClearedTick}
           canClearLoan={canClearLoan}
         />
       )}

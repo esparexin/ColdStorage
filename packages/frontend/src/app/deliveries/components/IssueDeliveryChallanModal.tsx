@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import type { DeliveryChallan, DeliverySummary, Grn, RentSummaryDto } from '@cold-storage/contracts';
+import type { Grn, RentSummaryDto } from '@cold-storage/contracts';
 import { Button, ConfirmDialog, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { LOADING_LABELS } from '@/components/ui/stateCopy';
-import { useCreateDeliveryForm } from '../hooks/useCreateDeliveryForm';
+import type { useCreateDeliveryForm } from '../hooks/useCreateDeliveryForm';
 import { SelectedGrnCard } from './SelectedGrnCard';
 import { DeliveryBagCompositionFields } from './DeliveryBagCompositionFields';
 import { DeliveryTransportFields } from './DeliveryTransportFields';
@@ -15,49 +15,28 @@ import pageStyles from '../page.module.css';
 import styles from './IssueDeliveryChallanModal.module.css';
 
 export interface IssueDeliveryChallanModalProps {
+  form: ReturnType<typeof useCreateDeliveryForm>;
   facilityId: string;
   isOpen?: boolean;
   onClose: () => void;
-  onSuccess: (newDelivery: DeliveryChallan, summary?: DeliverySummary) => void;
   onPayRent: (account: RentSummaryDto) => void;
-  rentPaidTick: number;
   canPayRent: boolean;
   onClearLoan?: (grn: Grn) => void;
-  loanClearedTick?: number;
   canClearLoan?: boolean;
-  initialGrnId?: string;
   onChangeGrn?: () => void;
 }
 
 export function IssueDeliveryChallanModal({
-  facilityId,
+  form,
   isOpen = true,
   onClose,
-  onSuccess,
   onPayRent,
-  rentPaidTick,
   canPayRent,
   onClearLoan,
-  loanClearedTick = 0,
   canClearLoan = false,
-  initialGrnId,
   onChangeGrn,
 }: IssueDeliveryChallanModalProps) {
-  const form = useCreateDeliveryForm(facilityId, onSuccess, initialGrnId);
-  const { createGrnId, refreshRentGate } = form;
   const [isConfirmingPayRent, setIsConfirmingPayRent] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) void form.fetchAvailableGrns();
-  }, [isOpen, form.fetchAvailableGrns]);
-
-  useEffect(() => {
-    if (loanClearedTick > 0 && createGrnId) void form.fetchAvailableGrns();
-  }, [loanClearedTick, createGrnId, form.fetchAvailableGrns]);
-
-  useEffect(() => {
-    if (rentPaidTick > 0 && createGrnId) void refreshRentGate(facilityId, createGrnId);
-  }, [rentPaidTick, createGrnId, facilityId, refreshRentGate]);
 
   const handlePayRentConfirm = () => {
     setIsConfirmingPayRent(false);
@@ -85,7 +64,7 @@ export function IssueDeliveryChallanModal({
         )}
         <Button
           id="issue-panel-submit-delivery-btn"
-          type="button"
+          type="submit"
           variant={form.isLoanHoldActive ? 'danger' : 'primary'}
           disabled={!form.isFormValid || form.submitting || form.isLoanHoldActive}
           isLoading={form.submitting}
