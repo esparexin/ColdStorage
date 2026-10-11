@@ -47,13 +47,20 @@ async function mockGrnFormPage(page: import('@playwright/test').Page) {
 }
 
 const ROUTES = ['/', '/grns', '/deliveries', '/rent', '/customers',
-  '/commodities', '/grn-stock', '/bonds', '/audit', '/users', '/backup', '/import-export', '/settings'];
+  '/commodities', '/grn-stock', '/bonds', '/groups', '/audit', '/users', '/backup', '/import-export', '/settings'];
 
 const SIZES = [
+  { name: '320', width: 320, height: 568 },
   { name: '360', width: 360, height: 780 },
+  { name: '375', width: 375, height: 667 },
+  { name: '390', width: 390, height: 844 },
+  { name: '430', width: 430, height: 932 },
   { name: '768', width: 768, height: 1024 },
+  { name: '820', width: 820, height: 1180 },
+  { name: '1024', width: 1024, height: 768 },
   { name: '1280', width: 1280, height: 900 },
   { name: '1440', width: 1440, height: 900 },
+  { name: '1920', width: 1920, height: 1080 },
 ];
 
 for (const size of SIZES) {

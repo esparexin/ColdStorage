@@ -252,9 +252,77 @@ if grep -rnE "(surface-3|danger-border|space-2-5)" "$ROOT/packages/frontend/src"
   fail "Design Token SSOT violation: reference to a non-existent token found. Use only tokens declared in styles/tokens.css."
 fi
 
+# 26. Undefined Design Token SSOT:
+# Prohibits non-existent tokens: --text-md (use --text-base), bare unindexed --color-surface (use --color-surface-1 or -2),
+# --color-border-subtle (use --color-border), and --color-surface-hover (use --color-surface-2).
+# Baseline exceptions during active remediation: GroupDetailModal.tsx, RolesSection.tsx, groups/page.module.css.
+UNDEFINED_TOKEN_HITS=$(grep -rnE "var\(--(text-md\b|color-surface\)|color-border-subtle\b|color-surface-hover\b)" \
+  "$ROOT/packages/frontend/src" --include="*.css" --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null \
+  | grep -vE "(GroupDetailModal\.tsx|RolesSection\.tsx|groups/page\.module\.css)" || true)
+if [ -n "$UNDEFINED_TOKEN_HITS" ]; then
+  echo "$UNDEFINED_TOKEN_HITS"
+  fail "Design Token SSOT violation: undefined token reference found (--text-md, bare --color-surface, --color-border-subtle, --color-surface-hover). Use canonical tokens."
+fi
+
+# 27. Single Bordered Surface SSOT:
+# DataTable renders its own bordered container; wrapping it in Card creates a duplicate outer border.
+# Baseline exception during active remediation: ConnectivitySection.tsx (remediated in Phase 3).
+DOUBLE_BORDER_HITS=$(python3 - <<EOF
+import os, re
+root = "$ROOT/packages/frontend/src/app"
+violations = []
+for dirpath, _, filenames in os.walk(root):
+    for f in filenames:
+        if f.endswith('.tsx') and f != "ConnectivitySection.tsx":
+            p = os.path.join(dirpath, f)
+            with open(p, 'r', encoding='utf-8') as fp:
+                c = fp.read()
+                matches = re.finditer(r'<Card\b[^>]*>(.*?)</Card>', c, re.DOTALL)
+                for m in matches:
+                    if '<DataTable' in m.group(1):
+                        violations.append(f"{os.path.relpath(p, root)}: <DataTable> wrapped inside <Card>")
+if violations:
+    for v in violations:
+        print(v)
+    exit(1)
+EOF
+) || true
+if [ -n "$DOUBLE_BORDER_HITS" ]; then
+  echo "$DOUBLE_BORDER_HITS"
+  fail "UI SSOT violation: DataTable wrapped inside Card creates duplicate border. Place DataTable directly on the page surface."
+fi
+
+# 28. Screen Table SSOT:
+# Interactive screen tabular views must consume canonical <DataTable> from components/ui.
+# Baseline exceptions during active remediation:
+# - GrnMergedDetailsTable.tsx
+# - InternalMovementMergeTab.tsx
+# - OutwardRentBreakdown.tsx
+# - GrnStockMovementModal.tsx
+# - CommodityRatesModal.tsx
+# - PricingExplainerSection.tsx
+RAW_TABLE_HITS=$(grep -rnE "<table(\b|[ >])" "$ROOT/packages/frontend/src/app" \
+  --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null \
+  | grep -vE "(GrnMergedDetailsTable\.tsx|InternalMovementMergeTab\.tsx|OutwardRentBreakdown\.tsx|GrnStockMovementModal\.tsx|CommodityRatesModal\.tsx|PricingExplainerSection\.tsx)" || true)
+if [ -n "$RAW_TABLE_HITS" ]; then
+  echo "$RAW_TABLE_HITS"
+  fail "Table SSOT violation: raw <table> found in feature code. Migrate to canonical <DataTable>."
+fi
+
+# 29. Shared Button Primitive SSOT:
+# Feature and utility components must consume Button primitive rather than raw <button>.
+# Baseline exception during active remediation: FeedbackStates.tsx (remediated in Phase 3).
+RAW_FEEDBACK_BTN_HITS=$(grep -rnE "<button(\b|[ >])" "$ROOT/packages/frontend/src/components/ui/FeedbackStates.tsx" 2>/dev/null \
+  | grep -v "FeedbackStates.tsx" || true)
+if [ -n "$RAW_FEEDBACK_BTN_HITS" ]; then
+  echo "$RAW_FEEDBACK_BTN_HITS"
+  fail "UI SSOT violation: raw <button> found in FeedbackStates.tsx. Use canonical Button primitive."
+fi
+
 if [ "$EXIT" -eq 0 ]; then
   echo "[PASS] All architecture boundaries and UI SSOT governance checks passed."
 fi
 
 exit "$EXIT"
+
 
