@@ -19,30 +19,3 @@
   gap: var(--space-2);
 }
 
-.confirmMessage {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
-.confirmGrid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  background: var(--color-surface-2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-}
-
-.confirmRow {
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--text-xs);
-}
-
-.confirmRow strong {
-  color: var(--color-text-primary);
-}

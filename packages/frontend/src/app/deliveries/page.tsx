@@ -33,6 +33,7 @@ export default function DeliveriesPage() {
   const [loanClearGrn, setLoanClearGrn] = useState<Grn | null>(null);
   const [loanClearedTick, setLoanClearedTick] = useState(0);
   const [initialGrnId, setInitialGrnId] = useState<string | undefined>(undefined);
+  const [rentPromptDelivery, setRentPromptDelivery] = useState<DeliveryChallan | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -135,7 +136,11 @@ export default function DeliveriesPage() {
           onSuccess={(newDelivery) => {
             handleViewChange('listing');
             void deliveryData.fetchDeliveries();
-            setSelectedDelivery(newDelivery);
+            if (newDelivery.rentCharge && newDelivery.rentCharge > 0 && canCollectRent) {
+              setRentPromptDelivery(newDelivery);
+            } else {
+              setSelectedDelivery(newDelivery);
+            }
           }}
           onPayRent={setRentPayAccount}
           rentPaidTick={rentPaidTick}
@@ -202,6 +207,16 @@ export default function DeliveriesPage() {
         onCloseRentPay={() => setRentPayAccount(null)}
         onRentPaid={handleRentPaidFromDelivery}
         onPrintChallan={handlePrintChallan}
+        rentPromptDelivery={rentPromptDelivery}
+        onConfirmRentPrompt={(del) => {
+          setRentPromptDelivery(null);
+          void handleCollectRent(del);
+        }}
+        onCancelRentPrompt={() => {
+          const del = rentPromptDelivery;
+          setRentPromptDelivery(null);
+          if (del) setSelectedDelivery(del);
+        }}
       />
     </div>
   );
