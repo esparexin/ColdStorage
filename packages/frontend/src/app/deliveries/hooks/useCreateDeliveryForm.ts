@@ -90,7 +90,7 @@ export function useCreateDeliveryForm(
       const matched = availableGrns.find((g) => g.id === grnId);
       const commodityId = matched?.commodityId;
       try {
-        const [invRes, _rg, rateRes] = await Promise.all([
+        const [invRes, , rateRes] = await Promise.all([
           requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns/${encodeURIComponent(grnId)}/inventory-summary`),
           rentGate.refreshRentGate(facilityId, grnId),
           commodityId ? requestWithAuth(`/api/commodities/${encodeURIComponent(commodityId)}/rates?rentType=Monthly`) : Promise.resolve(null),

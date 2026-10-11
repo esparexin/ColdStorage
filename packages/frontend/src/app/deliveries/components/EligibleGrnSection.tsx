@@ -22,7 +22,6 @@ interface EligibleGrnSectionProps {
 
 export function EligibleGrnSection({
   grns,
-  selectedGrnId,
   onSelectGrn,
 }: EligibleGrnSectionProps) {
   const [filterQuery, setFilterQuery] = useState('');
