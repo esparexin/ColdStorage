@@ -179,4 +179,32 @@ describe('deliveryRent.helper', () => {
       expect(text).toBe('(10 Small × ₹10 + 20 Big × ₹15) × 2 mo');
     });
   });
+
+  describe('resolveOutwardBillableMonths', () => {
+    it('calculates dynamic elapsed cycles for Monthly rent when dates provided', () => {
+      const months = resolveOutwardBillableMonths({
+        rentType: 'Monthly',
+        inwardDate: new Date(2026, 3, 15),
+        deliveryDate: new Date(2026, 4, 20),
+      });
+      expect(months).toBe(2);
+    });
+
+    it('preserves existing rentMonths for Seasonal rent or when dates missing', () => {
+      expect(
+        resolveOutwardBillableMonths({
+          rentType: 'Seasonal',
+          rentMonths: 1,
+        }),
+      ).toBe(1);
+    });
+
+    it('defaults to 1 when rentMonths is null or undefined and not Monthly with dates', () => {
+      expect(
+        resolveOutwardBillableMonths({
+          rentType: 'Seasonal',
+        }),
+      ).toBe(1);
+    });
+  });
 });
