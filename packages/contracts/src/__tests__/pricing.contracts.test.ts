@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CANONICAL_BAG_RATES,
+  calculateMonthlyElapsedCycles,
   calculateMonthlyOccupancy,
   calculateRentAmount,
   calculateSeasonalRenewal,
@@ -181,6 +182,43 @@ describe('Authoritative Bag Pricing & Rental Calculation SSOT', () => {
     expect(resolveOutwardRates('Seasonal', { bagPrice: 12 })).toEqual({ small: 12, big: 12 });
     // Partial override falls back per side, not to zero
     expect(resolveOutwardRates('Seasonal', { smallBagPrice: 9 })).toEqual({ small: 9, big: 15 });
+  });
+
+  describe('calculateMonthlyElapsedCycles', () => {
+    it('charges minimum 1 full month for same-day storage (e.g. Jan 1 inward to Jan 1 outward)', () => {
+      const cycles = calculateMonthlyElapsedCycles(new Date(2026, 0, 1), new Date(2026, 0, 1));
+      expect(cycles).toBe(1);
+    });
+
+    it('charges minimum 1 full month for one-day storage (e.g. Jan 1 inward to Jan 2 outward)', () => {
+      const cycles = calculateMonthlyElapsedCycles(new Date(2026, 0, 1), new Date(2026, 0, 2));
+      expect(cycles).toBe(1);
+    });
+
+    it('charges 1 full month throughout the first monthly billing cycle (Jan 1 to Jan 31)', () => {
+      const cycles = calculateMonthlyElapsedCycles(new Date(2026, 0, 1), new Date(2026, 0, 31));
+      expect(cycles).toBe(1);
+    });
+
+    it('charges 2 full months once entering the second billing cycle (Jan 1 to Feb 1)', () => {
+      const cycles = calculateMonthlyElapsedCycles(new Date(2026, 0, 1), new Date(2026, 1, 1));
+      expect(cycles).toBe(2);
+    });
+
+    it('charges 4 full months across multiple elapsed cycles (Mar 15 inward to Jun 20 outward)', () => {
+      // Cycle 1: Mar 15 - Apr 14
+      // Cycle 2: Apr 15 - May 14
+      // Cycle 3: May 15 - Jun 14
+      // Cycle 4: Jun 15 - Jul 14 (Jun 20 is within Cycle 4)
+      const cycles = calculateMonthlyElapsedCycles(new Date(2026, 2, 15), new Date(2026, 5, 20));
+      expect(cycles).toBe(4);
+    });
+
+    it('correctly handles month-end anchor days (Jan 31 to Feb 28 triggers Cycle 2)', () => {
+      // Feb has only 28 days in 2026; Feb 27 is Cycle 1, Feb 28 triggers Cycle 2
+      expect(calculateMonthlyElapsedCycles(new Date(2026, 0, 31), new Date(2026, 1, 27))).toBe(1);
+      expect(calculateMonthlyElapsedCycles(new Date(2026, 0, 31), new Date(2026, 1, 28))).toBe(2);
+    });
   });
 });
 
