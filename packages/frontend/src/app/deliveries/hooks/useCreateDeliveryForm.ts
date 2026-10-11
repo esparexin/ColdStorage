@@ -4,7 +4,11 @@ import { requestWithAuth } from '@/lib/api-client';
 import { useRentGate } from '@/hooks/useRentGate';
 import { validateDeliveryForm } from './deliveryFormValidation.helper';
 import { buildDeliveryPayload } from './deliveryPayload.helper';
-import { computeOutwardRentCharge, type OutwardBagCategory } from './deliveryRent.helper';
+import {
+  computeOutwardRentCharge,
+  resolveOutwardBillableMonths,
+  type OutwardBagCategory,
+} from './deliveryRent.helper';
 import { submitDeliveryRequest } from './deliverySubmit.helper';
 import type { GrnWithdrawal } from '../types';
 
@@ -113,13 +117,22 @@ export function useCreateDeliveryForm(
   const totalWithdrawingBags = smallBags + bigBags;
   const selectedGrn = availableGrns.find((g) => g.id === createGrnId) || null;
   const isLoanHoldActive = Boolean(selectedGrn?.loanStatus === 'TAKEN');
+  const deliveryDateVal = createDate || new Date().toISOString().split('T')[0];
+  const billableRentMonths = resolveOutwardBillableMonths({
+    rentType: selectedGrn?.rentType ?? 'Seasonal',
+    inwardDate: selectedGrn?.date,
+    deliveryDate: deliveryDateVal,
+    rentMonths: selectedGrn?.rentMonths,
+  });
 
   const outwardRent = computeOutwardRentCharge({
     rentType: selectedGrn?.rentType ?? 'Seasonal',
     bagCategory,
     smallBags,
     bigBags,
-    rentMonths: selectedGrn?.rentMonths,
+    rentMonths: billableRentMonths,
+    inwardDate: selectedGrn?.date,
+    deliveryDate: deliveryDateVal,
     smallBagPrice: selectedGrn?.smallBagPrice,
     bigBagPrice: selectedGrn?.bigBagPrice,
     bagPrice: selectedGrn?.bagPrice,
@@ -193,6 +206,7 @@ export function useCreateDeliveryForm(
     setCreateGpNumber: (v: string) => { setCreateGpNumber(v); clearFieldError('gpNumber'); },
     createRemarks, setCreateRemarks, modalError, fieldErrors, clearFieldError, submitting,
     totalWithdrawingBags, fetchAvailableGrns, handleSelectGrn, handleSubmit, selectedGrn, isLoanHoldActive,
+    billableRentMonths,
     rentSummary: rentGate.rentSummary, rentLoading: rentGate.rentLoading, refreshRentGate: rentGate.refreshRentGate,
   };
 }

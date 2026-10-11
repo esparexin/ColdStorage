@@ -4,6 +4,7 @@ import {
   computeOutwardRentCharge,
   formatOutwardRentFormula,
   getOutwardEffectiveRates,
+  resolveOutwardBillableMonths,
 } from '../deliveryRent.helper';
 
 describe('deliveryRent.helper', () => {
@@ -51,6 +52,32 @@ describe('deliveryRent.helper', () => {
       });
       // 25 bags * 10 rate * 3 months = 750
       expect(rent).toBe(750);
+    });
+
+    it('calculates Monthly rent dynamically for 1-day storage (Jan 1 to Jan 2 = 1 full month)', () => {
+      const rent = computeOutwardRentCharge({
+        rentType: 'Monthly',
+        bagCategory: 'Small',
+        smallBags: 50,
+        bigBags: 0,
+        inwardDate: new Date(2026, 0, 1),
+        deliveryDate: new Date(2026, 0, 2),
+      });
+      // 50 bags * 10 rate * 1 month = 500
+      expect(rent).toBe(500);
+    });
+
+    it('calculates Monthly rent dynamically across multi-month storage (Mar 15 to Jun 20 = 4 cycles)', () => {
+      const rent = computeOutwardRentCharge({
+        rentType: 'Monthly',
+        bagCategory: 'Small',
+        smallBags: 50,
+        bigBags: 0,
+        inwardDate: new Date(2026, 2, 15),
+        deliveryDate: new Date(2026, 5, 20),
+      });
+      // 50 bags * 10 rate * 4 months = 2000
+      expect(rent).toBe(2000);
     });
 
     it('calculates Monthly rent defaulting to 1 month when rentMonths not provided', () => {
