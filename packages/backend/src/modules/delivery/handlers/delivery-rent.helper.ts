@@ -44,6 +44,20 @@ export async function computeExpectedDeliveryRent(
 
   if (grn.rentType === 'Seasonal') {
     const elapsedPeriods = resolveSeasonalElapsedPeriods(grn.date, deliveryDate);
+
+    const seasonalRateDoc =
+      grn.smallBagPrice == null && grn.bigBagPrice == null && grn.bagPrice == null
+        ? await CommodityRateModel.findOne({
+            commodityId: grn.commodityId,
+            rentType: 'Seasonal',
+            isActive: true,
+          }).session(session)
+        : null;
+
+    const seasonalRates = seasonalRateDoc
+      ? { small: seasonalRateDoc.smallRate, big: seasonalRateDoc.bigRate }
+      : effectiveRates;
+
     const monthlyRateDoc = await CommodityRateModel.findOne({
       commodityId: grn.commodityId,
       rentType: 'Monthly',
@@ -52,11 +66,11 @@ export async function computeExpectedDeliveryRent(
 
     const monthlyRates = monthlyRateDoc
       ? { small: monthlyRateDoc.smallRate, big: monthlyRateDoc.bigRate }
-      : { small: effectiveRates.small, big: effectiveRates.big };
+      : seasonalRates;
 
     let totalSeasonalRent = 0;
     for (const p of elapsedPeriods) {
-      const rates = p.period === 'SEASON' ? effectiveRates : monthlyRates;
+      const rates = p.period === 'SEASON' ? seasonalRates : monthlyRates;
       const periodRent = calculateRentAmount({
         rentType: p.period === 'SEASON' ? 'Seasonal' : 'Monthly',
         bags: withdrawnTotal,
@@ -70,8 +84,21 @@ export async function computeExpectedDeliveryRent(
       totalSeasonalRent += periodRent;
     }
 
-    return { expectedRentCharge: totalSeasonalRent, effectiveRates };
+    return { expectedRentCharge: totalSeasonalRent, effectiveRates: seasonalRates };
   }
+
+  const monthlyRateDoc =
+    grn.smallBagPrice == null && grn.bigBagPrice == null && grn.bagPrice == null
+      ? await CommodityRateModel.findOne({
+          commodityId: grn.commodityId,
+          rentType: 'Monthly',
+          isActive: true,
+        }).session(session)
+      : null;
+
+  const monthlyEffectiveRates = monthlyRateDoc
+    ? { small: monthlyRateDoc.smallRate, big: monthlyRateDoc.bigRate }
+    : effectiveRates;
 
   const billableMonths = calculateMonthlyElapsedCycles(grn.date, deliveryDate);
   const expectedRentCharge = calculateRentAmount({
@@ -80,10 +107,10 @@ export async function computeExpectedDeliveryRent(
     bagType: 'S+B',
     smallBags: withdrawal.smallBags,
     bigBags: withdrawal.bigBags,
-    smallBagPrice: effectiveRates.small,
-    bigBagPrice: effectiveRates.big,
+    smallBagPrice: monthlyEffectiveRates.small,
+    bigBagPrice: monthlyEffectiveRates.big,
     rentMonths: billableMonths,
   });
 
-  return { expectedRentCharge, effectiveRates };
+  return { expectedRentCharge, effectiveRates: monthlyEffectiveRates };
 }

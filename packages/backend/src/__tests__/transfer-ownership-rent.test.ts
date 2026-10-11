@@ -53,8 +53,8 @@ describe('Transfer Ownership: Monthly & Seasonal Rent Accrual (Phase 2)', () => 
     commodityId = cmd.id;
   });
 
-  it('monthly lot accrues rent up to transfer date based on elapsed cycles', async () => {
-    // Inward 60 days ago: 100 bags @ ₹10/bag/month
+  it('monthly lot accrues rent up to transfer date based on elapsed cycles and blocks transfer until settled', async () => {
+    // Inward 65 days ago: 100 bags @ ₹10/bag/month
     const inwardDate = new Date();
     inwardDate.setDate(inwardDate.getDate() - 65);
 
@@ -74,7 +74,9 @@ describe('Transfer Ownership: Monthly & Seasonal Rent Accrual (Phase 2)', () => 
     await GrnModel.updateOne({ id: monthlyGrn }, { $set: { bagPrice: 10 } });
 
     const transferDate = new Date();
-    const res = await request(app)
+
+    // 1. Transfer attempt without settlement is rejected
+    const unRes = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/transfer-ownership`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
@@ -84,23 +86,44 @@ describe('Transfer Ownership: Monthly & Seasonal Rent Accrual (Phase 2)', () => 
         remarks: 'Transfer monthly lot with accrued rent',
       });
 
+    expect(unRes.status).toBe(400);
+    expect(unRes.body.error).toContain('must be fully settled before transfer');
+
+    // 2. Full settlement succeeds atomically
+    const res = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/transfer-ownership`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        grnId: monthlyGrn,
+        newCustomerId: customerB,
+        movementDate: transferDate,
+        remarks: 'Transfer monthly lot with accrued rent',
+        paymentDecision: 'SETTLE_NOW',
+        settlementDetails: {
+          amountPaid: 3000,
+          paymentMode: 'Cash',
+          paymentNotes: 'Settled by Ramesh at transfer',
+        },
+      });
+
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.grn.customerId).toBe(customerB);
-
-    // 65 days elapsed = 3 cycles (day 0, day 31, day 62) => 100 bags × ₹10 = ₹1000/cycle => ₹3000
-    expect(res.body.movement.financialSnapshot.rentAmount).toBeGreaterThan(0);
-    expect(res.body.movement.financialSnapshot.remainingBalance).toBeGreaterThan(0);
-    expect(res.body.movement.financialSnapshot.rentState).toBe('PENDING');
+    expect(res.body.payment).toBeDefined();
+    expect(res.body.payment.amountPaid).toBe(3000);
+    expect(res.body.payment.receiptNumber).toMatch(/^RRCPT-\d{2}-\d{2}-\d{4}$/);
+    expect(res.body.movement.financialSnapshot.rentAmount).toBe(3000);
+    expect(res.body.movement.financialSnapshot.totalPaid).toBe(3000);
+    expect(res.body.movement.financialSnapshot.remainingBalance).toBe(0);
+    expect(res.body.movement.financialSnapshot.paymentStatus).toBe('Settled');
 
     const updated = await GrnModel.findOne({ id: monthlyGrn }).lean().exec();
     expect(updated?.customerId).toBe(customerB);
-    expect(updated?.rentAmount).toBe(res.body.movement.financialSnapshot.rentAmount);
-    expect(updated?.remarks).toContain('Pending rent: ₹3000 of ₹3000');
-    expect(updated?.remarks).toContain('Transferee agreed to assume pending balance');
+    expect(updated?.remarks).toContain('Settled at transfer: ₹3000');
+    expect(updated?.remarks).toContain(res.body.payment.receiptNumber);
   });
 
-  it('seasonal lot preserves agreed seasonal contract amount during transfer', async () => {
+  it('seasonal lot calculates multi-year rent and blocks transfer until settled', async () => {
     const seasonalGrn = await seedGrn({
       facilityId,
       customerId: customerA,
@@ -113,8 +136,10 @@ describe('Transfer Ownership: Monthly & Seasonal Rent Accrual (Phase 2)', () => 
       rentAmount: 3000,
       grnNumber: 'GRN-26-27-0092',
     });
+    await GrnModel.updateOne({ id: seasonalGrn }, { $set: { bagPrice: 15 } });
 
-    const res = await request(app)
+    // 1. Unsettled attempt is rejected
+    const unRes = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/transfer-ownership`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
@@ -124,13 +149,37 @@ describe('Transfer Ownership: Monthly & Seasonal Rent Accrual (Phase 2)', () => 
         remarks: 'Transfer seasonal lot to new owner',
       });
 
+    expect(unRes.status).toBe(400);
+    expect(unRes.body.error).toContain('must be fully settled before transfer');
+
+    // 2. Full settlement succeeds atomically
+    const res = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/transfer-ownership`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        grnId: seasonalGrn,
+        newCustomerId: customerB,
+        movementDate: new Date(),
+        remarks: 'Transfer seasonal lot to new owner',
+        paymentDecision: 'SETTLE_NOW',
+        settlementDetails: {
+          amountPaid: 3000,
+          paymentMode: 'UPI',
+          paymentNotes: 'Settled full season dues',
+        },
+      });
+
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
+    expect(res.body.payment).toBeDefined();
+    expect(res.body.payment.amountPaid).toBe(3000);
     expect(res.body.movement.financialSnapshot.rentAmount).toBe(3000);
-    expect(res.body.movement.financialSnapshot.remainingBalance).toBe(3000);
-    expect(res.body.movement.financialSnapshot.rentState).toBe('PENDING');
+    expect(res.body.movement.financialSnapshot.totalPaid).toBe(3000);
+    expect(res.body.movement.financialSnapshot.remainingBalance).toBe(0);
+    expect(res.body.movement.financialSnapshot.paymentStatus).toBe('Settled');
 
     const updated = await GrnModel.findOne({ id: seasonalGrn }).lean().exec();
+    expect(updated?.customerId).toBe(customerB);
     expect(updated?.rentAmount).toBe(3000);
   });
 
@@ -147,6 +196,7 @@ describe('Transfer Ownership: Monthly & Seasonal Rent Accrual (Phase 2)', () => 
       rentAmount: 2500,
       grnNumber: 'GRN-26-27-0093',
     });
+    await GrnModel.updateOne({ id: seasonalGrn }, { $set: { bagPrice: 25 } });
 
     const res = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/transfer-ownership`)

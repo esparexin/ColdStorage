@@ -10,10 +10,10 @@ import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
-import { calculateGrnMonthlyOccupancyRent } from '../../common/occupancy-rent.js';
 import { counterService } from '../../common/counter.service.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { toPaymentEntity } from '../../rent/handlers/record-payment.handler.js';
+import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
 
 export async function transferOwnership(
   facilityId: string,
@@ -56,20 +56,43 @@ export async function transferOwnership(
         throw new Error(`Customer '${newCustomer.name}' is not assigned to facility '${facilityId}'`);
       }
 
+      const bal = await readLedgerBalance(facilityId, grn.id, session);
+      if (bal.total <= 0) {
+        throw new Error(`Cannot transfer ownership: No stock remaining in GRN '${grn.grnNumber}'`);
+      }
+
+      const movementDate = new Date(input.movementDate);
+
+      // 1. Authoritative outward-style rent assessment for all remaining bags being transferred
+      const { expectedRentCharge } = await computeExpectedDeliveryRent({
+        grn: {
+          id: grn.id,
+          date: grn.date,
+          rentType: grn.rentType,
+          commodityId: grn.commodityId,
+          smallBagPrice: grn.smallBagPrice,
+          bigBagPrice: grn.bigBagPrice,
+          bagPrice: grn.bagPrice,
+        },
+        withdrawal: {
+          smallBags: bal.smallBags,
+          bigBags: bal.bigBags,
+        },
+        deliveryDate: movementDate,
+        session,
+      });
+
+      const effectiveObligation =
+        expectedRentCharge > 0
+          ? expectedRentCharge
+          : grn.rentAmount && grn.rentAmount > 0
+          ? grn.rentAmount
+          : 0;
+
       const payments = await RentPaymentModel.find({ facilityId, grnId: grn.id }, null, { session })
         .lean()
         .exec();
       const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
-
-      let effectiveObligation = Number(grn.rentAmount ?? 0);
-      if (grn.rentType === 'Monthly' && effectiveObligation === 0) {
-        const monthlyAccrual = await calculateGrnMonthlyOccupancyRent(facilityId, grn.id, {
-          asOfDate: new Date(input.movementDate),
-        });
-        if (monthlyAccrual && monthlyAccrual.totalOccupancyCharge > 0) {
-          effectiveObligation = monthlyAccrual.totalOccupancyCharge;
-        }
-      }
 
       const totalDue = await rentExtensionRepository.resolveTotalDue(
         facilityId,
@@ -80,17 +103,28 @@ export async function transferOwnership(
       let effectiveRentBal = rentBal;
       let paymentRecord: RentPayment | undefined;
 
-      if (input.paymentDecision === 'SETTLE_NOW' && input.settlementDetails) {
+      // 2. Strict settlement gate: Outstanding rent must be settled prior to ownership transfer
+      if (rentBal.remainingBalance > 0) {
+        if (
+          input.paymentDecision !== 'SETTLE_NOW' ||
+          !input.settlementDetails ||
+          input.settlementDetails.amountPaid < rentBal.remainingBalance
+        ) {
+          throw new Error(
+            `Cannot transfer ownership: Outstanding rent of ₹${rentBal.remainingBalance.toLocaleString('en-IN')} must be fully settled before transfer.`,
+          );
+        }
+
         const { amountPaid, paymentMode, paymentNotes } = input.settlementDetails;
         if (amountPaid > rentBal.remainingBalance) {
           throw new Error(
             `Requested settlement ₹${amountPaid} exceeds remaining rent balance of ₹${rentBal.remainingBalance}`,
           );
         }
-        const paymentDate = new Date(input.movementDate);
+
         const receiptNumber = await counterService.generateRentReceiptNumber(
           facilityId,
-          paymentDate,
+          movementDate,
           session,
         );
         const paymentDoc = await rentRepository.createPayment(
@@ -102,7 +136,7 @@ export async function transferOwnership(
             receiptNumber,
             amountPaid,
             paymentMode,
-            paymentDate,
+            paymentDate: movementDate,
             notes: paymentNotes?.trim() || `Settled upon ownership transfer to ${newCustomer.name}`,
             createdBy: userId,
           },
@@ -110,15 +144,19 @@ export async function transferOwnership(
         );
         paymentRecord = toPaymentEntity(paymentDoc);
         effectiveRentBal = computeRentBalance(totalDue, totalPaid + amountPaid);
+
+        if (effectiveRentBal.remainingBalance !== 0) {
+          throw new Error(
+            `Transfer aborted: Rent balance after settlement is ₹${effectiveRentBal.remainingBalance}, but full settlement (₹0) is required.`,
+          );
+        }
       }
 
-      const bal = await readLedgerBalance(facilityId, grn.id, session);
       const movementId = `mov-${randomUUID()}`;
-      const transferDateStr = new Date(input.movementDate).toISOString().split('T')[0];
-      const transferNote =
-        input.paymentDecision === 'SETTLE_NOW' && paymentRecord
-          ? `[OWNERSHIP TRANSFERRED on ${transferDateStr}: from ${grn.customerName} (ID: ${grn.customerId}) to ${newCustomer.name} (ID: ${newCustomer.id}). Settled at transfer: ₹${paymentRecord.amountPaid} (Receipt #${paymentRecord.receiptNumber}). Remaining rent: ₹${effectiveRentBal.remainingBalance} of ₹${effectiveRentBal.rentAmount}. Reason: ${input.remarks.trim()}]`
-          : `[OWNERSHIP TRANSFERRED on ${transferDateStr}: from ${grn.customerName} (ID: ${grn.customerId}) to ${newCustomer.name} (ID: ${newCustomer.id}). Pending rent: ₹${effectiveRentBal.remainingBalance} of ₹${effectiveRentBal.rentAmount} (Transferee agreed to assume pending balance; prior collected: ₹${effectiveRentBal.totalPaid}). Reason: ${input.remarks.trim()}]`;
+      const transferDateStr = movementDate.toISOString().split('T')[0];
+      const transferNote = paymentRecord
+        ? `[OWNERSHIP TRANSFERRED on ${transferDateStr}: from ${grn.customerName} (ID: ${grn.customerId}) to ${newCustomer.name} (ID: ${newCustomer.id}). Settled at transfer: ₹${paymentRecord.amountPaid} (Receipt #${paymentRecord.receiptNumber}). Rent obligation: ₹${effectiveRentBal.rentAmount} (Status: Settled). Reason: ${input.remarks.trim()}]`
+        : `[OWNERSHIP TRANSFERRED on ${transferDateStr}: from ${grn.customerName} (ID: ${grn.customerId}) to ${newCustomer.name} (ID: ${newCustomer.id}). Rent obligation: ₹${effectiveRentBal.rentAmount} previously settled (Prior collected: ₹${effectiveRentBal.totalPaid}). Reason: ${input.remarks.trim()}]`;
       const updatedRemarks = grn.remarks ? `${grn.remarks}\n${transferNote}` : transferNote;
 
       const updateFields: Record<string, unknown> = {
@@ -127,7 +165,7 @@ export async function transferOwnership(
         remarks: updatedRemarks,
         updatedAt: new Date(),
       };
-      if (grn.rentType === 'Monthly' && (grn.rentAmount ?? 0) === 0 && effectiveObligation > 0) {
+      if (effectiveObligation > 0) {
         updateFields.rentAmount = effectiveObligation;
       }
 

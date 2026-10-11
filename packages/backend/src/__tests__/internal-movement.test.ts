@@ -199,22 +199,23 @@ describe('Internal Movement Workflows (Merge & Transfer Ownership)', () => {
         newCustomerId: customerB,
         movementDate: new Date(),
         remarks: 'Sold in-chamber lot to Suresh',
+        paymentDecision: 'SETTLE_NOW',
+        settlementDetails: {
+          amountPaid: 1200,
+          paymentMode: 'Cash',
+          paymentNotes: 'Settled by Ramesh before transfer',
+        },
       });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.grn.customerId).toBe(customerB);
-    expect(res.body.grn.customerName).toBe('Trader Suresh');
-    expect(res.body.grn.bags).toBe(100);
-    expect(res.body.movement.totalBagsMoved).toBe(80);
-    expect(res.body.movement.smallBagsMoved).toBe(80);
-    expect(res.body.movement.bigBagsMoved).toBe(0);
+    expect(res.body.grn).toMatchObject({ customerId: customerB, customerName: 'Trader Suresh', bags: 100 });
+    expect(res.body.movement).toMatchObject({ totalBagsMoved: 80, smallBagsMoved: 80, bigBagsMoved: 0 });
 
     const updated = await GrnModel.findOne({ id: grn38 }).lean().exec();
     expect(updated?.customerId).toBe(customerB);
     expect(updated?.remarks).toContain('OWNERSHIP TRANSFERRED');
-    expect(updated?.remarks).toContain('Pending rent: ₹1200 of ₹2000');
-    expect(updated?.remarks).toContain('Farmer Ramesh');
+    expect(updated?.remarks).toContain('Rent obligation: ₹800 previously settled');
     expect(updated?.remarks).toContain('Trader Suresh');
 
     const histRes = await request(app)
