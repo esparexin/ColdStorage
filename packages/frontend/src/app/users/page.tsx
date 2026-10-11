@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, RefreshCw, ShieldAlert } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 import { type UserSummary } from '@cold-storage/contracts';
-import { Banner, Button, Card } from '@/components/ui';
+import { Banner, Card } from '@/components/ui';
 import { ACCESS_MESSAGES } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -12,6 +12,7 @@ import { UserFilterBar } from './components/UserFilterBar';
 import { UserLifecycleModals } from './components/UserLifecycleModals';
 import { UserTable } from './components/UserTable';
 import { RolesSection } from './components/RolesSection';
+import { UsersPageHeader, type UsersTab } from './components/UsersPageHeader';
 import { useUserLifecycle, type UserEditDraft } from './hooks/useUserLifecycle';
 import { useRolesData } from './hooks/useRolesData';
 import { useUsersData } from './hooks/useUsersData';
@@ -23,9 +24,20 @@ export default function UsersPage() {
   const canManage = hasPermission('user:manage');
   const canManageRoles = hasPermission('role:manage');
   const { availableFacilities } = useFacility();
-  const [activeTab, setActiveTab] = useState<'users' | 'roles'>('users');
+  const [activeTab, setActiveTab] = useState<UsersTab>('users');
 
-  const { roles, fetchRoles } = useRolesData(canManage);
+  const {
+    roles,
+    loading: loadingRoles,
+    error: rolesError,
+    saving: rolesSaving,
+    actionError: rolesActionError,
+    setActionError: setRolesActionError,
+    fetchRoles,
+    createRole,
+    updateRole,
+    deleteRole,
+  } = useRolesData(canManage);
 
   const {
     totalUsers,
@@ -49,6 +61,7 @@ export default function UsersPage() {
   );
 
   const [showModal, setShowModal] = useState(false);
+  const [showCreateRole, setShowCreateRole] = useState(false);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<UserSummary | null>(null);
   const [resettingUser, setResettingUser] = useState<UserSummary | null>(null);
@@ -101,41 +114,19 @@ export default function UsersPage() {
 
   return (
     <div className={styles.container}>
-      <header className={styles.headerRow}>
-        <div className={styles.titleArea}>
-          <h1>User Management & Access Control</h1>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
-            variant="outline"
-            onClick={() => void fetchUsers()}
-            disabled={loadingUsers}
-            aria-label="Refresh users list"
-            leftIcon={<RefreshCw size={16} className={loadingUsers ? styles.spinning : ''} />}
-          >
-            Refresh
-          </Button>
-          <Button
-            id="create-user-button"
-            variant="primary"
-            onClick={() => setShowModal(true)}
-            leftIcon={<Plus size={16} />}
-          >
-            Provision User
-          </Button>
-        </div>
-      </header>
+      <UsersPageHeader
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        loadingUsers={loadingUsers}
+        loadingRoles={loadingRoles}
+        canManageRoles={canManageRoles}
+        onRefreshUsers={() => void fetchUsers()}
+        onRefreshRoles={() => void fetchRoles()}
+        onProvisionUser={() => setShowModal(true)}
+        onCreateRole={() => setShowCreateRole(true)}
+      />
 
       {actionSuccess && <Banner variant="success" message={actionSuccess} />}
-
-      <div role="tablist" aria-label="User management views" className={styles.headerActions}>
-        <Button variant={activeTab === 'users' ? 'primary' : 'outline'} onClick={() => setActiveTab('users')} aria-selected={activeTab === 'users'} role="tab">
-          Users
-        </Button>
-        <Button variant={activeTab === 'roles' ? 'primary' : 'outline'} onClick={() => setActiveTab('roles')} aria-selected={activeTab === 'roles'} role="tab">
-          Roles
-        </Button>
-      </div>
 
       {activeTab === 'users' && (
         <>
@@ -175,7 +166,19 @@ export default function UsersPage() {
       {activeTab === 'roles' && (
         <RolesSection
           users={filteredUsers}
+          roles={roles}
+          loading={loadingRoles}
+          error={rolesError}
+          saving={rolesSaving}
+          actionError={rolesActionError}
           canManageRoles={canManageRoles}
+          showCreate={showCreateRole}
+          onShowCreateChange={setShowCreateRole}
+          onCreateRole={createRole}
+          onUpdateRole={updateRole}
+          onDeleteRole={deleteRole}
+          onRetryRoles={() => void fetchRoles()}
+          onActionErrorChange={setRolesActionError}
           onChanged={() => {
             void fetchRoles();
             void fetchUsers();
