@@ -191,7 +191,9 @@ export class UserService {
       details: {
         changedFields: Object.keys(input),
         previousRole: existing.role,
+        previousRoleId: existing.roleId ?? null,
         nextRole: saved?.role ?? existing.role,
+        nextRoleId: saved?.roleId ?? existing.roleId ?? null,
         previousStatus: existing.status,
         nextStatus: saved?.status ?? existing.status,
       },
