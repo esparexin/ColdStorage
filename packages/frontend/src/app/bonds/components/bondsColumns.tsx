@@ -21,7 +21,7 @@ export function createBondsColumns({
     },
     {
       key: 'grnNumber',
-      header: 'GRN',
+      header: 'GRN / Bond #',
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)' }}>
           <span style={{ fontWeight: 'var(--font-medium)', whiteSpace: 'nowrap' }}>{row.grnNumber}</span>
@@ -35,16 +35,6 @@ export function createBondsColumns({
       key: 'commodityName',
       header: 'Commodity',
       render: (row) => row.commodityName,
-    },
-    {
-      key: 'bondNumber',
-      header: 'Bond #',
-      render: (row) => (
-        // Bond # resolves to the GR Number: it is not a separately stored identifier.
-        <span style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-primary-text)' }}>
-          {row.grnNumber}
-        </span>
-      ),
     },
     {
       key: 'loanStatus',
@@ -84,7 +74,10 @@ export function createBondsColumns({
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => onOpenDetail(row)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenDetail(row);
+          }}
           title={`View Bond Details for ${row.bondNumber ? `Bond ${row.bondNumber}` : row.grnNumber}`}
           aria-label={`View Bond Details for ${row.bondNumber ? `Bond ${row.bondNumber}` : row.grnNumber}`}
           leftIcon={<Eye size={14} aria-hidden="true" />}

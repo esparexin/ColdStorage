@@ -291,16 +291,9 @@ fi
 
 # 28. Screen Table SSOT:
 # Interactive screen tabular views must consume canonical <DataTable> from components/ui.
-# Baseline exceptions during active remediation:
-# - GrnMergedDetailsTable.tsx
-# - InternalMovementMergeTab.tsx
-# - OutwardRentBreakdown.tsx
-# - GrnStockMovementModal.tsx
-# - CommodityRatesModal.tsx
-# - PricingExplainerSection.tsx
+# Zero baseline exceptions: all screen tabular views are standardized to <DataTable>.
 RAW_TABLE_HITS=$(grep -rnE "<table(\b|[ >])" "$ROOT/packages/frontend/src/app" \
-  --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null \
-  | grep -vE "(GrnMergedDetailsTable\.tsx|InternalMovementMergeTab\.tsx|OutwardRentBreakdown\.tsx|GrnStockMovementModal\.tsx|CommodityRatesModal\.tsx|PricingExplainerSection\.tsx)" || true)
+  --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null || true)
 if [ -n "$RAW_TABLE_HITS" ]; then
   echo "$RAW_TABLE_HITS"
   fail "Table SSOT violation: raw <table> found in feature code. Migrate to canonical <DataTable>."

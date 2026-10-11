@@ -103,7 +103,10 @@ export function AuditTable({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onInspect(r)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onInspect(r);
+          }}
           aria-label={`Inspect payload for ${r.eventType} event ${r.id}`}
           leftIcon={<Eye size={13} aria-hidden="true" />}
         >
@@ -120,6 +123,7 @@ export function AuditTable({
       rowKey={(r) => r.id}
       caption="Audit Log Events"
       pagination={{ page, pageSize, totalPages, totalRecords: totalLogs, onPageChange }}
+      onRowClick={onInspect}
     />
   );
 }

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import type { Commodity } from '@cold-storage/contracts';
-import { Button, FeedbackStates, Input, Modal } from '@/components/ui';
+import { Button, DataTable, FeedbackStates, Input, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { useCommodityRates } from '../hooks/useCommodityRates';
 import {
@@ -126,57 +126,61 @@ export function CommodityRatesModal({ commodity, onClose, onSaved }: CommodityRa
         <form onSubmit={handleSubmit} className={styles.modalForm}>
           {modalError && <Banner message={modalError} id="rates-modal-error" />}
           <div className={styles.matrixContainer}>
-            <table className={styles.matrixTable}>
-              <thead>
-                <tr>
-                  <th scope="col" className={styles.matrixTh}>Subscription</th>
-                  <th scope="col" className={styles.matrixTh} style={{ textAlign: 'center' }}>
-                    Small Bag
-                  </th>
-                  <th scope="col" className={styles.matrixTh} style={{ textAlign: 'center' }}>
-                    Big Bag
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {MATRIX_ROWS.map((row) => (
-                  <tr key={row.title} className={styles.matrixTr}>
-                    <td className={styles.matrixTd}>
+            <DataTable
+              columns={[
+                {
+                  key: 'subscription',
+                  header: 'Subscription',
+                  render: (row) => (
+                    <div>
                       <div className={styles.matrixRowTitle}>{row.title}</div>
                       <div className={styles.matrixRowSubtitle}>{row.subtitle}</div>
-                    </td>
-                    <td className={styles.matrixTd}>
-                      <Input
-                        id={row.smallId}
-                        aria-label={row.smallAriaLabel}
-                        type="text"
-                        inputMode="decimal"
-                        required
-                        value={form[row.smallKey]}
-                        onChange={(e) => setField(row.smallKey, e.target.value)}
-                        placeholder="e.g. 10"
-                        disabled={saving}
-                        error={fieldErrors[row.smallKey]}
-                      />
-                    </td>
-                    <td className={styles.matrixTd}>
-                      <Input
-                        id={row.bigId}
-                        aria-label={row.bigAriaLabel}
-                        type="text"
-                        inputMode="decimal"
-                        required
-                        value={form[row.bigKey]}
-                        onChange={(e) => setField(row.bigKey, e.target.value)}
-                        placeholder="e.g. 12"
-                        disabled={saving}
-                        error={fieldErrors[row.bigKey]}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'small',
+                  header: 'Small Bag',
+                  align: 'center',
+                  render: (row) => (
+                    <Input
+                      id={row.smallId}
+                      aria-label={row.smallAriaLabel}
+                      type="text"
+                      inputMode="decimal"
+                      required
+                      value={form[row.smallKey]}
+                      onChange={(e) => setField(row.smallKey, e.target.value)}
+                      placeholder="e.g. 10"
+                      disabled={saving}
+                      error={fieldErrors[row.smallKey]}
+                    />
+                  ),
+                },
+                {
+                  key: 'big',
+                  header: 'Big Bag',
+                  align: 'center',
+                  render: (row) => (
+                    <Input
+                      id={row.bigId}
+                      aria-label={row.bigAriaLabel}
+                      type="text"
+                      inputMode="decimal"
+                      required
+                      value={form[row.bigKey]}
+                      onChange={(e) => setField(row.bigKey, e.target.value)}
+                      placeholder="e.g. 12"
+                      disabled={saving}
+                      error={fieldErrors[row.bigKey]}
+                    />
+                  ),
+                },
+              ]}
+              rows={MATRIX_ROWS}
+              rowKey={(row) => row.title}
+              caption="Price Controller Rates Matrix"
+            />
           </div>
           <div className={styles.modalFooter}>
             <Button variant="secondary" onClick={onClose} disabled={saving}>

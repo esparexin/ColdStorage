@@ -173,6 +173,7 @@ export default function BondsPage() {
               totalRecords: filteredGrns.length,
               onPageChange: setPage,
             }}
+            onRowClick={handleOpenDetail}
           />
         </>
       )}

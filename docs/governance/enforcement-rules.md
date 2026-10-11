@@ -54,7 +54,7 @@ workflows.
 | 25 | Token typography/spacing | no hardcoded `font-size:11px/10px`, `gap/margin/padding px`, hex fallbacks, `!important` compact overrides, or non-existent tokens (`surface-3`, `danger-border`, `space-2-5`) in screen UI; fill-vs-text roles (`*-text` for text) must be respected. Print template `renderPassbookHtml.ts` and the intentional `StatCard` 1px hairline are the only sanctioned exceptions |
 | 26 | Undefined design tokens | no references to non-existent tokens: `--text-md` (use `--text-base`), unindexed `--color-surface` (use `--color-surface-1` or `-2`), `--color-border-subtle` (use `--color-border`), and `--color-surface-hover` (use `--color-surface-2`) |
 | 27 | Single bordered surface SSOT | `DataTable` provides its own bordered container; wrapping `DataTable` inside `Card` is prohibited to prevent double-border defects |
-| 28 | Screen table SSOT | interactive screen tables must consume the canonical `DataTable` primitive; raw `<table>` implementations in feature screens are prohibited |
+| 28 | Screen table SSOT | interactive screen tables must consume the canonical `DataTable` primitive; raw `<table>` implementations in feature screens are strictly prohibited (zero baseline exceptions) |
 | 29 | Shared button primitive SSOT | UI primitives and feature feedback states must consume the canonical `Button` primitive rather than raw `<button>` elements |
 
 ## 4. Responsive Viewport Verification Matrix

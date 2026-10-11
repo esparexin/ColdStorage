@@ -3,7 +3,7 @@
 import React from 'react';
 import { Printer } from 'lucide-react';
 import type { Grn, GrnMovementHistory } from '@cold-storage/contracts';
-import { Badge, Button, Modal } from '@/components/ui';
+import { Badge, Button, DataTable, type DataTableColumn, Modal } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useSettings } from '@/context/SettingsContext';
 import { ORG_NAME_FALLBACK } from '@/lib/branding';
@@ -11,6 +11,8 @@ import { printHtmlString } from '@/lib/print-document';
 import { parseMovementRow } from '../utils/grnMovementView.helper';
 import { renderGrnStockHtml } from '../utils/renderGrnStockHtml';
 import styles from '../page.module.css';
+
+type MovementEntry = GrnMovementHistory['entries'][number];
 
 interface GrnStockMovementModalProps {
   selectedGrn: Grn;
@@ -20,6 +22,97 @@ interface GrnStockMovementModalProps {
   onClose: () => void;
   onRetry: () => void;
 }
+
+const movementColumns: DataTableColumn<MovementEntry>[] = [
+  {
+    key: 'date',
+    header: 'Date',
+    render: (entry) =>
+      new Date(entry.date).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
+      }),
+  },
+  {
+    key: 'type',
+    header: 'Type',
+    render: (entry) => {
+      const p = parseMovementRow(entry);
+      const badgeClass = {
+        inward: styles.typeInward,
+        mergeIn: styles.typeMergeIn,
+        mergeOut: styles.typeOutward,
+        transfer: styles.typeTransfer,
+        outward: styles.typeOutward,
+        reversal: styles.typeReversal,
+      }[p.badgeType];
+      return <span className={`${styles.typeTag} ${badgeClass}`}>{p.typeLabel}</span>;
+    },
+  },
+  {
+    key: 'refNumber',
+    header: 'GP / Ref #',
+    render: (entry) => {
+      const p = parseMovementRow(entry);
+      return <span className={styles.refCell}>{p.refNumber}</span>;
+    },
+  },
+  {
+    key: 'small',
+    header: 'Small',
+    align: 'right',
+    render: (entry) => {
+      const p = parseMovementRow(entry);
+      return <span className={styles.numCell}>{p.smallDisplay}</span>;
+    },
+  },
+  {
+    key: 'big',
+    header: 'Big',
+    align: 'right',
+    render: (entry) => {
+      const p = parseMovementRow(entry);
+      return <span className={styles.numCell}>{p.bigDisplay}</span>;
+    },
+  },
+  {
+    key: 'total',
+    header: 'Total',
+    align: 'right',
+    render: (entry) => {
+      const p = parseMovementRow(entry);
+      return (
+        <span className={`${styles.numCell} ${p.isReceived ? styles.receivedNum : ''}`}>
+          {p.totalDisplay}
+        </span>
+      );
+    },
+  },
+  {
+    key: 'balance',
+    header: 'Balance',
+    align: 'right',
+    render: (entry) => (
+      <span className={`${styles.numCell} ${styles.closingNum}`}>
+        {entry.closingBags.toLocaleString('en-IN')}
+        {entry.closingBags === 0 && <span className={styles.closedTag}>CLOSED</span>}
+      </span>
+    ),
+  },
+  {
+    key: 'notes',
+    header: 'Notes',
+    render: (entry) => {
+      const p = parseMovementRow(entry);
+      return (
+        <span className={styles.notesCell} title={p.notes !== '—' ? p.notes : undefined}>
+          {p.notes}
+        </span>
+      );
+    },
+  },
+];
 
 export function GrnStockMovementModal({
   selectedGrn,
@@ -107,75 +200,12 @@ export function GrnStockMovementModal({
 
             {/* Movement Table */}
             <div className={styles.movementTableSection}>
-              <span className={styles.movementTableHeading}>Customer Bag Movement</span>
-              <div className={styles.tableWrapper}>
-                <table className={styles.ledgerTable} aria-label="GRN Stock Movement">
-                  <thead>
-                    <tr>
-                      <th scope="col">Date</th>
-                      <th scope="col">Type</th>
-                      <th scope="col">GP / Ref #</th>
-                      <th scope="col" style={{ textAlign: 'right' }}>Small</th>
-                      <th scope="col" style={{ textAlign: 'right' }}>Big</th>
-                      <th scope="col" style={{ textAlign: 'right' }}>Total</th>
-                      <th scope="col" style={{ textAlign: 'right' }}>Balance</th>
-                      <th scope="col">Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.entries.map((entry, idx) => {
-                      const p = parseMovementRow(entry);
-                      const formattedDate = new Date(entry.date).toLocaleDateString('en-IN', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: '2-digit',
-                      });
-
-                      const rowClass = {
-                        inward: styles.rowInward,
-                        mergeIn: styles.rowMergeIn,
-                        mergeOut: styles.rowOutward,
-                        transfer: styles.rowTransfer,
-                        outward: styles.rowOutward,
-                        reversal: styles.rowReversal,
-                      }[p.badgeType];
-
-                      const badgeClass = {
-                        inward: styles.typeInward,
-                        mergeIn: styles.typeMergeIn,
-                        mergeOut: styles.typeOutward,
-                        transfer: styles.typeTransfer,
-                        outward: styles.typeOutward,
-                        reversal: styles.typeReversal,
-                      }[p.badgeType];
-
-                      return (
-                        <tr key={`${entry.grnId}-${entry.type}-${idx}`} className={rowClass}>
-                          <td>{formattedDate}</td>
-                          <td>
-                            <span className={`${styles.typeTag} ${badgeClass}`}>
-                              {p.typeLabel}
-                            </span>
-                          </td>
-                          <td className={styles.refCell}>{p.refNumber}</td>
-                          <td className={styles.numCell}>{p.smallDisplay}</td>
-                          <td className={styles.numCell}>{p.bigDisplay}</td>
-                          <td className={`${styles.numCell} ${p.isReceived ? styles.receivedNum : ''}`}>
-                            {p.totalDisplay}
-                          </td>
-                          <td className={`${styles.numCell} ${styles.closingNum}`}>
-                            {entry.closingBags.toLocaleString('en-IN')}
-                            {entry.closingBags === 0 && <span className={styles.closedTag}>CLOSED</span>}
-                          </td>
-                          <td className={styles.notesCell} title={p.notes !== '—' ? p.notes : undefined}>
-                            {p.notes}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                columns={movementColumns}
+                rows={history.entries}
+                rowKey={(entry, idx) => `${entry.grnId}-${entry.type}-${idx}`}
+                caption="Customer Bag Movement"
+              />
             </div>
           </div>
         )}

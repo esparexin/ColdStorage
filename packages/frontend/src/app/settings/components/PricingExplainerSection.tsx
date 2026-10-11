@@ -1,8 +1,23 @@
 'use client';
 
 import React from 'react';
+import { DataTable, type DataTableColumn } from '@/components/ui';
 import { pricingExamples } from './pricingExamples';
 import styles from './PricingExplainerSection.module.css';
+
+interface DeliveryEffectRow {
+  opening: string;
+  delivered: string;
+  remaining: string;
+  originalRent: string;
+}
+
+const deliveryColumns: DataTableColumn<DeliveryEffectRow>[] = [
+  { key: 'opening', header: 'Opening', render: (r) => r.opening },
+  { key: 'delivered', header: 'Delivered', render: (r) => r.delivered },
+  { key: 'remaining', header: 'Remaining', render: (r) => r.remaining },
+  { key: 'originalRent', header: 'Original rent', render: (r) => r.originalRent },
+];
 
 /**
  * Read-only Bag Pricing & Rent explanation.
@@ -114,25 +129,19 @@ export function PricingExplainerSection() {
           <h3 id="ex-delivery" className={styles.cardTitle}>
             5 · Effect of delivery on remaining bags
           </h3>
-          <table className={styles.table}>
-            <caption className={styles.caption}>Delivery reduces bags, not original rent</caption>
-            <thead>
-              <tr>
-                <th scope="col">Opening</th>
-                <th scope="col">Delivered</th>
-                <th scope="col">Remaining</th>
-                <th scope="col">Original rent</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>100 bags</td>
-                <td>60 bags</td>
-                <td>40 bags</td>
-                <td>{ex.inr(ex.seasonalOriginal)} (unchanged)</td>
-              </tr>
-            </tbody>
-          </table>
+          <DataTable
+            columns={deliveryColumns}
+            rows={[
+              {
+                opening: '100 bags',
+                delivered: '60 bags',
+                remaining: '40 bags',
+                originalRent: `${ex.inr(ex.seasonalOriginal)} (unchanged)`,
+              },
+            ]}
+            rowKey={() => 'delivery-effect-row'}
+            caption="Delivery reduces bags, not original rent"
+          />
           <p className={styles.hint}>
             The 40 remaining bags are what the January extension is calculated from.
           </p>
