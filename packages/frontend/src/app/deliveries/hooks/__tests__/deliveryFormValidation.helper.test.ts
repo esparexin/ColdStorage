@@ -135,4 +135,22 @@ describe('validateDeliveryForm', () => {
     expect(result.isValid).toBe(false);
     expect(result.errors.driverName).toBe('Driver name is required');
   });
+
+  it('allows small and big bags from an unsegregated S+B combined pool as long as total is within lot size', () => {
+    const result = validateDeliveryForm(
+      makeInput({
+        smallBags: 50,
+        bigBags: 20,
+        totalWithdrawingBags: 70,
+        availableSmall: 200,
+        availableBig: 0,
+        availableTotal: 200,
+        isCombinedPool: true,
+      }),
+    );
+    expect(result.isValid).toBe(true);
+    expect(result.errors.smallBags).toBeUndefined();
+    expect(result.errors.bigBags).toBeUndefined();
+    expect(result.errors.bags).toBeUndefined();
+  });
 });

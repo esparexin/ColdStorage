@@ -8,6 +8,7 @@ import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { useSettings } from '@/context/SettingsContext';
 import { ORG_NAME_FALLBACK } from '@/lib/branding';
 import { printHtmlString } from '@/lib/print-document';
+import { parseMovementRow } from '../utils/grnMovementView.helper';
 import { renderGrnStockHtml } from '../utils/renderGrnStockHtml';
 import styles from '../page.module.css';
 
@@ -50,8 +51,8 @@ export function GrnStockMovementModal({
       isOpen
       onClose={onClose}
       title={`GRN Stock Movement — ${selectedGrn.grnNumber}`}
-      subtitle={`${selectedGrn.customerName} · ${selectedGrn.commodityName} · ${selectedGrn.chamber}`}
-      size={history ? 'lg' : 'md'}
+      subtitle={`${selectedGrn.customerName} · ${selectedGrn.commodityName} · ${selectedGrn.chamber} · Inward: ${inwardDate}`}
+      size={history ? 'xl' : 'md'}
       className={styles.ledgerModal}
       footer={
         <>
@@ -73,18 +74,6 @@ export function GrnStockMovementModal({
           <FeedbackStates.Empty message="No movement history available for this GRN." />
         ) : (
           <div className={styles.movementView}>
-            {/* Header */}
-            <div className={styles.movementHeader}>
-              <div className={styles.movementHeaderLeft}>
-                <span className={styles.movementCustomer}>{history.customerName}</span>
-                <span className={styles.movementCommodity}>{history.commodityName}</span>
-              </div>
-              <div className={styles.movementHeaderRight}>
-                <span className={styles.movementMeta}>Chamber: <strong>{history.chamber}</strong></span>
-                <span className={styles.movementMeta}>Inward: <strong>{inwardDate}</strong></span>
-              </div>
-            </div>
-
             {/* Summary Cards */}
             <div className={styles.summaryRow}>
               <div className={styles.summaryCard}>
@@ -125,64 +114,61 @@ export function GrnStockMovementModal({
                     <tr>
                       <th scope="col">Date</th>
                       <th scope="col">Type</th>
-                      <th scope="col">GP No.</th>
+                      <th scope="col">GP / Ref #</th>
                       <th scope="col" style={{ textAlign: 'right' }}>Small</th>
                       <th scope="col" style={{ textAlign: 'right' }}>Big</th>
                       <th scope="col" style={{ textAlign: 'right' }}>Total</th>
                       <th scope="col" style={{ textAlign: 'right' }}>Balance</th>
+                      <th scope="col">Notes</th>
                     </tr>
                   </thead>
                   <tbody>
                     {history.entries.map((entry, idx) => {
-                      const isInward = entry.type === 'INWARD';
-                      const isReversal = entry.type === 'DELIVERY_REVERSAL';
-
-                      const rowClass = isInward
-                        ? styles.rowInward
-                        : isReversal
-                          ? styles.rowReversal
-                          : styles.rowOutward;
-
+                      const p = parseMovementRow(entry);
                       const formattedDate = new Date(entry.date).toLocaleDateString('en-IN', {
                         day: '2-digit',
                         month: '2-digit',
                         year: '2-digit',
                       });
 
-                      const typeLabel = isInward
-                        ? 'INWARD'
-                        : isReversal
-                          ? 'REVERSAL'
-                          : entry.type === 'FINAL_OUTWARD'
-                            ? 'OUTWARD'
-                            : 'OUTWARD';
+                      const rowClass = {
+                        inward: styles.rowInward,
+                        mergeIn: styles.rowMergeIn,
+                        mergeOut: styles.rowOutward,
+                        transfer: styles.rowTransfer,
+                        outward: styles.rowOutward,
+                        reversal: styles.rowReversal,
+                      }[p.badgeType];
 
-                      const totalBags = isInward
-                        ? entry.closingBags
-                        : isReversal
-                          ? (entry.receivedBags ?? 0)
-                          : entry.deliveredBags;
-
-                      const smallDisplay = entry.smallBags != null ? entry.smallBags.toLocaleString('en-IN') : '—';
-                      const bigDisplay = entry.bigBags != null ? entry.bigBags.toLocaleString('en-IN') : '—';
+                      const badgeClass = {
+                        inward: styles.typeInward,
+                        mergeIn: styles.typeMergeIn,
+                        mergeOut: styles.typeOutward,
+                        transfer: styles.typeTransfer,
+                        outward: styles.typeOutward,
+                        reversal: styles.typeReversal,
+                      }[p.badgeType];
 
                       return (
                         <tr key={`${entry.grnId}-${entry.type}-${idx}`} className={rowClass}>
                           <td>{formattedDate}</td>
                           <td>
-                            <span className={`${styles.typeTag} ${isInward ? styles.typeInward : isReversal ? styles.typeReversal : styles.typeOutward}`}>
-                              {typeLabel}
+                            <span className={`${styles.typeTag} ${badgeClass}`}>
+                              {p.typeLabel}
                             </span>
                           </td>
-                          <td>{entry.gpNumber || (entry.challanNumber ? entry.challanNumber : '—')}</td>
-                          <td className={styles.numCell}>{smallDisplay}</td>
-                          <td className={styles.numCell}>{bigDisplay}</td>
-                          <td className={`${styles.numCell} ${isInward ? styles.receivedNum : ''}`}>
-                            {totalBags.toLocaleString('en-IN')}
+                          <td className={styles.refCell}>{p.refNumber}</td>
+                          <td className={styles.numCell}>{p.smallDisplay}</td>
+                          <td className={styles.numCell}>{p.bigDisplay}</td>
+                          <td className={`${styles.numCell} ${p.isReceived ? styles.receivedNum : ''}`}>
+                            {p.totalDisplay}
                           </td>
                           <td className={`${styles.numCell} ${styles.closingNum}`}>
                             {entry.closingBags.toLocaleString('en-IN')}
                             {entry.closingBags === 0 && <span className={styles.closedTag}>CLOSED</span>}
+                          </td>
+                          <td className={styles.notesCell} title={p.notes !== '—' ? p.notes : undefined}>
+                            {p.notes}
                           </td>
                         </tr>
                       );

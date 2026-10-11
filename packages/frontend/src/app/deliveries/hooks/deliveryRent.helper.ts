@@ -1,5 +1,6 @@
 import {
   calculateMonthlyElapsedCycles,
+  calculateOutwardSeasonalBreakdown,
   calculateRentAmount,
   resolveOutwardRates,
   type RentType,
@@ -18,6 +19,8 @@ export interface ComputeOutwardRentParams {
   smallBagPrice?: number | null;
   bigBagPrice?: number | null;
   bagPrice?: number | null;
+  monthlySmallBagPrice?: number | null;
+  monthlyBigBagPrice?: number | null;
 }
 
 export function resolveOutwardBillableMonths(params: {
@@ -52,6 +55,20 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
   const totalBags = effectiveSmall + effectiveBig;
 
   if (totalBags <= 0) return 0;
+
+  if (rentType === 'Seasonal' && params.inwardDate && params.deliveryDate) {
+    const monthlySmall = params.monthlySmallBagPrice ?? smallRate;
+    const monthlyBig = params.monthlyBigBagPrice ?? bigRate;
+    const breakdown = calculateOutwardSeasonalBreakdown({
+      inwardDate: params.inwardDate,
+      deliveryDate: params.deliveryDate,
+      smallBags: effectiveSmall,
+      bigBags: effectiveBig,
+      seasonalRates: { small: smallRate, big: bigRate },
+      monthlyRates: { small: monthlySmall, big: monthlyBig },
+    });
+    return breakdown.totalRent;
+  }
 
   const billableMonths = resolveOutwardBillableMonths({
     rentType,

@@ -8,6 +8,8 @@ export interface ValidateDeliveryFormInput {
   totalWithdrawingBags: number;
   availableSmall: number;
   availableBig: number;
+  availableTotal?: number;
+  isCombinedPool?: boolean;
   createVehicleNumber: string;
   createGpNumber?: string;
   createDriverName?: string;
@@ -52,15 +54,15 @@ export function validateDeliveryForm(input: ValidateDeliveryFormInput): Delivery
     }
   }
 
+  const availableTotal = input.availableTotal ?? (input.availableSmall + input.availableBig);
+
   if (input.totalWithdrawingBags <= 0) {
     errors.bags = 'Please enter at least 1 bag to deliver';
+  } else if (input.totalWithdrawingBags > availableTotal) {
+    errors.bags = `Cannot deliver ${input.totalWithdrawingBags} bags (only ${availableTotal} available)`;
   }
 
-  if (input.totalWithdrawingBags > input.availableSmall + input.availableBig) {
-    errors.bags = `Cannot deliver ${input.totalWithdrawingBags} bags (only ${input.availableSmall + input.availableBig} available)`;
-  }
-
-  const isTwoSided = input.availableSmall > 0 && input.availableBig > 0;
+  const isTwoSided = !input.isCombinedPool && input.availableSmall > 0 && input.availableBig > 0;
   if (isTwoSided) {
     if (input.smallBags > input.availableSmall) {
       errors.smallBags = `Cannot deliver ${input.smallBags} small bags (only ${input.availableSmall} available)`;

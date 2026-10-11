@@ -21,12 +21,21 @@ const USER_ID = 'usr-stored-agree';
  */
 describe('Delivery stored agreement — delivery-stored-agreement.test.ts', () => {
   let customerId: string;
+  const originalEnv = process.env.ALLOW_HISTORICAL_TESTING_DATES;
 
   beforeAll(async () => {
+    process.env.ALLOW_HISTORICAL_TESTING_DATES = 'true';
     await connectToTestDatabase();
   });
 
-  afterAll(disconnectTestDatabase);
+  afterAll(async () => {
+    if (originalEnv !== undefined) {
+      process.env.ALLOW_HISTORICAL_TESTING_DATES = originalEnv;
+    } else {
+      delete process.env.ALLOW_HISTORICAL_TESTING_DATES;
+    }
+    await disconnectTestDatabase();
+  });
 
   beforeEach(async () => {
     await resetStockCollections();
@@ -82,5 +91,102 @@ describe('Delivery stored agreement — delivery-stored-agreement.test.ts', () =
       USER_ID,
     );
     expect(second.delivery.rentCharge).toBe(480);
+  });
+
+  it('calculates multi-period seasonal outward rent with January and February monthly rates', async () => {
+    // Configure Monthly commodity rate
+    await commodityRateService.upsertRate({
+      commodityId: 'cmd-agr',
+      rentType: 'Monthly',
+      smallRate: 15,
+      bigRate: 21,
+    });
+
+    const { grn } = await grnService.createGrn(
+      FACILITY_ID,
+      {
+        grnNumber: '8002',
+        date: new Date('2024-07-10T00:00:00.000Z'),
+        customerId,
+        commodityId: 'cmd-agr',
+        chamber: 'CH-01',
+        bags: 200,
+        bagType: 'S/B',
+        rentType: 'Seasonal',
+        smallBagPrice: 150,
+        bigBagPrice: 210,
+      },
+      USER_ID,
+    );
+
+    // Deliver on Oct 11, 2026 (spans Season 2024, Jan 2025, Feb 2025, Season 2025, Jan 2026, Feb 2026, Season 2026)
+    // 50 Small + 50 Big
+    // Seasonal period: 50*150 + 50*210 = 18,000 (3 seasons = 54,000)
+    // Monthly period: 50*15 + 50*21 = 1,800 (4 months = 7,200)
+    // Total = 61,200
+    const deliveryRes = await deliveryService.createDelivery(
+      FACILITY_ID,
+      {
+        grnId: grn.id,
+        date: new Date('2026-10-11T00:00:00.000Z'),
+        smallBags: 50,
+        bigBags: 50,
+        bagCategory: 'Small & Big',
+      },
+      USER_ID,
+    );
+
+    expect(deliveryRes.delivery.rentCharge).toBe(61200);
+  });
+
+  it('supports unsegregated S+B inward lots with partial delivery of small and big bags', async () => {
+    const { grn } = await grnService.createGrn(
+      FACILITY_ID,
+      {
+        grnNumber: '8003',
+        date: new Date('2026-04-10T00:00:00.000Z'),
+        customerId,
+        commodityId: 'cmd-agr',
+        chamber: 'CH-01',
+        bags: 200,
+        bagType: 'S+B',
+        rentType: 'Seasonal',
+        smallBagPrice: 150,
+        bigBagPrice: 210,
+      },
+      USER_ID,
+    );
+
+    // Operator enters 50 small and 20 big bags = 70 total
+    const del = await deliveryService.createDelivery(
+      FACILITY_ID,
+      {
+        grnId: grn.id,
+        date: new Date('2026-05-15T00:00:00.000Z'),
+        smallBags: 50,
+        bigBags: 20,
+        bagCategory: 'Small & Big',
+      },
+      USER_ID,
+    );
+
+    // Dispatched = 70, remaining stock = 200 - 70 = 130
+    expect(del.delivery.smallBags).toBe(50);
+    expect(del.delivery.bigBags).toBe(20);
+    expect(del.delivery.totalBags).toBe(70);
+    expect(del.summary.remainingDeliveryBalance).toBe(130);
+    expect(del.summary.physicallyStoredBags).toBe(130);
+    // Rent = 50 * 150 + 20 * 210 = 7,500 + 4,200 = 11,700
+    expect(del.delivery.rentCharge).toBe(11700);
+
+    // Reversal restores exact 200 bags without fragmenting single pool
+    const rev = await deliveryService.reverseDelivery(
+      FACILITY_ID,
+      del.delivery.id,
+      { reason: 'Customer changed delivery request' },
+      USER_ID,
+    );
+    expect(rev.summary.remainingDeliveryBalance).toBe(200);
+    expect(rev.summary.physicallyStoredBags).toBe(200);
   });
 });

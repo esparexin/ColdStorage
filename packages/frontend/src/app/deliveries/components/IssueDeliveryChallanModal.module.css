@@ -1,0 +1,21 @@
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.footerContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.footerRightActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+

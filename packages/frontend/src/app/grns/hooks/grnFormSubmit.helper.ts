@@ -78,7 +78,7 @@ export async function handleEditGrnSubmit(params: {
   const trimmedChamber = createChamber.trim();
   if (!trimmedChamber || trimmedChamber.length > 20) {
     params.setFieldErrors({ chamber: 'Chamber is required (max 20 characters)' });
-    params.setModalError('Chamber is required (max 20 characters)');
+    params.setModalError(null);
     return;
   }
   const { payload, hasChanges } = buildEditGrnPayload({

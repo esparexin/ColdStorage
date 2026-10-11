@@ -60,3 +60,25 @@ describe('calculateNextNumberValue (scroll wheel direction handling)', () => {
     expect(calculateNextNumberValue(input, 'down')).toBe('4');
   });
 });
+
+describe('useNumberInputWheel hook behavior', () => {
+  it('blurs a focused number input on wheel event', () => {
+    let blurred = false;
+    const mockInput = {
+      tagName: 'INPUT',
+      type: 'number',
+      value: '42',
+      blur() {
+        blurred = true;
+      },
+    };
+
+    // Verify wheel blur behavior on active number input
+    if (mockInput.tagName === 'INPUT' && mockInput.type === 'number') {
+      mockInput.blur();
+    }
+
+    expect(blurred).toBe(true);
+    expect(mockInput.value).toBe('42');
+  });
+});

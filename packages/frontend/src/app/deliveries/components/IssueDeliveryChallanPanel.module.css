@@ -6,6 +6,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  width: 100%;
 }
 
 .issueHeader {
@@ -17,7 +18,7 @@
 }
 
 .issueTitle {
-  font-size: var(--text-base);
+  font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
   margin: 0;
@@ -32,45 +33,43 @@
 .formContent {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
-.grnDetailsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: var(--space-2);
-  padding: var(--space-3);
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.grnDetailItem {
+.stockFooter {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  justify-content: flex-end;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
 }
 
-.detailLabel {
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
-  color: var(--color-text-muted);
-}
-
-.detailValue {
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  color: var(--color-text-primary);
-}
-
-.issueFooter {
+.footerContainer {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-2);
+  justify-content: space-between;
+  gap: var(--space-3);
   padding-top: var(--space-3);
   margin-top: var(--space-2);
   border-top: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.footerRentSummary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.footerRentAmount {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-primary);
+}
+
+.footerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }

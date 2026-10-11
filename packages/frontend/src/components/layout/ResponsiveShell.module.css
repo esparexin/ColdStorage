@@ -36,20 +36,38 @@
    ============================================================ */
 
 .loginContainer {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
   background-color: var(--color-surface-0);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   padding: var(--space-4);
+  overflow-y: auto;
+}
+
+.loginOverlay {
+  position: absolute;
+  inset: 0;
+  background: var(--color-scrim);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  pointer-events: none;
 }
 
 .loginCard {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 380px;
+  max-width: 400px;
   background: var(--color-surface-1);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   padding: var(--space-6);
 }
@@ -64,6 +82,7 @@
   font-weight: var(--font-bold);
   color: var(--color-text-primary);
   margin-bottom: var(--space-1);
+  letter-spacing: var(--tracking-tight);
 }
 
 .loginSubtitle {
@@ -76,4 +95,16 @@
   flex-direction: column;
   gap: var(--space-3);
 }
+
+@media (max-width: 480px) {
+  .loginContainer {
+    padding: var(--space-3);
+  }
+
+  .loginCard {
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+  }
+}
+
 

@@ -166,24 +166,25 @@ describe('createGrnForm buildEditGrnPayload helper', () => {
 
 describe('createGrnForm Monthly vs Seasonal rent terms validation', () => {
   it('accepts Monthly rent with omitted/empty rentMonths and rentAmount', () => {
-    const { errors } = validateCreateGrnForm(
-      makeState({ createRentType: 'Monthly', createRentMonths: '', createRentAmount: '' }),
-    );
+    const { errors } = validateCreateGrnForm(makeState({ createRentType: 'Monthly', createRentMonths: '', createRentAmount: '' }));
     expect(errors.rentMonths).toBeUndefined();
     expect(errors.rentAmount).toBeUndefined();
   });
 
   it('rejects Monthly rent when rentMonths is less than 1', () => {
-    const { errors } = validateCreateGrnForm(
-      makeState({ createRentType: 'Monthly', createRentMonths: 0, createRentAmount: '' }),
-    );
+    const { errors } = validateCreateGrnForm(makeState({ createRentType: 'Monthly', createRentMonths: 0, createRentAmount: '' }));
     expect(errors.rentMonths).toBe('Rent months must be >= 1 when provided');
   });
 
+  it('validates Total S/B Bags as positive whole number', () => {
+    expect(validateCreateGrnForm(makeState({ createBags: 100 })).errors.bags).toBeUndefined();
+    expect(validateCreateGrnForm(makeState({ createBags: '' })).errors.bags).toBe('Total S/B Bags is required (a positive whole number)');
+    expect(validateCreateGrnForm(makeState({ createBags: 0 })).errors.bags).toBe('Total S/B Bags is required (a positive whole number)');
+    expect(validateCreateGrnForm(makeState({ createBags: 2.5 })).errors.bags).toBe('Total S/B Bags is required (a positive whole number)');
+  });
+
   it('accepts Seasonal rent without rentAmount on Inward', () => {
-    const { errors } = validateCreateGrnForm(
-      makeState({ createRentType: 'Seasonal', createRentAmount: '' }),
-    );
+    const { errors } = validateCreateGrnForm(makeState({ createRentType: 'Seasonal', createRentAmount: '' }));
     expect(errors.rentAmount).toBeUndefined();
   });
 
