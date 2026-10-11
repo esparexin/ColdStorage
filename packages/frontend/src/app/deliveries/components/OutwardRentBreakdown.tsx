@@ -21,6 +21,12 @@ interface OutwardRentBreakdownProps {
   pendingBalance?: number;
 }
 
+function getPeriodMeta(periodType: string) {
+  if (periodType === 'JANUARY') return { type: 'Monthly Extension', range: 'Jan 1 – Jan 31' };
+  if (periodType === 'FEBRUARY') return { type: 'Monthly Extension', range: 'Feb 1 – Feb 28' };
+  return { type: 'Seasonal Storage', range: 'Mar 1 – Dec 31' };
+}
+
 export function OutwardRentBreakdown({
   rentType,
   inwardDate,
@@ -61,7 +67,7 @@ export function OutwardRentBreakdown({
           <thead>
             <tr>
               <th style={{ textAlign: 'left' }}>Period</th>
-              <th style={{ textAlign: 'left' }}>Calculation Formula</th>
+              <th style={{ textAlign: 'left' }}>Rent Details</th>
               <th style={{ textAlign: 'right' }}>Amount</th>
             </tr>
           </thead>
@@ -69,12 +75,22 @@ export function OutwardRentBreakdown({
             {isSeasonal && seasonalBreakdown && seasonalBreakdown.periods.length > 0 ? (
               seasonalBreakdown.periods.map((p) => {
                 const parts: string[] = [];
-                if (p.smallBags > 0) parts.push(`${p.smallBags} S × ₹${p.smallRate}`);
-                if (p.bigBags > 0) parts.push(`${p.bigBags} B × ₹${p.bigRate}`);
+                if (p.smallBags > 0) {
+                  const sAmt = p.smallBags * p.smallRate;
+                  parts.push(`${p.smallBags} Small × ₹${p.smallRate} (₹${sAmt.toLocaleString('en-IN')})`);
+                }
+                if (p.bigBags > 0) {
+                  const bAmt = p.bigBags * p.bigRate;
+                  parts.push(`${p.bigBags} Big × ₹${p.bigRate} (₹${bAmt.toLocaleString('en-IN')})`);
+                }
                 const formula = parts.join(' + ') || '0 bags';
+                const meta = getPeriodMeta(p.periodType);
                 return (
                   <tr key={p.periodKey}>
-                    <td style={{ fontWeight: 'var(--font-medium)' }}>{p.label}</td>
+                    <td style={{ fontWeight: 'var(--font-medium)' }}>
+                      <div>{p.label}</div>
+                      <div className={styles.periodMeta}>{meta.type} • {meta.range}</div>
+                    </td>
                     <td style={{ color: 'var(--color-text-secondary)' }}>{formula}</td>
                     <td style={{ textAlign: 'right', fontWeight: 'var(--font-medium)' }}>
                       ₹{p.amount.toLocaleString('en-IN')}
@@ -85,15 +101,18 @@ export function OutwardRentBreakdown({
             ) : (
               <tr>
                 <td style={{ fontWeight: 'var(--font-medium)' }}>
-                  {isSeasonal ? 'Seasonal Storage' : `Monthly Storage (${rentMonths ?? 1} mo)`}
+                  <div>{isSeasonal ? 'Seasonal Storage' : 'Monthly Storage'}</div>
+                  <div className={styles.periodMeta}>
+                    {isSeasonal ? 'Seasonal • Full season total' : `Monthly • ${rentMonths ?? 1} billing cycle${(rentMonths ?? 1) > 1 ? 's' : ''}`}
+                  </div>
                 </td>
                 <td style={{ color: 'var(--color-text-secondary)' }}>
                   {smallBags > 0 && bigBags > 0
-                    ? `(${smallBags} S × ₹${seasonalRates.small} + ${bigBags} B × ₹${seasonalRates.big})`
+                    ? `${smallBags} Small × ₹${seasonalRates.small} (₹${(smallBags * seasonalRates.small).toLocaleString('en-IN')}) + ${bigBags} Big × ₹${seasonalRates.big} (₹${(bigBags * seasonalRates.big).toLocaleString('en-IN')})`
                     : smallBags > 0
-                    ? `${smallBags} S × ₹${seasonalRates.small}`
-                    : `${bigBags} B × ₹${seasonalRates.big}`}
-                  {isSeasonal ? ' × season total' : ` × ${rentMonths ?? 1} mo`}
+                    ? `${smallBags} Small × ₹${seasonalRates.small} (₹${(smallBags * seasonalRates.small).toLocaleString('en-IN')})`
+                    : `${bigBags} Big × ₹${seasonalRates.big} (₹${(bigBags * seasonalRates.big).toLocaleString('en-IN')})`}
+                  {isSeasonal ? '' : ` × ${rentMonths ?? 1} mo`}
                 </td>
                 <td style={{ textAlign: 'right', fontWeight: 'var(--font-medium)' }}>
                   ₹{totalRent.toLocaleString('en-IN')}
@@ -102,7 +121,7 @@ export function OutwardRentBreakdown({
             )}
             <tr className={styles.totalRow}>
               <td colSpan={2} style={{ textAlign: 'left' }}>
-                Total Outward Rent Obligation
+                Total Rent
               </td>
               <td style={{ textAlign: 'right' }} className={styles.totalAmount}>
                 ₹{totalRent.toLocaleString('en-IN')}
