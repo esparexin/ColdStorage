@@ -1,0 +1,74 @@
+.container {
+  position: relative;
+  display: inline-flex;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  z-index: 100;
+  min-width: 150px;
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.menuUpward {
+  top: auto;
+  bottom: calc(100% + var(--space-1));
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-1-5) var(--space-2);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.menuItem:hover,
+.menuItem:focus-visible {
+  background-color: var(--color-surface-2);
+  outline: none;
+}
+
+.menuItem:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.menuItemDanger {
+  color: var(--color-danger-text);
+}
+
+.menuItemDanger:hover,
+.menuItemDanger:focus-visible {
+  background-color: var(--color-danger-subtle);
+  color: var(--color-danger-text);
+}
+
+.itemIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}

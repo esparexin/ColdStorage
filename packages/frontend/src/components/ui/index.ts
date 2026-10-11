@@ -17,6 +17,7 @@ export { ConfirmDialog, type ConfirmDialogProps } from './ConfirmDialog';
 export { Pagination, type PaginationProps } from './Pagination';
 export { DataTable, type DataTableColumn } from './DataTable';
 export { FeedbackStates } from './FeedbackStates';
+export { OverflowMenu, type OverflowMenuProps, type OverflowMenuItem } from './OverflowMenu';
 export { Banner, type BannerProps, type BannerVariant } from './Banner';
 export {
   LOADING_LABELS,

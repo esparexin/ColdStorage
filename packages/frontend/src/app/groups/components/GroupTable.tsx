@@ -3,7 +3,13 @@
 import React from 'react';
 import { Eye, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { Group } from '@cold-storage/contracts';
-import { Badge, Button, DataTable } from '@/components/ui';
+import {
+  Badge,
+  Button,
+  DataTable,
+  OverflowMenu,
+  type OverflowMenuItem,
+} from '@/components/ui';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import styles from '../page.module.css';
 
@@ -103,52 +109,57 @@ export function GroupTable({
     {
       key: 'actions',
       header: 'Actions',
-      render: (group: Group) => (
-        <div className={styles.tableActions}>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => onViewDetails(group)}
-            aria-label={`View details for group ${group.name}`}
-            leftIcon={<Eye size={14} aria-hidden="true" />}
-          >
-            Details
-          </Button>
-          {canManage && (
-            <>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => onAssign(group)}
-                aria-label={`Assign GRNs to group ${group.name}`}
-                leftIcon={<Plus size={14} aria-hidden="true" />}
-              >
-                Assign
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => onEdit(group)}
-                aria-label={`Edit group ${group.name}`}
-                leftIcon={<Pencil size={14} aria-hidden="true" />}
-              >
-                Edit
-              </Button>
-            </>
-          )}
-          {canDelete && (
+      render: (group: Group) => {
+        const secondaryItems: OverflowMenuItem[] = [
+          ...(canManage
+            ? [
+                {
+                  key: 'assign',
+                  label: 'Assign GRNs',
+                  icon: <Plus size={14} aria-hidden="true" />,
+                  onClick: () => onAssign(group),
+                },
+                {
+                  key: 'edit',
+                  label: 'Edit Group',
+                  icon: <Pencil size={14} aria-hidden="true" />,
+                  onClick: () => onEdit(group),
+                },
+              ]
+            : []),
+          ...(canDelete
+            ? [
+                {
+                  key: 'delete',
+                  label: 'Delete Group',
+                  icon: <Trash2 size={14} aria-hidden="true" />,
+                  danger: true,
+                  onClick: () => onDelete(group),
+                },
+              ]
+            : []),
+        ];
+
+        return (
+          <div className={styles.tableActions}>
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => onDelete(group)}
-              aria-label={`Delete group ${group.name}`}
-              leftIcon={<Trash2 size={14} aria-hidden="true" />}
+              onClick={() => onViewDetails(group)}
+              aria-label={`View details for group ${group.name}`}
+              leftIcon={<Eye size={14} aria-hidden="true" />}
             >
-              Delete
+              Details
             </Button>
-          )}
-        </div>
-      ),
+            {secondaryItems.length > 0 && (
+              <OverflowMenu
+                items={secondaryItems}
+                ariaLabel={`More actions for group ${group.name}`}
+              />
+            )}
+          </div>
+        );
+      },
     },
   ];
 

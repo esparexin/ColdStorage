@@ -3,7 +3,7 @@
 import React from 'react';
 import { KeyRound, Pencil, UserCheck, UserX } from 'lucide-react';
 import type { UserSummary } from '@cold-storage/contracts';
-import { Button } from '@/components/ui';
+import { Button, OverflowMenu, type OverflowMenuItem } from '@/components/ui';
 import styles from '../page.module.css';
 
 interface UserRowActionsProps {
@@ -16,8 +16,8 @@ interface UserRowActionsProps {
 }
 
 /**
- * Lifecycle controls for a single user row. Deactivation is a status transition (never a hard
- * delete) so the immutable audit trail retains its referent.
+ * Lifecycle controls for a single user row. Edit is the primary action,
+ * while status toggle and password reset are organized into the canonical OverflowMenu.
  */
 export function UserRowActions({
   user,
@@ -28,6 +28,32 @@ export function UserRowActions({
   onToggleStatus,
 }: UserRowActionsProps) {
   const isActive = user.status === 'ACTIVE';
+
+  const secondaryItems: OverflowMenuItem[] = [
+    {
+      key: 'reset-password',
+      label: 'Reset Password',
+      icon: <KeyRound size={14} aria-hidden="true" />,
+      disabled: busy,
+      onClick: () => onResetPassword(user),
+    },
+    ...(!isSelf
+      ? [
+          {
+            key: 'toggle-status',
+            label: isActive ? 'Disable User' : 'Enable User',
+            icon: isActive ? (
+              <UserX size={14} aria-hidden="true" />
+            ) : (
+              <UserCheck size={14} aria-hidden="true" />
+            ),
+            danger: isActive,
+            disabled: busy,
+            onClick: () => onToggleStatus(user),
+          },
+        ]
+      : []),
+  ];
 
   return (
     <div className={styles.rowActions}>
@@ -42,37 +68,12 @@ export function UserRowActions({
         Edit
       </Button>
 
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => onResetPassword(user)}
-        disabled={busy}
-        aria-label={`Reset password for ${user.fullName}`}
-        leftIcon={<KeyRound size={14} aria-hidden="true" />}
-      >
-        Reset
-      </Button>
+      {isSelf && <span className={styles.codeText}>Current account</span>}
 
-      {isSelf ? (
-        <span className={styles.codeText}>Current account</span>
-      ) : (
-        <Button
-          variant={isActive ? 'outline' : 'primary'}
-          size="sm"
-          onClick={() => onToggleStatus(user)}
-          disabled={busy}
-          aria-label={`${isActive ? 'Disable' : 'Enable'} ${user.fullName}`}
-          leftIcon={
-            isActive ? (
-              <UserX size={14} aria-hidden="true" />
-            ) : (
-              <UserCheck size={14} aria-hidden="true" />
-            )
-          }
-        >
-          {isActive ? 'Disable' : 'Enable'}
-        </Button>
-      )}
+      <OverflowMenu
+        items={secondaryItems}
+        ariaLabel={`More actions for user ${user.fullName}`}
+      />
     </div>
   );
 }
