@@ -78,3 +78,9 @@
   color: var(--color-text-secondary);
   margin-top: var(--space-0-5);
 }
+
+@media (max-width: 768px) {
+  .select {
+    font-size: var(--text-base);
+  }
+}

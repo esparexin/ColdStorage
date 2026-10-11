@@ -255,10 +255,8 @@ fi
 # 26. Undefined Design Token SSOT:
 # Prohibits non-existent tokens: --text-md (use --text-base), bare unindexed --color-surface (use --color-surface-1 or -2),
 # --color-border-subtle (use --color-border), and --color-surface-hover (use --color-surface-2).
-# Baseline exceptions during active remediation: GroupDetailModal.tsx, RolesSection.tsx, groups/page.module.css.
 UNDEFINED_TOKEN_HITS=$(grep -rnE "var\(--(text-md\b|color-surface\)|color-border-subtle\b|color-surface-hover\b)" \
-  "$ROOT/packages/frontend/src" --include="*.css" --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null \
-  | grep -vE "(GroupDetailModal\.tsx|RolesSection\.tsx|groups/page\.module\.css)" || true)
+  "$ROOT/packages/frontend/src" --include="*.css" --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null || true)
 if [ -n "$UNDEFINED_TOKEN_HITS" ]; then
   echo "$UNDEFINED_TOKEN_HITS"
   fail "Design Token SSOT violation: undefined token reference found (--text-md, bare --color-surface, --color-border-subtle, --color-surface-hover). Use canonical tokens."

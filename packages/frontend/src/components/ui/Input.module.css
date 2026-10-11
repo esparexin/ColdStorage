@@ -92,3 +92,9 @@
 .hasPrefixIcon .input {
   padding-left: calc(var(--space-3) + 20px);
 }
+
+@media (max-width: 768px) {
+  .input {
+    font-size: var(--text-base);
+  }
+}

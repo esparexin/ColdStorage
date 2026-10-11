@@ -90,7 +90,7 @@ export function AuditTable({
       key: 'ip',
       header: 'IP / Network',
       render: (r) => (
-        <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'monospace' }}>
+        <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)' }}>
           {r.ipAddress}
         </span>
       ),
