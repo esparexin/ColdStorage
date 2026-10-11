@@ -62,7 +62,6 @@ export function IssueDeliveryChallanPanel({
 
       <EligibleGrnSection
         grns={form.availableGrns}
-        selectedGrnId={form.createGrnId}
         onSelectGrn={(id) => void form.handleSelectGrn(id)}
       />
       <div className={styles.stockFooter}>

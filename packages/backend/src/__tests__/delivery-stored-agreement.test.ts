@@ -21,12 +21,21 @@ const USER_ID = 'usr-stored-agree';
  */
 describe('Delivery stored agreement — delivery-stored-agreement.test.ts', () => {
   let customerId: string;
+  const originalEnv = process.env.ALLOW_HISTORICAL_TESTING_DATES;
 
   beforeAll(async () => {
+    process.env.ALLOW_HISTORICAL_TESTING_DATES = 'true';
     await connectToTestDatabase();
   });
 
-  afterAll(disconnectTestDatabase);
+  afterAll(async () => {
+    if (originalEnv !== undefined) {
+      process.env.ALLOW_HISTORICAL_TESTING_DATES = originalEnv;
+    } else {
+      delete process.env.ALLOW_HISTORICAL_TESTING_DATES;
+    }
+    await disconnectTestDatabase();
+  });
 
   beforeEach(async () => {
     await resetStockCollections();

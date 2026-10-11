@@ -16,7 +16,6 @@ import styles from './EligibleGrnSection.module.css';
 
 interface EligibleGrnSectionProps {
   grns: Grn[];
-  selectedGrnId?: string;
   onSelectGrn: (grnId: string) => void;
 }
 

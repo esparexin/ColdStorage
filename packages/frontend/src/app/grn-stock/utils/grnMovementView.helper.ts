@@ -12,9 +12,9 @@ export interface ParsedMovementRow {
 }
 
 export function parseMovementRow(entry: GrnMovementEntry): ParsedMovementRow {
-  let typeLabel = 'OUTWARD';
-  let badgeType: ParsedMovementRow['badgeType'] = 'outward';
-  let totalDisplay = entry.deliveredBags.toLocaleString('en-IN');
+  let typeLabel: ParsedMovementRow['typeLabel'];
+  let badgeType: ParsedMovementRow['badgeType'];
+  let totalDisplay: string;
   let isReceived = false;
   let refNumber = entry.gpNumber || (entry.challanNumber ? entry.challanNumber : '—');
   let notes = entry.remarks || '—';
