@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { InternalMovementModel } from '../database/models/internal-movement.model.js';
+import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { getGrnMovementHistory } from '../modules/common/grn-movement-history.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
@@ -167,4 +169,70 @@ describe('GRN Movement History SSOT tests', () => {
     expect(reversal.closingBags).toBe(100);
     expect(reversal.remarks).toBe('Customer vehicle broke down outside gate');
   });
+
+  it('correctly orders same-day merge-in and ownership transfer before delivery', async () => {
+    const today = new Date();
+    await InternalMovementModel.create({
+      id: `mov-${Date.now()}-${Math.random()}`,
+      facilityId,
+      grnId,
+      movementType: 'TRANSFER_OWNERSHIP',
+      movementDate: today,
+      fromCustomerId: customerId,
+      fromCustomerName: 'Sardar Patel Agro',
+      toCustomerId: 'cust-transferee',
+      toCustomerName: 'New Owner Agro',
+      financialSnapshot: {
+        rentAmount: 0,
+        totalPaid: 0,
+        remainingBalance: 0,
+        paymentStatus: 'UNPAID',
+      },
+      performedBy: userId,
+      remarks: 'Transferred',
+    });
+
+    await InventoryTransactionModel.create({
+      id: `tx-${Date.now()}-${Math.random()}`,
+      facilityId,
+      grnId,
+      grnNumber: 'GRN-25-26-0099',
+      chamber: 'CH-03',
+      commodityId: 'comm-1',
+      bagType: 'S/B',
+      transactionType: 'INWARD_PUTAWAY',
+      smallQuantity: 50,
+      bigQuantity: 0,
+      referenceType: 'PUT_AWAY',
+      referenceId: `mov-ref-${Date.now()}`,
+      notes: 'Merged from GRNs GRN-25-26-0001: test merge',
+      createdBy: userId,
+      createdAt: today,
+    });
+
+    await deliveryService.createDelivery(
+      facilityId,
+      {
+        grnId,
+        date: today,
+        smallBags: 150,
+        bigBags: 0,
+        remarks: 'Full settlement',
+      },
+      userId,
+    );
+
+    const history = await getGrnMovementHistory(facilityId, grnId);
+    expect(history).not.toBeNull();
+    expect(history!.currentClosingBags).toBe(0);
+    expect(history!.entries).toHaveLength(4);
+    expect(history!.entries[0].type).toBe('INWARD');
+    expect(history!.entries[1].type).toBe('INTERNAL_MERGE_IN');
+    expect(history!.entries[1].closingBags).toBe(150);
+    expect(history!.entries[2].type).toBe('OWNERSHIP_TRANSFER');
+    expect(history!.entries[2].closingBags).toBe(150);
+    expect(history!.entries[3].type).toBe('FINAL_OUTWARD');
+    expect(history!.entries[3].closingBags).toBe(0);
+  });
 });
+

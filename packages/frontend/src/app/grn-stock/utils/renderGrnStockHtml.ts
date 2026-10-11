@@ -1,5 +1,6 @@
 import type { GrnMovementHistory } from '@cold-storage/contracts';
 import { ORG_NAME_FALLBACK } from '@/lib/branding';
+import { parseMovementRow } from './grnMovementView.helper';
 
 export function renderGrnStockHtml(history: GrnMovementHistory, orgName?: string): string {
   const displayOrg = orgName?.trim() || ORG_NAME_FALLBACK;
@@ -11,35 +12,31 @@ export function renderGrnStockHtml(history: GrnMovementHistory, orgName?: string
 
   const rowsHtml = history.entries
     .map((e) => {
-      const isInward = e.type === 'INWARD';
-      const isReversal = e.type === 'DELIVERY_REVERSAL';
+      const p = parseMovementRow(e);
       const dStr = new Date(e.date).toLocaleDateString('en-IN', {
         day: '2-digit',
         month: '2-digit',
         year: '2-digit',
       });
-
-      const typeLabel = isInward ? 'INWARD' : isReversal ? 'REVERSAL' : 'OUTWARD';
-      const gpNo = e.gpNumber || e.challanNumber || '—';
-      const smallDisplay = e.smallBags != null ? e.smallBags.toLocaleString('en-IN') : '—';
-      const bigDisplay = e.bigBags != null ? e.bigBags.toLocaleString('en-IN') : '—';
-      const totalBags = isInward
-        ? e.closingBags
-        : isReversal
-          ? (e.receivedBags ?? 0)
-          : e.deliveredBags;
       const closing = `${e.closingBags.toLocaleString('en-IN')}${e.closingBags === 0 ? ' (CLOSED)' : ''}`;
-
-      const rowBg = isInward ? '#f0fdf4' : isReversal ? '#fffbeb' : 'transparent';
+      const rowBg =
+        p.badgeType === 'inward'
+          ? '#f0fdf4'
+          : p.badgeType === 'mergeIn'
+            ? '#eff6ff'
+            : p.badgeType === 'reversal'
+              ? '#fffbeb'
+              : 'transparent';
 
       return `<tr style="background: ${rowBg};">
         <td>${dStr}</td>
-        <td style="font-weight: 600;">${typeLabel}</td>
-        <td>${gpNo}</td>
-        <td style="text-align: right;">${smallDisplay}</td>
-        <td style="text-align: right;">${bigDisplay}</td>
-        <td style="text-align: right; font-weight: bold; ${isInward ? 'color: #059669;' : ''}">${totalBags.toLocaleString('en-IN')}</td>
+        <td style="font-weight: 600;">${p.typeLabel}</td>
+        <td>${p.refNumber}</td>
+        <td style="text-align: right;">${p.smallDisplay}</td>
+        <td style="text-align: right;">${p.bigDisplay}</td>
+        <td style="text-align: right; font-weight: bold; ${p.isReceived ? 'color: #059669;' : ''}">${p.totalDisplay}</td>
         <td style="text-align: right; font-weight: bold;">${closing}</td>
+        <td style="color: #475569; font-size: 9px;">${p.notes}</td>
       </tr>`;
     })
     .join('');
@@ -106,11 +103,12 @@ export function renderGrnStockHtml(history: GrnMovementHistory, orgName?: string
       <tr>
         <th>Date</th>
         <th>Type</th>
-        <th>GP No.</th>
+        <th>GP / Ref #</th>
         <th style="text-align: right;">Small</th>
         <th style="text-align: right;">Big</th>
         <th style="text-align: right;">Total</th>
         <th style="text-align: right;">Balance</th>
+        <th>Notes</th>
       </tr>
     </thead>
     <tbody>
