@@ -8,6 +8,10 @@ import {
 } from '@cold-storage/contracts';
 import type { GrnWithdrawal } from '../types';
 import type { OutwardBagCategory } from '../hooks/deliveryRent.helper';
+import {
+  calculateRemainingStock,
+  clampBagAllocation,
+} from '../hooks/eligibleGrn.helper';
 import { OutwardRentBreakdown } from './OutwardRentBreakdown';
 import pageStyles from '../page.module.css';
 import styles from './DeliveryBagCompositionFields.module.css';
@@ -60,44 +64,86 @@ export function DeliveryBagCompositionFields({
   const isSegregated = summary.availableSmallBags > 0 && summary.availableBigBags > 0;
   const isCombinedPool = isSbLot && !isSegregated;
 
-  const maxSmall = isCombinedPool ? availableTotal : summary.availableSmallBags;
-  const maxBig = isCombinedPool ? availableTotal : summary.availableBigBags;
-
-  const rates = resolveOutwardRates(rentType, { smallBagPrice, bigBagPrice, bagPrice });
   const smallQty = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigQty = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
-  const quantity = smallQty + bigQty;
-  const remainingStock = Math.max(0, availableTotal - quantity);
+  const remainingStock = calculateRemainingStock(availableTotal, smallQty, bigQty);
 
-  const smallRemainingCount = isCombinedPool
-    ? `${remainingStock.toLocaleString('en-IN')} / ${availableTotal.toLocaleString('en-IN')}`
-    : `${Math.max(0, summary.availableSmallBags - smallQty).toLocaleString('en-IN')} / ${summary.availableSmallBags.toLocaleString('en-IN')}`;
+  const maxAllowedSmall = isCombinedPool
+    ? Math.max(0, availableTotal - bigQty)
+    : Math.min(summary.availableSmallBags, Math.max(0, availableTotal - bigQty));
 
-  const bigRemainingCount = isCombinedPool
-    ? `${remainingStock.toLocaleString('en-IN')} / ${availableTotal.toLocaleString('en-IN')}`
-    : `${Math.max(0, summary.availableBigBags - bigQty).toLocaleString('en-IN')} / ${summary.availableBigBags.toLocaleString('en-IN')}`;
+  const maxAllowedBig = isCombinedPool
+    ? Math.max(0, availableTotal - smallQty)
+    : Math.min(summary.availableBigBags, Math.max(0, availableTotal - smallQty));
+
+  const rates = resolveOutwardRates(rentType, { smallBagPrice, bigBagPrice, bagPrice });
+
+  const handleSmallChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.trim();
+    if (!val) {
+      onSmallBagsChange('');
+      return;
+    }
+    const parsed = parseInt(val, 10);
+    if (isNaN(parsed) || parsed < 0) return;
+    const clamped = clampBagAllocation(
+      parsed,
+      bigQty,
+      availableTotal,
+      isCombinedPool ? undefined : summary.availableSmallBags,
+    );
+    onSmallBagsChange(clamped);
+  };
+
+  const handleBigChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.trim();
+    if (!val) {
+      onBigBagsChange('');
+      return;
+    }
+    const parsed = parseInt(val, 10);
+    if (isNaN(parsed) || parsed < 0) return;
+    const clamped = clampBagAllocation(
+      parsed,
+      smallQty,
+      availableTotal,
+      isCombinedPool ? undefined : summary.availableBigBags,
+    );
+    onBigBagsChange(clamped);
+  };
+
+  const handleKeyDown =
+    (currentVal: number, maxAllowed: number) =>
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'ArrowUp' && currentVal >= maxAllowed) {
+        e.preventDefault();
+      }
+    };
 
   return (
     <>
       <div className={styles.compositionGrid}>
         <div className={pageStyles.fieldGroup}>
-          <label htmlFor="delivery-small-bags" className={pageStyles.fieldLabel}>
-            Small Bags <span className={styles.stockLabel}>— Remaining stock: {smallRemainingCount} bags</span>
-          </label>
+          <div className={styles.labelRow}>
+            <label htmlFor="delivery-small-bags" className={styles.labelTitle}>
+              Small Bags
+            </label>
+            <span className={styles.rateText}>Rate: ₹{rates.small}/bag</span>
+          </div>
           <input
             id="delivery-small-bags"
             type="number"
             inputMode="numeric"
             min={0}
-            max={maxSmall}
+            max={maxAllowedSmall}
             placeholder="0"
             className={`${pageStyles.fieldInput} ${bagsError || smallError ? styles.inputError : ''}`}
             value={withdrawal.smallBags}
             aria-invalid={Boolean(bagsError || smallError)}
             aria-describedby={smallError ? 'delivery-small-error' : undefined}
-            onChange={(e) => onSmallBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')}
+            onChange={handleSmallChange}
+            onKeyDown={handleKeyDown(smallQty, maxAllowedSmall)}
           />
-          <span className={styles.rateHint}>Rate: ₹{rates.small}/bag</span>
           {smallError && (
             <span id="delivery-small-error" className={styles.fieldErrorText} role="alert">
               {smallError}
@@ -106,28 +152,42 @@ export function DeliveryBagCompositionFields({
         </div>
 
         <div className={pageStyles.fieldGroup}>
-          <label htmlFor="delivery-big-bags" className={pageStyles.fieldLabel}>
-            Big Bags <span className={styles.stockLabel}>— Remaining stock: {bigRemainingCount} bags</span>
-          </label>
+          <div className={styles.labelRow}>
+            <label htmlFor="delivery-big-bags" className={styles.labelTitle}>
+              Big Bags
+            </label>
+            <span className={styles.rateText}>Rate: ₹{rates.big}/bag</span>
+          </div>
           <input
             id="delivery-big-bags"
             type="number"
             inputMode="numeric"
             min={0}
-            max={maxBig}
+            max={maxAllowedBig}
             placeholder="0"
             className={`${pageStyles.fieldInput} ${bagsError || bigError ? styles.inputError : ''}`}
             value={withdrawal.bigBags}
             aria-invalid={Boolean(bagsError || bigError)}
             aria-describedby={bigError ? 'delivery-big-error' : undefined}
-            onChange={(e) => onBigBagsChange(e.target.value ? parseInt(e.target.value, 10) : '')}
+            onChange={handleBigChange}
+            onKeyDown={handleKeyDown(bigQty, maxAllowedBig)}
           />
-          <span className={styles.rateHint}>Rate: ₹{rates.big}/bag</span>
           {bigError && (
             <span id="delivery-big-error" className={styles.fieldErrorText} role="alert">
               {bigError}
             </span>
           )}
+        </div>
+
+        <div className={pageStyles.fieldGroup}>
+          <div className={styles.labelRow}>
+            <span className={styles.labelTitle}>bal.Bag</span>
+          </div>
+          <div className={styles.balanceDisplay} id="delivery-balance-bags-display">
+            <span className={styles.balanceText}>
+              {remainingStock.toLocaleString('en-IN')} bags remaining
+            </span>
+          </div>
         </div>
       </div>
 

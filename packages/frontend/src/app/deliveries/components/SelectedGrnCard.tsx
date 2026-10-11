@@ -3,7 +3,7 @@
 import React from 'react';
 import type { Grn, GrnInventorySummary } from '@cold-storage/contracts';
 import { Badge, Button } from '@/components/ui';
-import { formatGrnDate } from './EligibleGrnCard';
+import { formatGrnDate } from './eligibleGrnColumns';
 import styles from './SelectedGrnCard.module.css';
 
 interface SelectedGrnCardProps {

@@ -2,9 +2,16 @@
 
 import React, { useMemo, useState } from 'react';
 import type { Grn } from '@cold-storage/contracts';
+import { Badge } from '@/components/ui';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
-import { EligibleGrnCard } from './EligibleGrnCard';
+import { DataTable } from '@/components/ui/DataTable';
+import {
+  INWARD_STOCK_PAGE_SIZE,
+  filterEligibleGrns,
+  paginateEligibleGrns,
+} from '../hooks/eligibleGrn.helper';
+import { createEligibleGrnColumns } from './eligibleGrnColumns';
 import styles from './EligibleGrnSection.module.css';
 
 interface EligibleGrnSectionProps {
@@ -19,19 +26,27 @@ export function EligibleGrnSection({
   onSelectGrn,
 }: EligibleGrnSectionProps) {
   const [filterQuery, setFilterQuery] = useState('');
+  const [page, setPage] = useState(1);
 
-  const filteredGrns = useMemo(() => {
-    if (!filterQuery.trim()) return grns;
-    const q = filterQuery.toLowerCase();
-    return grns.filter(
-      (g) =>
-        g.grnNumber.toLowerCase().includes(q) ||
-        g.customerName.toLowerCase().includes(q) ||
-        g.commodityName.toLowerCase().includes(q) ||
-        (g.storageMark && g.storageMark.toLowerCase().includes(q)) ||
-        (g.partyMark && g.partyMark.toLowerCase().includes(q)),
-    );
-  }, [grns, filterQuery]);
+  const filteredGrns = useMemo(
+    () => filterEligibleGrns(grns, filterQuery),
+    [grns, filterQuery],
+  );
+
+  const handleFilterChange = (query: string) => {
+    setFilterQuery(query);
+    setPage(1);
+  };
+
+  const { items, totalPages, safePage, totalRecords } = useMemo(
+    () => paginateEligibleGrns(filteredGrns, page, INWARD_STOCK_PAGE_SIZE),
+    [filteredGrns, page],
+  );
+
+  const columns = useMemo(
+    () => createEligibleGrnColumns({ onSelectGrn }),
+    [onSelectGrn],
+  );
 
   if (grns.length === 0) {
     return (
@@ -44,36 +59,40 @@ export function EligibleGrnSection({
   return (
     <div className={styles.section}>
       <div className={styles.sectionHeader}>
-        <span className={styles.sectionTitle}>
-          Inward Stock
-        </span>
+        <div className={styles.titleArea}>
+          <span className={styles.sectionTitle}>Inward Stock</span>
+          <Badge variant="neutral">{totalRecords}</Badge>
+        </div>
         <div className={styles.searchWrapper}>
           <SearchBar
             id="eligible-grn-filter-search"
             value={filterQuery}
-            onChange={setFilterQuery}
+            onChange={handleFilterChange}
             placeholder="Search GRN, Customer, Commodity…"
             ariaLabel="Search inward stock"
           />
         </div>
       </div>
 
-      {filteredGrns.length === 0 ? (
-        <div className={styles.emptyArea}>
-          <FeedbackStates.Empty message={`No inward GRNs matching "${filterQuery}".`} />
-        </div>
-      ) : (
-        <div className={styles.cardGrid}>
-          {filteredGrns.map((grn) => (
-            <EligibleGrnCard
-              key={grn.id}
-              grn={grn}
-              isSelected={grn.id === selectedGrnId}
-              onSelect={onSelectGrn}
-            />
-          ))}
-        </div>
-      )}
+      <DataTable
+        columns={columns}
+        rows={items}
+        rowKey={(grn) => grn.id}
+        caption="Eligible Inward Stock"
+        emptyMessage={`No inward GRNs matching "${filterQuery}".`}
+        onRowClick={(grn) => {
+          if (grn.loanStatus !== 'TAKEN') {
+            onSelectGrn(grn.id);
+          }
+        }}
+        pagination={{
+          page: safePage,
+          pageSize: INWARD_STOCK_PAGE_SIZE,
+          totalPages,
+          totalRecords,
+          onPageChange: setPage,
+        }}
+      />
     </div>
   );
 }
