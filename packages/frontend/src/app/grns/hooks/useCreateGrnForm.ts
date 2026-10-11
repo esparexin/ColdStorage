@@ -39,11 +39,11 @@ export function useCreateGrnForm(
   const [createBagType] = useState<BagType>(isEdit ? initialGrn!.bagType : 'S/B');
   const [createBags, setCreateBags] = useState<number | ''>(isEdit ? initialGrn!.bags : '');
   const [createRentType, setCreateRentType] = useState<RentType>(isEdit ? initialGrn!.rentType : 'Seasonal');
-  const [createRentMonths, setCreateRentMonths] = useState<number | ''>(isEdit ? (initialGrn!.rentMonths ?? '') : '');
+  const [createRentMonths] = useState<number | ''>(isEdit ? (initialGrn!.rentMonths ?? '') : '');
   const [createBagPrice] = useState<number | ''>(isEdit ? (initialGrn!.bagPrice ?? '') : '');
   const [createSmallBagPrice, setCreateSmallBagPrice] = useState<number | ''>(isEdit ? (initialGrn?.smallBagPrice ?? '') : '');
   const [createBigBagPrice, setCreateBigBagPrice] = useState<number | ''>(isEdit ? (initialGrn?.bigBagPrice ?? '') : '');
-  const [createTotalBagsWeight, setCreateTotalBagsWeight] = useState<number | ''>(isEdit ? (initialGrn?.totalBagsWeight ?? '') : '');
+  const [createTotalBagsWeight] = useState<number | ''>(isEdit ? (initialGrn?.totalBagsWeight ?? '') : '');
   const [createRentAmount, setCreateRentAmount] = useState<number | ''>(isEdit ? (initialGrn?.rentAmount ?? '') : '');
   const [createPartyMark, setCreatePartyMark] = useState(isEdit ? (initialGrn!.partyMark ?? '') : '');
   const [suggestedGrnNumber, setSuggestedGrnNumber] = useState('');
@@ -116,16 +116,6 @@ export function useCreateGrnForm(
     clearFieldError('bags');
   };
 
-  const handleRentMonthsChange = (val: number | '') => {
-    setCreateRentMonths(val);
-    clearFieldError('rentMonths');
-  };
-
-  const handleTotalBagsWeightChange = (val: number | '') => {
-    setCreateTotalBagsWeight(val);
-    clearFieldError('totalBagsWeight');
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isEdit && initialGrn) {
@@ -144,6 +134,7 @@ export function useCreateGrnForm(
       if (!createGrnNumber.trim() || createGrnNumber.trim().length !== 4) {
         setFieldErrors((prev) => ({ ...prev, grnNumber: 'GRN must be exactly 4 digits (numbers only)' }));
       }
+      setModalError(null);
       focusField('create-gr-number');
       return;
     }
@@ -159,8 +150,7 @@ export function useCreateGrnForm(
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
-      const otherErrors = Object.keys(errors).filter((k) => k !== 'grnNumber');
-      setModalError(otherErrors.length > 0 ? errors[otherErrors[0]] : null);
+      setModalError(null);
       const firstKey = Object.keys(errors)[0];
       focusField(GRN_FIELD_ID_MAP[firstKey] ?? firstKey);
       return;
@@ -211,7 +201,7 @@ export function useCreateGrnForm(
 
   const isDirty = Boolean(
     createGrnNumber.trim() || createCustomerId || createCommodityId || createBags ||
-    createSmallBagPrice !== '' || createBigBagPrice !== '' || createTotalBagsWeight !== '' ||
+    createSmallBagPrice !== '' || createBigBagPrice !== '' ||
     createPartyMark.trim() ||
     createVehicleNumber.trim() || createRemarks.trim() || isBondForLoan,
   );
@@ -225,14 +215,13 @@ export function useCreateGrnForm(
     createBagType,
     createRentType, handleRentTypeChange: (val: RentType) => {
       setCreateRentType(val);
-      clearFieldError('rentMonths');
       clearFieldError('rate');
     },
-    createRentMonths, handleRentMonthsChange,
+    createRentMonths,
     createBagPrice,
     createSmallBagPrice, createBigBagPrice,
     displayRate, rateLoading, rateError, retryRate, isRateUnresolved,
-    createTotalBagsWeight, handleTotalBagsWeightChange,
+    createTotalBagsWeight,
     createRentAmount, setCreateRentAmount: (val: number | '') => { setCreateRentAmount(val); },
     createGrnNumber, setCreateGrnNumber: (val: string) => {
       const digitsOnly = val.replace(/\D/g, '').slice(0, 4);

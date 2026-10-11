@@ -29,7 +29,9 @@ export function CustomerAgreedRateSection({
   const isSeasonal = rentType === 'Seasonal';
   const termBadgeText = isSeasonal
     ? 'Rent Type: Seasonal — Whole-season total'
-    : `Rent Type: Monthly — ${typeof rentMonths === 'number' && rentMonths > 0 ? `${rentMonths} Months` : 'Selected Months'}`;
+    : typeof rentMonths === 'number' && rentMonths > 0
+    ? `Rent Type: Monthly — ${rentMonths} Months`
+    : 'Rent Type: Monthly';
   const rateHint = isSeasonal ? '(total per bag for the Mar–Dec season)' : '(per bag per month)';
 
   return (
