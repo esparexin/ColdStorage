@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import type { TransferOwnershipInput, Grn, InternalMovementRecord } from '@cold-storage/contracts';
+import type { TransferOwnershipInput, Grn, InternalMovementRecord, RentPayment } from '@cold-storage/contracts';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
@@ -10,15 +10,20 @@ import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
+import { calculateGrnMonthlyOccupancyRent } from '../../common/occupancy-rent.js';
+import { counterService } from '../../common/counter.service.js';
+import { rentRepository } from '../../rent/rent.repository.js';
+import { toPaymentEntity } from '../../rent/handlers/record-payment.handler.js';
 
 export async function transferOwnership(
   facilityId: string,
   input: TransferOwnershipInput,
   userId: string,
-): Promise<{ grn: Grn; movement: InternalMovementRecord }> {
+): Promise<{ grn: Grn; movement: InternalMovementRecord; payment?: RentPayment }> {
   const session = await mongoose.startSession();
   let resultGrnDoc!: unknown;
   let resultMovementDoc!: unknown;
+  let resultPayment: RentPayment | undefined;
 
   try {
     await session.withTransaction(async () => {
@@ -55,35 +60,87 @@ export async function transferOwnership(
         .lean()
         .exec();
       const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
+
+      let effectiveObligation = Number(grn.rentAmount ?? 0);
+      if (grn.rentType === 'Monthly' && effectiveObligation === 0) {
+        const monthlyAccrual = await calculateGrnMonthlyOccupancyRent(facilityId, grn.id, {
+          asOfDate: new Date(input.movementDate),
+        });
+        if (monthlyAccrual && monthlyAccrual.totalOccupancyCharge > 0) {
+          effectiveObligation = monthlyAccrual.totalOccupancyCharge;
+        }
+      }
+
       const totalDue = await rentExtensionRepository.resolveTotalDue(
         facilityId,
-        { id: grn.id, rentAmount: grn.rentAmount ?? 0 },
+        { id: grn.id, rentAmount: effectiveObligation },
         session,
       );
       const rentBal = computeRentBalance(totalDue, totalPaid);
-      const bal = await readLedgerBalance(facilityId, grn.id, session);
+      let effectiveRentBal = rentBal;
+      let paymentRecord: RentPayment | undefined;
 
+      if (input.paymentDecision === 'SETTLE_NOW' && input.settlementDetails) {
+        const { amountPaid, paymentMode, paymentNotes } = input.settlementDetails;
+        if (amountPaid > rentBal.remainingBalance) {
+          throw new Error(
+            `Requested settlement ₹${amountPaid} exceeds remaining rent balance of ₹${rentBal.remainingBalance}`,
+          );
+        }
+        const paymentDate = new Date(input.movementDate);
+        const receiptNumber = await counterService.generateRentReceiptNumber(
+          facilityId,
+          paymentDate,
+          session,
+        );
+        const paymentDoc = await rentRepository.createPayment(
+          {
+            id: `rp-${randomUUID()}`,
+            facilityId,
+            grnId: grn.id,
+            grnNumber: grn.grnNumber,
+            receiptNumber,
+            amountPaid,
+            paymentMode,
+            paymentDate,
+            notes: paymentNotes?.trim() || `Settled upon ownership transfer to ${newCustomer.name}`,
+            createdBy: userId,
+          },
+          session,
+        );
+        paymentRecord = toPaymentEntity(paymentDoc);
+        effectiveRentBal = computeRentBalance(totalDue, totalPaid + amountPaid);
+      }
+
+      const bal = await readLedgerBalance(facilityId, grn.id, session);
       const movementId = `mov-${randomUUID()}`;
       const transferDateStr = new Date(input.movementDate).toISOString().split('T')[0];
-      const transferNote = `[OWNERSHIP TRANSFERRED on ${transferDateStr}: from ${grn.customerName} (ID: ${grn.customerId}) to ${newCustomer.name} (ID: ${newCustomer.id}). Pending rent: ₹${rentBal.remainingBalance} of ₹${rentBal.rentAmount} (Prior collected: ₹${rentBal.totalPaid}). Reason: ${input.remarks.trim()}]`;
+      const transferNote =
+        input.paymentDecision === 'SETTLE_NOW' && paymentRecord
+          ? `[OWNERSHIP TRANSFERRED on ${transferDateStr}: from ${grn.customerName} (ID: ${grn.customerId}) to ${newCustomer.name} (ID: ${newCustomer.id}). Settled at transfer: ₹${paymentRecord.amountPaid} (Receipt #${paymentRecord.receiptNumber}). Remaining rent: ₹${effectiveRentBal.remainingBalance} of ₹${effectiveRentBal.rentAmount}. Reason: ${input.remarks.trim()}]`
+          : `[OWNERSHIP TRANSFERRED on ${transferDateStr}: from ${grn.customerName} (ID: ${grn.customerId}) to ${newCustomer.name} (ID: ${newCustomer.id}). Pending rent: ₹${effectiveRentBal.remainingBalance} of ₹${effectiveRentBal.rentAmount} (Transferee agreed to assume pending balance; prior collected: ₹${effectiveRentBal.totalPaid}). Reason: ${input.remarks.trim()}]`;
       const updatedRemarks = grn.remarks ? `${grn.remarks}\n${transferNote}` : transferNote;
+
+      const updateFields: Record<string, unknown> = {
+        customerId: newCustomer.id,
+        customerName: newCustomer.name,
+        remarks: updatedRemarks,
+        updatedAt: new Date(),
+      };
+      if (grn.rentType === 'Monthly' && (grn.rentAmount ?? 0) === 0 && effectiveObligation > 0) {
+        updateFields.rentAmount = effectiveObligation;
+      }
 
       const updatedGrn = await GrnModel.findOneAndUpdate(
         { id: grn.id },
-        {
-          $set: {
-            customerId: newCustomer.id,
-            customerName: newCustomer.name,
-            remarks: updatedRemarks,
-            updatedAt: new Date(),
-          },
-        },
+        { $set: updateFields },
         { session, new: true },
       )
         .lean()
         .exec();
 
       resultGrnDoc = updatedGrn;
+      resultPayment = paymentRecord;
 
       const movementDocs = await InternalMovementModel.create(
         [
@@ -102,10 +159,11 @@ export async function transferOwnership(
             smallBagsMoved: bal.smallBags,
             bigBagsMoved: bal.bigBags,
             financialSnapshot: {
-              rentAmount: rentBal.rentAmount,
-              totalPaid: rentBal.totalPaid,
-              remainingBalance: rentBal.remainingBalance,
-              paymentStatus: rentBal.paymentStatus,
+              rentAmount: effectiveRentBal.rentAmount,
+              totalPaid: effectiveRentBal.totalPaid,
+              remainingBalance: effectiveRentBal.remainingBalance,
+              paymentStatus: effectiveRentBal.paymentStatus,
+              rentState: effectiveRentBal.rentState,
             },
             remarks: input.remarks.trim(),
             performedBy: userId,
@@ -136,9 +194,12 @@ export async function transferOwnership(
       fromCustomer: movementRecord.fromCustomerName,
       toCustomer: movementRecord.toCustomerName,
       pendingRent: movementRecord.financialSnapshot.remainingBalance,
+      paymentDecision: input.paymentDecision,
+      receiptNumber: resultPayment?.receiptNumber ?? null,
+      amountPaidAtTransfer: resultPayment?.amountPaid ?? 0,
       remarks: input.remarks,
     },
   });
 
-  return { grn: grnEntity, movement: movementRecord };
+  return { grn: grnEntity, movement: movementRecord, payment: resultPayment };
 }

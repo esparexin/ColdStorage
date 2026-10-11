@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import type { Customer, Grn } from '@cold-storage/contracts';
+import type { Customer, Grn, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
 import { Badge, Input, Select } from '@/components/ui';
 import { useRentGate } from '@/hooks/useRentGate';
+import { TransferPaymentDecisionSection, validateTransferPayment } from './TransferPaymentDecisionSection';
 import styles from './InternalMovementModal.module.css';
 
 interface InternalMovementTransferTabProps {
@@ -16,6 +17,8 @@ interface InternalMovementTransferTabProps {
     movementDate: string,
     reason: string,
     remarks?: string,
+    paymentDecision?: TransferPaymentDecision,
+    settlementDetails?: TransferSettlementDetails,
   ) => Promise<void>;
 }
 
@@ -30,6 +33,9 @@ export function InternalMovementTransferTab({
   const [movementDate, setMovementDate] = useState(new Date().toISOString().slice(0, 10));
   const [reason, setReason] = useState('');
   const [remarks, setRemarks] = useState('');
+  const [decision, setDecision] = useState<'AGREED_PENDING' | 'SETTLE_NOW'>('AGREED_PENDING');
+  const [settleAmount, setSettleAmount] = useState<number>(0);
+  const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI'>('Cash');
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const { rentSummary, rentLoading, refreshRentGate } = useRentGate();
@@ -51,6 +57,11 @@ export function InternalMovementTransferTab({
   const remainingBags = currentGrn.closingBags ?? currentGrn.bags;
   const totalPaid = rentSummary?.totalPaid ?? 0;
   const pendingAmount = rentSummary?.remainingBalance ?? 0;
+  const isUnbilled = totalPaid === 0 && pendingAmount === 0 && (rentSummary?.rentAmount ?? 0) === 0;
+
+  useEffect(() => {
+    if (pendingAmount > 0 && settleAmount === 0) setSettleAmount(pendingAmount);
+  }, [pendingAmount, settleAmount]);
 
   const handleTransferSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,12 +74,21 @@ export function InternalMovementTransferTab({
       setValidationError('Audit reason must be at least 5 characters.');
       return;
     }
+    const payErr = validateTransferPayment(decision, settleAmount, pendingAmount);
+    if (payErr) {
+      setValidationError(payErr);
+      return;
+    }
 
     await onExecuteTransfer(
       newCustomerId,
       movementDate,
       reason.trim(),
       remarks.trim() || undefined,
+      pendingAmount > 0 ? decision : undefined,
+      pendingAmount > 0 && decision === 'SETTLE_NOW'
+        ? { amountPaid: settleAmount, paymentMode }
+        : undefined,
     );
   };
 
@@ -106,14 +126,27 @@ export function InternalMovementTransferTab({
           <span className={styles.metaLabel}>Rent State</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
             <span className={styles.metaValue}>
-              ₹{totalPaid.toLocaleString('en-IN')} paid / ₹{pendingAmount.toLocaleString('en-IN')} due
+              {isUnbilled
+                ? '₹0 due (At Outward / Dynamic)'
+                : `₹${totalPaid.toLocaleString('en-IN')} paid / ₹${pendingAmount.toLocaleString('en-IN')} due`}
             </span>
-            <Badge variant={pendingAmount > 0 ? 'warning' : 'success'}>
-              {rentLoading ? '...' : pendingAmount > 0 ? 'Dues' : 'Settled'}
+            <Badge variant={isUnbilled ? 'neutral' : pendingAmount > 0 ? 'warning' : 'success'}>
+              {rentLoading ? '...' : isUnbilled ? 'Unbilled' : pendingAmount > 0 ? 'Pending Dues' : 'Settled'}
             </Badge>
           </div>
         </div>
       </div>
+
+      <TransferPaymentDecisionSection
+        pendingAmount={pendingAmount}
+        decision={decision}
+        onDecisionChange={setDecision}
+        settleAmount={settleAmount}
+        onSettleAmountChange={setSettleAmount}
+        paymentMode={paymentMode}
+        onPaymentModeChange={setPaymentMode}
+        disabled={submitting}
+      />
 
       {/* Transfer Specification & Governance Grid */}
       <div className={styles.reviewGrid}>
@@ -158,7 +191,11 @@ export function InternalMovementTransferTab({
           </div>
 
           <div className={styles.noticeBox}>
-            Collected amount remains locked to historical Cash Memos. Outstanding obligation (₹{pendingAmount.toLocaleString('en-IN')}) transfers to new owner.
+            {pendingAmount > 0
+              ? decision === 'SETTLE_NOW'
+                ? `Rent (₹${settleAmount}) will be settled now with receipt generated.`
+                : `Transferee agreed to assume pending rent: ₹${pendingAmount.toLocaleString('en-IN')}.`
+              : 'Rent obligation is fully settled for this lot.'}
           </div>
         </div>
 

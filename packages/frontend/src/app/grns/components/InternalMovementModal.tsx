@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { ArrowRightLeft, GitMerge, UserCheck } from 'lucide-react';
-import type { Customer, Grn } from '@cold-storage/contracts';
+import type { Customer, Grn, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
 import { Banner, Button, Modal } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
 import { InternalMovementMergeTab } from './InternalMovementMergeTab';
@@ -60,6 +60,7 @@ export function InternalMovementModal({
     reason: string,
     remarks?: string,
     movementDate?: string,
+    additionalRentAmount?: number,
   ) => {
     setSubmitting(true);
     setError(null);
@@ -70,7 +71,7 @@ export function InternalMovementModal({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(
-            buildMergePayload(targetGrnId, sourceGrnIds, reason, remarks, movementDate),
+            buildMergePayload(targetGrnId, sourceGrnIds, reason, remarks, movementDate, additionalRentAmount),
           ),
         },
       );
@@ -91,6 +92,8 @@ export function InternalMovementModal({
     movementDate: string,
     reason: string,
     remarks?: string,
+    paymentDecision?: TransferPaymentDecision,
+    settlementDetails?: TransferSettlementDetails,
   ) => {
     setSubmitting(true);
     setError(null);
@@ -101,7 +104,15 @@ export function InternalMovementModal({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(
-            buildTransferPayload(grn.id, newCustomerId, reason, remarks, movementDate),
+            buildTransferPayload(
+              grn.id,
+              newCustomerId,
+              reason,
+              remarks,
+              movementDate,
+              paymentDecision,
+              settlementDetails,
+            ),
           ),
         },
       );

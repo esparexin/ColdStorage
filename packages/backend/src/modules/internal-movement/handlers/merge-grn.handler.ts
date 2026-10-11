@@ -10,6 +10,7 @@ import { rentExtensionRepository } from '../../rent/rent-extension.repository.js
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
+import { resolveSourceRentObligation, closeSourceGrnOnMerge } from './merge-grn.helper.js';
 
 export async function mergeGrn(
   facilityId: string,
@@ -23,6 +24,7 @@ export async function mergeGrn(
   const session = await mongoose.startSession();
   let resultTargetDoc!: unknown;
   let resultMovementDoc!: unknown;
+  let finalCarriedRent = 0;
 
   try {
     await session.withTransaction(async () => {
@@ -55,7 +57,9 @@ export async function mergeGrn(
       let totalMovedBags = 0;
       let totalMovedSmall = 0;
       let totalMovedBig = 0;
+      let totalSourcePendingRent = 0;
       const sourceSummaries: string[] = [];
+      const moveDate = new Date(input.movementDate);
 
       for (const s of sourceGrns) {
         if (s.status === 'CLOSED') {
@@ -75,61 +79,27 @@ export async function mergeGrn(
           throw new Error(`Source GRN '${s.grnNumber}' has zero remaining bags to merge`);
         }
 
-        const payments = await RentPaymentModel.find({ facilityId, grnId: s.id }, null, { session })
-          .lean()
-          .exec();
-        const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
-        const sourceTotalDue = await rentExtensionRepository.resolveTotalDue(
-          facilityId,
-          { id: s.id, rentAmount: s.rentAmount ?? 0 },
-          session,
-        );
-        const rentBal = computeRentBalance(sourceTotalDue, totalPaid);
+        const rentResolution = await resolveSourceRentObligation(facilityId, s, moveDate, session);
+        totalSourcePendingRent += rentResolution.rentBal.remainingBalance;
 
         totalMovedBags += bal.total;
         totalMovedSmall += bal.smallBags;
         totalMovedBig += bal.bigBags;
 
-        const inwardDateStr = new Date(s.date).toISOString().split('T')[0];
-        sourceSummaries.push(
-          `GRN ${s.grnNumber} (Receipt #${s.inwardReceiptNumber}, Date: ${inwardDateStr}, Customer: ${s.customerName}, Bags: ${bal.total}, Rent: ₹${s.rentAmount}, Paid: ₹${totalPaid}, Balance: ₹${rentBal.remainingBalance}, Status: ${rentBal.paymentStatus})`,
-        );
-
-        await InventoryTransactionModel.create(
-          [
-            {
-              id: `tx-${randomUUID()}`,
-              facilityId,
-              grnId: s.id,
-              grnNumber: s.grnNumber,
-              chamber: s.chamber,
-              commodityId: s.commodityId,
-              bagType: s.bagType,
-              transactionType: 'OUTWARD_DELIVERY',
-              smallQuantity: bal.smallBags,
-              bigQuantity: bal.bigBags,
-              referenceType: 'DELIVERY',
-              referenceId: movementId,
-              notes: `Merged into GRN ${targetGrn.grnNumber}: ${input.remarks.trim()}`,
-              createdBy: userId,
-              createdAt: input.movementDate,
-            },
-          ],
-          { session, ordered: true },
-        );
-
-        const moveDateStr = new Date(input.movementDate).toISOString().split('T')[0];
-        const sourceNote = `[MERGED into GRN ${targetGrn.grnNumber} on ${moveDateStr}: ${bal.total} bags cleared. Financial record preserved: Rent Obligation ₹${s.rentAmount}, Paid ₹${totalPaid}, Pending ₹${rentBal.remainingBalance} (Status: ${rentBal.paymentStatus}). Customer: ${s.customerName}. Reason: ${input.remarks.trim()}]`;
-        const updatedSourceRemarks = s.remarks ? `${s.remarks}\n${sourceNote}` : sourceNote;
-
-        const sourceCloseUpdate = {
-          status: 'CLOSED' as const,
-          remarks: updatedSourceRemarks,
-          mergedIntoGrnId: targetGrn.id,
-          mergedIntoGrnNumber: targetGrn.grnNumber,
-          updatedAt: new Date(),
-        };
-        await GrnModel.updateOne({ id: s.id }, { $set: sourceCloseUpdate }, { session });
+        const summaryStr = await closeSourceGrnOnMerge({
+          facilityId,
+          sourceGrn: s,
+          targetGrnNumber: targetGrn.grnNumber,
+          targetGrnId: targetGrn.id,
+          movementId,
+          movementDate: moveDate,
+          ledgerBalance: bal,
+          rentResolution,
+          remarks: input.remarks,
+          userId,
+          session,
+        });
+        sourceSummaries.push(summaryStr);
       }
 
       await InventoryTransactionModel.create(
@@ -149,19 +119,25 @@ export async function mergeGrn(
             referenceId: movementId,
             notes: `Merged from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')}: ${input.remarks.trim()}`,
             createdBy: userId,
-            createdAt: input.movementDate,
+            createdAt: moveDate,
           },
         ],
         { session, ordered: true },
       );
 
-      const targetNote = `[MERGE RECEIVED on ${new Date(input.movementDate).toISOString().split('T')[0]}: +${totalMovedBags} bags from ${sourceSummaries.join('; ')}. Reason: ${input.remarks.trim()}]`;
-      const updatedTargetRemarks = targetGrn.remarks ? `${targetGrn.remarks}\n${targetNote}` : targetNote;
+      finalCarriedRent =
+        input.additionalRentAmount != null && input.additionalRentAmount > 0
+          ? input.additionalRentAmount
+          : totalSourcePendingRent;
 
       const newBags = targetGrn.bags + totalMovedBags;
       const newSmall = targetGrn.smallBags + totalMovedSmall;
       const newBig = targetGrn.bigBags + totalMovedBig;
-      const newRentAmount = targetGrn.rentAmount + (input.additionalRentAmount ?? 0);
+      const newRentAmount = targetGrn.rentAmount + finalCarriedRent;
+
+      const moveDateStr = moveDate.toISOString().split('T')[0];
+      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${totalMovedBags} bags from ${sourceSummaries.join('; ')}. Carried pending rent: ₹${finalCarriedRent}. Reason: ${input.remarks.trim()}]`;
+      const updatedTargetRemarks = targetGrn.remarks ? `${targetGrn.remarks}\n${targetNote}` : targetNote;
 
       const updatedTarget = await GrnModel.findOneAndUpdate(
         { id: targetGrn.id },
@@ -199,7 +175,7 @@ export async function mergeGrn(
             id: movementId,
             facilityId,
             movementType: 'MERGE',
-            movementDate: input.movementDate,
+            movementDate: moveDate,
             targetGrnId: targetGrn.id,
             targetGrnNumber: targetGrn.grnNumber,
             sourceGrnIds: sourceGrns.map((s) => s.id),
@@ -212,6 +188,7 @@ export async function mergeGrn(
               totalPaid: targetPaid,
               remainingBalance: targetRentBal.remainingBalance,
               paymentStatus: targetRentBal.paymentStatus,
+              rentState: targetRentBal.rentState,
             },
             remarks: input.remarks.trim(),
             performedBy: userId,
@@ -241,6 +218,8 @@ export async function mergeGrn(
       targetGrnNumber: targetEntity.grnNumber,
       sourceGrnNumbers: movementRecord.sourceGrnNumbers,
       totalBagsMoved: movementRecord.totalBagsMoved,
+      carriedRent: finalCarriedRent,
+      newRentAmount: movementRecord.financialSnapshot.rentAmount,
       remarks: input.remarks,
     },
   });

@@ -1,4 +1,4 @@
-import type { PaymentStatus } from '@cold-storage/contracts';
+import type { PaymentStatus, RentState } from '@cold-storage/contracts';
 
 /**
  * Canonical rent balance derivation (P0-Rule 2).
@@ -11,6 +11,8 @@ import type { PaymentStatus } from '@cold-storage/contracts';
  *  - a negative balance is impossible (clamped to 0, never surfaced as a credit)
  *  - balances are rounded to 2 decimal places exactly once, here
  *  - payment status is derived, never stored
+ *  - rent state distinguishes SETTLED (obligation > 0 & fully paid), PENDING (remaining dues),
+ *    and UNBILLED (zero obligation & zero paid, e.g. unassessed or dynamic lots).
  */
 export interface RentBalance {
   rentAmount: number;
@@ -19,6 +21,7 @@ export interface RentBalance {
   paymentStatus: PaymentStatus;
   /** True when some but not all of the obligation has been collected. */
   isPartial: boolean;
+  rentState: RentState;
 }
 
 export function computeRentBalance(rentAmount: number, totalPaid: number): RentBalance {
@@ -26,11 +29,15 @@ export function computeRentBalance(rentAmount: number, totalPaid: number): RentB
   const paid = Number(totalPaid ?? 0);
   const remainingBalance = Math.max(0, Number((obligation - paid).toFixed(2)));
 
+  const isSettled = obligation > 0 && remainingBalance === 0;
+  const isUnbilled = obligation === 0 && paid === 0;
+
   return {
     rentAmount: obligation,
     totalPaid: paid,
     remainingBalance,
     paymentStatus: remainingBalance === 0 ? 'Settled' : 'Not Settled',
     isPartial: paid > 0 && remainingBalance > 0,
+    rentState: isSettled ? 'SETTLED' : isUnbilled ? 'UNBILLED' : 'PENDING',
   };
 }
