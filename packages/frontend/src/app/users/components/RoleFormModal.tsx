@@ -14,6 +14,7 @@ import styles from '../page.module.css';
 
 interface RoleFormModalProps {
   role?: RoleDefinition | null;
+  assignedUsers?: number;
   saving: boolean;
   error: string | null;
   onClose: () => void;
@@ -24,13 +25,18 @@ function normalizeKey(raw: string): string {
   return raw.toUpperCase().replace(/[^A-Z0-9_]/g, '').slice(0, 40);
 }
 
-export function RoleFormModal({ role, saving, error, onClose, onSubmit }: RoleFormModalProps) {
+export function RoleFormModal({ role, assignedUsers = 0, saving, error, onClose, onSubmit }: RoleFormModalProps) {
   const isEdit = Boolean(role);
+  const initialPermissions = (role?.permissions as PermissionKey[] | undefined) ?? [];
   const [key, setKey] = useState(role?.key ?? '');
   const [displayName, setDisplayName] = useState(role?.displayName ?? '');
   const [description, setDescription] = useState(role?.description ?? '');
-  const [permissions, setPermissions] = useState<PermissionKey[]>(role?.permissions as PermissionKey[] ?? []);
+  const [permissions, setPermissions] = useState<PermissionKey[]>(initialPermissions);
   const [localError, setLocalError] = useState<string | null>(null);
+
+  const removedCount = isEdit
+    ? initialPermissions.filter((perm) => !permissions.includes(perm)).length
+    : 0;
 
   const togglePermission = (perm: PermissionKey) => {
     setPermissions((prev) => (prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm]));
@@ -71,6 +77,11 @@ export function RoleFormModal({ role, saving, error, onClose, onSubmit }: RoleFo
     >
       <form id="role-form" onSubmit={handleSubmit}>
         {(localError ?? error) && <Banner message={(localError ?? error) as string} />}
+        {isEdit && assignedUsers > 0 && removedCount > 0 && (
+          <Banner
+            message={`This role is assigned to ${assignedUsers} user(s). Removing ${removedCount} permission(s) takes effect on their next request.`}
+          />
+        )}
         <div className={styles.formGrid}>
           {!isEdit && (
             <div className={styles.formGroup}>

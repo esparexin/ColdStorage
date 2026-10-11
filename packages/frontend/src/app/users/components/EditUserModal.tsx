@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { indianMobileSchema, type RoleDefinition, type UserSummary } from '@cold-storage/contracts';
 import { Button, Modal, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import type { FacilityOption } from '@/context/FacilityContext';
 import { toUserEditDraft, type UserEditDraft } from '../hooks/useUserLifecycle';
+import { FacilityFieldset, FieldError } from './UserFormFields';
 import styles from '../page.module.css';
 
 interface EditUserModalProps {
@@ -34,6 +35,18 @@ export function EditUserModal({
     return { ...base, roleId: matched?.id ?? base.roleId, role: (matched?.key as UserEditDraft['role']) ?? base.role };
   });
   const [localError, setLocalError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Roles load asynchronously after the modal mounts; reconcile the stored
+  // roleId/key once the catalog arrives without clobbering user edits.
+  useEffect(() => {
+    setDraft((prev) => {
+      const matched = availableRoles.find((r) => r.id === prev.roleId)
+        ?? availableRoles.find((r) => r.key === prev.role);
+      if (!matched || matched.id === prev.roleId) return prev;
+      return { ...prev, roleId: matched.id, role: matched.key as UserEditDraft['role'] };
+    });
+  }, [availableRoles]);
 
   const toggleFacility = (facilityId: string) => {
     setDraft((prev) => ({
@@ -48,17 +61,21 @@ export function EditUserModal({
     e.preventDefault();
     setLocalError(null);
 
-    if (!draft.fullName.trim()) return setLocalError('Full name is required.');
-    const mobileCheck = indianMobileSchema.safeParse(draft.mobile.trim());
-    if (!mobileCheck.success) {
-      return setLocalError('Mobile must be a valid 10-digit Indian number starting with 6-9.');
+    const errors: Record<string, string> = {};
+    if (!draft.fullName.trim()) errors.fullName = 'Full name is required.';
+    if (!indianMobileSchema.safeParse(draft.mobile.trim()).success) {
+      errors.mobile = 'Mobile must be a valid 10-digit Indian number starting with 6-9.';
     }
     if (!draft.email.trim() || !draft.email.includes('@')) {
-      return setLocalError('A valid email address is required.');
+      errors.email = 'A valid email address is required.';
     }
+    if (!draft.roleId && !draft.role) errors.role = 'A role must be selected.';
     if (draft.facilityIds.length === 0) {
-      return setLocalError('User must be assigned to at least one facility.');
+      errors.facilities = 'User must be assigned to at least one facility.';
     }
+    setFieldErrors(errors);
+    const firstError = Object.values(errors)[0];
+    if (firstError) return setLocalError(firstError);
 
     const succeeded = await onSubmit(user.id, draft);
     if (succeeded) onClose();
@@ -102,8 +119,11 @@ export function EditUserModal({
                 type="text"
                 value={draft.fullName}
                 onChange={(e) => setDraft({ ...draft, fullName: e.target.value })}
+                aria-invalid={Boolean(fieldErrors.fullName)}
+                aria-describedby={fieldErrors.fullName ? 'edit-user-fullname-error' : undefined}
                 required
               />
+              <FieldError id="edit-user-fullname-error" message={fieldErrors.fullName} />
             </div>
 
             <div className={styles.formGroup}>
@@ -111,13 +131,14 @@ export function EditUserModal({
               <Select
                 id="edit-user-role"
                 className={styles.formInput}
-                value={draft.roleId ?? draft.role}
+                value={draft.roleId ?? ''}
                 onChange={(e) => {
                   const selected = availableRoles.find((r) => r.id === e.target.value);
+                  if (!selected) return;
                   setDraft({
                     ...draft,
-                    roleId: selected?.id,
-                    role: (selected?.key as UserEditDraft['role']) ?? draft.role,
+                    roleId: selected.id,
+                    role: selected.key as UserEditDraft['role'],
                   });
                 }}
               >
@@ -127,6 +148,7 @@ export function EditUserModal({
                   </option>
                 ))}
               </Select>
+              <FieldError id="edit-user-role-error" message={fieldErrors.role} />
             </div>
 
             <div className={styles.formGroup}>
@@ -138,8 +160,11 @@ export function EditUserModal({
                 maxLength={10}
                 value={draft.mobile}
                 onChange={(e) => setDraft({ ...draft, mobile: e.target.value })}
+                aria-invalid={Boolean(fieldErrors.mobile)}
+                aria-describedby={fieldErrors.mobile ? 'edit-user-mobile-error' : undefined}
                 required
               />
+              <FieldError id="edit-user-mobile-error" message={fieldErrors.mobile} />
             </div>
 
             <div className={styles.formGroup}>
@@ -150,27 +175,19 @@ export function EditUserModal({
                 type="email"
                 value={draft.email}
                 onChange={(e) => setDraft({ ...draft, email: e.target.value })}
+                aria-invalid={Boolean(fieldErrors.email)}
+                aria-describedby={fieldErrors.email ? 'edit-user-email-error' : undefined}
                 required
               />
+              <FieldError id="edit-user-email-error" message={fieldErrors.email} />
             </div>
 
-            <div className={styles.formGroupFull}>
-              <label>Assign Facilities (At least one required) *</label>
-              <div className={styles.checkboxGrid}>
-                {availableFacilities.map((fac) => (
-                  <label key={fac.id} className={styles.checkboxItem}>
-                    <input
-                      type="checkbox"
-                      checked={draft.facilityIds.includes(fac.id)}
-                      onChange={() => toggleFacility(fac.id)}
-                    />
-                    <span>
-                      {fac.name} ({fac.code})
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
+            <FacilityFieldset
+              facilities={availableFacilities}
+              selectedIds={draft.facilityIds}
+              error={fieldErrors.facilities}
+              onToggle={toggleFacility}
+            />
           </div>
       </form>
     </Modal>

@@ -5,6 +5,7 @@ import type { RoleDefinition } from '@cold-storage/contracts';
 import { Button, Modal, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { useProvisionUserForm } from '../hooks/useProvisionUserForm';
+import { FacilityFieldset, FieldError } from './UserFormFields';
 import type { FacilityOption } from '@/context/FacilityContext';
 import styles from '../page.module.css';
 
@@ -41,6 +42,7 @@ export function ProvisionUserModal({
     setTemporaryPassword,
     creating,
     createError,
+    fieldErrors,
     handleCreateUser,
   } = useProvisionUserForm({
     availableFacilities,
@@ -86,8 +88,11 @@ export function ProvisionUserModal({
                   placeholder="e.g. Ramesh Kumar"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  aria-invalid={Boolean(fieldErrors.fullName)}
+                  aria-describedby={fieldErrors.fullName ? 'user-fullname-error' : undefined}
                   required
                 />
+                <FieldError id="user-fullname-error" message={fieldErrors.fullName} />
               </div>
 
               <div className={styles.formGroup}>
@@ -99,8 +104,11 @@ export function ProvisionUserModal({
                   placeholder="e.g. ramesh.k"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  aria-invalid={Boolean(fieldErrors.username)}
+                  aria-describedby={fieldErrors.username ? 'user-username-error' : undefined}
                   required
                 />
+                <FieldError id="user-username-error" message={fieldErrors.username} />
               </div>
 
               <div className={styles.formGroup}>
@@ -112,8 +120,11 @@ export function ProvisionUserModal({
                   placeholder="e.g. EMP-1042"
                   value={employeeId}
                   onChange={(e) => setEmployeeId(e.target.value)}
+                  aria-invalid={Boolean(fieldErrors.employeeId)}
+                  aria-describedby={fieldErrors.employeeId ? 'user-empid-error' : undefined}
                   required
                 />
+                <FieldError id="user-empid-error" message={fieldErrors.employeeId} />
               </div>
 
               <div className={styles.formGroup}>
@@ -130,8 +141,9 @@ export function ProvisionUserModal({
                     </option>
                   ))}
                 </Select>
+                <FieldError id="user-role-error" message={fieldErrors.role} />
                 {selectedRole && (
-                  <p className={styles.warningNote} aria-live="polite">
+                  <p className={styles.unauthorizedHint} aria-live="polite">
                     {selectedRole.permissions.length} permissions
                     {selectedRole.hasGlobalFacilityScope ? ' · all facilities' : ''} —{' '}
                     {selectedRole.description || selectedRole.key}
@@ -149,8 +161,11 @@ export function ProvisionUserModal({
                   value={mobile}
                   onChange={(e) => setMobile(e.target.value)}
                   maxLength={10}
+                  aria-invalid={Boolean(fieldErrors.mobile)}
+                  aria-describedby={fieldErrors.mobile ? 'user-mobile-error' : undefined}
                   required
                 />
+                <FieldError id="user-mobile-error" message={fieldErrors.mobile} />
               </div>
 
               <div className={styles.formGroup}>
@@ -162,8 +177,11 @@ export function ProvisionUserModal({
                   placeholder="e.g. ramesh@coldstorage.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  aria-invalid={Boolean(fieldErrors.email)}
+                  aria-describedby={fieldErrors.email ? 'user-email-error' : undefined}
                   required
                 />
+                <FieldError id="user-email-error" message={fieldErrors.email} />
               </div>
 
               <div className={styles.formGroupFull}>
@@ -175,27 +193,19 @@ export function ProvisionUserModal({
                   placeholder="Minimum 8 characters (forced reset on first login)"
                   value={temporaryPassword}
                   onChange={(e) => setTemporaryPassword(e.target.value)}
+                  aria-invalid={Boolean(fieldErrors.temporaryPassword)}
+                  aria-describedby={fieldErrors.temporaryPassword ? 'user-temp-password-error' : undefined}
                   required
                 />
+                <FieldError id="user-temp-password-error" message={fieldErrors.temporaryPassword} />
               </div>
 
-              <div className={styles.formGroupFull}>
-                <label>Assign Facilities (At least one required) *</label>
-                <div className={styles.checkboxGrid}>
-                  {availableFacilities.map((fac) => (
-                    <label key={fac.id} className={styles.checkboxItem}>
-                      <input
-                        type="checkbox"
-                        checked={selectedFacilityIds.includes(fac.id)}
-                        onChange={() => handleFacilityToggle(fac.id)}
-                      />
-                      <span>
-                        {fac.name} ({fac.code})
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+              <FacilityFieldset
+                facilities={availableFacilities}
+                selectedIds={selectedFacilityIds}
+                error={fieldErrors.facilities}
+                onToggle={handleFacilityToggle}
+              />
             </div>
 
       </form>

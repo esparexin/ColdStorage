@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { RoleDefinition } from '@cold-storage/contracts';
 import { indianMobileSchema } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
@@ -38,12 +38,24 @@ export function useProvisionUserForm({
     () => availableRoles.find((r) => r.id === effectiveRoleId) ?? null,
     [availableRoles, effectiveRoleId],
   );
-  const [selectedFacilityIds, setSelectedFacilityIds] = useState<string[]>(
-    availableFacilities.length > 0 ? [availableFacilities[0].id] : [],
-  );
+  const [selectedFacilityIds, setSelectedFacilityIds] = useState<string[]>([]);
   const [temporaryPassword, setTemporaryPassword] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Roles and facilities load asynchronously; default the selection once
+  // without overriding an explicit user choice afterwards.
+  useEffect(() => {
+    if (!roleId && defaultRoleId) setRoleId(defaultRoleId);
+  }, [roleId, defaultRoleId]);
+
+  useEffect(() => {
+    if (selectedFacilityIds.length === 0 && availableFacilities.length > 0) {
+      const firstId = availableFacilities[0].id;
+      if (firstId) setSelectedFacilityIds([firstId]);
+    }
+  }, [availableFacilities, selectedFacilityIds.length]);
 
   const handleFacilityToggle = (facilityId: string) => {
     setSelectedFacilityIds((prev) =>
@@ -55,19 +67,22 @@ export function useProvisionUserForm({
     e.preventDefault();
     setCreateError(null);
 
-    if (!fullName.trim()) return setCreateError('Full name is required.');
-    if (!username.trim() || username.length < 3)
-      return setCreateError('Username must be at least 3 characters.');
-    if (!employeeId.trim()) return setCreateError('Employee ID is required.');
+    const errors: Record<string, string> = {};
+    if (!fullName.trim()) errors.fullName = 'Full name is required.';
+    if (!username.trim() || username.trim().length < 3)
+      errors.username = 'Username must be at least 3 characters.';
+    if (!employeeId.trim()) errors.employeeId = 'Employee ID is required.';
     if (!indianMobileSchema.safeParse(mobile.trim()).success)
-      return setCreateError('Mobile must be a valid 10-digit Indian number starting with 6-9.');
-    if (!email.trim() || !email.includes('@'))
-      return setCreateError('A valid email address is required.');
-    if (!effectiveRoleId) return setCreateError('A role must be selected.');
+      errors.mobile = 'Mobile must be a valid 10-digit Indian number starting with 6-9.';
+    if (!email.trim() || !email.includes('@')) errors.email = 'A valid email address is required.';
+    if (!effectiveRoleId) errors.role = 'A role must be selected.';
     if (selectedFacilityIds.length === 0)
-      return setCreateError('User must be assigned to at least one facility.');
+      errors.facilities = 'User must be assigned to at least one facility.';
     if (temporaryPassword.length < 8)
-      return setCreateError('Temporary password must be at least 8 characters.');
+      errors.temporaryPassword = 'Temporary password must be at least 8 characters.';
+    setFieldErrors(errors);
+    const firstError = Object.values(errors)[0];
+    if (firstError) return setCreateError(firstError);
 
     setCreating(true);
     try {
@@ -124,6 +139,7 @@ export function useProvisionUserForm({
     setTemporaryPassword,
     creating,
     createError,
+    fieldErrors,
     handleCreateUser,
   };
 }
