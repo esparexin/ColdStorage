@@ -52,8 +52,18 @@ export async function validateStockAndBalances(
   };
 }
 
-export function validateDeliveryDate(inputDate?: string | Date): Date {
-  return validateOperationalDate(inputDate, { label: 'Delivery' });
+export function validateDeliveryDate(
+  inputDate?: string | Date,
+  inwardDate?: string | Date,
+): Date {
+  const deliveryDate = validateOperationalDate(inputDate, { label: 'Delivery' });
+  if (inwardDate) {
+    const inDate = new Date(inwardDate);
+    if (!Number.isNaN(inDate.getTime()) && deliveryDate.getTime() < inDate.getTime()) {
+      throw new Error('Delivery date cannot be earlier than Inward date');
+    }
+  }
+  return deliveryDate;
 }
 
 /**

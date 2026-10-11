@@ -13,6 +13,7 @@ export interface ValidateDeliveryFormInput {
   createDriverName?: string;
   isLoanHoldActive: boolean;
   selectedGrnNumber?: string;
+  selectedGrnDate?: Date | string | null;
 }
 
 export interface DeliveryFormValidationResult {
@@ -43,6 +44,11 @@ export function validateDeliveryForm(input: ValidateDeliveryFormInput): Delivery
     const maxFuture = new Date(Date.now() + 5 * 60 * 1000);
     if (d > maxFuture) {
       errors.date = 'Delivery date cannot be in the future';
+    } else if (input.selectedGrnDate) {
+      const inDate = new Date(input.selectedGrnDate);
+      if (!Number.isNaN(inDate.getTime()) && d.getTime() < inDate.getTime()) {
+        errors.date = 'Delivery date cannot be earlier than Inward date';
+      }
     }
   }
 

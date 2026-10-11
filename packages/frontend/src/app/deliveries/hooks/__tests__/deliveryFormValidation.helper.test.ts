@@ -52,6 +52,28 @@ describe('validateDeliveryForm', () => {
     expect(result.errors.date).toBe('Delivery date cannot be in the future');
   });
 
+  it('rejects delivery date earlier than inward receipt date', () => {
+    const result = validateDeliveryForm(
+      makeInput({
+        createDate: '2024-05-10',
+        selectedGrnDate: new Date('2024-06-01'),
+      }),
+    );
+    expect(result.isValid).toBe(false);
+    expect(result.errors.date).toBe('Delivery date cannot be earlier than Inward date');
+  });
+
+  it('accepts delivery date on or after inward receipt date', () => {
+    const result = validateDeliveryForm(
+      makeInput({
+        createDate: '2024-06-01',
+        selectedGrnDate: new Date('2024-06-01'),
+      }),
+    );
+    expect(result.isValid).toBe(true);
+    expect(result.errors.date).toBeUndefined();
+  });
+
   it('rejects delivery with zero bags', () => {
     const result = validateDeliveryForm(
       makeInput({ smallBags: 0, bigBags: 0, totalWithdrawingBags: 0 }),

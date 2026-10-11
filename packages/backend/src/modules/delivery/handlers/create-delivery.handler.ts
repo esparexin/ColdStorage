@@ -90,7 +90,7 @@ async function executeDeliveryTransaction(
       const withdrawnTotal = resolvedSmall + resolvedBig;
 
       const available = await validateStockAndBalances(facilityId, grn, withdrawal, session);
-      const deliveryDate = validateDeliveryDate(input.date);
+      const deliveryDate = validateDeliveryDate(input.date, grn.date);
 
       // Actual rent/charge calculation happens at Outward delivery using the single
       // effective-rate source of truth. Client rentCharge is reconciled, never trusted blindly.
@@ -220,7 +220,7 @@ async function executeDeliveryTransaction(
       );
 
       const closingTotal = available.total - withdrawnTotal;
-      const effectiveObligation = grn.rentAmount > 0 ? rentBalance.rentAmount : rentBalance.rentAmount + deliveryRentCharge;
+      const effectiveObligation = grn.rentType === 'Seasonal' ? rentBalance.rentAmount : rentBalance.rentAmount + deliveryRentCharge;
       const effectiveRemaining = Math.max(0, Number((effectiveObligation - rentBalance.totalPaid).toFixed(2)));
 
       // Closure invariant: A GRN is CLOSED only when both remainingBags === 0 AND remainingBalance === 0.

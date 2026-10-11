@@ -168,6 +168,7 @@ export function useCreateDeliveryForm(
       availableSmall: withdrawal.availableSmall, availableBig: withdrawal.availableBig,
       createVehicleNumber, createGpNumber, createDriverName, isLoanHoldActive,
       selectedGrnNumber: selectedGrn?.grnNumber,
+      selectedGrnDate: selectedGrn?.date,
     });
 
     if (!validation.isValid) {

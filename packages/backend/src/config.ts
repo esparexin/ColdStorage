@@ -30,6 +30,8 @@ export interface AppConfig {
   cloudinaryUrl?: string;
   /** 64 hex characters. Required to run encrypted backups; absent means backups are unconfigured. */
   backupEncryptionKey?: string;
+  /** Testing-only allowance for historical transaction dates (up to 3 rolling years). */
+  allowHistoricalTestingDates?: boolean;
 }
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -84,5 +86,6 @@ export const config: AppConfig = {
   rateLimitMaxGeneral: Number(process.env.RATE_LIMIT_MAX_GENERAL) || 200,
   cloudinaryUrl: process.env.CLOUDINARY_URL,
   backupEncryptionKey: process.env.BACKUP_ENCRYPTION_KEY,
+  allowHistoricalTestingDates: process.env.ALLOW_HISTORICAL_TESTING_DATES === 'true',
 };
 

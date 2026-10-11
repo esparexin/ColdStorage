@@ -10,6 +10,11 @@ import { getFinancialYearKey } from '@cold-storage/contracts';
  */
 export const CLOCK_SKEW_TOLERANCE_MS = 5 * 60 * 1000;
 export const MAX_BACKDATE_DAYS = 30;
+export const MAX_HISTORICAL_TESTING_DAYS = 3 * 366; // 3-year rolling testing allowance
+
+export function isHistoricalTestingAllowed(): boolean {
+  return process.env.ALLOW_HISTORICAL_TESTING_DATES === 'true';
+}
 
 export interface OperationalDateOptions {
   /** Human label used in error messages, e.g. 'Inward', 'Delivery'. */
@@ -23,6 +28,8 @@ export interface OperationalDateOptions {
    */
   enforceBackdatingWindow?: boolean;
   now?: Date;
+  /** Testing-only explicit override for historical date allowance. Defaults to isHistoricalTestingAllowed(). */
+  allowHistoricalTesting?: boolean;
 }
 
 export function validateOperationalDate(
@@ -38,6 +45,22 @@ export function validateOperationalDate(
 
   if (operationalDate.getTime() > now.getTime() + CLOCK_SKEW_TOLERANCE_MS) {
     throw new Error(`${options.label} date cannot be in the future`);
+  }
+
+  const allowHistorical = options.allowHistoricalTesting ?? isHistoricalTestingAllowed();
+
+  if (allowHistorical) {
+    if (options.enforceBackdatingWindow !== false) {
+      const maxHistoricalPast = new Date(
+        now.getTime() - MAX_HISTORICAL_TESTING_DAYS * 24 * 60 * 60 * 1000,
+      );
+      if (operationalDate < maxHistoricalPast) {
+        throw new Error(
+          `${options.label} date exceeds permitted 3-year historical testing window`,
+        );
+      }
+    }
+    return operationalDate;
   }
 
   if (options.enforceFinancialYear !== false) {
