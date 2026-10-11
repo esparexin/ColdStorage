@@ -8,6 +8,8 @@ import { Banner } from '@/components/ui/Banner';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { LOADING_LABELS } from '@/components/ui/stateCopy';
 import { useCreateDeliveryForm } from '../hooks/useCreateDeliveryForm';
+import { EligibleGrnSection } from './EligibleGrnSection';
+import { SelectedGrnCard } from './SelectedGrnCard';
 import { DeliveryBagCompositionFields } from './DeliveryBagCompositionFields';
 import { DeliveryTransportFields } from './DeliveryTransportFields';
 import pageStyles from '../page.module.css';
@@ -82,53 +84,39 @@ export function IssueDeliveryChallanPanel({
           />
         )}
 
-        <div className={pageStyles.fieldGroup}>
-          <Select
-            id="issue-panel-delivery-grn"
-            label="Select Inward GRN"
-            required
-            error={form.fieldErrors.grn}
-            value={form.createGrnId}
-            onChange={(e) => void form.handleSelectGrn(e.target.value)}
-          >
-            <option value="">Select an active GRN with stored stock</option>
-            {form.availableGrns.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.loanStatus === 'TAKEN' ? '🔒 [LOAN HOLD] ' : ''}
-                {g.grnNumber} — {g.customerName} ({g.commodityName}, Chamber {g.chamber})
-                {g.loanStatus === 'TAKEN' ? ' [Pledged]' : ''}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        {form.selectedGrn && (
-          <div className={styles.grnDetailsGrid}>
-            <div className={styles.grnDetailItem}>
-              <span className={styles.detailLabel}>GRN Number</span>
-              <strong className={styles.detailValue}>{form.selectedGrn.grnNumber}</strong>
+        {!form.selectedGrn ? (
+          <>
+            <div className={pageStyles.fieldGroup}>
+              <Select
+                id="issue-panel-delivery-grn"
+                label="Select Inward GRN"
+                required
+                error={form.fieldErrors.grn}
+                value={form.createGrnId}
+                onChange={(e) => void form.handleSelectGrn(e.target.value)}
+              >
+                <option value="">Select an active GRN with stored stock</option>
+                {form.availableGrns.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.loanStatus === 'TAKEN' ? '🔒 [LOAN HOLD] ' : ''}
+                    {g.grnNumber} — {g.customerName} ({g.commodityName}, Chamber {g.chamber})
+                    {g.loanStatus === 'TAKEN' ? ' [Pledged]' : ''}
+                  </option>
+                ))}
+              </Select>
             </div>
-            <div className={styles.grnDetailItem}>
-              <span className={styles.detailLabel}>Storage Mark</span>
-              <span className={styles.detailValue}>
-                {form.selectedGrn.storageMark || form.selectedGrn.grnNumber}
-              </span>
-            </div>
-            <div className={styles.grnDetailItem}>
-              <span className={styles.detailLabel}>Party Mark</span>
-              <span className={styles.detailValue}>{form.selectedGrn.partyMark || '—'}</span>
-            </div>
-            <div className={styles.grnDetailItem}>
-              <span className={styles.detailLabel}>Received</span>
-              <span className={styles.detailValue}>
-                {form.selectedGrn.bags.toLocaleString('en-IN')} bags
-              </span>
-            </div>
-            <div className={styles.grnDetailItem}>
-              <span className={styles.detailLabel}>Rent Type</span>
-              <span className={styles.detailValue}>{form.selectedGrn.rentType} (Fixed)</span>
-            </div>
-          </div>
+            <EligibleGrnSection
+              grns={form.availableGrns}
+              selectedGrnId={form.createGrnId}
+              onSelectGrn={(id) => void form.handleSelectGrn(id)}
+            />
+          </>
+        ) : (
+          <SelectedGrnCard
+            grn={form.selectedGrn}
+            summary={form.grnSummary}
+            onChangeGrn={() => void form.handleSelectGrn('')}
+          />
         )}
 
         {form.isLoanHoldActive && form.selectedGrn && (
