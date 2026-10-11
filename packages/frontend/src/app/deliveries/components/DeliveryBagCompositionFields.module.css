@@ -1,63 +1,35 @@
-.stockTableWrapper {
-  overflow-x: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-1);
+.compositionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
 }
 
-.stockTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-xs);
-}
-
-.stockTable th {
-  padding: var(--space-1-5) var(--space-2);
-  background: var(--color-surface-2);
-  color: var(--color-text-muted);
-  font-weight: var(--font-semibold);
-  border-bottom: 1px solid var(--color-border);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
-}
-
-.stockTable td {
-  padding: var(--space-1-5) var(--space-2);
-  color: var(--color-text-primary);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.stockCaption {
-  text-align: left;
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-  padding: var(--space-1) var(--space-2);
-}
-
-.categorySection {
-  margin-top: var(--space-2);
-  margin-bottom: var(--space-2);
-}
-
-.categorySelector {
-  display: flex;
-  gap: var(--space-2);
-  margin-top: var(--space-1);
-}
-
-.categoryButton {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
+@media (max-width: 640px) {
+  .compositionGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .rateHint {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
   margin-top: 2px;
+}
+
+.totalDeliveringRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.totalHighlight {
+  font-weight: var(--font-bold);
+  color: var(--color-primary);
 }
 
 .outwardRentCard {
@@ -67,16 +39,8 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.outwardRentLeft {
-  display: flex;
   flex-direction: column;
-  gap: 2px;
-  flex: 1;
+  gap: var(--space-1);
 }
 
 .outwardRentHeader {
@@ -130,10 +94,6 @@
 .outwardRentFormula {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
-}
-
-.outwardRentAction {
-  flex-shrink: 0;
 }
 
 .inputError {

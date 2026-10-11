@@ -150,12 +150,22 @@ export function useCreateDeliveryForm(
   };
 
   const setWithdrawalSmallBags = (val: number | '') => {
-    setWithdrawal((prev) => ({ ...prev, smallBags: val }));
+    setWithdrawal((prev) => {
+      const s = typeof val === 'number' ? val : 0;
+      const b = typeof prev.bigBags === 'number' ? prev.bigBags : 0;
+      setBagCategory(s > 0 && b > 0 ? 'Small & Big' : b > 0 ? 'Big' : 'Small');
+      return { ...prev, smallBags: val };
+    });
     clearFieldError('bags'); clearFieldError('smallBags');
   };
 
   const setWithdrawalBigBags = (val: number | '') => {
-    setWithdrawal((prev) => ({ ...prev, bigBags: val }));
+    setWithdrawal((prev) => {
+      const s = typeof prev.smallBags === 'number' ? prev.smallBags : 0;
+      const b = typeof val === 'number' ? val : 0;
+      setBagCategory(s > 0 && b > 0 ? 'Small & Big' : b > 0 ? 'Big' : 'Small');
+      return { ...prev, bigBags: val };
+    });
     clearFieldError('bags'); clearFieldError('bigBags');
   };
 
