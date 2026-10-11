@@ -1,0 +1,39 @@
+name: Backend Governance
+
+on:
+  push:
+    branches: [main, 'audit/**', 'fix/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-governance:
+    name: Backend SSOT and Cycle Gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Backend SSOT audit
+        run: bash scripts/check-backend-ssot.sh
+
+      - name: Backend cycle audit
+        run: bash scripts/check-backend-cycles.sh
+
+      - name: Repository hygiene audit
+        run: npm run hygiene
+
+      - name: Verify no frontend files on backend branch
+        run: |
+          if [ "${{ github.head_ref }}" != "" ]; then
+            if git diff --name-only origin/main...HEAD | grep -q "^packages/frontend/"; then
+              echo "::error::Backend audit branch must not touch packages/frontend/"
+              exit 1
+            fi
+          fi

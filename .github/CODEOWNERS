@@ -1,0 +1,7 @@
+# Backend audit ownership (R8, permanent).
+# Backend changes require backend owner review; frontend is out of scope here.
+packages/backend/ @esparexin
+packages/contracts/ @esparexin
+scripts/check-backend-ssot.sh @esparexin
+scripts/check-backend-cycles.sh @esparexin
+docs/governance/ @esparexin
