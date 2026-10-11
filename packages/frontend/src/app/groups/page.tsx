@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { type Group } from '@cold-storage/contracts';
-import { Button, FeedbackStates, SearchBar } from '@/components/ui';
+import { Button, FeedbackStates, FilterToolbar } from '@/components/ui';
 import {
   EMPTY_MESSAGES,
   ERROR_TITLES,
@@ -73,11 +73,13 @@ export default function GroupsPage() {
         <FeedbackStates.Empty message={EMPTY_MESSAGES.noFacilityGroups} />
       ) : (
         <>
-          <SearchBar
-            value={searchTerm}
-            onChange={setSearchTerm}
-            placeholder="Search groups by name…"
-            ariaLabel="Search groups"
+          <FilterToolbar
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Search groups by name…"
+            searchAriaLabel="Search groups"
+            onReset={() => setSearchTerm('')}
+            hasActiveFilters={Boolean(searchTerm)}
           />
 
           {loading ? (

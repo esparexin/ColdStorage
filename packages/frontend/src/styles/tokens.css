@@ -113,8 +113,9 @@
   --control-height-lg: 40px;
 
   /* ---- Layout ---- */
-  --sidebar-width:         216px;
-  --header-height:         56px;
+  --sidebar-width:           216px;
+  --sidebar-width-collapsed: 64px;
+  --header-height:           56px;
 }
 
 /* ============================================================

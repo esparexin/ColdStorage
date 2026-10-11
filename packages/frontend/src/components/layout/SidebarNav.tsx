@@ -145,6 +145,7 @@ export function SidebarNav({ isOpen = false, onClose }: SidebarNavProps) {
                       href={href}
                       className={`${styles.navItem} ${isActive ? styles.active : ''}`}
                       aria-current={isActive ? 'page' : undefined}
+                      title={label}
                     >
                       <Icon size={16} aria-hidden="true" />
                       <span>{label}</span>
