@@ -38,6 +38,7 @@ interface DeliveryBagCompositionFieldsProps {
 
 export function DeliveryBagCompositionFields({
   summary,
+  bagType,
   rentType,
   rentMonths,
   smallBagPrice,
