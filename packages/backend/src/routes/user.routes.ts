@@ -1,8 +1,11 @@
 import { Router, type Request, type Response } from 'express';
 import {
   createUserSchema,
+  hasGlobalFacilityScope,
   paginationSchema,
+  permissionsForRole,
   resetUserPasswordSchema,
+  roleSchema,
   updateUserSchema,
   type PermissionKey,
 } from '@cold-storage/contracts';
@@ -29,8 +32,22 @@ async function assertAssignable(actorUserId: string, roleId?: string, role?: str
   const target = roleId
     ? await roleService.getRole(roleId)
     : await roleService.getRole(role as string);
-  if (!target) {
-    throw new Error(`Role '${roleId ?? role}' not found`);
+  let targetPermissions: readonly PermissionKey[];
+  let targetHasGlobalScope: boolean;
+  if (target) {
+    targetPermissions = target.permissions;
+    targetHasGlobalScope = target.hasGlobalFacilityScope;
+  } else {
+    // RoleDefinitions may be unseeded (tests seed users directly; production seeds
+    // on boot outside test). Fall back to the same static matrix role.service uses
+    // so legacy roles stay assignable; unknown custom keys still throw below.
+    const parsed = roleSchema.safeParse(role);
+    if (!roleId && parsed.success) {
+      targetPermissions = permissionsForRole(parsed.data);
+      targetHasGlobalScope = hasGlobalFacilityScope(parsed.data);
+    } else {
+      throw new Error(`Role '${roleId ?? role}' not found`);
+    }
   }
   // Resolve actor from gateState-backed request context via DB lookup of the actor user.
   const { userRepository } = await import('../modules/users/user.repository.js');
@@ -40,11 +57,11 @@ async function assertAssignable(actorUserId: string, roleId?: string, role?: str
   }
   const actorResolved = await roleService.resolvePermissionsForUser(actorUser);
   const actorPerms = new Set<string>(actorResolved.permissions);
-  const unheld = target.permissions.filter((perm: PermissionKey) => !actorPerms.has(perm));
+  const unheld = targetPermissions.filter((perm: PermissionKey) => !actorPerms.has(perm));
   if (unheld.length > 0) {
     throw new Error(`Cannot assign permissions you do not hold: ${unheld.join(', ')}`);
   }
-  if (target.hasGlobalFacilityScope && !actorResolved.hasGlobalScope) {
+  if (targetHasGlobalScope && !actorResolved.hasGlobalScope) {
     throw new Error('Cannot grant global facility scope without holding it');
   }
 }
