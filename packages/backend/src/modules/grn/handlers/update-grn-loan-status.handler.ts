@@ -78,6 +78,7 @@ export async function updateGrnLoanStatus(
       previousStatus,
       newStatus: latest.loanStatus,
       remarks: latest.loanRemarks,
+      ...(input.settlement ? { settlement: input.settlement } : {}),
     },
   });
   const netDelivered = await readLedgerNetDelivered(facilityId, savedId);
