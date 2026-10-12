@@ -222,6 +222,7 @@ export function RentTable({
       columns={columns}
       rows={accounts}
       rowKey={(r) => r.grnId}
+      onRowClick={onOpenHistory}
       pagination={{ page, pageSize, totalPages, totalRecords: totalAccounts, onPageChange }}
     />
   );

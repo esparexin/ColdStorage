@@ -3,7 +3,7 @@
 import { Clock, X } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
-import { Badge, Button } from '@/components/ui';
+import { Badge } from '@/components/ui';
 import { GrnRowActions } from './GrnRowActions';
 import { RentTermsCell } from './RentTermsCell';
 import styles from './GrnTable.module.css';
@@ -63,15 +63,9 @@ export function createGrnTableColumns({
       key: 'grnNumber',
       header: 'GRN #',
       render: (row) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          className={styles.grnLink}
-          onClick={() => onSelectGrn(row)}
-          aria-label={`View details for GRN ${row.grnNumber}`}
-        >
+        <span className={styles.grnLink}>
           {row.grnNumber}
-        </Button>
+        </span>
       ),
     },
     {
@@ -96,15 +90,9 @@ export function createGrnTableColumns({
       align: 'right',
       render: (row) => (
         <div className={styles.bagsCell}>
-          <Button
-            variant="ghost"
-            size="sm"
-            className={styles.inwardLink}
-            onClick={() => onSelectGrn(row)}
-            aria-label={`View details for GRN ${row.grnNumber}`}
-          >
+          <span className={styles.inwardLink}>
             {row.bags.toLocaleString('en-IN')} bags
-          </Button>
+          </span>
           {row.bagType && (
             <span className={styles.bagTypeSub}>
               S/B: {row.bagType}

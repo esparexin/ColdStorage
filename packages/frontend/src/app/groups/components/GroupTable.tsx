@@ -47,10 +47,7 @@ export function GroupTable({
       key: 'name',
       header: 'Group Name',
       render: (group: Group) => (
-        <span
-          style={{ fontWeight: 'var(--font-medium)', cursor: 'pointer', color: 'var(--color-primary)' }}
-          onClick={() => onViewDetails(group)}
-        >
+        <span style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-primary-text)' }}>
           {group.name}
         </span>
       ),
@@ -169,6 +166,7 @@ export function GroupTable({
       rows={groups}
       rowKey={(g) => g.id}
       caption="Groups of Goods"
+      onRowClick={onViewDetails}
       pagination={{
         page,
         pageSize,
