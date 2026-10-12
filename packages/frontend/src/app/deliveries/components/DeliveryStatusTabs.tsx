@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle2, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import type { DeliveryStatusTab } from '../hooks/deliveryFilter.helper';
 import styles from './DeliveryStatusTabs.module.css';
@@ -38,16 +38,28 @@ export function DeliveryStatusTabs({ currentTab, onTabChange }: DeliveryStatusTa
         Issued (Active)
       </Button>
       <Button
-        id="delivery-status-tab-closed"
+        id="delivery-status-tab-unsettled"
         role="tab"
-        aria-selected={currentTab === 'CLOSED'}
-        variant={currentTab === 'CLOSED' ? 'secondary' : 'ghost'}
+        aria-selected={currentTab === 'UNSETTLED' || currentTab === 'CLOSED'}
+        variant={currentTab === 'UNSETTLED' || currentTab === 'CLOSED' ? 'secondary' : 'ghost'}
         size="sm"
-        className={`${styles.statusTab} ${currentTab === 'CLOSED' ? styles.statusTabActive : ''}`}
-        onClick={() => onTabChange('CLOSED')}
-        leftIcon={<X size={12} aria-hidden="true" />}
+        className={`${styles.statusTab} ${currentTab === 'UNSETTLED' || currentTab === 'CLOSED' ? styles.statusTabActive : ''}`}
+        onClick={() => onTabChange('UNSETTLED')}
+        leftIcon={<AlertCircle size={12} aria-hidden="true" />}
       >
-        Closed
+        Unsettled
+      </Button>
+      <Button
+        id="delivery-status-tab-partial"
+        role="tab"
+        aria-selected={currentTab === 'PARTIAL'}
+        variant={currentTab === 'PARTIAL' ? 'secondary' : 'ghost'}
+        size="sm"
+        className={`${styles.statusTab} ${currentTab === 'PARTIAL' ? styles.statusTabActive : ''}`}
+        onClick={() => onTabChange('PARTIAL')}
+        leftIcon={<Clock size={12} aria-hidden="true" />}
+      >
+        Partially Paid
       </Button>
     </div>
   );

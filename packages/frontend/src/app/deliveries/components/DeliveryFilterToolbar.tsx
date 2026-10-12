@@ -34,7 +34,7 @@ export function DeliveryFilterToolbar({
           onChange: (v) => onRentStatusChange(v as DeliveryRentStatusFilter),
           options: [
             { value: '', label: 'All Rent Statuses' },
-            { value: 'PENDING', label: 'Pending Payment' },
+            { value: 'UNSETTLED', label: 'Unsettled' },
             { value: 'PARTIAL', label: 'Partially Paid' },
             { value: 'SETTLED', label: 'Settled' },
           ],

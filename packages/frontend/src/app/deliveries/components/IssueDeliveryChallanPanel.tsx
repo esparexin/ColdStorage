@@ -53,9 +53,6 @@ export function IssueDeliveryChallanPanel({
     <div className={styles.issuePanel}>
       <div className={styles.issueHeader}>
         <h2 className={styles.issueTitle}>Issue Outward Delivery Challan</h2>
-        <p className={styles.issueSubtitle}>
-          Select an active Inward GRN with available stock to configure outward delivery.
-        </p>
       </div>
 
       {form.modalError && <Banner message={form.modalError} />}

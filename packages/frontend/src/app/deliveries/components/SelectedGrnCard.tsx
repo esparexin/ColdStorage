@@ -25,7 +25,7 @@ export function SelectedGrnCard({
     <div className={styles.card} id="selected-grn-summary-card">
       <div className={styles.header}>
         <div className={styles.titleArea}>
-          <strong className={styles.grnNumber}>GRN #{grn.grnNumber}</strong>
+          <strong className={styles.grnNumber}>{grn.grnNumber}</strong>
           <span className={styles.inwardDateBadge}>
             Inward: {formatGrnDate(grn.date)}
           </span>

@@ -56,7 +56,14 @@ export default function DeliveriesPage() {
     if (view === 'issue') {
       url.searchParams.set('tab', 'issue');
     } else {
-      const tabVal = deliveryData.statusTab === 'CLOSED' ? 'closed' : deliveryData.statusTab === '' ? 'all' : 'active';
+      const tabVal =
+        deliveryData.statusTab === 'UNSETTLED'
+          ? 'unsettled'
+          : deliveryData.statusTab === 'PARTIAL'
+            ? 'partial'
+            : deliveryData.statusTab === ''
+              ? 'all'
+              : 'active';
       url.searchParams.set('tab', tabVal);
     }
     window.history.replaceState({}, '', url.toString());
@@ -104,9 +111,10 @@ export default function DeliveriesPage() {
 
   const getFilteredEmptyMessage = () => {
     if (deliveryData.searchTerm) return `No delivery challans matching "${deliveryData.searchTerm}".`;
-    if (deliveryData.statusTab === 'CLOSED') return 'No closed delivery challans found for this facility.';
+    if (deliveryData.statusTab === 'UNSETTLED') return 'No unsettled delivery challans found for this facility.';
+    if (deliveryData.statusTab === 'PARTIAL') return 'No partially paid delivery challans found for this facility.';
     if (deliveryData.statusTab === 'ACTIVE') return 'No active delivery challans found for this facility.';
-    return 'No delivery challans found matching the selected filters.';
+    return 'No delivery challans found.';
   };
 
   return (
@@ -173,7 +181,14 @@ export default function DeliveriesPage() {
               action={canCreate ? { label: '+ Issue Delivery Challan', onClick: () => handleViewChange('issue'), id: 'create-delivery-empty-btn' } : undefined}
             />
           ) : deliveryData.filteredDeliveries.length === 0 ? (
-            <FeedbackStates.Empty message={getFilteredEmptyMessage()} />
+            <FeedbackStates.Empty
+              message={getFilteredEmptyMessage()}
+              action={{
+                label: 'Clear Filters',
+                onClick: deliveryData.resetFilters,
+                id: 'clear-delivery-filters-btn',
+              }}
+            />
           ) : (
             <DeliveryTable
               deliveries={deliveryData.filteredDeliveries}

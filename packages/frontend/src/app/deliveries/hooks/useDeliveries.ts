@@ -66,8 +66,8 @@ export function useDeliveries(
       params.set('page', String(page));
       params.set('limit', String(DELIVERY_PAGE_SIZE));
 
-      // When tab is ACTIVE, fetch ISSUED from server. Closed challans are also ISSUED with 0 remaining bags.
-      if (statusTab === 'ACTIVE') {
+      // For active, unsettled, or partially paid tabs, fetch ISSUED from server.
+      if (statusTab === 'ACTIVE' || statusTab === 'UNSETTLED' || statusTab === 'PARTIAL' || statusTab === 'CLOSED') {
         params.set('status', 'ISSUED');
       }
 
@@ -115,19 +115,23 @@ export function useDeliveries(
     return filterDeliveries(deliveries, searchTerm, rentStatusFilter, statusTab);
   }, [deliveries, searchTerm, rentStatusFilter, statusTab]);
 
+  const hasActiveFilters = Boolean(
+    statusTab !== '' || rentStatusFilter !== '' || searchTerm.trim() !== '',
+  );
+
   const displayTotalDeliveries = useMemo(() => {
-    if (statusTab === 'ACTIVE' || statusTab === 'CLOSED') {
+    if (hasActiveFilters) {
       return filteredDeliveries.length;
     }
     return totalDeliveries;
-  }, [filteredDeliveries.length, statusTab, totalDeliveries]);
+  }, [filteredDeliveries.length, hasActiveFilters, totalDeliveries]);
 
   const displayTotalPages = useMemo(() => {
-    if (statusTab === 'ACTIVE' || statusTab === 'CLOSED') {
+    if (hasActiveFilters) {
       return Math.max(1, Math.ceil(filteredDeliveries.length / DELIVERY_PAGE_SIZE));
     }
     return totalPages;
-  }, [filteredDeliveries.length, statusTab, totalPages]);
+  }, [filteredDeliveries.length, hasActiveFilters, totalPages]);
 
   const currentFacilityName = useMemo(() => {
     return (
@@ -137,11 +141,11 @@ export function useDeliveries(
     );
   }, [availableFacilities, selectedFacilityId]);
 
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setStatusTab('ACTIVE');
     setRentStatusFilter('');
     setSearchTerm('');
-  };
+  }, [setStatusTab, setRentStatusFilter, setSearchTerm]);
 
   return {
     deliveries,

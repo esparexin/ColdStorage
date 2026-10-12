@@ -1,4 +1,4 @@
-export type DeliveryStatusTab = '' | 'ACTIVE' | 'CLOSED';
+export type DeliveryStatusTab = '' | 'ACTIVE' | 'UNSETTLED' | 'PARTIAL' | 'CLOSED';
 export type DeliveryViewTab = 'listing' | 'issue';
 
 export const VALID_DELIVERY_STATUS_TABS: Record<string, DeliveryStatusTab> = {
@@ -6,7 +6,10 @@ export const VALID_DELIVERY_STATUS_TABS: Record<string, DeliveryStatusTab> = {
   'ALL': '',
   'ACTIVE': 'ACTIVE',
   'ISSUED': 'ACTIVE',
-  'CLOSED': 'CLOSED',
+  'UNSETTLED': 'UNSETTLED',
+  'CLOSED': 'UNSETTLED',
+  'PARTIAL': 'PARTIAL',
+  'PARTIALLY_PAID': 'PARTIAL',
 };
 
 export function resolveInitialDeliveryStatusTab(
@@ -53,8 +56,10 @@ export function syncDeliveryStatusTabToLocation(tab: DeliveryStatusTab): void {
 
   try {
     const url = new URL(window.location.href, 'http://localhost');
-    if (tab === 'CLOSED') {
-      url.searchParams.set('tab', 'closed');
+    if (tab === 'UNSETTLED' || tab === 'CLOSED') {
+      url.searchParams.set('tab', 'unsettled');
+    } else if (tab === 'PARTIAL') {
+      url.searchParams.set('tab', 'partial');
     } else if (tab === '') {
       url.searchParams.set('tab', 'all');
     } else {

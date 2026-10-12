@@ -76,7 +76,6 @@ export function EligibleGrnSection({
         columns={columns}
         rows={items}
         rowKey={(grn) => grn.id}
-        caption="Eligible Inward Stock"
         emptyMessage={`No inward GRNs matching "${filterQuery}".`}
         onRowClick={(grn) => {
           if (grn.loanStatus !== 'TAKEN') {
