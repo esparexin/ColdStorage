@@ -74,7 +74,7 @@ export function formatPaymentStatus(input: RentAccountDisplayInput): {
     return { label: 'Settled', variant: 'success' };
   }
 
-  return { label: 'Pending Dues', variant: 'warning' };
+  return { label: 'Pending', variant: 'warning' };
 }
 
 /**

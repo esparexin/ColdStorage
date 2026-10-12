@@ -1,16 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Printer } from 'lucide-react';
+import { FileText, History } from 'lucide-react';
 import { seasonYearForInwardDate, type RentExtension, type RentSummaryDto } from '@cold-storage/contracts';
-import { Badge, Button, FeedbackStates, Modal, StatCard, StatGrid } from '@/components/ui';
-import { Banner } from '@/components/ui/Banner';
+import { Button, Modal, StatCard, StatGrid } from '@/components/ui';
 import { PRINT_MESSAGES } from '@/components/ui/stateCopy';
 import { printHtmlDocument } from '@/lib/print-document';
 import {
   formatRemainingDue,
   formatRentStructure,
 } from '../hooks/rentDisplay.helper';
+import { RentCashMemosTab } from './RentCashMemosTab';
+import { RentOutwardHistoryTab } from './RentOutwardHistoryTab';
 import styles from '../page.module.css';
 
 interface RentHistoryModalProps {
@@ -26,6 +27,7 @@ export function RentHistoryModal({
   canPrint,
   onClose,
 }: RentHistoryModalProps) {
+  const [activeTab, setActiveTab] = useState<'cash-memos' | 'outward-history'>('cash-memos');
   const [printingReceiptNum, setPrintingReceiptNum] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +58,7 @@ export function RentHistoryModal({
     <Modal
       isOpen
       onClose={onClose}
-      title={`Cash Memos: ${account.grnNumber}`}
+      title={`Cash Memos & Rent History: ${account.grnNumber}`}
       subtitle={`${account.customerName} · Inward: ${account.totalBags.toLocaleString('en-IN')} bags · Delivered: ${(account.deliveredBags ?? 0).toLocaleString('en-IN')} bags · Balance: ${(account.remainingBags ?? Math.max(0, account.totalBags - (account.deliveredBags ?? 0))).toLocaleString('en-IN')} bags`}
       size="lg"
       footer={
@@ -66,128 +68,63 @@ export function RentHistoryModal({
       }
     >
       <div className={styles.modalBody}>
-          <StatGrid label={`Rent summary for ${account.grnNumber}`}>
-            <StatCard
-              label={account.rentType === 'Monthly' && account.rentAmount === 0 ? 'Rent Status' : 'Total Billed'}
-              value={formatRentStructure(account)}
-            />
-            <StatCard
-              label="Total Paid"
-              value={`₹${account.totalPaid.toLocaleString('en-IN')}`}
-              accent="success"
-            />
-            <StatCard
-              label="Remaining Due"
-              value={formatRemainingDue(account)}
-              accent="warning"
-            />
-          </StatGrid>
+        <nav className={styles.actionGroup} role="tablist" aria-label="Rent details tabs">
+          <Button
+            role="tab"
+            aria-selected={activeTab === 'cash-memos'}
+            variant={activeTab === 'cash-memos' ? 'primary' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTab('cash-memos')}
+            leftIcon={<FileText size={14} aria-hidden="true" />}
+          >
+            Cash Memos & Bills
+          </Button>
+          <Button
+            role="tab"
+            aria-selected={activeTab === 'outward-history'}
+            variant={activeTab === 'outward-history' ? 'primary' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTab('outward-history')}
+            leftIcon={<History size={14} aria-hidden="true" />}
+          >
+            Outward Rent History
+          </Button>
+        </nav>
 
-          <h4 className={styles.sectionLabel}>
-            Billing Periods ({account.extensions.length + 1})
-          </h4>
-          <div className={styles.paymentsList}>
-            <div className={styles.paymentItem}>
-              <div>
-                <div className={styles.paymentHead}>
-                  <strong className={styles.receiptNumber}>Season {originSeason} — Original</strong>
-                  <Badge variant="primary">{account.rentType}</Badge>
-                </div>
-                <span className={styles.paymentMeta}>
-                  {account.totalBags.toLocaleString('en-IN')} bags · agreed rate on record
-                </span>
-              </div>
-              <strong className={styles.paymentAmount}>
-                ₹{account.rentAmount.toLocaleString('en-IN')}
-              </strong>
-            </div>
-            {account.extensions.map((ext) => (
-              <div key={ext.id} className={styles.paymentItem}>
-                <div>
-                  <div className={styles.paymentHead}>
-                    <strong className={styles.receiptNumber}>{periodLabel(ext)}</strong>
-                    <Badge variant={ext.manualAmount != null ? 'warning' : 'neutral'}>
-                      {ext.manualAmount != null ? 'Overridden' : 'Finalized'}
-                    </Badge>
-                  </div>
-                  <span className={styles.paymentMeta}>
-                    Snapshot {ext.snapshotBags.toLocaleString('en-IN')} bags · ₹{ext.bagRate.toFixed(2)}/bag ·{' '}
-                    {new Date(ext.finalizedAt).toLocaleDateString('en-IN')} · by {ext.finalizedBy}
-                  </span>
-                  {ext.manualAmount != null && (
-                    <span className={styles.paymentNotes}>
-                      Calculated ₹{ext.calculatedAmount.toLocaleString('en-IN')}
-                      {ext.overrideReason ? ` · ${ext.overrideReason}` : ''}
-                    </span>
-                  )}
-                </div>
-                <strong className={styles.paymentAmount}>
-                  ₹{ext.finalAmount.toLocaleString('en-IN')}
-                </strong>
-              </div>
-            ))}
-            <div className={styles.paymentItem}>
-              <div>
-                <div className={styles.paymentHead}>
-                  <strong className={styles.receiptNumber}>Total Due</strong>
-                </div>
-              </div>
-              <strong className={styles.paymentAmount}>
-                ₹{account.totalDue.toLocaleString('en-IN')}
-              </strong>
-            </div>
-          </div>
+        <StatGrid label={`Rent summary for ${account.grnNumber}`}>
+          <StatCard
+            label={account.rentType === 'Monthly' && account.rentAmount === 0 ? 'Rent Status' : 'Total Billed'}
+            value={formatRentStructure(account)}
+          />
+          <StatCard
+            label="Total Paid"
+            value={`₹${account.totalPaid.toLocaleString('en-IN')}`}
+            accent="success"
+          />
+          <StatCard
+            label="Remaining Due"
+            value={formatRemainingDue(account)}
+            accent="warning"
+          />
+        </StatGrid>
 
-          <h4 className={styles.sectionLabel}>
-            Issued Official Cash Memos ({account.payments.length})
-          </h4>
-
-          {error && <Banner message={error} id="rent-history-error" />}
-
-          {account.payments.length === 0 ? (
-            <FeedbackStates.Empty message="No cash memos issued yet for this account." />
-          ) : (
-            <div className={styles.paymentsList}>
-              {account.payments.map((p) => (
-                <div key={p.id} className={styles.paymentItem}>
-                  <div>
-                    <div className={styles.paymentHead}>
-                      <strong className={styles.receiptNumber}>{p.receiptNumber}</strong>
-                      <Badge variant={p.paymentMode === 'Cash' ? 'primary' : 'success'}>
-                        {p.paymentMode}
-                      </Badge>
-                    </div>
-                    <span className={styles.paymentMeta}>
-                      {new Date(p.paymentDate).toLocaleDateString('en-IN')} • Received by{' '}
-                      {p.createdBy}
-                    </span>
-                    {p.notes && <span className={styles.paymentNotes}>Notes: {p.notes}</span>}
-                  </div>
-
-                  <div className={styles.paymentActions}>
-                    <strong className={styles.paymentAmount}>
-                      ₹{p.amountPaid.toLocaleString('en-IN')}
-                    </strong>
-
-                    {canPrint && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => void handlePrintReceipt(p.receiptNumber)}
-                        disabled={printingReceiptNum === p.receiptNumber}
-                        isLoading={printingReceiptNum === p.receiptNumber}
-                        title="Print Official Cash Memo"
-                        leftIcon={<Printer size={13} aria-hidden="true" />}
-                      >
-                        Print
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {activeTab === 'cash-memos' ? (
+          <RentCashMemosTab
+            account={account}
+            originSeason={originSeason}
+            canPrint={canPrint}
+            printingReceiptNum={printingReceiptNum}
+            error={error}
+            onPrintReceipt={(num) => void handlePrintReceipt(num)}
+            periodLabel={periodLabel}
+          />
+        ) : (
+          <RentOutwardHistoryTab
+            facilityId={selectedFacilityId}
+            account={account}
+          />
+        )}
+      </div>
     </Modal>
   );
 }

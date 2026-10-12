@@ -74,9 +74,9 @@ describe('rentDisplay.helper', () => {
       expect(res.variant).toBe('success');
     });
 
-    it('returns "Pending Dues" with warning variant when not settled', () => {
+    it('returns "Pending" with warning variant when not settled', () => {
       const res = formatPaymentStatus({ paymentStatus: 'Not Settled', totalPaid: 0, rentAmount: 4000, rentType: 'Seasonal' });
-      expect(res.label).toBe('Pending Dues');
+      expect(res.label).toBe('Pending');
       expect(res.variant).toBe('warning');
     });
   });

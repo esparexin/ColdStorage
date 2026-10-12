@@ -26,6 +26,13 @@ export function CollectPaymentModal({
   onPaymentSuccess,
 }: CollectPaymentModalProps) {
   const {
+    settlementOption,
+    selectSettlementOption,
+    isCustomPayment,
+    toggleCustomBillPayment,
+    customBillRef,
+    setCustomBillRef,
+    pendingAfterPayment,
     collectAmount,
     setCollectAmount,
     collectMode,
@@ -45,6 +52,8 @@ export function CollectPaymentModal({
     onPaymentSuccess,
   });
 
+  const notice = getRentCollectionNotice(account);
+
   return (
     <Modal
       isOpen
@@ -54,151 +63,117 @@ export function CollectPaymentModal({
       size="md"
     >
       <form onSubmit={handleSubmit}>
-          <div className={styles.modalBody}>
-            {collectError && <Banner message={collectError} id="collect-error" />}
-
-            <RentSummaryOverview account={account} />
-
-            {(() => {
-              const notice = getRentCollectionNotice(account);
-              return notice ? (
-                <div style={{ padding: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
-                  {notice}
-                </div>
-              ) : null;
-            })()}
-
-            <div className={styles.fieldGroup}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <label htmlFor="collect-amount" className={styles.fieldLabel}>
-                  Amount to Collect (₹) *
-                </label>
-                {account.remainingBalance > 0 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className={styles.quickFillBtn}
-                    onClick={() => setCollectAmount(account.remainingBalance)}
-                  >
-                    Pay Full Balance (₹{account.remainingBalance})
-                  </Button>
-                )}
-              </div>
-              <input
-                id="collect-amount"
-                type="number"
-                min={1}
-                max={account.remainingBalance > 0 ? account.remainingBalance : undefined}
-                step="0.01"
-                required
-                disabled={account.remainingBalance === 0}
-                className={styles.fieldInput}
-                placeholder={account.remainingBalance === 0 ? 'No outstanding dues' : 'Enter amount'}
-                value={collectAmount}
-                aria-invalid={Boolean(collectError)}
-                aria-describedby={collectError ? 'collect-error' : undefined}
-                onChange={(e) =>
-                  setCollectAmount(e.target.value ? parseFloat(e.target.value) : '')
-                }
-              />
+        <div className={styles.modalBody}>
+          {collectError && <Banner message={collectError} id="collect-error" />}
+          <RentSummaryOverview account={account} />
+          {notice && (
+            <div style={{ padding: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+              {notice}
             </div>
+          )}
 
-            <div className={styles.fieldGroup}>
-              <span className={styles.fieldLabel} id="payment-mode-label">Payment Mode *</span>
-              <div className={styles.modeToggleGroup} role="radiogroup" aria-labelledby="payment-mode-label">
-                <Button
-                  type="button"
-                  role="radio"
-                  aria-checked={collectMode === 'Cash'}
-                  variant={collectMode === 'Cash' ? 'primary' : 'outline'}
-                  className={`${styles.modeOption} ${collectMode === 'Cash' ? styles.modeOptionActive : ''}`}
-                  onClick={() => setCollectMode('Cash')}
-                  leftIcon={<Wallet size={16} aria-hidden="true" />}
-                >
-                  Cash
-                </Button>
-                <Button
-                  type="button"
-                  role="radio"
-                  aria-checked={collectMode === 'UPI'}
-                  variant={collectMode === 'UPI' ? 'primary' : 'outline'}
-                  className={`${styles.modeOption} ${collectMode === 'UPI' ? styles.modeOptionActive : ''}`}
-                  onClick={() => setCollectMode('UPI')}
-                  leftIcon={<CreditCard size={16} aria-hidden="true" />}
-                >
-                  UPI
-                </Button>
-              </div>
+          <div className={styles.fieldGroup}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span className={styles.fieldLabel}>Payment Settlement Option *</span>
+              <Button type="button" variant={isCustomPayment ? 'primary' : 'outline'} size="sm" onClick={toggleCustomBillPayment}>
+                Custom Bill Payment
+              </Button>
             </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-1-5)' }} role="radiogroup" aria-label="Settlement Options">
+              <Button type="button" size="sm" variant={settlementOption === 'TOTAL' ? 'primary' : 'outline'} onClick={() => selectSettlementOption('TOTAL')} disabled={account.remainingBalance === 0}>
+                Pay Total Bill
+              </Button>
+              <Button type="button" size="sm" variant={settlementOption === 'PARTIAL' ? 'primary' : 'outline'} onClick={() => selectSettlementOption('PARTIAL')} disabled={account.remainingBalance === 0}>
+                Pay Partial Bill
+              </Button>
+              <Button type="button" size="sm" variant={settlementOption === 'MANUAL_CASH' ? 'primary' : 'outline'} onClick={() => selectSettlementOption('MANUAL_CASH')} disabled={account.remainingBalance === 0}>
+                Manual Cash Entry
+              </Button>
+            </div>
+          </div>
 
-            <div className={styles.fieldGroup}>
-              <label htmlFor="collect-date" className={styles.fieldLabel}>
-                Payment Date *
+          <div className={styles.fieldGroup}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label htmlFor="collect-amount" className={styles.fieldLabel}>
+                {settlementOption === 'TOTAL' ? 'Total Outstanding Amount (₹) *' : 'Amount to Collect (₹) *'}
               </label>
-              <input
-                id="collect-date"
-                type="date"
-                required
-                className={styles.fieldInput}
-                value={collectDate}
-                onChange={(e) => setCollectDate(e.target.value)}
-              />
+              {account.remainingBalance > 0 && (
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                  Pending After Payment: ₹{pendingAfterPayment.toLocaleString('en-IN')}
+                </span>
+              )}
             </div>
+            <input
+              id="collect-amount"
+              type="number"
+              min={1}
+              max={account.remainingBalance > 0 ? account.remainingBalance : undefined}
+              step="0.01"
+              required
+              disabled={account.remainingBalance === 0}
+              className={styles.fieldInput}
+              placeholder={account.remainingBalance === 0 ? 'No outstanding dues' : 'Enter amount'}
+              value={collectAmount}
+              aria-invalid={Boolean(collectError)}
+              aria-describedby={collectError ? 'collect-error' : undefined}
+              onChange={(e) => setCollectAmount(e.target.value ? parseFloat(e.target.value) : '')}
+            />
+          </div>
 
-            {collectMode === 'UPI' && (
-              <div className={styles.fieldGroup}>
-                <label htmlFor="collect-upi-ref" className={styles.fieldLabel}>
-                  UPI Transaction ID / Reference *
-                </label>
-                <input
-                  id="collect-upi-ref"
-                  type="text"
-                  required
-                  maxLength={100}
-                  className={styles.fieldInput}
-                  placeholder="e.g. UPI1234567890 or Bank Ref"
-                  value={upiReference}
-                  onChange={(e) => setUpiReference(e.target.value)}
-                />
-              </div>
-            )}
-
+          {isCustomPayment && (
             <div className={styles.fieldGroup}>
-              <label htmlFor="collect-notes" className={styles.fieldLabel}>
-                {collectMode === 'UPI' ? 'Additional Notes (Optional)' : 'Payment Notes (Optional)'}
-              </label>
+              <label htmlFor="custom-bill-ref" className={styles.fieldLabel}>Custom Bill Reference / Notes</label>
               <input
-                id="collect-notes"
+                id="custom-bill-ref"
                 type="text"
-                maxLength={400}
+                maxLength={100}
                 className={styles.fieldInput}
-                placeholder="Optional notes"
-                value={collectNotes}
-                onChange={(e) => setCollectNotes(e.target.value)}
+                placeholder="e.g. CUSTOM-SETTLEMENT-REF"
+                value={customBillRef}
+                onChange={(e) => setCustomBillRef(e.target.value)}
               />
+            </div>
+          )}
+
+          <div className={styles.fieldGroup}>
+            <span className={styles.fieldLabel} id="payment-mode-label">Payment Mode *</span>
+            <div className={styles.modeToggleGroup} role="radiogroup" aria-labelledby="payment-mode-label">
+              <Button type="button" role="radio" aria-checked={collectMode === 'Cash'} variant={collectMode === 'Cash' ? 'primary' : 'outline'} className={`${styles.modeOption} ${collectMode === 'Cash' ? styles.modeOptionActive : ''}`} onClick={() => setCollectMode('Cash')} leftIcon={<Wallet size={16} aria-hidden="true" />}>
+                Cash
+              </Button>
+              <Button type="button" role="radio" aria-checked={collectMode === 'UPI'} variant={collectMode === 'UPI' ? 'primary' : 'outline'} className={`${styles.modeOption} ${collectMode === 'UPI' ? styles.modeOptionActive : ''}`} onClick={() => setCollectMode('UPI')} leftIcon={<CreditCard size={16} aria-hidden="true" />} disabled={settlementOption === 'MANUAL_CASH'}>
+                UPI
+              </Button>
             </div>
           </div>
 
-          <div className={styles.modalFooter}>
-            <Button
-              variant="outline"
-              onClick={onClose}
-              disabled={collectSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              id="confirm-collect-payment-btn"
-              type="submit"
-              variant="primary"
-              disabled={collectSubmitting || typeof collectAmount !== 'number' || collectAmount <= 0}
-              isLoading={collectSubmitting}
-            >
-              Collect & Issue Cash Memo
-            </Button>
+          <div className={styles.fieldGroup}>
+            <label htmlFor="collect-date" className={styles.fieldLabel}>Payment Date *</label>
+            <input id="collect-date" type="date" required className={styles.fieldInput} value={collectDate} onChange={(e) => setCollectDate(e.target.value)} />
           </div>
-        </form>
+
+          {collectMode === 'UPI' && (
+            <div className={styles.fieldGroup}>
+              <label htmlFor="collect-upi-ref" className={styles.fieldLabel}>UPI Transaction ID / Reference *</label>
+              <input id="collect-upi-ref" type="text" required maxLength={100} className={styles.fieldInput} placeholder="e.g. UPI1234567890 or Bank Ref" value={upiReference} onChange={(e) => setUpiReference(e.target.value)} />
+            </div>
+          )}
+
+          <div className={styles.fieldGroup}>
+            <label htmlFor="collect-notes" className={styles.fieldLabel}>
+              {collectMode === 'UPI' ? 'Additional Notes (Optional)' : 'Payment Notes (Optional)'}
+            </label>
+            <input id="collect-notes" type="text" maxLength={400} className={styles.fieldInput} placeholder="Optional notes" value={collectNotes} onChange={(e) => setCollectNotes(e.target.value)} />
+          </div>
+        </div>
+
+        <div className={styles.modalFooter}>
+          <Button variant="outline" onClick={onClose} disabled={collectSubmitting}>Cancel</Button>
+          <Button id="confirm-collect-payment-btn" type="submit" variant="primary" disabled={collectSubmitting || typeof collectAmount !== 'number' || collectAmount <= 0} isLoading={collectSubmitting}>
+            Collect & Issue Cash Memo
+          </Button>
+        </div>
+      </form>
     </Modal>
   );
 }
