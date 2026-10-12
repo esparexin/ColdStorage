@@ -24,7 +24,15 @@ export interface RentBalance {
   rentState: RentState;
 }
 
-export function computeRentBalance(rentAmount: number, totalPaid: number): RentBalance {
+export interface ComputeRentBalanceOptions {
+  isPendingVerification?: boolean;
+}
+
+export function computeRentBalance(
+  rentAmount: number,
+  totalPaid: number,
+  options?: ComputeRentBalanceOptions,
+): RentBalance {
   const obligation = Number(rentAmount ?? 0);
   const paid = Number(totalPaid ?? 0);
   const remainingBalance = Math.max(0, Number((obligation - paid).toFixed(2)));
@@ -32,12 +40,23 @@ export function computeRentBalance(rentAmount: number, totalPaid: number): RentB
   const isSettled = obligation > 0 && remainingBalance === 0;
   const isUnbilled = obligation === 0 && paid === 0;
 
+  let rentState: RentState;
+  if (options?.isPendingVerification) {
+    rentState = 'PENDING_VERIFICATION';
+  } else if (isSettled) {
+    rentState = 'SETTLED';
+  } else if (isUnbilled) {
+    rentState = 'UNBILLED';
+  } else {
+    rentState = 'PENDING';
+  }
+
   return {
     rentAmount: obligation,
     totalPaid: paid,
     remainingBalance,
     paymentStatus: remainingBalance === 0 ? 'Settled' : 'Not Settled',
     isPartial: paid > 0 && remainingBalance > 0,
-    rentState: isSettled ? 'SETTLED' : isUnbilled ? 'UNBILLED' : 'PENDING',
+    rentState,
   };
 }

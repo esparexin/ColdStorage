@@ -83,3 +83,37 @@ export function summarizeOutwardRent(deliveries: DeliveryChallan[]): OutwardRent
     reversedCount,
   };
 }
+
+export interface MergedGrnNote {
+  id: string;
+  title: string;
+  date: string;
+  bags: number;
+  repackedDetail?: string;
+  source: string;
+  carriedRent: number;
+  reason: string;
+}
+
+export function parseMergedGrnNotes(remarks?: string | null): MergedGrnNote[] {
+  if (!remarks) return [];
+  const mergeRx =
+    /\[MERGE RECEIVED on ([^:]+):\s*\+?(\d+)\s*bags(?:\s*\(([^)]*)\))?\s*from\s+([^.]+)\.(?:[^.]*Carried pending rent:\s*₹?(\d+)\.)?\s*Reason:\s*([^\]]+)\]/gi;
+  const notes: MergedGrnNote[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = mergeRx.exec(remarks)) !== null) {
+    const [, date, bagsStr, repacked, source, carriedRentStr, reason] = match;
+    notes.push({
+      id: `merge-${date.trim()}-${source.trim().replace(/\s+/g, '-')}`,
+      title: 'Merged Stock Inward',
+      date: date.trim(),
+      bags: Number(bagsStr),
+      repackedDetail: repacked ? repacked.trim() : undefined,
+      source: source.trim(),
+      carriedRent: carriedRentStr ? Number(carriedRentStr) : 0,
+      reason: reason?.trim() || 'Internal Move / Merge',
+    });
+  }
+  return notes;
+}
+

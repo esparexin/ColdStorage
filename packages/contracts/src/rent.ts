@@ -10,7 +10,7 @@ export type PaymentMode = z.infer<typeof paymentModeSchema>;
 export const paymentStatusSchema = z.enum(['Settled', 'Not Settled']);
 export type PaymentStatus = z.infer<typeof paymentStatusSchema>;
 
-export const rentStateSchema = z.enum(['SETTLED', 'PENDING', 'UNBILLED']);
+export const rentStateSchema = z.enum(['SETTLED', 'PENDING', 'UNBILLED', 'PENDING_VERIFICATION']);
 export type RentState = z.infer<typeof rentStateSchema>;
 
 export const recordRentPaymentInputSchema = z
@@ -18,7 +18,7 @@ export const recordRentPaymentInputSchema = z
     grnId: z.string().trim().min(1, 'GRN ID is required'),
     amountPaid: z
       .number({ invalid_type_error: 'Amount paid must be a number' })
-      .positive('Amount paid must be greater than zero'),
+      .min(0, 'Amount paid cannot be negative'),
     paymentMode: paymentModeSchema,
     paymentDate: z.coerce.date().default(() => new Date()),
     notes: z.string().trim().max(500, 'Notes cannot exceed 500 characters').nullish(),
@@ -43,7 +43,7 @@ export const rentPaymentSchema = z.object({
   grnId: z.string().min(1),
   grnNumber: z.string().min(1),
   receiptNumber: rentReceiptNumberSchema,
-  amountPaid: z.number().positive(),
+  amountPaid: z.number().min(0),
   paymentMode: paymentModeSchema,
   paymentDate: z.coerce.date(),
   notes: z.string().nullable().optional(),
@@ -76,6 +76,7 @@ export const rentSummaryDtoSchema = z.object({
   remainingBalance: z.number().min(0),
   paymentStatus: paymentStatusSchema,
   rentState: rentStateSchema.default('UNBILLED'),
+  verificationReason: z.string().nullable().optional(),
   payments: z.array(rentPaymentSchema),
   /**
    * Finalized January/February extensions (additive to rentAmount).
@@ -87,6 +88,7 @@ export const rentSummaryDtoSchema = z.object({
    * no extensions exist, so pre-extension balances are unchanged.
    */
   totalDue: rentalAmountSchema.default(0),
+  remarks: z.string().nullable().optional(),
 });
 
 export type RentSummaryDto = z.infer<typeof rentSummaryDtoSchema>;

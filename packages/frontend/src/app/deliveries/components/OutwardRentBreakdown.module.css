@@ -66,3 +66,31 @@
 .paymentRow strong {
   color: var(--color-text-primary);
 }
+
+.settlementBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  padding: var(--space-2);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-2);
+}
+
+.settlementHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-1);
+}
+
+.settlementNotice {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin-top: var(--space-1);
+  border-top: 1px dashed var(--color-border);
+  padding-top: var(--space-1);
+}
+

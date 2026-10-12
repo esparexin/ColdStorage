@@ -3,6 +3,7 @@ import { bagTypeSchema } from './bags.js';
 import { chamberTextSchema, indianVehicleSchema } from './common.js';
 import { challanNumberSchema } from './identifiers.js';
 import { grnStatusSchema } from './grn.js';
+import { paymentModeSchema } from './rent.js';
 
 /**
  * P6: Delivery + Outward Challan + Full Reversal + GRN Closure Contracts.
@@ -45,6 +46,9 @@ export const createDeliverySchema = z
     remarks: z.string().trim().max(500).nullish(),
     bagCategory: z.enum(['Small', 'Big', 'Small & Big']).nullish(),
     rentCharge: z.number().min(0).nullish(),
+    paymentAmount: z.number().min(0, 'Payment amount cannot be negative').nullish(),
+    paymentMode: paymentModeSchema.nullish(),
+    paymentReference: z.string().trim().max(100).nullish(),
   })
   .refine((data) => (data.quantity && data.quantity > 0) || data.smallBags + data.bigBags > 0, {
     message: 'Delivery must move at least one bag',

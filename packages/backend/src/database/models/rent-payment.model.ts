@@ -23,7 +23,7 @@ const rentPaymentSchema = new Schema<RentPaymentDoc>(
     grnId: { type: String, required: true, index: true },
     grnNumber: { type: String, required: true, index: true },
     receiptNumber: { type: String, required: true, index: true },
-    amountPaid: { type: Number, required: true, min: 0.01 },
+    amountPaid: { type: Number, required: true, min: 0 },
     paymentMode: { type: String, required: true, enum: ['Cash', 'UPI'], index: true },
     paymentDate: { type: Date, required: true, index: true },
     notes: { type: String, default: null },

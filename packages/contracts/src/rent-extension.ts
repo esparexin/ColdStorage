@@ -27,7 +27,7 @@ export const SEASON_END_MONTH_INDEX = 11; // December
  * Season year owning an inward date: March–December belong to the calendar year,
  * January–February belong to the prior season (their extensions were already due).
  */
-export function seasonYearForInwardDate(inward: Date): number {
+export function seasonYearForInwardDate(inward: Date | string): number {
   const d = new Date(inward);
   return d.getMonth() >= SEASON_START_MONTH_INDEX ? d.getFullYear() : d.getFullYear() - 1;
 }

@@ -62,10 +62,6 @@ export function bagCompositionIssue(input: NormalizeCompositionInput): string | 
   const small = smallBags ?? 0;
   const big = bigBags ?? 0;
 
-  if (bagType === 'S/B') {
-    return null;
-  }
-
   if (bagType === 'S') {
     return big > 0
       ? 'Bag type S declares no big bags, but a big bag count was supplied'
@@ -78,15 +74,18 @@ export function bagCompositionIssue(input: NormalizeCompositionInput): string | 
       : null;
   }
 
-  // S+B is a classification label only: the inward form captures a single Total Bags, so a
-  // receipt may declare no split at all. When a split IS supplied (legacy CSV import, or the
-  // administrative correction workflow) it must still reconcile with the declared total.
-  const hasSplit = (smallBags != null || bigBags != null) && small + big > 0;
+  // S+B and S/B are mixed/general classification labels: the inward form captures Total Bags,
+  // so a receipt may declare no split at all. When a split IS supplied, support all valid
+  // compositions (all-small, all-big, mixed) that reconcile with the declared total.
+  const hasSplit = smallBags != null || bigBags != null;
   if (!hasSplit) {
     return null;
   }
-  if (small <= 0 || big <= 0) {
-    return 'Bag type S+B requires a positive small bag count and a positive big bag count';
+  if (small < 0 || big < 0) {
+    return 'Small and big bag counts cannot be negative';
+  }
+  if (!Number.isInteger(small) || !Number.isInteger(big)) {
+    return 'Small and big bag counts must be whole numbers';
   }
   if (small + big !== bags) {
     return `Small (${small}) plus big (${big}) bags must equal the declared total of ${bags} bags`;
@@ -109,25 +108,21 @@ export function normalizeBagComposition(input: NormalizeCompositionInput): BagCo
   }
 
   const { bagType, bags, smallBags, bigBags } = input;
-  if (bagType === 'S/B') {
-    return { smallBags: bags, bigBags: 0 };
-  }
   if (bagType === 'S') {
     return { smallBags: bags, bigBags: 0 };
   }
   if (bagType === 'B') {
     return { smallBags: 0, bigBags: bags };
   }
-  // S+B with no declared split is stored as a single-side composition. Readers that report a
-  // per-type split (delivery validation, ledger, challan print) then have a defined vector to
-  // read, exactly as they do for S and B, without inventing a small/big division the operator
-  // never supplied.
+  // When an explicit split is provided and matches total, preserve it.
+  // Otherwise, default unsegregated lots to single-side composition.
   const small = smallBags ?? 0;
   const big = bigBags ?? 0;
-  if (small + big === 0) {
-    return { smallBags: bags, bigBags: 0 };
+  const hasSplit = (smallBags != null || bigBags != null) && small + big === bags;
+  if (hasSplit) {
+    return { smallBags: small, bigBags: big };
   }
-  return { smallBags: small, bigBags: big };
+  return { smallBags: bags, bigBags: 0 };
 }
 
 /** Narrows an unknown value to a composition, returning null when it is not one. */
@@ -148,3 +143,67 @@ export function bagCompositionConsistent<T extends NormalizeCompositionInput>(va
 
 export const bagCompositionIssueMessage =
   'Bag composition is inconsistent with the declared bag type and total';
+
+/**
+ * Checks whether small and big bag quantities are explicitly verified and reconciled with total bags.
+ * Single-type bags (S or B) are verified by definition once their non-zero side matches total bags.
+ * Mixed bags (S+B or S/B) require explicit non-null small and big bag quantities summing to total.
+ */
+export function isBagCompositionVerified(input: {
+  bagType?: BagType | null;
+  bags: number;
+  smallBags?: number | null;
+  bigBags?: number | null;
+}): boolean {
+  const { bagType, bags, smallBags, bigBags } = input;
+  if (bags <= 0) return true;
+  const s = smallBags ?? 0;
+  const b = bigBags ?? 0;
+  if (s < 0 || b < 0 || !Number.isInteger(s) || !Number.isInteger(b)) return false;
+  if (s + b !== bags) return false;
+
+  if (bagType === 'S') return s === bags && b === 0;
+  if (bagType === 'B') return b === bags && s === 0;
+  if (smallBags == null || bigBags == null) return false;
+  return s + b === bags;
+}
+
+/**
+ * Validates whether rent can be calculated authoritatively without guessing or fabricating bills.
+ * If differential rates exist and composition is unverified, rent calculation must be marked pending verification.
+ */
+export function canCalculateAuthoritativeRent(input: {
+  bagType?: BagType | null;
+  bags: number;
+  smallBags?: number | null;
+  bigBags?: number | null;
+  bagPrice?: number | null;
+  smallBagPrice?: number | null;
+  bigBagPrice?: number | null;
+}): { canCalculate: boolean; reason?: string } {
+  const hasDiffRates =
+    (input.smallBagPrice != null || input.bigBagPrice != null) &&
+    input.smallBagPrice !== input.bigBagPrice;
+
+  if (hasDiffRates && !isBagCompositionVerified(input)) {
+    return {
+      canCalculate: false,
+      reason: 'Small and big bag composition unverified; differential rates require confirmed counts',
+    };
+  }
+
+  const hasAnyRate =
+    (typeof input.bagPrice === 'number' && input.bagPrice > 0) ||
+    (typeof input.smallBagPrice === 'number' && input.smallBagPrice > 0) ||
+    (typeof input.bigBagPrice === 'number' && input.bigBagPrice > 0);
+
+  if (!hasAnyRate && input.bags > 0) {
+    return {
+      canCalculate: false,
+      reason: 'No applicable storage rates configured or verified',
+    };
+  }
+
+  return { canCalculate: true };
+}
+

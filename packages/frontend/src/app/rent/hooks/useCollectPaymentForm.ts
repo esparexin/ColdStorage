@@ -55,8 +55,8 @@ export function useCollectPaymentForm({
     e.preventDefault();
     if (!selectedFacilityId) return;
 
-    if (typeof collectAmount !== 'number' || collectAmount <= 0) {
-      setCollectError('Payment amount must be greater than zero');
+    if (typeof collectAmount !== 'number' || collectAmount < 0) {
+      setCollectError('Payment amount cannot be negative');
       return;
     }
 

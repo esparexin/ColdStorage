@@ -97,7 +97,8 @@ export function GrnMergedDetailsTable({ currentGrn, allGrns = [] }: GrnMergedDet
     const remarks = currentGrn.remarks ?? '';
 
     // 1. Check if current GRN received merged stock
-    const mergeRx = /\[MERGE RECEIVED on ([^:]+):\s*\+?(\d+)\s*bags from (?:GRN\s+)?([^\s(]+)(?:\s*\(([^)]+)\))?\.\s*Reason:\s*([^\]]+)\]/gi;
+    const mergeRx =
+      /\[MERGE RECEIVED on ([^:]+):\s*\+?(\d+)\s*bags(?:\s*\([^)]*\))?\s*from\s+(?:GRN\s+)?([^\s(]+)(?:\s*\(([^)]+)\))?\.(?:[^.]*\.)?\s*Reason:\s*([^\]]+)\]/gi;
     let match: RegExpExecArray | null;
     while ((match = mergeRx.exec(remarks)) !== null) {
       const [, date, bagsStr, sourceGrnNum, detailsStr, reason] = match;
@@ -107,9 +108,17 @@ export function GrnMergedDetailsTable({ currentGrn, allGrns = [] }: GrnMergedDet
       const partyMark = sourceGrn?.partyMark ? `PM: ${sourceGrn.partyMark}` : 'PM: N/A';
       const chamber = sourceGrn?.chamber ? `Chamber: ${sourceGrn.chamber}` : currentGrn.chamber ? `Chamber: ${currentGrn.chamber}` : 'Chamber: N/A';
       const storageMark = sourceGrn?.storageMark ? `SM: ${sourceGrn.storageMark}` : `SM: ${sourceGrnNum}`;
-      const smallBags = sourceGrn?.smallBags != null ? sourceGrn.smallBags.toLocaleString('en-IN') : 'N/A';
-      const bigBags = sourceGrn?.bigBags != null ? sourceGrn.bigBags.toLocaleString('en-IN') : Number(bagsStr).toLocaleString('en-IN');
       const bagType = sourceGrn?.bagType ?? currentGrn.bagType ?? 'S/B';
+
+      const repackedMatch = match[0].match(/Repacked:\s*(\d+)\s*S\s*\+\s*(\d+)\s*B/i);
+      let sbDetail: string;
+      if (repackedMatch) {
+        sbDetail = `Repacked: ${repackedMatch[1]} S • ${repackedMatch[2]} B (${bagType})`;
+      } else if (sourceGrn && (sourceGrn.smallBags > 0 || sourceGrn.bigBags > 0)) {
+        sbDetail = `S: ${sourceGrn.smallBags.toLocaleString('en-IN')} • B: ${sourceGrn.bigBags.toLocaleString('en-IN')} (${bagType})`;
+      } else {
+        sbDetail = `S: Unconfirmed • B: Unconfirmed (${bagType})`;
+      }
 
       list.push({
         id: `merge-in-${sourceGrnNum}-${date}`,
@@ -124,7 +133,7 @@ export function GrnMergedDetailsTable({ currentGrn, allGrns = [] }: GrnMergedDet
         chamber,
         storageMark,
         totalBags: `+${Number(bagsStr).toLocaleString('en-IN')} bags`,
-        sbDetail: `S: ${smallBags} • B: ${bigBags} (${bagType})`,
+        sbDetail,
         reason: reason?.trim() || 'N/A',
       });
     }

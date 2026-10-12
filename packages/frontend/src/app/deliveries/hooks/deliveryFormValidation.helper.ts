@@ -62,8 +62,7 @@ export function validateDeliveryForm(input: ValidateDeliveryFormInput): Delivery
     errors.bags = `Cannot deliver ${input.totalWithdrawingBags} bags (only ${availableTotal} available)`;
   }
 
-  const isTwoSided = !input.isCombinedPool && input.availableSmall > 0 && input.availableBig > 0;
-  if (isTwoSided) {
+  if (!input.isCombinedPool) {
     if (input.smallBags > input.availableSmall) {
       errors.smallBags = `Cannot deliver ${input.smallBags} small bags (only ${input.availableSmall} available)`;
     }

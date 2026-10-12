@@ -50,8 +50,9 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
     bagPrice: params.bagPrice,
   });
 
-  const effectiveSmall = bagCategory === 'Big' ? 0 : smallBags;
-  const effectiveBig = bagCategory === 'Small' ? 0 : bigBags;
+  const hasSpecificCounts = (smallBags || 0) > 0 || (bigBags || 0) > 0;
+  const effectiveSmall = hasSpecificCounts ? (smallBags || 0) : bagCategory === 'Big' ? 0 : smallBags;
+  const effectiveBig = hasSpecificCounts ? (bigBags || 0) : bagCategory === 'Small' ? 0 : bigBags;
   const totalBags = effectiveSmall + effectiveBig;
 
   if (totalBags <= 0) return 0;

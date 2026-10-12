@@ -4,11 +4,7 @@ import { requestWithAuth } from '@/lib/api-client';
 import { useRentGate } from '@/hooks/useRentGate';
 import { validateDeliveryForm } from './deliveryFormValidation.helper';
 import { buildDeliveryPayload } from './deliveryPayload.helper';
-import {
-  computeOutwardRentCharge,
-  resolveOutwardBillableMonths,
-  type OutwardBagCategory,
-} from './deliveryRent.helper';
+import { computeOutwardRentCharge, resolveOutwardBillableMonths, type OutwardBagCategory } from './deliveryRent.helper';
 import { submitDeliveryRequest } from './deliverySubmit.helper';
 import type { GrnWithdrawal } from '../types';
 
@@ -24,11 +20,10 @@ export function useCreateDeliveryForm(
   const [createDate, setCreateDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [bagCategory, setBagCategory] = useState<OutwardBagCategory>('Small');
   const [withdrawal, setWithdrawal] = useState<GrnWithdrawal>({
-    availableSmall: 0,
-    availableBig: 0,
-    smallBags: '',
-    bigBags: '',
+    availableSmall: 0, availableBig: 0, smallBags: '', bigBags: '',
   });
+  const [paymentAmount, setPaymentAmount] = useState<number | ''>('');
+  const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI'>('Cash');
   const [createVehicleNumber, setCreateVehicleNumber] = useState('');
   const [createDriverName, setCreateDriverName] = useState('');
   const [createWeight, setCreateWeight] = useState<number | ''>('');
@@ -41,12 +36,7 @@ export function useCreateDeliveryForm(
   const rentGate = useRentGate();
 
   const clearFieldError = (key: string) => {
-    setFieldErrors((prev) => {
-      if (!prev[key]) return prev;
-      const next = { ...prev };
-      delete next[key];
-      return next;
-    });
+    setFieldErrors((prev) => (!prev[key] ? prev : Object.fromEntries(Object.entries(prev).filter(([k]) => k !== key))));
   };
 
   const fetchAvailableGrns = useCallback(async () => {
@@ -80,6 +70,8 @@ export function useCreateDeliveryForm(
       setCreateGrnId(grnId);
       setGrnSummary(null);
       setWithdrawal({ availableSmall: 0, availableBig: 0, smallBags: '', bigBags: '' });
+      setPaymentAmount('');
+      setPaymentMode('Cash');
       setFieldErrors({});
       setMonthlyCommodityRates(null);
       rentGate.resetRentGate();
@@ -212,8 +204,10 @@ export function useCreateDeliveryForm(
     try {
       const payload = buildDeliveryPayload({
         grnId: createGrnId, createDate, smallBags, bigBags, bagCategory,
-        rentCharge: outwardRent, createVehicleNumber, createDriverName,
-        createWeight, createGpNumber, createRemarks,
+        rentCharge: outwardRent,
+        paymentAmount: typeof paymentAmount === 'number' && paymentAmount >= 0 ? paymentAmount : undefined,
+        paymentMode: typeof paymentAmount === 'number' && paymentAmount > 0 ? paymentMode : undefined,
+        createVehicleNumber, createDriverName, createWeight, createGpNumber, createRemarks,
       });
       const responseData = await submitDeliveryRequest(facilityId, payload);
       onSuccess(responseData.delivery, responseData.summary);
@@ -245,5 +239,6 @@ export function useCreateDeliveryForm(
     totalWithdrawingBags, fetchAvailableGrns, handleSelectGrn, handleSubmit, selectedGrn, isLoanHoldActive,
     billableRentMonths, monthlyCommodityRates, isFormValid, rentSummary: rentGate.rentSummary,
     rentLoading: rentGate.rentLoading, refreshRentGate: rentGate.refreshRentGate,
+    paymentAmount, setPaymentAmount, paymentMode, setPaymentMode,
   };
 }

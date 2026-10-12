@@ -34,6 +34,18 @@ export async function validateStockAndBalances(
     );
   }
 
+  if (grn.bagType === 'S' && withdrawal.bigBags > 0) {
+    throw new Error(
+      `Requested ${withdrawal.bigBags} big bags exceeds available balance for single-type Small GRN '${grn.grnNumber}'`,
+    );
+  }
+
+  if (grn.bagType === 'B' && withdrawal.smallBags > 0) {
+    throw new Error(
+      `Requested ${withdrawal.smallBags} small bags exceeds available balance for single-type Big GRN '${grn.grnNumber}'`,
+    );
+  }
+
   // When a GRN was historically split into distinct small and big pools (both > 0),
   // guard per type so individual balances are not exceeded.
   if (remainingSmall > 0 && remainingBig > 0) {

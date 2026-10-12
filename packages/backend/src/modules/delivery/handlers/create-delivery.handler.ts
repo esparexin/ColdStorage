@@ -1,17 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
-import {
-  type BagComposition,
-  type CreateDeliveryInput,
-  type DeliveryChallan,
-  type DeliverySummary,
-} from '@cold-storage/contracts';
+import type { BagComposition, CreateDeliveryInput, DeliveryChallan, DeliverySummary } from '@cold-storage/contracts';
 import { ConcurrencyConflictError } from '../../inventory/inventory.service.js';
 import { counterService } from '../../common/counter.service.js';
-import {
-  DeliveryChallanModel,
-  type DeliveryChallanDoc,
-} from '../../../database/models/delivery-challan.model.js';
+import { DeliveryChallanModel, type DeliveryChallanDoc } from '../../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { auditService } from '../../audit/audit.service.js';
@@ -19,10 +11,8 @@ import { assertRentAllowedForOutward } from '../../common/rent-gate.service.js';
 import { isTransientError, toChallanEntity } from '../delivery.mappers.js';
 import { getDeliverySummary } from '../queries/delivery.queries.js';
 import { computeExpectedDeliveryRent } from './delivery-rent.helper.js';
-import {
-  validateDeliveryDate,
-  validateStockAndBalances,
-} from './delivery-validation.helper.js';
+import { recordDeliveryInlinePayment } from './delivery-payment.helper.js';
+import { validateDeliveryDate, validateStockAndBalances } from './delivery-validation.helper.js';
 
 export async function createDeliveryWithRetry(
   facilityId: string,
@@ -212,10 +202,23 @@ async function executeDeliveryTransaction(
         { session, ordered: true },
       );
 
+      const { paidAmount } = await recordDeliveryInlinePayment({
+        facilityId,
+        grnId: grn.id,
+        grnNumber: grn.grnNumber,
+        deliveryDate,
+        paymentAmount: input.paymentAmount,
+        paymentMode: input.paymentMode,
+        paymentReference: input.paymentReference,
+        userId,
+        session,
+      });
+
       const closingTotal = available.total - withdrawnTotal;
       const effectiveObligation =
         grn.rentType === 'Seasonal' ? rentBalance.rentAmount : rentBalance.rentAmount + deliveryRentCharge;
-      const effectiveRemaining = Math.max(0, Number((effectiveObligation - rentBalance.totalPaid).toFixed(2)));
+      const totalPaidAfterDelivery = rentBalance.totalPaid + paidAmount;
+      const effectiveRemaining = Math.max(0, Number((effectiveObligation - totalPaidAfterDelivery).toFixed(2)));
 
       // Closure invariant: A GRN is CLOSED only when both remainingBags === 0 AND remainingBalance === 0.
       // If bags reach 0 but rent balance remains, the GRN remains OPEN so outstanding dues are tracked.

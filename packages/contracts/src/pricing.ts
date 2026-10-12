@@ -50,7 +50,8 @@ export function calculateRentAmount(input: RentalCalculationInput): number {
   const isSeasonal = input.rentType === 'Seasonal';
   const months = isSeasonal ? 1 : Math.max(1, input.rentMonths ?? 1);
 
-  if (input.bagType === 'S+B' && (input.smallBagPrice != null || input.bigBagPrice != null)) {
+  const isSb = input.bagType === 'S+B' || input.bagType === 'S/B' || input.bagType == null || (input.smallBags != null || input.bigBags != null);
+  if (isSb && (input.smallBagPrice != null || input.bigBagPrice != null)) {
     const sCount = input.smallBags ?? 0;
     const bCount = input.bigBags ?? 0;
     const sRate = input.smallBagPrice ?? input.bagPrice ?? 0;
