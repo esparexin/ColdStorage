@@ -1,14 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import {
+  bagCompositionIssue,
+  normalizeBagComposition,
   isBagCompositionVerified,
   canCalculateAuthoritativeRent,
+  calculateRentAmount,
   mergeGrnInputSchema,
   createDeliverySchema,
   rentSummaryDtoSchema,
 } from '../index.js';
 
 describe('Historical Rent & Bag Composition Verification Contracts', () => {
-  describe('isBagCompositionVerified', () => {
+  describe('isBagCompositionVerified & Bag Compositions', () => {
     it('verifies single-type S when smallBags equals bags and bigBags is zero', () => {
       expect(isBagCompositionVerified({ bagType: 'S', bags: 100, smallBags: 100, bigBags: 0 })).toBe(true);
       expect(isBagCompositionVerified({ bagType: 'S', bags: 100, smallBags: 90, bigBags: 10 })).toBe(false);
@@ -28,6 +31,26 @@ describe('Historical Rent & Bag Composition Verification Contracts', () => {
     it('accepts mixed types when smallBags + bigBags reconciles with declared bags', () => {
       expect(isBagCompositionVerified({ bagType: 'S+B', bags: 200, smallBags: 120, bigBags: 80 })).toBe(true);
       expect(isBagCompositionVerified({ bagType: 'S/B', bags: 350, smallBags: 200, bigBags: 150 })).toBe(true);
+    });
+
+    it('supports all valid compositions for 200 bags (200S+0B, 0S+200B, 10S+190B) across contracts', () => {
+      // 1. 200 Small and 0 Big
+      expect(isBagCompositionVerified({ bagType: 'S+B', bags: 200, smallBags: 200, bigBags: 0 })).toBe(true);
+      expect(bagCompositionIssue({ bagType: 'S+B', bags: 200, smallBags: 200, bigBags: 0 })).toBeNull();
+      expect(normalizeBagComposition({ bagType: 'S+B', bags: 200, smallBags: 200, bigBags: 0 })).toEqual({ smallBags: 200, bigBags: 0 });
+      expect(calculateRentAmount({ rentType: 'Seasonal', bags: 200, bagType: 'S+B', smallBags: 200, bigBags: 0, smallBagPrice: 150, bigBagPrice: 210 })).toBe(30000);
+
+      // 2. 0 Small and 200 Big
+      expect(isBagCompositionVerified({ bagType: 'S+B', bags: 200, smallBags: 0, bigBags: 200 })).toBe(true);
+      expect(bagCompositionIssue({ bagType: 'S+B', bags: 200, smallBags: 0, bigBags: 200 })).toBeNull();
+      expect(normalizeBagComposition({ bagType: 'S+B', bags: 200, smallBags: 0, bigBags: 200 })).toEqual({ smallBags: 0, bigBags: 200 });
+      expect(calculateRentAmount({ rentType: 'Seasonal', bags: 200, bagType: 'S+B', smallBags: 0, bigBags: 200, smallBagPrice: 150, bigBagPrice: 210 })).toBe(42000);
+
+      // 3. 10 Small and 190 Big
+      expect(isBagCompositionVerified({ bagType: 'S+B', bags: 200, smallBags: 10, bigBags: 190 })).toBe(true);
+      expect(bagCompositionIssue({ bagType: 'S+B', bags: 200, smallBags: 10, bigBags: 190 })).toBeNull();
+      expect(normalizeBagComposition({ bagType: 'S+B', bags: 200, smallBags: 10, bigBags: 190 })).toEqual({ smallBags: 10, bigBags: 190 });
+      expect(calculateRentAmount({ rentType: 'Seasonal', bags: 200, bagType: 'S+B', smallBags: 10, bigBags: 190, smallBagPrice: 150, bigBagPrice: 210 })).toBe(41400);
     });
   });
 

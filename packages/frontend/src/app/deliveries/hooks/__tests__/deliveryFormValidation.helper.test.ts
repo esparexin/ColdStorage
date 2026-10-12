@@ -153,4 +153,29 @@ describe('validateDeliveryForm', () => {
     expect(result.errors.bigBags).toBeUndefined();
     expect(result.errors.bags).toBeUndefined();
   });
+
+  it('supports all valid compositions for 200 bags (200S+0B, 0S+200B, 10S+190B) in combined pool', () => {
+    const scenarios = [
+      { small: 200, big: 0 },
+      { small: 0, big: 200 },
+      { small: 10, big: 190 },
+    ];
+    for (const s of scenarios) {
+      const res = validateDeliveryForm(
+        makeInput({
+          smallBags: s.small,
+          bigBags: s.big,
+          totalWithdrawingBags: s.small + s.big,
+          availableSmall: 200,
+          availableBig: 0,
+          availableTotal: 200,
+          isCombinedPool: true,
+        }),
+      );
+      expect(res.isValid).toBe(true);
+      expect(res.errors.bags).toBeUndefined();
+      expect(res.errors.smallBags).toBeUndefined();
+      expect(res.errors.bigBags).toBeUndefined();
+    }
+  });
 });

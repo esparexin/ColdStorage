@@ -189,4 +189,60 @@ describe('Delivery stored agreement — delivery-stored-agreement.test.ts', () =
     expect(rev.summary.remainingDeliveryBalance).toBe(200);
     expect(rev.summary.physicallyStoredBags).toBe(200);
   });
+
+  it('supports all valid outward compositions (200S+0B, 0S+200B, 10S+190B) for 200-bag lots', async () => {
+    // 1. All-small: 200 Small + 0 Big
+    const { grn: grnSmall } = await grnService.createGrn(FACILITY_ID, {
+      grnNumber: '8004', date: new Date('2026-04-10T00:00:00.000Z'),
+      customerId, commodityId: 'cmd-agr', chamber: 'CH-01', bags: 200, bagType: 'S/B',
+      rentType: 'Seasonal', smallBagPrice: 150, bigBagPrice: 210,
+    }, USER_ID);
+    const delSmall = await deliveryService.createDelivery(FACILITY_ID, {
+      grnId: grnSmall.id, date: new Date('2026-05-15T00:00:00.000Z'),
+      smallBags: 200, bigBags: 0,
+    }, USER_ID);
+    expect(delSmall.delivery.smallBags).toBe(200);
+    expect(delSmall.delivery.bigBags).toBe(0);
+    expect(delSmall.delivery.rentCharge).toBe(30000); // 200 * 150
+    expect(delSmall.summary.remainingDeliveryBalance).toBe(0);
+
+    // 2. All-big: 0 Small + 200 Big
+    const { grn: grnBig } = await grnService.createGrn(FACILITY_ID, {
+      grnNumber: '8005', date: new Date('2026-04-10T00:00:00.000Z'),
+      customerId, commodityId: 'cmd-agr', chamber: 'CH-01', bags: 200, bagType: 'S/B',
+      rentType: 'Seasonal', smallBagPrice: 150, bigBagPrice: 210,
+    }, USER_ID);
+    const delBig = await deliveryService.createDelivery(FACILITY_ID, {
+      grnId: grnBig.id, date: new Date('2026-05-15T00:00:00.000Z'),
+      smallBags: 0, bigBags: 200,
+    }, USER_ID);
+    expect(delBig.delivery.smallBags).toBe(0);
+    expect(delBig.delivery.bigBags).toBe(200);
+    expect(delBig.delivery.rentCharge).toBe(42000); // 200 * 210
+    expect(delBig.summary.remainingDeliveryBalance).toBe(0);
+
+    // 3. Mixed Partial (10S + 90B = 100, rem = 100) then Final (0S + 100B = 100, rem = 0)
+    const { grn: grnMixed } = await grnService.createGrn(FACILITY_ID, {
+      grnNumber: '8006', date: new Date('2026-04-10T00:00:00.000Z'),
+      customerId, commodityId: 'cmd-agr', chamber: 'CH-01', bags: 200, bagType: 'S/B',
+      rentType: 'Seasonal', smallBagPrice: 150, bigBagPrice: 210,
+    }, USER_ID);
+    const delPart = await deliveryService.createDelivery(FACILITY_ID, {
+      grnId: grnMixed.id, date: new Date('2026-05-15T00:00:00.000Z'),
+      smallBags: 10, bigBags: 90,
+    }, USER_ID);
+    expect(delPart.delivery.smallBags).toBe(10);
+    expect(delPart.delivery.bigBags).toBe(90);
+    expect(delPart.delivery.rentCharge).toBe(20400); // 10*150 + 90*210
+    expect(delPart.summary.remainingDeliveryBalance).toBe(100);
+
+    const delFinal = await deliveryService.createDelivery(FACILITY_ID, {
+      grnId: grnMixed.id, date: new Date('2026-05-15T00:00:00.000Z'),
+      smallBags: 0, bigBags: 100,
+    }, USER_ID);
+    expect(delFinal.delivery.smallBags).toBe(0);
+    expect(delFinal.delivery.bigBags).toBe(100);
+    expect(delFinal.delivery.rentCharge).toBe(21000); // 100*210
+    expect(delFinal.summary.remainingDeliveryBalance).toBe(0);
+  });
 });
