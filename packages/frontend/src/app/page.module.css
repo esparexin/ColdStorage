@@ -50,7 +50,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
   padding: var(--space-3) var(--space-4);
@@ -66,18 +66,6 @@
 }
 
 /* ---- Activity ---- */
-
-.typeBadge {
-  display: inline-block;
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  border-radius: var(--radius-full);
-  padding: 1px var(--space-2);
-}
-
-.typeInward  { background: var(--color-success-subtle); color: var(--color-success-text); }
-.typeOutward { background: var(--color-warning-subtle); color: var(--color-warning-text); }
-.typeReversal { background: var(--color-danger-subtle);  color: var(--color-danger-text);  }
 
 .refCode {
   font-family: var(--font-mono);

@@ -178,13 +178,46 @@
   background-color: var(--color-surface-2);
 }
 
+.searchTrigger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.searchTrigger:hover {
+  background-color: var(--color-surface-2);
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .header {
+    left: var(--sidebar-width-collapsed, 64px);
+  }
+}
+
 @media (max-width: 768px) {
   .header {
     left: 0;
     padding: 0 var(--space-3);
   }
-  .menuTrigger {
+  .menuTrigger,
+  .searchTrigger {
     display: flex;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .logoutBtn {
+    min-width: 44px;
+    min-height: 44px;
   }
   .userInfo {
     display: none;

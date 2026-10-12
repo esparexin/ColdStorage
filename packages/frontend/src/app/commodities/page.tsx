@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { type Commodity } from '@cold-storage/contracts';
-import { Button, ConfirmDialog, FeedbackStates, SearchBar } from '@/components/ui';
+import { Button, ConfirmDialog, FeedbackStates, FilterToolbar } from '@/components/ui';
 import {
   EMPTY_MESSAGES,
   ERROR_TITLES,
@@ -69,11 +69,13 @@ export default function CommoditiesPage() {
         )}
       </div>
 
-      <SearchBar
-        value={searchTerm}
-        onChange={setSearchTerm}
-        placeholder="Search by commodity name…"
-        ariaLabel="Search commodities"
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search by commodity name…"
+        searchAriaLabel="Search commodities"
+        onReset={() => setSearchTerm('')}
+        hasActiveFilters={Boolean(searchTerm)}
       />
 
       {loading ? (

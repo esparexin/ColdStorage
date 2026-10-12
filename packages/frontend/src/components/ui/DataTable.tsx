@@ -53,6 +53,7 @@ export interface DataTableProps<T> {
   };
   pagination?: DataTablePagination;
   onRowClick?: (row: T, index: number) => void;
+  footer?: React.ReactNode;
 }
 
 export function DataTable<T>({
@@ -69,6 +70,7 @@ export function DataTable<T>({
   emptyAction,
   pagination,
   onRowClick,
+  footer,
 }: DataTableProps<T>) {
   if (loading) {
     return <FeedbackStates.Loading label={loadingLabel ?? 'Loading data…'} />;
@@ -220,6 +222,7 @@ export function DataTable<T>({
               })
             )}
           </tbody>
+          {footer && <tfoot>{footer}</tfoot>}
         </table>
       </div>
 

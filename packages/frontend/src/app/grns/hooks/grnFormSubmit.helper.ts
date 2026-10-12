@@ -21,7 +21,7 @@ export async function submitCreateGrn(
   return responseData.grn;
 }
 
-export async function submitEditGrn(
+async function submitEditGrn(
   facilityId: string,
   grnId: string,
   payload: Record<string, unknown>,

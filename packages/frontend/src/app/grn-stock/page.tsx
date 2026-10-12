@@ -180,6 +180,7 @@ export default function GrnStockPage() {
               totalRecords: filteredGrns.length,
               onPageChange: setPage,
             }}
+            onRowClick={handleOpenMovement}
           />
         </>
       )}

@@ -22,6 +22,12 @@
   min-width: 0;
 }
 
+@media (min-width: 769px) and (max-width: 1024px) {
+  .main {
+    margin-left: var(--sidebar-width-collapsed, 64px);
+  }
+}
+
 @media (max-width: 768px) {
   .main {
     margin-left: 0;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Card, DataTable, type DataTableColumn } from '@/components/ui';
+import { Button, DataTable, type DataTableColumn } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { ERROR_TITLES, LOADING_LABELS } from '@/components/ui/stateCopy';
 import styles from './ConnectivitySection.module.css';
@@ -124,7 +124,7 @@ export function ConnectivitySection() {
   ];
 
   return (
-    <Card aria-labelledby="connectivity-heading">
+    <section className={styles.section} aria-labelledby="connectivity-heading">
       <div className={styles.header}>
         <h2 id="connectivity-heading" className={styles.title}>
           Connectivity
@@ -159,6 +159,6 @@ export function ConnectivitySection() {
       {state.checkedAt && (
         <p className={styles.checkedAt}>Last checked {new Date(state.checkedAt).toLocaleTimeString()}</p>
       )}
-    </Card>
+    </section>
   );
 }

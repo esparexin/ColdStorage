@@ -52,8 +52,30 @@ workflows.
 | 23 | GR Number business-key SSOT | `grnNumber` is the sole business key: `inwardReceiptNumber`/`bondNumber` may not appear in a GRN search clause (`$or`/regex), and no BND- number may be minted per receipt (`generateBondNumber` is gone) |
 | 24 | Compact action overrides | no `.actionBtn` competing override of DS `Button size=sm` in feature CSS |
 | 25 | Token typography/spacing | no hardcoded `font-size:11px/10px`, `gap/margin/padding px`, hex fallbacks, `!important` compact overrides, or non-existent tokens (`surface-3`, `danger-border`, `space-2-5`) in screen UI; fill-vs-text roles (`*-text` for text) must be respected. Print template `renderPassbookHtml.ts` and the intentional `StatCard` 1px hairline are the only sanctioned exceptions |
+| 26 | Undefined design tokens | no references to non-existent tokens: `--text-md` (use `--text-base`), unindexed `--color-surface` (use `--color-surface-1` or `-2`), `--color-border-subtle` (use `--color-border`), and `--color-surface-hover` (use `--color-surface-2`) |
+| 27 | Single bordered surface SSOT | `DataTable` provides its own bordered container; wrapping `DataTable` inside `Card` is prohibited to prevent double-border defects |
+| 28 | Screen table SSOT | interactive screen tables must consume the canonical `DataTable` primitive; raw `<table>` implementations in feature screens are strictly prohibited (zero baseline exceptions) |
+| 29 | Shared button primitive SSOT | UI primitives and feature feedback states must consume the canonical `Button` primitive rather than raw `<button>` elements |
 
-## 4. `scripts/check-accessibility.sh` — accessibility
+## 4. Responsive Viewport Verification Matrix
+
+All frontend screens and shared layouts are verified against zero horizontal overflow, zero control overlap, and complete touch/keyboard accessibility across the canonical viewport matrix:
+
+| Width | Category | Representative Devices | Zero-Overlap Verification Criteria |
+|---|---|---|---|
+| **320px** | Narrow Mobile | iPhone SE (1st gen), small Androids | Shell collapses to mobile drawer; headers and filters wrap; no document horizontal overflow |
+| **360px** | Standard Mobile | Galaxy S-series, standard Androids | Tables scroll within container only; action buttons remain accessible (min 32px touch target) |
+| **375px** | Compact Mobile | iPhone SE (2nd/3rd gen), iPhone 8/X | Global search accessible via mobile trigger modal; forms stack without input horizontal spill |
+| **390px** | Modern Mobile | iPhone 12 / 13 / 14 / 15 | Touch targets meet minimum 44px for primary actions; modals fit within viewport |
+| **430px** | Large Mobile | iPhone Pro Max, Galaxy Ultra | Clean single-column form stacking; sticky headers stay within viewport bounds |
+| **768px** | Tablet Portrait | iPad Mini, standard 768p tablets | Collapsed/compact sidebar drawer; multi-column forms adapt to 2/3 columns; tables fit |
+| **820px** | Tablet Mid | iPad Air (10.9-inch) | Transition breakpoint: drawer collapses cleanly; content recalculates available width |
+| **1024px** | Tablet Landscape / Desktop | iPad Pro 11-inch, small laptops | Permanent 216px sidebar; full filter toolbar in-line; all table columns visible or scrollable |
+| **1280px** | Standard Desktop | 13-inch MacBooks, 720p monitors | Full-width data layouts without arbitrary horizontal measure caps; body text at 14px/1.5lh |
+| **1440px** | Wide Desktop | 14/16-inch MacBooks, 1080p monitors | Page root claims full width between sidebar (216px) and shell gutters; inward form fits |
+| **1920px** | Full HD Desktop | 1080p monitors, 4K at 200% scaling | Data screens claim full width with zero empty gutters; modals centered and focus-trapped |
+
+## 5. `scripts/check-accessibility.sh` — accessibility
 
 - Every `<input>`, `<select>` and `<textarea>` must have an accessible name, satisfied by
   `aria-label`, `aria-labelledby`, an `id` referenced by a `<label htmlFor=...>`, or an

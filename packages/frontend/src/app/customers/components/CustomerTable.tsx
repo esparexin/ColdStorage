@@ -51,7 +51,10 @@ export function CustomerTable({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onEdit(row)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(row);
+                }}
                 title="Edit customer details"
                 aria-label={`Edit customer ${row.name}`}
                 leftIcon={<Edit2 size={13} aria-hidden="true" />}
@@ -72,6 +75,7 @@ export function CustomerTable({
       rowKey={(row) => row.id}
       pagination={{ page, pageSize, totalPages, totalRecords: totalCustomers, onPageChange }}
       caption="Registered customer directory"
+      onRowClick={canManage ? onEdit : undefined}
     />
   );
 }

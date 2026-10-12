@@ -15,7 +15,6 @@ import {
 } from './grnTabPersistence.helper';
 
 export type { GrnStatusTab };
-export { VALID_GRN_TABS, resolveInitialGrnTab };
 
 export const GRN_PAGE_SIZE = 20;
 

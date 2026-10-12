@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import type { Grn } from '@cold-storage/contracts';
-import { Badge, Input, Select } from '@/components/ui';
+import { Badge, DataTable, Input, Select } from '@/components/ui';
 import styles from './InternalMovementModal.module.css';
 
 interface InternalMovementMergeTabProps {
@@ -106,60 +106,78 @@ export function InternalMovementMergeTab({
           </span>
         </div>
 
-        <div className={styles.tableContainer}>
-          <table className={styles.compactTable}>
-            <thead>
-              <tr>
-                <th className={styles.checkboxCell}>Sel</th>
-                <th>GRN & Date</th>
-                <th>Customer</th>
-                <th>Commodity & Chamber</th>
-                <th style={{ textAlign: 'right' }}>Available Bags</th>
-                <th style={{ textAlign: 'right' }}>Rent</th>
-                <th style={{ textAlign: 'center' }}>Loan</th>
-              </tr>
-            </thead>
-            <tbody>
-              {eligibleSources.length === 0 ? (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: 'var(--space-3)' }}>
-                    No other open eligible GRNs found in this facility.
-                  </td>
-                </tr>
-              ) : (
-                eligibleSources.map((sg) => {
-                  const isSelected = selectedSourceIds.includes(sg.id);
-                  const count = sg.closingBags ?? sg.bags;
-                  return (
-                    <tr key={sg.id} className={styles.tableRow} data-selected={isSelected} onClick={() => !submitting && toggleSource(sg.id)}>
-                      <td className={styles.checkboxCell}>
-                        <input
-                          id={`select-source-${sg.id}`}
-                          aria-label={`Select GRN ${sg.grnNumber}`}
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSource(sg.id)}
-                          disabled={submitting}
-                        />
-                      </td>
-                      <td>
-                        <strong>{sg.grnNumber}</strong>
-                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>{new Date(sg.date).toLocaleDateString('en-IN')}</div>
-                      </td>
-                      <td>{sg.customerName}</td>
-                      <td>{sg.commodityName} (Ch. {sg.chamber})</td>
-                      <td style={{ textAlign: 'right', fontWeight: 'var(--font-semibold)' }}>{count}</td>
-                      <td style={{ textAlign: 'right' }}>{sg.rentAmount != null ? `₹${sg.rentAmount.toLocaleString('en-IN')}` : '—'}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <Badge variant={sg.loanStatus === 'CLEARED' ? 'success' : 'neutral'}>{sg.loanStatus === 'CLEARED' ? 'Cleared' : 'None'}</Badge>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={[
+            {
+              key: 'select',
+              header: 'Sel',
+              render: (sg) => (
+                <input
+                  id={`select-source-${sg.id}`}
+                  aria-label={`Select GRN ${sg.grnNumber}`}
+                  type="checkbox"
+                  checked={selectedSourceIds.includes(sg.id)}
+                  onChange={() => toggleSource(sg.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  disabled={submitting}
+                />
+              ),
+            },
+            {
+              key: 'grnNumber',
+              header: 'GRN & Date',
+              render: (sg) => (
+                <div>
+                  <strong>{sg.grnNumber}</strong>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                    {new Date(sg.date).toLocaleDateString('en-IN')}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: 'customerName',
+              header: 'Customer',
+              render: (sg) => sg.customerName,
+            },
+            {
+              key: 'commodity',
+              header: 'Commodity & Chamber',
+              render: (sg) => `${sg.commodityName} (Ch. ${sg.chamber})`,
+            },
+            {
+              key: 'availableBags',
+              header: 'Available Bags',
+              align: 'right',
+              render: (sg) => (
+                <span style={{ fontWeight: 'var(--font-semibold)' }}>
+                  {sg.closingBags ?? sg.bags}
+                </span>
+              ),
+            },
+            {
+              key: 'rent',
+              header: 'Rent',
+              align: 'right',
+              render: (sg) => (sg.rentAmount != null ? `₹${sg.rentAmount.toLocaleString('en-IN')}` : '—'),
+            },
+            {
+              key: 'loan',
+              header: 'Loan',
+              align: 'center',
+              render: (sg) => (
+                <Badge variant={sg.loanStatus === 'CLEARED' ? 'success' : 'neutral'}>
+                  {sg.loanStatus === 'CLEARED' ? 'Cleared' : 'None'}
+                </Badge>
+              ),
+            },
+          ]}
+          rows={eligibleSources}
+          rowKey={(sg) => sg.id}
+          caption="Source GRNs to Merge"
+          emptyMessage="No other open eligible GRNs found in this facility."
+          onRowClick={!submitting ? (sg) => toggleSource(sg.id) : undefined}
+        />
       </div>
 
       {/* Review & Audit Bottom Section */}

@@ -33,7 +33,7 @@ jobs:
         env:
           HEAD_REF: ${{ github.head_ref }}
         run: |
-          if [ -n "$HEAD_REF" ]; then
+          if [ -n "$HEAD_REF" ] && [[ "$HEAD_REF" =~ ^audit/ ]]; then
             if git diff --name-only origin/main...HEAD | grep -q "^packages/frontend/"; then
               echo "::error::Backend audit branch must not touch packages/frontend/"
               exit 1

@@ -43,9 +43,12 @@ if grep -rn --include="*.ts" "from '../../grn/" "$ROOT/packages/backend/src/modu
   fail "Rent module has unauthorized internal imports from grn module."
 fi
 
-# Frontend preservation: backend phases must never touch frontend.
-if git -C "$ROOT" diff --name-only origin/main...HEAD 2>/dev/null | grep -q "^packages/frontend/"; then
-  fail "Frontend files changed on backend audit branch (backend-only rule)."
+# Frontend preservation: backend audit phases must never touch frontend.
+CURRENT_BRANCH="${GITHUB_HEAD_REF:-$(git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")}"
+if [[ "$CURRENT_BRANCH" =~ ^audit/ ]]; then
+  if git -C "$ROOT" diff --name-only origin/main...HEAD 2>/dev/null | grep -q "^packages/frontend/"; then
+    fail "Frontend files changed on backend audit branch (backend-only rule)."
+  fi
 fi
 
 if [ "$EXIT" -eq 0 ]; then

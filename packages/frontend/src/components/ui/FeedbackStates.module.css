@@ -53,18 +53,3 @@
   color: var(--color-text-secondary);
   max-width: 360px;
 }
-
-.retryBtn {
-  margin-top: var(--space-1);
-  padding: var(--space-2) var(--space-4);
-  background: var(--color-primary);
-  color: var(--color-text-on-accent);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  transition: background var(--transition-fast);
-}
-
-.retryBtn:hover {
-  background: var(--color-primary-hover);
-}

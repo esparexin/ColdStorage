@@ -177,7 +177,7 @@ export function GroupDetailModal({
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 'var(--font-semibold)' }}>
+            <h3 style={{ margin: 0, fontSize: 'var(--text-base)', fontWeight: 'var(--font-semibold)' }}>
               Member Goods Receipt Notes
             </h3>
             {group.customerName && (

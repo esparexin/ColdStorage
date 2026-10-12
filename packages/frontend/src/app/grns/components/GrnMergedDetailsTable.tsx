@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import type { Grn } from '@cold-storage/contracts';
-import { Badge } from '@/components/ui';
+import { Badge, DataTable, type DataTableColumn } from '@/components/ui';
 import styles from './GrnMergedDetailsTable.module.css';
 
 interface GrnMergedDetailsTableProps {
@@ -26,6 +26,70 @@ interface MergeTableRow {
   sbDetail: string;
   reason: string;
 }
+
+const columns: DataTableColumn<MergeTableRow>[] = [
+  {
+    key: 'typeDate',
+    header: 'Type & Date',
+    render: (row) => (
+      <div>
+        <Badge variant={row.badgeVariant}>{row.badgeLabel}</Badge>
+        <span className={styles.subText}>{row.date}</span>
+      </div>
+    ),
+  },
+  {
+    key: 'grnRef',
+    header: 'GRN # / Ref',
+    render: (row) => (
+      <div>
+        <span className={`${styles.primaryText} ${styles.tabularNum}`}>{row.grnLabel}</span>
+        <span className={styles.subText}>{row.refSub}</span>
+      </div>
+    ),
+  },
+  {
+    key: 'party',
+    header: 'Party & Mark',
+    render: (row) => (
+      <div>
+        <span className={styles.primaryText}>{row.partyName}</span>
+        <span className={styles.subText}>{row.partyMark}</span>
+      </div>
+    ),
+  },
+  {
+    key: 'commodity',
+    header: 'Commodity',
+    render: (row) => <span>{row.commodity}</span>,
+  },
+  {
+    key: 'location',
+    header: 'Location',
+    render: (row) => (
+      <div>
+        <span className={styles.primaryText}>{row.chamber}</span>
+        <span className={styles.subText}>{row.storageMark}</span>
+      </div>
+    ),
+  },
+  {
+    key: 'sbDetail',
+    header: 'S & B Details',
+    align: 'right',
+    render: (row) => (
+      <div style={{ textAlign: 'right' }}>
+        <span className={`${styles.primaryText} ${styles.tabularNum}`}>{row.totalBags}</span>
+        <span className={styles.subText}>{row.sbDetail}</span>
+      </div>
+    ),
+  },
+  {
+    key: 'reason',
+    header: 'Reason',
+    render: (row) => <span className={styles.reasonNote}>{row.reason}</span>,
+  },
+];
 
 export function GrnMergedDetailsTable({ currentGrn, allGrns = [] }: GrnMergedDetailsTableProps) {
   const rows = useMemo<MergeTableRow[]>(() => {
@@ -86,7 +150,7 @@ export function GrnMergedDetailsTable({ currentGrn, allGrns = [] }: GrnMergedDet
         partyMark: currentGrn.partyMark ? `PM: ${currentGrn.partyMark}` : 'PM: N/A',
         commodity: currentGrn.commodityName || 'N/A',
         chamber: currentGrn.chamber ? `Chamber: ${currentGrn.chamber}` : 'Chamber: N/A',
-        storageMark: currentGrn.storageMark ? `SM: ${currentGrn.storageMark}` : `SM: ${currentGrn.grnNumber}`,
+        storageMark: currentGrn.storageMark ? `SM: ${currentGrn.storageMark}` : `SM: ${currentGrn.storageMark || currentGrn.grnNumber}`,
         totalBags: `${currentGrn.bags.toLocaleString('en-IN')} bags`,
         sbDetail: `S: ${smallBags} • B: ${bigBags} (${bagType})`,
         reason: 'Merged into surviving target lot',
@@ -113,7 +177,7 @@ export function GrnMergedDetailsTable({ currentGrn, allGrns = [] }: GrnMergedDet
         partyMark: currentGrn.partyMark ? `PM: ${currentGrn.partyMark}` : 'PM: N/A',
         commodity: currentGrn.commodityName || 'N/A',
         chamber: currentGrn.chamber ? `Chamber: ${currentGrn.chamber}` : 'Chamber: N/A',
-        storageMark: currentGrn.storageMark ? `SM: ${currentGrn.storageMark}` : `SM: ${currentGrn.grnNumber}`,
+        storageMark: currentGrn.storageMark ? `SM: ${currentGrn.storageMark}` : `SM: ${currentGrn.storageMark || currentGrn.grnNumber}`,
         totalBags: `${currentGrn.bags.toLocaleString('en-IN')} bags`,
         sbDetail: `S: ${smallBags} • B: ${bigBags} (${bagType})`,
         reason: reason?.trim() || 'N/A',
@@ -130,53 +194,12 @@ export function GrnMergedDetailsTable({ currentGrn, allGrns = [] }: GrnMergedDet
       <div className={styles.sectionHeader}>
         <span className={styles.sectionTitle}>Internal Move & Merged Lot History</span>
       </div>
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th className={styles.th}>Type & Date</th>
-              <th className={styles.th}>GRN # / Ref</th>
-              <th className={styles.th}>Party & Mark</th>
-              <th className={styles.th}>Commodity</th>
-              <th className={styles.th}>Location</th>
-              <th className={`${styles.th} ${styles.thRight}`}>S & B Details</th>
-              <th className={styles.th}>Reason</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id} className={styles.tr}>
-                <td className={styles.td}>
-                  <Badge variant={row.badgeVariant}>{row.badgeLabel}</Badge>
-                  <span className={styles.subText}>{row.date}</span>
-                </td>
-                <td className={styles.td}>
-                  <span className={`${styles.primaryText} ${styles.tabularNum}`}>{row.grnLabel}</span>
-                  <span className={styles.subText}>{row.refSub}</span>
-                </td>
-                <td className={styles.td}>
-                  <span className={styles.primaryText}>{row.partyName}</span>
-                  <span className={styles.subText}>{row.partyMark}</span>
-                </td>
-                <td className={styles.td}>
-                  <span>{row.commodity}</span>
-                </td>
-                <td className={styles.td}>
-                  <span className={styles.primaryText}>{row.chamber}</span>
-                  <span className={styles.subText}>{row.storageMark}</span>
-                </td>
-                <td className={`${styles.td} ${styles.tdRight}`}>
-                  <span className={`${styles.primaryText} ${styles.tabularNum}`}>{row.totalBags}</span>
-                  <span className={styles.subText}>{row.sbDetail}</span>
-                </td>
-                <td className={styles.td}>
-                  <span className={styles.reasonNote}>{row.reason}</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={columns}
+        rows={rows}
+        rowKey={(row) => row.id}
+        caption="Internal Move & Merged Lot History"
+      />
     </div>
   );
 }

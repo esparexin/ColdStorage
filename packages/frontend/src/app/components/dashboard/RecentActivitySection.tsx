@@ -3,6 +3,7 @@
 import React from 'react';
 import type { RecentActivityItem } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { Badge, type BadgeVariant } from '@/components/ui/Badge';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { EMPTY_MESSAGES } from '@/components/ui/stateCopy';
 import styles from '@/app/page.module.css';
@@ -13,10 +14,10 @@ const activityTypeLabel: Record<string, string> = {
   DELIVERY_REVERSAL: 'Reversal',
 };
 
-const activityTypeAccent: Record<string, string> = {
-  INWARD_PUTAWAY: styles.typeInward,
-  OUTWARD_DELIVERY: styles.typeOutward,
-  DELIVERY_REVERSAL: styles.typeReversal,
+const activityTypeVariant: Record<string, BadgeVariant> = {
+  INWARD_PUTAWAY: 'success',
+  OUTWARD_DELIVERY: 'warning',
+  DELIVERY_REVERSAL: 'danger',
 };
 
 export function RecentActivitySection({ items }: { items: RecentActivityItem[] }) {
@@ -27,9 +28,9 @@ export function RecentActivitySection({ items }: { items: RecentActivityItem[] }
       key: 'type',
       header: 'Type',
       render: (row) => (
-        <span className={`${styles.typeBadge} ${activityTypeAccent[row.type] ?? ''}`}>
+        <Badge variant={activityTypeVariant[row.type] ?? 'neutral'}>
           {activityTypeLabel[row.type] ?? row.type}
-        </span>
+        </Badge>
       ),
     },
     {

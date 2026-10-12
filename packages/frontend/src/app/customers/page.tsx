@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { type Customer } from '@cold-storage/contracts';
-import { Button, FeedbackStates, SearchBar } from '@/components/ui';
+import { Button, FeedbackStates, FilterToolbar } from '@/components/ui';
 import {
   EMPTY_MESSAGES,
   ERROR_TITLES,
@@ -72,11 +72,13 @@ export default function CustomersPage() {
         )}
       </div>
 
-      <SearchBar
-        value={searchTerm}
-        onChange={setSearchTerm}
-        placeholder="Search by name…"
-        ariaLabel="Search customers"
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search by name…"
+        searchAriaLabel="Search customers"
+        onReset={() => setSearchTerm('')}
+        hasActiveFilters={Boolean(searchTerm)}
       />
 
       {loading ? (

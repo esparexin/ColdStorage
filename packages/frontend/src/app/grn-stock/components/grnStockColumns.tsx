@@ -111,7 +111,10 @@ export function createGrnStockColumns({
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => onOpenMovement(row)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenMovement(row);
+          }}
           title={`View GRN Stock Movement for ${row.grnNumber}`}
           aria-label={`View GRN Stock Movement for ${row.grnNumber}`}
           leftIcon={<Eye size={14} aria-hidden="true" />}

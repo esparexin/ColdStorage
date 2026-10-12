@@ -88,7 +88,7 @@ export function RolesSection({
     <section className={styles.tableSection} aria-label="Role configuration">
       <header className={styles.headerRow}>
         <div className={styles.titleArea}>
-          <h2 style={{ fontSize: 'var(--text-md)', margin: 0 }}>Configurable Roles</h2>
+          <h2 style={{ fontSize: 'var(--text-base)', margin: 0 }}>Configurable Roles</h2>
           <p className={styles.unauthorizedHint}>System roles are locked. Custom roles grant subsets of permissions.</p>
         </div>
       </header>

@@ -8,7 +8,11 @@ import { useFacility } from '@/context/FacilityContext';
 import { requestWithAuth } from '@/lib/api-client';
 import styles from './GlobalGrnSearch.module.css';
 
-export function GlobalGrnSearch() {
+export interface GlobalGrnSearchProps {
+  onSelect?: (grn: Grn) => void;
+}
+
+export function GlobalGrnSearch({ onSelect }: GlobalGrnSearchProps = {}) {
   const router = useRouter();
   const { selectedFacilityId } = useFacility();
   const [query, setQuery] = useState('');
@@ -77,6 +81,7 @@ export function GlobalGrnSearch() {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('select-grn', { detail: grn }));
     }
+    onSelect?.(grn);
     router.push(`/grns?selectedGrnId=${encodeURIComponent(grn.id)}`);
   };
 

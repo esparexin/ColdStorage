@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
-import { LogOut, Menu } from 'lucide-react';
-import { Select } from '@/components/ui';
+import React, { useState } from 'react';
+import { LogOut, Menu, Search } from 'lucide-react';
+import { Modal, Select } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { useSettings } from '@/context/SettingsContext';
@@ -19,6 +19,7 @@ export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHea
   const { user, logout } = useAuth();
   const { selectedFacilityId, setSelectedFacilityId, availableFacilities } = useFacility();
   const { settings } = useSettings();
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
   // No synthetic fallback: when the facility list fails to load the selector hides
   // and pages render their own error/empty states from FacilityContext.facilitiesError.
@@ -43,6 +44,15 @@ export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHea
             <Menu size={22} aria-hidden="true" />
           </button>
         )}
+        <button
+          type="button"
+          id="mobile-search-toggle"
+          className={styles.searchTrigger}
+          onClick={() => setIsMobileSearchOpen(true)}
+          aria-label="Open global search"
+        >
+          <Search size={18} aria-hidden="true" />
+        </button>
         {logoAssetId ? (
           <div className={styles.brand}>
             <img
@@ -100,6 +110,19 @@ export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHea
           <LogOut size={16} />
         </button>
       </div>
+
+      {isMobileSearchOpen && (
+        <Modal
+          isOpen
+          onClose={() => setIsMobileSearchOpen(false)}
+          title="Search GRNs"
+          size="md"
+        >
+          <div style={{ padding: 'var(--space-2) 0' }}>
+            <GlobalGrnSearch onSelect={() => setIsMobileSearchOpen(false)} />
+          </div>
+        </Modal>
+      )}
     </header>
   );
 }
