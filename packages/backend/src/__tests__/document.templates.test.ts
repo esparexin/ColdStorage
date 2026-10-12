@@ -229,15 +229,15 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(parsed).not.toHaveProperty('customerMobile');
   });
 
-  // 6. Print CSS & CSP compliance.
-  it('complies with print CSS rules, A4 page sizing, and same-origin logo resolution', () => {
+  // 6. Print CSS & CSP compliance (A6 105x148mm standard).
+  it('complies with print CSS rules, A6 page sizing, and same-origin logo resolution', () => {
     const html = renderGrnTemplate(makeGrnDto());
 
     expect(html).toContain('@media print');
-    expect(html).toContain('size: A4 portrait');
+    expect(html).toContain('size: 105mm 148mm portrait');
+    expect(html).toContain('margin: 6mm');
     expect(html).toContain('.no-print');
     expect(html).toContain('page-break-inside: avoid');
-
     expect(html).toContain('src="/api/assets/logo_ncc_01"');
     expect(html).not.toContain('http://');
     expect(html).not.toContain('https://');
