@@ -56,6 +56,7 @@ workflows.
 | 27 | Single bordered surface SSOT | `DataTable` provides its own bordered container; wrapping `DataTable` inside `Card` is prohibited to prevent double-border defects |
 | 28 | Screen table SSOT | interactive screen tables must consume the canonical `DataTable` primitive; raw `<table>` implementations in feature screens are strictly prohibited (zero baseline exceptions) |
 | 29 | Shared button primitive SSOT | UI primitives and feature feedback states must consume the canonical `Button` primitive rather than raw `<button>` elements |
+| 30 | Document Print Paper Size SSOT | All document templates and print stylesheets must conform exclusively to A6 dimensions (105 × 148 mm in portrait or landscape); unintended A4, A5, or Letter page sizes are strictly prohibited |
 
 ## 4. Responsive Viewport Verification Matrix
 
