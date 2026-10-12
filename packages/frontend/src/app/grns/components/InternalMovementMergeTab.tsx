@@ -64,7 +64,7 @@ export function InternalMovementMergeTab({
 
   const isRepackRequired = repackMode || hasUnconfirmedMix;
   const repackedSum = (typeof repackSmall === 'number' ? repackSmall : 0) + (typeof repackBig === 'number' ? repackBig : 0);
-  const isRepackFilled = typeof repackSmall === 'number' && typeof repackBig === 'number';
+  const isRepackFilled = typeof repackSmall === 'number' && typeof repackBig === 'number' && Number.isInteger(repackSmall) && Number.isInteger(repackBig);
   const isRepackReconciled = isRepackFilled && repackedSum === totalSourceBags;
 
   const toggleSource = (id: string) => {
@@ -93,8 +93,11 @@ export function InternalMovementMergeTab({
       confSmall = repackSmall;
       confBig = repackBig;
     }
-    const refWeight = typeof referenceWeight === 'number' && referenceWeight > 0 ? referenceWeight : undefined;
-    const srcPayment = typeof sourcePaymentAmount === 'number' && sourcePaymentAmount >= 0 ? sourcePaymentAmount : undefined;
+    const refWeight = typeof referenceWeight === 'number' && Number.isFinite(referenceWeight) && referenceWeight > 0 ? referenceWeight : undefined;
+    const srcPayment = typeof sourcePaymentAmount === 'number' && Number.isFinite(sourcePaymentAmount) && sourcePaymentAmount >= 0 ? sourcePaymentAmount : undefined;
+    if (srcPayment != null && srcPayment > 0 && selectedSourceIds.length > 1) {
+      return setValidationError('Previous-season settlement can only be collected when merging a single source GRN. Merge one source at a time when collecting payment.');
+    }
 
     await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0, confSmall, confBig, refWeight, srcPayment, sourcePaymentMode);
   };
@@ -102,7 +105,7 @@ export function InternalMovementMergeTab({
   return (
     <form id="merge-grn-form" onSubmit={handleMergeSubmit} className={styles.modalContent}>
       {validationError && (
-        <div className={styles.noticeBox} style={{ color: 'var(--color-danger-text)', borderColor: 'var(--color-danger)' }}>
+        <div role="alert" className={styles.noticeBox} style={{ color: 'var(--color-danger-text)', borderColor: 'var(--color-danger)' }}>
           {validationError}
         </div>
       )}
@@ -163,8 +166,8 @@ export function InternalMovementMergeTab({
             {(repackMode || hasUnconfirmedMix) && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                 <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
-                  <Input id="repack-small" type="number" min={0} max={totalSourceBags} placeholder="Small Bags" value={repackSmall} onChange={(e) => setRepackSmall(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
-                  <Input id="repack-big" type="number" min={0} max={totalSourceBags} placeholder="Big Bags" value={repackBig} onChange={(e) => setRepackBig(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
+                  <Input id="repack-small" type="number" min={0} max={totalSourceBags} placeholder="Small Bags" aria-label="Repacked small bags" value={repackSmall} onChange={(e) => setRepackSmall(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
+                  <Input id="repack-big" type="number" min={0} max={totalSourceBags} placeholder="Big Bags" aria-label="Repacked big bags" value={repackBig} onChange={(e) => setRepackBig(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', padding: '2px 0' }}>
                   <span>Final Total: <strong>{repackedSum}</strong> / {totalSourceBags} bags</span>
@@ -176,7 +179,7 @@ export function InternalMovementMergeTab({
                     </span>
                   )}
                 </div>
-                <Input id="reference-weight" type="number" min={0} placeholder="Total Reference Weight (kg) — Optional reference" value={referenceWeight} onChange={(e) => setReferenceWeight(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
+                <Input id="reference-weight" type="number" min={0} placeholder="Total Reference Weight (kg) — Optional reference" aria-label="Total reference weight in kilograms (optional)" value={referenceWeight} onChange={(e) => setReferenceWeight(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
               </div>
             )}
           </div>
@@ -187,8 +190,8 @@ export function InternalMovementMergeTab({
                 Previous Season Settlement (₹0 or Partial Allowed)
               </div>
               <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
-                <Input id="source-payment" type="number" min={0} placeholder="Payment Received (₹)" value={sourcePaymentAmount} onChange={(e) => setSourcePaymentAmount(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
-                <Select id="source-pay-mode" value={sourcePaymentMode} onChange={(e) => setSourcePaymentMode(e.target.value as PaymentMode)} disabled={submitting}>
+                <Input id="source-payment" type="number" min={0} placeholder="Payment Received (₹)" aria-label="Previous season payment received in rupees" value={sourcePaymentAmount} onChange={(e) => setSourcePaymentAmount(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
+                <Select id="source-pay-mode" aria-label="Payment mode" value={sourcePaymentMode} onChange={(e) => setSourcePaymentMode(e.target.value as PaymentMode)} disabled={submitting}>
                   <option value="Cash">Cash</option>
                   <option value="UPI">UPI</option>
                 </Select>
@@ -213,7 +216,7 @@ export function InternalMovementMergeTab({
             <textarea id="merge-remarks" aria-label="Additional Remarks" rows={2} className={styles.textarea} placeholder="Notes for ledger history..." value={remarks} onChange={(e) => setRemarks(e.target.value)} disabled={submitting} />
           </div>
           <div className={styles.noticeBox} style={{ marginTop: 'auto' }}>
-            Stock completion $\neq$ Financial settlement. Original financial obligations, payments, and balances are preserved.
+            Stock completion ≠ Financial settlement. Original financial obligations, payments, and balances are preserved.
           </div>
         </div>
       </div>

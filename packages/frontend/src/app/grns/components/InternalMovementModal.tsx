@@ -41,6 +41,8 @@ export function InternalMovementModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const handleRequestClose = () => { if (!submitting) onClose(); };
+
   const formatApiError = (data: ApiErrorResponse, fallback: string): string => {
     if (data.details?.fieldErrors && Object.keys(data.details.fieldErrors).length > 0) {
       const fieldEntries = Object.entries(data.details.fieldErrors).map(
@@ -67,6 +69,7 @@ export function InternalMovementModal({
     sourcePaymentAmount?: number,
     sourcePaymentMode?: import('@cold-storage/contracts').PaymentMode,
   ) => {
+    if (submitting) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -148,7 +151,7 @@ export function InternalMovementModal({
   return (
     <Modal
       isOpen
-      onClose={onClose}
+      onClose={handleRequestClose}
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           <ArrowRightLeft size={18} aria-hidden="true" />
@@ -159,7 +162,7 @@ export function InternalMovementModal({
       size="xl"
       footer={
         <div className={styles.modalFooter}>
-          <Button variant="outline" size="sm" onClick={onClose} disabled={submitting}>
+          <Button variant="outline" size="sm" onClick={handleRequestClose} disabled={submitting}>
             Cancel
           </Button>
           {activeTab === 'merge' ? (
