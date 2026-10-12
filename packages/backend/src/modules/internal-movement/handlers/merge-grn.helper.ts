@@ -108,7 +108,7 @@ export async function closeSourceGrnOnMerge(params: CloseSourceGrnParams): Promi
         smallQuantity: ledgerBalance.smallBags,
         bigQuantity: ledgerBalance.bigBags,
         referenceType: 'DELIVERY',
-        referenceId: movementId,
+        referenceId: `${movementId}-${sourceGrn.id}`,
         notes: `Merged into GRN ${targetGrnNumber}: ${remarks.trim()}`,
         createdBy: userId,
         createdAt: movementDate,

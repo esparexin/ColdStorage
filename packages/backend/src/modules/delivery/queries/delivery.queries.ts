@@ -2,7 +2,6 @@ import type { DeliveryChallan, DeliveryQuery, DeliverySummary } from '@cold-stor
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { readLedgerBalance, readLedgerBalanceMany, readLedgerNetDelivered } from '../../inventory/ledger-balance.js';
-import { rentService } from '../../rent/rent.service.js';
 import { toChallanEntity } from '../delivery.mappers.js';
 
 export async function getDeliveryById(
@@ -35,15 +34,19 @@ export async function listDeliveries(
   ]);
 
   const grnIds = Array.from(new Set(docs.map((d) => d.grnId)));
-  const [grnDocs, balanceMap, rentSummaries] = await Promise.all([
+  // Batched rent summaries fix N+1 (F10) and lazy import breaks the
+  // delivery->rent static cycle; rentService is loaded only on this path.
+  const { rentService } = await import('../../rent/rent.service.js');
+  const [grnDocs, balanceMap, allRentSummaries] = await Promise.all([
     GrnModel.find({ id: { $in: grnIds }, facilityId }).lean().exec(),
     readLedgerBalanceMany(facilityId, grnIds),
-    Promise.all(grnIds.map((id) => rentService.getRentSummary(facilityId, id).catch(() => null))),
+    rentService.getRentSummariesForFacility(facilityId).catch(() => []),
   ]);
+  const wanted = new Set(grnIds);
 
   const grnMap = new Map(grnDocs.map((g) => [g.id, g]));
   const rentMap = new Map(
-    rentSummaries.filter(Boolean).map((r) => [r!.grnId, r!]),
+    (allRentSummaries ?? []).filter((r) => wanted.has(r.grnId)).map((r) => [r.grnId, r]),
   );
 
   return {

@@ -1,5 +1,6 @@
 /**
- * One-off pre-launch reset: remove specifically identified orphaned GRN(s) and their payments.
+ * One-off pre-launch reset (F24, legacy): remove specifically identified orphaned GRN(s).
+ * Do not extend; kept for audit trail only. Requires reviewed migration + recovery plan.
  *
  * An orphaned GRN is a receipt that predates the inward ledger leg: it has no inventory
  * transactions, no delivery challans and no delivery reversals referencing it. Once the ledger

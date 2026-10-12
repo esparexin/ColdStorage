@@ -132,8 +132,24 @@ export class AuthService {
     }
     const newRefreshToken = generateOpaqueToken(32);
     s = Date.now();
-    await this.sessionRepo.rotateSession(currentRefreshToken, newRefreshToken, config.refreshTokenExpiryDays);
+    const rotated = await this.sessionRepo.rotateSession(
+      currentRefreshToken,
+      newRefreshToken,
+      config.refreshTokenExpiryDays,
+    );
     const rotateMs = Date.now() - s;
+    if (!rotated) {
+      await auditService.log({
+        eventType: 'AUTH_LOGIN_FAILED',
+        severity: 'SECURITY',
+        userId: user.id,
+        username: user.username,
+        userRole: user.role,
+        resource: 'auth',
+        details: { reason: 'REFRESH_TOKEN_REUSE_OR_RACE' },
+      });
+      throw new Error('Invalid, expired, or revoked refresh token');
+    }
 
     const permissions = await resolveUserPermissions(user);
     const accessToken = mintAccessToken(user, permissions);

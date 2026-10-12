@@ -41,7 +41,12 @@ const upload = multer({
 });
 
 const uploadSingleCsv = (req: Request, res: Response, next: NextFunction): void => {
-  upload.single('file')(req, res, (err: unknown) => {
+  const handler = upload.single('file') as unknown as (
+    req: Request,
+    res: Response,
+    next: (err?: unknown) => void,
+  ) => void;
+  handler(req, res, (err: unknown) => {
     if (err) {
       if (err instanceof multer.MulterError) {
         const error = err.code === 'LIMIT_FILE_SIZE'

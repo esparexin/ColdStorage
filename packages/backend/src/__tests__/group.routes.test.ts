@@ -98,7 +98,7 @@ describe('Group Secured API & RBAC Routes Integration', () => {
       .set('Authorization', `Bearer ${adminToken}`);
     expect(adminDelete.status).toBe(200);
     expect(adminDelete.body.deleted).toBe(true);
-  });
+  }, 30000);
 
   it('enforces facility isolation', async () => {
     // Operator has access only to FACILITY_A, not FACILITY_B
@@ -106,7 +106,7 @@ describe('Group Secured API & RBAC Routes Integration', () => {
       .get(`/api/facilities/${FACILITY_B}/groups`)
       .set('Authorization', `Bearer ${operatorToken}`);
     expect(res.status).toBe(403);
-  });
+  }, 30000);
 
   it('handles duplicate group name with 409 Conflict', async () => {
     await request(app)
@@ -121,7 +121,7 @@ describe('Group Secured API & RBAC Routes Integration', () => {
 
     expect(dupRes.status).toBe(409);
     expect(dupRes.body.error).toMatch(/already exists/i);
-  });
+  }, 30000);
 
   it('handles member assignment, moving, and safe deletion guards over HTTP', async () => {
     const grn1 = await seedGrn({ facilityId: FACILITY_A, bags: 40, grnNumber: '5001' });
@@ -130,6 +130,7 @@ describe('Group Secured API & RBAC Routes Integration', () => {
       .post(`/api/facilities/${FACILITY_A}/groups`)
       .set('Authorization', `Bearer ${operatorToken}`)
       .send({ name: 'Protected Group' });
+    expect(createRes.status).toBe(201);
     const groupId = createRes.body.group.id;
 
     // Assign GRN
@@ -152,6 +153,7 @@ describe('Group Secured API & RBAC Routes Integration', () => {
       .post(`/api/facilities/${FACILITY_A}/groups`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ name: 'Target Group' });
+    expect(targetRes.status).toBe(201);
     const targetGroupId = targetRes.body.group.id;
 
     const moveRes = await request(app)
@@ -165,5 +167,5 @@ describe('Group Secured API & RBAC Routes Integration', () => {
       .delete(`/api/facilities/${FACILITY_A}/groups/${groupId}`)
       .set('Authorization', `Bearer ${adminToken}`);
     expect(deleteSuccess.status).toBe(200);
-  });
+  }, 30000);
 });

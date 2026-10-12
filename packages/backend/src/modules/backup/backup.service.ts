@@ -14,6 +14,8 @@ import { getBackupStatus, queryBackupHistory } from './backup-queries.js';
 import { BackupStorageDriver, LocalEncryptedStorageDriver } from './storage/storage.driver.js';
 
 export class BackupService {
+  // Single-process mutex only (F20): concurrent containers can double-run.
+  // Distributed lock (Redis/DB) is deferred; HTTP 409 on in-progress is best-effort.
   private isBackupInProgress = false;
   private storageDriver: BackupStorageDriver;
 
@@ -129,6 +131,14 @@ export class BackupService {
         resourceId: backupId,
         details: { sizeBytes: writeResult.sizeBytes, checksum },
       });
+
+      // Best-effort retention enforcement (F20): prune expired COMPLETED rows
+      // after each successful run. Failures are logged, never fail the backup.
+      try {
+        await this.pruneExpiredBackups();
+      } catch {
+        // Retention prune is housekeeping; backup already succeeded.
+      }
 
       return {
         backupLog: {

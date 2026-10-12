@@ -180,6 +180,8 @@ export class DocumentService {
   /**
    * 4. Renders Rent Receipt Preview HTML document (Phase 9 preview boundary).
    * Generates ZERO payment records, modifies ZERO balances, allocates ZERO receipt numbers.
+   * Sample constants below (PREVIEW-RRCPT-0001, GRN-SAMPLE-0001, Potato/CH-01,
+   * 25000/10000) are intentional preview fixtures only, never persisted (F21).
    */
   public async renderRentReceiptPreview(
     facilityId: string,
