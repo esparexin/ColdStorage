@@ -68,6 +68,16 @@ if ! bash "$ROOT/scripts/check-backend-cycles.sh"; then
   fail "backend cycle/boundary constraint violated"
 fi
 
+# 9. Backup collector coverage (BKP-04, permanent). See docs/governance/exception-approvals.md.
+if ! bash "$ROOT/scripts/check-backup-coverage.sh"; then
+  fail "backup coverage constraint violated"
+fi
+
+# 10. DB connection governance (DB-01, permanent).
+if ! bash "$ROOT/scripts/check-db-connection-governance.sh"; then
+  fail "DB connection governance constraint violated"
+fi
+
 if [ "$EXIT" -eq 0 ]; then echo "hygiene: PASS"; else echo "hygiene: FAIL"; fi
 exit "$EXIT"
 

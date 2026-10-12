@@ -109,7 +109,13 @@ All frontend screens and shared layouts are verified against zero horizontal ove
 
 Wired into `scripts/hygiene-audit.sh` step 8 and `.github/workflows/backend-governance.yml`. Bypass requires `governance-bypass` label + written approval + 7-day follow-up (see `backend-audit-governance.md`).
 
-## 7. Tooling that is available but not yet gating
+## 7. `scripts/check-backup-coverage.sh` + `check-db-connection-governance.sh` (permanent)
+
+- Backup coverage (BKP-04): every business model file maps to `BACKUP_COLLECTOR_KEYS`; `backupType` enum in sync (contracts + mongoose). Approved exclusions: `Session` (ephemeral), `BackupLog` (recursive), `Role` (seed-managed).
+- DB connections (DB-01): no bare single-arg `mongoose.connect()` in `backend/src`; no raw `MongoClient` in `backend/src`; `assertSafeDatabaseTarget` in connection helper; DBA scripts use `connectToDatabase`.
+- Wired into `hygiene-audit.sh` steps 9–10. Exceptions in `exception-approvals.md` with owner/rationale/expiry.
+
+## 8. Tooling that is available but not yet gating
 
 - **Prettier** is configured in `.prettierrc` and installed, but there is no `format` script
   and it is not wired into CI. The repository has never been Prettier-formatted (174 files
