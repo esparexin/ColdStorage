@@ -1,4 +1,4 @@
-import { Schema, model, type Document } from 'mongoose';
+import mongoose, { Schema, type Document, type Model } from 'mongoose';
 import type { PermissionKey } from '@cold-storage/contracts';
 
 export interface IRoleDocument extends Document {
@@ -40,4 +40,5 @@ const roleSchema = new Schema<IRoleDocument>(
   },
 );
 
-export const RoleModel = model<IRoleDocument>('Role', roleSchema);
+export const RoleModel: Model<IRoleDocument> =
+  (mongoose.models.Role as Model<IRoleDocument>) || mongoose.model<IRoleDocument>('Role', roleSchema);

@@ -39,6 +39,7 @@ const MONITORED_MODELS: Array<{ name: string; model: Model<unknown> }> = [
   { name: 'DeliveryChallan', model: DeliveryChallanModel as unknown as Model<unknown> },
   { name: 'DeliveryReversal', model: DeliveryReversalModel as unknown as Model<unknown> },
   { name: 'Facility', model: FacilityModel as unknown as Model<unknown> },
+  // Display label 'GRN' maps to GrnModel/mongoose name 'Grn' (collection grns); kept for logs.
   { name: 'GRN', model: GrnModel as unknown as Model<unknown> },
   { name: 'Group', model: GroupModel as unknown as Model<unknown> },
   { name: 'InternalMovement', model: InternalMovementModel as unknown as Model<unknown> },

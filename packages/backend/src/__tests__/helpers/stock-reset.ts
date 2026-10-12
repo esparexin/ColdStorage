@@ -1,5 +1,10 @@
 import mongoose, { ConnectionStates } from 'mongoose';
-import { assertSafeDatabaseTarget } from '../../database/connection.js';
+import {
+  MONGO_CONNECT_TIMEOUT_MS,
+  MONGO_SERVER_SELECTION_TIMEOUT_MS,
+  MONGO_SOCKET_TIMEOUT_MS,
+  assertSafeDatabaseTarget,
+} from '../../database/connection.js';
 import { CommodityModel } from '../../database/models/commodity.model.js';
 import { CounterModel } from '../../database/models/counter.model.js';
 import { CustomerModel } from '../../database/models/customer.model.js';
@@ -85,7 +90,14 @@ export async function connectToTestDatabase(): Promise<void> {
     return;
   }
 
-  connectOnce ??= mongoose.connect(target).then(() => undefined);
+  connectOnce ??= mongoose
+    .connect(target, {
+      serverSelectionTimeoutMS: MONGO_SERVER_SELECTION_TIMEOUT_MS,
+      connectTimeoutMS: MONGO_CONNECT_TIMEOUT_MS,
+      socketTimeoutMS: MONGO_SOCKET_TIMEOUT_MS,
+      bufferCommands: false,
+    })
+    .then(() => undefined);
   try {
     await connectOnce;
   } finally {

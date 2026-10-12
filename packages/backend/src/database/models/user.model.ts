@@ -1,4 +1,4 @@
-import { Schema, model, type Document } from 'mongoose';
+import mongoose, { Schema, type Document, type Model } from 'mongoose';
 import type { Role, UserStatus } from '@cold-storage/contracts';
 
 export interface IUserDocument extends Document {
@@ -40,4 +40,5 @@ const userSchema = new Schema<IUserDocument>(
   },
 );
 
-export const UserModel = model<IUserDocument>('User', userSchema);
+export const UserModel: Model<IUserDocument> =
+  (mongoose.models.User as Model<IUserDocument>) || mongoose.model<IUserDocument>('User', userSchema);
