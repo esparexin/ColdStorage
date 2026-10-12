@@ -183,7 +183,7 @@ describe('Seasonal Merge, Rent Verification & Inline Settlement Tests', () => {
   it('Scenario C & D: Outward with inline payment collection retains balance and keeps GRN OPEN if rent remains', async () => {
     const grnId = await seedGrn({
       facilityId, customerId, customerName: 'Farmer Rama', commodityId, commodityName: 'Mirchi',
-      chamber: '1A', bags: 100, rentType: 'Seasonal', rentAmount: 7000, grnNumber: 'GRN-26-27-0204',
+      chamber: '1A', bags: 100, bagType: 'S+B', smallBags: 50, bigBags: 50, rentType: 'Seasonal', rentAmount: 7000, grnNumber: 'GRN-26-27-0204',
     });
 
     const res = await request(app)
