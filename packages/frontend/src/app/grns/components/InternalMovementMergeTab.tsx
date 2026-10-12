@@ -49,7 +49,6 @@ export function InternalMovementMergeTab({
   const eligibleSources = useMemo(() => openGrns.filter((g) => g.id !== targetGrnId && (g.closingBags ?? g.bags) > 0 && g.loanStatus !== 'TAKEN'), [openGrns, targetGrnId]);
   const selectedSources = useMemo(() => eligibleSources.filter((g) => selectedSourceIds.includes(g.id)), [eligibleSources, selectedSourceIds]);
   const totalSourceBags = useMemo(() => selectedSources.reduce((acc, g) => acc + (g.closingBags ?? g.bags), 0), [selectedSources]);
-  const totalSourceRent = useMemo(() => selectedSources.reduce((acc, g) => acc + (g.rentAmount ?? 0), 0), [selectedSources]);
   const targetCurrentRemaining = targetGrn.closingBags ?? targetGrn.bags;
   const targetNewRemaining = targetCurrentRemaining + totalSourceBags;
   const isTargetLoanHold = targetGrn.loanStatus === 'TAKEN';
@@ -67,7 +66,6 @@ export function InternalMovementMergeTab({
   const repackedSum = (typeof repackSmall === 'number' ? repackSmall : 0) + (typeof repackBig === 'number' ? repackBig : 0);
   const isRepackFilled = typeof repackSmall === 'number' && typeof repackBig === 'number';
   const isRepackReconciled = isRepackFilled && repackedSum === totalSourceBags;
-  const isRepackMismatch = isRepackRequired && totalSourceBags > 0 && (!isRepackFilled || repackedSum !== totalSourceBags);
 
   const toggleSource = (id: string) => {
     setSelectedSourceIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));

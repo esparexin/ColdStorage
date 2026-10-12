@@ -41,7 +41,7 @@ export function OutwardRentBreakdown({
   totalRent,
   pendingBalance,
   remainingStock,
-  totalStock,
+  totalStock: _totalStock,
   paymentAmount,
   paymentMode,
   onPaymentAmountChange,
