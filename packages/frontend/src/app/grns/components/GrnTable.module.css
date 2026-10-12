@@ -10,7 +10,7 @@
   all: unset;
   display: inline-flex;
   align-items: center;
-  font-size: var(--text-xs) !important;
+  font-size: var(--text-sm) !important;
   font-weight: var(--font-semibold) !important;
   font-variant-numeric: tabular-nums;
   color: var(--color-primary-text) !important;
@@ -42,13 +42,13 @@
 }
 
 .customerCell {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-primary);
 }
 
 .commodityName {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-primary);
 }
@@ -58,7 +58,6 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
-  font-size: var(--text-xs);
   line-height: 1.25;
 }
 
@@ -76,7 +75,7 @@
 }
 
 .balanceCell {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   font-variant-numeric: tabular-nums;
 }
