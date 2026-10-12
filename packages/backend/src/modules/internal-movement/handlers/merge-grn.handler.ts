@@ -11,6 +11,7 @@ import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
 import { resolveSourceRentObligation, closeSourceGrnOnMerge } from './merge-grn.helper.js';
+import { validateMergeRepackedCounts } from './merge-grn-validation.helper.js';
 
 export async function mergeGrn(
   facilityId: string,
@@ -103,16 +104,15 @@ export async function mergeGrn(
         sourceSummaries.push(summaryStr);
       }
 
-      if (input.repackedSmallBags != null && input.repackedBigBags != null) {
-        const repackedTotal = input.repackedSmallBags + input.repackedBigBags;
-        if (repackedTotal !== totalMovedBags) {
-          throw new Error(
-            `Confirmed repacked counts (${input.repackedSmallBags} small + ${input.repackedBigBags} big = ${repackedTotal}) must reconcile with total moved stock of ${totalMovedBags} bags`,
-          );
-        }
-        totalMovedSmall = input.repackedSmallBags;
-        totalMovedBig = input.repackedBigBags;
-      }
+      const { smallMoved, bigMoved } = validateMergeRepackedCounts({
+        targetGrn,
+        sourceGrns,
+        repackedSmallBags: input.repackedSmallBags,
+        repackedBigBags: input.repackedBigBags,
+        totalMovedBags,
+      });
+      totalMovedSmall = smallMoved;
+      totalMovedBig = bigMoved;
 
       await InventoryTransactionModel.create(
         [
@@ -149,7 +149,8 @@ export async function mergeGrn(
 
       const moveDateStr = moveDate.toISOString().split('T')[0];
       const repackedNote = input.repackedSmallBags != null ? ` (Repacked: ${totalMovedSmall} S + ${totalMovedBig} B)` : '';
-      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${totalMovedBags} bags${repackedNote} from ${sourceSummaries.join('; ')}. Carried pending rent: ₹${finalCarriedRent}. Reason: ${input.remarks.trim()}]`;
+      const carriedRentNote = finalCarriedRent > 0 ? `. Carried pending rent: ₹${finalCarriedRent}` : '';
+      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${totalMovedBags} bags${repackedNote} from ${sourceSummaries.join('; ')}${carriedRentNote}. Reason: ${input.remarks.trim()}]`;
       const updatedTargetRemarks = targetGrn.remarks ? `${targetGrn.remarks}\n${targetNote}` : targetNote;
 
       const updatedTarget = await GrnModel.findOneAndUpdate(

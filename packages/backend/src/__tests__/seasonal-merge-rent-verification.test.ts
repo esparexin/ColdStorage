@@ -119,6 +119,7 @@ describe('Seasonal Merge, Rent Verification & Inline Settlement Tests', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.targetGrn.bags).toBe(300);
+    expect(res.body.targetGrn.rentAmount).toBe(25000); // Target's own bill + carried pending rent = 25000
 
     const sourcePayments = await RentPaymentModel.find({ grnId: sourceGrnId }).sort({ createdAt: 1 });
     expect(sourcePayments.length).toBe(2);
@@ -128,6 +129,55 @@ describe('Seasonal Merge, Rent Verification & Inline Settlement Tests', () => {
     expect(updatedSource?.status).toBe('CLOSED');
     expect(updatedSource?.remarks).toContain('Paid ₹7000');
     expect(updatedSource?.remarks).toContain('Pending ₹5000');
+  });
+
+  it('rejects invalid small/big counts for 300-bag lot, accepts reconciled total, and rejects duplicate retry', async () => {
+    const targetId = await seedGrn({
+      facilityId, customerId, customerName: 'Farmer Rama', commodityId, commodityName: 'Mirchi',
+      chamber: '1A', bags: 100, rentType: 'Seasonal', rentAmount: 10000, grnNumber: 'GRN-26-27-0301',
+    });
+    const sourceId = await seedGrn({
+      facilityId, customerId, customerName: 'Farmer Rama', commodityId, commodityName: 'Mirchi',
+      chamber: '1B', bags: 300, rentType: 'Seasonal', rentAmount: 30000, grnNumber: 'GRN-26-27-0302',
+    });
+    // Configure differential rates on target
+    await GrnModel.updateOne({ id: targetId }, { $set: { smallBagPrice: 150, bigBagPrice: 210 } });
+
+    // 1. Rejects when counts exceed total (350 > 300)
+    const resOver = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ targetGrnId: targetId, sourceGrnIds: [sourceId], remarks: 'Reconcile test', repackedSmallBags: 350, repackedBigBags: 0 });
+    expect(resOver.status).toBe(400);
+    expect(resOver.body.error).toContain('can exceed total moved stock');
+
+    // 2. Rejects when counts do not sum to total (180 + 150 = 330 !== 300)
+    const resMismatch = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ targetGrnId: targetId, sourceGrnIds: [sourceId], remarks: 'Reconcile test', repackedSmallBags: 180, repackedBigBags: 150 });
+    expect(resMismatch.status).toBe(400);
+    expect(resMismatch.body.error).toContain('must reconcile with total moved stock of 300 bags');
+
+    // 3. Accepts reconciled counts (200 + 100 = 300)
+    const resOk = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ targetGrnId: targetId, sourceGrnIds: [sourceId], remarks: 'Reconcile test', repackedSmallBags: 200, repackedBigBags: 100 });
+    expect(resOk.status).toBe(200);
+    expect(resOk.body.targetGrn.bags).toBe(400); // 100 initial + 300 moved
+
+    // 4. Retrying the merge must be rejected and not duplicate stock
+    const resRetry = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ targetGrnId: targetId, sourceGrnIds: [sourceId], remarks: 'Retry merge', repackedSmallBags: 200, repackedBigBags: 100 });
+    expect(resRetry.status).toBe(400);
+    expect(resRetry.body.error).toContain('is already CLOSED');
+
+    // Destination bags remain exactly 400
+    const targetAfter = await GrnModel.findOne({ id: targetId }).lean();
+    expect(targetAfter?.bags).toBe(400);
   });
 
   it('Scenario C & D: Outward with inline payment collection retains balance and keeps GRN OPEN if rent remains', async () => {
@@ -142,8 +192,8 @@ describe('Seasonal Merge, Rent Verification & Inline Settlement Tests', () => {
       .send({
         grnId,
         smallBags: 50,
-        bigBags: 50, // Delivers all 100 bags (stock completion)
-        paymentAmount: 3000, // Partial payment of ₹3,000 on ₹7,000 total payable
+        bigBags: 50,
+        paymentAmount: 3000,
         paymentMode: 'Cash',
         paymentReference: 'Partial outward cash memo',
       });
@@ -152,7 +202,6 @@ describe('Seasonal Merge, Rent Verification & Inline Settlement Tests', () => {
     expect(res.body.delivery.totalBags).toBe(100);
 
     const grnAfterDelivery = await GrnModel.findOne({ id: grnId }).lean();
-    // Stock reached 0, but ₹4,000 rent remains unpaid: GRN status must remain OPEN
     expect(grnAfterDelivery?.status).toBe('OPEN');
 
     const payments = await RentPaymentModel.find({ grnId });
