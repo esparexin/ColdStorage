@@ -30,8 +30,6 @@ export interface AppConfig {
   cloudinaryUrl?: string;
   /** 64 hex characters. Required to run encrypted backups; absent means backups are unconfigured. */
   backupEncryptionKey?: string;
-  /** Testing-only allowance for historical transaction dates (up to 3 rolling years). */
-  allowHistoricalTestingDates?: boolean;
   /** Explicitly configured backup schedule. Disabled unless BACKUP_SCHEDULE_ENABLED=true. */
   backupScheduleEnabled?: boolean;
   /** Scheduler interval in ms. Minimum 60000. Defaults to 24h. */
@@ -96,7 +94,6 @@ export const config: AppConfig = {
   rateLimitMaxGeneral: Number(process.env.RATE_LIMIT_MAX_GENERAL) || 200,
   cloudinaryUrl: process.env.CLOUDINARY_URL,
   backupEncryptionKey: process.env.BACKUP_ENCRYPTION_KEY,
-  allowHistoricalTestingDates: process.env.ALLOW_HISTORICAL_TESTING_DATES === 'true',
   backupScheduleEnabled: process.env.BACKUP_SCHEDULE_ENABLED === 'true',
   backupScheduleIntervalMs: Number(process.env.BACKUP_SCHEDULE_INTERVAL_MS) || 24 * 60 * 60 * 1000,
   backupOffsiteProvider: process.env.BACKUP_OFFSITE_PROVIDER,

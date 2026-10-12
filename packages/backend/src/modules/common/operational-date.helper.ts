@@ -1,5 +1,4 @@
 import { getFinancialYearKey } from '@cold-storage/contracts';
-import { config } from '../../config.js';
 
 /**
  * Canonical operational date-window guardrails (P4/P6).
@@ -14,9 +13,10 @@ export const MAX_BACKDATE_DAYS = 30;
 export const MAX_HISTORICAL_TESTING_DAYS = 3 * 366; // 3-year rolling testing allowance
 
 export function isHistoricalTestingAllowed(): boolean {
-  if (typeof config.allowHistoricalTestingDates === 'boolean') {
-    return config.allowHistoricalTestingDates;
-  }
+  // Single source of truth is the live environment variable (DB-02): tests
+  // and operators mutate process.env at runtime, which a config snapshot
+  // taken at import time cannot observe. Per-call injection remains
+  // available via validateOperationalDate options.allowHistoricalTesting.
   return process.env.ALLOW_HISTORICAL_TESTING_DATES === 'true';
 }
 

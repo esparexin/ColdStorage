@@ -6,8 +6,8 @@
  * 0 (unconfigured), and optionally resets them.
  *
  * Dependencies: requires `mongodb` + `dotenv` resolvable from the invoking
- * workspace (not root deps; run via `npm run repair:monthly-rent -- --commit`
- * after `npm ci` in an env with them, or retire to docs/governance/retired/).
+ * environment (not root deps; run `node scripts/repair-monthly-rent.mjs`
+ * directly in an env with them, or retire to docs/governance/retired/).
  * Defaults to dry-run; --commit required for writes.
  *
  * Usage:
