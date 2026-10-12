@@ -148,7 +148,7 @@ describe('Phase 6: Storage Occupancy Audit & Reporting (storage-audit-report.tes
     expect(report.totalRecords).toBe(1);
 
     const item = report.items[0];
-    expect(item.season).toMatch(/\d{4}-\d{4}/);
+    expect(item.season).toMatch(/Season \d{4}/);
     expect(item.openingBags).toBe(100);
     expect(item.deliveredBags).toBe(100);
     expect(item.closingBags).toBe(0);

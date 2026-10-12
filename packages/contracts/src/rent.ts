@@ -183,10 +183,10 @@ export function calculateSeasonalOccupancy(input: SeasonalOccupancyCalculationIn
 
   if (!sStart || !sEnd) {
     const yr = inDate.getFullYear();
-    const startYear = inDate.getMonth() < 3 ? yr - 1 : yr;
-    sStart = sStart ?? new Date(startYear, 3, 1);
-    sEnd = sEnd ?? new Date(startYear + 1, 0, 31);
-    sName = sName ?? `Season ${startYear}-${startYear + 1}`;
+    const startYear = inDate.getMonth() < 2 ? yr - 1 : yr;
+    sStart = sStart ?? new Date(startYear, 2, 1);
+    sEnd = sEnd ?? new Date(startYear, 11, 31);
+    sName = sName ?? `Season ${startYear}`;
   }
 
   let netDelivered = 0;

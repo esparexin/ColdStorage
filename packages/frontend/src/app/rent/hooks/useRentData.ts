@@ -95,7 +95,7 @@ setRentSummaries(data.summaries ?? []);
     let totalOutstanding = 0;
 
     for (const acc of filteredAccounts) {
-      totalBilled += acc.rentAmount;
+      totalBilled += acc.totalDue ?? acc.rentAmount;
       totalCollected += acc.totalPaid;
       totalOutstanding += acc.remainingBalance;
     }

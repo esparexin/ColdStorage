@@ -197,4 +197,26 @@ describe('Phase 12: Rent Collection & Billing Contracts', () => {
     expect(summary.calculatedCharge).toBe(1500);
     expect(seasonalOccupancySummarySchema.safeParse(summary).success).toBe(true);
   });
+
+  it('8. derives default seasonal boundaries (March 1 to Dec 31) and seasonal year naming', () => {
+    const inwardDate = new Date('2026-03-15T00:00:00.000Z');
+    const summary = calculateSeasonalOccupancy({
+      grnId: 'grn-season-default',
+      facilityId: 'fac-alpha',
+      grnNumber: 'GRN-26-27-0100',
+      inwardDate,
+      totalBags: 200,
+      bagRate: 10,
+      movements: [],
+    });
+
+    expect(summary.seasonName).toBe('Season 2026');
+    expect(summary.seasonStart.getMonth()).toBe(2); // March
+    expect(summary.seasonStart.getDate()).toBe(1);
+    expect(summary.seasonEnd.getMonth()).toBe(11); // December
+    expect(summary.seasonEnd.getDate()).toBe(31);
+    expect(summary.calculatedCharge).toBe(2000);
+    expect(seasonalOccupancySummarySchema.safeParse(summary).success).toBe(true);
+  });
 });
+
