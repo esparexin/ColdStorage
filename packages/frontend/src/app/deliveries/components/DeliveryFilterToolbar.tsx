@@ -29,13 +29,14 @@ export function DeliveryFilterToolbar({
       selects={[
         {
           id: 'delivery-rent-status-filter',
-          ariaLabel: 'Filter by Rent Settlement Status',
+          ariaLabel: 'Filter by Rent Payment Status',
           value: rentStatusFilter,
           onChange: (v) => onRentStatusChange(v as DeliveryRentStatusFilter),
           options: [
             { value: '', label: 'All Rent Statuses' },
-            { value: 'SETTLED', label: 'Settled (Paid)' },
-            { value: 'PENDING', label: 'Pending Dues' },
+            { value: 'PENDING', label: 'Pending Payment' },
+            { value: 'PARTIAL', label: 'Partially Paid' },
+            { value: 'SETTLED', label: 'Settled' },
           ],
         },
       ]}

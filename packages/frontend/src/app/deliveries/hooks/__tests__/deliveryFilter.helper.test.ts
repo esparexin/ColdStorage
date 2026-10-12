@@ -55,12 +55,39 @@ describe('filterDeliveries', () => {
     marks: 'LOT-BLUE',
     rentPaymentStatus: 'Not Settled',
     rentRemainingBalance: 3000,
+    rentTotalPaid: 0,
   });
 
-  const all = [d1, d2];
+  const d3 = makeMockDelivery({
+    id: 'del-3',
+    challanNumber: 'CHL-0003',
+    grnNumber: '1003',
+    customerName: 'Naresh Verma',
+    commodityName: 'Chilli',
+    vehicleNumber: 'AP09CC3333',
+    marks: 'LOT-GREEN',
+    rentPaymentStatus: 'Not Settled',
+    rentRemainingBalance: 1500,
+    rentTotalPaid: 1500,
+  });
+
+  const d4ZeroPay = makeMockDelivery({
+    id: 'del-4',
+    challanNumber: 'CHL-0004',
+    grnNumber: '1004',
+    customerName: 'Mahesh Rao',
+    commodityName: 'Cotton',
+    vehicleNumber: 'TS10DD4444',
+    marks: 'LOT-YELLOW',
+    rentPaymentStatus: 'Not Settled',
+    rentRemainingBalance: 5000,
+    rentTotalPaid: 0,
+  });
+
+  const all = [d1, d2, d3, d4ZeroPay];
 
   it('returns all deliveries when search and filter are empty', () => {
-    expect(filterDeliveries(all, '', '')).toHaveLength(2);
+    expect(filterDeliveries(all, '', '')).toHaveLength(4);
   });
 
   it('filters by challan number substring', () => {
@@ -93,16 +120,22 @@ describe('filterDeliveries', () => {
     expect(res[0].id).toBe('del-2');
   });
 
-  it('filters by settled rent status', () => {
+  it('filters by settled rent status and excludes pending/partial records', () => {
     const res = filterDeliveries(all, '', 'SETTLED');
     expect(res).toHaveLength(1);
     expect(res[0].id).toBe('del-1');
   });
 
-  it('filters by pending rent status', () => {
+  it('filters by pending payment rent status (unpaid and zero payment with outstanding balance)', () => {
     const res = filterDeliveries(all, '', 'PENDING');
+    expect(res).toHaveLength(2);
+    expect(res.map((d) => d.id)).toEqual(['del-2', 'del-4']);
+  });
+
+  it('filters by partially paid rent status', () => {
+    const res = filterDeliveries(all, '', 'PARTIAL');
     expect(res).toHaveLength(1);
-    expect(res[0].id).toBe('del-2');
+    expect(res[0].id).toBe('del-3');
   });
 
   it('combines search and rent status filters', () => {
@@ -111,6 +144,10 @@ describe('filterDeliveries', () => {
 
     const res2 = filterDeliveries(all, 'ravi', 'PENDING');
     expect(res2).toHaveLength(0);
+
+    const res3 = filterDeliveries(all, 'naresh', 'PARTIAL');
+    expect(res3).toHaveLength(1);
+    expect(res3[0].id).toBe('del-3');
   });
 
   it('filters by statusTab ACTIVE (issued with remaining stock)', () => {

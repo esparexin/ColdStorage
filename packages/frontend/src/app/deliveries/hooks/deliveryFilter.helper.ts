@@ -2,7 +2,34 @@ import type { DeliveryChallan } from '@cold-storage/contracts';
 import type { DeliveryStatusTab } from './deliveryTabPersistence.helper';
 
 export type { DeliveryStatusTab };
-export type DeliveryRentStatusFilter = '' | 'SETTLED' | 'PENDING';
+export type DeliveryRentStatusFilter = '' | 'SETTLED' | 'PARTIAL' | 'PENDING';
+
+export function isDeliverySettled(d: DeliveryChallan): boolean {
+  if (d.rentPaymentStatus === 'Settled') return true;
+  if (
+    d.rentRemainingBalance !== undefined &&
+    d.rentRemainingBalance === 0 &&
+    (d.rentTotalAmount ?? 0) > 0
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function isDeliveryPartiallyPaid(d: DeliveryChallan): boolean {
+  if (isDeliverySettled(d)) return false;
+  const remaining = d.rentRemainingBalance ?? 0;
+  const paid = d.rentTotalPaid ?? 0;
+  return remaining > 0 && paid > 0;
+}
+
+export function isDeliveryPendingPayment(d: DeliveryChallan): boolean {
+  if (isDeliverySettled(d)) return false;
+  const remaining =
+    d.rentRemainingBalance ?? (d.rentPaymentStatus === 'Not Settled' ? d.rentCharge ?? 0 : 0);
+  const paid = d.rentTotalPaid ?? 0;
+  return remaining > 0 && paid === 0;
+}
 
 export function filterDeliveries(
   deliveries: DeliveryChallan[],
@@ -23,11 +50,11 @@ export function filterDeliveries(
   }
 
   if (rentStatusFilter === 'SETTLED') {
-    result = result.filter((d) => d.rentPaymentStatus === 'Settled');
+    result = result.filter(isDeliverySettled);
+  } else if (rentStatusFilter === 'PARTIAL') {
+    result = result.filter(isDeliveryPartiallyPaid);
   } else if (rentStatusFilter === 'PENDING') {
-    result = result.filter(
-      (d) => d.rentPaymentStatus !== 'Settled' || (d.rentRemainingBalance ?? 0) > 0,
-    );
+    result = result.filter(isDeliveryPendingPayment);
   }
 
   if (!searchTerm.trim()) return result;

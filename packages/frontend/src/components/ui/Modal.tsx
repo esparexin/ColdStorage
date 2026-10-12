@@ -18,6 +18,8 @@ export interface ModalProps {
   className?: string;
 }
 
+const activeModalStack: string[] = [];
+
 export function Modal({
   isOpen = true,
   onClose,
@@ -32,21 +34,49 @@ export function Modal({
   const modalRef = useRef<HTMLDivElement>(null);
   const titleId = React.useId();
   const subtitleId = React.useId();
+  const instanceId = React.useId();
 
-  // Handle Escape key
+  // Track active modal in stack
+  useEffect(() => {
+    if (!isOpen) return;
+    activeModalStack.push(instanceId);
+    return () => {
+      const idx = activeModalStack.lastIndexOf(instanceId);
+      if (idx !== -1) activeModalStack.splice(idx, 1);
+    };
+  }, [isOpen, instanceId]);
+
+  // Handle keyboard events (Escape dismiss for top-most modal; prevent Backspace outside inputs)
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        e.stopPropagation();
-        onClose();
+        const isTopModal = activeModalStack[activeModalStack.length - 1] === instanceId;
+        if (isTopModal) {
+          e.stopPropagation();
+          onClose();
+        }
+        return;
+      }
+
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        const target = e.target as HTMLElement | null;
+        const isEditable = Boolean(
+          target &&
+            (target.tagName === 'INPUT' ||
+              target.tagName === 'TEXTAREA' ||
+              target.isContentEditable),
+        );
+        if (!isEditable) {
+          e.preventDefault();
+        }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, instanceId, onClose]);
 
   // Trap focus
   useEffect(() => {
