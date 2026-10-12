@@ -5,50 +5,30 @@
   font-variant-numeric: tabular-nums;
 }
 
-.grnLink,
-.inwardLink {
-  all: unset;
-  display: inline-flex;
-  align-items: center;
-  font-size: var(--text-xs) !important;
-  font-weight: var(--font-semibold) !important;
+.grnLink {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
   font-variant-numeric: tabular-nums;
-  color: var(--color-primary-text) !important;
-  cursor: pointer;
-  text-decoration: underline;
-  text-decoration-color: transparent;
-  padding: 0 !important;
-  min-height: unset !important;
-  height: auto !important;
-  background: transparent !important;
-  border: none !important;
-  line-height: inherit !important;
-  transition: text-decoration-color var(--transition-fast), color var(--transition-fast);
+  color: var(--color-primary-text);
+  white-space: nowrap;
 }
 
-.grnLink:hover,
-.grnLink:focus-visible,
-.inwardLink:hover,
-.inwardLink:focus-visible {
-  text-decoration-color: var(--color-primary-text);
-  color: var(--color-primary-hover) !important;
-}
-
-.grnLink:focus-visible,
-.inwardLink:focus-visible {
-  outline: var(--focus-ring-width) solid var(--color-primary);
-  outline-offset: var(--focus-ring-offset);
-  border-radius: var(--radius-sm);
+.inwardLink {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  white-space: nowrap;
 }
 
 .customerCell {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-primary);
 }
 
 .commodityName {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-primary);
 }
@@ -58,7 +38,6 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
-  font-size: var(--text-xs);
   line-height: 1.25;
 }
 
@@ -76,7 +55,7 @@
 }
 
 .balanceCell {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   font-variant-numeric: tabular-nums;
 }

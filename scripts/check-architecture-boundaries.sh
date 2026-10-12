@@ -40,7 +40,7 @@ if [ -d "$ROOT/packages/frontend/src/app/storage" ]; then
 fi
 
 # 3. UI SSOT Enforcement: feature stylesheets must not define competing UI primitives
-FORBIDDEN_CLASSES=("\.modalBackdrop\b" "\.modalCard\b" "\.pageBtn\b" "\.paginationButtons\b" "\.searchBarContainer\b")
+FORBIDDEN_CLASSES=("\.modalBackdrop\b" "\.modalCard\b" "\.pageBtn\b" "\.paginationButtons\b" "\.searchBarContainer\b" "\.ledgerTable\b")
 for cls in "${FORBIDDEN_CLASSES[@]}"; do
   if grep -rnE "$cls" "$ROOT/packages/frontend/src/app" --include="*.module.css" 2>/dev/null; then
     fail "Feature CSS defines duplicate competing UI primitive: $cls"

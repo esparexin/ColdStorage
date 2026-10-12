@@ -68,7 +68,7 @@ export function RentTable({
       header: 'Commodity & Chamber',
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)' }}>
-          <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)' }}>
+          <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)' }}>
             {row.commodityName}
           </span>
           <span className={styles.tableSubtext}>
@@ -222,6 +222,7 @@ export function RentTable({
       columns={columns}
       rows={accounts}
       rowKey={(r) => r.grnId}
+      onRowClick={onOpenHistory}
       pagination={{ page, pageSize, totalPages, totalRecords: totalAccounts, onPageChange }}
     />
   );

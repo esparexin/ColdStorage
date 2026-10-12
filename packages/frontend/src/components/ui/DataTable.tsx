@@ -3,6 +3,7 @@
 import React from 'react';
 import { FeedbackStates } from './FeedbackStates';
 import { Pagination } from './Pagination';
+import { isInteractiveTarget, shouldTriggerRowClickOnKey } from './dataTable.helper';
 import styles from './DataTable.module.css';
 
 export interface DataTableColumnGroup {
@@ -93,7 +94,7 @@ export function DataTable<T>({
 
   return (
     <div className={styles.container}>
-      <div className={styles.tableWrapper} role="region" aria-label={caption}>
+      <div className={styles.tableWrapper} role={caption ? 'region' : undefined} aria-label={caption}>
         <table className={styles.table}>
           {caption && <caption className={styles.caption}>{caption}</caption>}
           <thead>
@@ -192,11 +193,17 @@ export function DataTable<T>({
                   <tr
                     key={rowKey(row, index)}
                     className={`${styles.tr} ${isClickable ? styles.clickableRow : ''}`.trim()}
-                    onClick={isClickable ? () => onRowClick?.(row, index) : undefined}
+                    onClick={
+                      isClickable
+                        ? (e) => {
+                            if (!isInteractiveTarget(e.target)) onRowClick?.(row, index);
+                          }
+                        : undefined
+                    }
                     onKeyDown={
                       isClickable
                         ? (e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
+                            if (!isInteractiveTarget(e.target) && shouldTriggerRowClickOnKey(e.key)) {
                               e.preventDefault();
                               onRowClick?.(row, index);
                             }

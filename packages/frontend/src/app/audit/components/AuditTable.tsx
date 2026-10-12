@@ -60,7 +60,7 @@ export function AuditTable({
       key: 'eventType',
       header: 'Event Action',
       render: (r) => (
-        <span style={{ fontWeight: 'var(--font-semibold)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>
+        <span style={{ fontWeight: 'var(--font-semibold)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)' }}>
           {r.eventType}
         </span>
       ),
@@ -81,7 +81,7 @@ export function AuditTable({
       key: 'resource',
       header: 'Resource',
       render: (r) => (
-        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
+        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
           {r.resource}
         </span>
       ),

@@ -99,6 +99,7 @@ export function RolesTable({
           ? { label: 'Create First Role', onClick: onCreate, id: 'empty-create-role-btn' }
           : undefined
       }
+      onRowClick={canManageRoles ? (r) => { if (!r.isSystem) onEdit(r); } : undefined}
     />
   );
 }

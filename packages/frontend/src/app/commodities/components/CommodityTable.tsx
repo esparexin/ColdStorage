@@ -162,6 +162,7 @@ export function CommodityTable({
       groups={groups}
       rows={commodities}
       rowKey={(row) => row.id}
+      onRowClick={onManageRates}
       pagination={{
         page,
         pageSize,
