@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import type { BagType, CorrectGrnInput } from '@cold-storage/contracts';
-import type { toGrnEntity } from '../grn.mappers.js';
+import type { BagType, CorrectGrnInput, Grn } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
@@ -27,7 +26,7 @@ interface PersistParams {
   userId: string;
 }
 
-type LeanGrn = Parameters<typeof toGrnEntity>[0];
+type LeanGrn = Grn;
 
 /** Applies descriptive (post-movement-safe) edits: chamber, gate pass, marks, vehicle, remarks. */
 export function applyDescriptiveEdits(

@@ -10,7 +10,8 @@ settingsRouter.use(authenticate);
 settingsRouter.use(requirePasswordChanged);
 
 /**
- * GET /api/settings
+ * GET /api/settings — OWNERSHIP: settingsRouter owns settings JSON; assetRouter owns logo bytes.
+ * Same /api/settings* namespace by design (non-breaking); see asset.routes.ts.
  * Authenticated users can retrieve current system settings and configuration state.
  */
 settingsRouter.get('/settings', async (_req: Request, res: Response): Promise<void> => {

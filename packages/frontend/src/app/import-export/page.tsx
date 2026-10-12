@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { EMPTY_MESSAGES } from '@/components/ui/stateCopy';
 import { usePermissions } from '@/hooks/usePermissions';
