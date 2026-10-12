@@ -3,6 +3,7 @@ import { authenticate, requirePasswordChanged } from '../middleware/auth.middlew
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { dashboardService } from '../modules/dashboard/dashboard.service.js';
+import { asyncHandler } from '../utils/async-handler.js';
 import { getParamId } from '../utils/params.js';
 
 export const dashboardRouter = Router();
@@ -25,7 +26,7 @@ dashboardRouter.get(
   '/facilities/:facilityId/dashboard/summary',
   requirePermission('dashboard:view'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const facilityId = getParamId(req.params.facilityId);
 
     try {
@@ -38,5 +39,5 @@ dashboardRouter.get(
         err instanceof Error ? err.message : 'Failed to retrieve dashboard summary';
       res.status(500).json({ error: message });
     }
-  },
+  }),
 );

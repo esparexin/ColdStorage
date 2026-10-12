@@ -84,7 +84,32 @@ All frontend screens and shared layouts are verified against zero horizontal ove
   runtime through `React.useId()` and a `label` prop.
 - The `Modal` primitive must enforce `role="dialog"` and `aria-modal="true"`.
 
-## 5. Tooling that is available but not yet gating
+## 5. `scripts/check-backend-ssot.sh` — backend SSOT (R8, permanent)
+
+| # | Rule | Enforces |
+|---|---|---|
+| F01 | Refresh replay guard | `auth.service.ts` must check `rotateSession` null + `REFRESH_TOKEN_REUSE_OR_RACE` |
+| F02 | Session TTL | `session.model.ts` TTL + `{refreshTokenHash,revokedAt}` compound |
+| F03 | Ledger idempotency | `inventory-transaction` unique `{referenceId,transactionType}` |
+| F19 | Index monitoring | `Group` + `InternalMovement` in `MONITORED_MODELS` |
+| F07 | Bill alias | `billNumber` alias documented in `grn.mappers.ts` |
+| F05 | Limiter keying | `generalRateLimiter` IP-only, no `req.user` |
+| F21 | Preview fixtures | `PREVIEW-RRCPT` only in `document.service.ts` (+ tests) |
+| F24 | One-off scripts | `F24` legacy marker in both `scripts/` one-offs |
+
+## 6. `scripts/check-backend-cycles.sh` — backend cycles (R8, permanent)
+
+| # | Rule | Enforces |
+|---|---|---|
+| F09 | No `auth<->users` static cycle | `user.service.ts` lazy session import only |
+| F10 | No `rent<->delivery` static cycle | `record-payment` ledger-direct; `delivery.queries` lazy batched rent |
+| F22 | Async boundary | `utils/async-handler.ts` exists + dashboard pilot adopted |
+| — | GRN boundary | `delivery`/`rent` must not import `grn` internals |
+| — | Frontend preservation | no `packages/frontend/` diff on backend branch |
+
+Wired into `scripts/hygiene-audit.sh` step 8 and `.github/workflows/backend-governance.yml`. Bypass requires `governance-bypass` label + written approval + 7-day follow-up (see `backend-audit-governance.md`).
+
+## 7. Tooling that is available but not yet gating
 
 - **Prettier** is configured in `.prettierrc` and installed, but there is no `format` script
   and it is not wired into CI. The repository has never been Prettier-formatted (174 files

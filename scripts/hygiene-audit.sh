@@ -60,6 +60,14 @@ if ! bash "$ROOT/scripts/check-accessibility.sh"; then
   fail "accessibility governance constraint violated"
 fi
 
+# 8. Backend SSOT & cycle audit (permanent, R8). Never bypass without explicit authorization.
+if ! bash "$ROOT/scripts/check-backend-ssot.sh"; then
+  fail "backend SSOT constraint violated"
+fi
+if ! bash "$ROOT/scripts/check-backend-cycles.sh"; then
+  fail "backend cycle/boundary constraint violated"
+fi
+
 if [ "$EXIT" -eq 0 ]; then echo "hygiene: PASS"; else echo "hygiene: FAIL"; fi
 exit "$EXIT"
 

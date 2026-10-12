@@ -7,7 +7,6 @@ import {
   type UserSummary,
 } from '@cold-storage/contracts';
 import { auditService } from '../audit/audit.service.js';
-import { sessionRepository } from '../auth/session.repository.js';
 import { hashPassword } from '../../utils/crypto.js';
 import type { UserEntity } from './user.entity.js';
 import { userRepository, type UserRepository } from './user.repository.js';
@@ -175,9 +174,13 @@ export class UserService {
     });
 
     if (input.status === 'DISABLED' && existing.status !== 'DISABLED') {
+      // Lazy import breaks the auth<->users static cycle (F09): session
+      // revocation is needed here but the repository lives in auth/.
+      const { sessionRepository } = await import('../auth/session.repository.js');
       await sessionRepository.revokeAllUserSessions(id);
     }
     if ((input.role !== undefined || input.roleId !== undefined || input.facilityIds !== undefined) && id !== actingUserId) {
+      const { sessionRepository } = await import('../auth/session.repository.js');
       await sessionRepository.revokeAllUserSessions(id);
     }
 
@@ -218,6 +221,7 @@ export class UserService {
 
     const passwordHash = await hashPassword(input.temporaryPassword);
     const saved = await this.repo.updatePassword(id, passwordHash, true);
+    const { sessionRepository } = await import('../auth/session.repository.js');
     await sessionRepository.revokeAllUserSessions(id);
 
     await auditService.log({

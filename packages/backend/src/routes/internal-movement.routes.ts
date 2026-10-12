@@ -83,6 +83,8 @@ internalMovementRouter.get(
 );
 
 // List internal movements for a specific GRN
+// Facility scoping is enforced by service filter {facilityId, $or:[...]}:
+// cross-facility grnIds yield empty results (verified safe, F23).
 internalMovementRouter.get(
   '/facilities/:facilityId/internal-movements/grn/:grnId',
   requirePermission('grn:view'),

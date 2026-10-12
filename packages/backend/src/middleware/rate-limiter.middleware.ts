@@ -245,6 +245,6 @@ export const generalRateLimiter = createRateLimiter({
   windowMs: config.rateLimitWindowMsGeneral,
   max: config.rateLimitMaxGeneral,
   keyPrefix: 'ratelimit:general',
-  keyGenerator: (req: Request) =>
-    req.user?.userId || req.ip || req.socket.remoteAddress || 'anonymous',
+  // IP-only (F05): runs before authenticate, so req.user is always undefined.
+  keyGenerator: (req: Request) => req.ip || req.socket.remoteAddress || 'anonymous',
 });

@@ -68,6 +68,11 @@ inventoryTransactionSchema.index({ facilityId: 1, grnId: 1 });
 inventoryTransactionSchema.index({ facilityId: 1, chamber: 1 });
 inventoryTransactionSchema.index({ facilityId: 1, commodityId: 1 });
 inventoryTransactionSchema.index({ facilityId: 1, createdAt: -1 });
+// Idempotency: the same domain reference (delivery/reversal/put-away) must
+// never post two ledger rows of the same type. Prevents double-delivery
+// ledger inflation under retry/concurrency (F03).
+inventoryTransactionSchema.index({ referenceId: 1, transactionType: 1 }, { unique: true });
+inventoryTransactionSchema.index({ grnId: 1, transactionType: 1, createdAt: 1 });
 // The dashboard's Recent Activity query filters on facilityId AND
 // transactionType, then sorts by createdAt. Without transactionType in the
 // index MongoDB scans every facility transaction, filters, and sorts in

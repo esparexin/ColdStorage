@@ -56,6 +56,9 @@ export function toGrnEntity(doc: {
     facilityId: doc.facilityId,
     grnNumber: doc.grnNumber,
     inwardReceiptNumber: doc.inwardReceiptNumber,
+    // SSOT alias (F07 verified intentional): input.billNumber is accepted at the
+    // create boundary and mapped to inwardReceiptNumber; the read model exposes
+    // both names pointing at the same stored value. No separate column exists.
     billNumber: doc.inwardReceiptNumber,
     date: doc.date,
     customerId: doc.customerId,
