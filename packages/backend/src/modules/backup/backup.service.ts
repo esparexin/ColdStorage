@@ -1,5 +1,10 @@
 import { randomBytes } from 'node:crypto';
-import type { BackupLogRecord, BackupQuery, BackupStatusResponse } from '@cold-storage/contracts';
+import type {
+  BackupLogRecord,
+  BackupQuery,
+  BackupStatusResponse,
+  BackupType,
+} from '@cold-storage/contracts';
 import { BackupLogModel, type BackupLogDoc } from '../../database/models/backup-log.model.js';
 import { auditService } from '../audit/audit.service.js';
 import { settingsService } from '../settings/settings.service.js';
@@ -11,6 +16,7 @@ import {
   isEncryptionKeyConfigured,
 } from './backup-crypto.js';
 import { getBackupStatus, queryBackupHistory } from './backup-queries.js';
+import { tryOffsiteUpload } from './offsite-backup.driver.js';
 import { BackupStorageDriver, LocalEncryptedStorageDriver } from './storage/storage.driver.js';
 
 export class BackupService {
@@ -32,11 +38,13 @@ export class BackupService {
   }
 
   /**
-   * Executes manual application-level encrypted backup (AES-256-GCM).
+   * Executes application-level encrypted backup (AES-256-GCM).
+   * backupType is MANUAL for operator triggers, SCHEDULED for scheduler runs.
    */
   public async triggerManualBackup(
     userId: string,
     overrideKey?: string,
+    backupType: BackupType = 'MANUAL',
   ): Promise<{ backupLog: BackupLogRecord; filename: string }> {
     if (this.isBackupInProgress) {
       throw new Error('BACKUP_ALREADY_IN_PROGRESS: A backup operation is currently executing');
@@ -71,7 +79,7 @@ export class BackupService {
 
       await BackupLogModel.create({
         id: backupId,
-        backupType: 'MANUAL',
+        backupType,
         status: 'IN_PROGRESS',
         sizeBytes: 0,
         checksum: null,
@@ -123,13 +131,23 @@ export class BackupService {
         .lean()
         .exec();
 
+      // Best-effort off-site copy (BKP-02): local is authoritative; off-site
+      // failures never fail the backup, they are recorded for monitoring.
+      let offsiteError: string | null = null;
+      try {
+        const offsite = await tryOffsiteUpload(filename, finalArchive);
+        offsiteError = offsite.error;
+      } catch (err: unknown) {
+        offsiteError = err instanceof Error ? err.message : String(err);
+      }
+
       await auditService.log({
         eventType: 'BACKUP_TRIGGERED',
         severity: 'INFO',
         userId,
         resource: 'backup',
         resourceId: backupId,
-        details: { sizeBytes: writeResult.sizeBytes, checksum },
+        details: { sizeBytes: writeResult.sizeBytes, checksum, backupType, offsiteError },
       });
 
       // Best-effort retention enforcement (F20): prune expired COMPLETED rows
@@ -198,30 +216,10 @@ export class BackupService {
     }
   }
 
-  /**
-   * Prunes expired backups based on retention policy, physically deleting objects from storage.
-   */
+  /** Retention enforcement delegates to helper to keep service within line budget. */
   public async pruneExpiredBackups(): Promise<{ prunedCount: number; deletedLocations: string[] }> {
-    const now = new Date();
-    const expiredLogs = await BackupLogModel.find({
-      retentionExpiresAt: { $lt: now },
-      status: 'COMPLETED',
-    }).exec();
-
-    const deletedLocations: string[] = [];
-
-    for (const log of expiredLogs) {
-      await this.storageDriver.delete(log.storageLocation);
-      deletedLocations.push(log.storageLocation);
-
-      log.status = 'PRUNED';
-      await log.save();
-    }
-
-    return {
-      prunedCount: expiredLogs.length,
-      deletedLocations,
-    };
+    const { pruneExpiredBackups } = await import('./backup-prune.helper.js');
+    return pruneExpiredBackups(this.storageDriver);
   }
 
   /**

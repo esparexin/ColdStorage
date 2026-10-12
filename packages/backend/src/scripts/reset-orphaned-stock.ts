@@ -30,7 +30,7 @@
  * Idempotent: re-running finds nothing left to do and exits cleanly.
  */
 import mongoose from 'mongoose';
-import { assertSafeDatabaseTarget } from '../database/connection.js';
+import { assertSafeDatabaseTarget, connectToDatabase } from '../database/connection.js';
 import { logger } from '../utils/logger.js';
 
 interface OrphanGrn {
@@ -74,7 +74,7 @@ async function main(): Promise<void> {
     );
   }
 
-  await mongoose.connect(uri);
+  await connectToDatabase(uri);
   const db = mongoose.connection.db!;
   logger.info(`Connected to ${mongoose.connection.name}`);
   logger.info(apply ? 'MODE: APPLY (writes enabled)' : 'MODE: DRY RUN (pass --apply to write)');

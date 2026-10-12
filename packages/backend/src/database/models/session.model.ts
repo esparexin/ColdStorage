@@ -1,4 +1,4 @@
-import { Schema, model, type Document } from 'mongoose';
+import mongoose, { Schema, type Document, type Model } from 'mongoose';
 
 export interface ISessionDocument extends Document {
   id: string;
@@ -29,4 +29,6 @@ sessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 sessionSchema.index({ userId: 1, revokedAt: 1 });
 sessionSchema.index({ refreshTokenHash: 1, revokedAt: 1 });
 
-export const SessionModel = model<ISessionDocument>('Session', sessionSchema);
+export const SessionModel: Model<ISessionDocument> =
+  (mongoose.models.Session as Model<ISessionDocument>) ||
+  mongoose.model<ISessionDocument>('Session', sessionSchema);

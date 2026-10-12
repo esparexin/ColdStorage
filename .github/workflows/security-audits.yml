@@ -28,7 +28,7 @@ jobs:
       - name: Verify zero committed secrets or env files
         run: |
           echo "Scanning for committed .env files or leaked secrets..."
-          if find . -maxdepth 2 -name ".env" -not -path "./.git/*" | grep -v "\.example" | grep -q .; then
+          if git ls-files | grep -E "(^|/)\.env(\.|$)" | grep -v "\.env\.example$" | grep -q .; then
             echo "::error::Committed .env file detected in repository"
             exit 1
           fi

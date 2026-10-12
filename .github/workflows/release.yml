@@ -61,7 +61,7 @@ jobs:
       - name: Package release artifact
         run: |
           mkdir -p release-bundle
-          tar -czf release-bundle/coldstorage-release.tar.gz package.json packages/*/dist 2>/dev/null || tar -czf release-bundle/coldstorage-release.tar.gz package.json
+          tar -czf release-bundle/coldstorage-release.tar.gz package.json packages/*/dist packages/frontend/.next 2>/dev/null || tar -czf release-bundle/coldstorage-release.tar.gz package.json packages/*/dist 2>/dev/null || tar -czf release-bundle/coldstorage-release.tar.gz package.json
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v7
@@ -81,8 +81,10 @@ jobs:
       - name: Deploy to production environment
         run: echo "Production deployment gated and approved."
 
+  # TBD: web-only product (see PRODUCT.md Platform); mobile job is a placeholder and
+  # must not be taken as a working mobile release pipeline.
   mobile-production-release:
-    name: Mobile Production Release
+    name: Mobile Production Release (TBD placeholder)
     needs: validate-and-package
     runs-on: ubuntu-latest
     environment:

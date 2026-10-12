@@ -1,9 +1,14 @@
 #!/usr/bin/env node
 /**
- * repair-monthly-rent.mjs
+ * repair-monthly-rent.mjs — RETIRED one-off (GOV-01, no package.json/workflow/docs refs).
  *
  * Identifies Monthly GRNs with a synthesised non-zero rentAmount that should be
  * 0 (unconfigured), and optionally resets them.
+ *
+ * Dependencies: requires `mongodb` + `dotenv` resolvable from the invoking
+ * environment (not root deps; run `node scripts/repair-monthly-rent.mjs`
+ * directly in an env with them, or retire to docs/governance/retired/).
+ * Defaults to dry-run; --commit required for writes.
  *
  * Usage:
  *   node scripts/repair-monthly-rent.mjs               # dry-run: audit only

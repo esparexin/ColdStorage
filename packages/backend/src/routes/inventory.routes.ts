@@ -5,6 +5,7 @@ import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { inventoryService } from '../modules/inventory/inventory.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
+import { asyncHandler } from '../utils/async-handler.js';
 import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
@@ -18,7 +19,7 @@ inventoryRouter.get(
   '/facilities/:facilityId/grns/:grnId/inventory-summary',
   requirePermission('inventory:view'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const facilityId = getParamId(req.params.facilityId);
     const grnId = getParamId(req.params.grnId);
 
@@ -34,7 +35,7 @@ inventoryRouter.get(
     } catch (err: unknown) {
       sendServiceError(res, err, 'Failed to get GRN inventory summary');
     }
-  },
+  }),
 );
 
 // 2. Get facility inventory stock summary
@@ -42,7 +43,7 @@ inventoryRouter.get(
   '/facilities/:facilityId/inventory',
   requirePermission('inventory:view'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const facilityId = getParamId(req.params.facilityId);
     try {
       const summary = await inventoryService.getFacilityInventorySummary(facilityId);
@@ -50,7 +51,7 @@ inventoryRouter.get(
     } catch (err: unknown) {
       sendServiceError(res, err, 'Failed to get facility inventory summary');
     }
-  },
+  }),
 );
 
 // 3. Query filtered, paginated stock ledger
@@ -58,7 +59,7 @@ inventoryRouter.get(
   '/facilities/:facilityId/inventory/ledger',
   requirePermission('inventory:view'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const facilityId = getParamId(req.params.facilityId);
     const parseResult = stockLedgerQuerySchema.safeParse(req.query);
     if (!parseResult.success) {
@@ -72,7 +73,7 @@ inventoryRouter.get(
     } catch (err: unknown) {
       sendServiceError(res, err, 'Failed to query stock ledger');
     }
-  },
+  }),
 );
 
 // 4. Customer stock rollup, aggregated at read time over that customer's receipts
@@ -80,7 +81,7 @@ inventoryRouter.get(
   '/facilities/:facilityId/inventory/customer/:customerId',
   requirePermission('inventory:view'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const facilityId = getParamId(req.params.facilityId);
     const customerId = getParamId(req.params.customerId);
     try {
@@ -89,5 +90,5 @@ inventoryRouter.get(
     } catch (err: unknown) {
       sendServiceError(res, err, 'Failed to get customer stock summary');
     }
-  },
+  }),
 );

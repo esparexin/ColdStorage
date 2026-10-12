@@ -1,9 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { healthResponseSchema } from '@cold-storage/contracts';
 import { Button, DataTable, type DataTableColumn } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { ERROR_TITLES, LOADING_LABELS } from '@/components/ui/stateCopy';
+import { fetchWithTimeout } from '@/lib/api-client';
 import styles from './ConnectivitySection.module.css';
 
 /**
@@ -47,24 +49,22 @@ export function ConnectivitySection() {
     const apiBaseUrl = resolveApiBaseUrl();
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      let response: Response;
-      try {
-        response = await fetch(`${apiBaseUrl}/health`, {
-          signal: controller.signal,
-          headers: { Accept: 'application/json' },
-        });
-      } finally {
-        clearTimeout(timeout);
-      }
+      const response = await fetchWithTimeout(
+        '/api/health',
+        { headers: { Accept: 'application/json' } },
+        8000,
+      );
 
-      const body = (await response.json()) as {
-        status?: string;
-        service?: string;
-        database?: { state?: string; configured?: boolean };
-        checkedAt?: string;
-      };
+      const raw = (await response.json()) as unknown;
+      const parsed = healthResponseSchema.safeParse(raw);
+      const body = parsed.success
+        ? parsed.data
+        : (raw as {
+            status?: string;
+            service?: string;
+            database?: { state?: string; configured?: boolean };
+            checkedAt?: string;
+          });
 
       const reachable = response.ok;
       setState({
@@ -144,7 +144,7 @@ export function ConnectivitySection() {
       {state.error ? (
         <FeedbackStates.Error
           title={ERROR_TITLES.connectivity}
-          message={`${state.error}. Confirm the backend is running and that BACKEND_URL points at it.`}
+          message={`${state.error}. Confirm the backend service is running and the proxy target is reachable.`}
           onRetry={() => void check()}
         />
       ) : (

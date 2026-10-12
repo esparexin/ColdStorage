@@ -63,7 +63,8 @@ const uploadSingleLogo = (req: Request, res: Response, next: NextFunction): void
 };
 
 /**
- * POST /api/settings/logo
+ * POST /api/settings/logo — OWNERSHIP: assetRouter owns logo bytes; settingsRouter owns settings JSON.
+ * Same /api/settings* namespace by design (non-breaking); do not merge routers without reviewed migration.
  * Restricted to SUPER_ADMIN ('settings:manage' permission).
  * Accepts multipart/form-data with a single image file (PNG, JPEG, WebP <= 1MB).
  */

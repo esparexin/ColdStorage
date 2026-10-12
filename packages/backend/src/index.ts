@@ -16,6 +16,8 @@ if (process.env.NODE_ENV !== 'test') {
   await connectToDatabase();
   await roleService.seedSystemRoles();
   await userRepository.bootstrapSuperAdminFromEnv();
+  const { startBackupScheduler } = await import('./modules/backup/backup.scheduler.js');
+  startBackupScheduler();
   const server = app.listen(config.port, () => {
     logger.info('Backend server listening', { port: config.port });
   });

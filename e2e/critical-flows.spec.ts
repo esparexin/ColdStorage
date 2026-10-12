@@ -137,7 +137,7 @@ test.describe('Critical Application Flows', () => {
       });
     });
 
-    await page.route('**/api/grns*', async (route) => {
+    await page.route('**/api/facilities/**/grns*', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',

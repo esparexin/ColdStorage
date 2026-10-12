@@ -30,8 +30,16 @@ export interface AppConfig {
   cloudinaryUrl?: string;
   /** 64 hex characters. Required to run encrypted backups; absent means backups are unconfigured. */
   backupEncryptionKey?: string;
-  /** Testing-only allowance for historical transaction dates (up to 3 rolling years). */
-  allowHistoricalTestingDates?: boolean;
+  /** Explicitly configured backup schedule. Disabled unless BACKUP_SCHEDULE_ENABLED=true. */
+  backupScheduleEnabled?: boolean;
+  /** Scheduler interval in ms. Minimum 60000. Defaults to 24h. */
+  backupScheduleIntervalMs?: number;
+  /** Off-site provider id (e.g. google-drive). Unset means local-only with documented gap. */
+  backupOffsiteProvider?: string;
+  /** Off-site destination (folder id / bucket). Optional until provider is wired. */
+  backupOffsiteDestination?: string;
+  /** Must be true to allow restore writes into live cold_storage. Defaults false. */
+  backupAllowLiveRestore?: boolean;
 }
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -86,6 +94,10 @@ export const config: AppConfig = {
   rateLimitMaxGeneral: Number(process.env.RATE_LIMIT_MAX_GENERAL) || 200,
   cloudinaryUrl: process.env.CLOUDINARY_URL,
   backupEncryptionKey: process.env.BACKUP_ENCRYPTION_KEY,
-  allowHistoricalTestingDates: process.env.ALLOW_HISTORICAL_TESTING_DATES === 'true',
+  backupScheduleEnabled: process.env.BACKUP_SCHEDULE_ENABLED === 'true',
+  backupScheduleIntervalMs: Number(process.env.BACKUP_SCHEDULE_INTERVAL_MS) || 24 * 60 * 60 * 1000,
+  backupOffsiteProvider: process.env.BACKUP_OFFSITE_PROVIDER,
+  backupOffsiteDestination: process.env.BACKUP_OFFSITE_DESTINATION,
+  backupAllowLiveRestore: process.env.BACKUP_ALLOW_LIVE_RESTORE === 'true',
 };
 

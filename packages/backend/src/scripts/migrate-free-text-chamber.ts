@@ -38,7 +38,7 @@
  *   counts below before applying.
  */
 import mongoose from 'mongoose';
-import { assertSafeDatabaseTarget } from '../database/connection.js';
+import { assertSafeDatabaseTarget, connectToDatabase } from '../database/connection.js';
 import { logger } from '../utils/logger.js';
 
 const CHAMBER_COLLECTIONS = [
@@ -66,7 +66,7 @@ async function main(): Promise<void> {
     );
   }
 
-  await mongoose.connect(uri);
+  await connectToDatabase(uri);
   logger.info(`Connected to ${mongoose.connection.name}`);
   logger.info(apply ? 'MODE: APPLY (writes enabled)' : 'MODE: DRY RUN (pass --apply to write)');
 

@@ -4,6 +4,8 @@ import { z } from 'zod';
  * Transport-level error envelope shared by backend responders and frontend
  * error states. Documents the ad-hoc `{ error, code?, details?, rent? }`
  * shape already used on the wire so clients can branch exhaustively.
+ * Adoption is incremental (API-04); new handlers should prefer this shape
+ * over ad-hoc `{ error }` without breaking existing clients.
  */
 export const errorCodeSchema = z.enum([
   'NOT_FOUND',
