@@ -63,6 +63,12 @@ export function InternalMovementMergeTab({
     return (sm === 0 && bg === 0 && tot > 0) || sm + bg !== tot;
   }), [selectedSources]);
 
+  const isRepackRequired = repackMode || hasUnconfirmedMix;
+  const repackedSum = (typeof repackSmall === 'number' ? repackSmall : 0) + (typeof repackBig === 'number' ? repackBig : 0);
+  const isRepackFilled = typeof repackSmall === 'number' && typeof repackBig === 'number';
+  const isRepackReconciled = isRepackFilled && repackedSum === totalSourceBags;
+  const isRepackMismatch = isRepackRequired && totalSourceBags > 0 && (!isRepackFilled || repackedSum !== totalSourceBags);
+
   const toggleSource = (id: string) => {
     setSelectedSourceIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
   };
@@ -76,12 +82,15 @@ export function InternalMovementMergeTab({
 
     let confSmall: number | undefined;
     let confBig: number | undefined;
-    if (repackMode) {
-      if (typeof repackSmall !== 'number' || typeof repackBig !== 'number') {
-        return setValidationError('Both Small and Big bag counts must be confirmed when repacking.');
+    if (isRepackRequired) {
+      if (!isRepackFilled) {
+        return setValidationError('Both Small and Big bag counts must be confirmed. Combined total must match available bags.');
       }
-      if (repackSmall + repackBig !== totalSourceBags) {
-        return setValidationError(`Repacked counts (${repackSmall}S + ${repackBig}B = ${repackSmall + repackBig}) must reconcile with source stock (${totalSourceBags} bags).`);
+      if (repackSmall > totalSourceBags || repackBig > totalSourceBags) {
+        return setValidationError(`Neither Small nor Big bag counts can exceed available total (${totalSourceBags} bags).`);
+      }
+      if (repackedSum !== totalSourceBags) {
+        return setValidationError(`Counts (${repackSmall}S + ${repackBig}B = ${repackedSum}) must match total available (${totalSourceBags} bags).`);
       }
       confSmall = repackSmall;
       confBig = repackBig;
@@ -150,16 +159,26 @@ export function InternalMovementMergeTab({
 
           <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-xs)', cursor: 'pointer' }}>
-              <input type="checkbox" checked={repackMode} onChange={(e) => { setRepackMode(e.target.checked); if (!e.target.checked) { setRepackSmall(''); setRepackBig(''); setReferenceWeight(''); } }} disabled={submitting} />
-              <span>Confirm Repacked Bag Mix & Weight</span>
+              <input type="checkbox" checked={repackMode || hasUnconfirmedMix} onChange={(e) => { setRepackMode(e.target.checked); if (!e.target.checked && !hasUnconfirmedMix) { setRepackSmall(''); setRepackBig(''); setReferenceWeight(''); } }} disabled={submitting || hasUnconfirmedMix} />
+              <span>{hasUnconfirmedMix ? 'Bag Mix Confirmation Required (Unverified Lot)' : 'Confirm Repacked Bag Mix & Reference Weight'}</span>
             </label>
-            {repackMode && (
+            {(repackMode || hasUnconfirmedMix) && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                 <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
-                  <Input id="repack-small" type="number" min={0} placeholder="Small Bags" value={repackSmall} onChange={(e) => setRepackSmall(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
-                  <Input id="repack-big" type="number" min={0} placeholder="Big Bags" value={repackBig} onChange={(e) => setRepackBig(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
+                  <Input id="repack-small" type="number" min={0} max={totalSourceBags} placeholder="Small Bags" value={repackSmall} onChange={(e) => setRepackSmall(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
+                  <Input id="repack-big" type="number" min={0} max={totalSourceBags} placeholder="Big Bags" value={repackBig} onChange={(e) => setRepackBig(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
                 </div>
-                <Input id="reference-weight" type="number" min={0} placeholder="Total Reference Weight (kg)" value={referenceWeight} onChange={(e) => setReferenceWeight(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', padding: '2px 0' }}>
+                  <span>Final Total: <strong>{repackedSum}</strong> / {totalSourceBags} bags</span>
+                  {isRepackReconciled ? (
+                    <span style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}>✓ Counts Reconciled</span>
+                  ) : (
+                    <span style={{ color: 'var(--color-danger-text)', fontWeight: 'var(--font-semibold)' }}>
+                      {repackedSum > totalSourceBags ? `Exceeds by ${repackedSum - totalSourceBags}` : `Pending ${totalSourceBags - repackedSum}`}
+                    </span>
+                  )}
+                </div>
+                <Input id="reference-weight" type="number" min={0} placeholder="Total Reference Weight (kg) — Optional reference" value={referenceWeight} onChange={(e) => setReferenceWeight(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
               </div>
             )}
           </div>
