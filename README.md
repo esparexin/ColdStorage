@@ -16,33 +16,25 @@ Key data model decisions:
 - **Rental** is Monthly (amount + month count) or Seasonal — a fixed **10-month** period whose
   amount is the total for the whole term.
 
-## Monorepo Layout (P2 Scope)
+## Monorepo Layout (see docs/ui-backend-wiring-matrix.md for route inventory)
 
 ```text
 ColdStorage/
-├── .github/workflows/ci.yml         # CI verification workflow
+├── .github/workflows/coldstorage-ci.yml  # CI verification workflow
 ├── docs/00-p0-lock.md               # Authoritative P0 Requirements & Architecture Lock
 ├── packages/
-│   ├── contracts/                   # Shared validation SSOT (@cold-storage/contracts)
+│   ├── contracts/                   # Shared validation SSOT (@cold-storage/contracts, 34 modules)
+│   │   └── src/                     # common, identifiers, bags, inventory, permissions,
+│   │                                # settings, user, auth, backup, rent, groups, ... + index.ts
+│   ├── backend/                     # Backend API service (@cold-storage/backend, 19 routers)
 │   │   └── src/
-│   │       ├── common.ts            # Locale and common validators
-│   │       ├── identifiers.ts       # Independent identifier schemas (GRN, Receipt, Challan, Rent Receipt, GP)
-│   │       ├── bags.ts              # Controlled S/B/S+B bag types and dual-weight model
-│   │       ├── inventory.ts         # Put-away allocations and stock ledger contracts
-│   │       ├── permissions.ts       # Machine-readable permissions matrix and facility scoping
-│   │       ├── settings.ts          # System settings singleton schema
-│   │       ├── user.ts              # User provisioning and summary schemas
-│   │       ├── auth.ts              # Authentication DTOs (login, password change, tokens)
-│   │       └── index.ts             # Central package exports
-│   └── backend/                     # Backend API service (@cold-storage/backend)
-│       └── src/
-│           ├── config.ts            # Environment and server configuration
-│           ├── utils/crypto.ts      # Native crypto password hashing & JWT utilities
-│           ├── modules/users/       # User entity, repository, and service
-│           ├── modules/auth/        # Authentication service and credential workflows
-│           ├── middleware/          # JWT authentication, RBAC guard, facility scope guard
-│           ├── routes/              # Auth and user management API routes
-│           └── app.ts               # Express application
+│   │       ├── config.ts            # Environment and server configuration
+│   │       ├── utils/crypto.ts      # Native crypto password hashing & JWT utilities
+│   │       ├── modules/*/           # users, auth, grn, delivery, rent, backup, ...
+│   │       ├── middleware/          # JWT authentication, RBAC guard, facility scope guard
+│   │       ├── routes/              # 19 mounted routers (auth..group, see wiring matrix)
+│   │       └── app.ts               # Express application
+│   └── frontend/                    # Next.js UI (@cold-storage/frontend, 14 routes: / + 13 features incl. /groups)
 ├── scripts/
 │   └── hygiene-audit.sh             # Repository hygiene and governance verification gate
 ├── eslint.config.mjs                # ESLint configuration

@@ -1,6 +1,6 @@
 # Backup + Repository Integrity Remediation Checklist
 
-**Branch:** `audit/backup-repository-integrity-remediation` from `origin/main@632d534`
+**Branch:** `feat/backup-repository-integrity-remediation` (renamed from `audit/backup-repository-integrity-remediation` — `audit/*` branches are backend-only per `check-backend-cycles.sh`, this scope is full-stack) from `origin/main@632d534`
 **Mode:** non-breaking only. No route/permission/verb/envelope renames.
 **Backup target:** Atlas snapshots (monitored) + encrypted Google Drive off-site (30d). Restore: download + full restore endpoint with approval + rollback, proven on isolated DB.
 

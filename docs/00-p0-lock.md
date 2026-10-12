@@ -286,3 +286,8 @@ The following billing and payment parameters remain pending formal business spec
   - Authentication session state must **never** be maintained simultaneously in MongoDB and Redis. Dual-store session architectures and split token stores are strictly prohibited.
 * **Critical SSOT Invariant**:
   - There must be exactly one canonical owner for every business and security concept. Authentication session state has exactly one owner: **MongoDB/Mongoose**. Redis must never become a competing session/revocation source of truth.
+
+## Addendum 2026-10-12 (non-breaking clarifications, no lock rewrite)
+- GRN business key is manual 4-digit (`contracts/identifiers.ts`, boundary Rule 23b, wiring-matrix §5.1); FY-sequential numbering is retained only for RCPT/CHL/RRCPT/GP via `counter.service.ts` + `next-*-number` guidance endpoints.
+- Loan settlement additionally allows `Bank Transfer` (`contracts/loan.ts`); Decision 9 `Cash|UPI` remains for rent collection.
+- Implementation has proceeded beyond P1 scope (14 frontend routes, 19 backend routers); lock remains authoritative for decisions above as clarified here.

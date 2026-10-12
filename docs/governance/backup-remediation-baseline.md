@@ -1,7 +1,7 @@
 # Remediation Baseline — Backup + Repository Integrity
 
 **Date:** 2026-10-12
-**Branch:** `audit/backup-repository-integrity-remediation` from `origin/main@632d534` (PR 111 merged)
+**Branch:** `feat/backup-repository-integrity-remediation` (renamed from `audit/*` — backend-only rule in `check-backend-cycles.sh`) from `origin/main@632d534` (PR 111 merged)
 **Working tree at branch-off:** clean (`git status --short` empty)
 **Open PRs noted:** 111 merged; dependabot mongoose/next/eslint/express/react + 2 security-workflow PRs left untouched.
 
