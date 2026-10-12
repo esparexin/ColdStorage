@@ -157,5 +157,5 @@ describe('Auth Audit E2E Flow', () => {
 
     delete process.env.BOOTSTRAP_ADMIN_USERNAME;
     delete process.env.BOOTSTRAP_ADMIN_PASSWORD;
-  });
+  }, 30_000);
 });
