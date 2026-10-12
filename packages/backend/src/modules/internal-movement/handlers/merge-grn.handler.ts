@@ -21,6 +21,12 @@ export async function mergeGrn(
   if (input.sourceGrnIds.includes(input.targetGrnId)) {
     throw new Error('Target GRN cannot be included in source GRNs list');
   }
+  if (new Set(input.sourceGrnIds).size !== input.sourceGrnIds.length) {
+    throw new Error('Duplicate source GRN IDs are not allowed');
+  }
+  if (input.sourceGrnIds.length > 1 && (input.sourcePaymentAmount ?? 0) > 0) {
+    throw new Error('Settlement payment requires a single source GRN');
+  }
 
   const session = await mongoose.startSession();
   let resultTargetDoc!: unknown;
@@ -234,6 +240,7 @@ export async function mergeGrn(
       totalBagsMoved: movementRecord.totalBagsMoved,
       carriedRent: finalCarriedRent,
       newRentAmount: movementRecord.financialSnapshot.rentAmount,
+      referenceWeight: input.referenceWeight ?? null,
       remarks: input.remarks,
     },
   });
