@@ -1,7 +1,9 @@
 import type { BackupQuery, BackupStatusResponse } from '@cold-storage/contracts';
+import { config } from '../../config.js';
 import { BackupLogModel, type BackupLogDoc } from '../../database/models/backup-log.model.js';
 import { settingsService } from '../settings/settings.service.js';
 import { isEncryptionKeyConfigured } from './backup-crypto.js';
+import { getOffsiteStatus } from './offsite-backup.driver.js';
 
 export async function queryBackupHistory(
   queryOrStatus?: BackupQuery | string,
@@ -50,6 +52,12 @@ export async function getBackupStatus(): Promise<BackupStatusResponse> {
 
   const enabled = settings.backupPolicy.backupEnabled ?? true;
   const keyConfigured = isEncryptionKeyConfigured();
+  const offsite = getOffsiteStatus();
+  const intervalMs = Math.max(config.backupScheduleIntervalMs ?? 24 * 60 * 60 * 1000, 60 * 1000);
+  const lastScheduled = await BackupLogModel.findOne({ backupType: 'SCHEDULED', status: 'COMPLETED' })
+    .sort({ createdAt: -1 })
+    .lean()
+    .exec();
 
   return {
     encryptedArchive: {
@@ -59,6 +67,18 @@ export async function getBackupStatus(): Promise<BackupStatusResponse> {
       retentionDays: settings.backupPolicy.retentionDays ?? 30,
       lastBackupAt: latestCompleted?.createdAt ?? null,
       totalCompletedBackups: totalCompleted,
+    },
+    schedule: {
+      enabled: config.backupScheduleEnabled === true,
+      intervalMs,
+      lastScheduledAt: lastScheduled?.createdAt ?? null,
+      lastScheduledStatus: lastScheduled ? 'COMPLETED' : null,
+    },
+    offsite: {
+      configured: offsite.configured,
+      provider: offsite.provider,
+      lastUploadedAt: offsite.lastUploadedAt,
+      lastError: offsite.lastError,
     },
   };
 }

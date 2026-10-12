@@ -1,8 +1,9 @@
 import { Router, type Request, type Response } from 'express';
-import { backupQuerySchema, backupTriggerSchema } from '@cold-storage/contracts';
+import { backupQuerySchema, backupRestoreSchema, backupTriggerSchema } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { mutationsRateLimiter } from '../middleware/rate-limiter.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
+import { inspectBackup, readBackupArchive, restoreBackup } from '../modules/backup/backup-restore.service.js';
 import { backupService } from '../modules/backup/backup.service.js';
 
 export const backupRouter = Router();
@@ -103,6 +104,82 @@ backupRouter.get(
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to load backup status';
       res.status(500).json({ error: message });
+    }
+  },
+);
+
+/**
+ * GET /backups/:id/download — secure archive download (SUPER_ADMIN only).
+ * Checksum-verified before serving; audit-logged by the service on restore paths.
+ */
+backupRouter.get(
+  '/backups/:id/download',
+  authenticate,
+  requirePasswordChanged,
+  requirePermission('backup:manage'),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { buffer } = await readBackupArchive(req.params['id'] as string);
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${req.params['id']}.enc"`);
+      res.status(200).send(buffer);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Download failed';
+      const status = message.includes('BACKUP_NOT_FOUND') ? 404 : 500;
+      res.status(status).json({ error: message });
+    }
+  },
+);
+
+/**
+ * GET /backups/:id/inspect — decrypted metadata + entity counts only (SUPER_ADMIN only).
+ * Never returns raw documents.
+ */
+backupRouter.get(
+  '/backups/:id/inspect',
+  authenticate,
+  requirePasswordChanged,
+  requirePermission('backup:manage'),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const result = await inspectBackup(req.params['id'] as string);
+      res.status(200).json(result);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Inspect failed';
+      const status = message.includes('BACKUP_NOT_FOUND') ? 404 : 500;
+      res.status(status).json({ error: message });
+    }
+  },
+);
+
+/**
+ * POST /backups/restore — full restore with safeguards (SUPER_ADMIN only).
+ * Body: { backupId, confirm (=backupId), dryRun=true, targetDatabase? }.
+ * Take a fresh backup before any non-dry-run restore. Live cold_storage
+ * writes require BACKUP_ALLOW_LIVE_RESTORE=true.
+ */
+backupRouter.post(
+  '/backups/restore',
+  authenticate,
+  requirePasswordChanged,
+  requirePermission('backup:manage'),
+  mutationsRateLimiter,
+  async (req: Request, res: Response): Promise<void> => {
+    const parseResult = backupRestoreSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({ error: 'Validation failed', details: parseResult.error.flatten() });
+      return;
+    }
+    try {
+      const result = await restoreBackup(req.user!.userId, parseResult.data);
+      res.status(200).json({ message: result.dryRun ? 'Restore dry-run complete' : 'Restore complete', result });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Restore failed';
+      let status = 500;
+      if (message.includes('BACKUP_NOT_FOUND')) status = 404;
+      else if (message.includes('RESTORE_CONFIRM_MISMATCH')) status = 400;
+      else if (message.includes('RESTORE_LIVE_BLOCKED') || message.includes('RESTORE_TARGET_MISMATCH')) status = 403;
+      res.status(status).json({ error: message });
     }
   },
 );

@@ -18,7 +18,7 @@ export interface BackupLogDoc extends Document {
 const backupLogSchema = new Schema<BackupLogDoc>(
   {
     id: { type: String, required: true, unique: true, index: true },
-    backupType: { type: String, required: true, enum: ['MANUAL'], default: 'MANUAL' },
+    backupType: { type: String, required: true, enum: ['MANUAL', 'SCHEDULED'], default: 'MANUAL' },
     status: {
       type: String,
       required: true,

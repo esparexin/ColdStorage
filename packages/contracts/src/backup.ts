@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const backupTypeSchema = z.enum(['MANUAL']);
+export const backupTypeSchema = z.enum(['MANUAL', 'SCHEDULED']);
 export type BackupType = z.infer<typeof backupTypeSchema>;
 
 export const backupStatusSchema = z.enum(['IN_PROGRESS', 'COMPLETED', 'FAILED', 'PRUNED']);
@@ -46,10 +46,24 @@ export type BackupQuery = z.infer<typeof backupQuerySchema>;
 /**
  * Backup status projection.
  *
- * Every field reports observed state. There is no platform-managed backup integration and no
- * scheduled automation in this codebase, so no field claims either. `configured` is the single
- * gate the service enforces, and the UI disables backup actions while it is false.
+ * Every field reports observed state. `configured` is the single gate the service enforces,
+ * and the UI disables backup actions while it is false. `schedule` and `offsite` are
+ * additive, optional projections: older clients ignore them.
  */
+export const backupScheduleStatusSchema = z.object({
+  enabled: z.boolean(),
+  intervalMs: z.number().int().min(60000),
+  lastScheduledAt: z.coerce.date().nullable(),
+  lastScheduledStatus: z.string().nullable(),
+});
+
+export const backupOffsiteStatusSchema = z.object({
+  configured: z.boolean(),
+  provider: z.string().nullable(),
+  lastUploadedAt: z.coerce.date().nullable(),
+  lastError: z.string().nullable(),
+});
+
 export const backupStatusResponseSchema = z.object({
   encryptedArchive: z.object({
     /** True when the operator has enabled encrypted backups in system settings. */
@@ -63,6 +77,32 @@ export const backupStatusResponseSchema = z.object({
     lastBackupAt: z.coerce.date().nullable(),
     totalCompletedBackups: z.number().int().min(0),
   }),
+  schedule: backupScheduleStatusSchema.optional(),
+  offsite: backupOffsiteStatusSchema.optional(),
 });
 
 export type BackupStatusResponse = z.infer<typeof backupStatusResponseSchema>;
+export type BackupScheduleStatus = z.infer<typeof backupScheduleStatusSchema>;
+export type BackupOffsiteStatus = z.infer<typeof backupOffsiteStatusSchema>;
+
+/** Secure inspection result: entity counts only, never raw documents. */
+export const backupInspectResponseSchema = z.object({
+  id: z.string(),
+  format: z.string(),
+  version: z.string(),
+  createdAt: z.string(),
+  checksumMatch: z.boolean(),
+  entityCounts: z.record(z.string(), z.number().int().min(0)),
+});
+
+export type BackupInspectResponse = z.infer<typeof backupInspectResponseSchema>;
+
+/** Restore request. `confirm` must equal the backup id; live targets need extra env guard. */
+export const backupRestoreSchema = z.object({
+  backupId: z.string().min(1),
+  confirm: z.string().min(1),
+  dryRun: z.boolean().default(true),
+  targetDatabase: z.string().min(1).optional(),
+});
+
+export type BackupRestoreInput = z.infer<typeof backupRestoreSchema>;
