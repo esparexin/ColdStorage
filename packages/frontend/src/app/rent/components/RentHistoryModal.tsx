@@ -68,23 +68,6 @@ export function RentHistoryModal({
       }
     >
       <div className={styles.modalBody}>
-        <StatGrid label={`Rent summary for ${account.grnNumber}`}>
-          <StatCard
-            label={account.rentType === 'Monthly' && account.rentAmount === 0 ? 'Rent Status' : 'Total Billed'}
-            value={formatRentStructure(account)}
-          />
-          <StatCard
-            label="Total Paid"
-            value={`₹${account.totalPaid.toLocaleString('en-IN')}`}
-            accent="success"
-          />
-          <StatCard
-            label="Remaining Due"
-            value={formatRemainingDue(account)}
-            accent="warning"
-          />
-        </StatGrid>
-
         <nav className={styles.actionGroup} role="tablist" aria-label="Rent details tabs">
           <Button
             role="tab"
@@ -107,6 +90,23 @@ export function RentHistoryModal({
             Outward Rent History
           </Button>
         </nav>
+
+        <StatGrid label={`Rent summary for ${account.grnNumber}`}>
+          <StatCard
+            label={account.rentType === 'Monthly' && account.rentAmount === 0 ? 'Rent Status' : 'Total Billed'}
+            value={formatRentStructure(account)}
+          />
+          <StatCard
+            label="Total Paid"
+            value={`₹${account.totalPaid.toLocaleString('en-IN')}`}
+            accent="success"
+          />
+          <StatCard
+            label="Remaining Due"
+            value={formatRemainingDue(account)}
+            accent="warning"
+          />
+        </StatGrid>
 
         {activeTab === 'cash-memos' ? (
           <RentCashMemosTab
