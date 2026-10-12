@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { PaymentMode, RentSummaryDto } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { printHtmlDocument } from '@/lib/print-document';
@@ -12,63 +12,75 @@ interface UseCollectPaymentFormProps {
   onPaymentSuccess: (summary?: RentSummaryDto) => void;
 }
 
-export type SettlementOption = 'TOTAL' | 'PARTIAL' | 'MANUAL_CASH';
+import {
+  calculatePendingAfterPayment,
+  isCollectPaymentFormDirty,
+  validateCollectPayment,
+  type CollectPaymentFormValues,
+} from './collectPayment.helper';
+
+export {
+  calculatePendingAfterPayment,
+  isCollectPaymentFormDirty,
+  validateCollectPayment,
+  type CollectPaymentFormValues,
+};
 
 export function useCollectPaymentForm({
   account,
   selectedFacilityId,
   onPaymentSuccess,
 }: UseCollectPaymentFormProps) {
-  const [settlementOption, setSettlementOption] = useState<SettlementOption>('TOTAL');
-  const [isCustomPayment, setIsCustomPayment] = useState(false);
-  const [customBillRef, setCustomBillRef] = useState('');
-  const [collectAmount, setCollectAmount] = useState<number | ''>(
-    account.remainingBalance > 0 ? account.remainingBalance : '',
-  );
+  const initialAmount = account.remainingBalance > 0 ? account.remainingBalance : '';
+  const initialDate = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+  const [collectAmount, setCollectAmount] = useState<number | ''>(initialAmount);
   const [collectMode, setCollectMode] = useState<PaymentMode>('Cash');
-  const [collectDate, setCollectDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [collectDate, setCollectDate] = useState(initialDate);
   const [collectNotes, setCollectNotes] = useState('');
   const [upiReference, setUpiReference] = useState('');
   const [collectError, setCollectError] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [collectSubmitting, setCollectSubmitting] = useState(false);
 
-  const selectSettlementOption = (option: SettlementOption) => {
-    setSettlementOption(option);
-    if (option === 'TOTAL') {
-      setCollectAmount(account.remainingBalance > 0 ? account.remainingBalance : '');
-    } else if (option === 'MANUAL_CASH') {
-      setCollectMode('Cash');
-    }
-  };
+  const pendingAfterPayment = useMemo(
+    () => calculatePendingAfterPayment(account.remainingBalance, collectAmount),
+    [account.remainingBalance, collectAmount],
+  );
 
-  const toggleCustomBillPayment = () => {
-    setIsCustomPayment((prev) => !prev);
-  };
-
-  const pendingAfterPayment =
-    account.remainingBalance > 0
-      ? Math.max(0, Number((account.remainingBalance - (typeof collectAmount === 'number' ? collectAmount : 0)).toFixed(2)))
-      : 0;
+  const isDirty = useMemo(
+    () =>
+      isCollectPaymentFormDirty(
+        {
+          amount: collectAmount,
+          mode: collectMode,
+          date: collectDate,
+          notes: collectNotes,
+          upiReference,
+        },
+        {
+          amount: initialAmount,
+          mode: 'Cash',
+          date: initialDate,
+          notes: '',
+          upiReference: '',
+        },
+      ),
+    [collectAmount, initialAmount, collectMode, collectDate, initialDate, collectNotes, upiReference],
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFacilityId) return;
 
-    if (typeof collectAmount !== 'number' || collectAmount < 0) {
-      setCollectError('Payment amount cannot be negative');
-      return;
-    }
-
-    if (collectAmount > account.remainingBalance) {
-      setCollectError(
-        `Amount (₹${collectAmount}) exceeds remaining balance of ₹${account.remainingBalance}`,
-      );
-      return;
-    }
-
-    if (collectMode === 'UPI' && !upiReference.trim()) {
-      setCollectError('Please enter a UPI transaction reference or ID');
+    const validationError = validateCollectPayment(
+      collectAmount,
+      account.remainingBalance,
+      collectMode,
+      upiReference,
+    );
+    if (validationError) {
+      setCollectError(validationError);
       return;
     }
 
@@ -78,7 +90,6 @@ export function useCollectPaymentForm({
     const trimmedNotes = collectNotes.trim();
     const effectiveNotes = [
       collectMode === 'UPI' ? `UPI Ref: ${upiReference.trim()}` : null,
-      isCustomPayment && customBillRef.trim() ? `Custom Bill Ref: ${customBillRef.trim()}` : null,
       trimmedNotes || null,
     ]
       .filter(Boolean)
@@ -138,12 +149,6 @@ export function useCollectPaymentForm({
   };
 
   return {
-    settlementOption,
-    selectSettlementOption,
-    isCustomPayment,
-    toggleCustomBillPayment,
-    customBillRef,
-    setCustomBillRef,
     pendingAfterPayment,
     collectAmount,
     setCollectAmount,
@@ -158,6 +163,7 @@ export function useCollectPaymentForm({
     collectError,
     previewError,
     collectSubmitting,
+    isDirty,
     handleSubmit,
     handlePreviewReceipt,
   };
