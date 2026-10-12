@@ -1,5 +1,5 @@
 import type { GrnMovementHistory } from '@cold-storage/contracts';
-import { ORG_NAME_FALLBACK } from '@/lib/branding';
+import { ORG_NAME_FALLBACK } from '../../../lib/branding';
 import { parseMovementRow } from './grnMovementView.helper';
 
 export function renderGrnStockHtml(history: GrnMovementHistory, orgName?: string): string {
@@ -47,26 +47,26 @@ export function renderGrnStockHtml(history: GrnMovementHistory, orgName?: string
   <meta charset="utf-8" />
   <title>GRN #${history.grnNumber} — Stock Movement</title>
   <style>
-    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; color: #111; padding: 20px; line-height: 1.5; }
-    .org { font-size: 14px; font-weight: bold; text-align: center; margin-bottom: 2px; }
-    .title { font-size: 11px; text-align: center; color: #555; margin-bottom: 16px; letter-spacing: 0.05em; text-transform: uppercase; }
-    .grn-header { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; background: #f8fafc; border: 1px solid #cbd5e1; padding: 10px 12px; margin-bottom: 12px; font-size: 11px; }
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 8.5px; color: #111; padding: 5mm; max-width: 148mm; margin: 0 auto; line-height: 1.3; }
+    .org { font-size: 11px; font-weight: bold; text-align: center; margin-bottom: 2px; }
+    .title { font-size: 9px; text-align: center; color: #555; margin-bottom: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
+    .grn-header { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; background: #f8fafc; border: 1px solid #cbd5e1; padding: 4px 6px; margin-bottom: 6px; font-size: 8.5px; }
     .grn-header dt { color: #64748b; }
     .grn-header dd { font-weight: 600; margin: 0; }
-    .summary { display: flex; gap: 0; border: 1px solid #cbd5e1; margin-bottom: 12px; }
-    .summary-box { flex: 1; text-align: center; padding: 8px; border-right: 1px solid #cbd5e1; }
+    .summary { display: flex; gap: 0; border: 1px solid #cbd5e1; margin-bottom: 6px; }
+    .summary-box { flex: 1; text-align: center; padding: 4px; border-right: 1px solid #cbd5e1; }
     .summary-box:last-child { border-right: none; }
-    .summary-box .sl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; }
-    .summary-box .sv { font-size: 14px; font-weight: bold; color: #111; }
-    hr { border: none; border-top: 1px solid #cbd5e1; margin: 8px 0; }
-    table { width: 100%; border-collapse: collapse; font-size: 10px; }
-    th, td { border: 1px solid #cbd5e1; padding: 5px 7px; text-align: left; }
-    th { background: #f1f5f9; font-weight: 700; text-transform: uppercase; font-size: 9px; letter-spacing: 0.04em; }
-    .signatures { display: flex; justify-content: space-between; margin-top: 36px; }
-    .sig-box { border-top: 1px solid #333; width: 180px; text-align: center; font-size: 10px; padding-top: 4px; }
+    .summary-box .sl { font-size: 7.5px; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
+    .summary-box .sv { font-size: 10px; font-weight: bold; color: #111; }
+    hr { border: none; border-top: 1px solid #cbd5e1; margin: 6px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 8px; }
+    th, td { border: 1px solid #cbd5e1; padding: 2px 4px; text-align: left; }
+    th { background: #f1f5f9; font-weight: 700; text-transform: uppercase; font-size: 7.5px; letter-spacing: 0.03em; }
+    .signatures { display: flex; justify-content: space-between; margin-top: 14px; }
+    .sig-box { border-top: 1px solid #333; width: 130px; text-align: center; font-size: 8px; padding-top: 2px; }
     @media print {
       body { padding: 0; }
-      @page { size: A4 landscape; margin: 10mm; }
+      @page { size: 148mm 105mm landscape; margin: 5mm; }
     }
   </style>
 </head>
