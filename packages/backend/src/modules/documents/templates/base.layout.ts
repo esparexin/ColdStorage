@@ -13,6 +13,7 @@ export interface BaseLayoutOptions {
   generatedBy: string;
   bodyContent: string;
   watermarkNotice?: string | null;
+  orientation?: 'portrait' | 'landscape';
 }
 
 export function escapeHtml(str: string | number | null | undefined): string {
@@ -38,6 +39,10 @@ export function renderBaseLayout(opts: BaseLayoutOptions): string {
     ? `<div class="watermark-banner">${escapeHtml(opts.watermarkNotice)}</div>`
     : '';
 
+  const orientation = opts.orientation || 'portrait';
+  const pageSize = orientation === 'landscape' ? '148mm 105mm landscape' : '105mm 148mm portrait';
+  const sheetWidth = orientation === 'landscape' ? '148mm' : '105mm';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,46 +53,48 @@ export function renderBaseLayout(opts: BaseLayoutOptions): string {
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-size: 12px;
+      font-size: 10px;
       color: #111;
-      background: #fff;
-      padding: 16px;
-      line-height: 1.4;
+      background: #f1f5f9;
+      padding: 12px;
+      line-height: 1.35;
     }
     .sheet {
-      max-width: 800px;
+      max-width: ${sheetWidth};
+      width: 100%;
       margin: 0 auto;
       background: #fff;
-      padding: 24px;
+      padding: 6mm;
       border: 1px solid #ddd;
     }
     .header-table {
       width: 100%;
       border-bottom: 2px solid #222;
-      padding-bottom: 12px;
-      margin-bottom: 12px;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
     }
     .org-title {
-      font-size: 18px;
+      font-size: 13px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
     }
     .org-detail {
-      font-size: 11px;
+      font-size: 9px;
       color: #333;
+      line-height: 1.25;
     }
     .org-logo {
-      max-height: 60px;
-      max-width: 140px;
+      max-height: 38px;
+      max-width: 80px;
       object-fit: contain;
     }
     .facility-box {
       background: #f7f7f7;
-      padding: 6px 10px;
-      border-radius: 4px;
-      font-size: 11px;
-      margin-top: 6px;
+      padding: 4px 6px;
+      border-radius: 3px;
+      font-size: 9px;
+      margin-top: 4px;
     }
     .doc-banner {
       display: flex;
@@ -95,106 +102,44 @@ export function renderBaseLayout(opts: BaseLayoutOptions): string {
       align-items: center;
       background: #eee;
       border: 1px solid #ccc;
-      padding: 8px 12px;
-      margin: 12px 0;
+      padding: 4px 8px;
+      margin: 8px 0;
     }
     .doc-title {
-      font-size: 14px;
+      font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
     }
     .doc-meta {
       text-align: right;
-      font-size: 11px;
+      font-size: 9px;
     }
     .data-table {
       width: 100%;
       border-collapse: collapse;
-      margin: 12px 0;
+      margin: 8px 0;
+      font-size: 9.5px;
     }
-    .data-table th, .data-table td {
-      border: 1px solid #aaa;
-      padding: 6px 8px;
-      text-align: left;
-    }
-    .data-table th {
-      background: #f0f0f0;
-      font-weight: 600;
-    }
-    .text-right {
-      text-align: right;
-    }
-    .text-center {
-      text-align: center;
-    }
-    .footer-section {
-      margin-top: 24px;
-      padding-top: 12px;
-      border-top: 1px solid #ccc;
-    }
-    .signatures {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 40px;
-      padding-top: 8px;
-    }
-    .sig-box {
-      border-top: 1px solid #444;
-      width: 200px;
-      text-align: center;
-      font-size: 11px;
-      padding-top: 4px;
-    }
+    .data-table th, .data-table td { border: 1px solid #aaa; padding: 3px 5px; text-align: left; vertical-align: middle; }
+    .data-table th { background: #f0f0f0; font-weight: 600; }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .footer-section { margin-top: 14px; padding-top: 6px; border-top: 1px solid #ccc; }
+    .signatures { display: flex; justify-content: space-between; margin-top: 24px; padding-top: 4px; gap: 8px; }
+    .sig-box { border-top: 1px solid #444; flex: 1; max-width: 48%; text-align: center; font-size: 9px; padding-top: 3px; }
     .watermark-banner {
-      background: #fff3cd;
-      color: #856404;
-      border: 1px solid #ffeeba;
-      padding: 8px;
-      text-align: center;
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 12px;
+      background: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 4px 6px;
+      text-align: center; font-weight: bold; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
     }
-    .print-controls {
-      max-width: 800px;
-      margin: 0 auto 12px auto;
-      text-align: right;
-    }
-    .btn-print {
-      background: #0056b3;
-      color: #fff;
-      border: none;
-      padding: 8px 16px;
-      font-size: 13px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
+    .print-controls { max-width: ${sheetWidth}; margin: 0 auto 8px auto; text-align: right; }
+    .btn-print { background: #0056b3; color: #fff; border: none; padding: 6px 12px; font-size: 11px; border-radius: 4px; cursor: pointer; }
     @media print {
-      body {
-        padding: 0;
-        background: #fff;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-      .sheet {
-        border: none;
-        padding: 0;
-        max-width: 100%;
-      }
-      .no-print {
-        display: none !important;
-      }
-      .page-break {
-        page-break-after: always;
-      }
-      tr, table, .avoid-break {
-        page-break-inside: avoid;
-      }
-      @page {
-        size: A4 portrait;
-        margin: 12mm;
-      }
+      body { padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .sheet { border: none; padding: 0; max-width: 100%; }
+      .no-print { display: none !important; }
+      .page-break { page-break-after: always; break-after: page; }
+      tr, table, .avoid-break { page-break-inside: avoid; break-inside: avoid; }
+      @page { size: ${pageSize}; margin: 6mm; }
     }
   </style>
 </head>

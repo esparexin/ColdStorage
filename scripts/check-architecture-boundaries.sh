@@ -307,6 +307,17 @@ if [ -n "$RAW_FEEDBACK_BTN_HITS" ]; then
   fail "UI SSOT violation: raw <button> found in FeedbackStates.tsx. Use canonical Button primitive."
 fi
 
+# 30. Document Print Paper Size SSOT (A6 Only: 105 x 148 mm):
+# All document templates and print stylesheets must conform exclusively to A6 dimensions.
+# Unintended A4, A5, or Letter page-size configurations are prohibited.
+FORBIDDEN_PAGE_SIZES=$(grep -rnE "@page\s*\{[^}]*size:\s*(A4|A5|Letter)" "$ROOT/packages" \
+  --include="*.ts" --include="*.tsx" --include="*.css" \
+  --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.next 2>/dev/null || true)
+if [ -n "$FORBIDDEN_PAGE_SIZES" ]; then
+  echo "$FORBIDDEN_PAGE_SIZES"
+  fail "Document Page Size SSOT violation: print layouts must use A6 dimensions (105mm 148mm or 148mm 105mm). A4/A5/Letter sizes are prohibited."
+fi
+
 if [ "$EXIT" -eq 0 ]; then
   echo "[PASS] All architecture boundaries and UI SSOT governance checks passed."
 fi
