@@ -148,3 +148,66 @@ export function bagCompositionConsistent<T extends NormalizeCompositionInput>(va
 
 export const bagCompositionIssueMessage =
   'Bag composition is inconsistent with the declared bag type and total';
+
+/**
+ * Checks whether small and big bag quantities are explicitly verified and reconciled with total bags.
+ * Single-type bags (S or B) are verified by definition once their non-zero side matches total bags.
+ * Mixed bags (S+B or S/B) require explicit non-null small and big bag quantities summing to total.
+ */
+export function isBagCompositionVerified(input: {
+  bagType?: BagType | null;
+  bags: number;
+  smallBags?: number | null;
+  bigBags?: number | null;
+}): boolean {
+  const { bagType, bags, smallBags, bigBags } = input;
+  if (bags <= 0) return true;
+  const s = smallBags ?? 0;
+  const b = bigBags ?? 0;
+  if (s + b !== bags) return false;
+
+  if (bagType === 'S') return s === bags && b === 0;
+  if (bagType === 'B') return b === bags && s === 0;
+  if (smallBags == null || bigBags == null) return false;
+  return s + b === bags;
+}
+
+/**
+ * Validates whether rent can be calculated authoritatively without guessing or fabricating bills.
+ * If differential rates exist and composition is unverified, rent calculation must be marked pending verification.
+ */
+export function canCalculateAuthoritativeRent(input: {
+  bagType?: BagType | null;
+  bags: number;
+  smallBags?: number | null;
+  bigBags?: number | null;
+  bagPrice?: number | null;
+  smallBagPrice?: number | null;
+  bigBagPrice?: number | null;
+}): { canCalculate: boolean; reason?: string } {
+  const hasDiffRates =
+    (input.smallBagPrice != null || input.bigBagPrice != null) &&
+    input.smallBagPrice !== input.bigBagPrice;
+
+  if (hasDiffRates && !isBagCompositionVerified(input)) {
+    return {
+      canCalculate: false,
+      reason: 'Small and big bag composition unverified; differential rates require confirmed counts',
+    };
+  }
+
+  const hasAnyRate =
+    (typeof input.bagPrice === 'number' && input.bagPrice > 0) ||
+    (typeof input.smallBagPrice === 'number' && input.smallBagPrice > 0) ||
+    (typeof input.bigBagPrice === 'number' && input.bigBagPrice > 0);
+
+  if (!hasAnyRate && input.bags > 0) {
+    return {
+      canCalculate: false,
+      reason: 'No applicable storage rates configured or verified',
+    };
+  }
+
+  return { canCalculate: true };
+}
+

@@ -38,6 +38,10 @@ interface DeliveryBagCompositionFieldsProps {
   onPayRent?: (account: RentSummaryDto) => void;
   canPayRent?: boolean;
   rentSummary?: RentSummaryDto | null;
+  paymentAmount?: number | '';
+  paymentMode?: 'Cash' | 'UPI';
+  onPaymentAmountChange?: (value: number | '') => void;
+  onPaymentModeChange?: (mode: 'Cash' | 'UPI') => void;
 }
 
 export function DeliveryBagCompositionFields({
@@ -57,6 +61,10 @@ export function DeliveryBagCompositionFields({
   outwardRent,
   fieldErrors = {},
   rentSummary,
+  paymentAmount,
+  paymentMode,
+  onPaymentAmountChange,
+  onPaymentModeChange,
 }: DeliveryBagCompositionFieldsProps) {
   const { bags: bagsError, smallBags: smallError, bigBags: bigError } = fieldErrors;
   const availableTotal = summary.availableSmallBags + summary.availableBigBags;
@@ -210,6 +218,10 @@ export function DeliveryBagCompositionFields({
         pendingBalance={rentSummary?.remainingBalance}
         remainingStock={remainingStock}
         totalStock={availableTotal}
+        paymentAmount={paymentAmount}
+        paymentMode={paymentMode}
+        onPaymentAmountChange={onPaymentAmountChange}
+        onPaymentModeChange={onPaymentModeChange}
       />
     </>
   );

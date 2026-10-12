@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import type { Grn } from '@cold-storage/contracts';
-import { Badge, DataTable, Input, Select } from '@/components/ui';
+import { seasonYearForInwardDate, type Grn, type PaymentMode } from '@cold-storage/contracts';
+import { Badge, Input, Select } from '@/components/ui';
+import { MergeSourceTable } from './MergeSourceTable';
 import styles from './InternalMovementModal.module.css';
 
 interface InternalMovementMergeTabProps {
@@ -18,6 +19,9 @@ interface InternalMovementMergeTabProps {
     additionalRentAmount?: number,
     repackedSmallBags?: number,
     repackedBigBags?: number,
+    referenceWeight?: number,
+    sourcePaymentAmount?: number,
+    sourcePaymentMode?: PaymentMode,
   ) => Promise<void>;
 }
 
@@ -35,6 +39,9 @@ export function InternalMovementMergeTab({
   const [repackMode, setRepackMode] = useState(false);
   const [repackSmall, setRepackSmall] = useState<number | ''>('');
   const [repackBig, setRepackBig] = useState<number | ''>('');
+  const [referenceWeight, setReferenceWeight] = useState<number | ''>('');
+  const [sourcePaymentAmount, setSourcePaymentAmount] = useState<number | ''>('');
+  const [sourcePaymentMode, setSourcePaymentMode] = useState<PaymentMode>('Cash');
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const openGrns = useMemo(() => allGrns.filter((g) => g.status === 'OPEN'), [allGrns]);
@@ -45,8 +52,16 @@ export function InternalMovementMergeTab({
   const totalSourceRent = useMemo(() => selectedSources.reduce((acc, g) => acc + (g.rentAmount ?? 0), 0), [selectedSources]);
   const targetCurrentRemaining = targetGrn.closingBags ?? targetGrn.bags;
   const targetNewRemaining = targetCurrentRemaining + totalSourceBags;
-  const targetNewRent = (targetGrn.rentAmount ?? 0) + totalSourceRent;
   const isTargetLoanHold = targetGrn.loanStatus === 'TAKEN';
+
+  const targetSeason = useMemo(() => seasonYearForInwardDate(targetGrn.date), [targetGrn.date]);
+  const hasPreviousSeason = useMemo(() => selectedSources.some((s) => seasonYearForInwardDate(s.date) < targetSeason), [selectedSources, targetSeason]);
+  const hasUnconfirmedMix = useMemo(() => selectedSources.some((s) => {
+    const sm = s.smallBags ?? 0;
+    const bg = s.bigBags ?? 0;
+    const tot = s.closingBags ?? s.bags;
+    return (sm === 0 && bg === 0 && tot > 0) || sm + bg !== tot;
+  }), [selectedSources]);
 
   const toggleSource = (id: string) => {
     setSelectedSourceIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
@@ -57,7 +72,8 @@ export function InternalMovementMergeTab({
     setValidationError(null);
     if (selectedSourceIds.length === 0) return setValidationError('Select at least one source GRN to merge.');
     if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
-    if (isTargetLoanHold) return setValidationError(`Target GRN '${targetGrn.grnNumber}' has an active loan hold — clear the loan before merging into it.`);
+    if (isTargetLoanHold) return setValidationError(`Target GRN '${targetGrn.grnNumber}' has an active loan hold.`);
+
     let confSmall: number | undefined;
     let confBig: number | undefined;
     if (repackMode) {
@@ -70,7 +86,10 @@ export function InternalMovementMergeTab({
       confSmall = repackSmall;
       confBig = repackBig;
     }
-    await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, totalSourceRent, confSmall, confBig);
+    const refWeight = typeof referenceWeight === 'number' && referenceWeight > 0 ? referenceWeight : undefined;
+    const srcPayment = typeof sourcePaymentAmount === 'number' && sourcePaymentAmount >= 0 ? sourcePaymentAmount : undefined;
+
+    await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0, confSmall, confBig, refWeight, srcPayment, sourcePaymentMode);
   };
 
   return (
@@ -80,9 +99,9 @@ export function InternalMovementMergeTab({
           {validationError}
         </div>
       )}
-      {isTargetLoanHold && (
-        <div className={styles.noticeBox} style={{ color: 'var(--color-danger-text)', borderColor: 'var(--color-danger)' }}>
-          Target GRN {targetGrn.grnNumber} has an active loan hold — merge is blocked until the loan is cleared.
+      {hasUnconfirmedMix && (
+        <div className={styles.noticeBox} style={{ color: 'var(--color-warning-text)', borderColor: 'var(--color-warning)' }}>
+          Selected source lot has unconfirmed bag composition. Historical rent is marked <strong>Pending Verification</strong>. Confirm repacked counts below before finalizing.
         </div>
       )}
 
@@ -90,16 +109,16 @@ export function InternalMovementMergeTab({
       <div className={styles.summaryStrip}>
         <div style={{ flex: '1 1 220px', minWidth: '180px' }}>
           <Select id="target-grn-selector" label="1. Surviving Target GRN" value={targetGrnId} onChange={(e) => { setTargetGrnId(e.target.value); setSelectedSourceIds((prev) => prev.filter((id) => id !== e.target.value)); }} disabled={submitting}>
-            {openGrns.map((g) => (<option key={g.id} value={g.id}>{g.grnNumber} — {g.customerName} ({g.closingBags ?? g.bags} bags)</option>))}
+            {openGrns.map((g) => (<option key={g.id} value={g.id}>{g.grnNumber} — {g.customerName} ({g.closingBags ?? g.bags} bags, Season {seasonYearForInwardDate(g.date)})</option>))}
           </Select>
         </div>
         <div className={styles.metaItem}><span className={styles.metaLabel}>Customer</span><span className={styles.metaValue}>{targetGrn.customerName}</span></div>
         <div className={styles.metaItem}><span className={styles.metaLabel}>Commodity / Chamber</span><span className={styles.metaValue}>{targetGrn.commodityName} (Ch. {targetGrn.chamber})</span></div>
         <div className={styles.metaItem}><span className={styles.metaLabel}>Current Stock</span><span className={styles.metaValue}>{targetCurrentRemaining} Bags</span></div>
-        <div className={styles.metaItem}><span className={styles.metaLabel}>Rent Obligation</span><span className={styles.metaValue}>{targetGrn.rentAmount != null ? `₹${targetGrn.rentAmount.toLocaleString('en-IN')}` : '—'}</span></div>
+        <div className={styles.metaItem}><span className={styles.metaLabel}>Applicable Season</span><span className={styles.metaValue}>Season {targetSeason}</span></div>
       </div>
 
-      {/* Source GRNs Compact Selection List */}
+      {/* Source GRNs List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-xs)' }}>
           <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>
@@ -109,119 +128,60 @@ export function InternalMovementMergeTab({
             +{totalSourceBags} Bags Selected
           </span>
         </div>
-
-        <DataTable
-          columns={[
-            {
-              key: 'select',
-              header: 'Sel',
-              render: (sg) => (
-                <input
-                  id={`select-source-${sg.id}`}
-                  aria-label={`Select GRN ${sg.grnNumber}`}
-                  type="checkbox"
-                  checked={selectedSourceIds.includes(sg.id)}
-                  onChange={() => toggleSource(sg.id)}
-                  onClick={(e) => e.stopPropagation()}
-                  disabled={submitting}
-                />
-              ),
-            },
-            {
-              key: 'grnNumber',
-              header: 'GRN & Date',
-              render: (sg) => (
-                <div>
-                  <strong>{sg.grnNumber}</strong>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                    {new Date(sg.date).toLocaleDateString('en-IN')}
-                  </div>
-                </div>
-              ),
-            },
-            {
-              key: 'customerName',
-              header: 'Customer',
-              render: (sg) => sg.customerName,
-            },
-            {
-              key: 'commodity',
-              header: 'Commodity & Chamber',
-              render: (sg) => `${sg.commodityName} (Ch. ${sg.chamber})`,
-            },
-            {
-              key: 'availableBags',
-              header: 'Available Bags',
-              align: 'right',
-              render: (sg) => {
-                const s = sg.smallBags ?? 0;
-                const b = sg.bigBags ?? 0;
-                const tot = sg.closingBags ?? sg.bags;
-                const unconf = s === 0 && b === 0 && tot > 0;
-                return (
-                  <div>
-                    <span style={{ fontWeight: 'var(--font-semibold)' }}>{tot}</span>
-                    <div style={{ fontSize: 'var(--text-xs)', color: unconf ? 'var(--color-warning-text)' : 'var(--color-text-muted)' }}>
-                      {unconf ? 'Unconfirmed Mix' : `${s}S · ${b}B`}
-                    </div>
-                  </div>
-                );
-              },
-            },
-            {
-              key: 'rent',
-              header: 'Rent',
-              align: 'right',
-              render: (sg) => (sg.rentAmount != null ? `₹${sg.rentAmount.toLocaleString('en-IN')}` : '—'),
-            },
-            {
-              key: 'loan',
-              header: 'Loan',
-              align: 'center',
-              render: (sg) => (
-                <Badge variant={sg.loanStatus === 'CLEARED' ? 'success' : 'neutral'}>
-                  {sg.loanStatus === 'CLEARED' ? 'Cleared' : 'None'}
-                </Badge>
-              ),
-            },
-          ]}
-          rows={eligibleSources}
-          rowKey={(sg) => sg.id}
-          caption="Source GRNs to Merge"
-          emptyMessage="No other open eligible GRNs found in this facility."
-          onRowClick={!submitting ? (sg) => toggleSource(sg.id) : undefined}
+        <MergeSourceTable
+          eligibleSources={eligibleSources}
+          selectedSourceIds={selectedSourceIds}
+          targetGrnDate={targetGrn.date}
+          submitting={submitting}
+          onToggleSource={toggleSource}
         />
       </div>
 
-      {/* Review & Audit Bottom Section */}
+      {/* Review & Audit Section */}
       <div className={styles.reviewGrid}>
         <div className={styles.compactCard}>
-          <div className={styles.cardHeader}><span>3. Resulting Stock & Obligations</span><Badge variant="primary">Audit-Safe</Badge></div>
-          <div className={styles.detailRow}><span className={styles.detailLabel}>{targetGrn.grnNumber} Initial:</span><span className={styles.detailValue}>{targetCurrentRemaining} bags (₹{targetGrn.rentAmount ?? 0})</span></div>
-          <div className={styles.detailRow}><span className={styles.detailLabel}>+ Merged Sources:</span><span className={styles.detailValue}>+{totalSourceBags} bags (+₹{totalSourceRent})</span></div>
+          <div className={styles.cardHeader}><span>3. Stock & Composition Confirmation</span><Badge variant="primary">Audit-Safe</Badge></div>
+          <div className={styles.detailRow}><span className={styles.detailLabel}>{targetGrn.grnNumber} Initial:</span><span className={styles.detailValue}>{targetCurrentRemaining} bags</span></div>
+          <div className={styles.detailRow}><span className={styles.detailLabel}>+ Merged Sources:</span><span className={styles.detailValue}>+{totalSourceBags} bags</span></div>
           <div className={styles.detailRow} style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
-            <span className={styles.detailLabel}>Resulting Total:</span>
-            <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)' }}>{targetNewRemaining} Bags (₹{targetNewRent})</span>
+            <span className={styles.detailLabel}>Combined Target Stock:</span>
+            <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)' }}>{targetNewRemaining} Bags (Season {targetSeason})</span>
           </div>
+
           <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-xs)', cursor: 'pointer' }}>
-              <input type="checkbox" checked={repackMode} onChange={(e) => { setRepackMode(e.target.checked); if (!e.target.checked) { setRepackSmall(''); setRepackBig(''); } }} disabled={submitting} />
-              <span>Confirm Repacked Bag Mix</span>
+              <input type="checkbox" checked={repackMode} onChange={(e) => { setRepackMode(e.target.checked); if (!e.target.checked) { setRepackSmall(''); setRepackBig(''); setReferenceWeight(''); } }} disabled={submitting} />
+              <span>Confirm Repacked Bag Mix & Weight</span>
             </label>
             {repackMode && (
-              <div style={{ display: 'flex', gap: 'var(--space-1)', marginTop: '4px' }}>
-                <Input id="repack-small" type="number" min={0} placeholder="Small Bags" value={repackSmall} onChange={(e) => setRepackSmall(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
-                <Input id="repack-big" type="number" min={0} placeholder="Big Bags" value={repackBig} onChange={(e) => setRepackBig(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+                  <Input id="repack-small" type="number" min={0} placeholder="Small Bags" value={repackSmall} onChange={(e) => setRepackSmall(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
+                  <Input id="repack-big" type="number" min={0} placeholder="Big Bags" value={repackBig} onChange={(e) => setRepackBig(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
+                </div>
+                <Input id="reference-weight" type="number" min={0} placeholder="Total Reference Weight (kg)" value={referenceWeight} onChange={(e) => setReferenceWeight(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
               </div>
             )}
           </div>
+
+          {hasPreviousSeason && (
+            <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)', marginTop: '4px' }}>
+              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', marginBottom: '4px' }}>
+                Previous Season Settlement (₹0 or Partial Allowed)
+              </div>
+              <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+                <Input id="source-payment" type="number" min={0} placeholder="Payment Received (₹)" value={sourcePaymentAmount} onChange={(e) => setSourcePaymentAmount(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
+                <Select id="source-pay-mode" value={sourcePaymentMode} onChange={(e) => setSourcePaymentMode(e.target.value as PaymentMode)} disabled={submitting}>
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI</option>
+                </Select>
+              </div>
+            </div>
+          )}
+
           <div className={styles.formSection}>
             <label htmlFor="merge-date" className={styles.inputLabel}>Movement Date *</label>
             <Input id="merge-date" type="date" value={movementDate} onChange={(e) => setMovementDate(e.target.value)} disabled={submitting} required />
-          </div>
-          <div className={styles.noticeBox}>
-            Source GRN(s) will be set to CLOSED and linked to the surviving target GRN. Original financial
-            obligations and payments are preserved.
           </div>
         </div>
 
@@ -234,6 +194,9 @@ export function InternalMovementMergeTab({
           <div className={styles.formSection}>
             <label htmlFor="merge-remarks" className={styles.inputLabel}>Additional Remarks (Optional)</label>
             <textarea id="merge-remarks" aria-label="Additional Remarks" rows={2} className={styles.textarea} placeholder="Notes for ledger history..." value={remarks} onChange={(e) => setRemarks(e.target.value)} disabled={submitting} />
+          </div>
+          <div className={styles.noticeBox} style={{ marginTop: 'auto' }}>
+            Stock completion $\neq$ Financial settlement. Original financial obligations, payments, and balances are preserved.
           </div>
         </div>
       </div>

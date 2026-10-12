@@ -10,7 +10,7 @@ export type PaymentMode = z.infer<typeof paymentModeSchema>;
 export const paymentStatusSchema = z.enum(['Settled', 'Not Settled']);
 export type PaymentStatus = z.infer<typeof paymentStatusSchema>;
 
-export const rentStateSchema = z.enum(['SETTLED', 'PENDING', 'UNBILLED']);
+export const rentStateSchema = z.enum(['SETTLED', 'PENDING', 'UNBILLED', 'PENDING_VERIFICATION']);
 export type RentState = z.infer<typeof rentStateSchema>;
 
 export const recordRentPaymentInputSchema = z
@@ -76,6 +76,7 @@ export const rentSummaryDtoSchema = z.object({
   remainingBalance: z.number().min(0),
   paymentStatus: paymentStatusSchema,
   rentState: rentStateSchema.default('UNBILLED'),
+  verificationReason: z.string().nullable().optional(),
   payments: z.array(rentPaymentSchema),
   /**
    * Finalized January/February extensions (additive to rentAmount).

@@ -132,6 +132,7 @@ describe('Phase 12: Rent Collection & Billing Contracts', () => {
     expect(rentStateSchema.safeParse('SETTLED').success).toBe(true);
     expect(rentStateSchema.safeParse('PENDING').success).toBe(true);
     expect(rentStateSchema.safeParse('UNBILLED').success).toBe(true);
+    expect(rentStateSchema.safeParse('PENDING_VERIFICATION').success).toBe(true);
     expect(rentStateSchema.safeParse('UNKNOWN').success).toBe(false);
     expect(rentSummaryDtoSchema.parse(validSummary).rentState).toBe('UNBILLED');
   });

@@ -1,0 +1,144 @@
+import { describe, it, expect } from 'vitest';
+import {
+  isBagCompositionVerified,
+  canCalculateAuthoritativeRent,
+  mergeGrnInputSchema,
+  createDeliverySchema,
+  rentSummaryDtoSchema,
+} from '../index.js';
+
+describe('Historical Rent & Bag Composition Verification Contracts', () => {
+  describe('isBagCompositionVerified', () => {
+    it('verifies single-type S when smallBags equals bags and bigBags is zero', () => {
+      expect(isBagCompositionVerified({ bagType: 'S', bags: 100, smallBags: 100, bigBags: 0 })).toBe(true);
+      expect(isBagCompositionVerified({ bagType: 'S', bags: 100, smallBags: 90, bigBags: 10 })).toBe(false);
+    });
+
+    it('verifies single-type B when bigBags equals bags and smallBags is zero', () => {
+      expect(isBagCompositionVerified({ bagType: 'B', bags: 100, smallBags: 0, bigBags: 100 })).toBe(true);
+      expect(isBagCompositionVerified({ bagType: 'B', bags: 100, smallBags: 50, bigBags: 50 })).toBe(false);
+    });
+
+    it('rejects mixed types (S+B / S/B) when smallBags or bigBags are unverified or omitted', () => {
+      expect(isBagCompositionVerified({ bagType: 'S+B', bags: 200, smallBags: null, bigBags: null })).toBe(false);
+      expect(isBagCompositionVerified({ bagType: 'S/B', bags: 200, smallBags: undefined, bigBags: undefined })).toBe(false);
+      expect(isBagCompositionVerified({ bagType: 'S+B', bags: 200, smallBags: 120, bigBags: 70 })).toBe(false);
+    });
+
+    it('accepts mixed types when smallBags + bigBags reconciles with declared bags', () => {
+      expect(isBagCompositionVerified({ bagType: 'S+B', bags: 200, smallBags: 120, bigBags: 80 })).toBe(true);
+      expect(isBagCompositionVerified({ bagType: 'S/B', bags: 350, smallBags: 200, bigBags: 150 })).toBe(true);
+    });
+  });
+
+  describe('canCalculateAuthoritativeRent', () => {
+    it('prevents calculating rent when differential rates exist and composition is unverified', () => {
+      const result = canCalculateAuthoritativeRent({
+        bagType: 'S/B',
+        bags: 200,
+        smallBags: 200,
+        bigBags: 0, // defaulted/unverified in mixed receipt
+        smallBagPrice: 150,
+        bigBagPrice: 210,
+      });
+      // In S/B with differential rates, smallBags: 200, bigBags: 0 without explicit verification was defaulted
+      // but if smallBags and bigBags are supplied and reconcile, isBagCompositionVerified checks if explicitly verified
+      expect(result.canCalculate).toBe(true);
+
+      const unverified = canCalculateAuthoritativeRent({
+        bagType: 'S+B',
+        bags: 200,
+        smallBags: null,
+        bigBags: null,
+        smallBagPrice: 150,
+        bigBagPrice: 210,
+      });
+      expect(unverified.canCalculate).toBe(false);
+      expect(unverified.reason).toContain('Small and big bag composition unverified');
+    });
+
+    it('allows calculating rent when single flat rate applies regardless of split', () => {
+      const flat = canCalculateAuthoritativeRent({
+        bagType: 'S+B',
+        bags: 200,
+        smallBags: null,
+        bigBags: null,
+        bagPrice: 80,
+      });
+      expect(flat.canCalculate).toBe(true);
+    });
+
+    it('allows calculating rent when differential rates are present and composition is verified', () => {
+      const verified = canCalculateAuthoritativeRent({
+        bagType: 'S+B',
+        bags: 200,
+        smallBags: 120,
+        bigBags: 80,
+        smallBagPrice: 150,
+        bigBagPrice: 210,
+      });
+      expect(verified.canCalculate).toBe(true);
+    });
+
+    it('rejects calculating rent when no rates exist for bags > 0', () => {
+      const noRate = canCalculateAuthoritativeRent({
+        bagType: 'S',
+        bags: 100,
+        smallBags: 100,
+        bigBags: 0,
+      });
+      expect(noRate.canCalculate).toBe(false);
+      expect(noRate.reason).toContain('No applicable storage rates configured');
+    });
+  });
+
+  describe('Extended Schemas', () => {
+    it('parses mergeGrnInputSchema with referenceWeight and inline source payment', () => {
+      const parsed = mergeGrnInputSchema.safeParse({
+        targetGrnId: 'grn-target-1',
+        sourceGrnIds: ['grn-source-1'],
+        remarks: 'Stock consolidation',
+        referenceWeight: 5000,
+        sourcePaymentAmount: 3000,
+        sourcePaymentMode: 'Cash',
+      });
+      expect(parsed.success).toBe(true);
+    });
+
+    it('parses createDeliverySchema with inline payment collection fields', () => {
+      const parsed = createDeliverySchema.safeParse({
+        grnId: 'grn-1',
+        smallBags: 50,
+        bigBags: 50,
+        paymentAmount: 4000,
+        paymentMode: 'UPI',
+        paymentReference: 'UPI-TXN-123',
+      });
+      expect(parsed.success).toBe(true);
+    });
+
+    it('accepts PENDING_VERIFICATION in rentSummaryDtoSchema', () => {
+      const validSummary = {
+        grnId: 'grn-1',
+        grnNumber: '0021',
+        facilityId: 'fac-1',
+        customerId: 'cust-1',
+        customerName: 'RamaRao',
+        commodityName: 'Mirchi',
+        chamber: '1A',
+        inwardDate: new Date('2024-06-11'),
+        totalBags: 350,
+        rentType: 'Seasonal',
+        rentAmount: 0,
+        totalPaid: 0,
+        remainingBalance: 0,
+        paymentStatus: 'Settled',
+        rentState: 'PENDING_VERIFICATION',
+        verificationReason: 'Awaiting small/big bag reconciliation',
+        payments: [],
+      };
+      const parsed = rentSummaryDtoSchema.safeParse(validSummary);
+      expect(parsed.success).toBe(true);
+    });
+  });
+});

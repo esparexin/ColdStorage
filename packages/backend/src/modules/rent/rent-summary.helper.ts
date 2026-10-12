@@ -1,4 +1,5 @@
 import {
+  canCalculateAuthoritativeRent,
   totalRentDue,
   type RentExtension,
   type RentSummaryDto,
@@ -17,6 +18,9 @@ import { toPaymentEntity } from './handlers/record-payment.handler.js';
  * The balance is always derived from the total due (original Seasonal
  * obligation plus finalized January/February extensions). With no extensions
  * the total due equals Grn.rentAmount exactly.
+ *
+ * If differential rates exist but bag quantities are unverified/unconfirmed,
+ * historical rent calculation is marked PENDING_VERIFICATION rather than fabricating a bill.
  */
 export function buildRentSummary(
   grn: GrnDoc,
@@ -31,9 +35,22 @@ export function buildRentSummary(
     baseRent,
     extensions.map((e) => e.finalAmount),
   );
+
+  const canCalc = canCalculateAuthoritativeRent({
+    bagType: grn.bagType,
+    bags: grn.bags,
+    smallBags: grn.smallBags,
+    bigBags: grn.bigBags,
+    bagPrice: grn.bagPrice,
+    smallBagPrice: grn.smallBagPrice,
+    bigBagPrice: grn.bigBagPrice,
+  });
+
+  const isPendingVerification = baseRent === 0 && payments.length === 0 && !canCalc.canCalculate;
   const balance = computeRentBalance(
     totalDue,
     payments.reduce((sum, p) => sum + p.amountPaid, 0),
+    { isPendingVerification },
   );
 
   return {
@@ -59,6 +76,7 @@ export function buildRentSummary(
     remainingBalance: balance.remainingBalance,
     paymentStatus: balance.paymentStatus,
     rentState: balance.rentState,
+    verificationReason: isPendingVerification ? (canCalc.reason ?? 'Small and big bag composition unverified') : null,
     payments: payments.map((p) => toPaymentEntity(p)),
     extensions,
     totalDue: balance.rentAmount,

@@ -79,7 +79,16 @@ export async function mergeGrn(
           throw new Error(`Source GRN '${s.grnNumber}' has zero remaining bags to merge`);
         }
 
-        const rentResolution = await resolveSourceRentObligation(facilityId, s, moveDate, session);
+        const rentResolution = await resolveSourceRentObligation({
+          facilityId,
+          sourceGrn: s,
+          targetGrnDate: targetGrn.date,
+          movementDate: moveDate,
+          sourcePaymentAmount: input.sourcePaymentAmount,
+          sourcePaymentMode: input.sourcePaymentMode,
+          userId,
+          session,
+        });
         totalSourcePendingRent += rentResolution.rentBal.remainingBalance;
 
         totalMovedBags += bal.total;
@@ -87,17 +96,9 @@ export async function mergeGrn(
         totalMovedBig += bal.bigBags;
 
         const summaryStr = await closeSourceGrnOnMerge({
-          facilityId,
-          sourceGrn: s,
-          targetGrnNumber: targetGrn.grnNumber,
-          targetGrnId: targetGrn.id,
-          movementId,
-          movementDate: moveDate,
-          ledgerBalance: bal,
-          rentResolution,
-          remarks: input.remarks,
-          userId,
-          session,
+          facilityId, sourceGrn: s, targetGrnNumber: targetGrn.grnNumber, targetGrnId: targetGrn.id,
+          movementId, movementDate: moveDate, ledgerBalance: bal, rentResolution,
+          remarks: input.remarks, userId, session,
         });
         sourceSummaries.push(summaryStr);
       }

@@ -12,6 +12,9 @@ export const mergeGrnInputSchema = z.object({
   remarks: z.string().trim().min(3, 'Remarks must be at least 3 characters').max(500),
   repackedSmallBags: z.number().int().min(0).nullish(),
   repackedBigBags: z.number().int().min(0).nullish(),
+  referenceWeight: z.number().positive('Reference weight must be greater than zero').max(1000000).nullish(),
+  sourcePaymentAmount: z.number().min(0, 'Payment amount cannot be negative').nullish(),
+  sourcePaymentMode: paymentModeSchema.nullish(),
 });
 export type MergeGrnInput = z.infer<typeof mergeGrnInputSchema>;
 

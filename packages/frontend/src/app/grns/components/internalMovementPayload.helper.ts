@@ -11,7 +11,7 @@
  * without importing React/CSS.
  */
 
-import type { TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
+import type { PaymentMode, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
 
 export interface MergePayload {
   targetGrnId: string;
@@ -21,6 +21,9 @@ export interface MergePayload {
   additionalRentAmount: number;
   repackedSmallBags?: number;
   repackedBigBags?: number;
+  referenceWeight?: number;
+  sourcePaymentAmount?: number;
+  sourcePaymentMode?: PaymentMode;
 }
 
 export interface TransferPayload {
@@ -46,6 +49,9 @@ export function buildMergePayload(
   additionalRentAmount?: number,
   repackedSmallBags?: number,
   repackedBigBags?: number,
+  referenceWeight?: number,
+  sourcePaymentAmount?: number,
+  sourcePaymentMode?: PaymentMode,
 ): MergePayload {
   return {
     targetGrnId,
@@ -55,6 +61,9 @@ export function buildMergePayload(
     additionalRentAmount: additionalRentAmount ?? 0,
     repackedSmallBags,
     repackedBigBags,
+    referenceWeight,
+    sourcePaymentAmount,
+    sourcePaymentMode,
   };
 }
 

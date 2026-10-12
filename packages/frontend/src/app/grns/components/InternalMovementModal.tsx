@@ -63,6 +63,9 @@ export function InternalMovementModal({
     additionalRentAmount?: number,
     repackedSmallBags?: number,
     repackedBigBags?: number,
+    referenceWeight?: number,
+    sourcePaymentAmount?: number,
+    sourcePaymentMode?: import('@cold-storage/contracts').PaymentMode,
   ) => {
     setSubmitting(true);
     setError(null);
@@ -82,6 +85,9 @@ export function InternalMovementModal({
               additionalRentAmount,
               repackedSmallBags,
               repackedBigBags,
+              referenceWeight,
+              sourcePaymentAmount,
+              sourcePaymentMode,
             ),
           ),
         },
