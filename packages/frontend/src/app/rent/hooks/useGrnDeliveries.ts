@@ -11,6 +11,8 @@ export {
   deriveOutwardPeriodLabel,
   formatOutwardBagBreakdown,
   summarizeOutwardRent,
+  parseMergedGrnNotes,
+  type MergedGrnNote,
   type OutwardBagCategory,
   type OutwardRentSummaryMetrics,
 } from './rentDeliveries.helper';

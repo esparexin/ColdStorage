@@ -87,6 +87,7 @@ export const rentSummaryDtoSchema = z.object({
    * no extensions exist, so pre-extension balances are unchanged.
    */
   totalDue: rentalAmountSchema.default(0),
+  remarks: z.string().nullable().optional(),
 });
 
 export type RentSummaryDto = z.infer<typeof rentSummaryDtoSchema>;

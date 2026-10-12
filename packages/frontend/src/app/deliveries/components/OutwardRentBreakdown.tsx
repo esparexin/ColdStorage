@@ -19,6 +19,8 @@ interface OutwardRentBreakdownProps {
   rentMonths?: number | null;
   totalRent: number;
   pendingBalance?: number;
+  remainingStock?: number;
+  totalStock?: number;
 }
 
 interface RentBreakdownItem {
@@ -74,9 +76,14 @@ export function OutwardRentBreakdown({
   rentMonths,
   totalRent,
   pendingBalance,
+  remainingStock,
+  totalStock,
 }: OutwardRentBreakdownProps) {
   const isSeasonal = rentType === 'Seasonal';
   const totalWithdrawing = smallBags + bigBags;
+  const isFullOutward = remainingStock !== undefined && remainingStock === 0 && totalWithdrawing > 0;
+  const priorPending = pendingBalance ?? 0;
+  const totalDueToSettle = priorPending + totalRent;
 
   const seasonalBreakdown = useMemo(
     () =>
@@ -163,13 +170,50 @@ export function OutwardRentBreakdown({
         }
       />
 
-      {pendingBalance != null && pendingBalance > 0 && (
-        <div className={styles.paymentSummary}>
+      {totalWithdrawing > 0 ? (
+        <div className={styles.settlementBox} id="outward-settlement-summary">
+          <div className={styles.settlementHeader}>
+            <span style={{ fontWeight: 'var(--font-semibold)', fontSize: 'var(--text-xs)' }}>
+              {isFullOutward ? 'Full Outward Settlement' : 'Partial Outward Movement'}
+            </span>
+            <Badge variant={isFullOutward ? 'primary' : 'neutral'}>
+              {isFullOutward ? 'Closing Stock (0 Bags)' : `${remainingStock} Bags Remaining`}
+            </Badge>
+          </div>
           <div className={styles.paymentRow}>
-            <span>Pending Balance on GRN (Previous Unsettled):</span>
-            <strong>₹{pendingBalance.toLocaleString('en-IN')}</strong>
+            <span>Movement Outward Rent (Calculated):</span>
+            <strong>₹{totalRent.toLocaleString('en-IN')}</strong>
+          </div>
+          <div className={styles.paymentRow}>
+            <span>Prior Unsettled Rent on GRN:</span>
+            <strong>₹{priorPending.toLocaleString('en-IN')}</strong>
+          </div>
+          <div
+            className={styles.paymentRow}
+            style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}
+          >
+            <span style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-text-primary)' }}>
+              {isFullOutward ? 'Total Outstanding Due to Settle:' : 'Cumulative Liability After Dispatch:'}
+            </span>
+            <strong style={{ color: 'var(--color-primary-text)' }}>
+              ₹{totalDueToSettle.toLocaleString('en-IN')}
+            </strong>
+          </div>
+          <div className={styles.settlementNotice}>
+            {isFullOutward
+              ? 'All remaining bags dispatched. Actual calculated rent and prior unpaid dues are displayed above. Financial settlement must be finalized before GRN closure.'
+              : 'Partial outward permitted without immediate settlement. Unpaid rent will carry forward as pending liability.'}
           </div>
         </div>
+      ) : (
+        pendingBalance != null && pendingBalance > 0 && (
+          <div className={styles.paymentSummary}>
+            <div className={styles.paymentRow}>
+              <span>Pending Balance on GRN (Previous Unsettled):</span>
+              <strong>₹{pendingBalance.toLocaleString('en-IN')}</strong>
+            </div>
+          </div>
+        )
       )}
     </div>
   );

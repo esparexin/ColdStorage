@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
 import { Badge, FeedbackStates, StatCard, StatGrid } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
@@ -8,6 +8,7 @@ import {
   categorizeOutwardBags,
   deriveOutwardPeriodLabel,
   formatOutwardBagBreakdown,
+  parseMergedGrnNotes,
   useGrnDeliveries,
 } from '../hooks/useGrnDeliveries';
 import styles from './RentOutwardHistoryTab.module.css';
@@ -19,6 +20,7 @@ interface RentOutwardHistoryTabProps {
 
 export function RentOutwardHistoryTab({ facilityId, account }: RentOutwardHistoryTabProps) {
   const { deliveries, loading, error, metrics } = useGrnDeliveries(facilityId, account.grnId);
+  const mergedNotes = useMemo(() => parseMergedGrnNotes(account.remarks), [account.remarks]);
 
   if (loading) {
     return <FeedbackStates.Loading label="Loading outward rent records..." />;
@@ -46,6 +48,49 @@ export function RentOutwardHistoryTab({ facilityId, account }: RentOutwardHistor
           value={`${metrics.smallBags.toLocaleString('en-IN')} S · ${metrics.bigBags.toLocaleString('en-IN')} B`}
         />
       </StatGrid>
+
+      {mergedNotes.length > 0 && (
+        <div className={styles.mergeSection}>
+          <div className={styles.sectionHeader}>
+            <h4 className={styles.sectionLabel}>
+              Internal Movements & Seasonal Continuity ({mergedNotes.length})
+            </h4>
+          </div>
+          <div className={styles.outwardList}>
+            {mergedNotes.map((note) => (
+              <div key={note.id} className={styles.outwardCard}>
+                <div className={styles.cardLeft}>
+                  <div className={styles.cardHead}>
+                    <strong className={styles.challanRef}>{note.title}</strong>
+                    <Badge variant="success">Seasonal Continuity</Badge>
+                    <Badge variant="neutral">{note.date}</Badge>
+                  </div>
+                  <span className={styles.cardMeta}>
+                    <span>+{note.bags.toLocaleString('en-IN')} bags</span>
+                    {note.repackedDetail && <span>({note.repackedDetail})</span>}
+                    <span>•</span>
+                    <span>From: {note.source}</span>
+                    {note.carriedRent > 0 && (
+                      <span>• Carried Rent: ₹{note.carriedRent.toLocaleString('en-IN')}</span>
+                    )}
+                  </span>
+                  <span className={styles.cardNotes}>
+                    Reason: {note.reason} · Absorbed into existing season without duplicate rent billing.
+                  </span>
+                </div>
+                <div className={styles.cardRight}>
+                  <strong className={styles.rentAmount}>
+                    {note.carriedRent > 0 ? `+₹${note.carriedRent.toLocaleString('en-IN')}` : '₹0'}
+                  </strong>
+                  <span className={styles.rentFormula}>
+                    {note.carriedRent > 0 ? 'Carried Pending Rent' : 'Continuous Season'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className={styles.sectionHeader}>
         <h4 className={styles.sectionLabel}>

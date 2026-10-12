@@ -208,6 +208,8 @@ export function DeliveryBagCompositionFields({
         rentMonths={rentMonths}
         totalRent={outwardRent}
         pendingBalance={rentSummary?.remainingBalance}
+        remainingStock={remainingStock}
+        totalStock={availableTotal}
       />
     </>
   );

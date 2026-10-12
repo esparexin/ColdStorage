@@ -62,5 +62,6 @@ export function buildRentSummary(
     payments: payments.map((p) => toPaymentEntity(p)),
     extensions,
     totalDue: balance.rentAmount,
+    remarks: grn.remarks ?? null,
   };
 }

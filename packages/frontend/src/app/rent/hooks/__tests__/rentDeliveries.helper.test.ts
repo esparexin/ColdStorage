@@ -4,6 +4,7 @@ import {
   categorizeOutwardBags,
   deriveOutwardPeriodLabel,
   formatOutwardBagBreakdown,
+  parseMergedGrnNotes,
   summarizeOutwardRent,
 } from '../rentDeliveries.helper';
 
@@ -139,4 +140,36 @@ describe('rentDeliveries.helper', () => {
       expect(summary.reversedCount).toBe(1);
     });
   });
+
+  describe('parseMergedGrnNotes', () => {
+    it('returns empty array when remarks is empty or null', () => {
+      expect(parseMergedGrnNotes(null)).toEqual([]);
+      expect(parseMergedGrnNotes('')).toEqual([]);
+      expect(parseMergedGrnNotes('Regular delivery remarks')).toEqual([]);
+    });
+
+    it('parses merged stock note with carried pending rent and repacked counts', () => {
+      const remarks =
+        '[MERGE RECEIVED on 2026-10-12: +50 bags (Repacked: 35 S + 15 B) from GRN-0109. Carried pending rent: ₹1200. Reason: Re-bagged into smaller sizes]';
+      const parsed = parseMergedGrnNotes(remarks);
+      expect(parsed).toHaveLength(1);
+      expect(parsed[0].bags).toBe(50);
+      expect(parsed[0].date).toBe('2026-10-12');
+      expect(parsed[0].repackedDetail).toBe('Repacked: 35 S + 15 B');
+      expect(parsed[0].source).toBe('GRN-0109');
+      expect(parsed[0].carriedRent).toBe(1200);
+      expect(parsed[0].reason).toBe('Re-bagged into smaller sizes');
+    });
+
+    it('parses merged note without repacked details or carried rent', () => {
+      const remarks =
+        '[MERGE RECEIVED on 2026-10-10: +20 bags from GRN-0105. Reason: Chamber consolidation]';
+      const parsed = parseMergedGrnNotes(remarks);
+      expect(parsed).toHaveLength(1);
+      expect(parsed[0].bags).toBe(20);
+      expect(parsed[0].carriedRent).toBe(0);
+      expect(parsed[0].reason).toBe('Chamber consolidation');
+    });
+  });
 });
+
