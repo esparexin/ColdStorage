@@ -18,7 +18,7 @@ export const recordRentPaymentInputSchema = z
     grnId: z.string().trim().min(1, 'GRN ID is required'),
     amountPaid: z
       .number({ invalid_type_error: 'Amount paid must be a number' })
-      .positive('Amount paid must be greater than zero'),
+      .min(0, 'Amount paid cannot be negative'),
     paymentMode: paymentModeSchema,
     paymentDate: z.coerce.date().default(() => new Date()),
     notes: z.string().trim().max(500, 'Notes cannot exceed 500 characters').nullish(),
@@ -43,7 +43,7 @@ export const rentPaymentSchema = z.object({
   grnId: z.string().min(1),
   grnNumber: z.string().min(1),
   receiptNumber: rentReceiptNumberSchema,
-  amountPaid: z.number().positive(),
+  amountPaid: z.number().min(0),
   paymentMode: paymentModeSchema,
   paymentDate: z.coerce.date(),
   notes: z.string().nullable().optional(),

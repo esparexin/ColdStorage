@@ -44,8 +44,15 @@ describe('Phase 12: Rent Collection & Billing Contracts', () => {
     }
   });
 
-  it('3. rejects zero or negative payment amounts', () => {
-    const invalidAmounts = [0, -1, -500, -0.01];
+  it('3. allows zero payment amounts (manual zero collection) and rejects negative amounts', () => {
+    const zeroRes = recordRentPaymentInputSchema.safeParse({
+      grnId: 'grn-123',
+      amountPaid: 0,
+      paymentMode: 'Cash',
+    });
+    expect(zeroRes.success).toBe(true);
+
+    const invalidAmounts = [-1, -500, -0.01];
     for (const amt of invalidAmounts) {
       const res = recordRentPaymentInputSchema.safeParse({
         grnId: 'grn-123',

@@ -200,4 +200,25 @@ describe('Suite 3: Rent HTTP API & RBAC Routes — rent.routes.test.ts', () => {
 
     expect(res.status).toBe(401);
   });
+
+  // 9. Allows zero-amount manual rent collection, generates receipt, and preserves remaining balance
+  it('POST /api/facilities/:facilityId/rent/collect records zero-amount payment and preserves remaining balance', async () => {
+    const res = await request(app)
+      .post(`/api/facilities/${scenario.facilityId}/rent/collect`)
+      .set('Authorization', `Bearer ${operatorToken}`)
+      .send({
+        grnId: scenario.grnId,
+        amountPaid: 0,
+        paymentMode: 'Cash',
+        paymentDate: new Date().toISOString(),
+        notes: 'Manual zero-amount entry / deferred settlement',
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.payment).toBeDefined();
+    expect(res.body.payment.amountPaid).toBe(0);
+    expect(res.body.payment.receiptNumber).toMatch(/^RRCPT-\d{2}-\d{2}-\d{4}$/);
+    expect(res.body.summary.remainingBalance).toBe(scenario.rentAmount);
+    expect(res.body.summary.paymentStatus).toBe('Not Settled');
+  });
 });

@@ -106,7 +106,7 @@ export function CollectPaymentModal({
             <input
               id="collect-amount"
               type="number"
-              min={1}
+              min={0}
               max={account.remainingBalance > 0 ? account.remainingBalance : undefined}
               step="0.01"
               required
@@ -116,7 +116,7 @@ export function CollectPaymentModal({
               value={collectAmount}
               aria-invalid={Boolean(collectError)}
               aria-describedby={collectError ? 'collect-error' : undefined}
-              onChange={(e) => setCollectAmount(e.target.value ? parseFloat(e.target.value) : '')}
+              onChange={(e) => setCollectAmount(e.target.value !== '' ? parseFloat(e.target.value) : '')}
             />
           </div>
 
@@ -169,7 +169,7 @@ export function CollectPaymentModal({
 
         <div className={styles.modalFooter}>
           <Button variant="outline" onClick={onClose} disabled={collectSubmitting}>Cancel</Button>
-          <Button id="confirm-collect-payment-btn" type="submit" variant="primary" disabled={collectSubmitting || typeof collectAmount !== 'number' || collectAmount <= 0} isLoading={collectSubmitting}>
+          <Button id="confirm-collect-payment-btn" type="submit" variant="primary" disabled={collectSubmitting || typeof collectAmount !== 'number' || collectAmount < 0} isLoading={collectSubmitting}>
             Collect & Issue Cash Memo
           </Button>
         </div>
