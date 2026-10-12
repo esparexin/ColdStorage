@@ -12,11 +12,16 @@ interface UseCollectPaymentFormProps {
   onPaymentSuccess: (summary?: RentSummaryDto) => void;
 }
 
+export type SettlementOption = 'TOTAL' | 'PARTIAL' | 'MANUAL_CASH';
+
 export function useCollectPaymentForm({
   account,
   selectedFacilityId,
   onPaymentSuccess,
 }: UseCollectPaymentFormProps) {
+  const [settlementOption, setSettlementOption] = useState<SettlementOption>('TOTAL');
+  const [isCustomPayment, setIsCustomPayment] = useState(false);
+  const [customBillRef, setCustomBillRef] = useState('');
   const [collectAmount, setCollectAmount] = useState<number | ''>(
     account.remainingBalance > 0 ? account.remainingBalance : '',
   );
@@ -27,6 +32,24 @@ export function useCollectPaymentForm({
   const [collectError, setCollectError] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [collectSubmitting, setCollectSubmitting] = useState(false);
+
+  const selectSettlementOption = (option: SettlementOption) => {
+    setSettlementOption(option);
+    if (option === 'TOTAL') {
+      setCollectAmount(account.remainingBalance > 0 ? account.remainingBalance : '');
+    } else if (option === 'MANUAL_CASH') {
+      setCollectMode('Cash');
+    }
+  };
+
+  const toggleCustomBillPayment = () => {
+    setIsCustomPayment((prev) => !prev);
+  };
+
+  const pendingAfterPayment =
+    account.remainingBalance > 0
+      ? Math.max(0, Number((account.remainingBalance - (typeof collectAmount === 'number' ? collectAmount : 0)).toFixed(2)))
+      : 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,10 +76,13 @@ export function useCollectPaymentForm({
     setCollectError(null);
 
     const trimmedNotes = collectNotes.trim();
-    const effectiveNotes =
-      collectMode === 'UPI'
-        ? `UPI Ref: ${upiReference.trim()}${trimmedNotes ? ` - ${trimmedNotes}` : ''}`
-        : trimmedNotes || undefined;
+    const effectiveNotes = [
+      collectMode === 'UPI' ? `UPI Ref: ${upiReference.trim()}` : null,
+      isCustomPayment && customBillRef.trim() ? `Custom Bill Ref: ${customBillRef.trim()}` : null,
+      trimmedNotes || null,
+    ]
+      .filter(Boolean)
+      .join(' - ') || undefined;
 
     try {
       const res = await requestWithAuth(
@@ -112,6 +138,13 @@ export function useCollectPaymentForm({
   };
 
   return {
+    settlementOption,
+    selectSettlementOption,
+    isCustomPayment,
+    toggleCustomBillPayment,
+    customBillRef,
+    setCustomBillRef,
+    pendingAfterPayment,
     collectAmount,
     setCollectAmount,
     collectMode,
