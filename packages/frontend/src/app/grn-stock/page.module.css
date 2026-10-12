@@ -99,55 +99,6 @@
   padding: 0 var(--space-4) var(--space-4);
 }
 
-.movementTableHeading {
-  font-size: var(--text-xs);
-  font-weight: var(--font-bold);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
-  color: var(--color-text-muted);
-}
-
-.tableWrapper {
-  overflow-x: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-.ledgerTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-  text-align: left;
-}
-
-.ledgerTable th {
-  background: var(--color-surface-2);
-  color: var(--color-text-secondary);
-  font-weight: var(--font-semibold);
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 2px solid var(--color-border);
-  white-space: nowrap;
-}
-
-.ledgerTable td {
-  padding: var(--space-1-5) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text-primary);
-  white-space: nowrap;
-}
-
-.ledgerTable tbody tr:last-child td { border-bottom: none; }
-.ledgerTable tbody tr:hover { background: var(--color-surface-2); }
-
-.rowInward   { background: var(--color-success-subtle); }
-.rowMergeIn  { background: var(--color-primary-subtle); }
-.rowTransfer { background: transparent; }
-.rowOutward  { background: transparent; }
-.rowReversal { background: var(--color-warning-subtle); }
-
 /* ── Type Tag ──────────────────────────────────────── */
 
 .typeTag {
