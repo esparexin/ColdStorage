@@ -81,4 +81,20 @@ describe('internalMovement payload helpers', () => {
     expect(payload.additionalRentAmount).toBe(1200);
     expect(mergeGrnInputSchema.safeParse(payload).success).toBe(true);
   });
+
+  it('builds a merge payload with confirmed repacked bag composition', () => {
+    const payload = buildMergePayload(
+      'grn-target',
+      ['grn-a'],
+      'Repacked lot',
+      'Confirmed mix',
+      '2026-10-10',
+      0,
+      30,
+      20,
+    );
+    expect(payload.repackedSmallBags).toBe(30);
+    expect(payload.repackedBigBags).toBe(20);
+    expect(mergeGrnInputSchema.safeParse(payload).success).toBe(true);
+  });
 });

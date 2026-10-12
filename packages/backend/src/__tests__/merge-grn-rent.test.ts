@@ -163,4 +163,53 @@ describe('Merge GRN: Rent Carry-Forward & Obligation Preservation (Phase 4)', ()
     expect(res.body.targetGrn.bags).toBe(120);
     expect(res.body.movement.financialSnapshot.remainingBalance).toBe(2200);
   });
+
+  it('merges source lot with confirmed repacked small and big bag counts and rejects mismatches', async () => {
+    const targetGrnId = await seedGrn({
+      facilityId, customerId: customerA, customerName: 'Farmer Ramesh', commodityId, commodityName: 'Wheat',
+      chamber: 'CH-01', bags: 100, bagType: 'S+B', smallBags: 40, bigBags: 60, rentType: 'Seasonal', rentAmount: 2000, grnNumber: 'GRN-26-27-0108',
+    });
+
+    const sourceGrnId = await seedGrn({
+      facilityId, customerId: customerA, customerName: 'Farmer Ramesh', commodityId, commodityName: 'Wheat',
+      chamber: 'CH-01', bags: 50, bagType: 'S+B', smallBags: 20, bigBags: 30, rentType: 'Seasonal', rentAmount: 1000, grnNumber: 'GRN-26-27-0109',
+    });
+
+    // 1. Mismatch rejection: 35 + 20 = 55 !== 50
+    const mismatchRes = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        targetGrnId,
+        sourceGrnIds: [sourceGrnId],
+        movementDate: new Date(),
+        repackedSmallBags: 35,
+        repackedBigBags: 20,
+        remarks: 'Mismatched repacking counts',
+      });
+
+    expect(mismatchRes.status).toBe(400);
+    expect(mismatchRes.body.error).toContain('must reconcile with total moved stock');
+
+    // 2. Valid repacking: 35 + 15 = 50
+    const validRes = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        targetGrnId,
+        sourceGrnIds: [sourceGrnId],
+        movementDate: new Date(),
+        repackedSmallBags: 35,
+        repackedBigBags: 15,
+        remarks: 'Re-bagged into 35 small and 15 big',
+      });
+
+    expect(validRes.status).toBe(200);
+    expect(validRes.body.success).toBe(true);
+    expect(validRes.body.targetGrn.bags).toBe(150);
+    expect(validRes.body.targetGrn.smallBags).toBe(75); // 40 + 35
+    expect(validRes.body.targetGrn.bigBags).toBe(75); // 60 + 15
+    expect(validRes.body.movement.smallBagsMoved).toBe(35);
+    expect(validRes.body.movement.bigBagsMoved).toBe(15);
+  });
 });

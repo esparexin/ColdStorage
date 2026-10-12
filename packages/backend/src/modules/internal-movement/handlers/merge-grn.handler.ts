@@ -102,6 +102,17 @@ export async function mergeGrn(
         sourceSummaries.push(summaryStr);
       }
 
+      if (input.repackedSmallBags != null && input.repackedBigBags != null) {
+        const repackedTotal = input.repackedSmallBags + input.repackedBigBags;
+        if (repackedTotal !== totalMovedBags) {
+          throw new Error(
+            `Confirmed repacked counts (${input.repackedSmallBags} small + ${input.repackedBigBags} big = ${repackedTotal}) must reconcile with total moved stock of ${totalMovedBags} bags`,
+          );
+        }
+        totalMovedSmall = input.repackedSmallBags;
+        totalMovedBig = input.repackedBigBags;
+      }
+
       await InventoryTransactionModel.create(
         [
           {
@@ -136,7 +147,8 @@ export async function mergeGrn(
       const newRentAmount = targetGrn.rentAmount + finalCarriedRent;
 
       const moveDateStr = moveDate.toISOString().split('T')[0];
-      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${totalMovedBags} bags from ${sourceSummaries.join('; ')}. Carried pending rent: ₹${finalCarriedRent}. Reason: ${input.remarks.trim()}]`;
+      const repackedNote = input.repackedSmallBags != null ? ` (Repacked: ${totalMovedSmall} S + ${totalMovedBig} B)` : '';
+      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${totalMovedBags} bags${repackedNote} from ${sourceSummaries.join('; ')}. Carried pending rent: ₹${finalCarriedRent}. Reason: ${input.remarks.trim()}]`;
       const updatedTargetRemarks = targetGrn.remarks ? `${targetGrn.remarks}\n${targetNote}` : targetNote;
 
       const updatedTarget = await GrnModel.findOneAndUpdate(

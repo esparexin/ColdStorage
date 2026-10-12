@@ -19,6 +19,8 @@ export interface MergePayload {
   movementDate: string;
   remarks: string;
   additionalRentAmount: number;
+  repackedSmallBags?: number;
+  repackedBigBags?: number;
 }
 
 export interface TransferPayload {
@@ -42,6 +44,8 @@ export function buildMergePayload(
   remarks?: string,
   movementDate?: string,
   additionalRentAmount?: number,
+  repackedSmallBags?: number,
+  repackedBigBags?: number,
 ): MergePayload {
   return {
     targetGrnId,
@@ -49,6 +53,8 @@ export function buildMergePayload(
     movementDate: movementDate || new Date().toISOString(),
     remarks: composeRemarks(reason, remarks),
     additionalRentAmount: additionalRentAmount ?? 0,
+    repackedSmallBags,
+    repackedBigBags,
   };
 }
 

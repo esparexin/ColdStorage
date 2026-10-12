@@ -10,6 +10,8 @@ export const mergeGrnInputSchema = z.object({
   movementDate: z.coerce.date().default(() => new Date()),
   additionalRentAmount: z.number().min(0).default(0),
   remarks: z.string().trim().min(3, 'Remarks must be at least 3 characters').max(500),
+  repackedSmallBags: z.number().int().min(0).nullish(),
+  repackedBigBags: z.number().int().min(0).nullish(),
 });
 export type MergeGrnInput = z.infer<typeof mergeGrnInputSchema>;
 

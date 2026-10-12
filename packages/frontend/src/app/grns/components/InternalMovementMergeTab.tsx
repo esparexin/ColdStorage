@@ -16,6 +16,8 @@ interface InternalMovementMergeTabProps {
     remarks?: string,
     movementDate?: string,
     additionalRentAmount?: number,
+    repackedSmallBags?: number,
+    repackedBigBags?: number,
   ) => Promise<void>;
 }
 
@@ -30,6 +32,9 @@ export function InternalMovementMergeTab({
   const [movementDate, setMovementDate] = useState(new Date().toISOString().slice(0, 10));
   const [reason, setReason] = useState('');
   const [remarks, setRemarks] = useState('');
+  const [repackMode, setRepackMode] = useState(false);
+  const [repackSmall, setRepackSmall] = useState<number | ''>('');
+  const [repackBig, setRepackBig] = useState<number | ''>('');
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const openGrns = useMemo(() => allGrns.filter((g) => g.status === 'OPEN'), [allGrns]);
@@ -52,10 +57,20 @@ export function InternalMovementMergeTab({
     setValidationError(null);
     if (selectedSourceIds.length === 0) return setValidationError('Select at least one source GRN to merge.');
     if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
-    // Client-side mirror of the backend guard (merge-grn.handler rejects TAKEN
-    // targets) so the operator learns before the round-trip, with identical wording.
     if (isTargetLoanHold) return setValidationError(`Target GRN '${targetGrn.grnNumber}' has an active loan hold — clear the loan before merging into it.`);
-    await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, totalSourceRent);
+    let confSmall: number | undefined;
+    let confBig: number | undefined;
+    if (repackMode) {
+      if (typeof repackSmall !== 'number' || typeof repackBig !== 'number') {
+        return setValidationError('Both Small and Big bag counts must be confirmed when repacking.');
+      }
+      if (repackSmall + repackBig !== totalSourceBags) {
+        return setValidationError(`Repacked counts (${repackSmall}S + ${repackBig}B = ${repackSmall + repackBig}) must reconcile with source stock (${totalSourceBags} bags).`);
+      }
+      confSmall = repackSmall;
+      confBig = repackBig;
+    }
+    await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, totalSourceRent, confSmall, confBig);
   };
 
   return (
@@ -74,19 +89,8 @@ export function InternalMovementMergeTab({
       {/* Target GRN Summary Strip */}
       <div className={styles.summaryStrip}>
         <div style={{ flex: '1 1 220px', minWidth: '180px' }}>
-          <Select
-            id="target-grn-selector"
-            label="1. Surviving Target GRN"
-            value={targetGrnId}
-            onChange={(e) => {
-              setTargetGrnId(e.target.value);
-              setSelectedSourceIds((prev) => prev.filter((id) => id !== e.target.value));
-            }}
-            disabled={submitting}
-          >
-            {openGrns.map((g) => (
-              <option key={g.id} value={g.id}>{g.grnNumber} — {g.customerName} ({g.closingBags ?? g.bags} bags)</option>
-            ))}
+          <Select id="target-grn-selector" label="1. Surviving Target GRN" value={targetGrnId} onChange={(e) => { setTargetGrnId(e.target.value); setSelectedSourceIds((prev) => prev.filter((id) => id !== e.target.value)); }} disabled={submitting}>
+            {openGrns.map((g) => (<option key={g.id} value={g.id}>{g.grnNumber} — {g.customerName} ({g.closingBags ?? g.bags} bags)</option>))}
           </Select>
         </div>
         <div className={styles.metaItem}><span className={styles.metaLabel}>Customer</span><span className={styles.metaValue}>{targetGrn.customerName}</span></div>
@@ -149,11 +153,20 @@ export function InternalMovementMergeTab({
               key: 'availableBags',
               header: 'Available Bags',
               align: 'right',
-              render: (sg) => (
-                <span style={{ fontWeight: 'var(--font-semibold)' }}>
-                  {sg.closingBags ?? sg.bags}
-                </span>
-              ),
+              render: (sg) => {
+                const s = sg.smallBags ?? 0;
+                const b = sg.bigBags ?? 0;
+                const tot = sg.closingBags ?? sg.bags;
+                const unconf = s === 0 && b === 0 && tot > 0;
+                return (
+                  <div>
+                    <span style={{ fontWeight: 'var(--font-semibold)' }}>{tot}</span>
+                    <div style={{ fontSize: 'var(--text-xs)', color: unconf ? 'var(--color-warning-text)' : 'var(--color-text-muted)' }}>
+                      {unconf ? 'Unconfirmed Mix' : `${s}S · ${b}B`}
+                    </div>
+                  </div>
+                );
+              },
             },
             {
               key: 'rent',
@@ -189,6 +202,18 @@ export function InternalMovementMergeTab({
           <div className={styles.detailRow} style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
             <span className={styles.detailLabel}>Resulting Total:</span>
             <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)' }}>{targetNewRemaining} Bags (₹{targetNewRent})</span>
+          </div>
+          <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-xs)', cursor: 'pointer' }}>
+              <input type="checkbox" checked={repackMode} onChange={(e) => { setRepackMode(e.target.checked); if (!e.target.checked) { setRepackSmall(''); setRepackBig(''); } }} disabled={submitting} />
+              <span>Confirm Repacked Bag Mix</span>
+            </label>
+            {repackMode && (
+              <div style={{ display: 'flex', gap: 'var(--space-1)', marginTop: '4px' }}>
+                <Input id="repack-small" type="number" min={0} placeholder="Small Bags" value={repackSmall} onChange={(e) => setRepackSmall(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
+                <Input id="repack-big" type="number" min={0} placeholder="Big Bags" value={repackBig} onChange={(e) => setRepackBig(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
+              </div>
+            )}
           </div>
           <div className={styles.formSection}>
             <label htmlFor="merge-date" className={styles.inputLabel}>Movement Date *</label>

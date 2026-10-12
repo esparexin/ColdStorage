@@ -61,6 +61,8 @@ export function InternalMovementModal({
     remarks?: string,
     movementDate?: string,
     additionalRentAmount?: number,
+    repackedSmallBags?: number,
+    repackedBigBags?: number,
   ) => {
     setSubmitting(true);
     setError(null);
@@ -71,7 +73,16 @@ export function InternalMovementModal({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(
-            buildMergePayload(targetGrnId, sourceGrnIds, reason, remarks, movementDate, additionalRentAmount),
+            buildMergePayload(
+              targetGrnId,
+              sourceGrnIds,
+              reason,
+              remarks,
+              movementDate,
+              additionalRentAmount,
+              repackedSmallBags,
+              repackedBigBags,
+            ),
           ),
         },
       );
