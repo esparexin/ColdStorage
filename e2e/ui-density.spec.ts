@@ -134,18 +134,15 @@ test.describe('density + a11y audit', () => {
     expect(small).toEqual([]);
   });
 
-  test('mobile nav toggle and Escape leave the drawer closed', async ({ page }) => {
-    // NOTE: the drawer never reaches the open state on main either -- ResponsiveShell
-    // passes an inline onClose, so SidebarNav's useEffect([pathname, onClose]) re-fires
-    // on every render and immediately closes it. Pre-existing, tracked separately; this
-    // guards that the density pass did not regress the toggle/Escape path.
+  test('mobile nav toggle opens drawer and Escape closes it', async ({ page }) => {
+    // ResponsiveShell stabilises onClose with useCallback, so the drawer opens.
     await page.setViewportSize({ width: 360, height: 780 });
     await mockAll(page);
     await page.goto('/');
     const toggle = page.locator('#mobile-nav-toggle');
     await expect(toggle).toBeVisible();
     await toggle.click();
-    await page.waitForTimeout(300);
+    await expect(page.locator('#sidebar-navigation')).toHaveClass(/sidebarOpen/);
     await page.keyboard.press('Escape');
     await expect(page.locator('#sidebar-navigation')).not.toHaveClass(/sidebarOpen/);
   });

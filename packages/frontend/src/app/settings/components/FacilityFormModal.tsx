@@ -5,6 +5,8 @@ import type { Facility } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { Button, Input, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
+// OWNERSHIP (UI-01): shares FacilitySection.module.css by design (non-breaking);
+// do not rename section classes without updating this modal.
 import styles from './FacilitySection.module.css';
 
 export function FacilityFormModal({
