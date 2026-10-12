@@ -197,6 +197,7 @@ export function FacilitySection() {
           rows={facilities}
           rowKey={(row) => row.id}
           caption="Configured facilities"
+          onRowClick={setEditing}
         />
       )}
 

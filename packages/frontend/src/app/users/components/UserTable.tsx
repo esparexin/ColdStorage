@@ -184,6 +184,7 @@ export function UserTable({
       loadingLabel={LOADING_LABELS.users}
       error={error}
       onRetry={onRetry}
+      onRowClick={onEditUser}
       emptyMessage={
         searchTerm || roleFilter ? EMPTY_MESSAGES.usersFiltered : EMPTY_MESSAGES.usersEmpty
       }

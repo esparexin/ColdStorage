@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import type { ChamberStock } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import styles from '@/app/page.module.css';
@@ -10,6 +11,7 @@ import styles from '@/app/page.module.css';
  * column: chamber is a label, not a capacity-managed slot, so there is no denominator to show.
  */
 export function ChamberStockSection({ items }: { items: ChamberStock[] }) {
+  const router = useRouter();
   const columns: DataTableColumn<ChamberStock>[] = [
     {
       key: 'chamber',
@@ -31,6 +33,8 @@ export function ChamberStockSection({ items }: { items: ChamberStock[] }) {
         columns={columns}
         rows={items}
         rowKey={(row) => row.chamber}
+        caption="Stock by chamber"
+        onRowClick={() => router.push('/grn-stock')}
       />
     </section>
   );

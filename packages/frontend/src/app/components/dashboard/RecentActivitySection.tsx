@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import type { RecentActivityItem } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { Badge, type BadgeVariant } from '@/components/ui/Badge';
@@ -21,7 +22,16 @@ const activityTypeVariant: Record<string, BadgeVariant> = {
 };
 
 export function RecentActivitySection({ items }: { items: RecentActivityItem[] }) {
+  const router = useRouter();
   const visibleItems = items.filter((row) => row.bags > 0);
+
+  const handleRowClick = (row: RecentActivityItem) => {
+    if (row.type === 'INWARD_PUTAWAY') {
+      router.push('/grns');
+    } else {
+      router.push('/deliveries');
+    }
+  };
 
   const activityColumns: DataTableColumn<RecentActivityItem>[] = [
     {
@@ -72,6 +82,8 @@ export function RecentActivitySection({ items }: { items: RecentActivityItem[] }
           columns={activityColumns}
           rows={visibleItems}
           rowKey={(row) => row.id}
+          caption="Recent operational activity"
+          onRowClick={handleRowClick}
         />
       )}
     </section>

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import type { CommodityStock } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
@@ -14,6 +15,7 @@ export function CommodityStockSection({
   items: CommodityStock[];
   totalOccupied: number;
 }) {
+  const router = useRouter();
   const commodityColumns: DataTableColumn<CommodityStock>[] = [
     {
       key: 'name',
@@ -48,6 +50,8 @@ export function CommodityStockSection({
           columns={commodityColumns}
           rows={items}
           rowKey={(row) => row.commodityId}
+          caption="Commodity stock breakdown"
+          onRowClick={() => router.push('/grn-stock')}
         />
       )}
     </section>
