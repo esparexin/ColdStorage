@@ -92,6 +92,9 @@ export function RentHistoryModal({
                 <div className={styles.paymentHead}>
                   <strong className={styles.receiptNumber}>Season {originSeason} — Original</strong>
                   <Badge variant="primary">{account.rentType}</Badge>
+                  <Badge variant={account.remainingBalance === 0 ? 'success' : 'warning'}>
+                    {account.remainingBalance === 0 ? 'Settled' : 'Pending'}
+                  </Badge>
                 </div>
                 <span className={styles.paymentMeta}>
                   {account.totalBags.toLocaleString('en-IN')} bags · agreed rate on record
@@ -108,6 +111,9 @@ export function RentHistoryModal({
                     <strong className={styles.receiptNumber}>{periodLabel(ext)}</strong>
                     <Badge variant={ext.manualAmount != null ? 'warning' : 'neutral'}>
                       {ext.manualAmount != null ? 'Overridden' : 'Finalized'}
+                    </Badge>
+                    <Badge variant={account.remainingBalance === 0 ? 'success' : 'warning'}>
+                      {account.remainingBalance === 0 ? 'Settled' : 'Pending'}
                     </Badge>
                   </div>
                   <span className={styles.paymentMeta}>
