@@ -21,10 +21,10 @@ export function createEligibleGrnColumns({
   return [
     {
       key: 'grnNumber',
-      header: 'GRN #',
+      header: 'GRN',
       render: (row) => (
         <div className={styles.grnCell}>
-          <span className={styles.grnNumber}>GRN #{row.grnNumber}</span>
+          <span className={styles.grnNumber}>{row.grnNumber}</span>
           {row.loanStatus === 'TAKEN' && (
             <Badge variant="danger" icon={<span aria-hidden="true">🔒</span>}>
               Loan Hold

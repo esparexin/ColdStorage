@@ -126,7 +126,13 @@ describe('filterDeliveries', () => {
     expect(res[0].id).toBe('del-1');
   });
 
-  it('filters by pending payment rent status (unpaid and zero payment with outstanding balance)', () => {
+  it('filters by unsettled rent status (unpaid and zero payment with outstanding balance)', () => {
+    const res = filterDeliveries(all, '', 'UNSETTLED');
+    expect(res).toHaveLength(2);
+    expect(res.map((d) => d.id)).toEqual(['del-2', 'del-4']);
+  });
+
+  it('filters by pending payment rent status alias', () => {
     const res = filterDeliveries(all, '', 'PENDING');
     expect(res).toHaveLength(2);
     expect(res.map((d) => d.id)).toEqual(['del-2', 'del-4']);
@@ -142,7 +148,7 @@ describe('filterDeliveries', () => {
     const res1 = filterDeliveries(all, 'ravi', 'SETTLED');
     expect(res1).toHaveLength(1);
 
-    const res2 = filterDeliveries(all, 'ravi', 'PENDING');
+    const res2 = filterDeliveries(all, 'ravi', 'UNSETTLED');
     expect(res2).toHaveLength(0);
 
     const res3 = filterDeliveries(all, 'naresh', 'PARTIAL');
@@ -161,14 +167,21 @@ describe('filterDeliveries', () => {
     expect(res[0].id).toBe('del-act');
   });
 
-  it('filters by statusTab CLOSED (remaining stock is 0)', () => {
-    const activeDel = makeMockDelivery({ id: 'del-act', status: 'ISSUED', remainingTotalBags: 100 });
-    const closedDel = makeMockDelivery({ id: 'del-cls', status: 'ISSUED', remainingTotalBags: 0 });
+  it('filters by statusTab UNSETTLED and PARTIAL with distinct non-overlapping results', () => {
+    const unsettled = filterDeliveries(all, '', '', 'UNSETTLED');
+    const partial = filterDeliveries(all, '', '', 'PARTIAL');
 
-    const testSet = [activeDel, closedDel];
-    const res = filterDeliveries(testSet, '', '', 'CLOSED');
-    expect(res).toHaveLength(1);
-    expect(res[0].id).toBe('del-cls');
+    expect(unsettled.map((d) => d.id)).toEqual(['del-2', 'del-4']);
+    expect(partial.map((d) => d.id)).toEqual(['del-3']);
+
+    // Ensure distinct non-overlapping filtering behavior
+    const intersection = unsettled.filter((u) => partial.some((p) => p.id === u.id));
+    expect(intersection).toHaveLength(0);
+  });
+
+  it('returns empty array when no challans match criteria', () => {
+    const res = filterDeliveries(all, 'nonexistent-query', '', '');
+    expect(res).toHaveLength(0);
   });
 });
 
