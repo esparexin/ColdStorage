@@ -9,8 +9,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useFacility } from '@/context/FacilityContext';
 import { printHtmlDocument } from '@/lib/print-document';
 import { requestWithAuth } from '@/lib/api-client';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import { DeliveryFilterToolbar } from './components/DeliveryFilterToolbar';
-import { DeliveryNavTabs } from './components/DeliveryNavTabs';
 import { DeliveryPageModals } from './components/DeliveryPageModals';
 import { DeliveryStatusTabs } from './components/DeliveryStatusTabs';
 import { DeliveryTable } from './components/DeliveryTable';
@@ -126,11 +127,17 @@ export default function DeliveriesPage() {
           <h1 className={styles.pageTitle}>Outward Deliveries</h1>
         </div>
         <div className={styles.headerActions}>
-          <DeliveryNavTabs
-            activeTab={activeView}
-            canCreate={canCreate && Boolean(selectedFacilityId)}
-            onTabChange={handleViewChange}
-          />
+          {canCreate && selectedFacilityId && activeView === 'listing' && (
+            <Button
+              id="create-delivery-header-btn"
+              variant="primary"
+              size="sm"
+              onClick={() => handleViewChange('issue')}
+              leftIcon={<Plus size={16} aria-hidden="true" />}
+            >
+              Outward
+            </Button>
+          )}
         </div>
       </div>
 

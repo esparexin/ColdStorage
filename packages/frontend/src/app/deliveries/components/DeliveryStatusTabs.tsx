@@ -38,18 +38,6 @@ export function DeliveryStatusTabs({ currentTab, onTabChange }: DeliveryStatusTa
         Active
       </Button>
       <Button
-        id="delivery-status-tab-closed"
-        role="tab"
-        aria-selected={currentTab === 'CLOSED'}
-        variant={currentTab === 'CLOSED' ? 'secondary' : 'ghost'}
-        size="sm"
-        className={`${styles.statusTab} ${currentTab === 'CLOSED' ? styles.statusTabActive : ''}`}
-        onClick={() => onTabChange('CLOSED')}
-        leftIcon={<X size={12} aria-hidden="true" />}
-      >
-        Closed
-      </Button>
-      <Button
         id="delivery-status-tab-due"
         role="tab"
         aria-selected={currentTab === 'DUE'}
@@ -60,6 +48,18 @@ export function DeliveryStatusTabs({ currentTab, onTabChange }: DeliveryStatusTa
         leftIcon={<AlertCircle size={12} aria-hidden="true" />}
       >
         Due Payment
+      </Button>
+      <Button
+        id="delivery-status-tab-closed"
+        role="tab"
+        aria-selected={currentTab === 'CLOSED'}
+        variant={currentTab === 'CLOSED' ? 'secondary' : 'ghost'}
+        size="sm"
+        className={`${styles.statusTab} ${currentTab === 'CLOSED' ? styles.statusTabActive : ''}`}
+        onClick={() => onTabChange('CLOSED')}
+        leftIcon={<X size={12} aria-hidden="true" />}
+      >
+        Closed
       </Button>
     </div>
   );
