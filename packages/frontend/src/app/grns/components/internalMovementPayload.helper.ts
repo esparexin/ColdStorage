@@ -11,7 +11,7 @@
  * without importing React/CSS.
  */
 
-import type { PaymentMode, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
+import type { OutwardBagCategory, PaymentMode, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
 
 export interface MergePayload {
   targetGrnId: string;
@@ -21,6 +21,12 @@ export interface MergePayload {
   additionalRentAmount: number;
   repackedSmallBags?: number;
   repackedBigBags?: number;
+  // Source bag-category confirmation (outward vocabulary, informational for rent).
+  sourceBagCategory?: OutwardBagCategory;
+  sourceQuantity?: number;
+  sourceBagPrice?: number;
+  sourceSeasonalBagPrice?: number;
+  sourceMonthlyBagPrice?: number;
   referenceWeight?: number;
   sourcePaymentAmount?: number;
   sourcePaymentMode?: PaymentMode;
@@ -52,6 +58,11 @@ export function buildMergePayload(
   referenceWeight?: number,
   sourcePaymentAmount?: number,
   sourcePaymentMode?: PaymentMode,
+  sourceBagCategory?: OutwardBagCategory,
+  sourceQuantity?: number,
+  sourceBagPrice?: number,
+  sourceSeasonalBagPrice?: number,
+  sourceMonthlyBagPrice?: number,
 ): MergePayload {
   return {
     targetGrnId,
@@ -61,6 +72,11 @@ export function buildMergePayload(
     additionalRentAmount: additionalRentAmount ?? 0,
     repackedSmallBags,
     repackedBigBags,
+    sourceBagCategory,
+    sourceQuantity,
+    sourceBagPrice,
+    sourceSeasonalBagPrice,
+    sourceMonthlyBagPrice,
     referenceWeight,
     sourcePaymentAmount,
     sourcePaymentMode,
