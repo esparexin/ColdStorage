@@ -92,6 +92,12 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
   let smallMoved = 0;
   let bigMoved = 0;
 
+  if (sourceBagCategory === 'Small' || sourceBagCategory === 'Big') {
+    // No separate single-type options: Small-only and Big-only are expressed
+    // through the Small & Big split with 0 on the unused side (outward parity).
+    throw new Error('Small-only and Big-only confirmation uses the Small & Big split (enter 0 for the unused side)');
+  }
+
   if (sourceBagCategory != null && isHybridBagCategory(sourceBagCategory)) {
     // Hybrid-family confirmation (Hybrid, Mixed, Modern…): quantity plus
     // informational rates, mirroring outward Hybrid validation. Rates never
