@@ -1,5 +1,5 @@
 import type mongoose from 'mongoose';
-import type { BagComposition } from '@cold-storage/contracts';
+import { isHybridBagCategory, type BagComposition } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
@@ -22,20 +22,29 @@ export async function validateStockAndBalances(
   grn: { id: string; grnNumber: string; bagType?: string | null },
   withdrawal: BagComposition,
   session: mongoose.ClientSession,
-  isModernSize?: boolean,
+  isHybrid?: boolean,
+  requestedQuantity?: number | null,
 ): Promise<CompositionBalance> {
   const available = await readLedgerBalance(facilityId, grn.id, session);
   const remainingSmall = available.smallBags;
   const remainingBig = available.bigBags;
-  const requestedTotal = withdrawal.smallBags + withdrawal.bigBags;
+  const requestedTotal =
+    isHybrid && typeof requestedQuantity === 'number' && requestedQuantity > 0
+      ? requestedQuantity
+      : withdrawal.smallBags + withdrawal.bigBags;
 
   if (requestedTotal > available.total) {
+    if (isHybrid) {
+      throw new Error(
+        `Requested ${requestedTotal} bags exceeds the available balance of ${available.total} bags for GRN '${grn.grnNumber}'`,
+      );
+    }
     throw new Error(
       `Requested ${requestedTotal} bags exceeds the available balance of ${remainingSmall} small and ${remainingBig} big bags for GRN '${grn.grnNumber}'`,
     );
   }
 
-  if (isModernSize) {
+  if (isHybrid) {
     const allocSmall = Math.min(requestedTotal, remainingSmall);
     const allocBig = requestedTotal - allocSmall;
     withdrawal.smallBags = allocSmall;

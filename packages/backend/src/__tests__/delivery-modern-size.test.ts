@@ -121,14 +121,53 @@ describe('Modern Size (Mixed Bag) Outward Delivery Flow', () => {
     );
 
     expect(result.delivery.rentCharge).toBe(2500);
-    expect(result.delivery.smallBags).toBe(30);
-    expect(result.delivery.bigBags).toBe(20);
     expect(result.delivery.totalBags).toBe(50);
 
     expect(result.summary.remainingDeliveryBalance).toBe(50);
     const balance = await readLedgerBalance(facilityId, grn.id);
     expect(balance.smallBags).toBe(0);
     expect(balance.bigBags).toBe(50);
+    expect(balance.total).toBe(50);
+  });
+
+  it('delivers canonical Hybrid bags with single total count without artificial S/B split', async () => {
+    const { grn } = await grnService.createGrn(
+      facilityId,
+      {
+        grnNumber: 'HYB-104',
+        date: new Date(),
+        customerId,
+        commodityId: 'cmd-potato',
+        chamber: 'CH-01',
+        bags: 100,
+        bagType: 'S+B',
+        smallBags: 40,
+        bigBags: 60,
+        rentType: 'Seasonal',
+      },
+      USER_ID,
+    );
+
+    const result = await deliveryService.createDelivery(
+      facilityId,
+      {
+        grnId: grn.id,
+        quantity: 50,
+        bagCategory: 'Hybrid',
+        bagPrice: 50,
+      },
+      USER_ID,
+    );
+
+    expect(result.delivery.rentCharge).toBe(2500);
+    expect(result.delivery.bagCategory).toBe('Hybrid');
+    expect(result.delivery.totalBags).toBe(50);
+
+    const challanDoc = await DeliveryChallanModel.findOne({ id: result.delivery.id }).lean();
+    expect(challanDoc?.bagCategory).toBe('Hybrid');
+    expect((challanDoc?.smallBags ?? 0) + (challanDoc?.bigBags ?? 0)).toBe(50);
+
+    const balance = await readLedgerBalance(facilityId, grn.id);
     expect(balance.total).toBe(50);
   });
 

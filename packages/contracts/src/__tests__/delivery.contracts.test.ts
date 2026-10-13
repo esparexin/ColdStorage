@@ -224,13 +224,12 @@ describe('P6 Delivery Contracts', () => {
       id: 'del-3', facilityId: 'fac-1', challanNumber: 'CHL-25-26-0003', date: now,
       grnId: 'grn-3', grnNumber: 'GRN-25-26-0003', customerId: 'cust-1', customerName: 'Kisan Agro',
       commodityId: 'comm-1', commodityName: 'Potato', chamber: 'CH-01',
-      bagCategory: 'Hybrid', bagPrice: 65, quantity: 50, smallBags: 0, bigBags: 0, totalBags: 50,
+      bagCategory: 'Hybrid', bagPrice: 65, smallBags: 25, bigBags: 25, totalBags: 50,
       status: 'ISSUED', issuedBy: 'usr-1', createdAt: now, updatedAt: now,
     });
     expect(challanParsed.success).toBe(true);
     if (challanParsed.success) {
       expect(challanParsed.data.bagCategory).toBe('Hybrid');
-      expect(challanParsed.data.quantity).toBe(50);
       expect(challanParsed.data.totalBags).toBe(50);
     }
   });

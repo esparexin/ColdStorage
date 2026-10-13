@@ -3,6 +3,7 @@ import {
   calculate3MAdditionalMonths,
   calculateMonthlyElapsedCycles,
   calculateRentAmount,
+  isHybridBagCategory,
   resolveOutwardRates,
   resolveSeasonalElapsedPeriods,
   type BagComposition,
@@ -21,6 +22,7 @@ export interface ComputeDeliveryRentParams {
     bagPrice?: number | null;
   };
   withdrawal: BagComposition;
+  quantity?: number | null;
   deliveryDate: Date;
   session: mongoose.ClientSession;
   bagCategory?: string | null;
@@ -40,14 +42,13 @@ export async function computeExpectedDeliveryRent(
   params: ComputeDeliveryRentParams,
 ): Promise<{ expectedRentCharge: number; effectiveRates: { small: number; big: number } }> {
   const { grn, withdrawal, deliveryDate, session } = params;
-  const withdrawnTotal = withdrawal.smallBags + withdrawal.bigBags;
+  const isHybrid = isHybridBagCategory(params.bagCategory);
+  const withdrawnTotal =
+    isHybrid && typeof params.quantity === 'number' && params.quantity > 0
+      ? params.quantity
+      : withdrawal.smallBags + withdrawal.bigBags;
 
-  const isModern =
-    params.bagCategory === 'Modern' ||
-    params.bagCategory === 'Modern Size' ||
-    params.bagCategory === 'Mixed';
-
-  if (isModern) {
+  if (isHybrid) {
     const sRate = params.seasonalBagPrice ?? params.bagPrice ?? 0;
     const mRate = params.monthlyBagPrice ?? params.bagPrice ?? 0;
 

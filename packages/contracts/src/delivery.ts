@@ -109,7 +109,6 @@ export const deliveryChallanSchema = z.object({
   bagPrice: z.number().positive().nullable().optional(),
   seasonalBagPrice: z.number().positive().nullable().optional(),
   monthlyBagPrice: z.number().positive().nullable().optional(),
-  quantity: z.number().int().positive().nullable().optional(),
   smallBags: z.number().int().min(0),
   bigBags: z.number().int().min(0),
   /** Derived as smallBags + bigBags. Never stored, so the two parts cannot disagree. */
