@@ -17,16 +17,9 @@ interface InternalMovementMergeTabProps {
   allGrns: Grn[];
   submitting: boolean;
   onExecuteMerge: (
-    targetGrnId: string,
-    sourceGrnIds: string[],
-    reason: string,
-    remarks?: string,
-    movementDate?: string,
-    additionalRentAmount?: number,
-    repackedSmallBags?: number,
-    repackedBigBags?: number,
-    referenceWeight?: number,
-    sourcePaymentAmount?: number,
+    targetGrnId: string, sourceGrnIds: string[], reason: string, remarks?: string,
+    movementDate?: string, additionalRentAmount?: number, repackedSmallBags?: number,
+    repackedBigBags?: number, referenceWeight?: number, sourcePaymentAmount?: number,
     sourcePaymentMode?: PaymentMode,
   ) => Promise<void>;
 }
@@ -65,15 +58,20 @@ export function InternalMovementMergeTab({
   const isTargetDiff = (targetGrn.smallBagPrice != null || targetGrn.bigBagPrice != null) && targetGrn.smallBagPrice !== targetGrn.bigBagPrice;
   const isTargetUnverified = !isBagCompositionVerified({ bagType: targetGrn.bagType, bags: targetGrn.bags, smallBags: targetGrn.smallBags, bigBags: targetGrn.bigBags });
   const hasDiffRates = isTargetDiff || selectedSources.some((s) => (s.smallBagPrice != null || s.bigBagPrice != null) && s.smallBagPrice !== s.bigBagPrice);
-  const hasUnconfirmedMix = isTargetUnverified || selectedSources.some((s) => !isBagCompositionVerified({ bagType: s.bagType, bags: s.bags, smallBags: s.smallBags, bigBags: s.bigBags }));
+  const hasUnconfirmedMix = hasDiffRates && (isTargetUnverified || selectedSources.some((s) => !isBagCompositionVerified({ bagType: s.bagType, bags: s.bags, smallBags: s.smallBags, bigBags: s.bigBags })));
 
-  const isRepackRequired = repackMode || hasDiffRates || hasUnconfirmedMix;
+  const isRepackRequired = repackMode || hasUnconfirmedMix;
   const repackedSum = (typeof repackSmall === 'number' ? repackSmall : 0) + (typeof repackBig === 'number' ? repackBig : 0);
   const isRepackFilled = typeof repackSmall === 'number' && typeof repackBig === 'number' && Number.isInteger(repackSmall) && Number.isInteger(repackBig);
   const isRepackReconciled = isRepackFilled && repackedSum === totalSourceBags;
 
-  const movedSmall = isRepackFilled ? Number(repackSmall) : selectedSources.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
-  const movedBig = isRepackFilled ? Number(repackBig) : selectedSources.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
+  const rawMovedSmall = selectedSources.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
+  const rawMovedBig = selectedSources.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
+  const scale = totalSourceBags > 0 && rawMovedSmall + rawMovedBig > 0 && rawMovedSmall + rawMovedBig !== totalSourceBags ? totalSourceBags / (rawMovedSmall + rawMovedBig) : 1;
+  const defaultMovedSmall = scale === 1 ? rawMovedSmall : Math.round(rawMovedSmall * scale);
+  const defaultMovedBig = scale === 1 ? rawMovedBig : totalSourceBags - defaultMovedSmall;
+  const movedSmall = isRepackFilled ? Number(repackSmall) : defaultMovedSmall;
+  const movedBig = isRepackFilled ? Number(repackBig) : defaultMovedBig;
   const resultingSmall = (targetGrn.smallBags ?? 0) + movedSmall;
   const resultingBig = (targetGrn.bigBags ?? 0) + movedBig;
   const resultingBagType = useMemo(

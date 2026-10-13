@@ -16,6 +16,8 @@ export interface ValidateMergeRepackedParams {
   repackedSmallBags?: number | null;
   repackedBigBags?: number | null;
   totalMovedBags: number;
+  defaultSmallMoved?: number;
+  defaultBigMoved?: number;
   movementDate: Date;
 }
 
@@ -50,21 +52,27 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
   const isDiffTarget =
     (targetGrn.smallBagPrice != null || targetGrn.bigBagPrice != null) &&
     targetGrn.smallBagPrice !== targetGrn.bigBagPrice;
-  const isTargetVerified = isBagCompositionVerified(targetGrn);
+  const hasDiffSource = sourceGrns.some(
+    (s) =>
+      (s.smallBagPrice != null || s.bigBagPrice != null) &&
+      s.smallBagPrice !== s.bigBagPrice,
+  );
+  const hasDiffRates = isDiffTarget || hasDiffSource;
 
-  const requiresComposition =
-    isDiffTarget ||
-    !isTargetVerified ||
-    sourceGrns.some(
-      (s) =>
-        ((s.smallBagPrice != null || s.bigBagPrice != null) && s.smallBagPrice !== s.bigBagPrice) ||
-        !isBagCompositionVerified({
-          bagType: s.bagType,
-          bags: s.bags,
-          smallBags: s.smallBags,
-          bigBags: s.bigBags,
-        }),
-    );
+  const isTargetVerified = isBagCompositionVerified(targetGrn);
+  const hasUnverifiedSource = sourceGrns.some(
+    (s) =>
+      !isBagCompositionVerified({
+        bagType: s.bagType,
+        bags: s.bags,
+        smallBags: s.smallBags,
+        bigBags: s.bigBags,
+      }),
+  );
+
+  // Confirmed Small and Big counts are required when differential rates exist and composition is unconfirmed.
+  // When rates are uniform (e.g. Hybrid lots with single per-bag price), composition does not affect billing.
+  const requiresComposition = hasDiffRates && (!isTargetVerified || hasUnverifiedSource);
 
   if (requiresComposition && (repackedSmallBags == null || repackedBigBags == null)) {
     throw new Error(
@@ -96,8 +104,8 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
     smallMoved = repackedSmallBags;
     bigMoved = repackedBigBags;
   } else {
-    smallMoved = sourceGrns.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
-    bigMoved = sourceGrns.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
+    smallMoved = params.defaultSmallMoved ?? sourceGrns.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
+    bigMoved = params.defaultBigMoved ?? sourceGrns.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
   }
 
   // 4. Final bag totals reconciliation check

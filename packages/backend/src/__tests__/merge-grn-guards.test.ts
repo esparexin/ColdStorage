@@ -206,5 +206,26 @@ describe('Merge GRN input guards', () => {
     expect(res.body.targetGrn.smallBags).toBe(100);
     expect(res.body.targetGrn.bigBags).toBe(40);
   });
+
+  it('merges Hybrid uniform price lots without forcing artificial small/big split', async () => {
+    const hybridSourceId = await seedGrn({
+      facilityId, customerId: customerA, customerName: 'Guard Farmer', commodityId,
+      commodityName: 'Tamarind', chamber: 'CH-01', bags: 60, bagPrice: 50,
+      rentAmount: 3000, grnNumber: 'GRN-MGD-HYBRID',
+    });
+
+    const res = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        targetGrnId: targetId,
+        sourceGrnIds: [hybridSourceId],
+        movementDate: new Date(),
+        remarks: 'Merge hybrid uniform price lot',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.targetGrn.bags).toBe(160);
+  });
 });
 

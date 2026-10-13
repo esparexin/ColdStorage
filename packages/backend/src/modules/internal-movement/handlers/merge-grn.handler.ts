@@ -93,6 +93,8 @@ export async function mergeGrn(
         repackedSmallBags: input.repackedSmallBags,
         repackedBigBags: input.repackedBigBags,
         totalMovedBags,
+        defaultSmallMoved: totalMovedSmall,
+        defaultBigMoved: totalMovedBig,
         movementDate: moveDate,
       });
       totalMovedSmall = smallMoved;
