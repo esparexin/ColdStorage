@@ -5,7 +5,6 @@ import {
   calculateRentAmount,
   CANONICAL_BAG_RATES,
   commodityRateSchema,
-  commoditySchema,
   createCommoditySchema,
   createGrnSchema,
   deriveBagPrice,

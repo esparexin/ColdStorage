@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import type { BagType } from './bags.js';
 import { bagPriceSchema, calculateRentAmount } from './pricing.js';
-import { rentTypeSchema } from './grn-rent.js';
 import type { ExtensionPeriod } from './rent-extension.js';
 
 /**

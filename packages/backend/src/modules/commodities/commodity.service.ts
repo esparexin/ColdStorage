@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Commodity, CreateCommodityInput, UpdateCommodityInput } from '@cold-storage/contracts';
-import { CommodityModel, type CommodityDoc } from '../../database/models/commodity.model.js';
+import { CommodityModel } from '../../database/models/commodity.model.js';
 
 export class CommodityService {
   public async createCommodity(input: CreateCommodityInput): Promise<Commodity> {

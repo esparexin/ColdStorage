@@ -184,7 +184,7 @@ export class CommodityRateService {
       rentType: doc.rentType,
       smallRate: doc.smallRate,
       bigRate: doc.bigRate,
-      hamaliRate: (doc as any).hamaliRate ?? 0,
+      hamaliRate: doc.hamaliRate ?? 0,
       isActive: doc.isActive,
     };
   }
