@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  allocateHybridSplit,
   isHybridBagCategory,
   mergeGrnInputSchema,
 } from '../index.js';
@@ -62,5 +63,19 @@ describe('Merge bag-category confirmation contracts', () => {
     expect(isHybridBagCategory('Hybrid')).toBe(true);
     expect(isHybridBagCategory('S/B')).toBe(false);
     expect(isHybridBagCategory('Small & Big')).toBe(false);
+  });
+
+  describe('allocateHybridSplit (shared Outward + Internal Move allocator)', () => {
+    it('fills Small first, remainder to Big, reconciled to the requested total', () => {
+      expect(allocateHybridSplit(287, 50, 305)).toEqual({ smallBags: 287, bigBags: 18 });
+      expect(allocateHybridSplit(0, 50, 50)).toEqual({ smallBags: 0, bigBags: 50 });
+      expect(allocateHybridSplit(100, 0, 100)).toEqual({ smallBags: 100, bigBags: 0 });
+    });
+
+    it('matches the full remaining balance exactly (merge full-move case)', () => {
+      const split = allocateHybridSplit(287, 50, 337);
+      expect(split.smallBags + split.bigBags).toBe(337);
+      expect(split).toEqual({ smallBags: 287, bigBags: 50 });
+    });
   });
 });
