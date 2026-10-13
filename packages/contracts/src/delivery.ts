@@ -64,7 +64,6 @@ export const createDeliverySchema = z
     seasonalBagPrice: bagPriceSchema.nullish(),
     monthlyBagPrice: bagPriceSchema.nullish(),
     rentCharge: z.number().min(0).nullish(),
-    hamaliCharge: z.number().min(0).nullish(),
     paymentAmount: z.number().min(0, 'Payment amount cannot be negative').nullish(),
     paymentMode: paymentModeSchema.nullish(),
     paymentReference: z.string().trim().max(100).nullish(),
@@ -131,8 +130,6 @@ export const deliveryChallanSchema = z.object({
   rentTotalAmount: z.number().min(0).optional(),
   rentTotalPaid: z.number().min(0).optional(),
   rentCharge: z.number().min(0).optional(),
-  hamaliRate: z.number().min(0).nullish(),
-  hamaliCharge: z.number().min(0).optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

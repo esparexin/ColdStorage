@@ -19,6 +19,17 @@ import { rentalAmountSchema } from './common.js';
 export const extensionPeriodSchema = z.enum(['JANUARY', 'FEBRUARY', 'SEASON']);
 export type ExtensionPeriod = z.infer<typeof extensionPeriodSchema>;
 
+/**
+ * First-season eligibility for internal Hamali (feat/hamali-first-season-internal):
+ * Hamali applies while no finalized `SEASON` renewal extension exists.
+ * January/February extensions alone never end eligibility; the first finalized
+ * `SEASON` period zeroes Hamali for all subsequent seasons.
+ * Operates on the same finalized extension list used for `totalRentDue`.
+ */
+export function isFirstSeasonExtensions(extensions: Array<{ period: ExtensionPeriod }>): boolean {
+  return !extensions.some((e) => e.period === 'SEASON');
+}
+
 /** Seasonal cycle boundaries as zero-based month indexes. */
 export const SEASON_START_MONTH_INDEX = 2; // March
 export const SEASON_END_MONTH_INDEX = 11; // December
