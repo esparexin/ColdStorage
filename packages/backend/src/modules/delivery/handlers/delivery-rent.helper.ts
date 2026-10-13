@@ -1,5 +1,6 @@
 import type mongoose from 'mongoose';
 import {
+  calculate3MAdditionalMonths,
   calculateMonthlyElapsedCycles,
   calculateRentAmount,
   resolveOutwardRates,
@@ -50,6 +51,25 @@ export async function computeExpectedDeliveryRent(
     const sRate = params.seasonalBagPrice ?? params.bagPrice ?? 0;
     const mRate = params.monthlyBagPrice ?? params.bagPrice ?? 0;
 
+    if (grn.rentType === 'Seasonal_3M') {
+      const extraMonths = calculate3MAdditionalMonths(grn.date, deliveryDate);
+      const baseRent = calculateRentAmount({
+        rentType: 'Seasonal_3M',
+        bags: withdrawnTotal,
+        bagCategory: params.bagCategory,
+        bagPrice: sRate,
+        rentMonths: 1,
+      });
+      const extraRent = extraMonths > 0 ? calculateRentAmount({
+        rentType: 'Monthly',
+        bags: withdrawnTotal,
+        bagCategory: params.bagCategory,
+        bagPrice: mRate,
+        rentMonths: extraMonths,
+      }) : 0;
+      return { expectedRentCharge: baseRent + extraRent, effectiveRates: { small: sRate, big: sRate } };
+    }
+
     if (grn.rentType === 'Seasonal') {
       const elapsedPeriods = resolveSeasonalElapsedPeriods(grn.date, deliveryDate);
       let totalSeasonalRent = 0;
@@ -82,9 +102,7 @@ export async function computeExpectedDeliveryRent(
     bagPrice: grn.bagPrice,
   });
 
-  if (grn.rentType === 'Seasonal') {
-    const elapsedPeriods = resolveSeasonalElapsedPeriods(grn.date, deliveryDate);
-
+  if (grn.rentType === 'Seasonal' || grn.rentType === 'Seasonal_3M') {
     const seasonalRateDoc =
       grn.smallBagPrice == null && grn.bigBagPrice == null && grn.bagPrice == null
         ? await CommodityRateModel.findOne({
@@ -108,6 +126,32 @@ export async function computeExpectedDeliveryRent(
       ? { small: monthlyRateDoc.smallRate, big: monthlyRateDoc.bigRate }
       : seasonalRates;
 
+    if (grn.rentType === 'Seasonal_3M') {
+      const extraMonths = calculate3MAdditionalMonths(grn.date, deliveryDate);
+      const baseRent = calculateRentAmount({
+        rentType: 'Seasonal_3M',
+        bags: withdrawnTotal,
+        bagType: 'S+B',
+        smallBags: withdrawal.smallBags,
+        bigBags: withdrawal.bigBags,
+        smallBagPrice: seasonalRates.small,
+        bigBagPrice: seasonalRates.big,
+        rentMonths: 1,
+      });
+      const extraRent = extraMonths > 0 ? calculateRentAmount({
+        rentType: 'Monthly',
+        bags: withdrawnTotal,
+        bagType: 'S+B',
+        smallBags: withdrawal.smallBags,
+        bigBags: withdrawal.bigBags,
+        smallBagPrice: monthlyRates.small,
+        bigBagPrice: monthlyRates.big,
+        rentMonths: extraMonths,
+      }) : 0;
+      return { expectedRentCharge: baseRent + extraRent, effectiveRates: seasonalRates };
+    }
+
+    const elapsedPeriods = resolveSeasonalElapsedPeriods(grn.date, deliveryDate);
     let totalSeasonalRent = 0;
     for (const p of elapsedPeriods) {
       const rates = p.period === 'SEASON' ? seasonalRates : monthlyRates;
