@@ -107,4 +107,40 @@ describe('Commodity rates — commodity-rate.service.test.ts', () => {
   it('returns null lookups for unconfigured pairs (legacy path)', async () => {
     expect(await commodityRateService.getRate('cmd-rate-1', 'Monthly')).toBeNull();
   });
+
+  describe('rent-vs-hamali policy (F1)', () => {
+    beforeEach(async () => {
+      await CommodityModel.updateOne(
+        { id: 'cmd-rate-1' },
+        { $set: { isHamaliApplicable: true, hamaliRate: 20 } },
+      );
+    });
+
+    it('rejects rates at or below the Hamali rate when Hamali is enabled', async () => {
+      await expect(
+        commodityRateService.upsertRate({ commodityId: 'cmd-rate-1', rentType: 'Seasonal', smallRate: 20, bigRate: 30 }),
+      ).rejects.toThrow('must exceed the Hamali rate of ₹20/bag');
+      await expect(
+        commodityRateService.upsertRate({ commodityId: 'cmd-rate-1', rentType: 'Monthly', smallRate: 30, bigRate: 5 }),
+      ).rejects.toThrow('must exceed the Hamali rate of ₹20/bag');
+    });
+
+    it('accepts rates above the Hamali rate', async () => {
+      const rate = await commodityRateService.upsertRate({
+        commodityId: 'cmd-rate-1', rentType: 'Seasonal', smallRate: 21, bigRate: 30,
+      });
+      expect(rate).toMatchObject({ smallRate: 21, bigRate: 30 });
+    });
+
+    it('skips the policy when Hamali is disabled, even with a stale rate value', async () => {
+      await CommodityModel.updateOne(
+        { id: 'cmd-rate-1' },
+        { $set: { isHamaliApplicable: false, hamaliRate: 0 } },
+      );
+      const rate = await commodityRateService.upsertRate({
+        commodityId: 'cmd-rate-1', rentType: 'Seasonal', smallRate: 5, bigRate: 6,
+      });
+      expect(rate).toMatchObject({ smallRate: 5, bigRate: 6 });
+    });
+  });
 });

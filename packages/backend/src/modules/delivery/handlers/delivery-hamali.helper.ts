@@ -16,22 +16,32 @@ import { resolveEffectiveHamaliRate } from '../../common/hamali-resolution.js';
  */
 export async function resolveFirstSeasonOutwardShare(input: {
   facilityId: string;
-  grn: { id: string; bags: number; commodityId: string };
+  grn: { id: string; bags: number; commodityId: string; commodityName: string };
   withdrawnTotal: number;
+  expectedRentCharge: number;
   session: mongoose.ClientSession;
-}): Promise<number> {
+}): Promise<{ share: number; hamaliRate: number }> {
   const { rentExtensionRepository } = await import('../../rent/rent-extension.repository.js');
   const [commodity, extensions, netBefore] = await Promise.all([
     CommodityModel.findOne({ id: input.grn.commodityId }, null, { session: input.session }).lean().exec(),
     rentExtensionRepository.findExtensionsByGrn(input.facilityId, input.grn.id, input.session),
     readLedgerNetDelivered(input.facilityId, input.grn.id, input.session),
   ]);
-  const full = calculateHamaliAmount(
-    input.grn.bags,
-    resolveEffectiveHamaliRate(undefined, commodity),
-  );
-  if (full <= 0 || input.grn.bags <= 0) return 0;
-  if (!isFirstSeasonExtensions(extensions)) return 0;
+  const hamaliRate = resolveEffectiveHamaliRate(undefined, commodity);
+  const full = calculateHamaliAmount(input.grn.bags, hamaliRate);
+  if (full <= 0 || input.grn.bags <= 0) return { share: 0, hamaliRate };
+  if (!isFirstSeasonExtensions(extensions)) return { share: 0, hamaliRate };
   const prior = Number((full * (netBefore.total / input.grn.bags)).toFixed(2));
-  return allocateHamaliShare(full, input.withdrawnTotal, input.grn.bags, prior);
+  const share = allocateHamaliShare(full, input.withdrawnTotal, input.grn.bags, prior);
+  // Rent-vs-Hamali policy: while a share applies, the effective per-bag rent
+  // must exceed the Hamali rate. Post-renewal (share 0) is unaffected.
+  if (share > 0 && input.withdrawnTotal > 0) {
+    const perBagRent = Number((input.expectedRentCharge / input.withdrawnTotal).toFixed(2));
+    if (!(perBagRent > hamaliRate)) {
+      throw new Error(
+        `Outward rent per bag (₹${perBagRent} for ${input.withdrawnTotal} bags) must exceed the Hamali rate of ₹${hamaliRate}/bag for commodity '${input.grn.commodityName}'`,
+      );
+    }
+  }
+  return { share, hamaliRate };
 }

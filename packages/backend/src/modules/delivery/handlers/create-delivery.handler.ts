@@ -121,8 +121,9 @@ async function executeDeliveryTransaction(
         }
       }
       // Internal first-season Hamali share joins the delivery rent charge (R1/R2).
-      // Nothing is stored on the challan or GRN; the share is rent math only.
-      const hamaliShare = await resolveFirstSeasonOutwardShare({ facilityId, grn, withdrawnTotal, session });
+      const { share: hamaliShare } = await resolveFirstSeasonOutwardShare({
+        facilityId, grn, withdrawnTotal, expectedRentCharge, session,
+      });
       const deliveryRentCharge = Number((expectedRentCharge + hamaliShare).toFixed(2));
       const rentBalance = await assertRentAllowedForOutward(
         facilityId,
