@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import type { MergeGrnInput, Grn, InternalMovementRecord } from '@cold-storage/contracts';
+import { resolveMergedBagType, type Grn, type InternalMovementRecord, type MergeGrnInput } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
@@ -35,27 +35,12 @@ export async function mergeGrn(
 
   try {
     await session.withTransaction(async () => {
-      const targetGrn = await GrnModel.findOne({ id: input.targetGrnId, facilityId }, null, { session })
-        .lean()
-        .exec();
-      if (!targetGrn) {
-        throw new Error(`Target GRN '${input.targetGrnId}' not found in facility '${facilityId}'`);
-      }
-      if (targetGrn.status === 'CLOSED') {
-        throw new Error(`Cannot merge into CLOSED GRN '${targetGrn.grnNumber}'`);
-      }
-      if (targetGrn.loanStatus === 'TAKEN') {
-        throw new Error(`Target GRN '${targetGrn.grnNumber}' has an active loan hold`);
-      }
+      const targetGrn = await GrnModel.findOne({ id: input.targetGrnId, facilityId }, null, { session }).lean().exec();
+      if (!targetGrn) throw new Error(`Target GRN '${input.targetGrnId}' not found in facility '${facilityId}'`);
+      if (targetGrn.status === 'CLOSED') throw new Error(`Cannot merge into CLOSED GRN '${targetGrn.grnNumber}'`);
+      if (targetGrn.loanStatus === 'TAKEN') throw new Error(`Target GRN '${targetGrn.grnNumber}' has an active loan hold`);
 
-      const sourceGrns = await GrnModel.find(
-        { id: { $in: input.sourceGrnIds }, facilityId },
-        null,
-        { session },
-      )
-        .lean()
-        .exec();
-
+      const sourceGrns = await GrnModel.find({ id: { $in: input.sourceGrnIds }, facilityId }, null, { session }).lean().exec();
       if (sourceGrns.length !== input.sourceGrnIds.length) {
         throw new Error('One or more source GRNs were not found in this facility');
       }
@@ -69,22 +54,14 @@ export async function mergeGrn(
       const moveDate = new Date(input.movementDate);
 
       for (const s of sourceGrns) {
-        if (s.status === 'CLOSED') {
-          throw new Error(`Source GRN '${s.grnNumber}' is already CLOSED`);
-        }
+        if (s.status === 'CLOSED') throw new Error(`Source GRN '${s.grnNumber}' is already CLOSED`);
         if (s.commodityId !== targetGrn.commodityId) {
-          throw new Error(
-            `Commodity mismatch: Source GRN '${s.grnNumber}' (${s.commodityName}) does not match Target GRN '${targetGrn.grnNumber}' (${targetGrn.commodityName})`,
-          );
+          throw new Error(`Commodity mismatch: Source GRN '${s.grnNumber}' (${s.commodityName}) does not match Target GRN '${targetGrn.grnNumber}' (${targetGrn.commodityName})`);
         }
-        if (s.loanStatus === 'TAKEN') {
-          throw new Error(`Source GRN '${s.grnNumber}' has an active loan hold`);
-        }
+        if (s.loanStatus === 'TAKEN') throw new Error(`Source GRN '${s.grnNumber}' has an active loan hold`);
 
         const bal = await readLedgerBalance(facilityId, s.id, session);
-        if (bal.total <= 0) {
-          throw new Error(`Source GRN '${s.grnNumber}' has zero remaining bags to merge`);
-        }
+        if (bal.total <= 0) throw new Error(`Source GRN '${s.grnNumber}' has zero remaining bags to merge`);
 
         const rentResolution = await resolveSourceRentObligation({
           facilityId,
@@ -116,9 +93,26 @@ export async function mergeGrn(
         repackedSmallBags: input.repackedSmallBags,
         repackedBigBags: input.repackedBigBags,
         totalMovedBags,
+        movementDate: moveDate,
       });
       totalMovedSmall = smallMoved;
       totalMovedBig = bigMoved;
+
+      finalCarriedRent =
+        input.additionalRentAmount != null && input.additionalRentAmount > 0
+          ? input.additionalRentAmount
+          : totalSourcePendingRent;
+
+      const newBags = targetGrn.bags + totalMovedBags;
+      const newSmall = targetGrn.smallBags + totalMovedSmall;
+      const newBig = targetGrn.bigBags + totalMovedBig;
+      const newRentAmount = targetGrn.rentAmount + finalCarriedRent;
+      const resultingBagType = resolveMergedBagType({
+        targetBagType: targetGrn.bagType,
+        sourceBagTypes: sourceGrns.map((s) => s.bagType),
+        newSmallBags: newSmall,
+        newBigBags: newBig,
+      });
 
       await InventoryTransactionModel.create(
         [
@@ -129,7 +123,7 @@ export async function mergeGrn(
             grnNumber: targetGrn.grnNumber,
             chamber: targetGrn.chamber,
             commodityId: targetGrn.commodityId,
-            bagType: targetGrn.bagType,
+            bagType: resultingBagType,
             transactionType: 'INWARD_PUTAWAY',
             smallQuantity: totalMovedSmall,
             bigQuantity: totalMovedBig,
@@ -143,16 +137,6 @@ export async function mergeGrn(
         { session, ordered: true },
       );
 
-      finalCarriedRent =
-        input.additionalRentAmount != null && input.additionalRentAmount > 0
-          ? input.additionalRentAmount
-          : totalSourcePendingRent;
-
-      const newBags = targetGrn.bags + totalMovedBags;
-      const newSmall = targetGrn.smallBags + totalMovedSmall;
-      const newBig = targetGrn.bigBags + totalMovedBig;
-      const newRentAmount = targetGrn.rentAmount + finalCarriedRent;
-
       const moveDateStr = moveDate.toISOString().split('T')[0];
       const repackedNote = input.repackedSmallBags != null ? ` (Repacked: ${totalMovedSmall} S + ${totalMovedBig} B)` : '';
       const carriedRentNote = finalCarriedRent > 0 ? `. Carried pending rent: ₹${finalCarriedRent}` : '';
@@ -163,6 +147,7 @@ export async function mergeGrn(
         { id: targetGrn.id },
         {
           $set: {
+            bagType: resultingBagType,
             bags: newBags,
             smallBags: newSmall,
             bigBags: newBig,
@@ -178,15 +163,9 @@ export async function mergeGrn(
 
       resultTargetDoc = updatedTarget;
 
-      const targetPayments = await RentPaymentModel.find({ facilityId, grnId: targetGrn.id }, null, { session })
-        .lean()
-        .exec();
+      const targetPayments = await RentPaymentModel.find({ facilityId, grnId: targetGrn.id }, null, { session }).lean().exec();
       const targetPaid = targetPayments.reduce((sum, p) => sum + p.amountPaid, 0);
-      const targetTotalDue = await rentExtensionRepository.resolveTotalDue(
-        facilityId,
-        { id: targetGrn.id, rentAmount: newRentAmount },
-        session,
-      );
+      const targetTotalDue = await rentExtensionRepository.resolveTotalDue(facilityId, { id: targetGrn.id, rentAmount: newRentAmount }, session);
       const targetRentBal = computeRentBalance(targetTotalDue, targetPaid);
 
       const movementDocs = await InternalMovementModel.create(
@@ -203,6 +182,7 @@ export async function mergeGrn(
             totalBagsMoved: totalMovedBags,
             smallBagsMoved: totalMovedSmall,
             bigBagsMoved: totalMovedBig,
+            referenceWeight: input.referenceWeight ?? null,
             financialSnapshot: {
               rentAmount: newRentAmount,
               totalPaid: targetPaid,

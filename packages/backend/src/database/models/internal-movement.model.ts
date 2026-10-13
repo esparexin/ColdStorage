@@ -13,6 +13,7 @@ export interface InternalMovementDoc extends Document {
   totalBagsMoved: number;
   smallBagsMoved: number;
   bigBagsMoved: number;
+  referenceWeight?: number | null;
   grnId: string | null;
   grnNumber: string | null;
   fromCustomerId: string | null;
@@ -44,6 +45,7 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
     totalBagsMoved: { type: Number, default: 0, min: 0 },
     smallBagsMoved: { type: Number, default: 0, min: 0 },
     bigBagsMoved: { type: Number, default: 0, min: 0 },
+    referenceWeight: { type: Number, default: null },
     grnId: { type: String, default: null, index: true },
     grnNumber: { type: String, default: null },
     fromCustomerId: { type: String, default: null },

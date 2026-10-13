@@ -207,3 +207,23 @@ export function canCalculateAuthoritativeRent(input: {
   return { canCalculate: true };
 }
 
+/**
+ * Resolves resulting canonical bag type ('S', 'B', 'S+B', or 'S/B') when merging lots.
+ * Preserves target's existing mixed classification ('S+B' or 'S/B'). Single-type target
+ * transitions to 'S+B' (or 'S/B') when merged with opposite type or when mixed.
+ */
+export function resolveMergedBagType(input: {
+  targetBagType: BagType;
+  sourceBagTypes?: BagType[];
+  newSmallBags: number;
+  newBigBags: number;
+}): BagType {
+  const { targetBagType, sourceBagTypes = [], newSmallBags, newBigBags } = input;
+  if (newSmallBags > 0 && newBigBags === 0) return targetBagType === 'B' ? 'S' : targetBagType;
+  if (newBigBags > 0 && newSmallBags === 0) return targetBagType === 'S' ? 'B' : targetBagType;
+  if (targetBagType === 'S+B' || targetBagType === 'S/B') return targetBagType;
+  if (sourceBagTypes.includes('S+B')) return 'S+B';
+  if (sourceBagTypes.includes('S/B')) return 'S/B';
+  return 'S+B';
+}
+

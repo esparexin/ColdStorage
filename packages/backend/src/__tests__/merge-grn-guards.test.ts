@@ -139,6 +139,7 @@ describe('Merge GRN input guards', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.targetGrn.bags).toBe(150);
+    expect(res.body.movement.referenceWeight).toBe(5000);
     const auditEntry = await AuditLogModel.findOne({
       eventType: 'INTERNAL_MOVEMENT_MERGE',
       resourceId: targetId,
@@ -147,4 +148,63 @@ describe('Merge GRN input guards', () => {
       .exec();
     expect(auditEntry?.details?.['referenceWeight']).toBe(5000);
   });
+
+  it('rejects merging when source GRN belongs to a future season relative to target', async () => {
+    const futureSourceId = await seedGrn({
+      facilityId,
+      customerId: customerA,
+      customerName: 'Guard Farmer',
+      commodityId,
+      commodityName: 'Tamarind',
+      chamber: 'CH-01',
+      bags: 40,
+      rentAmount: 800,
+      grnNumber: 'GRN-MGD-FUTURE',
+      date: new Date('2028-04-15'),
+    });
+
+    const res = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        targetGrnId: targetId,
+        sourceGrnIds: [futureSourceId],
+        movementDate: new Date('2028-05-01'),
+        remarks: 'Attempt future season merge',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Season incompatibility');
+  });
+
+  it('resolves canonical bag type: transitions S target to S+B when merging B source', async () => {
+    const bigSourceId = await seedGrn({
+      facilityId,
+      customerId: customerA,
+      customerName: 'Guard Farmer',
+      commodityId,
+      commodityName: 'Tamarind',
+      chamber: 'CH-01',
+      bags: 40,
+      bagType: 'B',
+      rentAmount: 800,
+      grnNumber: 'GRN-MGD-BIG',
+    });
+
+    const res = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        targetGrnId: targetId,
+        sourceGrnIds: [bigSourceId],
+        movementDate: new Date(),
+        remarks: 'Merge big bags into small lot',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.targetGrn.bagType).toBe('S+B');
+    expect(res.body.targetGrn.smallBags).toBe(100);
+    expect(res.body.targetGrn.bigBags).toBe(40);
+  });
 });
+
