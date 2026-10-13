@@ -20,6 +20,8 @@ export interface DeliveryChallanDoc extends Document {
   bagCategory?: string | null;
   /** Manual per-bag price for Modern Size outward movements. */
   bagPrice?: number | null;
+  seasonalBagPrice?: number | null;
+  monthlyBagPrice?: number | null;
   /** Bag composition dispatched. The total is their sum and is never stored. */
   smallBags: number;
   bigBags: number;
@@ -52,6 +54,8 @@ const deliveryChallanSchema = new Schema<DeliveryChallanDoc>(
     bagType: { type: String, trim: true, default: null },
     bagCategory: { type: String, trim: true, default: null },
     bagPrice: { type: Number, default: null },
+    seasonalBagPrice: { type: Number, default: null },
+    monthlyBagPrice: { type: Number, default: null },
     smallBags: { type: Number, required: true, min: 0 },
     bigBags: { type: Number, required: true, min: 0 },
     marks: { type: String, trim: true, default: null },

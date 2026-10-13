@@ -121,4 +121,54 @@ describe('Modern Size (Mixed Bag) Outward Delivery Flow', () => {
     expect(balance.bigBags).toBe(50);
     expect(balance.total).toBe(50);
   });
+
+  it('correctly calculates and persists Hybrid outward delivery with separate seasonal and monthly rates', async () => {
+    // Multi-year seasonal storage (2024-07-10 to 2026-10-15)
+    // 3 seasons (2024, 2025, 2026) + 4 monthly extensions (Jan 2025, Feb 2025, Jan 2026, Feb 2026)
+    const { grn } = await grnService.createGrn(
+      facilityId,
+      {
+        grnNumber: 'HYB-103',
+        date: new Date('2024-07-10'),
+        customerId,
+        commodityId: 'cmd-potato',
+        chamber: 'CH-01',
+        bags: 100,
+        bagType: 'S+B',
+        smallBags: 50,
+        bigBags: 50,
+        rentType: 'Seasonal',
+      },
+      USER_ID,
+    );
+
+    const result = await deliveryService.createDelivery(
+      facilityId,
+      {
+        grnId: grn.id,
+        date: new Date('2026-10-10'),
+        quantity: 20,
+        bagCategory: 'Hybrid',
+        seasonalBagPrice: 100,
+        monthlyBagPrice: 10,
+      },
+      USER_ID,
+    );
+
+    // 20 bags:
+    // 3 seasons × (20 bags × ₹100) = ₹6,000
+    // 4 extensions × (20 bags × ₹10) = ₹800
+    // Total = ₹6,800
+    expect(result.delivery.rentCharge).toBe(6800);
+    expect(result.delivery.bagCategory).toBe('Hybrid');
+    expect(result.delivery.seasonalBagPrice).toBe(100);
+    expect(result.delivery.monthlyBagPrice).toBe(10);
+    expect(result.delivery.totalBags).toBe(20);
+
+    const challanDoc = await DeliveryChallanModel.findOne({ id: result.delivery.id }).lean();
+    expect(challanDoc?.bagCategory).toBe('Hybrid');
+    expect(challanDoc?.seasonalBagPrice).toBe(100);
+    expect(challanDoc?.monthlyBagPrice).toBe(10);
+  });
 });
+

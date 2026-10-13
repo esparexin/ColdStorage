@@ -24,13 +24,15 @@ export interface ComputeDeliveryRentParams {
   session: mongoose.ClientSession;
   bagCategory?: string | null;
   bagPrice?: number | null;
+  seasonalBagPrice?: number | null;
+  monthlyBagPrice?: number | null;
 }
 
 /**
  * Calculates the expected rent charge for outward delivery.
  * For Seasonal rent, computes multi-period elapsed seasons and extensions:
  * - March-December: Full season rate
- * - January & February: Monthly rate from Commodity Rate Table
+ * - January & February: Monthly rate from Commodity Rate Table (or manual monthlyBagPrice for Hybrid)
  * - March 1 renewals: Full renewal rate (Option A Standard Seasonal Rule)
  */
 export async function computeExpectedDeliveryRent(
@@ -39,31 +41,39 @@ export async function computeExpectedDeliveryRent(
   const { grn, withdrawal, deliveryDate, session } = params;
   const withdrawnTotal = withdrawal.smallBags + withdrawal.bigBags;
 
-  if (params.bagCategory === 'Modern Size' || params.bagCategory === 'Mixed') {
-    const rate = params.bagPrice ?? 0;
+  const isHybrid =
+    params.bagCategory === 'Modern Size' ||
+    params.bagCategory === 'Mixed' ||
+    params.bagCategory === 'Hybrid';
+
+  if (isHybrid) {
+    const sRate = params.seasonalBagPrice ?? params.bagPrice ?? 0;
+    const mRate = params.monthlyBagPrice ?? params.bagPrice ?? 0;
+
     if (grn.rentType === 'Seasonal') {
       const elapsedPeriods = resolveSeasonalElapsedPeriods(grn.date, deliveryDate);
       let totalSeasonalRent = 0;
       for (const p of elapsedPeriods) {
+        const periodRate = p.period === 'SEASON' ? sRate : mRate;
         totalSeasonalRent += calculateRentAmount({
           rentType: p.period === 'SEASON' ? 'Seasonal' : 'Monthly',
           bags: withdrawnTotal,
           bagCategory: params.bagCategory,
-          bagPrice: rate,
+          bagPrice: periodRate,
           rentMonths: 1,
         });
       }
-      return { expectedRentCharge: totalSeasonalRent, effectiveRates: { small: rate, big: rate } };
+      return { expectedRentCharge: totalSeasonalRent, effectiveRates: { small: sRate, big: sRate } };
     }
     const billableMonths = calculateMonthlyElapsedCycles(grn.date, deliveryDate);
     const expectedRentCharge = calculateRentAmount({
       rentType: 'Monthly',
       bags: withdrawnTotal,
       bagCategory: params.bagCategory,
-      bagPrice: rate,
+      bagPrice: mRate,
       rentMonths: billableMonths,
     });
-    return { expectedRentCharge, effectiveRates: { small: rate, big: rate } };
+    return { expectedRentCharge, effectiveRates: { small: mRate, big: mRate } };
   }
 
   const effectiveRates = resolveOutwardRates(grn.rentType, {

@@ -71,14 +71,23 @@ async function executeDeliveryTransaction(
         throw new Error(`Outward blocked — Active loan hold against ${bondRef}`);
       }
 
-      const isModern = input.bagCategory === 'Modern Size' || input.bagCategory === 'Mixed';
-      const hasSpecificBags = !isModern && ((input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0);
+      const isModern =
+        input.bagCategory === 'Modern Size' ||
+        input.bagCategory === 'Mixed' ||
+        input.bagCategory === 'Hybrid';
+      const hasSpecificBags = (input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0;
       const reqQty = input.quantity ?? 0;
       const resSmall = hasSpecificBags ? (input.smallBags ?? 0) : grn.bagType === 'B' ? 0 : reqQty;
       const resBig = hasSpecificBags ? (input.bigBags ?? 0) : grn.bagType === 'B' ? reqQty : 0;
       const withdrawal: BagComposition = { smallBags: resSmall, bigBags: resBig };
 
-      const available = await validateStockAndBalances(facilityId, grn, withdrawal, session, isModern);
+      const available = await validateStockAndBalances(
+        facilityId,
+        grn,
+        withdrawal,
+        session,
+        isModern && !hasSpecificBags,
+      );
       const finalSmall = withdrawal.smallBags;
       const finalBig = withdrawal.bigBags;
       const withdrawnTotal = finalSmall + finalBig;
@@ -91,7 +100,11 @@ async function executeDeliveryTransaction(
           id: grn.id, date: grn.date, rentType: grn.rentType, commodityId: grn.commodityId,
           smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, bagPrice: grn.bagPrice,
         },
-        withdrawal, deliveryDate, session, bagCategory: input.bagCategory, bagPrice: input.bagPrice,
+        withdrawal, deliveryDate, session,
+        bagCategory: input.bagCategory,
+        bagPrice: input.bagPrice,
+        seasonalBagPrice: input.seasonalBagPrice,
+        monthlyBagPrice: input.monthlyBagPrice,
       });
 
       if (input.rentCharge != null && input.rentCharge >= 0) {
@@ -147,6 +160,8 @@ async function executeDeliveryTransaction(
             grnId: grn.id, grnNumber: grn.grnNumber, customerId: grn.customerId, customerName: grn.customerName,
             commodityId: grn.commodityId, commodityName: grn.commodityName, chamber: grn.chamber,
             bagType: grn.bagType ?? 'S/B', bagCategory: input.bagCategory || null, bagPrice: input.bagPrice ?? null,
+            seasonalBagPrice: input.seasonalBagPrice ?? null,
+            monthlyBagPrice: input.monthlyBagPrice ?? null,
             smallBags: finalSmall, bigBags: finalBig, marks, gpNumber,
             vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null,
             driverName: input.driverName?.trim() || null,

@@ -161,6 +161,8 @@ export class DocumentService {
       bagType: (challan.bagType || grn?.bagType || 'S/B') as ChallanDocumentDto['bagType'],
       bagCategory: challan.bagCategory || undefined,
       bagPrice: challan.bagPrice ?? null,
+      seasonalBagPrice: challan.seasonalBagPrice ?? null,
+      monthlyBagPrice: challan.monthlyBagPrice ?? null,
       partyMark: grn?.partyMark || challan.marks || null,
       smallBags: challan.smallBags,
       bigBags: challan.bigBags,
