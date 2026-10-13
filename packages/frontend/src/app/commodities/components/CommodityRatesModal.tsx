@@ -32,30 +32,33 @@ interface MatrixRow {
   bigAriaLabel: string;
 }
 
-const MATRIX_ROWS: MatrixRow[] = [
-  {
-    title: 'Seasonal Subscription',
-    subtitle: 'March–December (₹/bag)',
-    smallKey: 'seasonalSmall',
-    smallId: 'rate-seasonal-small',
-    smallAriaLabel: 'Seasonal Small-Bag Rate (₹/bag)',
-    bigKey: 'seasonalBig',
-    bigId: 'rate-seasonal-big',
-    bigAriaLabel: 'Seasonal Big-Bag Rate (₹/bag)',
-  },
-  {
-    title: 'Monthly Subscription',
-    subtitle: 'Per month (₹/bag/month)',
-    smallKey: 'monthlySmall',
-    smallId: 'rate-monthly-small',
-    smallAriaLabel: 'Monthly Small-Bag Rate (₹/bag/month)',
-    bigKey: 'monthlyBig',
-    bigId: 'rate-monthly-big',
-    bigAriaLabel: 'Monthly Big-Bag Rate (₹/bag/month)',
-  },
-];
+function getMatrixRows(commodity: Commodity): MatrixRow[] {
+  return [
+    {
+      title: 'Seasonal Subscription',
+      subtitle: commodity.seasonDuration === 'Seasonal_3M' ? '3 Months (₹/bag)' : 'March–December (₹/bag)',
+      smallKey: 'seasonalSmall',
+      smallId: 'rate-seasonal-small',
+      smallAriaLabel: 'Seasonal Small-Bag Rate (₹/bag)',
+      bigKey: 'seasonalBig',
+      bigId: 'rate-seasonal-big',
+      bigAriaLabel: 'Seasonal Big-Bag Rate (₹/bag)',
+    },
+    {
+      title: 'Monthly Subscription',
+      subtitle: 'Per month (₹/bag/month)',
+      smallKey: 'monthlySmall',
+      smallId: 'rate-monthly-small',
+      smallAriaLabel: 'Monthly Small-Bag Rate (₹/bag/month)',
+      bigKey: 'monthlyBig',
+      bigId: 'rate-monthly-big',
+      bigAriaLabel: 'Monthly Big-Bag Rate (₹/bag/month)',
+    },
+  ];
+}
 
 export function CommodityRatesModal({ commodity, onClose, onSaved }: CommodityRatesModalProps) {
+  const matrixRows = getMatrixRows(commodity);
   const { rates, loading, error, retry, saving, saveRates } = useCommodityRates(commodity.id);
   const [form, setForm] = useState<CommodityRatesFormState>(EMPTY_RATES_FORM);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -177,7 +180,7 @@ export function CommodityRatesModal({ commodity, onClose, onSaved }: CommodityRa
                   ),
                 },
               ]}
-              rows={MATRIX_ROWS}
+              rows={matrixRows}
               rowKey={(row) => row.title}
               caption="Price Controller Rates Matrix"
             />

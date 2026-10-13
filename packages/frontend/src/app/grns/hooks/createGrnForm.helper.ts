@@ -116,11 +116,7 @@ export function validateCreateGrnForm(state: CreateGrnState, rateCheck?: Control
     errors.partyMark = 'Party mark cannot exceed 20 characters';
   }
 
-  return {
-    errors,
-    parsedChamber: parsedChamber.success ? parsedChamber.data : undefined,
-    normalizedVehicle: normVehicle,
-  };
+  return { errors, parsedChamber: parsedChamber.success ? parsedChamber.data : undefined, normalizedVehicle: normVehicle };
 }
 
 export function buildCreateGrnPayload(params: {
@@ -128,7 +124,7 @@ export function buildCreateGrnPayload(params: {
   chamber: string; bags: number; bagType: BagType; rentType: RentType;
   rentAmount?: number | ''; bagPrice?: number | ''; smallBagPrice?: number | ''; bigBagPrice?: number | '';
   totalBagsWeight?: number | ''; rentMonths?: number | ''; partyMark?: string;
-  vehicleNumber?: string; remarks?: string; isBondForLoan?: boolean; loanStatus?: LoanStatus;
+  vehicleNumber?: string; remarks?: string; isBondForLoan?: boolean; loanStatus?: LoanStatus; hamaliRate?: number | '';
 }): Record<string, unknown> {
   const p: Record<string, unknown> = {
     facilityId: params.facilityId, date: params.inwardDate,
@@ -141,6 +137,7 @@ export function buildCreateGrnPayload(params: {
   if (typeof params.smallBagPrice === 'number' && params.smallBagPrice > 0) p.smallBagPrice = params.smallBagPrice;
   if (typeof params.bigBagPrice === 'number' && params.bigBagPrice > 0) p.bigBagPrice = params.bigBagPrice;
   if (typeof params.totalBagsWeight === 'number' && params.totalBagsWeight > 0) p.totalBagsWeight = params.totalBagsWeight;
+  if (typeof params.hamaliRate === 'number' && params.hamaliRate >= 0) p.hamaliRate = params.hamaliRate;
   if (params.rentType === 'Monthly' && typeof params.rentMonths === 'number') p.rentMonths = params.rentMonths;
   if (params.partyMark?.trim()) p.partyMark = params.partyMark.trim();
   if (params.vehicleNumber) p.vehicleNumber = params.vehicleNumber;

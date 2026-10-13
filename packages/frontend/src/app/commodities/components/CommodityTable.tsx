@@ -78,6 +78,25 @@ export function CommodityTable({
       ),
     },
     {
+      key: 'seasonDuration',
+      header: 'Season',
+      render: (row) => (
+        <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-medium)' }}>
+          {row.seasonDuration === 'Seasonal_3M' ? '3 Months' : '10 Months'}
+        </span>
+      ),
+    },
+    {
+      key: 'hamaliRate',
+      header: 'Hamali',
+      align: 'right',
+      render: (row) => (
+        <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {row.hamaliRate ? `₹${row.hamaliRate}/bag` : '—'}
+        </span>
+      ),
+    },
+    {
       key: 'seasonalSmall',
       group: 'seasonal',
       header: 'Small',

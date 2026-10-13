@@ -42,8 +42,9 @@ export function useCommodityRate(
     setLoading(true);
     setError(null);
     const isCurrent = beginRequest();
+    const mappedRentType = rentType === 'Seasonal_3M' ? 'Seasonal' : rentType;
     requestWithAuth(
-      `/api/commodities/${encodeURIComponent(commodityId)}/rates?rentType=${encodeURIComponent(rentType)}`,
+      `/api/commodities/${encodeURIComponent(commodityId)}/rates?rentType=${encodeURIComponent(mappedRentType)}`,
     )
       .then(async (res) => {
         if (!isCurrent()) return;
