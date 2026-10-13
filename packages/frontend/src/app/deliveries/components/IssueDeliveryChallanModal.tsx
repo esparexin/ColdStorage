@@ -85,6 +85,8 @@ export function IssueDeliveryChallanModal({
             grn={form.selectedGrn}
             summary={form.grnSummary}
             onChangeGrn={onChangeGrn ? onChangeGrn : () => void form.handleSelectGrn('')}
+            bagCategory={form.bagCategory}
+            onBagCategoryChange={form.setBagCategory}
           />
         )}
 
@@ -126,6 +128,14 @@ export function IssueDeliveryChallanModal({
                 monthlyRates={form.monthlyCommodityRates}
                 bagCategory={form.bagCategory}
                 onBagCategoryChange={form.setBagCategory}
+                manualBagPrice={form.manualBagPrice}
+                onManualBagPriceChange={form.setManualBagPrice}
+                seasonalBagPrice={form.seasonalBagPrice}
+                monthlyBagPrice={form.monthlyBagPrice}
+                onSeasonalBagPriceChange={form.setSeasonalBagPrice}
+                onMonthlyBagPriceChange={form.setMonthlyBagPrice}
+                showSeasonalRate={form.rateVisibility.showSeasonalRate}
+                showMonthlyRate={form.rateVisibility.showMonthlyRate}
                 outwardRent={form.outwardRent}
                 withdrawal={form.withdrawal}
                 onQuantityChange={form.setWithdrawalQuantity}

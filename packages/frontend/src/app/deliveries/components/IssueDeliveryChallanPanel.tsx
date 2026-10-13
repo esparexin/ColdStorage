@@ -51,10 +51,6 @@ export function IssueDeliveryChallanPanel({
 
   return (
     <div className={styles.issuePanel}>
-      <div className={styles.issueHeader}>
-        <h2 className={styles.issueTitle}>Issue Outward Delivery Challan</h2>
-      </div>
-
       {form.modalError && <Banner message={form.modalError} />}
 
       <EligibleGrnSection

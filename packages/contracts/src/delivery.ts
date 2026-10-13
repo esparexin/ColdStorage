@@ -4,6 +4,7 @@ import { chamberTextSchema, indianVehicleSchema } from './common.js';
 import { challanNumberSchema } from './identifiers.js';
 import { grnStatusSchema } from './grn.js';
 import { paymentModeSchema } from './rent.js';
+import { bagPriceSchema } from './pricing.js';
 
 /**
  * P6: Delivery + Outward Challan + Full Reversal + GRN Closure Contracts.
@@ -15,6 +16,17 @@ import { paymentModeSchema } from './rent.js';
 
 export const deliveryStatusSchema = z.enum(['ISSUED', 'REVERSED']);
 export type DeliveryStatus = z.infer<typeof deliveryStatusSchema>;
+
+export const outwardBagCategorySchema = z.enum([
+  'S/B',
+  'Modern',
+  'Small & Big',
+  'Modern Size',
+  'Mixed',
+  'Small',
+  'Big',
+]);
+export type OutwardBagCategory = z.infer<typeof outwardBagCategorySchema>;
 
 /**
  * A GRN is one commodity in one chamber, so an outward movement withdraws bags from that GRN's
@@ -44,7 +56,10 @@ export const createDeliverySchema = z
     driverName: z.string().trim().max(100).nullish(),
     weight: z.number().positive('weight must be positive').nullish(),
     remarks: z.string().trim().max(500).nullish(),
-    bagCategory: z.enum(['Small', 'Big', 'Small & Big']).nullish(),
+    bagCategory: outwardBagCategorySchema.nullish(),
+    bagPrice: bagPriceSchema.nullish(),
+    seasonalBagPrice: bagPriceSchema.nullish(),
+    monthlyBagPrice: bagPriceSchema.nullish(),
     rentCharge: z.number().min(0).nullish(),
     paymentAmount: z.number().min(0, 'Payment amount cannot be negative').nullish(),
     paymentMode: paymentModeSchema.nullish(),
@@ -87,6 +102,10 @@ export const deliveryChallanSchema = z.object({
   commodityName: z.string().min(1),
   chamber: chamberTextSchema,
   bagType: bagTypeSchema.optional(),
+  bagCategory: outwardBagCategorySchema.optional(),
+  bagPrice: z.number().positive().nullable().optional(),
+  seasonalBagPrice: z.number().positive().nullable().optional(),
+  monthlyBagPrice: z.number().positive().nullable().optional(),
   smallBags: z.number().int().min(0),
   bigBags: z.number().int().min(0),
   /** Derived as smallBags + bigBags. Never stored, so the two parts cannot disagree. */

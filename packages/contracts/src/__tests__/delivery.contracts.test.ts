@@ -5,6 +5,7 @@ import {
   deliveryStatusSchema,
   deliveryQuerySchema,
   deliveryChallanSchema,
+  outwardBagCategorySchema,
 } from '../delivery.js';
 
 describe('P6 Delivery Contracts', () => {
@@ -192,4 +193,46 @@ describe('P6 Delivery Contracts', () => {
       expect(parsed.data.bagType).toBe('S/B');
     }
   });
+
+  it('validates outwardBagCategorySchema vocabulary', () => {
+    expect(outwardBagCategorySchema.safeParse('S/B').success).toBe(true);
+    expect(outwardBagCategorySchema.safeParse('Modern').success).toBe(true);
+    expect(outwardBagCategorySchema.safeParse('Small & Big').success).toBe(true);
+    expect(outwardBagCategorySchema.safeParse('Modern Size').success).toBe(true);
+    expect(outwardBagCategorySchema.safeParse('Mixed').success).toBe(true);
+    expect(outwardBagCategorySchema.safeParse('Hybrid').success).toBe(false);
+    expect(outwardBagCategorySchema.safeParse('InvalidCategory').success).toBe(false);
+  });
+
+  it('validates Modern Size createDelivery input with manual bagPrice', () => {
+    const parsed = createDeliverySchema.safeParse({
+      grnId: 'grn-1',
+      quantity: 50,
+      bagCategory: 'Modern Size' as const,
+      bagPrice: 65,
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.bagCategory).toBe('Modern Size');
+      expect(parsed.data.bagPrice).toBe(65);
+      expect(parsed.data.quantity).toBe(50);
+    }
+  });
+
+  it('preserves bagCategory and bagPrice on deliveryChallanSchema', () => {
+    const now = new Date();
+    const parsed = deliveryChallanSchema.safeParse({
+      id: 'del-3', facilityId: 'fac-1', challanNumber: 'CHL-25-26-0003', date: now,
+      grnId: 'grn-3', grnNumber: 'GRN-25-26-0003', customerId: 'cust-1', customerName: 'Kisan Agro',
+      commodityId: 'comm-1', commodityName: 'Potato', chamber: 'CH-01',
+      bagCategory: 'Modern Size', bagPrice: 65, smallBags: 0, bigBags: 0, totalBags: 50,
+      status: 'ISSUED', issuedBy: 'usr-1', createdAt: now, updatedAt: now,
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.bagCategory).toBe('Modern Size');
+      expect(parsed.data.bagPrice).toBe(65);
+    }
+  });
 });
+

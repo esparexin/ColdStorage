@@ -71,6 +71,12 @@ export function MergeSourceTable({
           render: (sg) => `${sg.commodityName} (Ch. ${sg.chamber})`,
         },
         {
+          key: 'bagType',
+          header: 'Bag Type',
+          align: 'center',
+          render: (sg) => <Badge variant="neutral">{sg.bagType}</Badge>,
+        },
+        {
           key: 'availableBags',
           header: 'Available Bags',
           align: 'right',

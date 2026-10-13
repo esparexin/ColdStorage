@@ -8,6 +8,7 @@ import {
   mergeGrnInputSchema,
   createDeliverySchema,
   rentSummaryDtoSchema,
+  resolveMergedBagType,
 } from '../index.js';
 
 describe('Historical Rent & Bag Composition Verification Contracts', () => {
@@ -162,6 +163,33 @@ describe('Historical Rent & Bag Composition Verification Contracts', () => {
       };
       const parsed = rentSummaryDtoSchema.safeParse(validSummary);
       expect(parsed.success).toBe(true);
+    });
+  });
+
+  describe('resolveMergedBagType', () => {
+    it('preserves single-type S when combined stock contains only small bags', () => {
+      expect(resolveMergedBagType({ targetBagType: 'S', newSmallBags: 150, newBigBags: 0 })).toBe('S');
+      expect(resolveMergedBagType({ targetBagType: 'B', newSmallBags: 150, newBigBags: 0 })).toBe('S');
+    });
+
+    it('preserves single-type B when combined stock contains only big bags', () => {
+      expect(resolveMergedBagType({ targetBagType: 'B', newSmallBags: 0, newBigBags: 150 })).toBe('B');
+      expect(resolveMergedBagType({ targetBagType: 'S', newSmallBags: 0, newBigBags: 150 })).toBe('B');
+    });
+
+    it('preserves target mixed classification when target already carries S+B or S/B', () => {
+      expect(resolveMergedBagType({ targetBagType: 'S+B', sourceBagTypes: ['S', 'B'], newSmallBags: 100, newBigBags: 50 })).toBe('S+B');
+      expect(resolveMergedBagType({ targetBagType: 'S/B', sourceBagTypes: ['S+B'], newSmallBags: 100, newBigBags: 50 })).toBe('S/B');
+    });
+
+    it('transitions single-type target to S+B when merged with opposite single type', () => {
+      expect(resolveMergedBagType({ targetBagType: 'S', sourceBagTypes: ['B'], newSmallBags: 100, newBigBags: 50 })).toBe('S+B');
+      expect(resolveMergedBagType({ targetBagType: 'B', sourceBagTypes: ['S'], newSmallBags: 50, newBigBags: 100 })).toBe('S+B');
+    });
+
+    it('transitions to S+B when any source lot carries S+B, or S/B when source lot carries S/B', () => {
+      expect(resolveMergedBagType({ targetBagType: 'S', sourceBagTypes: ['S+B'], newSmallBags: 120, newBigBags: 30 })).toBe('S+B');
+      expect(resolveMergedBagType({ targetBagType: 'S', sourceBagTypes: ['S/B'], newSmallBags: 120, newBigBags: 30 })).toBe('S/B');
     });
   });
 });

@@ -2,6 +2,7 @@ import {
   SEASON_START_MONTH_INDEX,
   type ExtensionPeriod,
 } from './rent-extension.js';
+import type { RentType } from './grn-rent.js';
 
 export interface SeasonalElapsedPeriod {
   key: string;
@@ -180,5 +181,46 @@ export function calculateOutwardSeasonalBreakdown(params: {
   return {
     periods,
     totalRent: Number(totalRent.toFixed(2)),
+  };
+}
+
+export interface ModernRateVisibility {
+  showSeasonalRate: boolean;
+  showMonthlyRate: boolean;
+}
+
+/**
+ * Determines the visibility of manual pricing fields for Modern outward deliveries.
+ * - Monthly Rent: Only Monthly Rate is shown (Scenario C).
+ * - Seasonal Rent:
+ *   - Same Year (within Mar-Dec): Only Seasonal Rate is shown (Scenario B).
+ *   - Multi-Year / Extended (incurring Jan/Feb extensions): Both Seasonal Rate and Monthly Rate are shown (Scenario A).
+ */
+export function deriveModernRateVisibility(params: {
+  rentType?: RentType | null;
+  inwardDate?: Date | string | null;
+  deliveryDate?: Date | string | null;
+}): ModernRateVisibility {
+  if (params.rentType === 'Monthly') {
+    return {
+      showSeasonalRate: false,
+      showMonthlyRate: true,
+    };
+  }
+
+  if (!params.inwardDate || !params.deliveryDate) {
+    return {
+      showSeasonalRate: true,
+      showMonthlyRate: false,
+    };
+  }
+
+  const elapsed = resolveSeasonalElapsedPeriods(params.inwardDate, params.deliveryDate);
+  const hasSeason = elapsed.some((p) => p.period === 'SEASON');
+  const hasExtension = elapsed.some((p) => p.period === 'JANUARY' || p.period === 'FEBRUARY');
+
+  return {
+    showSeasonalRate: hasSeason || !hasExtension,
+    showMonthlyRate: hasExtension,
   };
 }

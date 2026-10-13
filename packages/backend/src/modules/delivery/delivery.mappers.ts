@@ -21,6 +21,10 @@ export function toChallanEntity(doc: DeliveryChallanDoc | Record<string, unknown
     commodityName: String(d.commodityName),
     chamber: String(d.chamber),
     bagType: d.bagType ? (d.bagType as DeliveryChallan['bagType']) : undefined,
+    bagCategory: d.bagCategory ? (d.bagCategory as DeliveryChallan['bagCategory']) : undefined,
+    bagPrice: d.bagPrice !== null && d.bagPrice !== undefined ? Number(d.bagPrice) : null,
+    seasonalBagPrice: d.seasonalBagPrice !== null && d.seasonalBagPrice !== undefined ? Number(d.seasonalBagPrice) : null,
+    monthlyBagPrice: d.monthlyBagPrice !== null && d.monthlyBagPrice !== undefined ? Number(d.monthlyBagPrice) : null,
     smallBags,
     bigBags,
     // Derived for transport only; the composition is the stored fact.

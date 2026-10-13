@@ -71,30 +71,40 @@ async function executeDeliveryTransaction(
         throw new Error(`Outward blocked — Active loan hold against ${bondRef}`);
       }
 
+      const isModern =
+        input.bagCategory === 'Modern' ||
+        input.bagCategory === 'Modern Size' ||
+        input.bagCategory === 'Mixed';
       const hasSpecificBags = (input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0;
-      const resolvedSmall = hasSpecificBags ? (input.smallBags ?? 0) : grn.bagType === 'B' ? 0 : (input.quantity ?? 0);
-      const resolvedBig = hasSpecificBags ? (input.bigBags ?? 0) : grn.bagType === 'B' ? (input.quantity ?? 0) : 0;
-      const withdrawal: BagComposition = { smallBags: resolvedSmall, bigBags: resolvedBig };
-      const withdrawnTotal = resolvedSmall + resolvedBig;
+      const reqQty = input.quantity ?? 0;
+      const resSmall = hasSpecificBags ? (input.smallBags ?? 0) : grn.bagType === 'B' ? 0 : reqQty;
+      const resBig = hasSpecificBags ? (input.bigBags ?? 0) : grn.bagType === 'B' ? reqQty : 0;
+      const withdrawal: BagComposition = { smallBags: resSmall, bigBags: resBig };
 
-      const available = await validateStockAndBalances(facilityId, grn, withdrawal, session);
+      const available = await validateStockAndBalances(
+        facilityId,
+        grn,
+        withdrawal,
+        session,
+        isModern && !hasSpecificBags,
+      );
+      const finalSmall = withdrawal.smallBags;
+      const finalBig = withdrawal.bigBags;
+      const withdrawnTotal = finalSmall + finalBig;
       const deliveryDate = validateDeliveryDate(input.date, grn.date);
 
       // Actual rent/charge calculation happens at Outward delivery using the single
       // effective-rate source of truth. Client rentCharge is reconciled, never trusted blindly.
       const { expectedRentCharge } = await computeExpectedDeliveryRent({
         grn: {
-          id: grn.id,
-          date: grn.date,
-          rentType: grn.rentType,
-          commodityId: grn.commodityId,
-          smallBagPrice: grn.smallBagPrice,
-          bigBagPrice: grn.bigBagPrice,
-          bagPrice: grn.bagPrice,
+          id: grn.id, date: grn.date, rentType: grn.rentType, commodityId: grn.commodityId,
+          smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, bagPrice: grn.bagPrice,
         },
-        withdrawal,
-        deliveryDate,
-        session,
+        withdrawal, deliveryDate, session,
+        bagCategory: input.bagCategory,
+        bagPrice: input.bagPrice,
+        seasonalBagPrice: input.seasonalBagPrice,
+        monthlyBagPrice: input.monthlyBagPrice,
       });
 
       if (input.rentCharge != null && input.rentCharge >= 0) {
@@ -146,29 +156,17 @@ async function executeDeliveryTransaction(
       const challanDocs = await DeliveryChallanModel.create(
         [
           {
-            id: deliveryId,
-            facilityId,
-            challanNumber,
-            date: deliveryDate,
-            grnId: grn.id,
-            grnNumber: grn.grnNumber,
-            customerId: grn.customerId,
-            customerName: grn.customerName,
-            commodityId: grn.commodityId,
-            commodityName: grn.commodityName,
-            chamber: grn.chamber,
-            bagType: grn.bagType ?? 'S/B',
-            smallBags: resolvedSmall,
-            bigBags: resolvedBig,
-            marks,
-            gpNumber,
+            id: deliveryId, facilityId, challanNumber, date: deliveryDate,
+            grnId: grn.id, grnNumber: grn.grnNumber, customerId: grn.customerId, customerName: grn.customerName,
+            commodityId: grn.commodityId, commodityName: grn.commodityName, chamber: grn.chamber,
+            bagType: grn.bagType ?? 'S/B', bagCategory: input.bagCategory || null, bagPrice: input.bagPrice ?? null,
+            seasonalBagPrice: input.seasonalBagPrice ?? null,
+            monthlyBagPrice: input.monthlyBagPrice ?? null,
+            smallBags: finalSmall, bigBags: finalBig, marks, gpNumber,
             vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null,
             driverName: input.driverName?.trim() || null,
-            weight: input.weight ?? null,
-            remarks: input.remarks?.trim() || null,
-            rentCharge: deliveryRentCharge,
-            status: 'ISSUED',
-            issuedBy: userId,
+            weight: input.weight ?? null, remarks: input.remarks?.trim() || null,
+            rentCharge: deliveryRentCharge, status: 'ISSUED', issuedBy: userId,
           },
         ],
         { session, ordered: true },
@@ -176,8 +174,8 @@ async function executeDeliveryTransaction(
 
       createdChallanDoc = challanDocs[0];
 
-      const txSmall = available.bigBags === 0 ? withdrawnTotal : available.smallBags === 0 ? 0 : resolvedSmall;
-      const txBig = available.smallBags === 0 ? withdrawnTotal : available.bigBags === 0 ? 0 : resolvedBig;
+      const txSmall = available.bigBags === 0 ? withdrawnTotal : available.smallBags === 0 ? 0 : finalSmall;
+      const txBig = available.smallBags === 0 ? withdrawnTotal : available.bigBags === 0 ? 0 : finalBig;
 
       await InventoryTransactionModel.create(
         [

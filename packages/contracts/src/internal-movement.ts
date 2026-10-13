@@ -50,6 +50,7 @@ export const internalMovementRecordSchema = z.object({
   totalBagsMoved: z.number().min(0).default(0),
   smallBagsMoved: z.number().min(0).default(0),
   bigBagsMoved: z.number().min(0).default(0),
+  referenceWeight: z.number().positive().max(1000000).nullish(),
   grnId: z.string().nullable().optional(),
   grnNumber: z.string().nullable().optional(),
   fromCustomerId: z.string().nullable().optional(),

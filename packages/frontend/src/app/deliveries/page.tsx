@@ -10,7 +10,6 @@ import { useFacility } from '@/context/FacilityContext';
 import { printHtmlDocument } from '@/lib/print-document';
 import { requestWithAuth } from '@/lib/api-client';
 import { DeliveryFilterToolbar } from './components/DeliveryFilterToolbar';
-import { DeliveryNavTabs } from './components/DeliveryNavTabs';
 import { DeliveryPageModals } from './components/DeliveryPageModals';
 import { DeliveryStatusTabs } from './components/DeliveryStatusTabs';
 import { DeliveryTable } from './components/DeliveryTable';
@@ -49,24 +48,28 @@ export default function DeliveriesPage() {
   const canCollectRent = hasPermission('rent:collect');
   const canUpdateLoan = hasPermission('grn:create');
 
-  const handleViewChange = (view: DeliveryViewTab) => {
-    setActiveView(view);
+  const syncTabUrl = (tab: string) => {
     if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);
-    if (view === 'issue') {
-      url.searchParams.set('tab', 'issue');
-    } else {
-      const tabVal =
-        deliveryData.statusTab === 'UNSETTLED'
-          ? 'unsettled'
-          : deliveryData.statusTab === 'PARTIAL'
-            ? 'partial'
-            : deliveryData.statusTab === ''
-              ? 'all'
-              : 'active';
-      url.searchParams.set('tab', tabVal);
-    }
+    url.searchParams.set('tab', tab);
     window.history.replaceState({}, '', url.toString());
+  };
+
+  const handleViewChange = (view: DeliveryViewTab) => {
+    setActiveView(view);
+    const tabMap: Record<string, string> = { CLOSED: 'closed', DUE: 'due', '': 'all' };
+    syncTabUrl(view === 'issue' ? 'issue' : tabMap[deliveryData.statusTab] ?? 'active');
+  };
+
+  const handleSelectTab = (tab: '' | 'ACTIVE' | 'DUE' | 'CLOSED' | 'ISSUE') => {
+    if (tab === 'ISSUE') {
+      handleViewChange('issue');
+    } else {
+      setActiveView('listing');
+      deliveryData.setStatusTab(tab);
+      const tabMap: Record<string, string> = { CLOSED: 'closed', DUE: 'due', '': 'all' };
+      syncTabUrl(tabMap[tab] ?? 'active');
+    }
   };
 
   const handleRentPaidFromDelivery = () => {
@@ -111,10 +114,12 @@ export default function DeliveriesPage() {
 
   const getFilteredEmptyMessage = () => {
     if (deliveryData.searchTerm) return `No delivery challans matching "${deliveryData.searchTerm}".`;
-    if (deliveryData.statusTab === 'UNSETTLED') return 'No unsettled delivery challans found for this facility.';
-    if (deliveryData.statusTab === 'PARTIAL') return 'No partially paid delivery challans found for this facility.';
-    if (deliveryData.statusTab === 'ACTIVE') return 'No active delivery challans found for this facility.';
-    return 'No delivery challans found.';
+    const tabMsg: Record<string, string> = {
+      CLOSED: 'No closed delivery challans found for this facility.',
+      DUE: 'No delivery challans with due payments found for this facility.',
+      ACTIVE: 'No active delivery challans found for this facility.',
+    };
+    return tabMsg[deliveryData.statusTab] ?? 'No delivery challans found.';
   };
 
   return (
@@ -125,42 +130,42 @@ export default function DeliveriesPage() {
         <div className={styles.titleArea}>
           <h1 className={styles.pageTitle}>Outward Deliveries</h1>
         </div>
-        <div className={styles.headerActions}>
-          <DeliveryNavTabs
-            activeTab={activeView}
-            canCreate={canCreate && Boolean(selectedFacilityId)}
-            onTabChange={handleViewChange}
-          />
-        </div>
       </div>
 
       {!selectedFacilityId ? (
         <FeedbackStates.Empty message={EMPTY_MESSAGES.noFacilityDeliveries} />
-      ) : activeView === 'issue' ? (
-        <IssueDeliveryChallanPanel
-          facilityId={selectedFacilityId}
-          initialGrnId={initialGrnId}
-          onCancel={() => handleViewChange('listing')}
-          onSuccess={(newDelivery) => {
-            handleViewChange('listing');
-            void deliveryData.fetchDeliveries();
-            if (newDelivery.rentCharge && newDelivery.rentCharge > 0 && canCollectRent) {
-              setRentPromptDelivery(newDelivery);
-            } else {
-              setSelectedDelivery(newDelivery);
-            }
-          }}
-          onPayRent={setRentPayAccount}
-          rentPaidTick={rentPaidTick}
-          canPayRent={canCollectRent}
-          onClearLoan={setLoanClearGrn}
-          loanClearedTick={loanClearedTick}
-          canClearLoan={canUpdateLoan}
-        />
       ) : (
         <>
-          <DeliveryStatusTabs currentTab={deliveryData.statusTab} onTabChange={deliveryData.setStatusTab} />
-          <DeliveryFilterToolbar
+          <DeliveryStatusTabs
+            activeView={activeView}
+            currentTab={deliveryData.statusTab}
+            onSelectTab={handleSelectTab}
+            canCreate={canCreate}
+          />
+          {activeView === 'issue' ? (
+            <IssueDeliveryChallanPanel
+              facilityId={selectedFacilityId}
+              initialGrnId={initialGrnId}
+              onCancel={() => handleViewChange('listing')}
+              onSuccess={(newDelivery) => {
+                handleViewChange('listing');
+                void deliveryData.fetchDeliveries();
+                if (newDelivery.rentCharge && newDelivery.rentCharge > 0 && canCollectRent) {
+                  setRentPromptDelivery(newDelivery);
+                } else {
+                  setSelectedDelivery(newDelivery);
+                }
+              }}
+              onPayRent={setRentPayAccount}
+              rentPaidTick={rentPaidTick}
+              canPayRent={canCollectRent}
+              onClearLoan={setLoanClearGrn}
+              loanClearedTick={loanClearedTick}
+              canClearLoan={canUpdateLoan}
+            />
+          ) : (
+            <>
+              <DeliveryFilterToolbar
             searchTerm={deliveryData.searchTerm}
             onSearchChange={deliveryData.setSearchTerm}
             rentStatusFilter={deliveryData.rentStatusFilter}
@@ -208,6 +213,8 @@ export default function DeliveriesPage() {
           )}
         </>
       )}
+    </>
+  )}
 
       <DeliveryPageModals
         selectedFacilityId={selectedFacilityId}

@@ -1,12 +1,37 @@
 .compositionGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3);
   align-items: flex-start;
 }
 
-@media (max-width: 768px) {
-  .compositionGrid {
+.modernGrid4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.modernGrid3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+@media (max-width: 900px) {
+  .modernGrid4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .modernGrid3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .compositionGrid,
+  .modernGrid4,
+  .modernGrid3 {
     grid-template-columns: 1fr;
   }
 }

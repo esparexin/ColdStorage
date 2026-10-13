@@ -58,8 +58,11 @@ export function EligibleGrnSection({
     <div className={styles.section}>
       <div className={styles.sectionHeader}>
         <div className={styles.titleArea}>
-          <span className={styles.sectionTitle}>Inward Stock</span>
-          <Badge variant="neutral">{totalRecords}</Badge>
+          <h2 className={styles.sectionTitle}>Issue Outward Delivery Challan</h2>
+          <div className={styles.stockBadgeGroup}>
+            <span className={styles.stockBadgeLabel}>Inward Stock</span>
+            <Badge variant="neutral">{totalRecords}</Badge>
+          </div>
         </div>
         <div className={styles.searchWrapper}>
           <SearchBar

@@ -10,6 +10,12 @@ export interface ValidateDeliveryFormInput {
   availableBig: number;
   availableTotal?: number;
   isCombinedPool?: boolean;
+  isModernSize?: boolean;
+  bagPrice?: number | '';
+  seasonalBagPrice?: number | '';
+  monthlyBagPrice?: number | '';
+  showSeasonalRate?: boolean;
+  showMonthlyRate?: boolean;
   createVehicleNumber: string;
   createGpNumber?: string;
   createDriverName?: string;
@@ -62,7 +68,19 @@ export function validateDeliveryForm(input: ValidateDeliveryFormInput): Delivery
     errors.bags = `Cannot deliver ${input.totalWithdrawingBags} bags (only ${availableTotal} available)`;
   }
 
-  if (!input.isCombinedPool) {
+  if (input.isModernSize) {
+    const requiresDualRates = Boolean(input.showSeasonalRate || input.showMonthlyRate);
+    if (requiresDualRates) {
+      if (input.showSeasonalRate && (typeof input.seasonalBagPrice !== 'number' || input.seasonalBagPrice <= 0)) {
+        errors.seasonalBagPrice = 'Please enter a valid seasonal rate per bag';
+      }
+      if (input.showMonthlyRate && (typeof input.monthlyBagPrice !== 'number' || input.monthlyBagPrice <= 0)) {
+        errors.monthlyBagPrice = 'Please enter a valid monthly rate per bag';
+      }
+    } else if (typeof input.bagPrice !== 'number' || input.bagPrice <= 0) {
+      errors.bagPrice = 'Please enter a valid price per bag';
+    }
+  } else if (!input.isCombinedPool) {
     if (input.smallBags > input.availableSmall) {
       errors.smallBags = `Cannot deliver ${input.smallBags} small bags (only ${input.availableSmall} available)`;
     }

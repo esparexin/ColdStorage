@@ -56,7 +56,7 @@ export function renderChallanTemplate(dto: ChallanDocumentDto): string {
       </thead>
       <tbody>
         <tr>
-          <td style="text-align: center;"><strong>${escapeHtml(dto.bagType || 'S/B')}</strong></td>
+          <td style="text-align: center;"><strong>${escapeHtml(dto.bagCategory || dto.bagType || 'S/B')}</strong></td>
           <td style="text-align: center;"><strong>${dto.smallBags}</strong></td>
           <td style="text-align: center;"><strong>${dto.bigBags}</strong></td>
           <td style="text-align: center;"><strong>${dto.totalBags}</strong></td>
@@ -67,7 +67,7 @@ export function renderChallanTemplate(dto: ChallanDocumentDto): string {
     <div style="margin-top: 20px; font-size: 11px; color: #444; border: 1px dashed #999; padding: 10px;">
       <strong>Gate Pass Declaration:</strong>
       <p style="margin-top: 4px;">
-        Certified that the above mentioned goods have been checked, inspected, and released from the cold storage facility in good condition. The driver/transporter acknowledges receipt of the full count of bags as stated above: ${dto.totalBags} Total S/B Bags in total (S/B Category: ${escapeHtml(dto.bagType || 'S/B')}).
+        Certified that the above mentioned goods have been checked, inspected, and released from the cold storage facility in good condition. The driver/transporter acknowledges receipt of the full count of bags as stated above: ${dto.totalBags} Total S/B Bags in total (${dto.bagCategory ? `Category: ${escapeHtml(dto.bagCategory)}` : `S/B Category: ${escapeHtml(dto.bagType || 'S/B')}`}).
       </p>
     </div>
   `;
