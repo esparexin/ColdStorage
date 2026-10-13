@@ -10,7 +10,7 @@ import {
 } from '../rent-extension.js';
 import {
   calculateOutwardSeasonalBreakdown,
-  deriveHybridRateVisibility,
+  deriveModernRateVisibility,
   resolveSeasonalElapsedPeriods,
 } from '../seasonal-periods.js';
 
@@ -131,9 +131,9 @@ describe('rent-extension contracts', () => {
     expect(res.periods[3].amount).toBe(18000);
   });
 
-  describe('deriveHybridRateVisibility', () => {
+  describe('deriveModernRateVisibility', () => {
     it('Scenario A: Seasonal Rent, Inward earlier year, Outward later year -> shows both Seasonal and Monthly rate', () => {
-      const vis = deriveHybridRateVisibility({
+      const vis = deriveModernRateVisibility({
         rentType: 'Seasonal',
         inwardDate: '2023-04-15',
         deliveryDate: '2026-10-11',
@@ -143,7 +143,7 @@ describe('rent-extension contracts', () => {
     });
 
     it('Scenario B: Seasonal Rent, Inward and Outward same year (within Mar-Dec) -> shows only Seasonal rate', () => {
-      const vis = deriveHybridRateVisibility({
+      const vis = deriveModernRateVisibility({
         rentType: 'Seasonal',
         inwardDate: '2026-03-20',
         deliveryDate: '2026-11-15',
@@ -153,7 +153,7 @@ describe('rent-extension contracts', () => {
     });
 
     it('Scenario B.1: Seasonal Rent, crossing Dec 31 into January extension -> shows both Seasonal and Monthly rate', () => {
-      const vis = deriveHybridRateVisibility({
+      const vis = deriveModernRateVisibility({
         rentType: 'Seasonal',
         inwardDate: '2026-03-20',
         deliveryDate: '2027-01-10',
@@ -163,7 +163,7 @@ describe('rent-extension contracts', () => {
     });
 
     it('Scenario C: Monthly Rent selected during inward entry -> shows only Monthly rate regardless of year', () => {
-      const visSameYear = deriveHybridRateVisibility({
+      const visSameYear = deriveModernRateVisibility({
         rentType: 'Monthly',
         inwardDate: '2026-03-20',
         deliveryDate: '2026-11-15',
@@ -171,7 +171,7 @@ describe('rent-extension contracts', () => {
       expect(visSameYear.showSeasonalRate).toBe(false);
       expect(visSameYear.showMonthlyRate).toBe(true);
 
-      const visMultiYear = deriveHybridRateVisibility({
+      const visMultiYear = deriveModernRateVisibility({
         rentType: 'Monthly',
         inwardDate: '2023-04-15',
         deliveryDate: '2026-10-11',

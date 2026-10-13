@@ -184,23 +184,23 @@ export function calculateOutwardSeasonalBreakdown(params: {
   };
 }
 
-export interface HybridRateVisibility {
+export interface ModernRateVisibility {
   showSeasonalRate: boolean;
   showMonthlyRate: boolean;
 }
 
 /**
- * Determines the visibility of manual pricing fields for Hybrid/Mixed outward deliveries.
+ * Determines the visibility of manual pricing fields for Modern outward deliveries.
  * - Monthly Rent: Only Monthly Rate is shown (Scenario C).
  * - Seasonal Rent:
  *   - Same Year (within Mar-Dec): Only Seasonal Rate is shown (Scenario B).
  *   - Multi-Year / Extended (incurring Jan/Feb extensions): Both Seasonal Rate and Monthly Rate are shown (Scenario A).
  */
-export function deriveHybridRateVisibility(params: {
+export function deriveModernRateVisibility(params: {
   rentType?: RentType | null;
   inwardDate?: Date | string | null;
   deliveryDate?: Date | string | null;
-}): HybridRateVisibility {
+}): ModernRateVisibility {
   if (params.rentType === 'Monthly') {
     return {
       showSeasonalRate: false,

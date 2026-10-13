@@ -18,10 +18,11 @@ export const deliveryStatusSchema = z.enum(['ISSUED', 'REVERSED']);
 export type DeliveryStatus = z.infer<typeof deliveryStatusSchema>;
 
 export const outwardBagCategorySchema = z.enum([
+  'S/B',
+  'Modern',
   'Small & Big',
   'Modern Size',
   'Mixed',
-  'Hybrid',
   'Small',
   'Big',
 ]);

@@ -195,9 +195,12 @@ describe('P6 Delivery Contracts', () => {
   });
 
   it('validates outwardBagCategorySchema vocabulary', () => {
+    expect(outwardBagCategorySchema.safeParse('S/B').success).toBe(true);
+    expect(outwardBagCategorySchema.safeParse('Modern').success).toBe(true);
     expect(outwardBagCategorySchema.safeParse('Small & Big').success).toBe(true);
     expect(outwardBagCategorySchema.safeParse('Modern Size').success).toBe(true);
     expect(outwardBagCategorySchema.safeParse('Mixed').success).toBe(true);
+    expect(outwardBagCategorySchema.safeParse('Hybrid').success).toBe(false);
     expect(outwardBagCategorySchema.safeParse('InvalidCategory').success).toBe(false);
   });
 
