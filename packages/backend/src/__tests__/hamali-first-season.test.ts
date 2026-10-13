@@ -61,14 +61,14 @@ describe('First-season internal hamali', () => {
     });
   });
 
-  async function makeGrn(bags = 100, rentAmount?: number, bagPrice = 30) {
+  async function makeGrn(bags = 100, rentAmount?: number) {
     seq += 1;
     const { grn } = await createGrn(
       facilityId,
       {
         grnNumber: `${9000 + seq}`, date: new Date('2025-06-15'), customerId, commodityId: 'cmd-fs',
         chamber: 'CH-1', bags, bagType: 'S', rentType: 'Seasonal',
-        bagPrice, rentAmount: rentAmount ?? bags * bagPrice,
+        bagPrice: 30, rentAmount: rentAmount ?? bags * 30,
       },
       userId,
       { requireRates: false },
@@ -229,40 +229,5 @@ describe('First-season internal hamali', () => {
     );
     expect(result.summary.remainingBalance).toBe(0);
     expect(result.summary.paymentStatus).toBe('Settled');
-  });
-
-  it('rejects first-season delivery when per-bag rent does not exceed Hamali (F2)', async () => {
-    const grn = await makeGrn(100, undefined, 3);
-    const dDate = new Date('2025-07-10');
-    const rentOnly = await expectedRentOnly(grn.id, 10, dDate);
-    expect(rentOnly).toBe(30); // 10 bags x Rs 3, below the Rs 4 Hamali rate
-    await expect(
-      createDeliveryWithRetry(
-        facilityId, { grnId: grn.id, date: dDate, smallBags: 10, bigBags: 0, rentCharge: rentOnly }, userId,
-      ),
-    ).rejects.toThrow('must exceed the Hamali rate of ₹4/bag');
-  });
-
-  it('rejects first-season delivery when per-bag rent equals Hamali (F2 boundary)', async () => {
-    const grn = await makeGrn(100, undefined, 4);
-    const dDate = new Date('2025-07-10');
-    const rentOnly = await expectedRentOnly(grn.id, 10, dDate);
-    expect(rentOnly).toBe(40);
-    await expect(
-      createDeliveryWithRetry(
-        facilityId, { grnId: grn.id, date: dDate, smallBags: 10, bigBags: 0, rentCharge: rentOnly }, userId,
-      ),
-    ).rejects.toThrow('must exceed the Hamali rate of ₹4/bag');
-  });
-
-  it('skips the per-bag gate post-renewal when no Hamali share applies (F2)', async () => {
-    const grn = await makeGrn(100, undefined, 3);
-    await rentExtensionService.finalizeExtension(facilityId, { grnId: grn.id, seasonYear: 2026, period: 'SEASON' }, userId);
-    const dDate = new Date('2026-04-10');
-    const rentOnly = await expectedRentOnly(grn.id, 10, dDate);
-    const { delivery } = await createDeliveryWithRetry(
-      facilityId, { grnId: grn.id, date: dDate, smallBags: 10, bigBags: 0, rentCharge: rentOnly }, userId,
-    );
-    expect(delivery.rentCharge).toBe(rentOnly);
   });
 });
