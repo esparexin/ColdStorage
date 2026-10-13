@@ -84,10 +84,11 @@ export function SelectedGrnCard({
             <Select
               id="outward-bag-category-select"
               label="Outward Bag Type"
-              value={bagCategory === 'Modern Size' ? 'Modern Size' : 'Small & Big'}
+              value={bagCategory === 'Hybrid' ? 'Hybrid' : bagCategory === 'Modern Size' ? 'Modern Size' : 'Small & Big'}
               onChange={(e) => onBagCategoryChange(e.target.value as OutwardBagCategory)}
             >
               <option value="Small & Big">Small & Big</option>
+              <option value="Hybrid">Hybrid</option>
               <option value="Modern Size">Modern Size</option>
             </Select>
           </div>

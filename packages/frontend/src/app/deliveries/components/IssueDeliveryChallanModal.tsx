@@ -130,6 +130,12 @@ export function IssueDeliveryChallanModal({
                 onBagCategoryChange={form.setBagCategory}
                 manualBagPrice={form.manualBagPrice}
                 onManualBagPriceChange={form.setManualBagPrice}
+                seasonalBagPrice={form.seasonalBagPrice}
+                monthlyBagPrice={form.monthlyBagPrice}
+                onSeasonalBagPriceChange={form.setSeasonalBagPrice}
+                onMonthlyBagPriceChange={form.setMonthlyBagPrice}
+                showSeasonalRate={form.rateVisibility.showSeasonalRate}
+                showMonthlyRate={form.rateVisibility.showMonthlyRate}
                 outwardRent={form.outwardRent}
                 withdrawal={form.withdrawal}
                 onQuantityChange={form.setWithdrawalQuantity}

@@ -17,6 +17,8 @@ interface OutwardRentBreakdownProps {
   bigBags: number;
   bagCategory?: OutwardBagCategory;
   bagPrice?: number | null;
+  seasonalBagPrice?: number | null;
+  monthlyBagPrice?: number | null;
   seasonalRates: { small: number; big: number };
   monthlyRates: { small: number; big: number };
   rentMonths?: number | null;
@@ -33,30 +35,29 @@ interface OutwardRentBreakdownProps {
 import { breakdownColumns, getPeriodMeta, type RentBreakdownItem } from './outwardRentBreakdown.helper';
 
 export function OutwardRentBreakdown({
-  rentType,
-  inwardDate,
-  deliveryDate,
-  smallBags,
-  bigBags,
-  bagCategory,
-  bagPrice,
-  seasonalRates,
-  monthlyRates,
-  rentMonths,
-  totalRent,
-  pendingBalance,
-  remainingStock,
-  totalStock: _totalStock,
-  paymentAmount,
-  paymentMode,
-  onPaymentAmountChange,
-  onPaymentModeChange,
+  rentType, inwardDate, deliveryDate, smallBags, bigBags,
+  bagCategory, bagPrice, seasonalBagPrice, monthlyBagPrice,
+  seasonalRates, monthlyRates, rentMonths, totalRent,
+  pendingBalance, remainingStock, totalStock: _totalStock,
+  paymentAmount, paymentMode, onPaymentAmountChange, onPaymentModeChange,
 }: OutwardRentBreakdownProps) {
   const isSeasonal = rentType === 'Seasonal';
   const totalWithdrawing = smallBags + bigBags;
   const isFullOutward = remainingStock !== undefined && remainingStock === 0 && totalWithdrawing > 0;
   const priorPending = pendingBalance ?? 0;
   const totalDueToSettle = priorPending + totalRent;
+
+  const effectiveSeasonalRates = useMemo(() => (
+    typeof seasonalBagPrice === 'number' && seasonalBagPrice > 0
+      ? { small: seasonalBagPrice, big: seasonalBagPrice }
+      : seasonalRates
+  ), [seasonalBagPrice, seasonalRates]);
+
+  const effectiveMonthlyRates = useMemo(() => (
+    typeof monthlyBagPrice === 'number' && monthlyBagPrice > 0
+      ? { small: monthlyBagPrice, big: monthlyBagPrice }
+      : monthlyRates
+  ), [monthlyBagPrice, monthlyRates]);
 
   const seasonalBreakdown = useMemo(
     () =>
@@ -66,11 +67,11 @@ export function OutwardRentBreakdown({
             deliveryDate,
             smallBags,
             bigBags,
-            seasonalRates,
-            monthlyRates,
+            seasonalRates: effectiveSeasonalRates,
+            monthlyRates: effectiveMonthlyRates,
           })
         : null,
-    [isSeasonal, inwardDate, totalWithdrawing, bagCategory, deliveryDate, smallBags, bigBags, seasonalRates, monthlyRates],
+    [isSeasonal, inwardDate, totalWithdrawing, bagCategory, deliveryDate, smallBags, bigBags, effectiveSeasonalRates, effectiveMonthlyRates],
   );
 
   const rows = useMemo<RentBreakdownItem[]>(() => {
@@ -110,12 +111,13 @@ export function OutwardRentBreakdown({
       });
     }
 
+    const activeRates = isSeasonal ? effectiveSeasonalRates : effectiveMonthlyRates;
     const detailsFormula =
       smallBags > 0 && bigBags > 0
-        ? `${smallBags} Small × ₹${seasonalRates.small} (₹${(smallBags * seasonalRates.small).toLocaleString('en-IN')}) + ${bigBags} Big × ₹${seasonalRates.big} (₹${(bigBags * seasonalRates.big).toLocaleString('en-IN')})`
+        ? `${smallBags} Small × ₹${activeRates.small} (₹${(smallBags * activeRates.small).toLocaleString('en-IN')}) + ${bigBags} Big × ₹${activeRates.big} (₹${(bigBags * activeRates.big).toLocaleString('en-IN')})`
         : smallBags > 0
-        ? `${smallBags} Small × ₹${seasonalRates.small} (₹${(smallBags * seasonalRates.small).toLocaleString('en-IN')})`
-        : `${bigBags} Big × ₹${seasonalRates.big} (₹${(bigBags * seasonalRates.big).toLocaleString('en-IN')})`;
+        ? `${smallBags} Small × ₹${activeRates.small} (₹${(smallBags * activeRates.small).toLocaleString('en-IN')})`
+        : `${bigBags} Big × ₹${activeRates.big} (₹${(bigBags * activeRates.big).toLocaleString('en-IN')})`;
 
     return [
       {
@@ -128,7 +130,7 @@ export function OutwardRentBreakdown({
         amount: totalRent,
       },
     ];
-  }, [bagCategory, bagPrice, isSeasonal, seasonalBreakdown, totalWithdrawing, smallBags, bigBags, seasonalRates, rentMonths, totalRent]);
+  }, [bagCategory, bagPrice, isSeasonal, seasonalBreakdown, totalWithdrawing, smallBags, bigBags, effectiveSeasonalRates, effectiveMonthlyRates, rentMonths, totalRent]);
 
   return (
     <div className={styles.card} id="outward-rent-breakdown-card">

@@ -5,8 +5,20 @@
   align-items: flex-start;
 }
 
+.ratesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  background-color: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
 @media (max-width: 768px) {
-  .compositionGrid {
+  .compositionGrid,
+  .ratesGrid {
     grid-template-columns: 1fr;
   }
 }
