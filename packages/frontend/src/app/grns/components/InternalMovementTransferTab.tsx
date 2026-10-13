@@ -33,7 +33,7 @@ export function InternalMovementTransferTab({
   const [movementDate, setMovementDate] = useState(new Date().toISOString().slice(0, 10));
   const [reason, setReason] = useState('');
   const [remarks, setRemarks] = useState('');
-  const [decision, setDecision] = useState<'AGREED_PENDING' | 'SETTLE_NOW'>('AGREED_PENDING');
+  const [decision, setDecision] = useState<'AGREED_PENDING' | 'SETTLE_NOW'>('SETTLE_NOW');
   const [settleAmount, setSettleAmount] = useState<number>(0);
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI'>('Cash');
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -60,7 +60,10 @@ export function InternalMovementTransferTab({
   const isUnbilled = totalPaid === 0 && pendingAmount === 0 && (rentSummary?.rentAmount ?? 0) === 0;
 
   useEffect(() => {
-    if (pendingAmount > 0 && settleAmount === 0) setSettleAmount(pendingAmount);
+    if (pendingAmount > 0) {
+      setDecision('SETTLE_NOW');
+      if (settleAmount === 0) setSettleAmount(pendingAmount);
+    }
   }, [pendingAmount, settleAmount]);
 
   const handleTransferSubmit = async (e: React.FormEvent) => {
