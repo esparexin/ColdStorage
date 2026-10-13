@@ -13,6 +13,10 @@ export interface InternalMovementDoc extends Document {
   totalBagsMoved: number;
   smallBagsMoved: number;
   bigBagsMoved: number;
+  hamaliBags: number;
+  hamaliRate?: number | null;
+  hamaliCharge: number;
+  hamaliCarried: number;
   referenceWeight?: number | null;
   grnId: string | null;
   grnNumber: string | null;
@@ -26,6 +30,7 @@ export interface InternalMovementDoc extends Document {
     remainingBalance: number;
     paymentStatus: string;
     rentState?: string | null;
+    hamaliAmount: number;
   };
   remarks: string | null;
   performedBy: string;
@@ -45,6 +50,10 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
     totalBagsMoved: { type: Number, default: 0, min: 0 },
     smallBagsMoved: { type: Number, default: 0, min: 0 },
     bigBagsMoved: { type: Number, default: 0, min: 0 },
+    hamaliBags: { type: Number, default: 0, min: 0 },
+    hamaliRate: { type: Number, default: null },
+    hamaliCharge: { type: Number, default: 0, min: 0 },
+    hamaliCarried: { type: Number, default: 0, min: 0 },
     referenceWeight: { type: Number, default: null },
     grnId: { type: String, default: null, index: true },
     grnNumber: { type: String, default: null },
@@ -58,6 +67,7 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
       remainingBalance: { type: Number, required: true, min: 0 },
       paymentStatus: { type: String, required: true },
       rentState: { type: String, default: null },
+      hamaliAmount: { type: Number, default: 0, min: 0 },
     },
     remarks: { type: String, trim: true, maxlength: 500, default: null },
     performedBy: { type: String, required: true },

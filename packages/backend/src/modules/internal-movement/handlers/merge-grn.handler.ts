@@ -12,6 +12,7 @@ import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
 import { resolveSourceRentObligation, closeSourceGrnOnMerge } from './merge-grn.helper.js';
 import { validateMergeRepackedCounts } from './merge-grn-validation.helper.js';
+import { computeMergeHamali, buildMergeTargetNote, buildMergeMovementDoc, validateHamaliBags } from './merge-hamali.helper.js';
 
 export async function mergeGrn(
   facilityId: string,
@@ -51,6 +52,7 @@ export async function mergeGrn(
       let totalMovedBig = 0;
       let totalSourcePendingRent = 0;
       const sourceSummaries: string[] = [];
+      const hamaliSources: Array<{ hamaliRate?: number | null; remainingBags: number }> = [];
       const moveDate = new Date(input.movementDate);
 
       for (const s of sourceGrns) {
@@ -78,6 +80,7 @@ export async function mergeGrn(
         totalMovedBags += bal.total;
         totalMovedSmall += bal.smallBags;
         totalMovedBig += bal.bigBags;
+        hamaliSources.push({ hamaliRate: s.hamaliRate ?? null, remainingBags: bal.total });
 
         const summaryStr = await closeSourceGrnOnMerge({
           facilityId, sourceGrn: s, targetGrnNumber: targetGrn.grnNumber, targetGrnId: targetGrn.id,
@@ -100,6 +103,15 @@ export async function mergeGrn(
       totalMovedSmall = smallMoved;
       totalMovedBig = bigMoved;
 
+      // Hamali Phase 3: additive reconcile, destination rate preserved, no recalc.
+      const hamaliBags = validateHamaliBags(input.hamaliBags, totalMovedBags);
+      const mergeHamali = computeMergeHamali({
+        targetHamaliRate: targetGrn.hamaliRate ?? null,
+        targetHamaliAmount: targetGrn.hamaliAmount ?? 0,
+        sources: hamaliSources,
+        hamaliBags,
+      });
+
       // When additionalRentAmount > 0 is supplied, it overrides the carried rent obligation;
       // otherwise (when omitted or 0), the cumulative source pending rent is automatically carried forward.
       finalCarriedRent =
@@ -111,6 +123,7 @@ export async function mergeGrn(
       const newSmall = targetGrn.smallBags + totalMovedSmall;
       const newBig = targetGrn.bigBags + totalMovedBig;
       const newRentAmount = targetGrn.rentAmount + finalCarriedRent;
+      const newHamaliAmount = mergeHamali.newHamaliAmount;
       const resultingBagType = resolveMergedBagType({
         targetBagType: targetGrn.bagType,
         sourceBagTypes: sourceGrns.map((s) => s.bagType),
@@ -141,11 +154,11 @@ export async function mergeGrn(
         { session, ordered: true },
       );
 
-      const moveDateStr = moveDate.toISOString().split('T')[0];
-      const repackedNote = input.repackedSmallBags != null ? ` (Repacked: ${totalMovedSmall} S + ${totalMovedBig} B)` : '';
-      const carriedRentNote = finalCarriedRent > 0 ? `. Carried pending rent: ₹${finalCarriedRent}` : '';
-      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${totalMovedBags} bags${repackedNote} from ${sourceSummaries.join('; ')}${carriedRentNote}. Reason: ${input.remarks.trim()}]`;
-      const updatedTargetRemarks = targetGrn.remarks ? `${targetGrn.remarks}\n${targetNote}` : targetNote;
+      const updatedTargetRemarks = buildMergeTargetNote({
+        moveDate, totalMovedBags, totalMovedSmall, totalMovedBig,
+        repackedSmallBags: input.repackedSmallBags, mergeHamali,
+        sourceSummaries, finalCarriedRent, remarks: input.remarks, existingRemarks: targetGrn.remarks,
+      });
 
       const updatedTarget = await GrnModel.findOneAndUpdate(
         { id: targetGrn.id },
@@ -156,6 +169,7 @@ export async function mergeGrn(
             smallBags: newSmall,
             bigBags: newBig,
             rentAmount: newRentAmount,
+            hamaliAmount: newHamaliAmount,
             remarks: updatedTargetRemarks,
             updatedAt: new Date(),
           },
@@ -174,30 +188,14 @@ export async function mergeGrn(
 
       const movementDocs = await InternalMovementModel.create(
         [
-          {
-            id: movementId,
-            facilityId,
-            movementType: 'MERGE',
-            movementDate: moveDate,
-            targetGrnId: targetGrn.id,
-            targetGrnNumber: targetGrn.grnNumber,
-            sourceGrnIds: sourceGrns.map((s) => s.id),
-            sourceGrnNumbers: sourceGrns.map((s) => s.grnNumber),
-            totalBagsMoved: totalMovedBags,
-            smallBagsMoved: totalMovedSmall,
-            bigBagsMoved: totalMovedBig,
-            referenceWeight: input.referenceWeight ?? null,
-            financialSnapshot: {
-              rentAmount: newRentAmount,
-              totalPaid: targetPaid,
-              remainingBalance: targetRentBal.remainingBalance,
-              paymentStatus: targetRentBal.paymentStatus,
-              rentState: targetRentBal.rentState,
-            },
-            remarks: input.remarks.trim(),
-            performedBy: userId,
-            createdAt: new Date(),
-          },
+          buildMergeMovementDoc({
+            movementId, facilityId, moveDate, targetGrn: { id: targetGrn.id, grnNumber: targetGrn.grnNumber },
+            sourceGrns: sourceGrns.map((s) => ({ id: s.id, grnNumber: s.grnNumber })),
+            totalMovedBags, totalMovedSmall, totalMovedBig, mergeHamali,
+            referenceWeight: input.referenceWeight, newRentAmount, targetPaid,
+            rentBal: { remainingBalance: targetRentBal.remainingBalance, paymentStatus: targetRentBal.paymentStatus, rentState: targetRentBal.rentState },
+            remarks: input.remarks, userId,
+          }),
         ],
         { session, ordered: true },
       );
@@ -224,6 +222,11 @@ export async function mergeGrn(
       totalBagsMoved: movementRecord.totalBagsMoved,
       carriedRent: finalCarriedRent,
       newRentAmount: movementRecord.financialSnapshot.rentAmount,
+      hamaliBags: movementRecord.hamaliBags,
+      hamaliRate: movementRecord.hamaliRate,
+      hamaliCharge: movementRecord.hamaliCharge,
+      hamaliCarried: movementRecord.hamaliCarried,
+      newHamaliAmount: movementRecord.financialSnapshot.hamaliAmount,
       referenceWeight: input.referenceWeight ?? null,
       remarks: input.remarks,
     },

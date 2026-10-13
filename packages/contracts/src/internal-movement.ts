@@ -12,6 +12,8 @@ export const mergeGrnInputSchema = z.object({
   remarks: z.string().trim().min(3, 'Remarks must be at least 3 characters').max(500),
   repackedSmallBags: z.number().int().min(0).nullish(),
   repackedBigBags: z.number().int().min(0).nullish(),
+  /** Explicitly selected bags charged for repacking/rebagging hamali (0..total moved). Distinct from S/B composition. */
+  hamaliBags: z.number().int().min(0).nullish(),
   referenceWeight: z.number().positive('Reference weight must be greater than zero').max(1000000).nullish(),
   sourcePaymentAmount: z.number().min(0, 'Payment amount cannot be negative').nullish(),
   sourcePaymentMode: paymentModeSchema.nullish(),
@@ -50,6 +52,14 @@ export const internalMovementRecordSchema = z.object({
   totalBagsMoved: z.number().min(0).default(0),
   smallBagsMoved: z.number().min(0).default(0),
   bigBagsMoved: z.number().min(0).default(0),
+  /** Repack-eligible hamali bag count for this movement (0 when no repack charge). */
+  hamaliBags: z.number().min(0).default(0),
+  /** Destination/target hamali rate used for any repack charge (historical, preserved). */
+  hamaliRate: z.number().min(0).nullish(),
+  /** New repack/rebag hamali charge created by this movement (0 when none). */
+  hamaliCharge: z.number().min(0).default(0),
+  /** Existing source hamali carried into the destination (transfer, not a new charge). */
+  hamaliCarried: z.number().min(0).default(0),
   referenceWeight: z.number().positive().max(1000000).nullish(),
   grnId: z.string().nullable().optional(),
   grnNumber: z.string().nullable().optional(),
@@ -63,6 +73,8 @@ export const internalMovementRecordSchema = z.object({
     remainingBalance: z.number().min(0),
     paymentStatus: z.string(),
     rentState: z.string().optional(),
+    /** Destination GRN hamaliAmount after this movement (carry + any repack charge). */
+    hamaliAmount: z.number().min(0).default(0),
   }),
   remarks: z.string().nullable().optional(),
   performedBy: z.string().min(1),
