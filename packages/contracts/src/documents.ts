@@ -126,6 +126,8 @@ export const challanDocumentDtoSchema = z.object({
   bagType: bagTypeSchema.optional(),
   bagCategory: z.string().optional(),
   bagPrice: z.number().nullable().optional(),
+  seasonalBagPrice: z.number().nullable().optional(),
+  monthlyBagPrice: z.number().nullable().optional(),
   partyMark: z.string().nullable().optional(),
   smallBags: z.number().int().min(0),
   bigBags: z.number().int().min(0),

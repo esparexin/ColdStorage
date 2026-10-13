@@ -21,6 +21,7 @@ export const outwardBagCategorySchema = z.enum([
   'Small & Big',
   'Modern Size',
   'Mixed',
+  'Hybrid',
   'Small',
   'Big',
 ]);
@@ -56,6 +57,8 @@ export const createDeliverySchema = z
     remarks: z.string().trim().max(500).nullish(),
     bagCategory: outwardBagCategorySchema.nullish(),
     bagPrice: bagPriceSchema.nullish(),
+    seasonalBagPrice: bagPriceSchema.nullish(),
+    monthlyBagPrice: bagPriceSchema.nullish(),
     rentCharge: z.number().min(0).nullish(),
     paymentAmount: z.number().min(0, 'Payment amount cannot be negative').nullish(),
     paymentMode: paymentModeSchema.nullish(),
@@ -100,6 +103,8 @@ export const deliveryChallanSchema = z.object({
   bagType: bagTypeSchema.optional(),
   bagCategory: outwardBagCategorySchema.optional(),
   bagPrice: z.number().positive().nullable().optional(),
+  seasonalBagPrice: z.number().positive().nullable().optional(),
+  monthlyBagPrice: z.number().positive().nullable().optional(),
   smallBags: z.number().int().min(0),
   bigBags: z.number().int().min(0),
   /** Derived as smallBags + bigBags. Never stored, so the two parts cannot disagree. */

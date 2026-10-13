@@ -10,6 +10,7 @@ import {
 } from '../rent-extension.js';
 import {
   calculateOutwardSeasonalBreakdown,
+  deriveHybridRateVisibility,
   resolveSeasonalElapsedPeriods,
 } from '../seasonal-periods.js';
 
@@ -128,5 +129,55 @@ describe('rent-extension contracts', () => {
     expect(res.periods[1].amount).toBe(1800);
     expect(res.periods[2].amount).toBe(1800);
     expect(res.periods[3].amount).toBe(18000);
+  });
+
+  describe('deriveHybridRateVisibility', () => {
+    it('Scenario A: Seasonal Rent, Inward earlier year, Outward later year -> shows both Seasonal and Monthly rate', () => {
+      const vis = deriveHybridRateVisibility({
+        rentType: 'Seasonal',
+        inwardDate: '2023-04-15',
+        deliveryDate: '2026-10-11',
+      });
+      expect(vis.showSeasonalRate).toBe(true);
+      expect(vis.showMonthlyRate).toBe(true);
+    });
+
+    it('Scenario B: Seasonal Rent, Inward and Outward same year (within Mar-Dec) -> shows only Seasonal rate', () => {
+      const vis = deriveHybridRateVisibility({
+        rentType: 'Seasonal',
+        inwardDate: '2026-03-20',
+        deliveryDate: '2026-11-15',
+      });
+      expect(vis.showSeasonalRate).toBe(true);
+      expect(vis.showMonthlyRate).toBe(false);
+    });
+
+    it('Scenario B.1: Seasonal Rent, crossing Dec 31 into January extension -> shows both Seasonal and Monthly rate', () => {
+      const vis = deriveHybridRateVisibility({
+        rentType: 'Seasonal',
+        inwardDate: '2026-03-20',
+        deliveryDate: '2027-01-10',
+      });
+      expect(vis.showSeasonalRate).toBe(true);
+      expect(vis.showMonthlyRate).toBe(true);
+    });
+
+    it('Scenario C: Monthly Rent selected during inward entry -> shows only Monthly rate regardless of year', () => {
+      const visSameYear = deriveHybridRateVisibility({
+        rentType: 'Monthly',
+        inwardDate: '2026-03-20',
+        deliveryDate: '2026-11-15',
+      });
+      expect(visSameYear.showSeasonalRate).toBe(false);
+      expect(visSameYear.showMonthlyRate).toBe(true);
+
+      const visMultiYear = deriveHybridRateVisibility({
+        rentType: 'Monthly',
+        inwardDate: '2023-04-15',
+        deliveryDate: '2026-10-11',
+      });
+      expect(visMultiYear.showSeasonalRate).toBe(false);
+      expect(visMultiYear.showMonthlyRate).toBe(true);
+    });
   });
 });
