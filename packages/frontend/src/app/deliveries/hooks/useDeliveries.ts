@@ -66,8 +66,8 @@ export function useDeliveries(
       params.set('page', String(page));
       params.set('limit', String(DELIVERY_PAGE_SIZE));
 
-      // For active, unsettled, or partially paid tabs, fetch ISSUED from server.
-      if (statusTab === 'ACTIVE' || statusTab === 'UNSETTLED' || statusTab === 'PARTIAL' || statusTab === 'CLOSED') {
+      // For active, closed, or due payment tabs, fetch ISSUED from server.
+      if (statusTab === 'ACTIVE' || statusTab === 'CLOSED' || statusTab === 'DUE') {
         params.set('status', 'ISSUED');
       }
 

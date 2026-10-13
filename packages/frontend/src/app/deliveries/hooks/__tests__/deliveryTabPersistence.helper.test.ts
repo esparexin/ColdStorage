@@ -12,10 +12,12 @@ describe('deliveryTabPersistence.helper', () => {
       expect(VALID_DELIVERY_STATUS_TABS['ALL']).toBe('');
       expect(VALID_DELIVERY_STATUS_TABS['ACTIVE']).toBe('ACTIVE');
       expect(VALID_DELIVERY_STATUS_TABS['ISSUED']).toBe('ACTIVE');
-      expect(VALID_DELIVERY_STATUS_TABS['UNSETTLED']).toBe('UNSETTLED');
-      expect(VALID_DELIVERY_STATUS_TABS['CLOSED']).toBe('UNSETTLED');
-      expect(VALID_DELIVERY_STATUS_TABS['PARTIAL']).toBe('PARTIAL');
-      expect(VALID_DELIVERY_STATUS_TABS['PARTIALLY_PAID']).toBe('PARTIAL');
+      expect(VALID_DELIVERY_STATUS_TABS['CLOSED']).toBe('CLOSED');
+      expect(VALID_DELIVERY_STATUS_TABS['DUE']).toBe('DUE');
+      expect(VALID_DELIVERY_STATUS_TABS['DUE_PAYMENT']).toBe('DUE');
+      expect(VALID_DELIVERY_STATUS_TABS['UNSETTLED']).toBe('DUE');
+      expect(VALID_DELIVERY_STATUS_TABS['PARTIAL']).toBe('DUE');
+      expect(VALID_DELIVERY_STATUS_TABS['PARTIALLY_PAID']).toBe('DUE');
     });
   });
 
@@ -25,36 +27,35 @@ describe('deliveryTabPersistence.helper', () => {
     });
 
     it('resolves active tab from URL search param ?tab=', () => {
-      expect(resolveInitialDeliveryStatusTab('?tab=unsettled', null)).toBe('UNSETTLED');
-      expect(resolveInitialDeliveryStatusTab('?tab=UNSETTLED', null)).toBe('UNSETTLED');
-      expect(resolveInitialDeliveryStatusTab('?tab=closed', null)).toBe('UNSETTLED');
-      expect(resolveInitialDeliveryStatusTab('?tab=partial', null)).toBe('PARTIAL');
-      expect(resolveInitialDeliveryStatusTab('?tab=PARTIAL', null)).toBe('PARTIAL');
+      expect(resolveInitialDeliveryStatusTab('?tab=closed', null)).toBe('CLOSED');
+      expect(resolveInitialDeliveryStatusTab('?tab=CLOSED', null)).toBe('CLOSED');
+      expect(resolveInitialDeliveryStatusTab('?tab=due', null)).toBe('DUE');
+      expect(resolveInitialDeliveryStatusTab('?tab=DUE', null)).toBe('DUE');
+      expect(resolveInitialDeliveryStatusTab('?tab=unsettled', null)).toBe('DUE');
       expect(resolveInitialDeliveryStatusTab('?tab=all', null)).toBe('');
       expect(resolveInitialDeliveryStatusTab('?tab=active', null)).toBe('ACTIVE');
     });
 
     it('resolves active tab from fallback URL search param ?status=', () => {
-      expect(resolveInitialDeliveryStatusTab('?status=UNSETTLED', null)).toBe('UNSETTLED');
-      expect(resolveInitialDeliveryStatusTab('?status=CLOSED', null)).toBe('UNSETTLED');
-      expect(resolveInitialDeliveryStatusTab('?status=partial', null)).toBe('PARTIAL');
+      expect(resolveInitialDeliveryStatusTab('?status=CLOSED', null)).toBe('CLOSED');
+      expect(resolveInitialDeliveryStatusTab('?status=DUE', null)).toBe('DUE');
+      expect(resolveInitialDeliveryStatusTab('?status=due_payment', null)).toBe('DUE');
       expect(resolveInitialDeliveryStatusTab('?status=issued', null)).toBe('ACTIVE');
       expect(resolveInitialDeliveryStatusTab('?status=all', null)).toBe('');
     });
 
     it('falls back to storedTab if URL search param is not set', () => {
-      expect(resolveInitialDeliveryStatusTab('', 'UNSETTLED')).toBe('UNSETTLED');
-      expect(resolveInitialDeliveryStatusTab('', 'CLOSED')).toBe('UNSETTLED');
-      expect(resolveInitialDeliveryStatusTab('', 'PARTIAL')).toBe('PARTIAL');
+      expect(resolveInitialDeliveryStatusTab('', 'CLOSED')).toBe('CLOSED');
+      expect(resolveInitialDeliveryStatusTab('', 'DUE')).toBe('DUE');
       expect(resolveInitialDeliveryStatusTab('', 'ACTIVE')).toBe('ACTIVE');
       expect(resolveInitialDeliveryStatusTab('', 'ALL')).toBe('');
-      expect(resolveInitialDeliveryStatusTab('?search=test', 'UNSETTLED')).toBe('UNSETTLED');
+      expect(resolveInitialDeliveryStatusTab('?search=test', 'CLOSED')).toBe('CLOSED');
     });
 
     it('prioritizes explicit URL search param over storedTab', () => {
-      expect(resolveInitialDeliveryStatusTab('?tab=unsettled', 'ACTIVE')).toBe('UNSETTLED');
-      expect(resolveInitialDeliveryStatusTab('?tab=partial', 'UNSETTLED')).toBe('PARTIAL');
-      expect(resolveInitialDeliveryStatusTab('?tab=all', 'UNSETTLED')).toBe('');
+      expect(resolveInitialDeliveryStatusTab('?tab=closed', 'ACTIVE')).toBe('CLOSED');
+      expect(resolveInitialDeliveryStatusTab('?tab=due', 'ACTIVE')).toBe('DUE');
+      expect(resolveInitialDeliveryStatusTab('?tab=all', 'ACTIVE')).toBe('');
     });
 
     it('ignores invalid tab values and falls back to ACTIVE', () => {
@@ -65,8 +66,8 @@ describe('deliveryTabPersistence.helper', () => {
 
   describe('syncDeliveryStatusTabToLocation', () => {
     it('syncs tab without throwing error', () => {
-      expect(() => syncDeliveryStatusTabToLocation('UNSETTLED')).not.toThrow();
-      expect(() => syncDeliveryStatusTabToLocation('PARTIAL')).not.toThrow();
+      expect(() => syncDeliveryStatusTabToLocation('CLOSED')).not.toThrow();
+      expect(() => syncDeliveryStatusTabToLocation('DUE')).not.toThrow();
       expect(() => syncDeliveryStatusTabToLocation('ACTIVE')).not.toThrow();
       expect(() => syncDeliveryStatusTabToLocation('')).not.toThrow();
     });

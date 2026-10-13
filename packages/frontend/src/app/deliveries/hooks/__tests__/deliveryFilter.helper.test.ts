@@ -126,32 +126,26 @@ describe('filterDeliveries', () => {
     expect(res[0].id).toBe('del-1');
   });
 
-  it('filters by unsettled rent status (unpaid and zero payment with outstanding balance)', () => {
+  it('filters by DUE rent status (both unpaid and partially paid with outstanding balance)', () => {
+    const res = filterDeliveries(all, '', 'DUE');
+    expect(res).toHaveLength(3);
+    expect(res.map((d) => d.id)).toEqual(['del-2', 'del-3', 'del-4']);
+  });
+
+  it('supports legacy UNSETTLED alias mapping to due payments', () => {
     const res = filterDeliveries(all, '', 'UNSETTLED');
-    expect(res).toHaveLength(2);
-    expect(res.map((d) => d.id)).toEqual(['del-2', 'del-4']);
-  });
-
-  it('filters by pending payment rent status alias', () => {
-    const res = filterDeliveries(all, '', 'PENDING');
-    expect(res).toHaveLength(2);
-    expect(res.map((d) => d.id)).toEqual(['del-2', 'del-4']);
-  });
-
-  it('filters by partially paid rent status', () => {
-    const res = filterDeliveries(all, '', 'PARTIAL');
-    expect(res).toHaveLength(1);
-    expect(res[0].id).toBe('del-3');
+    expect(res).toHaveLength(3);
+    expect(res.map((d) => d.id)).toEqual(['del-2', 'del-3', 'del-4']);
   });
 
   it('combines search and rent status filters', () => {
     const res1 = filterDeliveries(all, 'ravi', 'SETTLED');
     expect(res1).toHaveLength(1);
 
-    const res2 = filterDeliveries(all, 'ravi', 'UNSETTLED');
+    const res2 = filterDeliveries(all, 'ravi', 'DUE');
     expect(res2).toHaveLength(0);
 
-    const res3 = filterDeliveries(all, 'naresh', 'PARTIAL');
+    const res3 = filterDeliveries(all, 'naresh', 'DUE');
     expect(res3).toHaveLength(1);
     expect(res3[0].id).toBe('del-3');
   });
@@ -167,16 +161,49 @@ describe('filterDeliveries', () => {
     expect(res[0].id).toBe('del-act');
   });
 
-  it('filters by statusTab UNSETTLED and PARTIAL with distinct non-overlapping results', () => {
-    const unsettled = filterDeliveries(all, '', '', 'UNSETTLED');
-    const partial = filterDeliveries(all, '', '', 'PARTIAL');
+  it('filters by statusTab CLOSED (issued with zero remaining stock)', () => {
+    const activeDel = makeMockDelivery({ id: 'del-act', status: 'ISSUED', remainingTotalBags: 100 });
+    const closedDel = makeMockDelivery({ id: 'del-cls', status: 'ISSUED', remainingTotalBags: 0 });
+    const reversedDel = makeMockDelivery({ id: 'del-rev', status: 'REVERSED', remainingTotalBags: 0 });
 
-    expect(unsettled.map((d) => d.id)).toEqual(['del-2', 'del-4']);
-    expect(partial.map((d) => d.id)).toEqual(['del-3']);
+    const testSet = [activeDel, closedDel, reversedDel];
+    const res = filterDeliveries(testSet, '', '', 'CLOSED');
+    expect(res).toHaveLength(1);
+    expect(res[0].id).toBe('del-cls');
+  });
 
-    // Ensure distinct non-overlapping filtering behavior
-    const intersection = unsettled.filter((u) => partial.some((p) => p.id === u.id));
-    expect(intersection).toHaveLength(0);
+  it('filters by statusTab DUE (issued with outstanding rent dues)', () => {
+    const res = filterDeliveries(all, '', '', 'DUE');
+    expect(res.map((d) => d.id)).toEqual(['del-2', 'del-3', 'del-4']);
+  });
+
+  it('combines statusTab CLOSED with rentStatusFilter DUE', () => {
+    const closedPaid = makeMockDelivery({
+      id: 'del-c1',
+      status: 'ISSUED',
+      remainingTotalBags: 0,
+      rentPaymentStatus: 'Settled',
+      rentRemainingBalance: 0,
+    });
+    const closedDue = makeMockDelivery({
+      id: 'del-c2',
+      status: 'ISSUED',
+      remainingTotalBags: 0,
+      rentPaymentStatus: 'Not Settled',
+      rentRemainingBalance: 2000,
+    });
+    const activeDue = makeMockDelivery({
+      id: 'del-a1',
+      status: 'ISSUED',
+      remainingTotalBags: 50,
+      rentPaymentStatus: 'Not Settled',
+      rentRemainingBalance: 1000,
+    });
+
+    const set = [closedPaid, closedDue, activeDue];
+    const res = filterDeliveries(set, '', 'DUE', 'CLOSED');
+    expect(res).toHaveLength(1);
+    expect(res[0].id).toBe('del-c2');
   });
 
   it('returns empty array when no challans match criteria', () => {

@@ -2,7 +2,7 @@ import type { DeliveryChallan } from '@cold-storage/contracts';
 import type { DeliveryStatusTab } from './deliveryTabPersistence.helper';
 
 export type { DeliveryStatusTab };
-export type DeliveryRentStatusFilter = '' | 'SETTLED' | 'UNSETTLED' | 'PARTIAL' | 'PENDING';
+export type DeliveryRentStatusFilter = '' | 'DUE' | 'SETTLED' | 'UNSETTLED' | 'PARTIAL' | 'PENDING';
 
 export function isDeliverySettled(d: DeliveryChallan): boolean {
   if (d.rentPaymentStatus === 'Settled') return true;
@@ -14,6 +14,14 @@ export function isDeliverySettled(d: DeliveryChallan): boolean {
     return true;
   }
   return false;
+}
+
+export function isDeliveryDuePayment(d: DeliveryChallan): boolean {
+  if (d.status === 'REVERSED') return false;
+  if (isDeliverySettled(d)) return false;
+  const remaining =
+    d.rentRemainingBalance ?? (d.rentPaymentStatus === 'Not Settled' ? d.rentCharge ?? 0 : d.rentCharge ?? 0);
+  return remaining > 0;
 }
 
 export function isDeliveryPartiallyPaid(d: DeliveryChallan): boolean {
@@ -33,7 +41,7 @@ export function isDeliveryUnsettled(d: DeliveryChallan): boolean {
   return remaining > 0 && paid === 0;
 }
 
-export const isDeliveryPendingPayment = isDeliveryUnsettled;
+export const isDeliveryPendingPayment = isDeliveryDuePayment;
 
 export function filterDeliveries(
   deliveries: DeliveryChallan[],
@@ -49,18 +57,21 @@ export function filterDeliveries(
         d.status === 'ISSUED' &&
         (d.remainingTotalBags === undefined || d.remainingTotalBags > 0),
     );
-  } else if (statusTab === 'UNSETTLED' || statusTab === 'CLOSED') {
-    result = result.filter(isDeliveryUnsettled);
-  } else if (statusTab === 'PARTIAL') {
-    result = result.filter(isDeliveryPartiallyPaid);
+  } else if (statusTab === 'CLOSED') {
+    result = result.filter((d) => d.status === 'ISSUED' && d.remainingTotalBags === 0);
+  } else if (statusTab === 'DUE') {
+    result = result.filter(isDeliveryDuePayment);
   }
 
   if (rentStatusFilter === 'SETTLED') {
     result = result.filter(isDeliverySettled);
-  } else if (rentStatusFilter === 'PARTIAL') {
-    result = result.filter(isDeliveryPartiallyPaid);
-  } else if (rentStatusFilter === 'UNSETTLED' || rentStatusFilter === 'PENDING') {
-    result = result.filter(isDeliveryUnsettled);
+  } else if (
+    rentStatusFilter === 'DUE' ||
+    rentStatusFilter === 'UNSETTLED' ||
+    rentStatusFilter === 'PENDING' ||
+    rentStatusFilter === 'PARTIAL'
+  ) {
+    result = result.filter(isDeliveryDuePayment);
   }
 
   if (!searchTerm.trim()) return result;

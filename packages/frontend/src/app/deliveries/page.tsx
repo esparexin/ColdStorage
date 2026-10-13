@@ -57,10 +57,10 @@ export default function DeliveriesPage() {
       url.searchParams.set('tab', 'issue');
     } else {
       const tabVal =
-        deliveryData.statusTab === 'UNSETTLED'
-          ? 'unsettled'
-          : deliveryData.statusTab === 'PARTIAL'
-            ? 'partial'
+        deliveryData.statusTab === 'CLOSED'
+          ? 'closed'
+          : deliveryData.statusTab === 'DUE'
+            ? 'due'
             : deliveryData.statusTab === ''
               ? 'all'
               : 'active';
@@ -111,8 +111,8 @@ export default function DeliveriesPage() {
 
   const getFilteredEmptyMessage = () => {
     if (deliveryData.searchTerm) return `No delivery challans matching "${deliveryData.searchTerm}".`;
-    if (deliveryData.statusTab === 'UNSETTLED') return 'No unsettled delivery challans found for this facility.';
-    if (deliveryData.statusTab === 'PARTIAL') return 'No partially paid delivery challans found for this facility.';
+    if (deliveryData.statusTab === 'CLOSED') return 'No closed delivery challans found for this facility.';
+    if (deliveryData.statusTab === 'DUE') return 'No delivery challans with due payments found for this facility.';
     if (deliveryData.statusTab === 'ACTIVE') return 'No active delivery challans found for this facility.';
     return 'No delivery challans found.';
   };
