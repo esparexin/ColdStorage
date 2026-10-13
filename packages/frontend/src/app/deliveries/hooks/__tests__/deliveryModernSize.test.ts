@@ -61,7 +61,7 @@ describe('deliveryModernSize outward flow', () => {
         50,
         50,
       );
-      expect(formula).toBe('10 Modern Size bags × ₹50/bag × season total');
+      expect(formula).toBe('10 Modern bags × ₹50/bag × season total');
     });
 
     it('formats monthly formula with months count', () => {
@@ -74,7 +74,7 @@ describe('deliveryModernSize outward flow', () => {
         15,
         2,
       );
-      expect(formula).toBe('20 Modern Size bags × ₹15/bag × 2 mo');
+      expect(formula).toBe('20 Modern bags × ₹15/bag × 2 mo');
     });
   });
 
@@ -165,11 +165,11 @@ describe('deliveryModernSize outward flow', () => {
     });
   });
 
-  describe('computeOutwardRentCharge with Hybrid multi-year', () => {
+  describe('computeOutwardRentCharge with Modern multi-year', () => {
     it('applies seasonalBagPrice for seasons and monthlyBagPrice for extension months', () => {
       const rent = computeOutwardRentCharge({
         rentType: 'Seasonal',
-        bagCategory: 'Hybrid',
+        bagCategory: 'Modern',
         smallBags: 10,
         bigBags: 10,
         inwardDate: '2024-07-10',

@@ -28,9 +28,9 @@ export interface DeliveryPayloadInput {
  */
 export function buildDeliveryPayload(input: DeliveryPayloadInput): Record<string, unknown> {
   const isModern =
+    input.bagCategory === 'Modern' ||
     input.bagCategory === 'Modern Size' ||
-    input.bagCategory === 'Mixed' ||
-    input.bagCategory === 'Hybrid';
+    input.bagCategory === 'Mixed';
   const hasSpecificBags = input.smallBags > 0 || input.bigBags > 0;
   const totalQuantity =
     isModern && typeof input.quantity === 'number' && input.quantity > 0 && !hasSpecificBags

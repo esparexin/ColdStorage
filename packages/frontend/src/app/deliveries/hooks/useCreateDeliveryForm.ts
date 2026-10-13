@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  deriveHybridRateVisibility, type DeliveryChallan, type DeliverySummary, type Grn, type GrnInventorySummary,
+  deriveModernRateVisibility, type DeliveryChallan, type DeliverySummary, type Grn, type GrnInventorySummary,
 } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { useRentGate } from '@/hooks/useRentGate';
@@ -20,7 +20,7 @@ export function useCreateDeliveryForm(
   const [grnSummary, setGrnSummary] = useState<GrnInventorySummary | null>(null);
   const [loadingGrnSummary, setLoadingGrnSummary] = useState(false);
   const [createDate, setCreateDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [bagCategory, setBagCategory] = useState<OutwardBagCategory>('Small & Big');
+  const [bagCategory, setBagCategory] = useState<OutwardBagCategory>('S/B');
   const [manualBagPrice, setManualBagPrice] = useState<number | ''>('');
   const [seasonalBagPrice, setSeasonalBagPrice] = useState<number | ''>('');
   const [monthlyBagPrice, setMonthlyBagPrice] = useState<number | ''>('');
@@ -96,7 +96,7 @@ export function useCreateDeliveryForm(
           setGrnSummary(data.summary);
           const { availableSmallBags: s, availableBigBags: b } = data.summary;
           const totalStock = s + b;
-          setBagCategory('Small & Big');
+          setBagCategory('S/B');
           setWithdrawal({ availableSmall: totalStock, availableBig: totalStock, smallBags: '', bigBags: '', quantity: '' });
         }
         if (rateRes && rateRes.ok) {
@@ -118,7 +118,7 @@ export function useCreateDeliveryForm(
     }
   }, [initialGrnId, availableGrns, createGrnId, handleSelectGrn]);
 
-  const isModern = bagCategory === 'Modern Size' || bagCategory === 'Mixed' || bagCategory === 'Hybrid';
+  const isModern = bagCategory === 'Modern' || bagCategory === 'Modern Size' || bagCategory === 'Mixed';
   const smallBags = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigBags = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
   const modernQty = typeof withdrawal.quantity === 'number' ? withdrawal.quantity : 0;
@@ -131,7 +131,7 @@ export function useCreateDeliveryForm(
     deliveryDate: deliveryDateVal, rentMonths: selectedGrn?.rentMonths,
   });
 
-  const rateVisibility = deriveHybridRateVisibility({
+  const rateVisibility = deriveModernRateVisibility({
     rentType: selectedGrn?.rentType ?? 'Seasonal', inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal,
   });
 
