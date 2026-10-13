@@ -10,6 +10,7 @@ import {
   type PaymentMode,
 } from '@cold-storage/contracts';
 import { Badge, Input, Select } from '@/components/ui';
+import { MergeHamaliFields } from './MergeHamaliFields';
 import { MergeSourceTable } from './MergeSourceTable';
 import styles from './InternalMovementModal.module.css';
 
@@ -21,7 +22,7 @@ interface InternalMovementMergeTabProps {
     targetGrnId: string, sourceGrnIds: string[], reason: string, remarks?: string,
     movementDate?: string, additionalRentAmount?: number, repackedSmallBags?: number,
     repackedBigBags?: number, referenceWeight?: number, sourcePaymentAmount?: number,
-    sourcePaymentMode?: PaymentMode,
+    sourcePaymentMode?: PaymentMode, hamaliBags?: number,
   ) => Promise<void>;
 }
 
@@ -39,6 +40,7 @@ export function InternalMovementMergeTab({
   const [repackMode, setRepackMode] = useState(false);
   const [repackSmall, setRepackSmall] = useState<number | ''>('');
   const [repackBig, setRepackBig] = useState<number | ''>('');
+  const [hamaliBags, setHamaliBags] = useState<number | ''>('');
   const [referenceWeight, setReferenceWeight] = useState<number | ''>('');
   const [sourcePaymentAmount, setSourcePaymentAmount] = useState<number | ''>('');
   const [sourcePaymentMode, setSourcePaymentMode] = useState<PaymentMode>('Cash');
@@ -65,7 +67,6 @@ export function InternalMovementMergeTab({
   const isRepackRequired = repackMode || hasUnconfirmedMix;
   const repackedSum = (typeof repackSmall === 'number' ? repackSmall : 0) + (typeof repackBig === 'number' ? repackBig : 0);
   const isRepackFilled = typeof repackSmall === 'number' && typeof repackBig === 'number' && Number.isInteger(repackSmall) && Number.isInteger(repackBig);
-  const isRepackReconciled = isRepackFilled && repackedSum === totalSourceBags;
 
   const rawMovedSmall = selectedSources.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
   const rawMovedBig = selectedSources.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
@@ -76,15 +77,10 @@ export function InternalMovementMergeTab({
   const movedBig = isRepackFilled ? Number(repackBig) : defaultMovedBig;
   const resultingSmall = (targetGrn.smallBags ?? 0) + movedSmall;
   const resultingBig = (targetGrn.bigBags ?? 0) + movedBig;
-  const resultingBagType = useMemo(
-    () => resolveMergedBagType({
-      targetBagType: targetGrn.bagType,
-      sourceBagTypes: selectedSources.map((s) => s.bagType),
-      newSmallBags: resultingSmall,
-      newBigBags: resultingBig,
-    }),
-    [targetGrn.bagType, selectedSources, resultingSmall, resultingBig],
-  );
+  const resultingBagType = useMemo(() => resolveMergedBagType({
+    targetBagType: targetGrn.bagType, sourceBagTypes: selectedSources.map((s) => s.bagType),
+    newSmallBags: resultingSmall, newBigBags: resultingBig,
+  }), [targetGrn.bagType, selectedSources, resultingSmall, resultingBig]);
 
   const toggleSource = (id: string) => {
     setSelectedSourceIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
@@ -117,8 +113,11 @@ export function InternalMovementMergeTab({
     if (srcPayment != null && srcPayment > 0 && selectedSourceIds.length > 1) {
       return setValidationError('Previous-season settlement can only be collected when merging a single source GRN. Merge one source at a time when collecting payment.');
     }
+    if (typeof hamaliBags === 'number' && (!Number.isInteger(hamaliBags) || hamaliBags < 0 || hamaliBags > totalSourceBags)) {
+      return setValidationError(`Hamali bags must be a whole number between 0 and ${totalSourceBags}.`);
+    }
 
-    await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0, confSmall, confBig, refWeight, srcPayment, sourcePaymentMode);
+    await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0, confSmall, confBig, refWeight, srcPayment, sourcePaymentMode, typeof hamaliBags === 'number' ? hamaliBags : undefined);
   };
 
   return (
@@ -195,7 +194,7 @@ export function InternalMovementMergeTab({
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', padding: '2px 0' }}>
                   <span>Final Total: <strong>{repackedSum}</strong> / {totalSourceBags} bags</span>
-                  {isRepackReconciled ? (
+                  {isRepackFilled && repackedSum === totalSourceBags ? (
                     <span style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}>✓ Counts Reconciled</span>
                   ) : (
                     <span style={{ color: 'var(--color-danger-text)', fontWeight: 'var(--font-semibold)' }}>
@@ -206,6 +205,10 @@ export function InternalMovementMergeTab({
                 <Input id="reference-weight" type="number" min={0} placeholder="Total Reference Weight (kg) — Optional reference" aria-label="Total reference weight in kilograms (optional)" value={referenceWeight} onChange={(e) => setReferenceWeight(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
               </div>
             )}
+          </div>
+          <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
+            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)' }}>Repack Hamali (selected bags only)</span>
+            <MergeHamaliFields hamaliBags={hamaliBags} totalSourceBags={totalSourceBags} hamaliRate={targetGrn.hamaliRate ?? 0} submitting={submitting} onChange={setHamaliBags} />
           </div>
 
           {hasPreviousSeason && (

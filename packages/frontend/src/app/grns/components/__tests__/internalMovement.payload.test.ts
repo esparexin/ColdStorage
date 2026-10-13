@@ -97,4 +97,30 @@ describe('internalMovement payload helpers', () => {
     expect(payload.repackedBigBags).toBe(20);
     expect(mergeGrnInputSchema.safeParse(payload).success).toBe(true);
   });
+
+  it('builds a merge payload with selected repack hamali bags', () => {
+    const payload = buildMergePayload(
+      'grn-target',
+      ['grn-a'],
+      'Repacked lot',
+      'Confirmed mix',
+      '2026-10-10',
+      0,
+      30,
+      20,
+      undefined,
+      undefined,
+      undefined,
+      20,
+    );
+    expect(payload.hamaliBags).toBe(20);
+    expect(mergeGrnInputSchema.safeParse(payload).success).toBe(true);
+  });
+
+  it('rejects hamali bags exceeding moved stock at the contract', () => {
+    const parsed = mergeGrnInputSchema.safeParse(
+      buildMergePayload('t', ['s'], 'Rebagging', undefined, '2026-10-10', 0, undefined, undefined, undefined, undefined, undefined, -1),
+    );
+    expect(parsed.success).toBe(false);
+  });
 });

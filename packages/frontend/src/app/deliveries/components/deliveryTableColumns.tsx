@@ -72,17 +72,15 @@ export function createDeliveryColumns({
       header: 'Bags (S/B)',
       align: 'right',
       render: (row) => {
-        if (isHybridBagCategory(row.bagCategory)) {
-          return (
-            <span className={styles.bagsTotal}>
-              {row.totalBags.toLocaleString('en-IN')} Hybrid
-            </span>
-          );
-        }
+        const bags = isHybridBagCategory(row.bagCategory)
+          ? `${row.totalBags.toLocaleString('en-IN')} Hybrid`
+          : `${row.totalBags.toLocaleString('en-IN')} (${row.smallBags.toLocaleString('en-IN')}S/${row.bigBags.toLocaleString('en-IN')}B)`;
         return (
           <span className={styles.bagsTotal}>
-            {row.totalBags.toLocaleString('en-IN')} ({row.smallBags.toLocaleString('en-IN')}S/
-            {row.bigBags.toLocaleString('en-IN')}B)
+            {bags}
+            {(row.hamaliCharge ?? 0) > 0 && (
+              <span className={styles.rentChargeSub}> Hamali ₹{Number(row.hamaliCharge).toLocaleString('en-IN')}</span>
+            )}
           </span>
         );
       },

@@ -21,6 +21,7 @@ export interface MergePayload {
   additionalRentAmount: number;
   repackedSmallBags?: number;
   repackedBigBags?: number;
+  hamaliBags?: number;
   referenceWeight?: number;
   sourcePaymentAmount?: number;
   sourcePaymentMode?: PaymentMode;
@@ -52,6 +53,7 @@ export function buildMergePayload(
   referenceWeight?: number,
   sourcePaymentAmount?: number,
   sourcePaymentMode?: PaymentMode,
+  hamaliBags?: number,
 ): MergePayload {
   return {
     targetGrnId,
@@ -61,6 +63,7 @@ export function buildMergePayload(
     additionalRentAmount: additionalRentAmount ?? 0,
     repackedSmallBags,
     repackedBigBags,
+    hamaliBags,
     referenceWeight,
     sourcePaymentAmount,
     sourcePaymentMode,
