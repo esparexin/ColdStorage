@@ -82,7 +82,7 @@ export function DeliveryStatusTabs({
           onClick={() => onSelectTab('ISSUE')}
           leftIcon={<Plus size={12} aria-hidden="true" />}
         >
-          + Outward
+          Outward
         </Button>
       )}
     </div>
