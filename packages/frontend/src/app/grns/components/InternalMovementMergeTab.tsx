@@ -13,6 +13,7 @@ import {
 import { Badge, Input, Select } from '@/components/ui';
 import { MergeBagCategoryFields, DEFAULT_BAG_CONFIRMATION, type BagConfirmationValue } from './MergeBagCategoryFields';
 import { MergeRentAssessment } from './MergeRentAssessment';
+import { partitionMergeSources } from './mergeEligibility.helper';
 import { previewConfirmedSplit, validateBagConfirmation } from './bagConfirmation.helper';
 import { MergeSourceTable } from './MergeSourceTable';
 import styles from './InternalMovementModal.module.css';
@@ -55,14 +56,19 @@ export function InternalMovementMergeTab({
 
   const openGrns = useMemo(() => allGrns.filter((g) => g.status === 'OPEN'), [allGrns]);
   const targetGrn = useMemo(() => openGrns.find((g) => g.id === targetGrnId) ?? currentGrn, [openGrns, targetGrnId, currentGrn]);
-  const eligibleSources = useMemo(() => openGrns.filter((g) => g.id !== targetGrnId && (g.closingBags ?? g.bags) > 0 && g.loanStatus !== 'TAKEN'), [openGrns, targetGrnId]);
+  const targetSeason = useMemo(() => seasonYearForInwardDate(targetGrn.date), [targetGrn.date]);
+  // Future-season lots can never merge into this target (backend season guard
+  // stays authoritative); they are excluded here so they never look eligible.
+  const { eligibleSources, futureSeasonCount } = useMemo(
+    () => partitionMergeSources(openGrns, targetGrnId, targetSeason),
+    [openGrns, targetGrnId, targetSeason],
+  );
   const selectedSources = useMemo(() => eligibleSources.filter((g) => selectedSourceIds.includes(g.id)), [eligibleSources, selectedSourceIds]);
   const totalSourceBags = useMemo(() => selectedSources.reduce((acc, g) => acc + (g.closingBags ?? g.bags), 0), [selectedSources]);
   const targetCurrentRemaining = targetGrn.closingBags ?? targetGrn.bags;
   const targetNewRemaining = targetCurrentRemaining + totalSourceBags;
   const isTargetLoanHold = targetGrn.loanStatus === 'TAKEN';
 
-  const targetSeason = useMemo(() => seasonYearForInwardDate(targetGrn.date), [targetGrn.date]);
   const hasPreviousSeason = useMemo(() => selectedSources.some((s) => seasonYearForInwardDate(s.date) < targetSeason), [selectedSources, targetSeason]);
 
   const isTargetDiff = (targetGrn.smallBagPrice != null || targetGrn.bigBagPrice != null) && targetGrn.smallBagPrice !== targetGrn.bigBagPrice;
@@ -105,9 +111,8 @@ export function InternalMovementMergeTab({
     if (isTargetLoanHold) return setValidationError(`Target GRN '${targetGrn.grnNumber}' has an active loan hold.`);
 
     const confirmError = validateBagConfirmation({
-      category: confirmation.category, quantity: confirmation.quantity, bagPrice: confirmation.bagPrice,
-      seasonalBagPrice: confirmation.seasonalBagPrice, monthlyBagPrice: confirmation.monthlyBagPrice,
-      repackSmall, repackBig, totalMovedBags: totalSourceBags, isRepackRequired,
+      category: confirmation.category, quantity: confirmation.quantity, bagPrice: confirmation.bagPrice, seasonalBagPrice: confirmation.seasonalBagPrice,
+      monthlyBagPrice: confirmation.monthlyBagPrice, repackSmall, repackBig, totalMovedBags: totalSourceBags, isRepackRequired,
     });
     if (confirmError) return setValidationError(confirmError);
 
@@ -122,11 +127,8 @@ export function InternalMovementMergeTab({
       return setValidationError('Previous-season settlement can only be collected when merging a single source GRN. Merge one source at a time when collecting payment.');
     }
 
-    // Untouched default category stays legacy (no record noise); any explicit
-    // choice or required/filled confirmation is recorded informationally.
-    const sendCategory = (confirmation.category !== 'Small & Big' || isRepackRequired || isRepackFilled)
-      ? confirmation.category
-      : undefined;
+    // Untouched default category stays legacy; explicit/required/filled confirmations record informationally.
+    const sendCategory = (confirmation.category !== 'Small & Big' || isRepackRequired || isRepackFilled) ? confirmation.category : undefined;
     await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0, confSmall, confBig, refWeight, srcPayment, sourcePaymentMode, sendCategory, typeof confirmation.quantity === 'number' ? confirmation.quantity : undefined, typeof confirmation.bagPrice === 'number' ? confirmation.bagPrice : undefined, typeof confirmation.seasonalBagPrice === 'number' ? confirmation.seasonalBagPrice : undefined, typeof confirmation.monthlyBagPrice === 'number' ? confirmation.monthlyBagPrice : undefined);
   };
 
@@ -164,6 +166,11 @@ export function InternalMovementMergeTab({
             +{totalSourceBags} Bags Selected
           </span>
         </div>
+        {futureSeasonCount > 0 && (
+          <div className={styles.noticeBox} style={{ color: 'var(--color-warning-text)', borderColor: 'var(--color-warning)' }}>
+            {futureSeasonCount} future-season GRN{futureSeasonCount === 1 ? '' : 's'} excluded — same season or earlier only.
+          </div>
+        )}
         <MergeSourceTable
           eligibleSources={eligibleSources}
           selectedSourceIds={selectedSourceIds}

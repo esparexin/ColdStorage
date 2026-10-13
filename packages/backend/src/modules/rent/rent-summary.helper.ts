@@ -36,7 +36,10 @@ export function buildRentSummary(
   hamaliShare = 0,
 ): RentSummaryDto {
   const baseRent = grn.rentAmount > 0 ? grn.rentAmount : outwardRentCharges;
-  const hamali = Number.isFinite(hamaliShare) && hamaliShare > 0 ? hamaliShare : 0;
+  // First-season Hamali joins the total due exactly once: zero-rent GRNs
+  // already accumulate Hamali-inclusive outward charges in the base, so the
+  // full share applies only when the base is the stored rent obligation.
+  const hamali = grn.rentAmount > 0 && Number.isFinite(hamaliShare) && hamaliShare > 0 ? hamaliShare : 0;
   const totalDue = Number(
     (totalRentDue(baseRent, extensions.map((e) => e.finalAmount)) + hamali).toFixed(2),
   );

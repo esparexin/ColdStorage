@@ -61,14 +61,14 @@ describe('First-season internal hamali', () => {
     });
   });
 
-  async function makeGrn(bags = 100) {
+  async function makeGrn(bags = 100, rentAmount?: number) {
     seq += 1;
     const { grn } = await createGrn(
       facilityId,
       {
         grnNumber: `${9000 + seq}`, date: new Date('2025-06-15'), customerId, commodityId: 'cmd-fs',
         chamber: 'CH-1', bags, bagType: 'S', rentType: 'Seasonal',
-        bagPrice: 30, rentAmount: bags * 30,
+        bagPrice: 30, rentAmount: rentAmount ?? bags * 30,
       },
       userId,
       { requireRates: false },
@@ -196,5 +196,38 @@ describe('First-season internal hamali', () => {
     expect('hamaliAmount' in transferred.grn).toBe(false);
     expect('hamaliCarried' in transferred.movement).toBe(false);
     expect(transferred.grn.customerId).toBe(customerB);
+  });
+
+  it('counts hamali once for zero-rent GRNs across partial deliveries (BUG-1)', async () => {
+    const grn = await makeGrn(100, 0);
+    const d1Date = new Date('2025-07-10');
+    const rentOnly1 = await expectedRentOnly(grn.id, 30, d1Date);
+    await createDeliveryWithRetry(
+      facilityId, { grnId: grn.id, date: d1Date, smallBags: 30, bigBags: 0, rentCharge: rentOnly1 }, userId,
+    );
+    const afterFirst = await rentService.getRentSummary(facilityId, grn.id);
+    // Base already embeds the first share: no full-share top-up (would double).
+    expect(afterFirst.totalDue).toBeCloseTo(rentOnly1 + 120, 2);
+    const d2Date = new Date('2025-07-20');
+    const rentOnly2 = await expectedRentOnly(grn.id, 70, d2Date);
+    await createDeliveryWithRetry(
+      facilityId, { grnId: grn.id, date: d2Date, smallBags: 70, bigBags: 0, rentCharge: rentOnly2 }, userId,
+    );
+    const afterSecond = await rentService.getRentSummary(facilityId, grn.id);
+    // Lifetime hamali across both deliveries equals the original 400 exactly.
+    expect(afterSecond.totalDue).toBeCloseTo(rentOnly1 + rentOnly2 + 400, 2);
+  });
+
+  it('collects first-season hamali through rent payment to Settled (BUG-2)', async () => {
+    const grn = await makeGrn(100);
+    const before = await rentService.getRentSummary(facilityId, grn.id);
+    expect(before.remainingBalance).toBe(3400);
+    const result = await rentService.recordPayment(
+      facilityId,
+      { grnId: grn.id, amountPaid: 3400, paymentMode: 'Cash', paymentDate: new Date('2025-07-10') },
+      userId,
+    );
+    expect(result.summary.remainingBalance).toBe(0);
+    expect(result.summary.paymentStatus).toBe('Settled');
   });
 });
