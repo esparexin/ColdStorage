@@ -32,6 +32,8 @@ export interface DeliveryChallanDoc extends Document {
   weight: number | null;
   remarks: string | null;
   rentCharge?: number;
+  hamaliRate?: number | null;
+  hamaliCharge?: number;
   status: DeliveryStatus;
   issuedBy: string;
   createdAt: Date;
@@ -65,6 +67,8 @@ const deliveryChallanSchema = new Schema<DeliveryChallanDoc>(
     weight: { type: Number, default: null },
     remarks: { type: String, trim: true, default: null },
     rentCharge: { type: Number, default: 0 },
+    hamaliRate: { type: Number, default: null },
+    hamaliCharge: { type: Number, default: 0 },
     status: { type: String, required: true, enum: ['ISSUED', 'REVERSED'], default: 'ISSUED', index: true },
     issuedBy: { type: String, required: true },
   },

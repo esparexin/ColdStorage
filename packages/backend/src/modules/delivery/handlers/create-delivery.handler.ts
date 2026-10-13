@@ -14,6 +14,7 @@ import { assertRentAllowedForOutward } from '../../common/rent-gate.service.js';
 import { isTransientError, toChallanEntity } from '../delivery.mappers.js';
 import { getDeliverySummary } from '../queries/delivery.queries.js';
 import { computeExpectedDeliveryRent } from './delivery-rent.helper.js';
+import { resolveOutwardHamali } from './delivery-hamali.helper.js';
 import { recordDeliveryInlinePayment } from './delivery-payment.helper.js';
 import { validateDeliveryDate, validateStockAndBalances } from './delivery-validation.helper.js';
 
@@ -121,6 +122,9 @@ async function executeDeliveryTransaction(
       }
       const deliveryRentCharge = expectedRentCharge;
 
+      const { hamaliRate, hamaliCharge: expectedHamaliCharge } = resolveOutwardHamali({
+        withdrawnTotal, grnHamaliRate: grn.hamaliRate, inputHamaliCharge: input.hamaliCharge,
+      });
       const rentBalance = await assertRentAllowedForOutward(
         facilityId,
         { id: grn.id, grnNumber: grn.grnNumber, rentAmount: grn.rentAmount ?? 0 },
@@ -169,7 +173,8 @@ async function executeDeliveryTransaction(
             smallBags: finalSmall, bigBags: finalBig, marks, gpNumber,
             vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null, driverName: input.driverName?.trim() || null,
             weight: input.weight ?? null, remarks: input.remarks?.trim() || null,
-            rentCharge: deliveryRentCharge, status: 'ISSUED', issuedBy: userId,
+            rentCharge: deliveryRentCharge, hamaliRate, hamaliCharge: expectedHamaliCharge,
+            status: 'ISSUED', issuedBy: userId,
           },
         ],
         { session, ordered: true },
@@ -237,7 +242,7 @@ async function executeDeliveryTransaction(
     eventType: 'DELIVERY_ISSUED', severity: 'INFO', userId, facilityId, resource: 'delivery', resourceId: delivery.id,
     details: {
       challanNumber: delivery.challanNumber, smallBags: delivery.smallBags, bigBags: delivery.bigBags,
-      totalBags: delivery.totalBags, grnId: delivery.grnId, customerId: delivery.customerId,
+      totalBags: delivery.totalBags, grnId: delivery.grnId, customerId: delivery.customerId, hamaliRate: delivery.hamaliRate ?? null, hamaliCharge: delivery.hamaliCharge ?? 0,
     },
   });
 
