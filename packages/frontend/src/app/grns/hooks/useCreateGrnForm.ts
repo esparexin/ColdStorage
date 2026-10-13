@@ -169,6 +169,7 @@ export function useCreateGrnForm(
         chamber: parsedChamber ?? createChamber, bags: Number(createBags), bagType: createBagType,
         rentType: createRentType,
         rentMonths: createRentType === 'Monthly' && typeof createRentMonths === 'number' ? createRentMonths : '',
+        rentAmount: typeof createRentAmount === 'number' && createRentAmount > 0 ? createRentAmount : '',
         smallBagPrice: createSmallBagPrice,
         bigBagPrice: createBigBagPrice,
         totalBagsWeight: createTotalBagsWeight,

@@ -137,7 +137,7 @@ export class CommodityRateService {
     const rate = await this.getRate(commodityId, rentType);
     if (!rate) return;
     const norm = (n: number) => Number(n.toFixed(2));
-    const useSplit = submitted.bagType === 'S+B';
+    const useSplit = submitted.bagType === 'S+B' || submitted.bagType === 'S/B';
     const singleSide = submitted.bagType === 'B' ? rate.bigRate : rate.smallRate;
     const hasAnyRate =
       submitted.smallBagPrice != null || submitted.bigBagPrice != null || submitted.bagPrice != null;
@@ -149,7 +149,7 @@ export class CommodityRateService {
     }
     if (!hasAnyRate) return;
     if (useSplit && (submitted.smallBagPrice == null || submitted.bigBagPrice == null)) {
-      throw rateMismatch(commodityId, rentType, 'S+B requires both Small and Big bag rates');
+      throw rateMismatch(commodityId, rentType, `${submitted.bagType} requires both Small and Big bag rates`);
     }
     const mismatch =
       (submitted.smallBagPrice != null && norm(submitted.smallBagPrice) !== norm(rate.smallRate)) ||

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
+  calculateRentAmount,
   getFinancialYearKey,
   normalizeBagComposition,
   rentMonthsForType,
@@ -89,7 +90,24 @@ export async function createGrn(
   const bigBagWeight = input.bigBagWeight ?? null;
 
   const rentMonths = rentMonthsForType(input.rentType) ?? (input.rentMonths ?? null);
-  const finalRentAmount = input.rentAmount && input.rentAmount > 0 ? input.rentAmount : 0;
+  const isSeasonal = input.rentType === 'Seasonal' || input.rentType === 'Seasonal_3M';
+  const hasFixedMonthlyDuration = input.rentType === 'Monthly' && typeof rentMonths === 'number' && rentMonths >= 1;
+
+  let finalRentAmount = input.rentAmount && input.rentAmount > 0 ? input.rentAmount : 0;
+  if (finalRentAmount === 0 && (isSeasonal || hasFixedMonthlyDuration)) {
+    finalRentAmount = calculateRentAmount({
+      rentType: input.rentType,
+      bags: input.bags,
+      bagType: input.bagType,
+      smallBags: composition.smallBags,
+      bigBags: composition.bigBags,
+      smallBagPrice: input.smallBagPrice ?? null,
+      bigBagPrice: input.bigBagPrice ?? null,
+      bagPrice: input.bagPrice ?? null,
+      rentMonths,
+      rentAmount: input.rentAmount ?? null,
+    });
+  }
   // Hamali is internal-only first-season rent input: never stored on the GRN.
 
   const id = `grn-${randomUUID()}`;

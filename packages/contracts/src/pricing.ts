@@ -55,13 +55,23 @@ export function calculateRentAmount(input: RentalCalculationInput): number {
     }
   }
 
-  const isSb = input.bagType === 'S+B' || input.bagType === 'S/B' || input.bagType == null || (input.smallBags != null || input.bigBags != null);
-  if (isSb && (input.smallBagPrice != null || input.bigBagPrice != null)) {
-    const sCount = input.smallBags ?? 0;
-    const bCount = input.bigBags ?? 0;
+  const hasDiff = input.smallBagPrice != null || input.bigBagPrice != null;
+  const isSb = input.bagType === 'S+B' || input.bagType === 'S/B' || input.bagType == null || input.smallBags != null || input.bigBags != null;
+  if (hasDiff || isSb) {
+    let sCount = input.smallBags;
+    let bCount = input.bigBags;
+    if (sCount == null && bCount == null) {
+      if (input.bagType === 'B') { sCount = 0; bCount = input.bags; }
+      else { sCount = input.bags; bCount = 0; }
+    } else {
+      sCount = sCount ?? 0;
+      bCount = bCount ?? 0;
+    }
     const sRate = input.smallBagPrice ?? input.bagPrice ?? 0;
     const bRate = input.bigBagPrice ?? input.bagPrice ?? 0;
-    return Number(((sCount * sRate + bCount * bRate) * months).toFixed(2));
+    if (sRate > 0 || bRate > 0) {
+      return Number(((sCount * sRate + bCount * bRate) * months).toFixed(2));
+    }
   }
 
   if (typeof input.bagPrice === 'number' && input.bagPrice > 0) {
@@ -216,19 +226,10 @@ export function calculateMonthlyOccupancy(input: OccupancyCalculationInput) {
     const calculatedCharge = Number((occupancyBags * bagRate).toFixed(2));
 
     periods.push({
-      grnId,
-      grnNumber,
-      inwardDate: inDate,
-      outwardDate: periodOutwardDate,
-      billingPeriod,
-      applicableMonth,
-      periodIndex,
-      openingBags: currentOpening,
-      deliveredBags: deliveredInCycle,
-      remainingBags: endOfCycleRemaining,
-      occupancyBags,
-      bagRate,
-      calculatedCharge,
+      grnId, grnNumber, inwardDate: inDate, outwardDate: periodOutwardDate,
+      billingPeriod, applicableMonth, periodIndex,
+      openingBags: currentOpening, deliveredBags: deliveredInCycle, remainingBags: endOfCycleRemaining,
+      occupancyBags, bagRate, calculatedCharge,
     });
 
     currentOpening = endOfCycleRemaining;

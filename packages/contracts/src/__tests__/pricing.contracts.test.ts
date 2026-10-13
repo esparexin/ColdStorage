@@ -69,6 +69,27 @@ describe('Authoritative Bag Pricing & Rental Calculation SSOT', () => {
     expect(monthlyMixed).toBe(960);
   });
 
+  it('4. calculates unsegregated S/B lots with differential rates matching normalizeBagComposition default', () => {
+    const unsegregated = calculateRentAmount({
+      rentType: 'Seasonal',
+      bags: 100,
+      bagType: 'S/B',
+      smallBagPrice: 10,
+      bigBagPrice: 15,
+    });
+    // Unsegregated defaults to small bags (100 × 10 = ₹1,000), never ₹0
+    expect(unsegregated).toBe(1000);
+
+    const typeBOnly = calculateRentAmount({
+      rentType: 'Seasonal',
+      bags: 100,
+      bagType: 'B',
+      bigBagPrice: 15,
+    });
+    // Type B single-side (100 × 15 = ₹1,500)
+    expect(typeBOnly).toBe(1500);
+  });
+
   it('5. derives effective bag price accurately and falls back gracefully for historical records', () => {
     expect(deriveBagPrice({ rentType: 'Seasonal', bags: 100, bagPrice: 15 })).toBe(15);
     // Seasonal total rate: ₹1,000 / 100 bags = ₹10 (whole-season total, never ÷10)
