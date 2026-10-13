@@ -1,7 +1,11 @@
 'use client';
 
-import React from 'react';
-import { seasonYearForInwardDate, type Grn } from '@cold-storage/contracts';
+import {
+  isBagCompositionVerified,
+  isHybridBagCategory,
+  seasonYearForInwardDate,
+  type Grn,
+} from '@cold-storage/contracts';
 import { Badge, DataTable } from '@/components/ui';
 
 interface MergeSourceTableProps {
@@ -74,7 +78,11 @@ export function MergeSourceTable({
           key: 'bagType',
           header: 'Bag Type',
           align: 'center',
-          render: (sg) => <Badge variant="neutral">{sg.bagType}</Badge>,
+          render: (sg) => {
+            const hasDiff = (sg.smallBagPrice != null || sg.bigBagPrice != null) && sg.smallBagPrice !== sg.bigBagPrice;
+            const isHybrid = (sg.bagPrice != null && !hasDiff) || isHybridBagCategory(sg.bagType);
+            return <Badge variant="neutral">{isHybrid ? 'Hybrid' : sg.bagType}</Badge>;
+          },
         },
         {
           key: 'availableBags',
@@ -84,7 +92,10 @@ export function MergeSourceTable({
             const s = sg.smallBags ?? 0;
             const b = sg.bigBags ?? 0;
             const tot = sg.closingBags ?? sg.bags;
-            const unconf = (s === 0 && b === 0 && tot > 0) || (s + b !== tot);
+            const hasDiff = (sg.smallBagPrice != null || sg.bigBagPrice != null) && sg.smallBagPrice !== sg.bigBagPrice;
+            const isInitialVerified = isBagCompositionVerified({ bagType: sg.bagType, bags: sg.bags, smallBags: sg.smallBags, bigBags: sg.bigBags });
+            const isHybrid = (sg.bagPrice != null && !hasDiff) || isHybridBagCategory(sg.bagType);
+            const unconf = hasDiff && !isInitialVerified;
             return (
               <div>
                 <span style={{ fontWeight: 'var(--font-semibold)' }}>{tot}</span>
@@ -94,7 +105,7 @@ export function MergeSourceTable({
                     color: unconf ? 'var(--color-warning-text)' : 'var(--color-text-muted)',
                   }}
                 >
-                  {unconf ? 'Pending Verification' : `${s}S · ${b}B`}
+                  {unconf ? 'Pending Verification' : isHybrid ? 'Uniform Rate' : `${s}S · ${b}B`}
                 </div>
               </div>
             );

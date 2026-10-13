@@ -3,17 +3,11 @@
  * movement history and merged GRN notes across GRN & Rent domains.
  */
 
-import type { Grn, InternalMovementRecord } from '@cold-storage/contracts';
+import { isHybridBagCategory, type Grn, type InternalMovementRecord } from '@cold-storage/contracts';
 
 export interface MergedGrnNote {
-  id: string;
-  title: string;
-  date: string;
-  bags: number;
-  repackedDetail?: string;
-  source: string;
-  carriedRent: number;
-  reason: string;
+  id: string; title: string; date: string; bags: number; repackedDetail?: string; source: string;
+  carriedRent: number; reason: string;
 }
 
 export interface MergeTableRow {
@@ -22,7 +16,6 @@ export interface MergeTableRow {
   commodity: string; chamber: string; storageMark: string; totalBags: string;
   sbDetail: string; reason: string;
 }
-
 
 export function parseMergedGrnNotes(remarks?: string | null): MergedGrnNote[] {
   if (!remarks) return [];
@@ -69,9 +62,12 @@ export function parseRemarksToTableRows(currentGrn: Grn, allGrns: Grn[] = []): M
     const bagType = sourceGrn?.bagType ?? currentGrn.bagType ?? 'S/B';
 
     const repackedMatch = match[0].match(/Repacked:\s*(\d+)\s*S\s*\+\s*(\d+)\s*B/i);
+    const isSourceHybrid = sourceGrn && ((sourceGrn.bagPrice != null && sourceGrn.smallBagPrice == null && sourceGrn.bigBagPrice == null) || isHybridBagCategory(sourceGrn.bagType));
     let sbDetail: string;
     if (repackedMatch) {
       sbDetail = `Repacked: ${repackedMatch[1]} S • ${repackedMatch[2]} B (${bagType})`;
+    } else if (isSourceHybrid) {
+      sbDetail = `Hybrid (${bagType})`;
     } else if (sourceGrn && (sourceGrn.smallBags > 0 || sourceGrn.bigBags > 0)) {
       sbDetail = `S: ${sourceGrn.smallBags.toLocaleString('en-IN')} • B: ${sourceGrn.bigBags.toLocaleString('en-IN')} (${bagType})`;
     } else {
@@ -173,10 +169,12 @@ export function mapStructuredMovementsToTableRows(
   return movements.map((rec) => {
     const dateStr = rec.movementDate ? new Date(rec.movementDate).toISOString().slice(0, 10) : 'N/A';
     const bagType = currentGrn.bagType ?? 'S/B';
-    const sbDetail =
-      rec.smallBagsMoved > 0 || rec.bigBagsMoved > 0
-        ? `S: ${rec.smallBagsMoved.toLocaleString('en-IN')} • B: ${rec.bigBagsMoved.toLocaleString('en-IN')} (${bagType})`
-        : `${rec.totalBagsMoved.toLocaleString('en-IN')} bags (${bagType})`;
+    const isHybrid = (currentGrn.bagPrice != null && currentGrn.smallBagPrice == null && currentGrn.bigBagPrice == null) || isHybridBagCategory(currentGrn.bagType);
+    const sbDetail = isHybrid
+      ? `Hybrid (${bagType})`
+      : rec.smallBagsMoved > 0 || rec.bigBagsMoved > 0
+      ? `S: ${rec.smallBagsMoved.toLocaleString('en-IN')} • B: ${rec.bigBagsMoved.toLocaleString('en-IN')} (${bagType})`
+      : `${rec.totalBagsMoved.toLocaleString('en-IN')} bags (${bagType})`;
 
     if (rec.movementType === 'MERGE') {
       const isTarget = rec.targetGrnId === currentGrn.id;
