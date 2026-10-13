@@ -16,9 +16,9 @@ export interface DeliveryChallanDoc extends Document {
   chamber: string;
   /** Informational bag type label ('S', 'B', 'S+B', or 'S/B') from the source GRN. */
   bagType?: string | null;
-  /** Outward bag category ('Small & Big', 'Modern Size', etc.). */
+  /** Outward bag category ('Small & Big', 'Hybrid', etc.). */
   bagCategory?: string | null;
-  /** Manual per-bag price for Modern Size outward movements. */
+  /** Manual per-bag price for Hybrid outward movements. */
   bagPrice?: number | null;
   seasonalBagPrice?: number | null;
   monthlyBagPrice?: number | null;

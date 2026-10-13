@@ -209,7 +209,14 @@ export function useCreateGrnForm(
   return {
     createDate, setCreateDate,
     createCustomerId, setCreateCustomerId: (id: string) => { setCreateCustomerId(id); clearFieldError('customer'); },
-    createCommodityId, setCreateCommodityId: (id: string) => { setCreateCommodityId(id); clearFieldError('commodity'); clearFieldError('rate'); },
+    createCommodityId, setCreateCommodityId: (id: string) => {
+      setCreateCommodityId(id);
+      clearFieldError('commodity');
+      clearFieldError('rate');
+      const comm = commodities.find((c) => c.id === id);
+      if (comm?.seasonDuration === 'Seasonal_3M' && createRentType === 'Seasonal') setCreateRentType('Seasonal_3M');
+      if (comm?.seasonDuration === 'Seasonal' && createRentType === 'Seasonal_3M') setCreateRentType('Seasonal');
+    },
     createChamber, setCreateChamber: (value: string) => { setCreateChamber(value); clearFieldError('chamber'); },
     createBags, handleBagsChange,
     createBagType,

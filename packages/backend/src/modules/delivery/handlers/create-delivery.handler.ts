@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
-import type { BagComposition, CreateDeliveryInput, DeliveryChallan, DeliverySummary } from '@cold-storage/contracts';
+import {
+  isHybridBagCategory, type BagComposition, type CreateDeliveryInput,
+  type DeliveryChallan, type DeliverySummary,
+} from '@cold-storage/contracts';
 import { ConcurrencyConflictError } from '../../inventory/inventory.service.js';
 import { counterService } from '../../common/counter.service.js';
 import { DeliveryChallanModel, type DeliveryChallanDoc } from '../../../database/models/delivery-challan.model.js';
@@ -71,26 +74,27 @@ async function executeDeliveryTransaction(
         throw new Error(`Outward blocked — Active loan hold against ${bondRef}`);
       }
 
-      const isModern =
-        input.bagCategory === 'Modern' ||
-        input.bagCategory === 'Modern Size' ||
-        input.bagCategory === 'Mixed';
+      const isHybrid = isHybridBagCategory(input.bagCategory);
       const hasSpecificBags = (input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0;
       const reqQty = input.quantity ?? 0;
       const resSmall = hasSpecificBags ? (input.smallBags ?? 0) : grn.bagType === 'B' ? 0 : reqQty;
       const resBig = hasSpecificBags ? (input.bigBags ?? 0) : grn.bagType === 'B' ? reqQty : 0;
-      const withdrawal: BagComposition = { smallBags: resSmall, bigBags: resBig };
+      const withdrawal: BagComposition = {
+        smallBags: isHybrid && !hasSpecificBags ? 0 : resSmall,
+        bigBags: isHybrid && !hasSpecificBags ? 0 : resBig,
+      };
 
       const available = await validateStockAndBalances(
         facilityId,
         grn,
         withdrawal,
         session,
-        isModern && !hasSpecificBags,
+        isHybrid,
+        reqQty,
       );
       const finalSmall = withdrawal.smallBags;
       const finalBig = withdrawal.bigBags;
-      const withdrawnTotal = finalSmall + finalBig;
+      const withdrawnTotal = isHybrid ? reqQty : finalSmall + finalBig;
       const deliveryDate = validateDeliveryDate(input.date, grn.date);
 
       // Actual rent/charge calculation happens at Outward delivery using the single
@@ -101,6 +105,7 @@ async function executeDeliveryTransaction(
           smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, bagPrice: grn.bagPrice,
         },
         withdrawal, deliveryDate, session,
+        quantity: isHybrid ? reqQty : undefined,
         bagCategory: input.bagCategory,
         bagPrice: input.bagPrice,
         seasonalBagPrice: input.seasonalBagPrice,
@@ -160,22 +165,19 @@ async function executeDeliveryTransaction(
             grnId: grn.id, grnNumber: grn.grnNumber, customerId: grn.customerId, customerName: grn.customerName,
             commodityId: grn.commodityId, commodityName: grn.commodityName, chamber: grn.chamber,
             bagType: grn.bagType ?? 'S/B', bagCategory: input.bagCategory || null, bagPrice: input.bagPrice ?? null,
-            seasonalBagPrice: input.seasonalBagPrice ?? null,
-            monthlyBagPrice: input.monthlyBagPrice ?? null,
+            seasonalBagPrice: input.seasonalBagPrice ?? null, monthlyBagPrice: input.monthlyBagPrice ?? null,
             smallBags: finalSmall, bigBags: finalBig, marks, gpNumber,
-            vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null,
-            driverName: input.driverName?.trim() || null,
+            vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null, driverName: input.driverName?.trim() || null,
             weight: input.weight ?? null, remarks: input.remarks?.trim() || null,
             rentCharge: deliveryRentCharge, status: 'ISSUED', issuedBy: userId,
           },
         ],
         { session, ordered: true },
       );
-
       createdChallanDoc = challanDocs[0];
 
-      const txSmall = available.bigBags === 0 ? withdrawnTotal : available.smallBags === 0 ? 0 : finalSmall;
-      const txBig = available.smallBags === 0 ? withdrawnTotal : available.bigBags === 0 ? 0 : finalBig;
+      const txSmall = finalSmall;
+      const txBig = finalBig;
 
       await InventoryTransactionModel.create(
         [

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
+  calculateHamaliAmount,
   getFinancialYearKey,
   normalizeBagComposition,
   rentMonthsForType,
@@ -88,9 +89,12 @@ export async function createGrn(
   const smallBagWeight = input.smallBagWeight ?? null;
   const bigBagWeight = input.bigBagWeight ?? null;
 
-  // Inward records storage arrangement and rent type only; actual rent calculation happens during Outward.
   const rentMonths = rentMonthsForType(input.rentType) ?? (input.rentMonths ?? null);
   const finalRentAmount = input.rentAmount && input.rentAmount > 0 ? input.rentAmount : 0;
+  const isHamaliApp = commodity.isHamaliApplicable !== undefined ? commodity.isHamaliApplicable : ((commodity.hamaliRate ?? 0) > 0);
+  const commodityHamali = isHamaliApp ? (commodity.hamaliRate ?? 0) : 0;
+  const effectiveHamaliRate = input.hamaliRate ?? commodityHamali;
+  const hamaliAmount = calculateHamaliAmount(input.bags, effectiveHamaliRate);
 
   const id = `grn-${randomUUID()}`;
 
@@ -164,6 +168,8 @@ export async function createGrn(
             bagPrice: input.bagPrice ?? null,
             smallBagPrice: input.smallBagPrice ?? null,
             bigBagPrice: input.bigBagPrice ?? null,
+            hamaliRate: effectiveHamaliRate,
+            hamaliAmount,
             gpNumber: input.gpNumber?.trim() || null,
             storageMark: input.storageMark?.trim() || null,
             partyMark: input.partyMark?.trim() || null,
@@ -224,19 +230,8 @@ export async function createGrn(
   const acknowledgement = toGrnAcknowledgement(grn);
 
   await auditService.log({
-    eventType: 'GRN_CREATED',
-    severity: 'INFO',
-    userId,
-    facilityId,
-    resource: 'grn',
-    resourceId: grn.id,
-    details: {
-      grnNumber: grn.grnNumber,
-      bondNumber: grn.bondNumber,
-      bags: grn.bags,
-      customerId: grn.customerId,
-      chamber: grn.chamber,
-    },
+    eventType: 'GRN_CREATED', severity: 'INFO', userId, facilityId, resource: 'grn', resourceId: grn.id,
+    details: { grnNumber: grn.grnNumber, bondNumber: grn.bondNumber, bags: grn.bags, customerId: grn.customerId, chamber: grn.chamber },
   });
 
   return { grn, acknowledgement };

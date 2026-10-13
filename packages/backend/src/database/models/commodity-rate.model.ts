@@ -6,6 +6,7 @@ export interface CommodityRateDoc extends Document {
   rentType: 'Monthly' | 'Seasonal';
   smallRate: number;
   bigRate: number;
+  hamaliRate?: number;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -18,6 +19,7 @@ const commodityRateSchema = new Schema<CommodityRateDoc>(
     rentType: { type: String, required: true, enum: ['Monthly', 'Seasonal'], index: true },
     smallRate: { type: Number, required: true, min: 0 },
     bigRate: { type: Number, required: true, min: 0 },
+    hamaliRate: { type: Number, min: 0, default: 0 },
     isActive: { type: Boolean, required: true, default: true, index: true },
   },
   {

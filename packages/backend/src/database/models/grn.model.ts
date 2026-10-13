@@ -32,6 +32,8 @@ export interface GrnDoc extends Document {
   bagPrice: number | null;
   smallBagPrice: number | null;
   bigBagPrice: number | null;
+  hamaliRate?: number | null;
+  hamaliAmount?: number | null;
   gpNumber: string | null;
   storageMark: string | null;
   partyMark: string | null;
@@ -81,13 +83,15 @@ const grnSchema = new Schema<GrnDoc>(
     smallBagWeight: { type: Number, default: null },
     bigBagWeight: { type: Number, default: null },
     totalBagsWeight: { type: Number, default: null },
-    rentType: { type: String, required: true, enum: ['Monthly', 'Seasonal'] },
+    rentType: { type: String, required: true, enum: ['Monthly', 'Seasonal', 'Seasonal_3M'] },
     /** Seasonal is always the fixed 10-month period; Monthly carries the operator's count. */
     rentMonths: { type: Number, default: null },
     rentAmount: { type: Number, default: null, min: 0 },
     bagPrice: { type: Number, default: null },
     smallBagPrice: { type: Number, default: null },
     bigBagPrice: { type: Number, default: null },
+    hamaliRate: { type: Number, default: 0 },
+    hamaliAmount: { type: Number, default: 0 },
     smallBags: { type: Number, required: true, min: 0 },
     bigBags: { type: Number, required: true, min: 0 },
     gpNumber: { type: String, trim: true, default: null },

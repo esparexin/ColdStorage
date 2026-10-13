@@ -72,6 +72,8 @@ export function buildRentSummary(
     rentType: grn.rentType,
     rentAmount: baseRent,
     rentMonths: grn.rentMonths ?? null,
+    hamaliRate: grn.hamaliRate ?? null,
+    hamaliAmount: grn.hamaliAmount ?? 0,
     totalPaid: balance.totalPaid,
     remainingBalance: balance.remainingBalance,
     paymentStatus: balance.paymentStatus,

@@ -8,22 +8,39 @@ import {
   type ValidateDeliveryFormInput,
 } from '../deliveryFormValidation.helper';
 
-describe('deliveryModernSize outward flow', () => {
-  describe('computeOutwardRentCharge with Modern Size', () => {
-    it('calculates seasonal rent for Modern Size as quantity * manual price', () => {
+describe('Hybrid outward delivery flow', () => {
+  const baseInput: ValidateDeliveryFormInput = {
+    createGrnId: 'grn-1',
+    createDate: '2026-10-06T10:00',
+    smallBags: 0,
+    bigBags: 0,
+    totalWithdrawingBags: 50,
+    availableSmall: 30,
+    availableBig: 40,
+    createVehicleNumber: 'UP32AA1111',
+    createGpNumber: 'GP-0001',
+    createDriverName: 'Ramesh Singh',
+    isLoanHoldActive: false,
+    selectedGrnNumber: 'GRN-26-27-0001',
+    isHybrid: true,
+    bagPrice: 60,
+  };
+
+  describe('computeOutwardRentCharge with Hybrid bags', () => {
+    it('calculates seasonal rent for Hybrid as quantity * manual price', () => {
       const rent = computeOutwardRentCharge({
         rentType: 'Seasonal',
-        bagCategory: 'Modern Size',
+        bagCategory: 'Hybrid',
         quantity: 100,
         manualBagPrice: 65,
       });
       expect(rent).toBe(6500);
     });
 
-    it('calculates monthly rent for Modern Size taking rentMonths into account', () => {
+    it('calculates monthly rent for Hybrid taking rentMonths into account', () => {
       const rent = computeOutwardRentCharge({
         rentType: 'Monthly',
-        bagCategory: 'Modern Size',
+        bagCategory: 'Hybrid',
         quantity: 50,
         manualBagPrice: 20,
         rentMonths: 3,
@@ -35,7 +52,7 @@ describe('deliveryModernSize outward flow', () => {
       expect(
         computeOutwardRentCharge({
           rentType: 'Seasonal',
-          bagCategory: 'Modern Size',
+          bagCategory: 'Hybrid',
           quantity: 0,
           manualBagPrice: 65,
         }),
@@ -44,65 +61,48 @@ describe('deliveryModernSize outward flow', () => {
       expect(
         computeOutwardRentCharge({
           rentType: 'Seasonal',
-          bagCategory: 'Modern Size',
+          bagCategory: 'Hybrid',
           quantity: 100,
         }),
       ).toBe(0);
     });
   });
 
-  describe('formatOutwardRentFormula with Modern Size', () => {
+  describe('formatOutwardRentFormula with Hybrid bags', () => {
     it('formats single season formula cleanly', () => {
       const formula = formatOutwardRentFormula(
         'Seasonal',
-        'Modern Size',
+        'Hybrid',
         10,
         0,
         50,
         50,
       );
-      expect(formula).toBe('10 Modern bags × ₹50/bag × season total');
+      expect(formula).toBe('10 Hybrid bags × ₹50/bag × season total');
     });
 
     it('formats monthly formula with months count', () => {
       const formula = formatOutwardRentFormula(
         'Monthly',
-        'Modern Size',
+        'Hybrid',
         20,
         0,
         15,
         15,
         2,
       );
-      expect(formula).toBe('20 Modern bags × ₹15/bag × 2 mo');
+      expect(formula).toBe('20 Hybrid bags × ₹15/bag × 2 mo');
     });
   });
 
-  describe('validateDeliveryForm with Modern Size', () => {
-    const baseInput: ValidateDeliveryFormInput = {
-      createGrnId: 'grn-1',
-      createDate: '2026-10-06T10:00',
-      smallBags: 0,
-      bigBags: 0,
-      totalWithdrawingBags: 50,
-      availableSmall: 30,
-      availableBig: 40,
-      createVehicleNumber: 'UP32AA1111',
-      createGpNumber: 'GP-0001',
-      createDriverName: 'Ramesh Singh',
-      isLoanHoldActive: false,
-      selectedGrnNumber: 'GRN-26-27-0001',
-      isModernSize: true,
-      bagPrice: 60,
-    };
-
+  describe('validateDeliveryForm with Hybrid bags', () => {
     it('validates successfully when quantity and price are valid', () => {
       const res = validateDeliveryForm(baseInput);
       expect(res.isValid).toBe(true);
       expect(res.errors).toEqual({});
     });
 
-    it('requires price per bag when isModernSize is true', () => {
+    it('requires price per bag when isHybrid is true', () => {
       const res = validateDeliveryForm({
         ...baseInput,
         bagPrice: undefined,
@@ -165,11 +165,11 @@ describe('deliveryModernSize outward flow', () => {
     });
   });
 
-  describe('computeOutwardRentCharge with Modern multi-year', () => {
+  describe('computeOutwardRentCharge with Hybrid multi-year', () => {
     it('applies seasonalBagPrice for seasons and monthlyBagPrice for extension months', () => {
       const rent = computeOutwardRentCharge({
         rentType: 'Seasonal',
-        bagCategory: 'Modern',
+        bagCategory: 'Hybrid',
         smallBags: 10,
         bigBags: 10,
         inwardDate: '2024-07-10',
@@ -179,6 +179,37 @@ describe('deliveryModernSize outward flow', () => {
       });
       // 20 bags * (3 seasons * 100 + 4 extension months * 15) = 20 * (300 + 60) = 7200
       expect(rent).toBe(7200);
+    });
+
+    it('calculates multi-year rent for canonical Hybrid bagCategory', () => {
+      const rent = computeOutwardRentCharge({
+        rentType: 'Seasonal',
+        bagCategory: 'Hybrid',
+        quantity: 20,
+        inwardDate: '2024-07-10',
+        deliveryDate: '2026-10-10',
+        seasonalBagPrice: 100,
+        monthlyBagPrice: 15,
+      });
+      expect(rent).toBe(7200);
+    });
+  });
+
+  describe('canonical Hybrid outward bag category', () => {
+    it('formats Hybrid rent formulas with Hybrid label', () => {
+      expect(formatOutwardRentFormula('Seasonal', 'Hybrid', 10, 0, 50, 50))
+        .toBe('10 Hybrid bags × ₹50/bag × season total');
+      expect(formatOutwardRentFormula('Monthly', 'Hybrid', 20, 0, 15, 15, 2))
+        .toBe('20 Hybrid bags × ₹15/bag × 2 mo');
+    });
+
+    it('validates successfully when isHybrid is true', () => {
+      const res = validateDeliveryForm({
+        ...baseInput,
+        isHybrid: true,
+      });
+      expect(res.isValid).toBe(true);
+      expect(res.errors).toEqual({});
     });
   });
 });

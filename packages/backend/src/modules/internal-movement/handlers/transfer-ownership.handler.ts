@@ -3,7 +3,6 @@ import { randomUUID } from 'node:crypto';
 import type { TransferOwnershipInput, Grn, InternalMovementRecord, RentPayment } from '@cold-storage/contracts';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
-import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { computeRentBalance } from '../../common/rent-balance.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
@@ -89,9 +88,7 @@ export async function transferOwnership(
           ? grn.rentAmount
           : 0;
 
-      const payments = await RentPaymentModel.find({ facilityId, grnId: grn.id }, null, { session })
-        .lean()
-        .exec();
+      const payments = await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session);
       const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
 
       const totalDue = await rentExtensionRepository.resolveTotalDue(

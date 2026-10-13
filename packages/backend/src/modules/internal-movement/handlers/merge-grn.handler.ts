@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { resolveMergedBagType, type Grn, type InternalMovementRecord, type MergeGrnInput } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
-import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
+import { rentRepository } from '../../rent/rent.repository.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { computeRentBalance } from '../../common/rent-balance.js';
 import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
@@ -93,11 +93,15 @@ export async function mergeGrn(
         repackedSmallBags: input.repackedSmallBags,
         repackedBigBags: input.repackedBigBags,
         totalMovedBags,
+        defaultSmallMoved: totalMovedSmall,
+        defaultBigMoved: totalMovedBig,
         movementDate: moveDate,
       });
       totalMovedSmall = smallMoved;
       totalMovedBig = bigMoved;
 
+      // When additionalRentAmount > 0 is supplied, it overrides the carried rent obligation;
+      // otherwise (when omitted or 0), the cumulative source pending rent is automatically carried forward.
       finalCarriedRent =
         input.additionalRentAmount != null && input.additionalRentAmount > 0
           ? input.additionalRentAmount
@@ -163,7 +167,7 @@ export async function mergeGrn(
 
       resultTargetDoc = updatedTarget;
 
-      const targetPayments = await RentPaymentModel.find({ facilityId, grnId: targetGrn.id }, null, { session }).lean().exec();
+      const targetPayments = await rentRepository.findPaymentsByGrnId(facilityId, targetGrn.id, session);
       const targetPaid = targetPayments.reduce((sum, p) => sum + p.amountPaid, 0);
       const targetTotalDue = await rentExtensionRepository.resolveTotalDue(facilityId, { id: targetGrn.id, rentAmount: newRentAmount }, session);
       const targetRentBal = computeRentBalance(targetTotalDue, targetPaid);

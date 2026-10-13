@@ -1,13 +1,21 @@
 import { z } from 'zod';
 
-export const rentTypeSchema = z.enum(['Monthly', 'Seasonal']);
+export const rentTypeSchema = z.enum(['Monthly', 'Seasonal', 'Seasonal_3M']);
 export type RentType = z.infer<typeof rentTypeSchema>;
 
-// Informational March–December season length (10 months) for Seasonal subscriptions.
+// Informational season lengths for Seasonal subscriptions.
 // Never used as a multiplier: the seasonal rate is the total for the whole season.
 export const SEASONAL_RENT_MONTHS = 10;
+export const SEASONAL_3M_RENT_MONTHS = 3;
+
 export function rentMonthsForType(rentType: RentType): number | null {
-  return rentType === 'Seasonal' ? SEASONAL_RENT_MONTHS : null;
+  if (rentType === 'Seasonal') return SEASONAL_RENT_MONTHS;
+  if (rentType === 'Seasonal_3M') return SEASONAL_3M_RENT_MONTHS;
+  return null;
+}
+
+export function isSeasonalRentType(rentType: RentType): boolean {
+  return rentType === 'Seasonal' || rentType === 'Seasonal_3M';
 }
 /** Operator-facing month input: Monthly requires an explicit count; Seasonal is fixed. */
 export const rentMonthsInputSchema = z

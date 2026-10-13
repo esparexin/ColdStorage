@@ -85,3 +85,26 @@ export function buildTransferPayload(
     settlementDetails,
   };
 }
+
+export function validateTransferPayment(
+  decision: string,
+  amount: number,
+  pending: number,
+): string | null {
+  if (pending <= 0) {
+    return null;
+  }
+  if (decision !== 'SETTLE_NOW') {
+    return `Cannot transfer ownership: Outstanding rent of ₹${pending.toLocaleString('en-IN')} must be fully settled before transfer.`;
+  }
+  if (amount <= 0) {
+    return 'Payment amount must be greater than zero.';
+  }
+  if (amount < pending) {
+    return `Outstanding rent must be settled in full (₹${pending.toLocaleString('en-IN')}) before ownership transfer.`;
+  }
+  if (amount > pending) {
+    return `Payment cannot exceed pending balance of ₹${pending.toLocaleString('en-IN')}.`;
+  }
+  return null;
+}

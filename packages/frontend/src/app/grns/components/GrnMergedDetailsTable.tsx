@@ -1,30 +1,19 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import type { Grn } from '@cold-storage/contracts';
+import React, { useEffect, useMemo, useState } from 'react';
+import type { Grn, InternalMovementRecord } from '@cold-storage/contracts';
 import { Badge, DataTable, type DataTableColumn } from '@/components/ui';
+import { requestWithAuth } from '@/lib/api-client';
+import {
+  type MergeTableRow,
+  mapStructuredMovementsToTableRows,
+  parseRemarksToTableRows,
+} from './internalMovementNotes.helper';
 import styles from './GrnMergedDetailsTable.module.css';
 
-interface GrnMergedDetailsTableProps {
+export interface GrnMergedDetailsTableProps {
   currentGrn: Grn;
   allGrns?: Grn[];
-}
-
-interface MergeTableRow {
-  id: string;
-  badgeLabel: string;
-  badgeVariant: 'warning' | 'neutral' | 'success';
-  date: string;
-  grnLabel: string;
-  refSub: string;
-  partyName: string;
-  partyMark: string;
-  commodity: string;
-  chamber: string;
-  storageMark: string;
-  totalBags: string;
-  sbDetail: string;
-  reason: string;
 }
 
 const columns: DataTableColumn<MergeTableRow>[] = [
@@ -50,7 +39,7 @@ const columns: DataTableColumn<MergeTableRow>[] = [
   },
   {
     key: 'party',
-    header: 'Party & Mark',
+    header: 'Party / Account',
     render: (row) => (
       <div>
         <span className={styles.primaryText}>{row.partyName}</span>
@@ -59,13 +48,8 @@ const columns: DataTableColumn<MergeTableRow>[] = [
     ),
   },
   {
-    key: 'commodity',
-    header: 'Commodity',
-    render: (row) => <span>{row.commodity}</span>,
-  },
-  {
-    key: 'location',
-    header: 'Location',
+    key: 'storage',
+    header: 'Storage Location',
     render: (row) => (
       <div>
         <span className={styles.primaryText}>{row.chamber}</span>
@@ -74,9 +58,8 @@ const columns: DataTableColumn<MergeTableRow>[] = [
     ),
   },
   {
-    key: 'sbDetail',
-    header: 'S & B Details',
-    align: 'right',
+    key: 'bags',
+    header: 'Bags & Composition',
     render: (row) => (
       <div style={{ textAlign: 'right' }}>
         <span className={`${styles.primaryText} ${styles.tabularNum}`}>{row.totalBags}</span>
@@ -92,109 +75,39 @@ const columns: DataTableColumn<MergeTableRow>[] = [
 ];
 
 export function GrnMergedDetailsTable({ currentGrn, allGrns = [] }: GrnMergedDetailsTableProps) {
+  const [dbMovements, setDbMovements] = useState<InternalMovementRecord[] | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!currentGrn.facilityId || !currentGrn.id) return;
+
+    requestWithAuth(
+      `/api/facilities/${encodeURIComponent(currentGrn.facilityId)}/internal-movements/grn/${encodeURIComponent(currentGrn.id)}`,
+    )
+      .then(async (res) => {
+        if (!active) return;
+        if (res.ok) {
+          const data = (await res.json()) as { movements?: InternalMovementRecord[] };
+          if (Array.isArray(data.movements)) {
+            setDbMovements(data.movements);
+          }
+        }
+      })
+      .catch(() => {
+        // Silently fall back to remarks parsing
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [currentGrn.facilityId, currentGrn.id]);
+
   const rows = useMemo<MergeTableRow[]>(() => {
-    const list: MergeTableRow[] = [];
-    const remarks = currentGrn.remarks ?? '';
-
-    // 1. Check if current GRN received merged stock
-    const mergeRx =
-      /\[MERGE RECEIVED on ([^:]+):\s*\+?(\d+)\s*bags(?:\s*\([^)]*\))?\s*from\s+(?:GRN\s+)?([^\s(]+)(?:\s*\(([^)]+)\))?\.(?:[^.]*\.)?\s*Reason:\s*([^\]]+)\]/gi;
-    let match: RegExpExecArray | null;
-    while ((match = mergeRx.exec(remarks)) !== null) {
-      const [, date, bagsStr, sourceGrnNum, detailsStr, reason] = match;
-      const sourceGrn = allGrns.find((g) => g.grnNumber === sourceGrnNum);
-      const custMatch = detailsStr?.match(/Customer:\s*([^,]+)/i);
-      const party = sourceGrn?.customerName || (custMatch ? custMatch[1].trim() : 'N/A');
-      const partyMark = sourceGrn?.partyMark ? `PM: ${sourceGrn.partyMark}` : 'PM: N/A';
-      const chamber = sourceGrn?.chamber ? `Chamber: ${sourceGrn.chamber}` : currentGrn.chamber ? `Chamber: ${currentGrn.chamber}` : 'Chamber: N/A';
-      const storageMark = sourceGrn?.storageMark ? `SM: ${sourceGrn.storageMark}` : `SM: ${sourceGrnNum}`;
-      const bagType = sourceGrn?.bagType ?? currentGrn.bagType ?? 'S/B';
-
-      const repackedMatch = match[0].match(/Repacked:\s*(\d+)\s*S\s*\+\s*(\d+)\s*B/i);
-      let sbDetail: string;
-      if (repackedMatch) {
-        sbDetail = `Repacked: ${repackedMatch[1]} S • ${repackedMatch[2]} B (${bagType})`;
-      } else if (sourceGrn && (sourceGrn.smallBags > 0 || sourceGrn.bigBags > 0)) {
-        sbDetail = `S: ${sourceGrn.smallBags.toLocaleString('en-IN')} • B: ${sourceGrn.bigBags.toLocaleString('en-IN')} (${bagType})`;
-      } else {
-        sbDetail = `S: Unconfirmed • B: Unconfirmed (${bagType})`;
-      }
-
-      list.push({
-        id: `merge-in-${sourceGrnNum}-${date}`,
-        badgeLabel: '📥 Merge In',
-        badgeVariant: 'success',
-        date,
-        grnLabel: `From: ${sourceGrnNum}`,
-        refSub: 'Inward Merge',
-        partyName: party,
-        partyMark,
-        commodity: sourceGrn?.commodityName || currentGrn.commodityName || 'N/A',
-        chamber,
-        storageMark,
-        totalBags: `+${Number(bagsStr).toLocaleString('en-IN')} bags`,
-        sbDetail,
-        reason: reason?.trim() || 'N/A',
-      });
+    if (dbMovements && dbMovements.length > 0) {
+      return mapStructuredMovementsToTableRows(dbMovements, currentGrn, allGrns);
     }
-
-    // 2. Check if current GRN itself was merged into a surviving target
-    if (currentGrn.mergedIntoGrnNumber) {
-      const targetGrn = allGrns.find(
-        (g) => g.grnNumber === currentGrn.mergedIntoGrnNumber || g.id === currentGrn.mergedIntoGrnId,
-      );
-      const dateStr = new Date(currentGrn.date).toISOString().slice(0, 10);
-      const smallBags = currentGrn.smallBags != null ? currentGrn.smallBags.toLocaleString('en-IN') : 'N/A';
-      const bigBags = currentGrn.bigBags != null ? currentGrn.bigBags.toLocaleString('en-IN') : currentGrn.bags.toLocaleString('en-IN');
-      const bagType = currentGrn.bagType ?? 'S/B';
-
-      list.push({
-        id: `merge-out-${currentGrn.grnNumber}`,
-        badgeLabel: '📤 Merged Out',
-        badgeVariant: 'neutral',
-        date: dateStr,
-        grnLabel: `Into: ${currentGrn.mergedIntoGrnNumber}`,
-        refSub: `Surviving: ${targetGrn?.customerName || 'N/A'}`,
-        partyName: currentGrn.customerName || 'N/A',
-        partyMark: currentGrn.partyMark ? `PM: ${currentGrn.partyMark}` : 'PM: N/A',
-        commodity: currentGrn.commodityName || 'N/A',
-        chamber: currentGrn.chamber ? `Chamber: ${currentGrn.chamber}` : 'Chamber: N/A',
-        storageMark: currentGrn.storageMark ? `SM: ${currentGrn.storageMark}` : `SM: ${currentGrn.storageMark || currentGrn.grnNumber}`,
-        totalBags: `${currentGrn.bags.toLocaleString('en-IN')} bags`,
-        sbDetail: `S: ${smallBags} • B: ${bigBags} (${bagType})`,
-        reason: 'Merged into surviving target lot',
-      });
-    }
-
-    // 3. Check ownership transfer events
-    const ownRx = /\[OWNERSHIP TRANSFERRED on ([^:]+):\s*from\s+([^(]+)(?:\s*\([^)]*\))?\s+to\s+([^(]+)(?:\s*\([^)]*\))?\.\s*(?:[^.]*\.\s*)?Reason:\s*([^\]]+)\]/gi;
-    let ownMatch: RegExpExecArray | null;
-    while ((ownMatch = ownRx.exec(remarks)) !== null) {
-      const [, date, fromParty, toParty, reason] = ownMatch;
-      const smallBags = currentGrn.smallBags != null ? currentGrn.smallBags.toLocaleString('en-IN') : 'N/A';
-      const bigBags = currentGrn.bigBags != null ? currentGrn.bigBags.toLocaleString('en-IN') : currentGrn.bags.toLocaleString('en-IN');
-      const bagType = currentGrn.bagType ?? 'S/B';
-
-      list.push({
-        id: `own-transfer-${date}`,
-        badgeLabel: '👤 Transfer',
-        badgeVariant: 'warning',
-        date,
-        grnLabel: currentGrn.grnNumber,
-        refSub: 'Ownership Change',
-        partyName: `${fromParty.trim()} → ${toParty.trim()}`,
-        partyMark: currentGrn.partyMark ? `PM: ${currentGrn.partyMark}` : 'PM: N/A',
-        commodity: currentGrn.commodityName || 'N/A',
-        chamber: currentGrn.chamber ? `Chamber: ${currentGrn.chamber}` : 'Chamber: N/A',
-        storageMark: currentGrn.storageMark ? `SM: ${currentGrn.storageMark}` : `SM: ${currentGrn.storageMark || currentGrn.grnNumber}`,
-        totalBags: `${currentGrn.bags.toLocaleString('en-IN')} bags`,
-        sbDetail: `S: ${smallBags} • B: ${bigBags} (${bagType})`,
-        reason: reason?.trim() || 'N/A',
-      });
-    }
-
-    return list;
-  }, [currentGrn, allGrns]);
+    return parseRemarksToTableRows(currentGrn, allGrns);
+  }, [dbMovements, currentGrn, allGrns]);
 
   if (rows.length === 0) return null;
 

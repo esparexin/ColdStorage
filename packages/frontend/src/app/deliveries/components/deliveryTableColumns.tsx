@@ -1,5 +1,5 @@
 import React from 'react';
-import type { DeliveryChallan } from '@cold-storage/contracts';
+import { isHybridBagCategory, type DeliveryChallan } from '@cold-storage/contracts';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { Badge } from '@/components/ui';
 import {
@@ -72,12 +72,10 @@ export function createDeliveryColumns({
       header: 'Bags (S/B)',
       align: 'right',
       render: (row) => {
-        const isModern =
-          row.bagCategory === 'Modern' || row.bagCategory === 'Modern Size';
-        if (isModern) {
+        if (isHybridBagCategory(row.bagCategory)) {
           return (
             <span className={styles.bagsTotal}>
-              {row.totalBags.toLocaleString('en-IN')} Modern
+              {row.totalBags.toLocaleString('en-IN')} Hybrid
             </span>
           );
         }

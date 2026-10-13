@@ -20,6 +20,7 @@ interface CommodityTableProps {
   onToggleActive: (commodity: Commodity) => void;
   onRequestDeactivate?: (commodity: Commodity) => void;
   onManageRates: (commodity: Commodity) => void;
+  onEdit?: (commodity: Commodity) => void;
 }
 
 export function CommodityTable({
@@ -35,6 +36,7 @@ export function CommodityTable({
   onToggleActive,
   onRequestDeactivate,
   onManageRates,
+  onEdit,
 }: CommodityTableProps) {
   const groups: DataTableColumnGroup[] = [
     { key: 'seasonal', header: 'Seasonal', align: 'center', borderLeft: true },
@@ -78,6 +80,25 @@ export function CommodityTable({
       ),
     },
     {
+      key: 'seasonDuration',
+      header: 'Season',
+      render: (row) => (
+        <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-medium)' }}>
+          {row.seasonDuration === 'Seasonal_3M' ? '3 Months' : '10 Months'}
+        </span>
+      ),
+    },
+    {
+      key: 'hamaliRate',
+      header: 'Hamali',
+      align: 'right',
+      render: (row) => (
+        <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {row.hamaliRate ? `₹${row.hamaliRate}/bag` : '—'}
+        </span>
+      ),
+    },
+    {
       key: 'seasonalSmall',
       group: 'seasonal',
       header: 'Small',
@@ -117,6 +138,17 @@ export function CommodityTable({
             borderLeft: true,
             render: (row: Commodity) => (
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+                {onEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onEdit(row)}
+                    title={`Edit ${row.name}`}
+                    aria-label={`Edit commodity ${row.name}`}
+                  >
+                    Edit
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"

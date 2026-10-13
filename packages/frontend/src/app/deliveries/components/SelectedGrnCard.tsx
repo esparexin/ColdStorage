@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
 import type { Grn, GrnInventorySummary, OutwardBagCategory } from '@cold-storage/contracts';
+import { isHybridBagCategory } from '@cold-storage/contracts';
 import { Badge, Button, Select } from '@/components/ui';
 import { formatGrnDate } from './eligibleGrnColumns';
 import styles from './SelectedGrnCard.module.css';
@@ -84,11 +84,11 @@ export function SelectedGrnCard({
             <Select
               id="outward-bag-category-select"
               label="Outward Bag Type"
-              value={bagCategory === 'Modern' || bagCategory === 'Modern Size' || bagCategory === 'Mixed' ? 'Modern' : 'S/B'}
+              value={isHybridBagCategory(bagCategory) ? 'Hybrid' : 'S/B'}
               onChange={(e) => onBagCategoryChange(e.target.value as OutwardBagCategory)}
             >
               <option value="S/B">S/B</option>
-              <option value="Modern">Modern</option>
+              <option value="Hybrid">Hybrid</option>
             </Select>
           </div>
         )}

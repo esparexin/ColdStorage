@@ -49,33 +49,23 @@ export function TransferPaymentDecisionSection({
           Rent Settlement Decision
         </span>
         <Badge variant={decision === 'SETTLE_NOW' ? 'success' : 'warning'}>
-          {decision === 'SETTLE_NOW' ? 'Settle Now' : 'Carry Forward'}
+          {decision === 'SETTLE_NOW' ? 'Settlement Required' : 'Carry Forward'}
         </Badge>
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
-        <label
-          htmlFor="decision-agreed-pending"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-1)',
-            fontSize: 'var(--text-xs)',
-            cursor: 'pointer',
-          }}
-        >
-          <input
-            id="decision-agreed-pending"
-            type="radio"
-            name="transfer-payment-decision"
-            value="AGREED_PENDING"
-            checked={decision === 'AGREED_PENDING'}
-            onChange={() => onDecisionChange('AGREED_PENDING')}
-            disabled={disabled}
-          />
-          <span>Carry Forward to Transferee (₹{pendingAmount.toLocaleString('en-IN')})</span>
-        </label>
+      <div
+        style={{
+          fontSize: 'var(--text-xs)',
+          color: 'var(--color-text-secondary)',
+          background: 'var(--color-surface-2)',
+          padding: 'var(--space-1) var(--space-2)',
+          borderRadius: 'var(--radius-sm)',
+        }}
+      >
+        Outstanding rent must be settled in full before ownership transfer can be executed.
+      </div>
 
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
         <label
           htmlFor="decision-settle-now"
           style={{
@@ -95,7 +85,30 @@ export function TransferPaymentDecisionSection({
             onChange={() => onDecisionChange('SETTLE_NOW')}
             disabled={disabled}
           />
-          <span>Settle Outstanding Dues Now</span>
+          <span>Settle Outstanding Dues Now (₹{pendingAmount.toLocaleString('en-IN')})</span>
+        </label>
+
+        <label
+          htmlFor="decision-agreed-pending"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-1)',
+            fontSize: 'var(--text-xs)',
+            cursor: 'not-allowed',
+            opacity: 0.5,
+          }}
+          title="Outstanding rent must be settled prior to ownership transfer"
+        >
+          <input
+            id="decision-agreed-pending"
+            type="radio"
+            name="transfer-payment-decision"
+            value="AGREED_PENDING"
+            checked={false}
+            disabled
+          />
+          <span>Carry Forward to Transferee (Disabled: Full clearance required)</span>
         </label>
       </div>
 
@@ -115,7 +128,7 @@ export function TransferPaymentDecisionSection({
             <Input
               id="settle-amount-input"
               type="number"
-              min={1}
+              min={pendingAmount}
               max={pendingAmount}
               value={settleAmount}
               onChange={(e) => onSettleAmountChange(Math.max(0, Number(e.target.value)))}
@@ -143,14 +156,4 @@ export function TransferPaymentDecisionSection({
   );
 }
 
-export function validateTransferPayment(
-  decision: string,
-  amount: number,
-  pending: number,
-): string | null {
-  if (decision === 'SETTLE_NOW') {
-    if (amount <= 0) return 'Payment amount must be greater than zero.';
-    if (amount > pending) return `Payment cannot exceed pending balance of ₹${pending.toLocaleString('en-IN')}.`;
-  }
-  return null;
-}
+export { validateTransferPayment } from './internalMovementPayload.helper';

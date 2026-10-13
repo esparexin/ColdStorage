@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
-import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
+import { rentRepository } from '../../rent/rent.repository.js';
 import { computeRentBalance, type RentBalance } from '../../common/rent-balance.js';
 import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { calculateGrnMonthlyOccupancyRent } from '../../common/occupancy-rent.js';
@@ -15,46 +15,24 @@ import {
   type RentType,
 } from '@cold-storage/contracts';
 import type { LedgerBalance } from '../../inventory/ledger-balance.js';
+import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
 
 export interface MergeSourceGrn {
-  id: string;
-  grnNumber: string;
-  inwardReceiptNumber: string;
-  date: Date;
-  customerName: string;
-  chamber: string;
-  commodityId: string;
-  bagType: BagType;
-  rentType: RentType;
-  rentAmount: number;
-  bags: number;
-  smallBags: number;
-  bigBags: number;
-  bagPrice?: number | null;
-  smallBagPrice?: number | null;
-  bigBagPrice?: number | null;
-  remarks?: string | null;
+  id: string; grnNumber: string; inwardReceiptNumber: string; date: Date; customerName: string;
+  chamber: string; commodityId: string; bagType: BagType; rentType: RentType; rentAmount: number;
+  bags: number; smallBags: number; bigBags: number; bagPrice?: number | null;
+  smallBagPrice?: number | null; bigBagPrice?: number | null; remarks?: string | null;
 }
 
 export interface SourceRentResolution {
-  effectiveRentAmount: number;
-  totalPaid: number;
-  sourceTotalDue: number;
-  rentBal: RentBalance;
-  isSameSeason: boolean;
-  isPendingVerification: boolean;
-  verificationReason?: string | null;
+  effectiveRentAmount: number; totalPaid: number; sourceTotalDue: number; rentBal: RentBalance;
+  isSameSeason: boolean; isPendingVerification: boolean; verificationReason?: string | null;
 }
 
 export interface ResolveSourceRentParams {
-  facilityId: string;
-  sourceGrn: MergeSourceGrn;
-  targetGrnDate: Date;
-  movementDate: Date;
-  sourcePaymentAmount?: number | null;
-  sourcePaymentMode?: PaymentMode | null;
-  userId: string;
-  session: mongoose.ClientSession;
+  facilityId: string; sourceGrn: MergeSourceGrn; targetGrnDate: Date; movementDate: Date;
+  sourcePaymentAmount?: number | null; sourcePaymentMode?: PaymentMode | null;
+  userId: string; session: mongoose.ClientSession;
 }
 
 export async function resolveSourceRentObligation(
@@ -88,15 +66,53 @@ export async function resolveSourceRentObligation(
         { session },
       );
     }
+  } else if (sourceGrn.rentType === 'Seasonal' || sourceGrn.rentType === 'Seasonal_3M') {
+    const effectiveSmall =
+      sourceGrn.smallBags > 0
+        ? sourceGrn.smallBags
+        : sourceGrn.bagType === 'S'
+        ? sourceGrn.bags
+        : 0;
+    const effectiveBig =
+      sourceGrn.bigBags > 0
+        ? sourceGrn.bigBags
+        : sourceGrn.bagType === 'B' || sourceGrn.bagType === 'S/B' || sourceGrn.bagType === 'S+B'
+        ? sourceGrn.bags - effectiveSmall
+        : 0;
+
+    const { expectedRentCharge } = await computeExpectedDeliveryRent({
+      grn: {
+        id: sourceGrn.id,
+        date: sourceGrn.date,
+        rentType: sourceGrn.rentType,
+        commodityId: sourceGrn.commodityId,
+        smallBagPrice: sourceGrn.smallBagPrice,
+        bigBagPrice: sourceGrn.bigBagPrice,
+        bagPrice: sourceGrn.bagPrice,
+      },
+      withdrawal: {
+        smallBags: effectiveSmall,
+        bigBags: effectiveBig,
+      },
+      deliveryDate: movementDate,
+      session,
+    });
+
+    if (expectedRentCharge > effectiveRentAmount) {
+      effectiveRentAmount = expectedRentCharge;
+      await GrnModel.updateOne(
+        { id: sourceGrn.id },
+        { $set: { rentAmount: effectiveRentAmount, updatedAt: new Date() } },
+        { session },
+      );
+    }
   }
 
-  const existingPayments = await RentPaymentModel.find(
-    { facilityId, grnId: sourceGrn.id },
-    null,
-    { session },
-  )
-    .lean()
-    .exec();
+  const existingPayments = await rentRepository.findPaymentsByGrnId(
+    facilityId,
+    sourceGrn.id,
+    session,
+  );
 
   let totalPaid = existingPayments.reduce((sum, p) => sum + p.amountPaid, 0);
 
@@ -107,23 +123,20 @@ export async function resolveSourceRentObligation(
       movementDate,
       session,
     );
-    await RentPaymentModel.create(
-      [
-        {
-          id: `rent-pay-${randomUUID()}`,
-          facilityId,
-          grnId: sourceGrn.id,
-          grnNumber: sourceGrn.grnNumber,
-          receiptNumber,
-          amountPaid: sourcePaymentAmount,
-          paymentMode: sourcePaymentMode ?? 'Cash',
-          paymentDate: movementDate,
-          notes: `Pre-merge settlement: GRN ${sourceGrn.grnNumber}`,
-          createdBy: userId,
-          createdAt: new Date(),
-        },
-      ],
-      { session, ordered: true },
+    await rentRepository.createPayment(
+      {
+        id: `rent-pay-${randomUUID()}`,
+        facilityId,
+        grnId: sourceGrn.id,
+        grnNumber: sourceGrn.grnNumber,
+        receiptNumber,
+        amountPaid: sourcePaymentAmount,
+        paymentMode: (sourcePaymentMode ?? 'Cash') as 'Cash' | 'UPI',
+        paymentDate: movementDate,
+        notes: `Pre-merge settlement: GRN ${sourceGrn.grnNumber}`,
+        createdBy: userId,
+      },
+      session,
     );
     totalPaid += sourcePaymentAmount;
   }
@@ -163,16 +176,9 @@ export async function resolveSourceRentObligation(
 }
 
 export interface CloseSourceGrnParams {
-  facilityId: string;
-  sourceGrn: MergeSourceGrn;
-  targetGrnNumber: string;
-  targetGrnId: string;
-  movementId: string;
-  movementDate: Date;
-  ledgerBalance: LedgerBalance;
-  rentResolution: SourceRentResolution;
-  remarks: string;
-  userId: string;
+  facilityId: string; sourceGrn: MergeSourceGrn; targetGrnNumber: string; targetGrnId: string;
+  movementId: string; movementDate: Date; ledgerBalance: LedgerBalance;
+  rentResolution: SourceRentResolution; remarks: string; userId: string;
   session: mongoose.ClientSession;
 }
 

@@ -1,20 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
-  challanDocumentDtoSchema,
-  grnDocumentDtoSchema,
-  receiptDocumentDtoSchema,
-  rentReceiptDocumentDtoSchema,
-  rentReceiptPreviewDtoSchema,
+  challanDocumentDtoSchema, grnDocumentDtoSchema, receiptDocumentDtoSchema,
+  rentReceiptDocumentDtoSchema, rentReceiptPreviewDtoSchema,
 } from '@cold-storage/contracts';
 import { renderChallanTemplate } from '../modules/documents/templates/challan.template.js';
 import { renderGrnTemplate } from '../modules/documents/templates/grn.template.js';
 import { renderReceiptTemplate } from '../modules/documents/templates/receipt.template.js';
 import { renderRentReceiptTemplate } from '../modules/documents/templates/rent-receipt.template.js';
 import {
-  makeChallanDto,
-  makeGrnDto,
-  makeReceiptDto,
-  makeRentReceiptDto,
+  makeChallanDto, makeGrnDto, makeReceiptDto, makeRentReceiptDto,
 } from './helpers/document-fixtures.js';
 
 /**
@@ -156,6 +150,13 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
 
     const htmlWithoutRent = renderChallanTemplate(makeChallanDto({ rentCharge: 0 }));
     expect(htmlWithoutRent).not.toContain('Outward Rent Charge');
+  });
+
+  it('renders Hybrid delivery challan with single total count and without artificial S/B split', () => {
+    const html = renderChallanTemplate(makeChallanDto({ bagCategory: 'Hybrid', totalBags: 75, smallBags: 0, bigBags: 0 }));
+    expect(html).toContain('Total Hybrid Bags Dispatched');
+    expect(html).toContain('75 Hybrid Bags in total');
+    expect(html).not.toContain('Total S/B Bags Dispatched');
   });
 
   // 5. Rent Receipt: one schema, isPreview drives the watermark and the notice banner.

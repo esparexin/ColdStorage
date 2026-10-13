@@ -53,9 +53,9 @@ export function CreateGrnModal({
   const [isAddingCommodity, setIsAddingCommodity] = useState(false);
   const [isConfiguringRates, setIsConfiguringRates] = useState(false);
 
-  const selectedCommodity =
+  const selectedCommodity: Commodity | null =
     commodities.find((c) => c.id === form.createCommodityId) ??
-    (form.createCommodityId ? { id: form.createCommodityId, name: 'Commodity', isActive: true } : null);
+    (form.createCommodityId ? { id: form.createCommodityId, name: 'Commodity', isActive: true, isHamaliApplicable: false, hamaliRate: 0, seasonDuration: 'Seasonal' } : null);
 
   const customerBox = useCustomerCombobox(
     customers, form.createCustomerId, form.setCreateCustomerId, () => setIsAddingCustomer(true),
@@ -165,10 +165,22 @@ export function CreateGrnModal({
                 id="create-rent-type" label="Rent Type" required disabled={structuralLocked}
                 value={form.createRentType} onChange={(e) => form.createRentType !== e.target.value && form.handleRentTypeChange(e.target.value as RentType)}
               >
-                <option value="Seasonal">Seasonal</option>
+                {selectedCommodity?.seasonDuration === 'Seasonal_3M' ? (
+                  <option value="Seasonal_3M">Seasonal (3 Months)</option>
+                ) : (
+                  <option value="Seasonal">Seasonal (10 Months)</option>
+                )}
                 <option value="Monthly">Monthly</option>
               </Select>
             </div>
+            {Boolean(selectedCommodity?.hamaliRate) && (
+              <div className={styles.fieldGroup}>
+                <span className={styles.fieldLabel}>Hamali Labor Charge (Upfront)</span>
+                <div style={{ padding: 'var(--space-2)', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', fontSize: 'var(--text-xs)', fontVariantNumeric: 'tabular-nums' }}>
+                  ₹{selectedCommodity?.hamaliRate}/bag · Total: ₹{(Number(form.createBags) || 0) * (selectedCommodity?.hamaliRate ?? 0)}
+                </div>
+              </div>
+            )}
             {form.createCommodityId && form.createRentType && (
               <CustomerAgreedRateSection
                 rentType={form.createRentType} rentMonths={form.createRentMonths}

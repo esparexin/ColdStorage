@@ -49,11 +49,14 @@ export class CommodityRateService {
       throw new Error(`Commodity '${input.commodityId}' not found`);
     }
 
-    const update = {
+    const update: Partial<CommodityRateDoc> = {
       smallRate: input.smallRate,
       bigRate: input.bigRate,
       isActive: input.isActive ?? true,
     };
+    if (input.hamaliRate !== undefined && input.hamaliRate !== null) {
+      update.hamaliRate = input.hamaliRate;
+    }
 
     const doc = await CommodityRateModel.findOneAndUpdate(
       { commodityId: input.commodityId, rentType: input.rentType },
@@ -181,6 +184,7 @@ export class CommodityRateService {
       rentType: doc.rentType,
       smallRate: doc.smallRate,
       bigRate: doc.bigRate,
+      hamaliRate: doc.hamaliRate ?? 0,
       isActive: doc.isActive,
     };
   }

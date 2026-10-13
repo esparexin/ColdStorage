@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  resolveOutwardRates, type BagType, type GrnInventorySummary, type RentSummaryDto, type RentType,
+  isHybridBagCategory, resolveOutwardRates, type BagType, type GrnInventorySummary, type RentSummaryDto, type RentType,
 } from '@cold-storage/contracts';
 import type { GrnWithdrawal } from '../types';
 import type { OutwardBagCategory } from '../hooks/deliveryRent.helper';
@@ -55,14 +55,14 @@ export function DeliveryBagCompositionFields({
   const availableTotal = summary.availableSmallBags + summary.availableBigBags;
   const isSbLot = bagType === 'S+B' || bagType === 'S/B';
   const isSegregated = summary.availableSmallBags > 0 && summary.availableBigBags > 0;
-  const isModern = bagCategory === 'Modern' || bagCategory === 'Modern Size' || bagCategory === 'Mixed';
-  const isCombinedPool = (isSbLot || isModern) && !isSegregated;
+  const isHybrid = isHybridBagCategory(bagCategory);
+  const isCombinedPool = (isSbLot || isHybrid) && !isSegregated;
 
   const smallQty = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigQty = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
-  const modernQty = typeof withdrawal.quantity === 'number' ? withdrawal.quantity : 0;
-  const remainingStock = isModern
-    ? Math.max(0, availableTotal - modernQty)
+  const hybridQty = typeof withdrawal.quantity === 'number' ? withdrawal.quantity : 0;
+  const remainingStock = isHybrid
+    ? Math.max(0, availableTotal - hybridQty)
     : calculateRemainingStock(availableTotal, smallQty, bigQty);
 
   const maxAllowedSmall = isCombinedPool
@@ -106,16 +106,16 @@ export function DeliveryBagCompositionFields({
     if (!isNaN(parsed) && parsed >= 0) fn?.(parsed);
   };
 
-  const modernColCount = showSeasonalRate && showMonthlyRate ? 4 : 3;
-  const modernGridClass = modernColCount === 4 ? styles.modernGrid4 : styles.modernGrid3;
+  const hybridColCount = showSeasonalRate && showMonthlyRate ? 4 : 3;
+  const hybridGridClass = hybridColCount === 4 ? styles.hybridGrid4 : styles.hybridGrid3;
 
   return (
     <>
-      {isModern ? (
-        <div className={modernGridClass}>
+      {isHybrid ? (
+        <div className={hybridGridClass}>
           <div className={pageStyles.fieldGroup}>
             <div className={styles.labelRow}>
-              <label htmlFor="delivery-quantity-bags" className={styles.labelTitle}>Bags</label>
+              <label htmlFor="delivery-quantity-bags" className={styles.labelTitle}>Hybrid Bags</label>
             </div>
             <input
               id="delivery-quantity-bags" type="number" inputMode="numeric" min={1} max={availableTotal} placeholder="0"
@@ -220,7 +220,7 @@ export function DeliveryBagCompositionFields({
         </div>
       )}
 
-      {bagsError && !smallError && !bigError && !isModern && (
+      {bagsError && !smallError && !bigError && !isHybrid && (
         <span id="delivery-bags-error" className={styles.fieldErrorText} role="alert">{bagsError}</span>
       )}
     </>

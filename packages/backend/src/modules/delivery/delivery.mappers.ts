@@ -27,7 +27,6 @@ export function toChallanEntity(doc: DeliveryChallanDoc | Record<string, unknown
     monthlyBagPrice: d.monthlyBagPrice !== null && d.monthlyBagPrice !== undefined ? Number(d.monthlyBagPrice) : null,
     smallBags,
     bigBags,
-    // Derived for transport only; the composition is the stored fact.
     totalBags: smallBags + bigBags,
     marks: d.marks ? String(d.marks) : null,
     gpNumber: d.gpNumber ? String(d.gpNumber) : null,

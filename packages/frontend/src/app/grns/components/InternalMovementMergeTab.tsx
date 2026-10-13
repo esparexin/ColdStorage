@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   isBagCompositionVerified,
+  isHybridBagCategory,
   resolveMergedBagType,
   seasonYearForInwardDate,
   type Grn,
@@ -17,16 +18,9 @@ interface InternalMovementMergeTabProps {
   allGrns: Grn[];
   submitting: boolean;
   onExecuteMerge: (
-    targetGrnId: string,
-    sourceGrnIds: string[],
-    reason: string,
-    remarks?: string,
-    movementDate?: string,
-    additionalRentAmount?: number,
-    repackedSmallBags?: number,
-    repackedBigBags?: number,
-    referenceWeight?: number,
-    sourcePaymentAmount?: number,
+    targetGrnId: string, sourceGrnIds: string[], reason: string, remarks?: string,
+    movementDate?: string, additionalRentAmount?: number, repackedSmallBags?: number,
+    repackedBigBags?: number, referenceWeight?: number, sourcePaymentAmount?: number,
     sourcePaymentMode?: PaymentMode,
   ) => Promise<void>;
 }
@@ -65,15 +59,21 @@ export function InternalMovementMergeTab({
   const isTargetDiff = (targetGrn.smallBagPrice != null || targetGrn.bigBagPrice != null) && targetGrn.smallBagPrice !== targetGrn.bigBagPrice;
   const isTargetUnverified = !isBagCompositionVerified({ bagType: targetGrn.bagType, bags: targetGrn.bags, smallBags: targetGrn.smallBags, bigBags: targetGrn.bigBags });
   const hasDiffRates = isTargetDiff || selectedSources.some((s) => (s.smallBagPrice != null || s.bigBagPrice != null) && s.smallBagPrice !== s.bigBagPrice);
-  const hasUnconfirmedMix = isTargetUnverified || selectedSources.some((s) => !isBagCompositionVerified({ bagType: s.bagType, bags: s.bags, smallBags: s.smallBags, bigBags: s.bigBags }));
+  const hasUnconfirmedMix = hasDiffRates && (isTargetUnverified || selectedSources.some((s) => !isBagCompositionVerified({ bagType: s.bagType, bags: s.bags, smallBags: s.smallBags, bigBags: s.bigBags })));
+  const isTargetHybrid = (!isTargetDiff && targetGrn.bagPrice != null) || isHybridBagCategory(targetGrn.bagType);
 
-  const isRepackRequired = repackMode || hasDiffRates || hasUnconfirmedMix;
+  const isRepackRequired = repackMode || hasUnconfirmedMix;
   const repackedSum = (typeof repackSmall === 'number' ? repackSmall : 0) + (typeof repackBig === 'number' ? repackBig : 0);
   const isRepackFilled = typeof repackSmall === 'number' && typeof repackBig === 'number' && Number.isInteger(repackSmall) && Number.isInteger(repackBig);
   const isRepackReconciled = isRepackFilled && repackedSum === totalSourceBags;
 
-  const movedSmall = isRepackFilled ? Number(repackSmall) : selectedSources.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
-  const movedBig = isRepackFilled ? Number(repackBig) : selectedSources.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
+  const rawMovedSmall = selectedSources.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
+  const rawMovedBig = selectedSources.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
+  const scale = totalSourceBags > 0 && rawMovedSmall + rawMovedBig > 0 && rawMovedSmall + rawMovedBig !== totalSourceBags ? totalSourceBags / (rawMovedSmall + rawMovedBig) : 1;
+  const defaultMovedSmall = scale === 1 ? rawMovedSmall : Math.round(rawMovedSmall * scale);
+  const defaultMovedBig = scale === 1 ? rawMovedBig : totalSourceBags - defaultMovedSmall;
+  const movedSmall = isRepackFilled ? Number(repackSmall) : defaultMovedSmall;
+  const movedBig = isRepackFilled ? Number(repackBig) : defaultMovedBig;
   const resultingSmall = (targetGrn.smallBags ?? 0) + movedSmall;
   const resultingBig = (targetGrn.bigBags ?? 0) + movedBig;
   const resultingBagType = useMemo(
@@ -141,7 +141,7 @@ export function InternalMovementMergeTab({
         </div>
         <div className={styles.metaItem}><span className={styles.metaLabel}>Customer</span><span className={styles.metaValue}>{targetGrn.customerName}</span></div>
         <div className={styles.metaItem}><span className={styles.metaLabel}>Commodity / Chamber</span><span className={styles.metaValue}>{targetGrn.commodityName} (Ch. {targetGrn.chamber})</span></div>
-        <div className={styles.metaItem}><span className={styles.metaLabel}>Current Stock & Type</span><span className={styles.metaValue} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span>{targetCurrentRemaining} Bags</span><Badge variant="neutral">{targetGrn.bagType}</Badge><span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>({targetGrn.smallBags ?? 0}S · {targetGrn.bigBags ?? 0}B)</span></span></div>
+        <div className={styles.metaItem}><span className={styles.metaLabel}>Current Stock & Type</span><span className={styles.metaValue} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span>{targetCurrentRemaining} Bags</span><Badge variant="neutral">{isTargetHybrid ? 'Hybrid' : targetGrn.bagType}</Badge><span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>{isTargetHybrid ? '(Uniform Rate)' : `(${targetGrn.smallBags ?? 0}S · ${targetGrn.bigBags ?? 0}B)`}</span></span></div>
         <div className={styles.metaItem}><span className={styles.metaLabel}>Applicable Season</span><span className={styles.metaValue}>Season {targetSeason}</span></div>
       </div>
 
@@ -168,8 +168,8 @@ export function InternalMovementMergeTab({
       <div className={styles.reviewGrid}>
         <div className={styles.compactCard}>
           <div className={styles.cardHeader}><span>3. Stock & Composition Confirmation</span><Badge variant="primary">Audit-Safe</Badge></div>
-          <div className={styles.detailRow}><span className={styles.detailLabel}>{targetGrn.grnNumber} Initial:</span><span className={styles.detailValue}>{targetCurrentRemaining} bags ({targetGrn.smallBags ?? 0}S · {targetGrn.bigBags ?? 0}B)</span></div>
-          <div className={styles.detailRow}><span className={styles.detailLabel}>+ Merged Sources:</span><span className={styles.detailValue}>+{totalSourceBags} bags ({movedSmall}S · {movedBig}B)</span></div>
+          <div className={styles.detailRow}><span className={styles.detailLabel}>{targetGrn.grnNumber} Initial:</span><span className={styles.detailValue}>{targetCurrentRemaining} bags {isTargetHybrid ? '(Hybrid)' : `(${targetGrn.smallBags ?? 0}S · ${targetGrn.bigBags ?? 0}B)`}</span></div>
+          <div className={styles.detailRow}><span className={styles.detailLabel}>+ Merged Sources:</span><span className={styles.detailValue}>+{totalSourceBags} bags {!hasDiffRates ? '(Hybrid)' : `(${movedSmall}S · ${movedBig}B)`}</span></div>
           <div className={styles.detailRow} style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
             <span className={styles.detailLabel}>Combined Target Stock:</span>
             <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)' }}>{targetNewRemaining} Bags (Season {targetSeason})</span>
@@ -177,8 +177,8 @@ export function InternalMovementMergeTab({
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Resulting Composition:</span>
             <span className={styles.detailValue} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <Badge variant="primary">{resultingBagType}</Badge>
-              <strong>{resultingSmall}S · {resultingBig}B</strong>
+              <Badge variant="primary">{!hasDiffRates ? 'Hybrid' : resultingBagType}</Badge>
+              <strong>{!hasDiffRates ? `${targetNewRemaining} Hybrid Bags` : `${resultingSmall}S · ${resultingBig}B`}</strong>
             </span>
           </div>
 

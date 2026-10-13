@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  deriveModernRateVisibility, type DeliveryChallan, type DeliverySummary, type Grn, type GrnInventorySummary,
+  deriveHybridRateVisibility, isHybridBagCategory, type DeliveryChallan, type DeliverySummary, type Grn, type GrnInventorySummary,
 } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { useRentGate } from '@/hooks/useRentGate';
@@ -118,11 +118,11 @@ export function useCreateDeliveryForm(
     }
   }, [initialGrnId, availableGrns, createGrnId, handleSelectGrn]);
 
-  const isModern = bagCategory === 'Modern' || bagCategory === 'Modern Size' || bagCategory === 'Mixed';
+  const isHybrid = isHybridBagCategory(bagCategory);
   const smallBags = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigBags = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
-  const modernQty = typeof withdrawal.quantity === 'number' ? withdrawal.quantity : 0;
-  const totalWithdrawingBags = isModern && modernQty > 0 && smallBags === 0 && bigBags === 0 ? modernQty : smallBags + bigBags;
+  const hybridQty = typeof withdrawal.quantity === 'number' ? withdrawal.quantity : 0;
+  const totalWithdrawingBags = isHybrid && hybridQty > 0 && smallBags === 0 && bigBags === 0 ? hybridQty : smallBags + bigBags;
   const selectedGrn = availableGrns.find((g) => g.id === createGrnId) || null;
   const isLoanHoldActive = Boolean(selectedGrn?.loanStatus === 'TAKEN');
   const deliveryDateVal = createDate || new Date().toISOString().split('T')[0];
@@ -131,16 +131,16 @@ export function useCreateDeliveryForm(
     deliveryDate: deliveryDateVal, rentMonths: selectedGrn?.rentMonths,
   });
 
-  const rateVisibility = deriveModernRateVisibility({
+  const rateVisibility = deriveHybridRateVisibility({
     rentType: selectedGrn?.rentType ?? 'Seasonal', inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal,
   });
 
   const outwardRent = computeOutwardRentCharge({
     rentType: selectedGrn?.rentType ?? 'Seasonal', bagCategory, smallBags, bigBags,
-    quantity: isModern && modernQty > 0 && smallBags === 0 && bigBags === 0 ? modernQty : undefined,
-    manualBagPrice: isModern && typeof manualBagPrice === 'number' ? manualBagPrice : undefined,
-    seasonalBagPrice: isModern && typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
-    monthlyBagPrice: isModern && typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,
+    quantity: isHybrid && hybridQty > 0 && smallBags === 0 && bigBags === 0 ? hybridQty : undefined,
+    manualBagPrice: isHybrid && typeof manualBagPrice === 'number' ? manualBagPrice : undefined,
+    seasonalBagPrice: isHybrid && typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
+    monthlyBagPrice: isHybrid && typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,
     rentMonths: billableRentMonths, inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal,
     smallBagPrice: selectedGrn?.smallBagPrice, bigBagPrice: selectedGrn?.bigBagPrice, bagPrice: selectedGrn?.bagPrice,
     monthlySmallBagPrice: monthlyCommodityRates?.small, monthlyBigBagPrice: monthlyCommodityRates?.big,
@@ -167,12 +167,12 @@ export function useCreateDeliveryForm(
     const validation = validateDeliveryForm({
       createGrnId, createDate, smallBags, bigBags, totalWithdrawingBags,
       availableSmall: withdrawal.availableSmall, availableBig: withdrawal.availableBig,
-      availableTotal: totalAvail, isCombinedPool: (isSb || isModern) && !isSeg,
-      isModernSize: isModern, bagPrice: manualBagPrice,
+      availableTotal: totalAvail, isCombinedPool: (isSb || isHybrid) && !isSeg,
+      isHybrid: isHybrid, bagPrice: manualBagPrice,
       seasonalBagPrice: typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
       monthlyBagPrice: typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,
-      showSeasonalRate: isModern && rateVisibility.showSeasonalRate,
-      showMonthlyRate: isModern && rateVisibility.showMonthlyRate,
+      showSeasonalRate: isHybrid && rateVisibility.showSeasonalRate,
+      showMonthlyRate: isHybrid && rateVisibility.showMonthlyRate,
       createVehicleNumber, createGpNumber, createDriverName, isLoanHoldActive,
       selectedGrnNumber: selectedGrn?.grnNumber, selectedGrnDate: selectedGrn?.date,
     });
@@ -190,11 +190,11 @@ export function useCreateDeliveryForm(
     try {
       const payload = buildDeliveryPayload({
         grnId: createGrnId, createDate, smallBags, bigBags,
-        quantity: isModern && modernQty > 0 && smallBags === 0 && bigBags === 0 ? modernQty : undefined,
+        quantity: isHybrid && hybridQty > 0 && smallBags === 0 && bigBags === 0 ? hybridQty : undefined,
         bagCategory,
-        bagPrice: isModern && typeof manualBagPrice === 'number' ? manualBagPrice : undefined,
-        seasonalBagPrice: isModern && typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
-        monthlyBagPrice: isModern && typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,
+        bagPrice: isHybrid && typeof manualBagPrice === 'number' ? manualBagPrice : undefined,
+        seasonalBagPrice: isHybrid && typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
+        monthlyBagPrice: isHybrid && typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,
         rentCharge: outwardRent,
         paymentAmount: typeof paymentAmount === 'number' && paymentAmount >= 0 ? paymentAmount : undefined,
         paymentMode: typeof paymentAmount === 'number' && paymentAmount > 0 ? paymentMode : undefined,
@@ -212,7 +212,7 @@ export function useCreateDeliveryForm(
   const availableStock = grnSummary
     ? grnSummary.availableSmallBags + grnSummary.availableBigBags
     : (selectedGrn?.closingBags ?? selectedGrn?.bags ?? 0);
-  const hasValidPrice = !isModern || (
+  const hasValidPrice = !isHybrid || (
     (!rateVisibility.showSeasonalRate || (typeof seasonalBagPrice === 'number' && seasonalBagPrice > 0)) &&
     (!rateVisibility.showMonthlyRate || (typeof monthlyBagPrice === 'number' && monthlyBagPrice > 0)) &&
     (rateVisibility.showSeasonalRate || rateVisibility.showMonthlyRate || (typeof manualBagPrice === 'number' && manualBagPrice > 0))
