@@ -128,5 +128,57 @@ describe('deliveryModernSize outward flow', () => {
       expect(res.isValid).toBe(false);
       expect(res.errors.bags).toBe('Cannot deliver 80 bags (only 70 available)');
     });
+
+    it('validates seasonal and monthly rates when dual rates are shown', () => {
+      const res = validateDeliveryForm({
+        ...baseInput,
+        bagPrice: undefined,
+        showSeasonalRate: true,
+        showMonthlyRate: true,
+        seasonalBagPrice: 120,
+        monthlyBagPrice: 15,
+      });
+      expect(res.isValid).toBe(true);
+      expect(res.errors).toEqual({});
+    });
+
+    it('requires seasonalBagPrice when showSeasonalRate is true', () => {
+      const res = validateDeliveryForm({
+        ...baseInput,
+        bagPrice: undefined,
+        showSeasonalRate: true,
+        seasonalBagPrice: undefined,
+      });
+      expect(res.isValid).toBe(false);
+      expect(res.errors.seasonalBagPrice).toBe('Please enter a valid seasonal rate per bag');
+    });
+
+    it('requires monthlyBagPrice when showMonthlyRate is true', () => {
+      const res = validateDeliveryForm({
+        ...baseInput,
+        bagPrice: undefined,
+        showMonthlyRate: true,
+        monthlyBagPrice: undefined,
+      });
+      expect(res.isValid).toBe(false);
+      expect(res.errors.monthlyBagPrice).toBe('Please enter a valid monthly rate per bag');
+    });
+  });
+
+  describe('computeOutwardRentCharge with Hybrid multi-year', () => {
+    it('applies seasonalBagPrice for seasons and monthlyBagPrice for extension months', () => {
+      const rent = computeOutwardRentCharge({
+        rentType: 'Seasonal',
+        bagCategory: 'Hybrid',
+        smallBags: 10,
+        bigBags: 10,
+        inwardDate: '2024-07-10',
+        deliveryDate: '2026-10-10',
+        seasonalBagPrice: 100,
+        monthlyBagPrice: 15,
+      });
+      // 20 bags * (3 seasons * 100 + 4 extension months * 15) = 20 * (300 + 60) = 7200
+      expect(rent).toBe(7200);
+    });
   });
 });

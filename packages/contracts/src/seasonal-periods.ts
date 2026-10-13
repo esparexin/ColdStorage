@@ -197,9 +197,9 @@ export interface HybridRateVisibility {
  *   - Multi-Year / Extended (incurring Jan/Feb extensions): Both Seasonal Rate and Monthly Rate are shown (Scenario A).
  */
 export function deriveHybridRateVisibility(params: {
-  rentType: RentType;
-  inwardDate: Date | string;
-  deliveryDate: Date | string;
+  rentType?: RentType | null;
+  inwardDate?: Date | string | null;
+  deliveryDate?: Date | string | null;
 }): HybridRateVisibility {
   if (params.rentType === 'Monthly') {
     return {
@@ -208,12 +208,19 @@ export function deriveHybridRateVisibility(params: {
     };
   }
 
+  if (!params.inwardDate || !params.deliveryDate) {
+    return {
+      showSeasonalRate: true,
+      showMonthlyRate: false,
+    };
+  }
+
   const elapsed = resolveSeasonalElapsedPeriods(params.inwardDate, params.deliveryDate);
   const hasSeason = elapsed.some((p) => p.period === 'SEASON');
   const hasExtension = elapsed.some((p) => p.period === 'JANUARY' || p.period === 'FEBRUARY');
 
   return {
-    showSeasonalRate: hasSeason,
+    showSeasonalRate: hasSeason || !hasExtension,
     showMonthlyRate: hasExtension,
   };
 }

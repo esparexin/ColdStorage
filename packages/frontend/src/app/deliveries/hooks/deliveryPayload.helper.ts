@@ -7,6 +7,8 @@ export interface DeliveryPayloadInput {
   bigBags: number;
   quantity?: number;
   bagCategory?: OutwardBagCategory;
+  seasonalBagPrice?: number;
+  monthlyBagPrice?: number;
   bagPrice?: number;
   rentCharge?: number;
   paymentAmount?: number;
@@ -25,23 +27,36 @@ export interface DeliveryPayloadInput {
  * builder stays a straight pass-through with optional transport fields.
  */
 export function buildDeliveryPayload(input: DeliveryPayloadInput): Record<string, unknown> {
-  const isModern = input.bagCategory === 'Modern Size' || input.bagCategory === 'Mixed';
-  const totalQuantity = isModern && typeof input.quantity === 'number' && input.quantity > 0
-    ? input.quantity
-    : input.smallBags + input.bigBags;
+  const isModern =
+    input.bagCategory === 'Modern Size' ||
+    input.bagCategory === 'Mixed' ||
+    input.bagCategory === 'Hybrid';
+  const hasSpecificBags = input.smallBags > 0 || input.bigBags > 0;
+  const totalQuantity =
+    isModern && typeof input.quantity === 'number' && input.quantity > 0 && !hasSpecificBags
+      ? input.quantity
+      : input.smallBags + input.bigBags;
   const payload: Record<string, unknown> = {
     grnId: input.grnId,
     date: new Date(input.createDate),
     quantity: totalQuantity,
-    smallBags: isModern ? 0 : input.smallBags,
-    bigBags: isModern ? 0 : input.bigBags,
+    smallBags: isModern && !hasSpecificBags ? 0 : input.smallBags,
+    bigBags: isModern && !hasSpecificBags ? 0 : input.bigBags,
   };
 
   if (input.bagCategory) {
     payload.bagCategory = input.bagCategory;
   }
-  if (isModern && typeof input.bagPrice === 'number' && input.bagPrice > 0) {
-    payload.bagPrice = input.bagPrice;
+  if (isModern) {
+    if (typeof input.seasonalBagPrice === 'number' && input.seasonalBagPrice > 0) {
+      payload.seasonalBagPrice = input.seasonalBagPrice;
+    }
+    if (typeof input.monthlyBagPrice === 'number' && input.monthlyBagPrice > 0) {
+      payload.monthlyBagPrice = input.monthlyBagPrice;
+    }
+    if (typeof input.bagPrice === 'number' && input.bagPrice > 0) {
+      payload.bagPrice = input.bagPrice;
+    }
   }
   if (typeof input.rentCharge === 'number' && input.rentCharge >= 0) {
     payload.rentCharge = input.rentCharge;
