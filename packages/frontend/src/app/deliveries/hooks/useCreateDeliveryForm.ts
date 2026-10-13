@@ -5,6 +5,7 @@ import {
 import { requestWithAuth } from '@/lib/api-client';
 import { useRentGate } from '@/hooks/useRentGate';
 import { validateDeliveryForm } from './deliveryFormValidation.helper';
+import { clearWithdrawalCounts, resolveValidationStock } from './eligibleGrn.helper';
 import { buildDeliveryPayload } from './deliveryPayload.helper';
 import { computeOutwardRentCharge, resolveOutwardBillableMonths, type OutwardBagCategory } from './deliveryRent.helper';
 import { submitDeliveryRequest } from './deliverySubmit.helper';
@@ -148,6 +149,7 @@ export function useCreateDeliveryForm(
 
   const handleBagCategoryChange = (cat: OutwardBagCategory) => {
     setBagCategory(cat);
+    setWithdrawal((prev) => clearWithdrawalCounts(prev));
     clearFieldError('bags'); clearFieldError('smallBags'); clearFieldError('bigBags');
     clearFieldError('bagPrice'); clearFieldError('seasonalBagPrice'); clearFieldError('monthlyBagPrice');
   };
@@ -164,9 +166,10 @@ export function useCreateDeliveryForm(
     const isSeg = (grnSummary?.availableSmallBags ?? 0) > 0 && (grnSummary?.availableBigBags ?? 0) > 0;
     const totalAvail = (grnSummary?.availableSmallBags ?? 0) + (grnSummary?.availableBigBags ?? 0);
 
+    const validationStock = resolveValidationStock(grnSummary, withdrawal);
     const validation = validateDeliveryForm({
       createGrnId, createDate, smallBags, bigBags, totalWithdrawingBags,
-      availableSmall: withdrawal.availableSmall, availableBig: withdrawal.availableBig,
+      availableSmall: validationStock.availableSmall, availableBig: validationStock.availableBig,
       availableTotal: totalAvail, isCombinedPool: (isSb || isHybrid) && !isSeg,
       isHybrid: isHybrid, bagPrice: manualBagPrice,
       seasonalBagPrice: typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,

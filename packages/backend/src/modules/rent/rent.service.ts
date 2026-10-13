@@ -30,6 +30,8 @@ import {
 import { rentExtensionRepository } from './rent-extension.repository.js';
 import { rentRepository } from './rent.repository.js';
 import { buildRentSummary } from './rent-summary.helper.js';
+import { CommodityModel } from '../../database/models/commodity.model.js';
+import { computeFirstSeasonHamali } from '../common/hamali-resolution.js';
 
 export class RentService {
   /**
@@ -73,7 +75,9 @@ export class RentService {
     ]);
     const delivered = netDelivered?.total ?? 0;
     const remaining = balance?.total ?? Math.max(0, grn.bags - delivered);
-    return buildRentSummary(grn, payments, extensions, delivered, remaining, outwardRent);
+    const commodity = await CommodityModel.findOne({ id: grn.commodityId }).lean().exec();
+    const hamaliShare = computeFirstSeasonHamali(grn.bags, commodity, extensions);
+    return buildRentSummary(grn, payments, extensions, delivered, remaining, outwardRent, hamaliShare);
   }
 
   /**
@@ -94,17 +98,23 @@ export class RentService {
       rentExtensionRepository.findExtensionsByFacilityGrouped(facilityId),
       rentRepository.getOutwardRentChargesByFacilityGrouped(facilityId),
     ]);
+    const commodityIds = Array.from(new Set(grns.map((g) => g.commodityId)));
+    const commodityDocs = await CommodityModel.find({ id: { $in: commodityIds } }).lean().exec();
+    const commodityMap = new Map(commodityDocs.map((c) => [c.id, c]));
 
     return grns.map((grn) => {
       const delivered = deliveredMap.get(grn.id)?.total ?? 0;
       const remaining = balanceMap.get(grn.id)?.total ?? Math.max(0, grn.bags - delivered);
+      const extensions = extensionsByGrn.get(grn.id) ?? [];
+      const hamaliShare = computeFirstSeasonHamali(grn.bags, commodityMap.get(grn.commodityId) ?? null, extensions);
       return buildRentSummary(
         grn,
         paymentsByGrn.get(grn.id) ?? [],
-        extensionsByGrn.get(grn.id) ?? [],
+        extensions,
         delivered,
         remaining,
         outwardRentMap.get(grn.id) ?? 0,
+        hamaliShare,
       );
     });
   }

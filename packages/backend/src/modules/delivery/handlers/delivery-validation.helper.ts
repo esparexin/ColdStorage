@@ -1,5 +1,5 @@
 import type mongoose from 'mongoose';
-import type { BagComposition } from '@cold-storage/contracts';
+import { allocateHybridSplit, type BagComposition } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
@@ -45,10 +45,9 @@ export async function validateStockAndBalances(
   }
 
   if (isHybrid) {
-    const allocSmall = Math.min(requestedTotal, remainingSmall);
-    const allocBig = requestedTotal - allocSmall;
-    withdrawal.smallBags = allocSmall;
-    withdrawal.bigBags = allocBig;
+    const split = allocateHybridSplit(remainingSmall, remainingBig, requestedTotal);
+    withdrawal.smallBags = split.smallBags;
+    withdrawal.bigBags = split.bigBags;
     return {
       smallBags: remainingSmall,
       bigBags: remainingBig,

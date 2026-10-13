@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { paymentModeSchema } from './rent.js';
+import { outwardBagCategorySchema } from './delivery.js';
+import { bagPriceSchema } from './pricing.js';
 
 export const internalMovementTypeSchema = z.enum(['MERGE', 'TRANSFER_OWNERSHIP']);
 export type InternalMovementType = z.infer<typeof internalMovementTypeSchema>;
@@ -12,6 +14,14 @@ export const mergeGrnInputSchema = z.object({
   remarks: z.string().trim().min(3, 'Remarks must be at least 3 characters').max(500),
   repackedSmallBags: z.number().int().min(0).nullish(),
   repackedBigBags: z.number().int().min(0).nullish(),
+  // Source bag-category confirmation: reuses the outward vocabulary
+  // (Small, Big, Small & Big, Hybrid/Mixed). Informational for rent — the
+  // backend recomputes obligations from source rules and never bills these.
+  sourceBagCategory: outwardBagCategorySchema.nullish(),
+  sourceQuantity: z.number().int().min(0).max(100000).nullish(),
+  sourceBagPrice: bagPriceSchema.nullish(),
+  sourceSeasonalBagPrice: bagPriceSchema.nullish(),
+  sourceMonthlyBagPrice: bagPriceSchema.nullish(),
   referenceWeight: z.number().positive('Reference weight must be greater than zero').max(1000000).nullish(),
   sourcePaymentAmount: z.number().min(0, 'Payment amount cannot be negative').nullish(),
   sourcePaymentMode: paymentModeSchema.nullish(),
@@ -50,6 +60,19 @@ export const internalMovementRecordSchema = z.object({
   totalBagsMoved: z.number().min(0).default(0),
   smallBagsMoved: z.number().min(0).default(0),
   bigBagsMoved: z.number().min(0).default(0),
+  // Informational confirmation echo (challan-column mirror): never billed,
+  // read-optional so pre-change documents still parse.
+  sourceBagCategory: outwardBagCategorySchema.nullish(),
+  sourceQuantity: z.number().int().min(0).nullish(),
+  sourceBagPrice: bagPriceSchema.nullish(),
+  sourceSeasonalBagPrice: bagPriceSchema.nullish(),
+  sourceMonthlyBagPrice: bagPriceSchema.nullish(),
+  // Legacy internal-movement hamali keys: never written, never returned.
+  // Retained as read-optional so pre-change documents still parse.
+  hamaliBags: z.number().min(0).optional(),
+  hamaliRate: z.number().min(0).nullish(),
+  hamaliCharge: z.number().min(0).optional(),
+  hamaliCarried: z.number().min(0).optional(),
   referenceWeight: z.number().positive().max(1000000).nullish(),
   grnId: z.string().nullable().optional(),
   grnNumber: z.string().nullable().optional(),
@@ -63,6 +86,8 @@ export const internalMovementRecordSchema = z.object({
     remainingBalance: z.number().min(0),
     paymentStatus: z.string(),
     rentState: z.string().optional(),
+    // Legacy snapshot hamali: never written, never returned; read-optional for old docs.
+    hamaliAmount: z.number().min(0).optional(),
   }),
   remarks: z.string().nullable().optional(),
   performedBy: z.string().min(1),

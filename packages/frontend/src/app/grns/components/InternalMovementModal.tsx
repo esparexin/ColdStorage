@@ -57,17 +57,12 @@ export function InternalMovementModal({
   };
 
   const handleExecuteMerge = async (
-    targetGrnId: string,
-    sourceGrnIds: string[],
-    reason: string,
-    remarks?: string,
-    movementDate?: string,
-    additionalRentAmount?: number,
-    repackedSmallBags?: number,
-    repackedBigBags?: number,
-    referenceWeight?: number,
-    sourcePaymentAmount?: number,
-    sourcePaymentMode?: import('@cold-storage/contracts').PaymentMode,
+    targetGrnId: string, sourceGrnIds: string[], reason: string, remarks?: string,
+    movementDate?: string, additionalRentAmount?: number, repackedSmallBags?: number,
+    repackedBigBags?: number, referenceWeight?: number, sourcePaymentAmount?: number,
+    sourcePaymentMode?: import('@cold-storage/contracts').PaymentMode, sourceBagCategory?: import('@cold-storage/contracts').OutwardBagCategory,
+    sourceQuantity?: number, sourceBagPrice?: number, sourceSeasonalBagPrice?: number,
+    sourceMonthlyBagPrice?: number,
   ) => {
     if (submitting) return;
     setSubmitting(true);
@@ -80,17 +75,9 @@ export function InternalMovementModal({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(
             buildMergePayload(
-              targetGrnId,
-              sourceGrnIds,
-              reason,
-              remarks,
-              movementDate,
-              additionalRentAmount,
-              repackedSmallBags,
-              repackedBigBags,
-              referenceWeight,
-              sourcePaymentAmount,
-              sourcePaymentMode,
+              targetGrnId, sourceGrnIds, reason, remarks, movementDate, additionalRentAmount,
+              repackedSmallBags, repackedBigBags, referenceWeight, sourcePaymentAmount, sourcePaymentMode,
+              sourceBagCategory, sourceQuantity, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice,
             ),
           ),
         },

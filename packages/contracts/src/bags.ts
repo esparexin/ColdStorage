@@ -234,4 +234,14 @@ export function isHybridBagCategory(category?: string | null): boolean {
   return c === 'hybrid' || c === 'modern' || c === 'modern size' || c === 'mixed';
 }
 
+/**
+ * Canonical Hybrid ledger split shared by Outward Delivery and Internal Move:
+ * fill Small from remaining Small first, remainder to Big. Reconciles to the
+ * requested total by construction.
+ */
+export function allocateHybridSplit(remainingSmall: number, remainingBig: number, requestedTotal: number): BagComposition {
+  const allocSmall = Math.min(Math.max(0, requestedTotal), Math.max(0, remainingSmall));
+  return { smallBags: allocSmall, bigBags: Math.max(0, requestedTotal) - allocSmall };
+}
+
 

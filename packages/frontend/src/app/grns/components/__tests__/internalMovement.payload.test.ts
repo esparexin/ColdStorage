@@ -97,4 +97,27 @@ describe('internalMovement payload helpers', () => {
     expect(payload.repackedBigBags).toBe(20);
     expect(mergeGrnInputSchema.safeParse(payload).success).toBe(true);
   });
+
+  it('builds a merge payload with Hybrid category confirmation', () => {
+    const payload = buildMergePayload(
+      'grn-target',
+      ['grn-a'],
+      'Repacked lot',
+      'Confirmed mix',
+      '2026-10-10',
+      0,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'Hybrid',
+      50,
+      12.5,
+    );
+    expect(payload.sourceBagCategory).toBe('Hybrid');
+    expect(payload.sourceQuantity).toBe(50);
+    expect(payload.sourceBagPrice).toBe(12.5);
+    expect(mergeGrnInputSchema.safeParse(payload).success).toBe(true);
+  });
 });

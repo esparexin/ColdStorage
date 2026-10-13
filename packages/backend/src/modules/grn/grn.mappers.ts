@@ -77,8 +77,6 @@ export function toGrnEntity(doc: {
     bagPrice: doc.bagPrice ?? null,
     smallBagPrice: doc.smallBagPrice ?? null,
     bigBagPrice: doc.bigBagPrice ?? null,
-    hamaliRate: ((doc as Record<string, unknown>).hamaliRate as number | null) ?? null,
-    hamaliAmount: ((doc as Record<string, unknown>).hamaliAmount as number | undefined) ?? 0,
     smallBags: doc.smallBags,
     bigBags: doc.bigBags,
     gpNumber: doc.gpNumber ?? null,

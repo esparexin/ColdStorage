@@ -14,6 +14,7 @@ import { assertRentAllowedForOutward } from '../../common/rent-gate.service.js';
 import { isTransientError, toChallanEntity } from '../delivery.mappers.js';
 import { getDeliverySummary } from '../queries/delivery.queries.js';
 import { computeExpectedDeliveryRent } from './delivery-rent.helper.js';
+import { resolveFirstSeasonOutwardShare } from './delivery-hamali.helper.js';
 import { recordDeliveryInlinePayment } from './delivery-payment.helper.js';
 import { validateDeliveryDate, validateStockAndBalances } from './delivery-validation.helper.js';
 
@@ -119,8 +120,11 @@ async function executeDeliveryTransaction(
           );
         }
       }
-      const deliveryRentCharge = expectedRentCharge;
-
+      // Internal first-season Hamali share joins the delivery rent charge (R1/R2).
+      const { share: hamaliShare } = await resolveFirstSeasonOutwardShare({
+        facilityId, grn, withdrawnTotal, expectedRentCharge, session,
+      });
+      const deliveryRentCharge = Number((expectedRentCharge + hamaliShare).toFixed(2));
       const rentBalance = await assertRentAllowedForOutward(
         facilityId,
         { id: grn.id, grnNumber: grn.grnNumber, rentAmount: grn.rentAmount ?? 0 },

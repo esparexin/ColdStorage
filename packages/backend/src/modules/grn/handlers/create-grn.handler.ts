@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
-  calculateHamaliAmount,
   getFinancialYearKey,
   normalizeBagComposition,
   rentMonthsForType,
@@ -91,10 +90,7 @@ export async function createGrn(
 
   const rentMonths = rentMonthsForType(input.rentType) ?? (input.rentMonths ?? null);
   const finalRentAmount = input.rentAmount && input.rentAmount > 0 ? input.rentAmount : 0;
-  const isHamaliApp = commodity.isHamaliApplicable !== undefined ? commodity.isHamaliApplicable : ((commodity.hamaliRate ?? 0) > 0);
-  const commodityHamali = isHamaliApp ? (commodity.hamaliRate ?? 0) : 0;
-  const effectiveHamaliRate = input.hamaliRate ?? commodityHamali;
-  const hamaliAmount = calculateHamaliAmount(input.bags, effectiveHamaliRate);
+  // Hamali is internal-only first-season rent input: never stored on the GRN.
 
   const id = `grn-${randomUUID()}`;
 
@@ -168,8 +164,6 @@ export async function createGrn(
             bagPrice: input.bagPrice ?? null,
             smallBagPrice: input.smallBagPrice ?? null,
             bigBagPrice: input.bigBagPrice ?? null,
-            hamaliRate: effectiveHamaliRate,
-            hamaliAmount,
             gpNumber: input.gpNumber?.trim() || null,
             storageMark: input.storageMark?.trim() || null,
             partyMark: input.partyMark?.trim() || null,

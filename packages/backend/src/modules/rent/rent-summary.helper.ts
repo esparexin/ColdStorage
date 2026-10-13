@@ -19,6 +19,10 @@ import { toPaymentEntity } from './handlers/record-payment.handler.js';
  * obligation plus finalized January/February extensions). With no extensions
  * the total due equals Grn.rentAmount exactly.
  *
+ * Internal Hamali feeds the first-season total due only: callers pass the
+ * precomputed `hamaliShare` (0 once a SEASON renewal is finalized). Hamali is
+ * never stored on transaction records and never exposed in this DTO.
+ *
  * If differential rates exist but bag quantities are unverified/unconfirmed,
  * historical rent calculation is marked PENDING_VERIFICATION rather than fabricating a bill.
  */
@@ -29,11 +33,15 @@ export function buildRentSummary(
   deliveredBags = 0,
   remainingBags = grn.bags,
   outwardRentCharges = 0,
+  hamaliShare = 0,
 ): RentSummaryDto {
   const baseRent = grn.rentAmount > 0 ? grn.rentAmount : outwardRentCharges;
-  const totalDue = totalRentDue(
-    baseRent,
-    extensions.map((e) => e.finalAmount),
+  // First-season Hamali joins the total due exactly once: zero-rent GRNs
+  // already accumulate Hamali-inclusive outward charges in the base, so the
+  // full share applies only when the base is the stored rent obligation.
+  const hamali = grn.rentAmount > 0 && Number.isFinite(hamaliShare) && hamaliShare > 0 ? hamaliShare : 0;
+  const totalDue = Number(
+    (totalRentDue(baseRent, extensions.map((e) => e.finalAmount)) + hamali).toFixed(2),
   );
 
   const canCalc = canCalculateAuthoritativeRent({
@@ -72,8 +80,6 @@ export function buildRentSummary(
     rentType: grn.rentType,
     rentAmount: baseRent,
     rentMonths: grn.rentMonths ?? null,
-    hamaliRate: grn.hamaliRate ?? null,
-    hamaliAmount: grn.hamaliAmount ?? 0,
     totalPaid: balance.totalPaid,
     remainingBalance: balance.remainingBalance,
     paymentStatus: balance.paymentStatus,

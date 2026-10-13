@@ -173,14 +173,6 @@ export function CreateGrnModal({
                 <option value="Monthly">Monthly</option>
               </Select>
             </div>
-            {Boolean(selectedCommodity?.hamaliRate) && (
-              <div className={styles.fieldGroup}>
-                <span className={styles.fieldLabel}>Hamali Labor Charge (Upfront)</span>
-                <div style={{ padding: 'var(--space-2)', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', fontSize: 'var(--text-xs)', fontVariantNumeric: 'tabular-nums' }}>
-                  ₹{selectedCommodity?.hamaliRate}/bag · Total: ₹{(Number(form.createBags) || 0) * (selectedCommodity?.hamaliRate ?? 0)}
-                </div>
-              </div>
-            )}
             {form.createCommodityId && form.createRentType && (
               <CustomerAgreedRateSection
                 rentType={form.createRentType} rentMonths={form.createRentMonths}

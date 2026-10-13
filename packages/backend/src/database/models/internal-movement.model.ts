@@ -1,5 +1,5 @@
 import mongoose, { Schema, type Document, type Model } from 'mongoose';
-import type { InternalMovementType } from '@cold-storage/contracts';
+import type { InternalMovementType, OutwardBagCategory } from '@cold-storage/contracts';
 
 export interface InternalMovementDoc extends Document {
   id: string;
@@ -13,6 +13,16 @@ export interface InternalMovementDoc extends Document {
   totalBagsMoved: number;
   smallBagsMoved: number;
   bigBagsMoved: number;
+  // Informational bag-category confirmation echo (challan-column mirror).
+  sourceBagCategory?: OutwardBagCategory | null;
+  sourceQuantity?: number | null;
+  sourceBagPrice?: number | null;
+  sourceSeasonalBagPrice?: number | null;
+  sourceMonthlyBagPrice?: number | null;
+  hamaliBags: number;
+  hamaliRate?: number | null;
+  hamaliCharge: number;
+  hamaliCarried: number;
   referenceWeight?: number | null;
   grnId: string | null;
   grnNumber: string | null;
@@ -26,6 +36,7 @@ export interface InternalMovementDoc extends Document {
     remainingBalance: number;
     paymentStatus: string;
     rentState?: string | null;
+    hamaliAmount: number;
   };
   remarks: string | null;
   performedBy: string;
@@ -45,6 +56,18 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
     totalBagsMoved: { type: Number, default: 0, min: 0 },
     smallBagsMoved: { type: Number, default: 0, min: 0 },
     bigBagsMoved: { type: Number, default: 0, min: 0 },
+    // Informational confirmation echo: no defaults, never billed.
+    sourceBagCategory: { type: String },
+    sourceQuantity: { type: Number, min: 0 },
+    sourceBagPrice: { type: Number, min: 0 },
+    sourceSeasonalBagPrice: { type: Number, min: 0 },
+    sourceMonthlyBagPrice: { type: Number, min: 0 },
+    // Legacy hamali columns: never written, never returned. No defaults so new
+    // movements carry no hamali values; old values stay readable.
+    hamaliBags: { type: Number, min: 0 },
+    hamaliRate: { type: Number },
+    hamaliCharge: { type: Number, min: 0 },
+    hamaliCarried: { type: Number, min: 0 },
     referenceWeight: { type: Number, default: null },
     grnId: { type: String, default: null, index: true },
     grnNumber: { type: String, default: null },
@@ -58,6 +81,8 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
       remainingBalance: { type: Number, required: true, min: 0 },
       paymentStatus: { type: String, required: true },
       rentState: { type: String, default: null },
+      // Legacy snapshot hamali: never written; old values stay readable.
+      hamaliAmount: { type: Number, min: 0 },
     },
     remarks: { type: String, trim: true, maxlength: 500, default: null },
     performedBy: { type: String, required: true },

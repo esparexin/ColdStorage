@@ -1,4 +1,4 @@
-import { isBagCompositionVerified, seasonYearForInwardDate, type BagType } from '@cold-storage/contracts';
+import { allocateHybridSplit, isBagCompositionVerified, isHybridBagCategory, seasonYearForInwardDate, type BagType, type OutwardBagCategory } from '@cold-storage/contracts';
 import type { MergeSourceGrn } from './merge-grn.helper.js';
 
 export interface ValidateMergeRepackedParams {
@@ -15,6 +15,14 @@ export interface ValidateMergeRepackedParams {
   sourceGrns: MergeSourceGrn[];
   repackedSmallBags?: number | null;
   repackedBigBags?: number | null;
+  // Source bag-category confirmation (outward vocabulary). Small/Big/Small & Big
+  // resolve through the same composition rules as inward receipts; Hybrid-family
+  // values (Hybrid, Mixed, Modern…) take a quantity plus informational rates.
+  sourceBagCategory?: OutwardBagCategory | null;
+  sourceQuantity?: number | null;
+  sourceBagPrice?: number | null;
+  sourceSeasonalBagPrice?: number | null;
+  sourceMonthlyBagPrice?: number | null;
   totalMovedBags: number;
   defaultSmallMoved?: number;
   defaultBigMoved?: number;
@@ -26,6 +34,7 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
   bigMoved: number;
 } {
   const { targetGrn, sourceGrns, repackedSmallBags, repackedBigBags, totalMovedBags, movementDate } = params;
+  const { sourceBagCategory, sourceQuantity, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice } = params;
 
   // 1. Movement date sanity
   if (movementDate < new Date(targetGrn.date)) {
@@ -83,7 +92,38 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
   let smallMoved = 0;
   let bigMoved = 0;
 
-  if (repackedSmallBags != null && repackedBigBags != null) {
+  if (sourceBagCategory === 'Small' || sourceBagCategory === 'Big') {
+    // No separate single-type options: Small-only and Big-only are expressed
+    // through the Small & Big split with 0 on the unused side (outward parity).
+    throw new Error('Small-only and Big-only confirmation uses the Small & Big split (enter 0 for the unused side)');
+  }
+
+  if (sourceBagCategory != null && isHybridBagCategory(sourceBagCategory)) {
+    // Hybrid-family confirmation (Hybrid, Mixed, Modern…): quantity plus
+    // informational rates, mirroring outward Hybrid validation. Rates never
+    // feed rent; the split below serves ledger accounting only.
+    if (sourceQuantity == null || !Number.isInteger(sourceQuantity) || sourceQuantity <= 0) {
+      throw new Error('Confirmed Hybrid quantity must be a positive whole number');
+    }
+    if (sourceQuantity !== totalMovedBags) {
+      throw new Error(
+        `Confirmed Hybrid quantity (${sourceQuantity}) must match total moved stock of ${totalMovedBags} bags`,
+      );
+    }
+    const hasRate =
+      (typeof sourceBagPrice === 'number' && sourceBagPrice > 0) ||
+      (typeof sourceSeasonalBagPrice === 'number' && sourceSeasonalBagPrice > 0) ||
+      (typeof sourceMonthlyBagPrice === 'number' && sourceMonthlyBagPrice > 0);
+    if (!hasRate) {
+      throw new Error('Confirmed Hybrid lots require a per-bag rate (Each Bag Price, or Seasonal/Monthly rates)');
+    }
+    const ledSmall = params.defaultSmallMoved ?? sourceGrns.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
+    const ledBig = params.defaultBigMoved ?? sourceGrns.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
+    // Shared outward allocator: fill Small first, remainder to Big.
+    const split = allocateHybridSplit(ledSmall, ledBig, totalMovedBags);
+    smallMoved = split.smallBags;
+    bigMoved = split.bigBags;
+  } else if (repackedSmallBags != null && repackedBigBags != null) {
     if (repackedSmallBags < 0 || repackedBigBags < 0) {
       throw new Error('Bag counts cannot be negative');
     }

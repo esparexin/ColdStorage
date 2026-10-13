@@ -7,9 +7,14 @@ import {
   resolveMergedBagType,
   seasonYearForInwardDate,
   type Grn,
+  type OutwardBagCategory,
   type PaymentMode,
 } from '@cold-storage/contracts';
 import { Badge, Input, Select } from '@/components/ui';
+import { MergeBagCategoryFields, DEFAULT_BAG_CONFIRMATION, type BagConfirmationValue } from './MergeBagCategoryFields';
+import { MergeRentAssessment } from './MergeRentAssessment';
+import { partitionMergeSources } from './mergeEligibility.helper';
+import { previewConfirmedSplit, validateBagConfirmation } from './bagConfirmation.helper';
 import { MergeSourceTable } from './MergeSourceTable';
 import styles from './InternalMovementModal.module.css';
 
@@ -21,7 +26,9 @@ interface InternalMovementMergeTabProps {
     targetGrnId: string, sourceGrnIds: string[], reason: string, remarks?: string,
     movementDate?: string, additionalRentAmount?: number, repackedSmallBags?: number,
     repackedBigBags?: number, referenceWeight?: number, sourcePaymentAmount?: number,
-    sourcePaymentMode?: PaymentMode,
+    sourcePaymentMode?: PaymentMode, sourceBagCategory?: OutwardBagCategory,
+    sourceQuantity?: number, sourceBagPrice?: number, sourceSeasonalBagPrice?: number,
+    sourceMonthlyBagPrice?: number,
   ) => Promise<void>;
 }
 
@@ -39,6 +46,9 @@ export function InternalMovementMergeTab({
   const [repackMode, setRepackMode] = useState(false);
   const [repackSmall, setRepackSmall] = useState<number | ''>('');
   const [repackBig, setRepackBig] = useState<number | ''>('');
+  const [confirmation, setConfirmation] = useState<BagConfirmationValue>(DEFAULT_BAG_CONFIRMATION);
+  const [rentAcknowledged, setRentAcknowledged] = useState(false);
+  const [aggregatePending, setAggregatePending] = useState(0);
   const [referenceWeight, setReferenceWeight] = useState<number | ''>('');
   const [sourcePaymentAmount, setSourcePaymentAmount] = useState<number | ''>('');
   const [sourcePaymentMode, setSourcePaymentMode] = useState<PaymentMode>('Cash');
@@ -46,14 +56,19 @@ export function InternalMovementMergeTab({
 
   const openGrns = useMemo(() => allGrns.filter((g) => g.status === 'OPEN'), [allGrns]);
   const targetGrn = useMemo(() => openGrns.find((g) => g.id === targetGrnId) ?? currentGrn, [openGrns, targetGrnId, currentGrn]);
-  const eligibleSources = useMemo(() => openGrns.filter((g) => g.id !== targetGrnId && (g.closingBags ?? g.bags) > 0 && g.loanStatus !== 'TAKEN'), [openGrns, targetGrnId]);
+  const targetSeason = useMemo(() => seasonYearForInwardDate(targetGrn.date), [targetGrn.date]);
+  // Future-season lots can never merge into this target (backend season guard
+  // stays authoritative); they are excluded here so they never look eligible.
+  const { eligibleSources, futureSeasonCount } = useMemo(
+    () => partitionMergeSources(openGrns, targetGrnId, targetSeason),
+    [openGrns, targetGrnId, targetSeason],
+  );
   const selectedSources = useMemo(() => eligibleSources.filter((g) => selectedSourceIds.includes(g.id)), [eligibleSources, selectedSourceIds]);
   const totalSourceBags = useMemo(() => selectedSources.reduce((acc, g) => acc + (g.closingBags ?? g.bags), 0), [selectedSources]);
   const targetCurrentRemaining = targetGrn.closingBags ?? targetGrn.bags;
   const targetNewRemaining = targetCurrentRemaining + totalSourceBags;
   const isTargetLoanHold = targetGrn.loanStatus === 'TAKEN';
 
-  const targetSeason = useMemo(() => seasonYearForInwardDate(targetGrn.date), [targetGrn.date]);
   const hasPreviousSeason = useMemo(() => selectedSources.some((s) => seasonYearForInwardDate(s.date) < targetSeason), [selectedSources, targetSeason]);
 
   const isTargetDiff = (targetGrn.smallBagPrice != null || targetGrn.bigBagPrice != null) && targetGrn.smallBagPrice !== targetGrn.bigBagPrice;
@@ -63,28 +78,26 @@ export function InternalMovementMergeTab({
   const isTargetHybrid = (!isTargetDiff && targetGrn.bagPrice != null) || isHybridBagCategory(targetGrn.bagType);
 
   const isRepackRequired = repackMode || hasUnconfirmedMix;
-  const repackedSum = (typeof repackSmall === 'number' ? repackSmall : 0) + (typeof repackBig === 'number' ? repackBig : 0);
   const isRepackFilled = typeof repackSmall === 'number' && typeof repackBig === 'number' && Number.isInteger(repackSmall) && Number.isInteger(repackBig);
-  const isRepackReconciled = isRepackFilled && repackedSum === totalSourceBags;
+  const patchConfirmation = (patch: Partial<BagConfirmationValue>) => setConfirmation((prev) => ({ ...prev, ...patch }));
 
   const rawMovedSmall = selectedSources.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
   const rawMovedBig = selectedSources.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
   const scale = totalSourceBags > 0 && rawMovedSmall + rawMovedBig > 0 && rawMovedSmall + rawMovedBig !== totalSourceBags ? totalSourceBags / (rawMovedSmall + rawMovedBig) : 1;
   const defaultMovedSmall = scale === 1 ? rawMovedSmall : Math.round(rawMovedSmall * scale);
   const defaultMovedBig = scale === 1 ? rawMovedBig : totalSourceBags - defaultMovedSmall;
-  const movedSmall = isRepackFilled ? Number(repackSmall) : defaultMovedSmall;
-  const movedBig = isRepackFilled ? Number(repackBig) : defaultMovedBig;
+  // Backend allocator is authoritative; this preview mirrors it for display.
+  const previewSplit = previewConfirmedSplit({ category: confirmation.category, rawSmall: rawMovedSmall, rawBig: rawMovedBig, total: totalSourceBags, defaultSmall: defaultMovedSmall, defaultBig: defaultMovedBig, repackSmall, repackBig, isRepackFilled });
+  const movedSmall = previewSplit.small;
+  const movedBig = previewSplit.big;
+  // Hybrid rate visibility follows the confirmed (source) lot, as in outward.
+  const confirmSource = selectedSources[0] ?? targetGrn;
   const resultingSmall = (targetGrn.smallBags ?? 0) + movedSmall;
   const resultingBig = (targetGrn.bigBags ?? 0) + movedBig;
-  const resultingBagType = useMemo(
-    () => resolveMergedBagType({
-      targetBagType: targetGrn.bagType,
-      sourceBagTypes: selectedSources.map((s) => s.bagType),
-      newSmallBags: resultingSmall,
-      newBigBags: resultingBig,
-    }),
-    [targetGrn.bagType, selectedSources, resultingSmall, resultingBig],
-  );
+  const resultingBagType = useMemo(() => resolveMergedBagType({
+    targetBagType: targetGrn.bagType, sourceBagTypes: selectedSources.map((s) => s.bagType),
+    newSmallBags: resultingSmall, newBigBags: resultingBig,
+  }), [targetGrn.bagType, selectedSources, resultingSmall, resultingBig]);
 
   const toggleSource = (id: string) => {
     setSelectedSourceIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
@@ -97,20 +110,16 @@ export function InternalMovementMergeTab({
     if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
     if (isTargetLoanHold) return setValidationError(`Target GRN '${targetGrn.grnNumber}' has an active loan hold.`);
 
-    let confSmall: number | undefined;
-    let confBig: number | undefined;
-    if (isRepackRequired) {
-      if (!isRepackFilled) {
-        return setValidationError('Both Small and Big bag counts must be confirmed. Combined total must match available bags.');
-      }
-      if (repackSmall > totalSourceBags || repackBig > totalSourceBags) {
-        return setValidationError(`Neither Small nor Big bag counts can exceed available total (${totalSourceBags} bags).`);
-      }
-      if (repackedSum !== totalSourceBags) {
-        return setValidationError(`Counts (${repackSmall}S + ${repackBig}B = ${repackedSum}) must match total available (${totalSourceBags} bags).`);
-      }
-      confSmall = repackSmall;
-      confBig = repackBig;
+    const confirmError = validateBagConfirmation({
+      category: confirmation.category, quantity: confirmation.quantity, bagPrice: confirmation.bagPrice, seasonalBagPrice: confirmation.seasonalBagPrice,
+      monthlyBagPrice: confirmation.monthlyBagPrice, repackSmall, repackBig, totalMovedBags: totalSourceBags, isRepackRequired,
+    });
+    if (confirmError) return setValidationError(confirmError);
+
+    const confSmall = isRepackFilled ? Number(repackSmall) : undefined;
+    const confBig = isRepackFilled ? Number(repackBig) : undefined;
+    if (aggregatePending > 0 && !rentAcknowledged) {
+      return setValidationError('Please acknowledge the reviewed source dues above. Amounts are revalidated at execution.');
     }
     const refWeight = typeof referenceWeight === 'number' && Number.isFinite(referenceWeight) && referenceWeight > 0 ? referenceWeight : undefined;
     const srcPayment = typeof sourcePaymentAmount === 'number' && Number.isFinite(sourcePaymentAmount) && sourcePaymentAmount >= 0 ? sourcePaymentAmount : undefined;
@@ -118,7 +127,9 @@ export function InternalMovementMergeTab({
       return setValidationError('Previous-season settlement can only be collected when merging a single source GRN. Merge one source at a time when collecting payment.');
     }
 
-    await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0, confSmall, confBig, refWeight, srcPayment, sourcePaymentMode);
+    // Untouched default category stays legacy; explicit/required/filled confirmations record informationally.
+    const sendCategory = (confirmation.category !== 'Small & Big' || isRepackRequired || isRepackFilled) ? confirmation.category : undefined;
+    await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0, confSmall, confBig, refWeight, srcPayment, sourcePaymentMode, sendCategory, typeof confirmation.quantity === 'number' ? confirmation.quantity : undefined, typeof confirmation.bagPrice === 'number' ? confirmation.bagPrice : undefined, typeof confirmation.seasonalBagPrice === 'number' ? confirmation.seasonalBagPrice : undefined, typeof confirmation.monthlyBagPrice === 'number' ? confirmation.monthlyBagPrice : undefined);
   };
 
   return (
@@ -155,6 +166,11 @@ export function InternalMovementMergeTab({
             +{totalSourceBags} Bags Selected
           </span>
         </div>
+        {futureSeasonCount > 0 && (
+          <div className={styles.noticeBox} style={{ color: 'var(--color-warning-text)', borderColor: 'var(--color-warning)' }}>
+            {futureSeasonCount} future-season GRN{futureSeasonCount === 1 ? '' : 's'} excluded — same season or earlier only.
+          </div>
+        )}
         <MergeSourceTable
           eligibleSources={eligibleSources}
           selectedSourceIds={selectedSourceIds}
@@ -182,31 +198,18 @@ export function InternalMovementMergeTab({
             </span>
           </div>
 
-          <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-xs)', cursor: 'pointer' }}>
-              <input type="checkbox" checked={repackMode || hasUnconfirmedMix} onChange={(e) => { setRepackMode(e.target.checked); if (!e.target.checked && !hasUnconfirmedMix) { setRepackSmall(''); setRepackBig(''); setReferenceWeight(''); } }} disabled={submitting || hasUnconfirmedMix} />
-              <span>{hasUnconfirmedMix ? 'Bag Mix Confirmation Required (Unverified Lot)' : 'Confirm Repacked Bag Mix & Reference Weight'}</span>
-            </label>
-            {(repackMode || hasUnconfirmedMix) && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
-                <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
-                  <Input id="repack-small" type="number" min={0} max={totalSourceBags} placeholder="Small Bags" aria-label="Repacked small bags" value={repackSmall} onChange={(e) => setRepackSmall(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
-                  <Input id="repack-big" type="number" min={0} max={totalSourceBags} placeholder="Big Bags" aria-label="Repacked big bags" value={repackBig} onChange={(e) => setRepackBig(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', padding: '2px 0' }}>
-                  <span>Final Total: <strong>{repackedSum}</strong> / {totalSourceBags} bags</span>
-                  {isRepackReconciled ? (
-                    <span style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}>✓ Counts Reconciled</span>
-                  ) : (
-                    <span style={{ color: 'var(--color-danger-text)', fontWeight: 'var(--font-semibold)' }}>
-                      {repackedSum > totalSourceBags ? `Exceeds by ${repackedSum - totalSourceBags}` : `Pending ${totalSourceBags - repackedSum}`}
-                    </span>
-                  )}
-                </div>
-                <Input id="reference-weight" type="number" min={0} placeholder="Total Reference Weight (kg) — Optional reference" aria-label="Total reference weight in kilograms (optional)" value={referenceWeight} onChange={(e) => setReferenceWeight(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
-              </div>
-            )}
-          </div>
+          <MergeBagCategoryFields
+            value={confirmation} onChange={patchConfirmation}
+            totalMovedBags={totalSourceBags} rentType={confirmSource.rentType} inwardDate={confirmSource.date} movementDate={movementDate}
+            repackMode={repackMode} onRepackModeChange={(v) => { setRepackMode(v); if (!v && !hasUnconfirmedMix) { setRepackSmall(''); setRepackBig(''); setReferenceWeight(''); } }}
+            repackSmall={repackSmall} onRepackSmallChange={setRepackSmall} repackBig={repackBig} onRepackBigChange={setRepackBig}
+            referenceWeight={referenceWeight} onReferenceWeightChange={setReferenceWeight}
+            hasUnconfirmedMix={hasUnconfirmedMix} submitting={submitting}
+          />
+          <MergeRentAssessment
+            facilityId={currentGrn.facilityId} sources={selectedSources} submitting={submitting} acknowledged={rentAcknowledged}
+            onAcknowledgedChange={setRentAcknowledged} onPendingChange={setAggregatePending}
+          />
 
           {hasPreviousSeason && (
             <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)', marginTop: '4px' }}>

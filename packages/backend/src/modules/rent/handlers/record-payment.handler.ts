@@ -15,6 +15,8 @@ import { computeRentBalance } from '../../common/rent-balance.js';
 import { rentExtensionRepository } from '../rent-extension.repository.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { rentRepository } from '../rent.repository.js';
+import { CommodityModel } from '../../../database/models/commodity.model.js';
+import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
 
 export function toPaymentEntity(doc: RentPaymentDoc): RentPayment {
   return {
@@ -74,10 +76,20 @@ export async function executeRecordPayment(
         session,
       );
       const baseRent = grn.rentAmount > 0 ? grn.rentAmount : outwardRent;
-      const totalDue = await rentExtensionRepository.resolveTotalDue(
-        facilityId,
-        { id: grn.id, rentAmount: baseRent },
-        session,
+      // First-season Hamali joins the collectible total exactly as in the rent
+      // summary: full share for stored-rent GRNs, nothing for zero-rent GRNs
+      // whose outward charges already embed per-delivery shares.
+      const [commodity, extensions] = await Promise.all([
+        CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec(),
+        rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session),
+      ]);
+      const hamaliShare = grn.rentAmount > 0 ? computeFirstSeasonHamali(grn.bags, commodity, extensions) : 0;
+      const totalDue = Number(
+        ((await rentExtensionRepository.resolveTotalDue(
+          facilityId,
+          { id: grn.id, rentAmount: baseRent },
+          session,
+        )) + hamaliShare).toFixed(2),
       );
       const balanceBefore = computeRentBalance(totalDue, totalPaidBefore);
       const remainingBalance = balanceBefore.remainingBalance;

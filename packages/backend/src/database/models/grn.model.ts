@@ -90,8 +90,10 @@ const grnSchema = new Schema<GrnDoc>(
     bagPrice: { type: Number, default: null },
     smallBagPrice: { type: Number, default: null },
     bigBagPrice: { type: Number, default: null },
-    hamaliRate: { type: Number, default: 0 },
-    hamaliAmount: { type: Number, default: 0 },
+    // Legacy hamali columns: never written, never returned. Retained without
+    // defaults so new documents carry no hamali values; old values stay readable.
+    hamaliRate: { type: Number, min: 0 },
+    hamaliAmount: { type: Number, min: 0 },
     smallBags: { type: Number, required: true, min: 0 },
     bigBags: { type: Number, required: true, min: 0 },
     gpNumber: { type: String, trim: true, default: null },
