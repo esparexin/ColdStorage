@@ -1,24 +1,37 @@
 .compositionGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3);
   align-items: flex-start;
 }
 
-.ratesGrid {
+.modernGrid4 {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-3);
-  margin-top: var(--space-3);
-  padding: var(--space-3);
-  background-color: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  align-items: flex-start;
 }
 
-@media (max-width: 768px) {
+.modernGrid3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+@media (max-width: 900px) {
+  .modernGrid4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .modernGrid3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
   .compositionGrid,
-  .ratesGrid {
+  .modernGrid4,
+  .modernGrid3 {
     grid-template-columns: 1fr;
   }
 }
