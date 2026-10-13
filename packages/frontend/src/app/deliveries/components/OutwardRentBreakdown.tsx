@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import {
   calculateOutwardSeasonalBreakdown,
+  type OutwardBagCategory,
   type RentType,
 } from '@cold-storage/contracts';
 import { Badge, DataTable, Input, Select } from '@/components/ui';
@@ -14,6 +15,8 @@ interface OutwardRentBreakdownProps {
   deliveryDate: Date | string;
   smallBags: number;
   bigBags: number;
+  bagCategory?: OutwardBagCategory;
+  bagPrice?: number | null;
   seasonalRates: { small: number; big: number };
   monthlyRates: { small: number; big: number };
   rentMonths?: number | null;
@@ -35,6 +38,8 @@ export function OutwardRentBreakdown({
   deliveryDate,
   smallBags,
   bigBags,
+  bagCategory,
+  bagPrice,
   seasonalRates,
   monthlyRates,
   rentMonths,
@@ -55,7 +60,7 @@ export function OutwardRentBreakdown({
 
   const seasonalBreakdown = useMemo(
     () =>
-      isSeasonal && inwardDate && totalWithdrawing > 0
+      isSeasonal && inwardDate && totalWithdrawing > 0 && bagCategory !== 'Modern Size' && bagCategory !== 'Mixed'
         ? calculateOutwardSeasonalBreakdown({
             inwardDate,
             deliveryDate,
@@ -65,10 +70,23 @@ export function OutwardRentBreakdown({
             monthlyRates,
           })
         : null,
-    [isSeasonal, inwardDate, totalWithdrawing, deliveryDate, smallBags, bigBags, seasonalRates, monthlyRates],
+    [isSeasonal, inwardDate, totalWithdrawing, bagCategory, deliveryDate, smallBags, bigBags, seasonalRates, monthlyRates],
   );
 
   const rows = useMemo<RentBreakdownItem[]>(() => {
+    if (bagCategory === 'Modern Size' || bagCategory === 'Mixed') {
+      const perBag = bagPrice ?? 0;
+      return [
+        {
+          id: 'modern-size-period',
+          title: 'Modern Size Storage',
+          periodMeta: isSeasonal ? 'Seasonal • Modern Size' : `Monthly • ${rentMonths ?? 1} billing cycle${(rentMonths ?? 1) > 1 ? 's' : ''}`,
+          details: `${totalWithdrawing} Bags × ₹${Number(perBag).toFixed(2)}${isSeasonal ? '' : ` × ${rentMonths ?? 1} mo`}`,
+          amount: totalRent,
+        },
+      ];
+    }
+
     if (isSeasonal && seasonalBreakdown && seasonalBreakdown.periods.length > 0) {
       return seasonalBreakdown.periods.map((p) => {
         const parts: string[] = [];
@@ -110,7 +128,7 @@ export function OutwardRentBreakdown({
         amount: totalRent,
       },
     ];
-  }, [isSeasonal, seasonalBreakdown, smallBags, bigBags, seasonalRates, rentMonths, totalRent]);
+  }, [bagCategory, bagPrice, isSeasonal, seasonalBreakdown, totalWithdrawing, smallBags, bigBags, seasonalRates, rentMonths, totalRent]);
 
   return (
     <div className={styles.card} id="outward-rent-breakdown-card">

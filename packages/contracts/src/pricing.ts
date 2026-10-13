@@ -36,6 +36,7 @@ export interface RentalCalculationInput {
   rentType: RentType;
   bags: number;
   bagType?: BagType | null;
+  bagCategory?: string | null;
   bagPrice?: number | null;
   smallBags?: number | null;
   bigBags?: number | null;
@@ -49,6 +50,12 @@ export interface RentalCalculationInput {
 export function calculateRentAmount(input: RentalCalculationInput): number {
   const isSeasonal = input.rentType === 'Seasonal';
   const months = isSeasonal ? 1 : Math.max(1, input.rentMonths ?? 1);
+
+  if (input.bagCategory === 'Modern Size' || input.bagCategory === 'Mixed') {
+    if (typeof input.bagPrice === 'number' && input.bagPrice > 0) {
+      return Number((input.bags * input.bagPrice * months).toFixed(2));
+    }
+  }
 
   const isSb = input.bagType === 'S+B' || input.bagType === 'S/B' || input.bagType == null || (input.smallBags != null || input.bigBags != null);
   if (isSb && (input.smallBagPrice != null || input.bigBagPrice != null)) {

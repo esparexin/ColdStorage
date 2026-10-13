@@ -1,9 +1,13 @@
+import type { OutwardBagCategory } from '@cold-storage/contracts';
+
 export interface DeliveryPayloadInput {
   grnId: string;
   createDate: string;
   smallBags: number;
   bigBags: number;
-  bagCategory?: 'Small' | 'Big' | 'Small & Big';
+  quantity?: number;
+  bagCategory?: OutwardBagCategory;
+  bagPrice?: number;
   rentCharge?: number;
   paymentAmount?: number;
   paymentMode?: 'Cash' | 'UPI';
@@ -21,17 +25,23 @@ export interface DeliveryPayloadInput {
  * builder stays a straight pass-through with optional transport fields.
  */
 export function buildDeliveryPayload(input: DeliveryPayloadInput): Record<string, unknown> {
-  const totalQuantity = input.smallBags + input.bigBags;
+  const isModern = input.bagCategory === 'Modern Size' || input.bagCategory === 'Mixed';
+  const totalQuantity = isModern && typeof input.quantity === 'number' && input.quantity > 0
+    ? input.quantity
+    : input.smallBags + input.bigBags;
   const payload: Record<string, unknown> = {
     grnId: input.grnId,
     date: new Date(input.createDate),
     quantity: totalQuantity,
-    smallBags: input.smallBags,
-    bigBags: input.bigBags,
+    smallBags: isModern ? 0 : input.smallBags,
+    bigBags: isModern ? 0 : input.bigBags,
   };
 
   if (input.bagCategory) {
     payload.bagCategory = input.bagCategory;
+  }
+  if (isModern && typeof input.bagPrice === 'number' && input.bagPrice > 0) {
+    payload.bagPrice = input.bagPrice;
   }
   if (typeof input.rentCharge === 'number' && input.rentCharge >= 0) {
     payload.rentCharge = input.rentCharge;

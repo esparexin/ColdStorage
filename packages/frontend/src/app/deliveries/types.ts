@@ -14,4 +14,6 @@ export interface GrnWithdrawal {
   availableBig: number;
   smallBags: number | '';
   bigBags: number | '';
+  quantity?: number | '';
+  bagPrice?: number | '';
 }

@@ -22,6 +22,7 @@ export async function validateStockAndBalances(
   grn: { id: string; grnNumber: string; bagType?: string | null },
   withdrawal: BagComposition,
   session: mongoose.ClientSession,
+  isModernSize?: boolean,
 ): Promise<CompositionBalance> {
   const available = await readLedgerBalance(facilityId, grn.id, session);
   const remainingSmall = available.smallBags;
@@ -32,6 +33,18 @@ export async function validateStockAndBalances(
     throw new Error(
       `Requested ${requestedTotal} bags exceeds the available balance of ${remainingSmall} small and ${remainingBig} big bags for GRN '${grn.grnNumber}'`,
     );
+  }
+
+  if (isModernSize) {
+    const allocSmall = Math.min(requestedTotal, remainingSmall);
+    const allocBig = requestedTotal - allocSmall;
+    withdrawal.smallBags = allocSmall;
+    withdrawal.bigBags = allocBig;
+    return {
+      smallBags: remainingSmall,
+      bigBags: remainingBig,
+      total: available.total,
+    };
   }
 
   if (grn.bagType === 'S' && withdrawal.bigBags > 0) {

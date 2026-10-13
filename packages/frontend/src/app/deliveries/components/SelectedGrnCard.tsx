@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import type { Grn, GrnInventorySummary } from '@cold-storage/contracts';
-import { Badge, Button } from '@/components/ui';
+import type { Grn, GrnInventorySummary, OutwardBagCategory } from '@cold-storage/contracts';
+import { Badge, Button, Select } from '@/components/ui';
 import { formatGrnDate } from './eligibleGrnColumns';
 import styles from './SelectedGrnCard.module.css';
 
@@ -10,12 +10,16 @@ interface SelectedGrnCardProps {
   grn: Grn;
   summary?: GrnInventorySummary | null;
   onChangeGrn: () => void;
+  bagCategory?: OutwardBagCategory;
+  onBagCategoryChange?: (category: OutwardBagCategory) => void;
 }
 
 export function SelectedGrnCard({
   grn,
   summary,
   onChangeGrn,
+  bagCategory,
+  onBagCategoryChange,
 }: SelectedGrnCardProps) {
   const availableBags = summary
     ? summary.availableSmallBags + summary.availableBigBags
@@ -75,6 +79,19 @@ export function SelectedGrnCard({
             {availableBags.toLocaleString('en-IN')} bags
           </strong>
         </div>
+        {onBagCategoryChange && (
+          <div className={styles.detailItem}>
+            <Select
+              id="outward-bag-category-select"
+              label="Outward Bag Type"
+              value={bagCategory === 'Modern Size' ? 'Modern Size' : 'Small & Big'}
+              onChange={(e) => onBagCategoryChange(e.target.value as OutwardBagCategory)}
+            >
+              <option value="Small & Big">Small & Big</option>
+              <option value="Modern Size">Modern Size</option>
+            </Select>
+          </div>
+        )}
       </div>
     </div>
   );

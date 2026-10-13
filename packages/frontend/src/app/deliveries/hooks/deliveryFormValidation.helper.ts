@@ -10,6 +10,8 @@ export interface ValidateDeliveryFormInput {
   availableBig: number;
   availableTotal?: number;
   isCombinedPool?: boolean;
+  isModernSize?: boolean;
+  bagPrice?: number | '';
   createVehicleNumber: string;
   createGpNumber?: string;
   createDriverName?: string;
@@ -62,7 +64,11 @@ export function validateDeliveryForm(input: ValidateDeliveryFormInput): Delivery
     errors.bags = `Cannot deliver ${input.totalWithdrawingBags} bags (only ${availableTotal} available)`;
   }
 
-  if (!input.isCombinedPool) {
+  if (input.isModernSize) {
+    if (typeof input.bagPrice !== 'number' || input.bagPrice <= 0) {
+      errors.bagPrice = 'Please enter a valid price per bag';
+    }
+  } else if (!input.isCombinedPool) {
     if (input.smallBags > input.availableSmall) {
       errors.smallBags = `Cannot deliver ${input.smallBags} small bags (only ${input.availableSmall} available)`;
     }

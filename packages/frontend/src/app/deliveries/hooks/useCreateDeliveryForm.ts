@@ -18,9 +18,10 @@ export function useCreateDeliveryForm(
   const [grnSummary, setGrnSummary] = useState<GrnInventorySummary | null>(null);
   const [loadingGrnSummary, setLoadingGrnSummary] = useState(false);
   const [createDate, setCreateDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [bagCategory, setBagCategory] = useState<OutwardBagCategory>('Small');
+  const [bagCategory, setBagCategory] = useState<OutwardBagCategory>('Small & Big');
+  const [manualBagPrice, setManualBagPrice] = useState<number | ''>('');
   const [withdrawal, setWithdrawal] = useState<GrnWithdrawal>({
-    availableSmall: 0, availableBig: 0, smallBags: '', bigBags: '',
+    availableSmall: 0, availableBig: 0, smallBags: '', bigBags: '', quantity: '',
   });
   const [paymentAmount, setPaymentAmount] = useState<number | ''>('');
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI'>('Cash');
@@ -69,7 +70,8 @@ export function useCreateDeliveryForm(
     async (grnId: string) => {
       setCreateGrnId(grnId);
       setGrnSummary(null);
-      setWithdrawal({ availableSmall: 0, availableBig: 0, smallBags: '', bigBags: '' });
+      setWithdrawal({ availableSmall: 0, availableBig: 0, smallBags: '', bigBags: '', quantity: '' });
+      setManualBagPrice('');
       setPaymentAmount('');
       setPaymentMode('Cash');
       setFieldErrors({});
@@ -92,14 +94,9 @@ export function useCreateDeliveryForm(
           setGrnSummary(data.summary);
           const { availableSmallBags: s, availableBigBags: b } = data.summary;
           const totalStock = s + b;
-          const isSb = matched?.bagType === 'S+B' || matched?.bagType === 'S/B';
-          const isSeg = s > 0 && b > 0;
-          const isComb = isSb && !isSeg;
-          setBagCategory(isComb || isSeg ? 'Small & Big' : b > 0 ? 'Big' : 'Small');
+          setBagCategory('Small & Big');
           setWithdrawal({
-            availableSmall: isComb ? totalStock : s,
-            availableBig: isComb ? totalStock : b,
-            smallBags: '', bigBags: '',
+            availableSmall: totalStock, availableBig: totalStock, smallBags: '', bigBags: '', quantity: '',
           });
         }
         if (rateRes && rateRes.ok) {
@@ -123,9 +120,11 @@ export function useCreateDeliveryForm(
     }
   }, [initialGrnId, availableGrns, createGrnId, handleSelectGrn]);
 
+  const isModern = bagCategory === 'Modern Size' || bagCategory === 'Mixed';
   const smallBags = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigBags = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
-  const totalWithdrawingBags = smallBags + bigBags;
+  const modernQty = typeof withdrawal.quantity === 'number' ? withdrawal.quantity : 0;
+  const totalWithdrawingBags = isModern ? modernQty : smallBags + bigBags;
   const selectedGrn = availableGrns.find((g) => g.id === createGrnId) || null;
   const isLoanHoldActive = Boolean(selectedGrn?.loanStatus === 'TAKEN');
   const deliveryDateVal = createDate || new Date().toISOString().split('T')[0];
@@ -138,6 +137,8 @@ export function useCreateDeliveryForm(
 
   const outwardRent = computeOutwardRentCharge({
     rentType: selectedGrn?.rentType ?? 'Seasonal', bagCategory, smallBags, bigBags,
+    quantity: isModern ? modernQty : undefined,
+    manualBagPrice: isModern && typeof manualBagPrice === 'number' ? manualBagPrice : undefined,
     rentMonths: billableRentMonths, inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal,
     smallBagPrice: selectedGrn?.smallBagPrice, bigBagPrice: selectedGrn?.bigBagPrice, bagPrice: selectedGrn?.bagPrice,
     monthlySmallBagPrice: monthlyCommodityRates?.small, monthlyBigBagPrice: monthlyCommodityRates?.big,
@@ -145,32 +146,21 @@ export function useCreateDeliveryForm(
 
   const handleBagCategoryChange = (cat: OutwardBagCategory) => {
     setBagCategory(cat);
-    setWithdrawal((prev) => (cat === 'Small' ? { ...prev, bigBags: 0 } : cat === 'Big' ? { ...prev, smallBags: 0 } : prev));
-    clearFieldError('bags'); clearFieldError('smallBags'); clearFieldError('bigBags');
+    clearFieldError('bags'); clearFieldError('smallBags'); clearFieldError('bigBags'); clearFieldError('bagPrice');
   };
 
   const handleQuantityChange = (val: number | '') => {
-    setWithdrawal((prev) => (bagCategory === 'Big' ? { ...prev, smallBags: 0, bigBags: val } : { ...prev, smallBags: val, bigBags: 0 }));
-    clearFieldError('bags'); clearFieldError('smallBags'); clearFieldError('bigBags');
+    setWithdrawal((prev) => ({ ...prev, quantity: val }));
+    clearFieldError('bags');
   };
 
   const setWithdrawalSmallBags = (val: number | '') => {
-    setWithdrawal((prev) => {
-      const s = typeof val === 'number' ? val : 0;
-      const b = typeof prev.bigBags === 'number' ? prev.bigBags : 0;
-      setBagCategory(s > 0 && b > 0 ? 'Small & Big' : b > 0 ? 'Big' : 'Small');
-      return { ...prev, smallBags: val };
-    });
+    setWithdrawal((prev) => ({ ...prev, smallBags: val }));
     clearFieldError('bags'); clearFieldError('smallBags');
   };
 
   const setWithdrawalBigBags = (val: number | '') => {
-    setWithdrawal((prev) => {
-      const s = typeof prev.smallBags === 'number' ? prev.smallBags : 0;
-      const b = typeof val === 'number' ? val : 0;
-      setBagCategory(s > 0 && b > 0 ? 'Small & Big' : b > 0 ? 'Big' : 'Small');
-      return { ...prev, bigBags: val };
-    });
+    setWithdrawal((prev) => ({ ...prev, bigBags: val }));
     clearFieldError('bags'); clearFieldError('bigBags');
   };
 
@@ -186,6 +176,7 @@ export function useCreateDeliveryForm(
       createGrnId, createDate, smallBags, bigBags, totalWithdrawingBags,
       availableSmall: withdrawal.availableSmall, availableBig: withdrawal.availableBig,
       availableTotal: totalAvail, isCombinedPool: isSb && !isSeg,
+      isModernSize: isModern, bagPrice: manualBagPrice,
       createVehicleNumber, createGpNumber, createDriverName, isLoanHoldActive,
       selectedGrnNumber: selectedGrn?.grnNumber,
       selectedGrnDate: selectedGrn?.date,
@@ -203,7 +194,10 @@ export function useCreateDeliveryForm(
 
     try {
       const payload = buildDeliveryPayload({
-        grnId: createGrnId, createDate, smallBags, bigBags, bagCategory,
+        grnId: createGrnId, createDate, smallBags, bigBags,
+        quantity: isModern ? modernQty : undefined,
+        bagCategory,
+        bagPrice: isModern && typeof manualBagPrice === 'number' ? manualBagPrice : undefined,
         rentCharge: outwardRent,
         paymentAmount: typeof paymentAmount === 'number' && paymentAmount >= 0 ? paymentAmount : undefined,
         paymentMode: typeof paymentAmount === 'number' && paymentAmount > 0 ? paymentMode : undefined,
@@ -221,8 +215,10 @@ export function useCreateDeliveryForm(
   const availableStock = grnSummary
     ? grnSummary.availableSmallBags + grnSummary.availableBigBags
     : (selectedGrn?.closingBags ?? selectedGrn?.bags ?? 0);
+  const hasValidPrice = !isModern || (typeof manualBagPrice === 'number' && manualBagPrice > 0);
   const isFormValid = Boolean(
     selectedGrn && totalWithdrawingBags > 0 && totalWithdrawingBags <= availableStock &&
+    hasValidPrice &&
     createDate.trim() && createVehicleNumber.trim() && createGpNumber.trim() &&
     createDriverName.trim() && !isLoanHoldActive && !submitting,
   );
@@ -231,6 +227,7 @@ export function useCreateDeliveryForm(
     availableGrns, createGrnId, grnSummary, loadingGrnSummary, createDate,
     setCreateDate: (v: string) => { setCreateDate(v); clearFieldError('date'); },
     bagCategory, setBagCategory: handleBagCategoryChange, outwardRent, withdrawal,
+    manualBagPrice, setManualBagPrice: (v: number | '') => { setManualBagPrice(v); clearFieldError('bagPrice'); },
     setWithdrawalSmallBags, setWithdrawalBigBags, setWithdrawalQuantity: handleQuantityChange,
     createVehicleNumber, setCreateVehicleNumber: (v: string) => { setCreateVehicleNumber(v); clearFieldError('vehicleNumber'); },
     createDriverName, setCreateDriverName: (v: string) => { setCreateDriverName(v); clearFieldError('driverName'); },

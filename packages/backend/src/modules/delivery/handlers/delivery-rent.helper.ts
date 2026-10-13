@@ -22,6 +22,8 @@ export interface ComputeDeliveryRentParams {
   withdrawal: BagComposition;
   deliveryDate: Date;
   session: mongoose.ClientSession;
+  bagCategory?: string | null;
+  bagPrice?: number | null;
 }
 
 /**
@@ -36,6 +38,34 @@ export async function computeExpectedDeliveryRent(
 ): Promise<{ expectedRentCharge: number; effectiveRates: { small: number; big: number } }> {
   const { grn, withdrawal, deliveryDate, session } = params;
   const withdrawnTotal = withdrawal.smallBags + withdrawal.bigBags;
+
+  if (params.bagCategory === 'Modern Size' || params.bagCategory === 'Mixed') {
+    const rate = params.bagPrice ?? 0;
+    if (grn.rentType === 'Seasonal') {
+      const elapsedPeriods = resolveSeasonalElapsedPeriods(grn.date, deliveryDate);
+      let totalSeasonalRent = 0;
+      for (const p of elapsedPeriods) {
+        totalSeasonalRent += calculateRentAmount({
+          rentType: p.period === 'SEASON' ? 'Seasonal' : 'Monthly',
+          bags: withdrawnTotal,
+          bagCategory: params.bagCategory,
+          bagPrice: rate,
+          rentMonths: 1,
+        });
+      }
+      return { expectedRentCharge: totalSeasonalRent, effectiveRates: { small: rate, big: rate } };
+    }
+    const billableMonths = calculateMonthlyElapsedCycles(grn.date, deliveryDate);
+    const expectedRentCharge = calculateRentAmount({
+      rentType: 'Monthly',
+      bags: withdrawnTotal,
+      bagCategory: params.bagCategory,
+      bagPrice: rate,
+      rentMonths: billableMonths,
+    });
+    return { expectedRentCharge, effectiveRates: { small: rate, big: rate } };
+  }
+
   const effectiveRates = resolveOutwardRates(grn.rentType, {
     smallBagPrice: grn.smallBagPrice,
     bigBagPrice: grn.bigBagPrice,

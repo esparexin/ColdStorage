@@ -24,6 +24,8 @@ interface DeliveryBagCompositionFieldsProps {
   smallBagPrice?: number | null;
   bigBagPrice?: number | null;
   bagPrice?: number | null;
+  manualBagPrice?: number | '';
+  onManualBagPriceChange?: (value: number | '') => void;
   inwardDate?: Date | string | null;
   deliveryDate?: Date | string | null;
   monthlyRates?: { small: number; big: number } | null;
@@ -52,10 +54,14 @@ export function DeliveryBagCompositionFields({
   smallBagPrice,
   bigBagPrice,
   bagPrice,
+  manualBagPrice,
+  onManualBagPriceChange,
   inwardDate,
   deliveryDate,
   monthlyRates,
   withdrawal,
+  bagCategory,
+  onQuantityChange,
   onSmallBagsChange,
   onBigBagsChange,
   outwardRent,
@@ -71,10 +77,14 @@ export function DeliveryBagCompositionFields({
   const isSbLot = bagType === 'S+B' || bagType === 'S/B';
   const isSegregated = summary.availableSmallBags > 0 && summary.availableBigBags > 0;
   const isCombinedPool = isSbLot && !isSegregated;
+  const isModern = bagCategory === 'Modern Size' || bagCategory === 'Mixed';
 
   const smallQty = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigQty = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
-  const remainingStock = calculateRemainingStock(availableTotal, smallQty, bigQty);
+  const modernQty = typeof withdrawal.quantity === 'number' ? withdrawal.quantity : 0;
+  const remainingStock = isModern
+    ? Math.max(0, availableTotal - modernQty)
+    : calculateRemainingStock(availableTotal, smallQty, bigQty);
 
   const maxAllowedSmall = isCombinedPool
     ? Math.max(0, availableTotal - bigQty)
@@ -88,104 +98,100 @@ export function DeliveryBagCompositionFields({
 
   const handleSmallChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.trim();
-    if (!val) {
-      onSmallBagsChange('');
-      return;
-    }
+    if (!val) { onSmallBagsChange(''); return; }
     const parsed = parseInt(val, 10);
     if (isNaN(parsed) || parsed < 0) return;
-    const clamped = clampBagAllocation(
-      parsed,
-      bigQty,
-      availableTotal,
-      isCombinedPool ? undefined : summary.availableSmallBags,
-    );
-    onSmallBagsChange(clamped);
+    onSmallBagsChange(clampBagAllocation(parsed, bigQty, availableTotal, isCombinedPool ? undefined : summary.availableSmallBags));
   };
 
   const handleBigChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.trim();
-    if (!val) {
-      onBigBagsChange('');
-      return;
-    }
+    if (!val) { onBigBagsChange(''); return; }
     const parsed = parseInt(val, 10);
     if (isNaN(parsed) || parsed < 0) return;
-    const clamped = clampBagAllocation(
-      parsed,
-      smallQty,
-      availableTotal,
-      isCombinedPool ? undefined : summary.availableBigBags,
-    );
-    onBigBagsChange(clamped);
+    onBigBagsChange(clampBagAllocation(parsed, smallQty, availableTotal, isCombinedPool ? undefined : summary.availableBigBags));
   };
 
-  const handleKeyDown =
-    (currentVal: number, maxAllowed: number) =>
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'ArrowUp' && currentVal >= maxAllowed) {
-        e.preventDefault();
-      }
-    };
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.trim();
+    if (!val) { onQuantityChange?.(''); return; }
+    const parsed = parseInt(val, 10);
+    if (isNaN(parsed) || parsed < 0) return;
+    onQuantityChange?.(Math.min(availableTotal, parsed));
+  };
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.trim();
+    if (!val) { onManualBagPriceChange?.(''); return; }
+    const parsed = parseFloat(val);
+    if (isNaN(parsed) || parsed < 0) return;
+    onManualBagPriceChange?.(parsed);
+  };
+
+  const handleKeyDown = (currentVal: number, maxAllowed: number) => (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowUp' && currentVal >= maxAllowed) e.preventDefault();
+  };
 
   return (
     <>
       <div className={styles.compositionGrid}>
-        <div className={pageStyles.fieldGroup}>
-          <div className={styles.labelRow}>
-            <label htmlFor="delivery-small-bags" className={styles.labelTitle}>
-              Small Bags
-            </label>
-            <span className={styles.rateText}>Rate: ₹{rates.small}/bag</span>
-          </div>
-          <input
-            id="delivery-small-bags"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={maxAllowedSmall}
-            placeholder="0"
-            className={`${pageStyles.fieldInput} ${bagsError || smallError ? styles.inputError : ''}`}
-            value={withdrawal.smallBags}
-            aria-invalid={Boolean(bagsError || smallError)}
-            aria-describedby={smallError ? 'delivery-small-error' : undefined}
-            onChange={handleSmallChange}
-            onKeyDown={handleKeyDown(smallQty, maxAllowedSmall)}
-          />
-          {smallError && (
-            <span id="delivery-small-error" className={styles.fieldErrorText} role="alert">
-              {smallError}
-            </span>
-          )}
-        </div>
+        {isModern ? (
+          <>
+            <div className={pageStyles.fieldGroup}>
+              <div className={styles.labelRow}>
+                <label htmlFor="delivery-quantity-bags" className={styles.labelTitle}>No. of Bags to Deliver</label>
+              </div>
+              <input
+                id="delivery-quantity-bags" type="number" inputMode="numeric" min={1} max={availableTotal} placeholder="0"
+                className={`${pageStyles.fieldInput} ${bagsError ? styles.inputError : ''}`} value={withdrawal.quantity ?? ''}
+                aria-invalid={Boolean(bagsError)} aria-describedby={bagsError ? 'delivery-quantity-error' : undefined} onChange={handleQuantityChange}
+              />
+              {bagsError && <span id="delivery-quantity-error" className={styles.fieldErrorText} role="alert">{bagsError}</span>}
+            </div>
 
-        <div className={pageStyles.fieldGroup}>
-          <div className={styles.labelRow}>
-            <label htmlFor="delivery-big-bags" className={styles.labelTitle}>
-              Big Bags
-            </label>
-            <span className={styles.rateText}>Rate: ₹{rates.big}/bag</span>
-          </div>
-          <input
-            id="delivery-big-bags"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={maxAllowedBig}
-            placeholder="0"
-            className={`${pageStyles.fieldInput} ${bagsError || bigError ? styles.inputError : ''}`}
-            value={withdrawal.bigBags}
-            aria-invalid={Boolean(bagsError || bigError)}
-            aria-describedby={bigError ? 'delivery-big-error' : undefined}
-            onChange={handleBigChange}
-            onKeyDown={handleKeyDown(bigQty, maxAllowedBig)}
-          />
-          {bigError && (
-            <span id="delivery-big-error" className={styles.fieldErrorText} role="alert">
-              {bigError}
-            </span>
-          )}
-        </div>
+            <div className={pageStyles.fieldGroup}>
+              <div className={styles.labelRow}>
+                <label htmlFor="delivery-bag-price" className={styles.labelTitle}>Each Bag Price (₹)</label>
+              </div>
+              <input
+                id="delivery-bag-price" type="number" inputMode="decimal" min={0} placeholder="0.00"
+                className={`${pageStyles.fieldInput} ${fieldErrors.bagPrice ? styles.inputError : ''}`} value={manualBagPrice ?? ''}
+                aria-invalid={Boolean(fieldErrors.bagPrice)} aria-describedby={fieldErrors.bagPrice ? 'delivery-bag-price-error' : undefined} onChange={handlePriceChange}
+              />
+              {fieldErrors.bagPrice && <span id="delivery-bag-price-error" className={styles.fieldErrorText} role="alert">{fieldErrors.bagPrice}</span>}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className={pageStyles.fieldGroup}>
+              <div className={styles.labelRow}>
+                <label htmlFor="delivery-small-bags" className={styles.labelTitle}>Small Bags</label>
+                <span className={styles.rateText}>Rate: ₹{rates.small}/bag</span>
+              </div>
+              <input
+                id="delivery-small-bags" type="number" inputMode="numeric" min={0} max={maxAllowedSmall} placeholder="0"
+                className={`${pageStyles.fieldInput} ${bagsError || smallError ? styles.inputError : ''}`} value={withdrawal.smallBags}
+                aria-invalid={Boolean(bagsError || smallError)} aria-describedby={smallError ? 'delivery-small-error' : undefined}
+                onChange={handleSmallChange} onKeyDown={handleKeyDown(smallQty, maxAllowedSmall)}
+              />
+              {smallError && <span id="delivery-small-error" className={styles.fieldErrorText} role="alert">{smallError}</span>}
+            </div>
+
+            <div className={pageStyles.fieldGroup}>
+              <div className={styles.labelRow}>
+                <label htmlFor="delivery-big-bags" className={styles.labelTitle}>Big Bags</label>
+                <span className={styles.rateText}>Rate: ₹{rates.big}/bag</span>
+              </div>
+              <input
+                id="delivery-big-bags" type="number" inputMode="numeric" min={0} max={maxAllowedBig} placeholder="0"
+                className={`${pageStyles.fieldInput} ${bagsError || bigError ? styles.inputError : ''}`} value={withdrawal.bigBags}
+                aria-invalid={Boolean(bagsError || bigError)} aria-describedby={bigError ? 'delivery-big-error' : undefined}
+                onChange={handleBigChange} onKeyDown={handleKeyDown(bigQty, maxAllowedBig)}
+              />
+              {bigError && <span id="delivery-big-error" className={styles.fieldErrorText} role="alert">{bigError}</span>}
+            </div>
+          </>
+        )}
 
         <div className={pageStyles.fieldGroup}>
           <div className={styles.labelRow}>
@@ -193,13 +199,13 @@ export function DeliveryBagCompositionFields({
           </div>
           <div className={styles.balanceDisplay} id="delivery-balance-bags-display">
             <span className={styles.balanceText}>
-              {remainingStock.toLocaleString('en-IN')} bags remaining
+              {remainingStock.toLocaleString('en-IN')} / {availableTotal.toLocaleString('en-IN')}
             </span>
           </div>
         </div>
       </div>
 
-      {bagsError && !smallError && !bigError && (
+      {bagsError && !smallError && !bigError && !isModern && (
         <span id="delivery-bags-error" className={styles.fieldErrorText} role="alert">
           {bagsError}
         </span>
@@ -209,8 +215,10 @@ export function DeliveryBagCompositionFields({
         rentType={rentType}
         inwardDate={inwardDate}
         deliveryDate={deliveryDate || new Date().toISOString().split('T')[0]}
-        smallBags={smallQty}
-        bigBags={bigQty}
+        smallBags={isModern ? modernQty : smallQty}
+        bigBags={isModern ? 0 : bigQty}
+        bagCategory={bagCategory}
+        bagPrice={typeof manualBagPrice === 'number' ? manualBagPrice : bagPrice}
         seasonalRates={rates}
         monthlyRates={monthlyRates ?? rates}
         rentMonths={rentMonths}
