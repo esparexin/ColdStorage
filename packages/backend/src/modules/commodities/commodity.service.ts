@@ -17,6 +17,8 @@ export class CommodityService {
       id,
       name,
       normalizedName,
+      seasonDuration: input.seasonDuration ?? 'Seasonal',
+      hamaliRate: input.hamaliRate ?? 0,
       isActive: input.isActive ?? true,
     });
 
@@ -50,6 +52,14 @@ export class CommodityService {
       existing.normalizedName = normalizedName;
     }
 
+    if (input.seasonDuration !== undefined) {
+      existing.seasonDuration = input.seasonDuration;
+    }
+
+    if (input.hamaliRate !== undefined) {
+      existing.hamaliRate = input.hamaliRate;
+    }
+
     if (input.isActive !== undefined) {
       existing.isActive = input.isActive;
     }
@@ -62,6 +72,8 @@ export class CommodityService {
     return {
       id: doc.id,
       name: doc.name,
+      seasonDuration: doc.seasonDuration ?? 'Seasonal',
+      hamaliRate: doc.hamaliRate ?? 0,
       isActive: doc.isActive,
     };
   }
