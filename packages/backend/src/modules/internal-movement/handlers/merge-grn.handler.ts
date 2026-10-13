@@ -151,9 +151,7 @@ export async function mergeGrn(
       const categoryNote =
         input.sourceBagCategory != null && isHybridBagCategory(input.sourceBagCategory)
           ? ` (Confirmed Hybrid: ${totalMovedBags} bags)`
-          : input.sourceBagCategory === 'Small' || input.sourceBagCategory === 'Big'
-            ? ` (Confirmed ${input.sourceBagCategory}: ${totalMovedSmall} S + ${totalMovedBig} B)`
-            : '';
+          : '';
       const carriedRentNote = finalCarriedRent > 0 ? `. Carried pending rent: ₹${finalCarriedRent}` : '';
       const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${totalMovedBags} bags${repackedNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}. Reason: ${input.remarks.trim()}]`;
       const updatedTargetRemarks = targetGrn.remarks ? `${targetGrn.remarks}\n${targetNote}` : targetNote;

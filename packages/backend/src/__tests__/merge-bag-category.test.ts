@@ -69,29 +69,35 @@ describe('Internal Move bag-category confirmation (outward SSOT)', () => {
       .send(body);
   }
 
-  it('confirms Small: moves the total as small bags and records the category', async () => {
+  it('expresses Small-only through the S/B split (no separate option)', async () => {
     const { target, source } = await seedPair();
     const res = await postMerge({
       targetGrnId: target, sourceGrnIds: [source], movementDate: new Date(),
-      remarks: 'Confirm small lot merge', sourceBagCategory: 'Small',
+      remarks: 'Small-only via split merge', sourceBagCategory: 'Small & Big',
+      repackedSmallBags: 50, repackedBigBags: 0,
     });
     expect(res.status).toBe(200);
     expect(res.body.targetGrn.bags).toBe(150);
     expect(res.body.movement.smallBagsMoved).toBe(50);
     expect(res.body.movement.bigBagsMoved).toBe(0);
-    expect(res.body.movement.sourceBagCategory).toBe('Small');
+    expect(res.body.movement.sourceBagCategory).toBe('Small & Big');
   });
 
-  it('confirms Big: moves the total as big bags', async () => {
-    const { target, source } = await seedPair({ sourceBags: 40, sourceBagType: 'B' });
+  it('allocates Hybrid splits with the shared fill-small-first allocator', async () => {
+    const { allocateHybridSplit } = await import('@cold-storage/contracts');
+    const { target, source } = await seedPair({ sourceBags: 50, sourceBagType: 'S+B', smallBags: 30, bigBags: 20 });
     const res = await postMerge({
       targetGrnId: target, sourceGrnIds: [source], movementDate: new Date(),
-      remarks: 'Confirm big lot merge', sourceBagCategory: 'Big',
+      remarks: 'Hybrid parity merge', sourceBagCategory: 'Hybrid',
+      sourceQuantity: 50, sourceBagPrice: 12,
     });
     expect(res.status).toBe(200);
-    expect(res.body.movement.smallBagsMoved).toBe(0);
-    expect(res.body.movement.bigBagsMoved).toBe(40);
-    expect(res.body.movement.sourceBagCategory).toBe('Big');
+    expect({ smallBags: res.body.movement.smallBagsMoved, bigBags: res.body.movement.bigBagsMoved }).toEqual({
+      smallBags: allocateHybridSplit(30, 20, 50).smallBags,
+      bigBags: allocateHybridSplit(30, 20, 50).bigBags,
+    });
+    expect(res.body.movement.smallBagsMoved).toBe(30);
+    expect(res.body.movement.bigBagsMoved).toBe(20);
   });
 
   it('confirms Small & Big with an explicit reconciling split', async () => {
@@ -166,7 +172,7 @@ describe('Internal Move bag-category confirmation (outward SSOT)', () => {
     await deliveryService.createDelivery(facilityId, { grnId: source, smallBags: 20, bigBags: 0 }, 'usr-mov-bagcat');
     const res = await postMerge({
       targetGrnId: target, sourceGrnIds: [source], movementDate: new Date(),
-      remarks: 'Merge after partial delivery', sourceBagCategory: 'Small',
+      remarks: 'Merge after partial delivery',
     });
     expect(res.status).toBe(200);
     expect(res.body.movement.totalBagsMoved).toBe(30);
@@ -178,7 +184,7 @@ describe('Internal Move bag-category confirmation (outward SSOT)', () => {
     await deliveryService.createDelivery(facilityId, { grnId: source, smallBags: 50, bigBags: 0 }, 'usr-mov-bagcat');
     const res = await postMerge({
       targetGrnId: target, sourceGrnIds: [source], movementDate: new Date(),
-      remarks: 'Merge after full delivery', sourceBagCategory: 'Small',
+      remarks: 'Merge after full delivery',
     });
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('zero remaining bags');

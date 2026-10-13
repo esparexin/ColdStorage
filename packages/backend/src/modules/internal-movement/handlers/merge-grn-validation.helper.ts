@@ -1,4 +1,4 @@
-import { isBagCompositionVerified, isHybridBagCategory, seasonYearForInwardDate, type BagType, type OutwardBagCategory } from '@cold-storage/contracts';
+import { allocateHybridSplit, isBagCompositionVerified, isHybridBagCategory, seasonYearForInwardDate, type BagType, type OutwardBagCategory } from '@cold-storage/contracts';
 import type { MergeSourceGrn } from './merge-grn.helper.js';
 
 export interface ValidateMergeRepackedParams {
@@ -113,15 +113,10 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
     }
     const ledSmall = params.defaultSmallMoved ?? sourceGrns.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
     const ledBig = params.defaultBigMoved ?? sourceGrns.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
-    const ledTotal = ledSmall + ledBig;
-    smallMoved = ledTotal > 0 ? Math.round((ledSmall * totalMovedBags) / ledTotal) : totalMovedBags;
-    bigMoved = totalMovedBags - smallMoved;
-  } else if (sourceBagCategory === 'Small') {
-    smallMoved = totalMovedBags;
-    bigMoved = 0;
-  } else if (sourceBagCategory === 'Big') {
-    smallMoved = 0;
-    bigMoved = totalMovedBags;
+    // Shared outward allocator: fill Small first, remainder to Big.
+    const split = allocateHybridSplit(ledSmall, ledBig, totalMovedBags);
+    smallMoved = split.smallBags;
+    bigMoved = split.bigBags;
   } else if (repackedSmallBags != null && repackedBigBags != null) {
     if (repackedSmallBags < 0 || repackedBigBags < 0) {
       throw new Error('Bag counts cannot be negative');
