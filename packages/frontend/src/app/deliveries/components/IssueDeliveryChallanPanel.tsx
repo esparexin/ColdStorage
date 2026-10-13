@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import type { DeliveryChallan, DeliverySummary, Grn, RentSummaryDto } from '@cold-storage/contracts';
 import { Button } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
@@ -52,7 +53,18 @@ export function IssueDeliveryChallanPanel({
   return (
     <div className={styles.issuePanel}>
       <div className={styles.issueHeader}>
-        <h2 className={styles.issueTitle}>Issue Outward Delivery Challan</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <Button
+            id="issue-challan-back-btn"
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+            leftIcon={<ArrowLeft size={14} aria-hidden="true" />}
+          >
+            Back
+          </Button>
+          <h2 className={styles.issueTitle}>Issue Outward Delivery Challan</h2>
+        </div>
       </div>
 
       {form.modalError && <Banner message={form.modalError} />}

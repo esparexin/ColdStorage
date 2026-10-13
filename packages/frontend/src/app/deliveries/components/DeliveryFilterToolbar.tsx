@@ -33,7 +33,7 @@ export function DeliveryFilterToolbar({
           value: rentStatusFilter,
           onChange: (v) => onRentStatusChange(v as DeliveryRentStatusFilter),
           options: [
-            { value: '', label: 'All' },
+            { value: '', label: 'All Rent Statuses' },
             { value: 'DUE', label: 'Due Payment' },
             { value: 'SETTLED', label: 'Settled' },
           ],

@@ -1,8 +1,12 @@
 import React from 'react';
-import { CheckCircle2, Clock } from 'lucide-react';
 import type { DeliveryChallan } from '@cold-storage/contracts';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { Badge } from '@/components/ui';
+import {
+  isDeliveryPartiallyPaid,
+  isDeliverySettled,
+  isDeliveryUnsettled,
+} from '../hooks/deliveryFilter.helper';
 import { DeliveryRowActions } from './DeliveryRowActions';
 import styles from './DeliveryTable.module.css';
 
@@ -26,18 +30,29 @@ export function createDeliveryColumns({
   return [
     {
       key: 'challanNumber',
-      header: 'Challan # / Date',
+      header: 'Challan #',
       render: (row) => (
-        <div className={styles.challanCell}>
-          <span className={styles.challanNumber}>{row.challanNumber}</span>
-          <span className={styles.dateSub}>
-            {new Date(row.date).toLocaleDateString('en-IN', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-            })}
-          </span>
-        </div>
+        <span className={styles.challanNumber}>{row.challanNumber}</span>
+      ),
+    },
+    {
+      key: 'date',
+      header: 'Date',
+      render: (row) => (
+        <span className={styles.dateSub}>
+          {new Date(row.date).toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+          })}
+        </span>
+      ),
+    },
+    {
+      key: 'grnNumber',
+      header: 'GRN #',
+      render: (row) => (
+        <span className={styles.grnNumber}>{row.grnNumber}</span>
       ),
     },
     {
@@ -48,78 +63,29 @@ export function createDeliveryColumns({
       ),
     },
     {
-      key: 'grnNumber',
-      header: 'GRN #',
-      render: (row) => (
-        <div className={styles.grnCell}>
-          <span className={styles.grnNumber}>{row.grnNumber}</span>
-          <span className={styles.grnCommodityChamber}>
-            {row.commodityName} • Ch {row.chamber}
-          </span>
-        </div>
-      ),
+      key: 'commodityName',
+      header: 'Commodity',
+      render: (row) => <span>{row.commodityName}</span>,
     },
     {
-      key: 'totalBags',
-      header: 'Delivered Bags',
-      align: 'right',
-      render: (row) => (
-        <div className={styles.bagsCell}>
-          <span className={styles.bagsTotal}>
-            {row.totalBags.toLocaleString('en-IN')} bags
-          </span>
-          {row.smallBags > 0 && row.bigBags > 0 ? (
-            <span className={styles.bagsSplit}>
-              {row.smallBags.toLocaleString('en-IN')}s / {row.bigBags.toLocaleString('en-IN')}b
-            </span>
-          ) : row.bagType && row.bagType !== 'S/B' ? (
-            <span className={styles.bagsSplit}>
-              Type: {row.bagType}
-            </span>
-          ) : null}
-        </div>
-      ),
-    },
-    {
-      key: 'weight',
-      header: 'Outward Weight',
-      align: 'right',
-      render: (row) => (
-        <span className={styles.weightCell}>
-          {row.weight != null ? `${row.weight.toLocaleString('en-IN')} kg` : '—'}
-        </span>
-      ),
-    },
-    {
-      key: 'remainingBags',
-      header: 'Remaining Bags',
+      key: 'bagsSb',
+      header: 'Bags (S/B)',
       align: 'right',
       render: (row) => {
-        const remainingTotal = row.remainingTotalBags;
-        if (remainingTotal === undefined) {
-          return <span className={styles.textMuted}>—</span>;
+        const isModern =
+          row.bagCategory === 'Modern' || row.bagCategory === 'Modern Size';
+        if (isModern) {
+          return (
+            <span className={styles.bagsTotal}>
+              {row.totalBags.toLocaleString('en-IN')} Modern
+            </span>
+          );
         }
-
-        const isClosed = remainingTotal === 0;
-
         return (
-          <div className={styles.remainingCell}>
-            <div className={styles.remainingMain}>
-              <span className={isClosed ? styles.textMuted : styles.remainingActive}>
-                {remainingTotal.toLocaleString('en-IN')} bags
-              </span>
-              {isClosed && (
-                <Badge variant="neutral">
-                  Closed
-                </Badge>
-              )}
-            </div>
-            {!isClosed && row.originalBags !== undefined && (
-              <span className={styles.origBagsSub}>
-                of {row.originalBags.toLocaleString('en-IN')} orig
-              </span>
-            )}
-          </div>
+          <span className={styles.bagsTotal}>
+            {row.totalBags.toLocaleString('en-IN')} ({row.smallBags.toLocaleString('en-IN')}S/
+            {row.bigBags.toLocaleString('en-IN')}B)
+          </span>
         );
       },
     },
@@ -127,42 +93,24 @@ export function createDeliveryColumns({
       key: 'rentStatus',
       header: 'Rent Status',
       render: (row) => {
-        if (!row.rentPaymentStatus && !row.rentCharge) {
-          return <span className={styles.textMuted}>—</span>;
+        if (isDeliverySettled(row)) {
+          return <Badge variant="success">Settled</Badge>;
         }
-        const isSettled = row.rentPaymentStatus === 'Settled';
-        return (
-          <div className={styles.rentCell}>
-            {row.rentPaymentStatus && (
-              <Badge variant={isSettled ? 'success' : 'warning'}>
-                {isSettled ? 'Settled' : `₹${(row.rentRemainingBalance ?? 0).toLocaleString('en-IN')} due`}
-              </Badge>
-            )}
-            {row.rentCharge != null && row.rentCharge > 0 && (
-              <span className={styles.rentChargeSub}>
-                Rent: ₹{row.rentCharge.toLocaleString('en-IN')}
-              </span>
-            )}
-          </div>
-        );
+        if (isDeliveryPartiallyPaid(row)) {
+          return <Badge variant="warning">Partial</Badge>;
+        }
+        if (isDeliveryUnsettled(row)) {
+          return <Badge variant="warning">Unsettled</Badge>;
+        }
+        if (row.status === 'REVERSED') {
+          return <Badge variant="neutral">Reversed</Badge>;
+        }
+        return <span className={styles.textMuted}>—</span>;
       },
     },
     {
-      key: 'status',
-      header: 'Status',
-      align: 'center',
-      render: (row) => (
-        <Badge
-          variant={row.status === 'ISSUED' ? 'success' : 'neutral'}
-          icon={row.status === 'ISSUED' ? <CheckCircle2 size={12} aria-hidden="true" /> : <Clock size={12} aria-hidden="true" />}
-        >
-          {row.status === 'ISSUED' ? 'Issued' : 'Reversed'}
-        </Badge>
-      ),
-    },
-    {
       key: 'actions',
-      header: 'Actions',
+      header: '·',
       align: 'right',
       render: (row) => (
         <DeliveryRowActions
