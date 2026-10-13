@@ -50,10 +50,12 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
     totalBagsMoved: { type: Number, default: 0, min: 0 },
     smallBagsMoved: { type: Number, default: 0, min: 0 },
     bigBagsMoved: { type: Number, default: 0, min: 0 },
-    hamaliBags: { type: Number, default: 0, min: 0 },
-    hamaliRate: { type: Number, default: null },
-    hamaliCharge: { type: Number, default: 0, min: 0 },
-    hamaliCarried: { type: Number, default: 0, min: 0 },
+    // Legacy hamali columns: never written, never returned. No defaults so new
+    // movements carry no hamali values; old values stay readable.
+    hamaliBags: { type: Number, min: 0 },
+    hamaliRate: { type: Number },
+    hamaliCharge: { type: Number, min: 0 },
+    hamaliCarried: { type: Number, min: 0 },
     referenceWeight: { type: Number, default: null },
     grnId: { type: String, default: null, index: true },
     grnNumber: { type: String, default: null },
@@ -67,7 +69,8 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
       remainingBalance: { type: Number, required: true, min: 0 },
       paymentStatus: { type: String, required: true },
       rentState: { type: String, default: null },
-      hamaliAmount: { type: Number, default: 0, min: 0 },
+      // Legacy snapshot hamali: never written; old values stay readable.
+      hamaliAmount: { type: Number, min: 0 },
     },
     remarks: { type: String, trim: true, maxlength: 500, default: null },
     performedBy: { type: String, required: true },

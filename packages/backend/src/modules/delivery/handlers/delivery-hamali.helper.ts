@@ -1,24 +1,37 @@
-import { calculateHamaliAmount } from '@cold-storage/contracts';
+import type mongoose from 'mongoose';
+import { allocateHamaliShare, calculateHamaliAmount, isFirstSeasonExtensions } from '@cold-storage/contracts';
+import { CommodityModel } from '../../../database/models/commodity.model.js';
+import { readLedgerNetDelivered } from '../../inventory/ledger-balance.js';
+import { resolveEffectiveHamaliRate } from '../../common/hamali-resolution.js';
 
 /**
- * Outward hamali settlement (Phase 2 — hamali-accounting-integrity).
- * Settles outstanding hamali for delivered bags only, using the GRN's stored
- * historical rate so config changes cannot reprice history. GRN.hamaliAmount
- * stays frozen; the challan carries per-delivery accounting.
+ * First-season outward Hamali share (feat/hamali-first-season-internal).
+ *
+ * Internal-only rent input: the full one-time amount derives from the GRN's
+ * original inward bag count at the live commodity rate, and each delivery
+ * takes a capped pro-rata share (R1). Zero once a SEASON renewal is finalized
+ * (R2). Nothing is stored on the challan or GRN; the share joins the delivery
+ * rent charge. The rent-extension repository is lazy-loaded to preserve the
+ * delivery→rent decoupling (F10b precedent).
  */
-export function resolveOutwardHamali(input: {
+export async function resolveFirstSeasonOutwardShare(input: {
+  facilityId: string;
+  grn: { id: string; bags: number; commodityId: string };
   withdrawnTotal: number;
-  grnHamaliRate?: number | null;
-  inputHamaliCharge?: number | null;
-}): { hamaliRate: number; hamaliCharge: number } {
-  const hamaliRate = typeof input.grnHamaliRate === 'number' ? input.grnHamaliRate : 0;
-  const hamaliCharge = calculateHamaliAmount(input.withdrawnTotal, hamaliRate);
-  if (input.inputHamaliCharge != null && input.inputHamaliCharge >= 0) {
-    if (Math.abs(input.inputHamaliCharge - hamaliCharge) > 0.01) {
-      throw new Error(
-        `hamaliCharge mismatch: expected ₹${hamaliCharge.toLocaleString('en-IN')}, received ₹${input.inputHamaliCharge.toLocaleString('en-IN')}`,
-      );
-    }
-  }
-  return { hamaliRate, hamaliCharge };
+  session: mongoose.ClientSession;
+}): Promise<number> {
+  const { rentExtensionRepository } = await import('../../rent/rent-extension.repository.js');
+  const [commodity, extensions, netBefore] = await Promise.all([
+    CommodityModel.findOne({ id: input.grn.commodityId }, null, { session: input.session }).lean().exec(),
+    rentExtensionRepository.findExtensionsByGrn(input.facilityId, input.grn.id, input.session),
+    readLedgerNetDelivered(input.facilityId, input.grn.id, input.session),
+  ]);
+  const full = calculateHamaliAmount(
+    input.grn.bags,
+    resolveEffectiveHamaliRate(undefined, commodity),
+  );
+  if (full <= 0 || input.grn.bags <= 0) return 0;
+  if (!isFirstSeasonExtensions(extensions)) return 0;
+  const prior = Number((full * (netBefore.total / input.grn.bags)).toFixed(2));
+  return allocateHamaliShare(full, input.withdrawnTotal, input.grn.bags, prior);
 }

@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
-  calculateHamaliAmount,
   getFinancialYearKey,
   normalizeBagComposition,
   rentMonthsForType,
@@ -16,7 +15,6 @@ import { GrnModel, type GrnDoc } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { counterService, DOCUMENT_PREFIXES } from '../../common/counter.service.js';
-import { resolveEffectiveHamaliRate } from '../../common/hamali-resolution.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
 import { commodityRateService } from '../../commodities/commodity-rate.service.js';
 import { toGrnAcknowledgement, toGrnEntity } from '../grn.mappers.js';
@@ -92,9 +90,7 @@ export async function createGrn(
 
   const rentMonths = rentMonthsForType(input.rentType) ?? (input.rentMonths ?? null);
   const finalRentAmount = input.rentAmount && input.rentAmount > 0 ? input.rentAmount : 0;
-  // Hamali SSOT Phase 1: commodity master + API-only override; Controller ignored.
-  const effectiveHamaliRate = resolveEffectiveHamaliRate(input.hamaliRate, commodity);
-  const hamaliAmount = calculateHamaliAmount(input.bags, effectiveHamaliRate);
+  // Hamali is internal-only first-season rent input: never stored on the GRN.
 
   const id = `grn-${randomUUID()}`;
 
@@ -168,8 +164,6 @@ export async function createGrn(
             bagPrice: input.bagPrice ?? null,
             smallBagPrice: input.smallBagPrice ?? null,
             bigBagPrice: input.bigBagPrice ?? null,
-            hamaliRate: effectiveHamaliRate,
-            hamaliAmount,
             gpNumber: input.gpNumber?.trim() || null,
             storageMark: input.storageMark?.trim() || null,
             partyMark: input.partyMark?.trim() || null,

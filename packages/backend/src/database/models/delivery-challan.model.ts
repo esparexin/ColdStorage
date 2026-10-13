@@ -67,8 +67,10 @@ const deliveryChallanSchema = new Schema<DeliveryChallanDoc>(
     weight: { type: Number, default: null },
     remarks: { type: String, trim: true, default: null },
     rentCharge: { type: Number, default: 0 },
-    hamaliRate: { type: Number, default: null },
-    hamaliCharge: { type: Number, default: 0 },
+    // Legacy hamali columns: never written, never returned. No defaults so new
+    // challans carry no hamali values; old values stay readable.
+    hamaliRate: { type: Number, min: 0 },
+    hamaliCharge: { type: Number, min: 0 },
     status: { type: String, required: true, enum: ['ISSUED', 'REVERSED'], default: 'ISSUED', index: true },
     issuedBy: { type: String, required: true },
   },

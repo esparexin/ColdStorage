@@ -9,7 +9,7 @@ import { GrnModel } from '../database/models/grn.model.js';
 import { createGrn } from '../modules/grn/handlers/create-grn.handler.js';
 import { computeExpectedDeliveryRent } from '../modules/delivery/handlers/delivery-rent.helper.js';
 
-describe('Inward Hamali & Seasonal_3M Delivery Rent Engine', () => {
+describe('Inward stores no Hamali & Seasonal_3M Delivery Rent Engine', () => {
   const facilityId = 'fac-test-1';
   const customerId = 'cust-test-1';
   const commodityId = 'cmd-test-1';
@@ -80,7 +80,7 @@ describe('Inward Hamali & Seasonal_3M Delivery Rent Engine', () => {
     });
   });
 
-  it('accrues and persists hamali charge on Inward GRN from commodity rate', async () => {
+  it('stores no hamali on Inward GRN: hamali is internal-only rent input', async () => {
     const { grn } = await createGrn(
       facilityId,
       {
@@ -98,16 +98,17 @@ describe('Inward Hamali & Seasonal_3M Delivery Rent Engine', () => {
       userId,
     );
 
-    expect(grn.hamaliRate).toBe(4);
-    expect(grn.hamaliAmount).toBe(400); // 100 bags * ₹4
+    expect('hamaliRate' in grn).toBe(false);
+    expect('hamaliAmount' in grn).toBe(false);
     expect(grn.rentType).toBe('Seasonal_3M');
 
     const persisted = await GrnModel.findOne({ id: grn.id }).lean().exec();
-    expect(persisted?.hamaliRate).toBe(4);
-    expect(persisted?.hamaliAmount).toBe(400);
+    expect(persisted).not.toBeNull();
+    expect('hamaliRate' in persisted!).toBe(false);
+    expect('hamaliAmount' in persisted!).toBe(false);
   });
 
-  it('honors operator explicit hamaliRate override on Inward GRN', async () => {
+  it('ignores legacy hamaliRate input on Inward GRN', async () => {
     const { grn } = await createGrn(
       facilityId,
       {
@@ -121,13 +122,12 @@ describe('Inward Hamali & Seasonal_3M Delivery Rent Engine', () => {
         rentType: 'Seasonal_3M',
         bagPrice: 30,
         rentAmount: 6000,
-        hamaliRate: 6,
-      },
+      } as Parameters<typeof createGrn>[1],
       userId,
     );
 
-    expect(grn.hamaliRate).toBe(6);
-    expect(grn.hamaliAmount).toBe(1200); // 200 bags * ₹6
+    expect('hamaliRate' in grn).toBe(false);
+    expect('hamaliAmount' in grn).toBe(false);
   });
 
   it('computes outward delivery rent within 3-month term with zero extra months', async () => {

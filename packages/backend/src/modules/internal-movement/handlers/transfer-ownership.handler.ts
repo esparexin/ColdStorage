@@ -13,7 +13,6 @@ import { counterService } from '../../common/counter.service.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { toPaymentEntity } from '../../rent/handlers/record-payment.handler.js';
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
-import { resolveTransferHamali } from './transfer-hamali.helper.js';
 
 export async function transferOwnership(
   facilityId: string,
@@ -177,7 +176,6 @@ export async function transferOwnership(
 
       resultGrnDoc = updatedGrn;
       resultPayment = paymentRecord;
-      const transferHamali = resolveTransferHamali({ hamaliRate: grn.hamaliRate ?? null, hamaliAmount: grn.hamaliAmount ?? 0 });
 
       const movementDocs = await InternalMovementModel.create(
         [
@@ -195,17 +193,12 @@ export async function transferOwnership(
             totalBagsMoved: bal.total,
             smallBagsMoved: bal.smallBags,
             bigBagsMoved: bal.bigBags,
-            hamaliBags: transferHamali.hamaliBags,
-            hamaliRate: transferHamali.hamaliRate,
-            hamaliCharge: transferHamali.hamaliCharge,
-            hamaliCarried: transferHamali.hamaliCarried,
             financialSnapshot: {
               rentAmount: effectiveRentBal.rentAmount,
               totalPaid: effectiveRentBal.totalPaid,
               remainingBalance: effectiveRentBal.remainingBalance,
               paymentStatus: effectiveRentBal.paymentStatus,
               rentState: effectiveRentBal.rentState,
-              hamaliAmount: transferHamali.snapshotHamali,
             },
             remarks: input.remarks.trim(),
             performedBy: userId,
@@ -236,8 +229,6 @@ export async function transferOwnership(
       fromCustomer: movementRecord.fromCustomerName,
       toCustomer: movementRecord.toCustomerName,
       pendingRent: movementRecord.financialSnapshot.remainingBalance,
-      hamaliCarried: movementRecord.hamaliCarried,
-      hamaliAmount: movementRecord.financialSnapshot.hamaliAmount,
       paymentDecision: input.paymentDecision,
       receiptNumber: resultPayment?.receiptNumber ?? null,
       amountPaidAtTransfer: resultPayment?.amountPaid ?? 0,

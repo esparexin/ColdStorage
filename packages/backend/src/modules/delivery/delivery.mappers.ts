@@ -35,8 +35,6 @@ export function toChallanEntity(doc: DeliveryChallanDoc | Record<string, unknown
     weight: d.weight !== null && d.weight !== undefined ? Number(d.weight) : null,
     remarks: d.remarks ? String(d.remarks) : null,
     rentCharge: d.rentCharge !== null && d.rentCharge !== undefined ? Number(d.rentCharge) : undefined,
-    hamaliRate: d.hamaliRate !== null && d.hamaliRate !== undefined ? Number(d.hamaliRate) : null,
-    hamaliCharge: d.hamaliCharge !== null && d.hamaliCharge !== undefined ? Number(d.hamaliCharge) : undefined,
     status: d.status as DeliveryChallan['status'],
     issuedBy: String(d.issuedBy),
     createdAt: d.createdAt instanceof Date ? d.createdAt : new Date(String(d.createdAt)),
