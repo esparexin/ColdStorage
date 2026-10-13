@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { resolveMergedBagType, type Grn, type InternalMovementRecord, type MergeGrnInput } from '@cold-storage/contracts';
+import { isHybridBagCategory, resolveMergedBagType, type Grn, type InternalMovementRecord, type MergeGrnInput } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { rentRepository } from '../../rent/rent.repository.js';
@@ -92,6 +92,11 @@ export async function mergeGrn(
         sourceGrns,
         repackedSmallBags: input.repackedSmallBags,
         repackedBigBags: input.repackedBigBags,
+        sourceBagCategory: input.sourceBagCategory ?? null,
+        sourceQuantity: input.sourceQuantity ?? null,
+        sourceBagPrice: input.sourceBagPrice ?? null,
+        sourceSeasonalBagPrice: input.sourceSeasonalBagPrice ?? null,
+        sourceMonthlyBagPrice: input.sourceMonthlyBagPrice ?? null,
         totalMovedBags,
         defaultSmallMoved: totalMovedSmall,
         defaultBigMoved: totalMovedBig,
@@ -143,8 +148,14 @@ export async function mergeGrn(
 
       const moveDateStr = moveDate.toISOString().split('T')[0];
       const repackedNote = input.repackedSmallBags != null ? ` (Repacked: ${totalMovedSmall} S + ${totalMovedBig} B)` : '';
+      const categoryNote =
+        input.sourceBagCategory != null && isHybridBagCategory(input.sourceBagCategory)
+          ? ` (Confirmed Hybrid: ${totalMovedBags} bags)`
+          : input.sourceBagCategory === 'Small' || input.sourceBagCategory === 'Big'
+            ? ` (Confirmed ${input.sourceBagCategory}: ${totalMovedSmall} S + ${totalMovedBig} B)`
+            : '';
       const carriedRentNote = finalCarriedRent > 0 ? `. Carried pending rent: ₹${finalCarriedRent}` : '';
-      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${totalMovedBags} bags${repackedNote} from ${sourceSummaries.join('; ')}${carriedRentNote}. Reason: ${input.remarks.trim()}]`;
+      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${totalMovedBags} bags${repackedNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}. Reason: ${input.remarks.trim()}]`;
       const updatedTargetRemarks = targetGrn.remarks ? `${targetGrn.remarks}\n${targetNote}` : targetNote;
 
       const updatedTarget = await GrnModel.findOneAndUpdate(
@@ -186,6 +197,11 @@ export async function mergeGrn(
             totalBagsMoved: totalMovedBags,
             smallBagsMoved: totalMovedSmall,
             bigBagsMoved: totalMovedBig,
+            sourceBagCategory: input.sourceBagCategory ?? null,
+            sourceQuantity: input.sourceQuantity ?? null,
+            sourceBagPrice: input.sourceBagPrice ?? null,
+            sourceSeasonalBagPrice: input.sourceSeasonalBagPrice ?? null,
+            sourceMonthlyBagPrice: input.sourceMonthlyBagPrice ?? null,
             referenceWeight: input.referenceWeight ?? null,
             financialSnapshot: {
               rentAmount: newRentAmount,
@@ -224,6 +240,7 @@ export async function mergeGrn(
       totalBagsMoved: movementRecord.totalBagsMoved,
       carriedRent: finalCarriedRent,
       newRentAmount: movementRecord.financialSnapshot.rentAmount,
+      sourceBagCategory: movementRecord.sourceBagCategory ?? null,
       referenceWeight: input.referenceWeight ?? null,
       remarks: input.remarks,
     },
