@@ -15,11 +15,19 @@ describe('Inward Hamali & Seasonal_3M Delivery Rent Engine', () => {
   const commodityId = 'cmd-test-1';
   const userId = 'usr-test-1';
 
+  const originalEnv = process.env.ALLOW_HISTORICAL_TESTING_DATES;
+
   beforeAll(async () => {
+    process.env.ALLOW_HISTORICAL_TESTING_DATES = 'true';
     await connectToDatabase();
   });
 
   afterAll(async () => {
+    if (originalEnv !== undefined) {
+      process.env.ALLOW_HISTORICAL_TESTING_DATES = originalEnv;
+    } else {
+      delete process.env.ALLOW_HISTORICAL_TESTING_DATES;
+    }
     await disconnectDatabase();
   });
 
