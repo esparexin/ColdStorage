@@ -16,6 +16,7 @@ import { GrnModel, type GrnDoc } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { counterService, DOCUMENT_PREFIXES } from '../../common/counter.service.js';
+import { resolveEffectiveHamaliRate } from '../../common/hamali-resolution.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
 import { commodityRateService } from '../../commodities/commodity-rate.service.js';
 import { toGrnAcknowledgement, toGrnEntity } from '../grn.mappers.js';
@@ -91,9 +92,8 @@ export async function createGrn(
 
   const rentMonths = rentMonthsForType(input.rentType) ?? (input.rentMonths ?? null);
   const finalRentAmount = input.rentAmount && input.rentAmount > 0 ? input.rentAmount : 0;
-  const isHamaliApp = commodity.isHamaliApplicable !== undefined ? commodity.isHamaliApplicable : ((commodity.hamaliRate ?? 0) > 0);
-  const commodityHamali = isHamaliApp ? (commodity.hamaliRate ?? 0) : 0;
-  const effectiveHamaliRate = input.hamaliRate ?? commodityHamali;
+  // Hamali SSOT Phase 1: commodity master + API-only override; Controller ignored.
+  const effectiveHamaliRate = resolveEffectiveHamaliRate(input.hamaliRate, commodity);
   const hamaliAmount = calculateHamaliAmount(input.bags, effectiveHamaliRate);
 
   const id = `grn-${randomUUID()}`;
