@@ -41,12 +41,12 @@ export async function computeExpectedDeliveryRent(
   const { grn, withdrawal, deliveryDate, session } = params;
   const withdrawnTotal = withdrawal.smallBags + withdrawal.bigBags;
 
-  const isHybrid =
+  const isModern =
+    params.bagCategory === 'Modern' ||
     params.bagCategory === 'Modern Size' ||
-    params.bagCategory === 'Mixed' ||
-    params.bagCategory === 'Hybrid';
+    params.bagCategory === 'Mixed';
 
-  if (isHybrid) {
+  if (isModern) {
     const sRate = params.seasonalBagPrice ?? params.bagPrice ?? 0;
     const mRate = params.monthlyBagPrice ?? params.bagPrice ?? 0;
 

@@ -72,9 +72,9 @@ async function executeDeliveryTransaction(
       }
 
       const isModern =
+        input.bagCategory === 'Modern' ||
         input.bagCategory === 'Modern Size' ||
-        input.bagCategory === 'Mixed' ||
-        input.bagCategory === 'Hybrid';
+        input.bagCategory === 'Mixed';
       const hasSpecificBags = (input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0;
       const reqQty = input.quantity ?? 0;
       const resSmall = hasSpecificBags ? (input.smallBags ?? 0) : grn.bagType === 'B' ? 0 : reqQty;
