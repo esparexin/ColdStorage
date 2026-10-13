@@ -10,7 +10,6 @@ import {
   type PaymentMode,
 } from '@cold-storage/contracts';
 import { Badge, Input, Select } from '@/components/ui';
-import { MergeHamaliFields } from './MergeHamaliFields';
 import { MergeSourceTable } from './MergeSourceTable';
 import styles from './InternalMovementModal.module.css';
 
@@ -22,7 +21,7 @@ interface InternalMovementMergeTabProps {
     targetGrnId: string, sourceGrnIds: string[], reason: string, remarks?: string,
     movementDate?: string, additionalRentAmount?: number, repackedSmallBags?: number,
     repackedBigBags?: number, referenceWeight?: number, sourcePaymentAmount?: number,
-    sourcePaymentMode?: PaymentMode, hamaliBags?: number,
+    sourcePaymentMode?: PaymentMode,
   ) => Promise<void>;
 }
 
@@ -40,7 +39,6 @@ export function InternalMovementMergeTab({
   const [repackMode, setRepackMode] = useState(false);
   const [repackSmall, setRepackSmall] = useState<number | ''>('');
   const [repackBig, setRepackBig] = useState<number | ''>('');
-  const [hamaliBags, setHamaliBags] = useState<number | ''>('');
   const [referenceWeight, setReferenceWeight] = useState<number | ''>('');
   const [sourcePaymentAmount, setSourcePaymentAmount] = useState<number | ''>('');
   const [sourcePaymentMode, setSourcePaymentMode] = useState<PaymentMode>('Cash');
@@ -113,11 +111,8 @@ export function InternalMovementMergeTab({
     if (srcPayment != null && srcPayment > 0 && selectedSourceIds.length > 1) {
       return setValidationError('Previous-season settlement can only be collected when merging a single source GRN. Merge one source at a time when collecting payment.');
     }
-    if (typeof hamaliBags === 'number' && (!Number.isInteger(hamaliBags) || hamaliBags < 0 || hamaliBags > totalSourceBags)) {
-      return setValidationError(`Hamali bags must be a whole number between 0 and ${totalSourceBags}.`);
-    }
 
-    await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0, confSmall, confBig, refWeight, srcPayment, sourcePaymentMode, typeof hamaliBags === 'number' ? hamaliBags : undefined);
+    await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0, confSmall, confBig, refWeight, srcPayment, sourcePaymentMode);
   };
 
   return (
@@ -205,10 +200,6 @@ export function InternalMovementMergeTab({
                 <Input id="reference-weight" type="number" min={0} placeholder="Total Reference Weight (kg) — Optional reference" aria-label="Total reference weight in kilograms (optional)" value={referenceWeight} onChange={(e) => setReferenceWeight(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
               </div>
             )}
-          </div>
-          <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
-            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)' }}>Repack Hamali (selected bags only)</span>
-            <MergeHamaliFields hamaliBags={hamaliBags} totalSourceBags={totalSourceBags} hamaliRate={targetGrn.hamaliRate ?? 0} submitting={submitting} onChange={setHamaliBags} />
           </div>
 
           {hasPreviousSeason && (

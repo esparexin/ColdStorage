@@ -175,10 +175,6 @@ export function mapStructuredMovementsToTableRows(
       : rec.smallBagsMoved > 0 || rec.bigBagsMoved > 0
       ? `S: ${rec.smallBagsMoved.toLocaleString('en-IN')} • B: ${rec.bigBagsMoved.toLocaleString('en-IN')} (${bagType})`
       : `${rec.totalBagsMoved.toLocaleString('en-IN')} bags (${bagType})`;
-    const hamaliBits: string[] = [];
-    if ((rec.hamaliCarried ?? 0) > 0) hamaliBits.push(`carried ₹${Number(rec.hamaliCarried).toLocaleString('en-IN')}`);
-    if ((rec.hamaliCharge ?? 0) > 0) hamaliBits.push(`repack ₹${Number(rec.hamaliCharge).toLocaleString('en-IN')} on ${rec.hamaliBags ?? 0} bags`);
-    const hamaliDetail = hamaliBits.length > 0 ? ` • Hamali: ${hamaliBits.join(', ')}` : '';
 
     if (rec.movementType === 'MERGE') {
       const isTarget = rec.targetGrnId === currentGrn.id;
@@ -200,7 +196,7 @@ export function mapStructuredMovementsToTableRows(
           chamber: currentGrn.chamber ? `Chamber: ${currentGrn.chamber}` : 'Chamber: N/A',
           storageMark: currentGrn.storageMark ? `SM: ${currentGrn.storageMark}` : `SM: ${currentGrn.grnNumber}`,
           totalBags: `+${rec.totalBagsMoved.toLocaleString('en-IN')} bags`,
-          sbDetail: `${sbDetail}${hamaliDetail}`,
+          sbDetail,
           reason: rec.remarks?.trim() || 'Consolidation Merge',
         };
       } else {
@@ -217,7 +213,7 @@ export function mapStructuredMovementsToTableRows(
           chamber: currentGrn.chamber ? `Chamber: ${currentGrn.chamber}` : 'Chamber: N/A',
           storageMark: currentGrn.storageMark ? `SM: ${currentGrn.storageMark}` : `SM: ${currentGrn.grnNumber}`,
           totalBags: `${rec.totalBagsMoved.toLocaleString('en-IN')} bags`,
-          sbDetail: `${sbDetail}${hamaliDetail}`,
+          sbDetail,
           reason: rec.remarks?.trim() || 'Merged into surviving target lot',
         };
       }
@@ -236,7 +232,7 @@ export function mapStructuredMovementsToTableRows(
       chamber: currentGrn.chamber ? `Chamber: ${currentGrn.chamber}` : 'Chamber: N/A',
       storageMark: currentGrn.storageMark ? `SM: ${currentGrn.storageMark}` : `SM: ${currentGrn.grnNumber}`,
       totalBags: `${(rec.totalBagsMoved || currentGrn.bags).toLocaleString('en-IN')} bags`,
-      sbDetail: `${sbDetail}${hamaliDetail}`,
+      sbDetail,
       reason: rec.remarks?.trim() || 'Ownership Transfer',
     };
   });

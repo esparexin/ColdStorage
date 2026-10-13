@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  allocateHamaliShare,
   calculate3MAdditionalMonths,
   calculateHamaliAmount,
   calculateRentAmount,
@@ -10,6 +11,7 @@ import {
   deriveBagPrice,
   deriveBillingCycle,
   hamaliRateSchema,
+  isFirstSeasonExtensions,
   rentMonthsForType,
   rentTypeSchema,
   updateCommoditySchema,
@@ -131,6 +133,26 @@ describe('Seasonal 3-Month & Hamali Contracts SSOT', () => {
       expect(amountBig).toBe(500);
       expect(amountMixed).toBe(500);
     });
+
+    it('keeps first-season eligibility until a SEASON renewal exists (R2)', () => {
+      expect(isFirstSeasonExtensions([])).toBe(true);
+      expect(isFirstSeasonExtensions([{ period: 'JANUARY' }, { period: 'FEBRUARY' }])).toBe(true);
+      expect(isFirstSeasonExtensions([{ period: 'SEASON' }])).toBe(false);
+      expect(
+        isFirstSeasonExtensions([{ period: 'JANUARY' }, { period: 'FEBRUARY' }, { period: 'SEASON' }]),
+      ).toBe(false);
+    });
+
+    it('allocates partial outward shares capped at the original amount (R1)', () => {
+      expect(allocateHamaliShare(400, 30, 100, 0)).toBe(120);
+      expect(allocateHamaliShare(400, 70, 100, 120)).toBe(280);
+      // Cap: prior allocation bounds the remainder (rounding-safe)
+      expect(allocateHamaliShare(400, 70, 100, 121)).toBe(279);
+      expect(allocateHamaliShare(400, 100, 100, 400)).toBe(0);
+      expect(allocateHamaliShare(0, 30, 100, 0)).toBe(0);
+      expect(allocateHamaliShare(400, 0, 100, 0)).toBe(0);
+      expect(allocateHamaliShare(400, 30, 0, 0)).toBe(0);
+    });
   });
 
   describe('Commodity & Commodity Rate Schemas', () => {
@@ -181,7 +203,7 @@ describe('Seasonal 3-Month & Hamali Contracts SSOT', () => {
     });
   });
 
-  describe('GRN Inward Schema with Seasonal_3M & Hamali', () => {
+  describe('GRN Inward Schema with Seasonal_3M (no stored Hamali)', () => {
     it('requires rentMonths to be omitted for Seasonal_3M inward', () => {
       const validPayload = {
         grnNumber: '0142',
@@ -193,8 +215,6 @@ describe('Seasonal 3-Month & Hamali Contracts SSOT', () => {
         bagType: 'S/B' as const,
         rentType: 'Seasonal_3M' as const,
         bagPrice: 30,
-        hamaliRate: 5,
-        hamaliAmount: 1000,
       };
 
       const parsed = createGrnSchema.safeParse(validPayload);

@@ -60,7 +60,7 @@ export function InternalMovementModal({
     targetGrnId: string, sourceGrnIds: string[], reason: string, remarks?: string,
     movementDate?: string, additionalRentAmount?: number, repackedSmallBags?: number,
     repackedBigBags?: number, referenceWeight?: number, sourcePaymentAmount?: number,
-    sourcePaymentMode?: import('@cold-storage/contracts').PaymentMode, hamaliBags?: number,
+    sourcePaymentMode?: import('@cold-storage/contracts').PaymentMode,
   ) => {
     if (submitting) return;
     setSubmitting(true);
@@ -75,7 +75,6 @@ export function InternalMovementModal({
             buildMergePayload(
               targetGrnId, sourceGrnIds, reason, remarks, movementDate, additionalRentAmount,
               repackedSmallBags, repackedBigBags, referenceWeight, sourcePaymentAmount, sourcePaymentMode,
-              hamaliBags,
             ),
           ),
         },

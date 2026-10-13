@@ -98,16 +98,11 @@ describe('internalMovementNotes.helper', () => {
         totalBagsMoved: 60,
         smallBagsMoved: 40,
         bigBagsMoved: 20,
-        hamaliBags: 0,
-        hamaliRate: 4,
-        hamaliCharge: 0,
-        hamaliCarried: 0,
         financialSnapshot: {
           rentAmount: 36000,
           totalPaid: 0,
           remainingBalance: 36000,
           paymentStatus: 'UNPAID',
-          hamaliAmount: 0,
         },
         remarks: 'Direct consolidation into target lot',
         performedBy: 'user-admin',
@@ -137,16 +132,11 @@ describe('internalMovementNotes.helper', () => {
         totalBagsMoved: 300,
         smallBagsMoved: 150,
         bigBagsMoved: 150,
-        hamaliBags: 0,
-        hamaliRate: null,
-        hamaliCharge: 0,
-        hamaliCarried: 0,
         financialSnapshot: {
           rentAmount: 0,
           totalPaid: 0,
           remainingBalance: 0,
           paymentStatus: 'SETTLED',
-          hamaliAmount: 0,
         },
         remarks: 'Merged into main stock',
         performedBy: 'user-admin',
@@ -178,16 +168,11 @@ describe('internalMovementNotes.helper', () => {
         totalBagsMoved: 300,
         smallBagsMoved: 150,
         bigBagsMoved: 150,
-        hamaliBags: 0,
-        hamaliRate: 4,
-        hamaliCharge: 0,
-        hamaliCarried: 1200,
         financialSnapshot: {
           rentAmount: 30000,
           totalPaid: 30000,
           remainingBalance: 0,
           paymentStatus: 'PAID',
-          hamaliAmount: 1200,
         },
         remarks: 'Transfer on contract clearance',
         performedBy: 'user-admin',
@@ -200,41 +185,6 @@ describe('internalMovementNotes.helper', () => {
       expect(rows[0].badgeVariant).toBe('warning');
       expect(rows[0].partyName).toBe('Ramesh Patel → Suresh Kumar');
       expect(rows[0].reason).toBe('Transfer on contract clearance');
-      expect(rows[0].sbDetail).toContain('Hamali: carried ₹1,200');
-    });
-
-    it('surfaces merge repack and carried hamali in the composition detail', () => {
-      const hamaliMerge: InternalMovementRecord = {
-        id: 'mov-4',
-        facilityId: 'fac-1',
-        movementType: 'MERGE',
-        movementDate: new Date('2026-10-12'),
-        targetGrnId: 'grn-1',
-        targetGrnNumber: 'GRN-0100',
-        sourceGrnIds: ['grn-2'],
-        sourceGrnNumbers: ['GRN-0050'],
-        totalBagsMoved: 50,
-        smallBagsMoved: 30,
-        bigBagsMoved: 20,
-        hamaliBags: 20,
-        hamaliRate: 4,
-        hamaliCharge: 80,
-        hamaliCarried: 200,
-        financialSnapshot: {
-          rentAmount: 0,
-          totalPaid: 0,
-          remainingBalance: 0,
-          paymentStatus: 'SETTLED',
-          hamaliAmount: 680,
-        },
-        remarks: 'Repack merge',
-        performedBy: 'user-admin',
-        createdAt: new Date('2026-10-12'),
-      };
-
-      const rows = mapStructuredMovementsToTableRows([hamaliMerge], baseGrn);
-      expect(rows).toHaveLength(1);
-      expect(rows[0].sbDetail).toContain('Hamali: carried ₹200, repack ₹80 on 20 bags');
     });
   });
 });

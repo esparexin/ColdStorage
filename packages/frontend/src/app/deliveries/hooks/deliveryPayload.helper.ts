@@ -11,7 +11,6 @@ export interface DeliveryPayloadInput {
   monthlyBagPrice?: number;
   bagPrice?: number;
   rentCharge?: number;
-  hamaliCharge?: number;
   paymentAmount?: number;
   paymentMode?: 'Cash' | 'UPI';
   paymentReference?: string;
@@ -58,9 +57,6 @@ export function buildDeliveryPayload(input: DeliveryPayloadInput): Record<string
   }
   if (typeof input.rentCharge === 'number' && input.rentCharge >= 0) {
     payload.rentCharge = input.rentCharge;
-  }
-  if (typeof input.hamaliCharge === 'number' && input.hamaliCharge >= 0) {
-    payload.hamaliCharge = input.hamaliCharge;
   }
   if (typeof input.paymentAmount === 'number' && input.paymentAmount >= 0) {
     payload.paymentAmount = input.paymentAmount;
