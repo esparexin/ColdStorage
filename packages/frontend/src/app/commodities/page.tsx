@@ -38,17 +38,25 @@ export default function CommoditiesPage() {
   } = useCommodities();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCommodity, setEditingCommodity] = useState<Commodity | null>(null);
   const [ratesCommodity, setRatesCommodity] = useState<Commodity | null>(null);
   const [deactivatingCommodity, setDeactivatingCommodity] = useState<Commodity | null>(null);
   const [isDeactivating, setIsDeactivating] = useState(false);
   const canManage = hasPermission('commodity:manage');
 
   const openCreateModal = () => {
+    setEditingCommodity(null);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (commodity: Commodity) => {
+    setEditingCommodity(commodity);
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
+    setEditingCommodity(null);
   };
 
   return (
@@ -117,11 +125,13 @@ export default function CommoditiesPage() {
           onToggleActive={handleToggleActive}
           onRequestDeactivate={setDeactivatingCommodity}
           onManageRates={setRatesCommodity}
+          onEdit={openEditModal}
         />
       )}
 
       {isModalOpen && (
         <CommodityFormModal
+          commodity={editingCommodity}
           onClose={closeModal}
           onSuccess={() => {
             closeModal();

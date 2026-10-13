@@ -53,9 +53,9 @@ export function CreateGrnModal({
   const [isAddingCommodity, setIsAddingCommodity] = useState(false);
   const [isConfiguringRates, setIsConfiguringRates] = useState(false);
 
-  const selectedCommodity =
+  const selectedCommodity: Commodity | null =
     commodities.find((c) => c.id === form.createCommodityId) ??
-    (form.createCommodityId ? { id: form.createCommodityId, name: 'Commodity', isActive: true } : null);
+    (form.createCommodityId ? { id: form.createCommodityId, name: 'Commodity', isActive: true, isHamaliApplicable: false, hamaliRate: 0, seasonDuration: 'Seasonal' } : null);
 
   const customerBox = useCustomerCombobox(
     customers, form.createCustomerId, form.setCreateCustomerId, () => setIsAddingCustomer(true),

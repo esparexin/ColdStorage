@@ -12,13 +12,17 @@ export class CommodityService {
       throw new Error(`Commodity with name '${name}' already exists`);
     }
 
+    const isHamaliApplicable = input.isHamaliApplicable ?? (input.hamaliRate !== undefined && input.hamaliRate > 0);
+    const hamaliRate = isHamaliApplicable ? (input.hamaliRate ?? 0) : 0;
+
     const id = `cmd-${randomUUID()}`;
     const doc = await CommodityModel.create({
       id,
       name,
       normalizedName,
       seasonDuration: input.seasonDuration ?? 'Seasonal',
-      hamaliRate: input.hamaliRate ?? 0,
+      isHamaliApplicable,
+      hamaliRate,
       isActive: input.isActive ?? true,
     });
 
@@ -56,7 +60,14 @@ export class CommodityService {
       existing.seasonDuration = input.seasonDuration;
     }
 
-    if (input.hamaliRate !== undefined) {
+    if (input.isHamaliApplicable !== undefined) {
+      existing.isHamaliApplicable = input.isHamaliApplicable;
+      if (!input.isHamaliApplicable) {
+        existing.hamaliRate = 0;
+      }
+    }
+
+    if (input.hamaliRate !== undefined && existing.isHamaliApplicable !== false) {
       existing.hamaliRate = input.hamaliRate;
     }
 
@@ -68,12 +79,21 @@ export class CommodityService {
     return this.toEntity(existing);
   }
 
-  private toEntity(doc: CommodityDoc | (Commodity & { _id?: unknown })): Commodity {
+  private toEntity(doc: {
+    id: string;
+    name: string;
+    seasonDuration?: 'Seasonal' | 'Seasonal_3M';
+    isHamaliApplicable?: boolean;
+    hamaliRate?: number;
+    isActive: boolean;
+  }): Commodity {
+    const isHamaliApplicable = doc.isHamaliApplicable ?? ((doc.hamaliRate ?? 0) > 0);
     return {
       id: doc.id,
       name: doc.name,
       seasonDuration: doc.seasonDuration ?? 'Seasonal',
-      hamaliRate: doc.hamaliRate ?? 0,
+      isHamaliApplicable,
+      hamaliRate: isHamaliApplicable ? (doc.hamaliRate ?? 0) : 0,
       isActive: doc.isActive,
     };
   }

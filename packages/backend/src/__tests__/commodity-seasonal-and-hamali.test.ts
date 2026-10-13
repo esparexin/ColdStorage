@@ -52,11 +52,31 @@ describe('Commodity Master Data — 3M Seasonal & Hamali', () => {
 
     const updated = await commodityService.updateCommodity(created.id, {
       seasonDuration: 'Seasonal_3M',
+      isHamaliApplicable: true,
       hamaliRate: 6,
     });
 
     expect(updated?.seasonDuration).toBe('Seasonal_3M');
+    expect(updated?.isHamaliApplicable).toBe(true);
     expect(updated?.hamaliRate).toBe(6);
+  });
+
+  it('resets hamaliRate to 0 when isHamaliApplicable is toggled off', async () => {
+    const created = await commodityService.createCommodity({
+      name: 'Lady Rosetta',
+      isHamaliApplicable: true,
+      hamaliRate: 5,
+    });
+
+    expect(created.isHamaliApplicable).toBe(true);
+    expect(created.hamaliRate).toBe(5);
+
+    const updated = await commodityService.updateCommodity(created.id, {
+      isHamaliApplicable: false,
+    });
+
+    expect(updated?.isHamaliApplicable).toBe(false);
+    expect(updated?.hamaliRate).toBe(0);
   });
 
   it('persists and returns hamaliRate on commodityRateService upsert', async () => {

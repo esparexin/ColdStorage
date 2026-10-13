@@ -20,6 +20,7 @@ interface CommodityTableProps {
   onToggleActive: (commodity: Commodity) => void;
   onRequestDeactivate?: (commodity: Commodity) => void;
   onManageRates: (commodity: Commodity) => void;
+  onEdit?: (commodity: Commodity) => void;
 }
 
 export function CommodityTable({
@@ -35,6 +36,7 @@ export function CommodityTable({
   onToggleActive,
   onRequestDeactivate,
   onManageRates,
+  onEdit,
 }: CommodityTableProps) {
   const groups: DataTableColumnGroup[] = [
     { key: 'seasonal', header: 'Seasonal', align: 'center', borderLeft: true },
@@ -136,6 +138,17 @@ export function CommodityTable({
             borderLeft: true,
             render: (row: Commodity) => (
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+                {onEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onEdit(row)}
+                    title={`Edit ${row.name}`}
+                    aria-label={`Edit commodity ${row.name}`}
+                  >
+                    Edit
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"

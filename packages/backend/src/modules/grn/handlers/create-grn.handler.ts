@@ -89,10 +89,11 @@ export async function createGrn(
   const smallBagWeight = input.smallBagWeight ?? null;
   const bigBagWeight = input.bigBagWeight ?? null;
 
-  // Inward records storage arrangement and rent type only; actual rent calculation happens during Outward.
   const rentMonths = rentMonthsForType(input.rentType) ?? (input.rentMonths ?? null);
   const finalRentAmount = input.rentAmount && input.rentAmount > 0 ? input.rentAmount : 0;
-  const effectiveHamaliRate = input.hamaliRate ?? commodity.hamaliRate ?? 0;
+  const isHamaliApp = commodity.isHamaliApplicable !== undefined ? commodity.isHamaliApplicable : ((commodity.hamaliRate ?? 0) > 0);
+  const commodityHamali = isHamaliApp ? (commodity.hamaliRate ?? 0) : 0;
+  const effectiveHamaliRate = input.hamaliRate ?? commodityHamali;
   const hamaliAmount = calculateHamaliAmount(input.bags, effectiveHamaliRate);
 
   const id = `grn-${randomUUID()}`;
