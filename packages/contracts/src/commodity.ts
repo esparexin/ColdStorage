@@ -32,6 +32,6 @@ export const updateCommoditySchema = z.object({
 });
 
 export type Commodity = z.infer<typeof commoditySchema>;
-export type CreateCommodityInput = z.infer<typeof createCommoditySchema>;
-export type UpdateCommodityInput = z.infer<typeof updateCommoditySchema>;
+export type CreateCommodityInput = z.input<typeof createCommoditySchema>;
+export type UpdateCommodityInput = z.input<typeof updateCommoditySchema>;
 

@@ -21,12 +21,17 @@ describe('internalMovementNotes.helper', () => {
     closingBags: 300,
     smallBags: 150,
     bigBags: 150,
-    bagType: 'Hybrid',
+    bagType: 'S+B',
     rentType: 'Seasonal',
     rentAmount: 30000,
     status: 'OPEN',
     storageMark: 'LOT-A',
     partyMark: 'PM-99',
+    loanStatus: 'NOT_TAKEN',
+    bondNumber: 'BOND-0100',
+    isBondForLoan: false,
+    inwardReceiptNumber: 'IRN-0100',
+    createdBy: 'user-admin',
     createdAt: new Date('2026-03-01'),
     updatedAt: new Date('2026-03-01'),
   };
@@ -110,7 +115,7 @@ describe('internalMovementNotes.helper', () => {
       expect(rows[0].badgeVariant).toBe('success');
       expect(rows[0].grnLabel).toBe('From: GRN-0050');
       expect(rows[0].totalBags).toBe('+60 bags');
-      expect(rows[0].sbDetail).toBe('S: 40 • B: 20 (Hybrid)');
+      expect(rows[0].sbDetail).toBe('S: 40 • B: 20 (S+B)');
       expect(rows[0].reason).toBe('Direct consolidation into target lot');
     });
 
@@ -154,6 +159,8 @@ describe('internalMovementNotes.helper', () => {
         movementDate: new Date('2026-10-13'),
         grnId: 'grn-1',
         grnNumber: 'GRN-0100',
+        sourceGrnIds: ['grn-1'],
+        sourceGrnNumbers: ['GRN-0100'],
         fromCustomerId: 'cust-1',
         fromCustomerName: 'Ramesh Patel',
         toCustomerId: 'cust-2',

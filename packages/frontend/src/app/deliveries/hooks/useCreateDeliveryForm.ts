@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  deriveModernRateVisibility, type DeliveryChallan, type DeliverySummary, type Grn, type GrnInventorySummary,
+  deriveModernRateVisibility, isHybridBagCategory, type DeliveryChallan, type DeliverySummary, type Grn, type GrnInventorySummary,
 } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { useRentGate } from '@/hooks/useRentGate';
@@ -118,7 +118,7 @@ export function useCreateDeliveryForm(
     }
   }, [initialGrnId, availableGrns, createGrnId, handleSelectGrn]);
 
-  const isModern = bagCategory === 'Modern' || bagCategory === 'Modern Size' || bagCategory === 'Mixed';
+  const isModern = isHybridBagCategory(bagCategory);
   const smallBags = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigBags = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
   const modernQty = typeof withdrawal.quantity === 'number' ? withdrawal.quantity : 0;
@@ -168,7 +168,7 @@ export function useCreateDeliveryForm(
       createGrnId, createDate, smallBags, bigBags, totalWithdrawingBags,
       availableSmall: withdrawal.availableSmall, availableBig: withdrawal.availableBig,
       availableTotal: totalAvail, isCombinedPool: (isSb || isModern) && !isSeg,
-      isModernSize: isModern, bagPrice: manualBagPrice,
+      isHybrid: isModern, isModernSize: isModern, bagPrice: manualBagPrice,
       seasonalBagPrice: typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
       monthlyBagPrice: typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,
       showSeasonalRate: isModern && rateVisibility.showSeasonalRate,

@@ -2,6 +2,7 @@ import {
   calculateMonthlyElapsedCycles,
   calculateOutwardSeasonalBreakdown,
   calculateRentAmount,
+  isHybridBagCategory,
   resolveOutwardRates,
   type OutwardBagCategory,
   type RentType,
@@ -50,8 +51,7 @@ export function getOutwardEffectiveRates(
 export function computeOutwardRentCharge(params: ComputeOutwardRentParams): number {
   const { rentType, bagCategory, smallBags = 0, bigBags = 0 } = params;
 
-  const isModern =
-    bagCategory === 'Modern' || bagCategory === 'Modern Size' || bagCategory === 'Mixed';
+  const isModern = isHybridBagCategory(bagCategory);
 
   if (isModern) {
     const qty = params.quantity ?? (smallBags + bigBags);
@@ -142,9 +142,10 @@ export function formatOutwardRentFormula(
   months?: number | null,
 ): string {
   const term = rentType === 'Seasonal' ? 'season total' : `${months ?? 1} mo`;
-  if (category === 'Modern' || category === 'Modern Size' || category === 'Mixed') {
+  if (isHybridBagCategory(category)) {
     const totalQty = smallQty + bigQty;
-    return `${totalQty} Modern bags × ₹${smallRate}/bag × ${term}`;
+    const label = category === 'Modern' || category === 'Modern Size' ? 'Modern' : 'Hybrid';
+    return `${totalQty} ${label} bags × ₹${smallRate}/bag × ${term}`;
   }
   if (category === 'Small') {
     return `${smallQty} bags × ₹${smallRate}/bag × ${term}`;

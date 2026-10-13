@@ -10,6 +10,7 @@ export interface ValidateDeliveryFormInput {
   availableBig: number;
   availableTotal?: number;
   isCombinedPool?: boolean;
+  isHybrid?: boolean;
   isModernSize?: boolean;
   bagPrice?: number | '';
   seasonalBagPrice?: number | '';
@@ -68,7 +69,8 @@ export function validateDeliveryForm(input: ValidateDeliveryFormInput): Delivery
     errors.bags = `Cannot deliver ${input.totalWithdrawingBags} bags (only ${availableTotal} available)`;
   }
 
-  if (input.isModernSize) {
+  const isHybrid = Boolean(input.isHybrid ?? input.isModernSize);
+  if (isHybrid) {
     const requiresDualRates = Boolean(input.showSeasonalRate || input.showMonthlyRate);
     if (requiresDualRates) {
       if (input.showSeasonalRate && (typeof input.seasonalBagPrice !== 'number' || input.seasonalBagPrice <= 0)) {

@@ -189,6 +189,8 @@ export interface ModernRateVisibility {
   showMonthlyRate: boolean;
 }
 
+export type HybridRateVisibility = ModernRateVisibility;
+
 /**
  * Determines the visibility of manual pricing fields for Modern outward deliveries.
  * - Monthly Rent: Only Monthly Rate is shown (Scenario C).
@@ -224,3 +226,5 @@ export function deriveModernRateVisibility(params: {
     showMonthlyRate: hasExtension,
   };
 }
+
+export const deriveHybridRateVisibility = deriveModernRateVisibility;

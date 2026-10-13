@@ -1,4 +1,4 @@
-import type { OutwardBagCategory } from '@cold-storage/contracts';
+import { isHybridBagCategory, type OutwardBagCategory } from '@cold-storage/contracts';
 
 export interface DeliveryPayloadInput {
   grnId: string;
@@ -27,10 +27,7 @@ export interface DeliveryPayloadInput {
  * builder stays a straight pass-through with optional transport fields.
  */
 export function buildDeliveryPayload(input: DeliveryPayloadInput): Record<string, unknown> {
-  const isModern =
-    input.bagCategory === 'Modern' ||
-    input.bagCategory === 'Modern Size' ||
-    input.bagCategory === 'Mixed';
+  const isModern = isHybridBagCategory(input.bagCategory);
   const hasSpecificBags = input.smallBags > 0 || input.bigBags > 0;
   const totalQuantity =
     isModern && typeof input.quantity === 'number' && input.quantity > 0 && !hasSpecificBags

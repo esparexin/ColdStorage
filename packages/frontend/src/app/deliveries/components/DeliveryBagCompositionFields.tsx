@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  resolveOutwardRates, type BagType, type GrnInventorySummary, type RentSummaryDto, type RentType,
+  isHybridBagCategory, resolveOutwardRates, type BagType, type GrnInventorySummary, type RentSummaryDto, type RentType,
 } from '@cold-storage/contracts';
 import type { GrnWithdrawal } from '../types';
 import type { OutwardBagCategory } from '../hooks/deliveryRent.helper';
@@ -55,7 +55,7 @@ export function DeliveryBagCompositionFields({
   const availableTotal = summary.availableSmallBags + summary.availableBigBags;
   const isSbLot = bagType === 'S+B' || bagType === 'S/B';
   const isSegregated = summary.availableSmallBags > 0 && summary.availableBigBags > 0;
-  const isModern = bagCategory === 'Modern' || bagCategory === 'Modern Size' || bagCategory === 'Mixed';
+  const isModern = isHybridBagCategory(bagCategory);
   const isCombinedPool = (isSbLot || isModern) && !isSegregated;
 
   const smallQty = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
@@ -115,7 +115,7 @@ export function DeliveryBagCompositionFields({
         <div className={modernGridClass}>
           <div className={pageStyles.fieldGroup}>
             <div className={styles.labelRow}>
-              <label htmlFor="delivery-quantity-bags" className={styles.labelTitle}>Bags</label>
+              <label htmlFor="delivery-quantity-bags" className={styles.labelTitle}>Hybrid Bags</label>
             </div>
             <input
               id="delivery-quantity-bags" type="number" inputMode="numeric" min={1} max={availableTotal} placeholder="0"
