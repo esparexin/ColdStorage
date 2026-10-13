@@ -215,8 +215,9 @@ async function executeDeliveryTransaction(
       });
 
       const closingTotal = available.total - withdrawnTotal;
+      const isSeasonal = grn.rentType === 'Seasonal' || grn.rentType === 'Seasonal_3M';
       const effectiveObligation =
-        grn.rentType === 'Seasonal' ? rentBalance.rentAmount : rentBalance.rentAmount + deliveryRentCharge;
+        isSeasonal ? rentBalance.rentAmount : rentBalance.rentAmount + deliveryRentCharge;
       const totalPaidAfterDelivery = rentBalance.totalPaid + paidAmount;
       const effectiveRemaining = Math.max(0, Number((effectiveObligation - totalPaidAfterDelivery).toFixed(2)));
 
