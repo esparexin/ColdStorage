@@ -1,4 +1,5 @@
-import type { Grn } from '@cold-storage/contracts';
+import type { Grn, GrnInventorySummary } from '@cold-storage/contracts';
+import type { GrnWithdrawal } from '../types';
 
 export const INWARD_STOCK_PAGE_SIZE = 10;
 
@@ -113,4 +114,29 @@ export function clampBagAllocation(
       ? Math.min(maxCategoryStock, remainingAllowed)
       : remainingAllowed;
   return Math.min(value, categoryCap);
+}
+
+/**
+ * Clears entered counts when the outward bag category changes. Stale counts
+ * from the previous category would otherwise disagree with the new mode's
+ * total (backend derives the withdrawal from the category) and surface as a
+ * confusing rent-charge mismatch at submit. Availability ceilings are kept.
+ */
+export function clearWithdrawalCounts(prev: GrnWithdrawal): GrnWithdrawal {
+  return { ...prev, smallBags: '', bigBags: '', quantity: '' };
+}
+
+/**
+ * Per-side ceilings for delivery validation. Uses the live inventory summary
+ * when loaded so segregated lots validate against true per-side balances;
+ * falls back to the withdrawal state's ceilings beforehand.
+ */
+export function resolveValidationStock(
+  summary: Pick<GrnInventorySummary, 'availableSmallBags' | 'availableBigBags'> | null | undefined,
+  fallback: Pick<GrnWithdrawal, 'availableSmall' | 'availableBig'>,
+): Pick<GrnWithdrawal, 'availableSmall' | 'availableBig'> {
+  return {
+    availableSmall: summary?.availableSmallBags ?? fallback.availableSmall,
+    availableBig: summary?.availableBigBags ?? fallback.availableBig,
+  };
 }

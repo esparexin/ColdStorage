@@ -4,11 +4,13 @@ import {
   INWARD_STOCK_PAGE_SIZE,
   calculateRemainingStock,
   clampBagAllocation,
+  clearWithdrawalCounts,
   filterEligibleGrns,
   formatGrnDate,
   getAvailableStockBags,
   getEligibleGrnMarks,
   paginateEligibleGrns,
+  resolveValidationStock,
 } from '../eligibleGrn.helper';
 
 function makeMockGrn(overrides: Partial<Grn> = {}): Grn {
@@ -224,6 +226,19 @@ describe('eligibleGrn.helper', () => {
     it('respects segregated pool category caps', () => {
       // 100 total, 0 in other field, but small pool max is 30 -> user types 50 -> clamped to 30
       expect(clampBagAllocation(50, 0, 100, 30)).toBe(30);
+    });
+  });
+
+  describe('clearWithdrawalCounts + resolveValidationStock (F3/F4)', () => {
+    it('clears entered counts, keeps ceilings', () => {
+      expect(clearWithdrawalCounts({ availableSmall: 60, availableBig: 40, smallBags: 10, bigBags: 5, quantity: 30 }))
+        .toEqual({ availableSmall: 60, availableBig: 40, smallBags: '', bigBags: '', quantity: '' });
+    });
+    it('prefers summary balances, falls back pre-load', () => {
+      expect(resolveValidationStock({ availableSmallBags: 60, availableBigBags: 40 }, { availableSmall: 100, availableBig: 100 }))
+        .toEqual({ availableSmall: 60, availableBig: 40 });
+      expect(resolveValidationStock(null, { availableSmall: 100, availableBig: 100 }))
+        .toEqual({ availableSmall: 100, availableBig: 100 });
     });
   });
 });
