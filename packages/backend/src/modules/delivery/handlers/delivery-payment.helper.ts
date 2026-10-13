@@ -1,6 +1,7 @@
 import type mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import type { PaymentMode } from '@cold-storage/contracts';
+import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
 import { counterService } from '../../common/counter.service.js';
 
@@ -63,4 +64,25 @@ export async function recordDeliveryInlinePayment(
   );
 
   return { paidAmount: paymentAmount, receiptNumber };
+}
+
+/**
+ * Derives the total effective rent obligation across all issued challans for closure checking.
+ */
+export async function resolveEffectiveDeliveryObligation(
+  facilityId: string,
+  grn: { id: string; rentType: string; rentAmount?: number | null },
+  rentBalanceAmount: number,
+  session: mongoose.ClientSession,
+): Promise<number> {
+  const isSeasonal = grn.rentType === 'Seasonal' || grn.rentType === 'Seasonal_3M';
+  if (isSeasonal) {
+    return rentBalanceAmount;
+  }
+  const agg = await DeliveryChallanModel.aggregate([
+    { $match: { facilityId, grnId: grn.id, status: 'ISSUED' } },
+    { $group: { _id: null, total: { $sum: '$rentCharge' } } },
+  ]).session(session);
+  const totalOutward = agg[0]?.total ?? 0;
+  return Math.max(grn.rentAmount ?? 0, totalOutward);
 }

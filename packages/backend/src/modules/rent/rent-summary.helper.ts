@@ -35,7 +35,12 @@ export function buildRentSummary(
   outwardRentCharges = 0,
   hamaliShare = 0,
 ): RentSummaryDto {
-  const baseRent = grn.rentAmount > 0 ? grn.rentAmount : outwardRentCharges;
+  const baseRent =
+    grn.rentType === 'Monthly'
+      ? Math.max(grn.rentAmount, outwardRentCharges)
+      : grn.rentAmount > 0
+        ? grn.rentAmount
+        : outwardRentCharges;
   // First-season Hamali joins the total due exactly once: zero-rent GRNs
   // already accumulate Hamali-inclusive outward charges in the base, so the
   // full share applies only when the base is the stored rent obligation.

@@ -75,7 +75,12 @@ export async function executeRecordPayment(
         grn.id,
         session,
       );
-      const baseRent = grn.rentAmount > 0 ? grn.rentAmount : outwardRent;
+      const baseRent =
+        grn.rentType === 'Monthly'
+          ? Math.max(grn.rentAmount, outwardRent)
+          : grn.rentAmount > 0
+            ? grn.rentAmount
+            : outwardRent;
       // First-season Hamali joins the collectible total exactly as in the rent
       // summary: full share for stored-rent GRNs, nothing for zero-rent GRNs
       // whose outward charges already embed per-delivery shares.

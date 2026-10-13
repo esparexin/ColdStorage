@@ -15,7 +15,10 @@ import { isTransientError, toChallanEntity } from '../delivery.mappers.js';
 import { getDeliverySummary } from '../queries/delivery.queries.js';
 import { computeExpectedDeliveryRent } from './delivery-rent.helper.js';
 import { resolveFirstSeasonOutwardShare } from './delivery-hamali.helper.js';
-import { recordDeliveryInlinePayment } from './delivery-payment.helper.js';
+import {
+  recordDeliveryInlinePayment,
+  resolveEffectiveDeliveryObligation,
+} from './delivery-payment.helper.js';
 import {
   resolveSafeLedgerDrawdown,
   validateDeliveryDate,
@@ -215,9 +218,9 @@ async function executeDeliveryTransaction(
       });
 
       const closingTotal = available.total - withdrawnTotal;
-      const isSeasonal = grn.rentType === 'Seasonal' || grn.rentType === 'Seasonal_3M';
-      const effectiveObligation =
-        isSeasonal ? rentBalance.rentAmount : rentBalance.rentAmount + deliveryRentCharge;
+      const effectiveObligation = await resolveEffectiveDeliveryObligation(
+        facilityId, grn, rentBalance.rentAmount, session,
+      );
       const totalPaidAfterDelivery = rentBalance.totalPaid + paidAmount;
       const effectiveRemaining = Math.max(0, Number((effectiveObligation - totalPaidAfterDelivery).toFixed(2)));
 
