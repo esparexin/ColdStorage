@@ -16,7 +16,11 @@ import { getDeliverySummary } from '../queries/delivery.queries.js';
 import { computeExpectedDeliveryRent } from './delivery-rent.helper.js';
 import { resolveFirstSeasonOutwardShare } from './delivery-hamali.helper.js';
 import { recordDeliveryInlinePayment } from './delivery-payment.helper.js';
-import { validateDeliveryDate, validateStockAndBalances } from './delivery-validation.helper.js';
+import {
+  resolveSafeLedgerDrawdown,
+  validateDeliveryDate,
+  validateStockAndBalances,
+} from './delivery-validation.helper.js';
 
 export async function createDeliveryWithRetry(
   facilityId: string,
@@ -141,25 +145,16 @@ async function executeDeliveryTransaction(
       if (input.gpNumber?.trim()) {
         gpNumber = input.gpNumber.trim();
         const match = /^GP-(\d+)$/i.exec(gpNumber);
-        if (match) {
-          const seq = parseInt(match[1], 10);
-          if (!isNaN(seq)) {
-            await counterService.syncGatePassSequence(facilityId, deliveryDate, seq, session);
-          }
+        if (match && !isNaN(parseInt(match[1], 10))) {
+          await counterService.syncGatePassSequence(facilityId, deliveryDate, parseInt(match[1], 10), session);
         }
       } else {
         gpNumber = await counterService.generateGatePassNumber(facilityId, deliveryDate, session);
       }
 
       if (gpNumber) {
-        const existingGp = await DeliveryChallanModel.findOne(
-          { facilityId, gpNumber },
-          { id: 1 },
-          { session },
-        ).lean().exec();
-        if (existingGp) {
-          throw new Error(`Gate Pass number '${gpNumber}' already exists in this facility`);
-        }
+        const existingGp = await DeliveryChallanModel.findOne({ facilityId, gpNumber }, { id: 1 }, { session }).lean().exec();
+        if (existingGp) throw new Error(`Gate Pass number '${gpNumber}' already exists in this facility`);
       }
 
       const challanDocs = await DeliveryChallanModel.create(
@@ -180,8 +175,9 @@ async function executeDeliveryTransaction(
       );
       createdChallanDoc = challanDocs[0];
 
-      const txSmall = finalSmall;
-      const txBig = finalBig;
+      const { smallQuantity: txSmall, bigQuantity: txBig } = resolveSafeLedgerDrawdown(
+        isHybrid, grn.bagType, finalSmall, finalBig, available,
+      );
 
       await InventoryTransactionModel.create(
         [

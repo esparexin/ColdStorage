@@ -85,6 +85,32 @@ export async function validateStockAndBalances(
   };
 }
 
+/**
+ * Resolves ledger transaction quantities to safely draw from available stock pools
+ * without producing negative inventory balances on either side.
+ */
+export function resolveSafeLedgerDrawdown(
+  isHybrid: boolean,
+  bagType: string | undefined | null,
+  finalSmall: number,
+  finalBig: number,
+  available: { smallBags: number; bigBags: number },
+): { smallQuantity: number; bigQuantity: number } {
+  if (isHybrid || (bagType !== 'S/B' && bagType !== 'S+B')) {
+    return { smallQuantity: finalSmall, bigQuantity: finalBig };
+  }
+  const drawSmall = Math.min(finalSmall, Math.max(0, available.smallBags));
+  const drawBig = Math.min(finalBig, Math.max(0, available.bigBags));
+  const unallocated = finalSmall + finalBig - (drawSmall + drawBig);
+  if (unallocated <= 0) {
+    return { smallQuantity: drawSmall, bigQuantity: drawBig };
+  }
+  const remSmallPool = Math.max(0, available.smallBags - drawSmall);
+  const addSmall = Math.min(unallocated, remSmallPool);
+  const addBig = unallocated - addSmall;
+  return { smallQuantity: drawSmall + addSmall, bigQuantity: drawBig + addBig };
+}
+
 export function validateDeliveryDate(
   inputDate?: string | Date,
   inwardDate?: string | Date,
