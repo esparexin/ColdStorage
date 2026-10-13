@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { BagType } from './bags.js';
+import { type BagType, isHybridBagCategory } from './bags.js';
 import type { RentType } from './grn-rent.js';
 
 /**
@@ -49,7 +49,7 @@ export function calculateRentAmount(input: RentalCalculationInput): number {
   const isSeasonal = input.rentType === 'Seasonal' || input.rentType === 'Seasonal_3M';
   const months = isSeasonal ? 1 : Math.max(1, input.rentMonths ?? 1);
 
-  if (input.bagCategory === 'Modern' || input.bagCategory === 'Modern Size' || input.bagCategory === 'Mixed') {
+  if (isHybridBagCategory(input.bagCategory)) {
     if (typeof input.bagPrice === 'number' && input.bagPrice > 0) {
       return Number((input.bags * input.bagPrice * months).toFixed(2));
     }

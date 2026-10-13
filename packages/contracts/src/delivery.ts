@@ -1,10 +1,12 @@
 import { z } from 'zod';
-import { bagTypeSchema } from './bags.js';
+import { bagTypeSchema, isHybridBagCategory } from './bags.js';
 import { chamberTextSchema, indianVehicleSchema } from './common.js';
 import { challanNumberSchema } from './identifiers.js';
 import { grnStatusSchema } from './grn.js';
 import { paymentModeSchema } from './rent.js';
 import { bagPriceSchema } from './pricing.js';
+
+export { isHybridBagCategory };
 
 /**
  * P6: Delivery + Outward Challan + Full Reversal + GRN Closure Contracts.
@@ -18,6 +20,7 @@ export const deliveryStatusSchema = z.enum(['ISSUED', 'REVERSED']);
 export type DeliveryStatus = z.infer<typeof deliveryStatusSchema>;
 
 export const outwardBagCategorySchema = z.enum([
+  'Hybrid',
   'S/B',
   'Modern',
   'Small & Big',
@@ -106,6 +109,7 @@ export const deliveryChallanSchema = z.object({
   bagPrice: z.number().positive().nullable().optional(),
   seasonalBagPrice: z.number().positive().nullable().optional(),
   monthlyBagPrice: z.number().positive().nullable().optional(),
+  quantity: z.number().int().positive().nullable().optional(),
   smallBags: z.number().int().min(0),
   bigBags: z.number().int().min(0),
   /** Derived as smallBags + bigBags. Never stored, so the two parts cannot disagree. */

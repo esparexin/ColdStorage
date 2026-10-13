@@ -227,3 +227,11 @@ export function resolveMergedBagType(input: {
   return 'S+B';
 }
 
+/** Canonical SSOT check for Hybrid bag category; recognizes canonical 'Hybrid' and legacy aliases. */
+export function isHybridBagCategory(category?: string | null): boolean {
+  if (!category) return false;
+  const c = category.trim().toLowerCase();
+  return c === 'hybrid' || c === 'modern' || c === 'modern size' || c === 'mixed';
+}
+
+
