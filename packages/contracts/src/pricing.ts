@@ -14,14 +14,12 @@ export const bagPriceSchema = z
 
 export type BagPrice = z.infer<typeof bagPriceSchema>;
 
-export interface CanonicalBagRate {
-  small: number;
-  big: number;
-}
+export interface CanonicalBagRate { small: number; big: number; }
 
 /** Canonical reference rates for Small and Big bags under Seasonal and Monthly rent types. */
 export const CANONICAL_BAG_RATES: Record<RentType, CanonicalBagRate> = {
   Seasonal: { small: 10, big: 15 },
+  Seasonal_3M: { small: 10, big: 15 },
   Monthly: { small: 10, big: 15 },
 };
 
@@ -48,7 +46,7 @@ export interface RentalCalculationInput {
 
 /** Authoritative rent calculation: Seasonal ignores `rentMonths` (whole-season total). */
 export function calculateRentAmount(input: RentalCalculationInput): number {
-  const isSeasonal = input.rentType === 'Seasonal';
+  const isSeasonal = input.rentType === 'Seasonal' || input.rentType === 'Seasonal_3M';
   const months = isSeasonal ? 1 : Math.max(1, input.rentMonths ?? 1);
 
   if (input.bagCategory === 'Modern' || input.bagCategory === 'Modern Size' || input.bagCategory === 'Mixed') {
@@ -88,7 +86,7 @@ export function deriveBagPrice(input: {
 }): number | null {
   if (typeof input.bagPrice === 'number' && input.bagPrice > 0) return input.bagPrice;
   if (typeof input.rentAmount === 'number' && input.bags > 0) {
-    if (input.rentType === 'Seasonal') return Number((input.rentAmount / input.bags).toFixed(2));
+    if (input.rentType === 'Seasonal' || input.rentType === 'Seasonal_3M') return Number((input.rentAmount / input.bags).toFixed(2));
     const months = Math.max(1, input.rentMonths ?? 1);
     return Number((input.rentAmount / (input.bags * months)).toFixed(2));
   }
@@ -102,6 +100,7 @@ export function deriveBillingCycle(
   asOfDate: Date = new Date(),
 ): string {
   if (rentType === 'Seasonal') return 'Season total (Mar–Dec)';
+  if (rentType === 'Seasonal_3M') return 'Season total (3 Months)';
   const inDate = new Date(inwardDate);
   const now = new Date(asOfDate);
   const day = inDate.getDate();
@@ -147,12 +146,12 @@ export function calculateMonthlyElapsedCycles(
   return Math.max(1, cycles);
 }
 
-export interface MovementSnapshot {
-  date: Date;
-  type: string;
-  deliveredBags: number;
-  closingBags: number;
+/** Additional billable months for 3-month seasonal storage (N - 3, min 0). */
+export function calculate3MAdditionalMonths(inwardDate: Date | string, deliveryDate: Date | string = new Date()): number {
+  return Math.max(0, calculateMonthlyElapsedCycles(inwardDate, deliveryDate) - 3);
 }
+
+export interface MovementSnapshot { date: Date; type: string; deliveredBags: number; closingBags: number; }
 
 export interface OccupancyCalculationInput {
   grnId: string;

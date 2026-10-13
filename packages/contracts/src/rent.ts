@@ -71,6 +71,8 @@ export const rentSummaryDtoSchema = z.object({
   totalBagsWeight: z.number().nullish(),
   rentType: rentTypeSchema,
   rentAmount: rentalAmountSchema,
+  hamaliRate: z.number().nullish(),
+  hamaliAmount: rentalAmountSchema.optional(),
   rentMonths: z.number().int().nullable().optional(),
   totalPaid: z.number().min(0),
   remainingBalance: z.number().min(0),

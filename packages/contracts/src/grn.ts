@@ -72,6 +72,8 @@ export const createGrnSchema = z
     bigBags: z.number().int().min(0).nullish(),
     smallBagPrice: bagPriceSchema.nullish(),
     bigBagPrice: bagPriceSchema.nullish(),
+    hamaliRate: z.number({ invalid_type_error: 'Hamali rate must be a number' }).min(0, 'Hamali rate cannot be negative').nullish(),
+    hamaliAmount: rentalAmountSchema.nullish(),
     gpNumber: gpNumberSchema,
     storageMark: z.string().trim().max(20, 'Storage mark cannot exceed 20 characters').nullish(),
     partyMark: z.string().trim().max(20, 'Party mark cannot exceed 20 characters').nullish(),
@@ -88,7 +90,7 @@ export const createGrnSchema = z
   })
   .refine(
     (data) => {
-      if (data.rentType === 'Seasonal') {
+      if (data.rentType === 'Seasonal' || data.rentType === 'Seasonal_3M') {
         return data.rentMonths === null || data.rentMonths === undefined;
       }
       return (
@@ -167,6 +169,8 @@ export const grnSchema = z.object({
   bagPrice: z.number().nullable().optional(),
   smallBagPrice: z.number().nullable().optional(),
   bigBagPrice: z.number().nullable().optional(),
+  hamaliRate: z.number().min(0).nullable().optional(),
+  hamaliAmount: rentalAmountSchema.optional(),
   /** Always present: a single-type receipt stores zero on the unused side rather than null. */
   smallBags: z.number().int().min(0),
   bigBags: z.number().int().min(0),

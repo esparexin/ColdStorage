@@ -16,12 +16,16 @@ import type { ExtensionPeriod } from './rent-extension.js';
  * validates newly submitted rates against the active row and records the
  * agreed rate immutably on the GRN / period row at finalization time.
  */
+export const commodityRentTypeSchema = z.enum(['Monthly', 'Seasonal']);
+export type CommodityRentType = z.infer<typeof commodityRentTypeSchema>;
+
 export const commodityRateSchema = z.object({
   id: z.string().min(1),
   commodityId: z.string().min(1),
-  rentType: rentTypeSchema,
+  rentType: commodityRentTypeSchema,
   smallRate: bagPriceSchema,
   bigRate: bagPriceSchema,
+  hamaliRate: z.number().min(0).nullish(),
   isActive: z.boolean().default(true),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
@@ -31,9 +35,10 @@ export type CommodityRate = z.infer<typeof commodityRateSchema>;
 
 export const upsertCommodityRateSchema = z.object({
   commodityId: z.string().trim().min(1, 'Commodity ID is required'),
-  rentType: rentTypeSchema,
+  rentType: commodityRentTypeSchema,
   smallRate: bagPriceSchema,
   bigRate: bagPriceSchema,
+  hamaliRate: z.number().min(0).nullish(),
   isActive: z.boolean().optional(),
 });
 
@@ -41,7 +46,7 @@ export type UpsertCommodityRateInput = z.infer<typeof upsertCommodityRateSchema>
 
 export const commodityRateQuerySchema = z.object({
   commodityId: z.string().trim().min(1, 'Commodity ID is required'),
-  rentType: rentTypeSchema,
+  rentType: commodityRentTypeSchema,
 });
 
 export type CommodityRateQuery = z.infer<typeof commodityRateQuerySchema>;
