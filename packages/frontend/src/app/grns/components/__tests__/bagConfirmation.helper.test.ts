@@ -2,15 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { allocateHybridPreview, previewConfirmedSplit, validateBagConfirmation } from '../bagConfirmation.helper';
 
 describe('bagConfirmation.helper (outward SSOT reuse)', () => {
-  it('accepts Small and Big without counts', () => {
-    expect(validateBagConfirmation({
-      category: 'Small', quantity: '', bagPrice: '', seasonalBagPrice: '', monthlyBagPrice: '',
-      repackSmall: '', repackBig: '', totalMovedBags: 50, isRepackRequired: false,
-    })).toBeNull();
-    expect(validateBagConfirmation({
-      category: 'Big', quantity: '', bagPrice: '', seasonalBagPrice: '', monthlyBagPrice: '',
-      repackSmall: '', repackBig: '', totalMovedBags: 50, isRepackRequired: true,
-    })).toBeNull();
+  it('redirects Small and Big to the Small & Big split (no separate options)', () => {
+    for (const category of ['Small', 'Big'] as const) {
+      expect(validateBagConfirmation({
+        category, quantity: '', bagPrice: '', seasonalBagPrice: '', monthlyBagPrice: '',
+        repackSmall: '', repackBig: '', totalMovedBags: 50, isRepackRequired: false,
+      })).toContain('Small & Big split');
+    }
   });
 
   it('requires a reconciling split for Small & Big when required', () => {
@@ -41,17 +39,18 @@ describe('bagConfirmation.helper (outward SSOT reuse)', () => {
     })).toBeNull();
   });
 
-  it('allocates Hybrid previews by ledger proportion, reconciled to the total', () => {
+  it('allocates Hybrid previews fill-small-first, reconciled to the total', () => {
     expect(allocateHybridPreview(30, 20, 50)).toEqual({ small: 30, big: 20 });
-    expect(allocateHybridPreview(0, 0, 50)).toEqual({ small: 50, big: 0 });
+    expect(allocateHybridPreview(0, 0, 50)).toEqual({ small: 0, big: 50 });
+    expect(allocateHybridPreview(10, 90, 50)).toEqual({ small: 10, big: 40 });
     const preview = previewConfirmedSplit({
       category: 'Hybrid', rawSmall: 28, rawBig: 22, total: 50,
       defaultSmall: 28, defaultBig: 22, repackSmall: '', repackBig: '', isRepackFilled: false,
     });
     expect(preview.small + preview.big).toBe(50);
     expect(previewConfirmedSplit({
-      category: 'Small', rawSmall: 0, rawBig: 50, total: 50,
-      defaultSmall: 0, defaultBig: 50, repackSmall: '', repackBig: '', isRepackFilled: false,
+      category: 'Small & Big', rawSmall: 0, rawBig: 50, total: 50,
+      defaultSmall: 0, defaultBig: 50, repackSmall: 50, repackBig: 0, isRepackFilled: true,
     })).toEqual({ small: 50, big: 0 });
   });
 });

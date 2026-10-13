@@ -4,11 +4,10 @@ import React from 'react';
 import {
   deriveHybridRateVisibility,
   isHybridBagCategory,
-  resolveOutwardRates,
-  type Grn,
   type OutwardBagCategory,
+  type RentType,
 } from '@cold-storage/contracts';
-import { Badge, Input, Select } from '@/components/ui';
+import { Input, Select } from '@/components/ui';
 import styles from './InternalMovementModal.module.css';
 
 export interface BagConfirmationValue {
@@ -31,7 +30,10 @@ interface MergeBagCategoryFieldsProps {
   value: BagConfirmationValue;
   onChange: (patch: Partial<BagConfirmationValue>) => void;
   totalMovedBags: number;
-  targetGrn: Grn;
+  // Source-driven rate visibility (outward semantics for the confirmed lot),
+  // falling back to the target context when no source is selected yet.
+  rentType: RentType;
+  inwardDate: Date | string;
   movementDate: string;
   repackMode: boolean;
   onRepackModeChange: (v: boolean) => void;
@@ -52,17 +54,14 @@ interface MergeBagCategoryFieldsProps {
  * informational: rent is recomputed from source GRN rules at execution.
  */
 export function MergeBagCategoryFields({
-  value, onChange, totalMovedBags, targetGrn, movementDate,
+  value, onChange, totalMovedBags, rentType, inwardDate, movementDate,
   repackMode, onRepackModeChange, repackSmall, onRepackSmallChange,
   repackBig, onRepackBigChange, referenceWeight, onReferenceWeightChange,
   hasUnconfirmedMix, submitting,
 }: MergeBagCategoryFieldsProps) {
   const isHybrid = isHybridBagCategory(value.category);
-  const rates = resolveOutwardRates(targetGrn.rentType, {
-    smallBagPrice: targetGrn.smallBagPrice, bigBagPrice: targetGrn.bigBagPrice, bagPrice: targetGrn.bagPrice,
-  });
   const visibility = deriveHybridRateVisibility({
-    rentType: targetGrn.rentType, inwardDate: targetGrn.date, deliveryDate: movementDate,
+    rentType, inwardDate, deliveryDate: movementDate,
   });
   const repackedSum = (typeof repackSmall === 'number' ? repackSmall : 0) + (typeof repackBig === 'number' ? repackBig : 0);
   const isRepackFilled = typeof repackSmall === 'number' && typeof repackBig === 'number';
@@ -82,20 +81,9 @@ export function MergeBagCategoryFields({
         value={value.category} onChange={(e) => onChange({ category: e.target.value as OutwardBagCategory })}
         disabled={submitting}
       >
-        <option value="Small">Small — all bags as Small</option>
-        <option value="Big">Big — all bags as Big</option>
-        <option value="Small & Big">Small & Big — confirm split below</option>
+        <option value="Small & Big">Small & Big — confirm split below (0 allowed per side)</option>
         <option value="Hybrid">Hybrid / Mixed — quantity + per-bag rate</option>
       </Select>
-
-      {(value.category === 'Small' || value.category === 'Big') && (
-        <div className={styles.detailRow}>
-          <span className={styles.detailLabel}>Confirmed:</span>
-          <span className={styles.detailValue}>
-            All {totalMovedBags} bags as {value.category} <Badge variant="neutral">Rate: ₹{value.category === 'Small' ? rates.small : rates.big}/bag</Badge>
-          </span>
-        </div>
-      )}
 
       {value.category === 'Small & Big' && (
         <>

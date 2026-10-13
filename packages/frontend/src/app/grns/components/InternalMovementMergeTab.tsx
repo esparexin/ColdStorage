@@ -84,6 +84,8 @@ export function InternalMovementMergeTab({
   const previewSplit = previewConfirmedSplit({ category: confirmation.category, rawSmall: rawMovedSmall, rawBig: rawMovedBig, total: totalSourceBags, defaultSmall: defaultMovedSmall, defaultBig: defaultMovedBig, repackSmall, repackBig, isRepackFilled });
   const movedSmall = previewSplit.small;
   const movedBig = previewSplit.big;
+  // Hybrid rate visibility follows the confirmed (source) lot, as in outward.
+  const confirmSource = selectedSources[0] ?? targetGrn;
   const resultingSmall = (targetGrn.smallBags ?? 0) + movedSmall;
   const resultingBig = (targetGrn.bigBags ?? 0) + movedBig;
   const resultingBagType = useMemo(() => resolveMergedBagType({
@@ -109,8 +111,8 @@ export function InternalMovementMergeTab({
     });
     if (confirmError) return setValidationError(confirmError);
 
-    const confSmall = confirmation.category === 'Small' ? totalSourceBags : confirmation.category === 'Big' ? 0 : isRepackFilled ? Number(repackSmall) : undefined;
-    const confBig = confirmation.category === 'Small' ? 0 : confirmation.category === 'Big' ? totalSourceBags : isRepackFilled ? Number(repackBig) : undefined;
+    const confSmall = isRepackFilled ? Number(repackSmall) : undefined;
+    const confBig = isRepackFilled ? Number(repackBig) : undefined;
     if (aggregatePending > 0 && !rentAcknowledged) {
       return setValidationError('Please acknowledge the reviewed source dues above. Amounts are revalidated at execution.');
     }
@@ -191,7 +193,7 @@ export function InternalMovementMergeTab({
 
           <MergeBagCategoryFields
             value={confirmation} onChange={patchConfirmation}
-            totalMovedBags={totalSourceBags} targetGrn={targetGrn} movementDate={movementDate}
+            totalMovedBags={totalSourceBags} rentType={confirmSource.rentType} inwardDate={confirmSource.date} movementDate={movementDate}
             repackMode={repackMode} onRepackModeChange={(v) => { setRepackMode(v); if (!v && !hasUnconfirmedMix) { setRepackSmall(''); setRepackBig(''); setReferenceWeight(''); } }}
             repackSmall={repackSmall} onRepackSmallChange={setRepackSmall} repackBig={repackBig} onRepackBigChange={setRepackBig}
             referenceWeight={referenceWeight} onReferenceWeightChange={setReferenceWeight}

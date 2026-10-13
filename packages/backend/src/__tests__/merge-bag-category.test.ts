@@ -137,6 +137,16 @@ describe('Internal Move bag-category confirmation (outward SSOT)', () => {
     expect(hybrid.body.targetGrn.rentAmount).toBe(plain.body.targetGrn.rentAmount);
   });
 
+  it('rejects retired Small-only category with guidance toward the split', async () => {
+    const { target, source } = await seedPair();
+    const res = await postMerge({
+      targetGrnId: target, sourceGrnIds: [source], movementDate: new Date(),
+      remarks: 'Retired category rejected', sourceBagCategory: 'Small',
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Small & Big split');
+  });
+
   it('treats Mixed as Hybrid-family without reinterpretation', async () => {
     const { target, source } = await seedPair();
     const res = await postMerge({

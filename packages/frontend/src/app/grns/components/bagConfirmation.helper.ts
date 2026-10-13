@@ -1,4 +1,4 @@
-import { isHybridBagCategory, type OutwardBagCategory } from '@cold-storage/contracts';
+import { allocateHybridSplit, isHybridBagCategory, type OutwardBagCategory } from '@cold-storage/contracts';
 
 /**
  * bagConfirmation.helper — pure validation for the Internal Move source
@@ -39,7 +39,9 @@ export function validateBagConfirmation(input: BagConfirmationInput): string | n
   }
 
   if (category === 'Small' || category === 'Big') {
-    return null;
+    // No separate single-type options: Small-only and Big-only are expressed
+    // through the Small & Big split with 0 on the unused side (outward parity).
+    return 'Small-only and Big-only confirmation uses the Small & Big split (enter 0 for the unused side).';
   }
 
   if (!input.isRepackRequired) {
@@ -58,13 +60,13 @@ export function validateBagConfirmation(input: BagConfirmationInput): string | n
 }
 
 /**
- * Preview split for Hybrid confirmations: allocate the moved total by ledger
- * proportion. The backend allocator is authoritative; this mirrors it for display.
+ * Preview split for Hybrid confirmations. Delegates to the shared SSOT
+ * allocator (same algorithm as Outward Delivery and the merge backend);
+ * the backend allocator is authoritative at execution.
  */
 export function allocateHybridPreview(ledgerSmall: number, ledgerBig: number, total: number): { small: number; big: number } {
-  const ledTotal = ledgerSmall + ledgerBig;
-  const small = ledTotal > 0 ? Math.round((ledgerSmall * total) / ledTotal) : total;
-  return { small, big: total - small };
+  const split = allocateHybridSplit(ledgerSmall, ledgerBig, total);
+  return { small: split.smallBags, big: split.bigBags };
 }
 
 /**
@@ -76,8 +78,6 @@ export function previewConfirmedSplit(input: {
   category: OutwardBagCategory; rawSmall: number; rawBig: number; total: number;
   defaultSmall: number; defaultBig: number; repackSmall: number | ''; repackBig: number | ''; isRepackFilled: boolean;
 }): { small: number; big: number } {
-  if (input.category === 'Small') return { small: input.total, big: 0 };
-  if (input.category === 'Big') return { small: 0, big: input.total };
   if (isHybridBagCategory(input.category)) return allocateHybridPreview(input.rawSmall, input.rawBig, input.total);
   if (input.isRepackFilled) return { small: Number(input.repackSmall), big: Number(input.repackBig) };
   return { small: input.defaultSmall, big: input.defaultBig };
