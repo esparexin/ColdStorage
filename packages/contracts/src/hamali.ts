@@ -10,7 +10,7 @@ export type HamaliRate = z.infer<typeof hamaliRateSchema>;
 /**
  * Authoritative Hamali labor charge calculation:
  * Total Bags × Hamali Rate per bag.
- * Bag-category agnostic: Small, Big, S+B, Modern Size, Mixed all calculate uniformly.
+ * Bag-category agnostic: Small, Big, S+B, Hybrid, Mixed all calculate uniformly.
  */
 export function calculateHamaliAmount(bags: number, hamaliRate?: number | null): number {
   if (!Number.isFinite(bags) || bags <= 0) return 0;

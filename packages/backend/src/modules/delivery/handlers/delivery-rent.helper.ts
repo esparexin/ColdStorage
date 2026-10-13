@@ -35,7 +35,7 @@ export interface ComputeDeliveryRentParams {
  * Calculates the expected rent charge for outward delivery.
  * For Seasonal rent, computes multi-period elapsed seasons and extensions:
  * - March-December: Full season rate
- * - January & February: Monthly rate from Commodity Rate Table (or manual monthlyBagPrice for Modern)
+ * - January & February: Monthly rate from Commodity Rate Table (or manual monthlyBagPrice for Hybrid)
  * - March 1 renewals: Full renewal rate (Option A Standard Seasonal Rule)
  */
 export async function computeExpectedDeliveryRent(

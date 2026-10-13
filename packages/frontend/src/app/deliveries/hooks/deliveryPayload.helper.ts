@@ -27,24 +27,24 @@ export interface DeliveryPayloadInput {
  * builder stays a straight pass-through with optional transport fields.
  */
 export function buildDeliveryPayload(input: DeliveryPayloadInput): Record<string, unknown> {
-  const isModern = isHybridBagCategory(input.bagCategory);
+  const isHybrid = isHybridBagCategory(input.bagCategory);
   const hasSpecificBags = input.smallBags > 0 || input.bigBags > 0;
   const totalQuantity =
-    isModern && typeof input.quantity === 'number' && input.quantity > 0 && !hasSpecificBags
+    isHybrid && typeof input.quantity === 'number' && input.quantity > 0 && !hasSpecificBags
       ? input.quantity
       : input.smallBags + input.bigBags;
   const payload: Record<string, unknown> = {
     grnId: input.grnId,
     date: new Date(input.createDate),
     quantity: totalQuantity,
-    smallBags: isModern && !hasSpecificBags ? 0 : input.smallBags,
-    bigBags: isModern && !hasSpecificBags ? 0 : input.bigBags,
+    smallBags: isHybrid && !hasSpecificBags ? 0 : input.smallBags,
+    bigBags: isHybrid && !hasSpecificBags ? 0 : input.bigBags,
   };
 
   if (input.bagCategory) {
     payload.bagCategory = input.bagCategory;
   }
-  if (isModern) {
+  if (isHybrid) {
     if (typeof input.seasonalBagPrice === 'number' && input.seasonalBagPrice > 0) {
       payload.seasonalBagPrice = input.seasonalBagPrice;
     }
