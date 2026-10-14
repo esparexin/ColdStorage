@@ -3,7 +3,11 @@
 import React from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import type { Commodity, CommodityRate } from '@cold-storage/contracts';
-import { DataTable, type DataTableColumn, type DataTableColumnGroup } from '@/components/ui/DataTable';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableColumnGroup,
+} from '@/components/ui/DataTable';
 import { Badge, Button } from '@/components/ui';
 import { hydrateRatesForm, type CommodityRatesFormState } from './commodityRates.helper';
 
@@ -68,11 +72,21 @@ export function CommodityTable({
     {
       key: 'name',
       header: 'Commodity Name',
-      render: (row) => <strong>{row.name}</strong>,
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.name,
+      render: (row) => (
+        <span style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-text-primary)' }}>
+          {row.name}
+        </span>
+      ),
     },
     {
       key: 'status',
       header: 'Status',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => (row.isActive ? 'Active' : 'Inactive'),
       render: (row) => (
         <Badge variant={row.isActive ? 'success' : 'neutral'}>
           {row.isActive ? 'Active' : 'Inactive'}
@@ -83,7 +97,7 @@ export function CommodityTable({
       key: 'seasonDuration',
       header: 'Season',
       render: (row) => (
-        <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-medium)' }}>
+        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)' }}>
           {row.seasonDuration === 'Seasonal_3M' ? '3 Months' : '10 Months'}
         </span>
       ),
@@ -92,6 +106,9 @@ export function CommodityTable({
       key: 'hamaliRate',
       header: 'Hamali',
       align: 'right',
+      sortable: true,
+      sortType: 'number',
+      sortAccessor: (row) => row.hamaliRate ?? 0,
       render: (row) => (
         <span style={{ fontVariantNumeric: 'tabular-nums' }}>
           {row.hamaliRate ? `₹${row.hamaliRate}/bag` : '—'}

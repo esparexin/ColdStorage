@@ -13,11 +13,7 @@ import {
   type DataTableColumn,
 } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
-import {
-  EMPTY_MESSAGES,
-  ERROR_TITLES,
-  LOADING_LABELS,
-} from '@/components/ui/stateCopy';
+import { EMPTY_MESSAGES, ERROR_TITLES, LOADING_LABELS } from '@/components/ui/stateCopy';
 import { useFacility } from '@/context/FacilityContext';
 import styles from './FacilitySection.module.css';
 import { FacilityFormModal } from './FacilityFormModal';
@@ -104,16 +100,29 @@ export function FacilitySection() {
   };
 
   const columns: DataTableColumn<Facility>[] = [
-    { key: 'name', header: 'Facility', render: (row) => <strong>{row.name}</strong> },
-    { key: 'code', header: 'Code', render: (row) => <code>{row.code}</code> },
     {
-      key: 'address',
-      header: 'Address',
-      render: (row) => row.address || '—',
+      key: 'name',
+      header: 'Facility',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.name,
+      render: (row) => <span style={{ fontWeight: 'var(--font-semibold)' }}>{row.name}</span>,
     },
+    {
+      key: 'code',
+      header: 'Code',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.code,
+      render: (row) => <code>{row.code}</code>,
+    },
+    { key: 'address', header: 'Address', render: (row) => row.address || '—' },
     {
       key: 'status',
       header: 'Status',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => (row.isActive ? 'Active' : 'Inactive'),
       render: (row) => (
         <Badge variant={row.isActive ? 'success' : 'neutral'}>
           {row.isActive ? 'Active' : 'Inactive'}

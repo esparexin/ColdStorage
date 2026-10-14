@@ -4,6 +4,7 @@ import { Clock, X } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { Badge } from '@/components/ui';
+import { formatDisplayDate } from '@/lib/date-format';
 import { GrnRowActions } from './GrnRowActions';
 import { RentTermsCell } from './RentTermsCell';
 import styles from './GrnTable.module.css';
@@ -42,62 +43,61 @@ export interface CreateGrnTableColumnsParams {
 }
 
 export function createGrnTableColumns({
-  canPrint, canCorrect = false, canCreateChallan = false, canInternalMove = false,
-  printingId, onSelectGrn, onCorrectGrn, onCreateChallan, onInternalMove, onPrint,
+  canPrint,
+  canCorrect = false,
+  canCreateChallan = false,
+  canInternalMove = false,
+  printingId,
+  onSelectGrn,
+  onCorrectGrn,
+  onCreateChallan,
+  onInternalMove,
+  onPrint,
 }: CreateGrnTableColumnsParams): DataTableColumn<Grn>[] {
   return [
     {
       key: 'date',
       header: 'Date',
-      render: (row) => (
-        <span className={styles.dateCell}>
-          {new Date(row.date).toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-          })}
-        </span>
-      ),
+      sortable: true,
+      sortType: 'date',
+      sortAccessor: (row) => row.date,
+      render: (row) => <span className={styles.dateCell}>{formatDisplayDate(row.date)}</span>,
     },
     {
       key: 'grnNumber',
       header: 'GRN #',
-      render: (row) => (
-        <span className={styles.grnLink}>
-          {row.grnNumber}
-        </span>
-      ),
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.grnNumber,
+      render: (row) => <span className={styles.grnLink}>{row.grnNumber}</span>,
     },
     {
       key: 'customerName',
       header: 'Customer',
-      render: (row) => (
-        <span className={styles.customerCell}>
-          {row.customerName}
-        </span>
-      ),
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.customerName,
+      render: (row) => <span className={styles.customerCell}>{row.customerName}</span>,
     },
     {
       key: 'commodityName',
       header: 'Commodity',
-      render: (row) => (
-        <span className={styles.commodityName}>{row.commodityName}</span>
-      ),
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.commodityName,
+      render: (row) => <span className={styles.commodityName}>{row.commodityName}</span>,
     },
     {
       key: 'bags',
       header: 'Inward Bags',
       align: 'right',
+      sortable: true,
+      sortType: 'number',
+      sortAccessor: (row) => row.bags,
       render: (row) => (
         <div className={styles.bagsCell}>
-          <span className={styles.inwardLink}>
-            {row.bags.toLocaleString('en-IN')} bags
-          </span>
-          {row.bagType && (
-            <span className={styles.bagTypeSub}>
-              S/B: {row.bagType}
-            </span>
-          )}
+          <span className={styles.inwardLink}>{row.bags.toLocaleString('en-IN')} bags</span>
+          {row.bagType && <span className={styles.bagTypeSub}>S/B: {row.bagType}</span>}
           {row.netDeliveredBags != null && row.netDeliveredBags > 0 && (
             <span className={styles.deliveredSub}>
               Out: {row.netDeliveredBags.toLocaleString('en-IN')}
@@ -110,6 +110,9 @@ export function createGrnTableColumns({
       key: 'balance',
       header: 'Balance',
       align: 'right',
+      sortable: true,
+      sortType: 'number',
+      sortAccessor: (row) => row.closingBags ?? 0,
       render: (row) => {
         const closing = row.closingBags ?? 0;
         return (
@@ -143,7 +146,9 @@ export function createGrnTableColumns({
         if (row.loanStatus === 'NOT_TAKEN') {
           return <Badge variant="neutral">Pledged</Badge>;
         }
-        return <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}>—</span>;
+        return (
+          <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}>—</span>
+        );
       },
     },
     {
@@ -154,14 +159,18 @@ export function createGrnTableColumns({
         <div className={styles.statusGroup}>
           <Badge
             variant={row.status === 'OPEN' ? 'warning' : 'neutral'}
-            icon={row.status === 'OPEN' ? <Clock size={11} aria-hidden="true" /> : <X size={11} aria-hidden="true" />}
+            icon={
+              row.status === 'OPEN' ? (
+                <Clock size={11} aria-hidden="true" />
+              ) : (
+                <X size={11} aria-hidden="true" />
+              )
+            }
           >
             {row.status === 'OPEN' ? 'Open' : 'Closed'}
           </Badge>
           {row.mergedIntoGrnNumber && (
-            <span className={styles.mergedReference}>
-              Merged → {row.mergedIntoGrnNumber}
-            </span>
+            <span className={styles.mergedReference}>Merged → {row.mergedIntoGrnNumber}</span>
           )}
         </div>
       ),
@@ -190,13 +199,35 @@ export function createGrnTableColumns({
 }
 
 export function GrnTable({
-  grns, caption, canPrint, canCorrect = false, canCreateChallan = false,
-  canInternalMove = false, printingId, page, pageSize, totalPages, totalGrns,
-  onPageChange, onSelectGrn, onCorrectGrn, onCreateChallan, onInternalMove, onPrint,
+  grns,
+  caption,
+  canPrint,
+  canCorrect = false,
+  canCreateChallan = false,
+  canInternalMove = false,
+  printingId,
+  page,
+  pageSize,
+  totalPages,
+  totalGrns,
+  onPageChange,
+  onSelectGrn,
+  onCorrectGrn,
+  onCreateChallan,
+  onInternalMove,
+  onPrint,
 }: GrnTableProps) {
   const columns = createGrnTableColumns({
-    canPrint, canCorrect, canCreateChallan, canInternalMove,
-    printingId, onSelectGrn, onCorrectGrn, onCreateChallan, onInternalMove, onPrint,
+    canPrint,
+    canCorrect,
+    canCreateChallan,
+    canInternalMove,
+    printingId,
+    onSelectGrn,
+    onCorrectGrn,
+    onCreateChallan,
+    onInternalMove,
+    onPrint,
   });
 
   return (

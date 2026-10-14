@@ -1,4 +1,5 @@
 import type { Grn, GrnInventorySummary } from '@cold-storage/contracts';
+import { formatDisplayDate } from '../../../lib/date-format';
 import type { GrnWithdrawal } from '../types';
 
 export const INWARD_STOCK_PAGE_SIZE = 10;
@@ -7,14 +8,7 @@ export const INWARD_STOCK_PAGE_SIZE = 10;
  * Formats a GRN date safely into standard Indian localized date string (e.g. 10 Oct 2026).
  */
 export function formatGrnDate(dateVal?: string | Date | null): string {
-  if (!dateVal) return '—';
-  const d = typeof dateVal === 'string' ? new Date(dateVal) : dateVal;
-  if (isNaN(d.getTime())) return String(dateVal);
-  return d.toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  return formatDisplayDate(dateVal);
 }
 
 /**

@@ -3,13 +3,7 @@
 import React from 'react';
 import { Eye, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { Group } from '@cold-storage/contracts';
-import {
-  Badge,
-  Button,
-  DataTable,
-  OverflowMenu,
-  type OverflowMenuItem,
-} from '@/components/ui';
+import { Badge, Button, DataTable, OverflowMenu, type OverflowMenuItem } from '@/components/ui';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import styles from '../page.module.css';
 
@@ -46,6 +40,9 @@ export function GroupTable({
     {
       key: 'name',
       header: 'Group Name',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (group: Group) => group.name,
       render: (group: Group) => (
         <span style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-primary-text)' }}>
           {group.name}
@@ -55,6 +52,9 @@ export function GroupTable({
     {
       key: 'trader',
       header: 'Trader / Customer',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (group: Group) => group.customerName ?? '',
       render: (group: Group) =>
         group.customerName ? (
           <span>{group.customerName}</span>
@@ -67,6 +67,9 @@ export function GroupTable({
     {
       key: 'grnCount',
       header: 'Assigned GRNs',
+      sortable: true,
+      sortType: 'number',
+      sortAccessor: (group: Group) => group.grnCount,
       render: (group: Group) => (
         <Badge variant={group.grnCount > 0 ? 'primary' : 'neutral'}>
           {group.grnCount} {group.grnCount === 1 ? 'GRN' : 'GRNs'}
@@ -76,6 +79,9 @@ export function GroupTable({
     {
       key: 'totalBags',
       header: 'Total Stock',
+      sortable: true,
+      sortType: 'number',
+      sortAccessor: (group: Group) => group.stockSummary?.totalBags ?? 0,
       render: (group: Group) => (
         <span style={{ fontWeight: 'var(--font-semibold)' }}>
           {group.stockSummary ? `${group.stockSummary.totalBags.toLocaleString()} bags` : '—'}

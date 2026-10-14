@@ -5,6 +5,7 @@ import { Eye } from 'lucide-react';
 import type { AuditLogRecord } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { Badge, Button } from '@/components/ui';
+import { formatDisplayDate } from '@/lib/date-format';
 
 interface AuditTableProps {
   logs: AuditLogRecord[];
@@ -29,12 +30,12 @@ export function AuditTable({
     {
       key: 'timestamp',
       header: 'Timestamp',
+      sortable: true,
+      sortType: 'date',
+      sortAccessor: (r) => r.timestamp,
       render: (r) => (
         <span style={{ fontSize: 'var(--text-xs)' }}>
-          {new Date(r.timestamp).toLocaleString('en-IN', {
-            dateStyle: 'medium',
-            timeStyle: 'medium',
-          })}
+          {formatDisplayDate(r.timestamp, { includeTime: true })}
         </span>
       ),
     },
@@ -42,6 +43,9 @@ export function AuditTable({
       key: 'severity',
       header: 'Severity',
       align: 'center',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (r) => r.severity,
       render: (r) => (
         <Badge
           variant={
@@ -59,8 +63,17 @@ export function AuditTable({
     {
       key: 'eventType',
       header: 'Event Action',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (r) => r.eventType,
       render: (r) => (
-        <span style={{ fontWeight: 'var(--font-semibold)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)' }}>
+        <span
+          style={{
+            fontWeight: 'var(--font-semibold)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-sm)',
+          }}
+        >
           {r.eventType}
         </span>
       ),
@@ -68,6 +81,9 @@ export function AuditTable({
     {
       key: 'actor',
       header: 'Actor / Role',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (r) => r.username,
       render: (r) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontWeight: 'var(--font-semibold)' }}>{r.username}</span>
@@ -80,6 +96,9 @@ export function AuditTable({
     {
       key: 'resource',
       header: 'Resource',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (r) => r.resource,
       render: (r) => (
         <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
           {r.resource}

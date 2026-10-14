@@ -1,10 +1,21 @@
 'use client';
 
 import React from 'react';
+import { DataTableHead } from './DataTableHead';
 import { FeedbackStates } from './FeedbackStates';
 import { Pagination } from './Pagination';
-import { isInteractiveTarget, shouldTriggerRowClickOnKey } from './dataTable.helper';
+import {
+  getNextSortDirection,
+  isInteractiveTarget,
+  shouldTriggerRowClickOnKey,
+  sortRows,
+  type SortDirection,
+  type SortableColumn,
+  type SortType,
+} from './dataTable.helper';
 import styles from './DataTable.module.css';
+
+export type { SortDirection, SortType };
 
 export interface DataTableColumnGroup {
   key: string;
@@ -13,7 +24,7 @@ export interface DataTableColumnGroup {
   borderLeft?: boolean;
 }
 
-export interface DataTableColumn<T> {
+export interface DataTableColumn<T> extends SortableColumn<T> {
   key: string;
   header: React.ReactNode;
   /** Renders the cell content. Return value must be renderable (string, number, ReactNode). */
@@ -24,6 +35,12 @@ export interface DataTableColumn<T> {
   group?: string;
   /** Optional left border to visually partition column groups */
   borderLeft?: boolean;
+  /** Whether the column header can be clicked to sort */
+  sortable?: boolean;
+  /** Custom sort accessor function returning a primitive or Date */
+  sortAccessor?: (row: T) => string | number | Date | null | undefined;
+  /** Explicit type override for sorting comparison */
+  sortType?: SortType;
 }
 
 export interface DataTablePagination {
@@ -55,6 +72,16 @@ export interface DataTableProps<T> {
   pagination?: DataTablePagination;
   onRowClick?: (row: T, index: number) => void;
   footer?: React.ReactNode;
+  /** Active sort column key (controlled sorting) */
+  sortBy?: string;
+  /** Active sort direction (controlled sorting) */
+  sortDirection?: SortDirection;
+  /** Callback fired when a sortable column header is clicked */
+  onSortChange?: (sortKey: string, direction: SortDirection) => void;
+  /** Default sort column key (uncontrolled sorting) */
+  defaultSortBy?: string;
+  /** Default sort direction (uncontrolled sorting) */
+  defaultSortDirection?: SortDirection;
 }
 
 export function DataTable<T>({
@@ -72,7 +99,43 @@ export function DataTable<T>({
   pagination,
   onRowClick,
   footer,
+  sortBy,
+  sortDirection,
+  onSortChange,
+  defaultSortBy,
+  defaultSortDirection,
 }: DataTableProps<T>) {
+  const [internalSort, setInternalSort] = React.useState<{
+    key: string;
+    direction: SortDirection;
+  } | null>(() =>
+    defaultSortBy ? { key: defaultSortBy, direction: defaultSortDirection ?? 'asc' } : null,
+  );
+
+  const activeSortKey = sortBy !== undefined ? sortBy : internalSort?.key;
+  const activeSortDir = sortDirection !== undefined ? sortDirection : internalSort?.direction;
+
+  const handleSortClick = (colKey: string) => {
+    const nextDir = getNextSortDirection(activeSortKey ?? null, colKey, activeSortDir);
+    if (onSortChange) {
+      onSortChange(colKey, nextDir);
+    }
+    if (sortBy === undefined) {
+      setInternalSort({ key: colKey, direction: nextDir });
+    }
+  };
+
+  const displayRows = React.useMemo(() => {
+    if (sortBy !== undefined || !activeSortKey || !activeSortDir) {
+      return rows;
+    }
+    const targetCol = columns.find((c) => c.key === activeSortKey);
+    if (!targetCol || !targetCol.sortable) {
+      return rows;
+    }
+    return sortRows(rows, targetCol, activeSortDir);
+  }, [rows, columns, sortBy, activeSortKey, activeSortDir]);
+
   if (loading) {
     return <FeedbackStates.Loading label={loadingLabel ?? 'Loading data…'} />;
   }
@@ -81,113 +144,37 @@ export function DataTable<T>({
     return <FeedbackStates.Error message={error} onRetry={onRetry} />;
   }
 
-  if (rows.length === 0 && (emptyMessage || emptyAction)) {
+  if (displayRows.length === 0 && (emptyMessage || emptyAction)) {
     return (
-      <FeedbackStates.Empty
-        message={emptyMessage ?? 'No records found.'}
-        action={emptyAction}
-      />
+      <FeedbackStates.Empty message={emptyMessage ?? 'No records found.'} action={emptyAction} />
     );
   }
 
-  const hasGroups = Boolean(groups && groups.length > 0);
-
   return (
     <div className={styles.container}>
-      <div className={styles.tableWrapper} role={caption ? 'region' : undefined} aria-label={caption}>
+      <div
+        className={styles.tableWrapper}
+        role={caption ? 'region' : undefined}
+        aria-label={caption}
+      >
         <table className={styles.table}>
           {caption && <caption className={styles.caption}>{caption}</caption>}
-          <thead>
-            {hasGroups ? (
-              <>
-                <tr>
-                  {(() => {
-                    const renderedGroups = new Set<string>();
-                    return columns.map((col) => {
-                      if (!col.group) {
-                        return (
-                          <th
-                            key={col.key}
-                            scope="col"
-                            rowSpan={2}
-                            className={styles.th}
-                            style={{
-                              textAlign: col.align ?? 'left',
-                              borderLeft: col.borderLeft ? '1px solid var(--color-border)' : undefined,
-                            }}
-                          >
-                            {col.header}
-                          </th>
-                        );
-                      }
-                      if (renderedGroups.has(col.group)) {
-                        return null;
-                      }
-                      renderedGroups.add(col.group);
-                      const groupDef = groups!.find((g) => g.key === col.group);
-                      const colSpan = columns.filter((c) => c.group === col.group).length;
-                      return (
-                        <th
-                          key={`group-${col.group}`}
-                          scope="colgroup"
-                          colSpan={colSpan}
-                          className={styles.th}
-                          style={{
-                            textAlign: groupDef?.align ?? 'center',
-                            borderLeft: groupDef?.borderLeft || col.borderLeft ? '1px solid var(--color-border)' : undefined,
-                          }}
-                        >
-                          {groupDef?.header ?? col.group}
-                        </th>
-                      );
-                    });
-                  })()}
-                </tr>
-                <tr>
-                  {columns
-                    .filter((col) => Boolean(col.group))
-                    .map((col) => (
-                      <th
-                        key={col.key}
-                        scope="col"
-                        className={styles.th}
-                        style={{
-                          textAlign: col.align ?? 'left',
-                          borderLeft: col.borderLeft ? '1px solid var(--color-border)' : undefined,
-                        }}
-                      >
-                        {col.header}
-                      </th>
-                    ))}
-                </tr>
-              </>
-            ) : (
-              <tr>
-                {columns.map((col) => (
-                  <th
-                    key={col.key}
-                    scope="col"
-                    className={styles.th}
-                    style={{
-                      textAlign: col.align ?? 'left',
-                      borderLeft: col.borderLeft ? '1px solid var(--color-border)' : undefined,
-                    }}
-                  >
-                    {col.header}
-                  </th>
-                ))}
-              </tr>
-            )}
-          </thead>
+          <DataTableHead
+            columns={columns}
+            groups={groups}
+            activeSortKey={activeSortKey}
+            activeSortDir={activeSortDir}
+            onSortClick={handleSortClick}
+          />
           <tbody>
-            {rows.length === 0 ? (
+            {displayRows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className={styles.emptyCell}>
                   {emptyMessage ?? 'No records found.'}
                 </td>
               </tr>
             ) : (
-              rows.map((row, index) => {
+              displayRows.map((row, index) => {
                 const isClickable = Boolean(onRowClick);
                 return (
                   <tr
@@ -203,7 +190,10 @@ export function DataTable<T>({
                     onKeyDown={
                       isClickable
                         ? (e) => {
-                            if (!isInteractiveTarget(e.target) && shouldTriggerRowClickOnKey(e.key)) {
+                            if (
+                              !isInteractiveTarget(e.target) &&
+                              shouldTriggerRowClickOnKey(e.key)
+                            ) {
                               e.preventDefault();
                               onRowClick?.(row, index);
                             }

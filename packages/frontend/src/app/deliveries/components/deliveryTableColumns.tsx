@@ -2,6 +2,7 @@ import React from 'react';
 import { isHybridBagCategory, type DeliveryChallan } from '@cold-storage/contracts';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { Badge } from '@/components/ui';
+import { formatDisplayDate } from '@/lib/date-format';
 import {
   isDeliveryPartiallyPaid,
   isDeliverySettled,
@@ -31,52 +32,54 @@ export function createDeliveryColumns({
     {
       key: 'challanNumber',
       header: 'Challan #',
-      render: (row) => (
-        <span className={styles.challanNumber}>{row.challanNumber}</span>
-      ),
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.challanNumber,
+      render: (row) => <span className={styles.challanNumber}>{row.challanNumber}</span>,
     },
     {
       key: 'date',
       header: 'Date',
-      render: (row) => (
-        <span className={styles.dateSub}>
-          {new Date(row.date).toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-          })}
-        </span>
-      ),
+      sortable: true,
+      sortType: 'date',
+      sortAccessor: (row) => row.date,
+      render: (row) => <span className={styles.dateSub}>{formatDisplayDate(row.date)}</span>,
     },
     {
       key: 'grnNumber',
       header: 'GRN #',
-      render: (row) => (
-        <span className={styles.grnNumber}>{row.grnNumber}</span>
-      ),
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.grnNumber,
+      render: (row) => <span className={styles.grnNumber}>{row.grnNumber}</span>,
     },
     {
       key: 'customerName',
       header: 'Customer',
-      render: (row) => (
-        <span className={styles.customerCell}>{row.customerName}</span>
-      ),
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.customerName,
+      render: (row) => <span className={styles.customerCell}>{row.customerName}</span>,
     },
     {
       key: 'commodityName',
       header: 'Commodity',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.commodityName,
       render: (row) => <span>{row.commodityName}</span>,
     },
     {
       key: 'bagsSb',
       header: 'Bags (S/B)',
       align: 'right',
+      sortable: true,
+      sortType: 'number',
+      sortAccessor: (row) => row.totalBags,
       render: (row) => {
         if (isHybridBagCategory(row.bagCategory)) {
           return (
-            <span className={styles.bagsTotal}>
-              {row.totalBags.toLocaleString('en-IN')} Hybrid
-            </span>
+            <span className={styles.bagsTotal}>{row.totalBags.toLocaleString('en-IN')} Hybrid</span>
           );
         }
         return (

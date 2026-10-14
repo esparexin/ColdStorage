@@ -31,11 +31,21 @@ export function CustomerTable({
     {
       key: 'name',
       header: 'Customer Name',
-      render: (row) => <strong>{row.name}</strong>,
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.name,
+      render: (row) => (
+        <span style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-text-primary)' }}>
+          {row.name}
+        </span>
+      ),
     },
     {
       key: 'status',
       header: 'Status',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => (row.isActive ? 'Active' : 'Inactive'),
       render: (row) => (
         <Badge variant={row.isActive ? 'success' : 'neutral'}>
           {row.isActive ? 'Active' : 'Inactive'}
