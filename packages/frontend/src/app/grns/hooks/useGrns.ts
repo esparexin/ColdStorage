@@ -6,6 +6,7 @@ import type {
 } from '@cold-storage/contracts';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
+import { cachedRequestWithAuth } from '@/lib/api-cache';
 
 import {
   type GrnStatusTab,
@@ -56,8 +57,8 @@ export function useGrns(
     if (!selectedFacilityId) return;
     try {
       const [custRes, commRes] = await Promise.all([
-        requestWithAuth(`/api/customers?facilityId=${encodeURIComponent(selectedFacilityId)}`),
-        requestWithAuth('/api/commodities'),
+        cachedRequestWithAuth(`/api/customers?facilityId=${encodeURIComponent(selectedFacilityId)}`),
+        cachedRequestWithAuth('/api/commodities'),
       ]);
 
       if (custRes.ok) {
