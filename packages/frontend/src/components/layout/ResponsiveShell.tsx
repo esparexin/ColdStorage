@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AppHeader } from './AppHeader';
 import { SidebarNav } from './SidebarNav';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
@@ -40,17 +40,34 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
   const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
   const toggleMobileNav = useCallback(() => setMobileNavOpen((prev) => !prev), []);
 
+  useEffect(() => {
+    if (!isLoading && !user && typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+      const returnUrl = window.location.pathname + window.location.search;
+      window.location.href = `/login?returnUrl=${encodeURIComponent(returnUrl)}`;
+    }
+  }, [isLoading, user]);
+
   if (isLoading) {
     return <FeedbackStates.Loading fullPage label={LOADING_LABELS.auth} />;
   }
 
   if (!user) {
+    const isSessionExpired =
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('expired') === 'true';
+
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
       setIsSubmitting(true);
       try {
         await login(username, password);
+        if (typeof window !== 'undefined') {
+          const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
+          if (returnUrl) {
+            window.location.href = returnUrl;
+          }
+        }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Invalid credentials';
         setError(message);
@@ -70,6 +87,10 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
             <h1 className={styles.loginTitle}>{PRODUCT_NAME}</h1>
             <p className={styles.loginSubtitle}>Sign in to access your facility dashboard</p>
           </div>
+
+          {isSessionExpired && !error && (
+            <Banner variant="info" message="Your session has expired. Please sign in again." id="session-expired-banner" />
+          )}
 
           {error && <Banner message={error} id="login-error" />}
 

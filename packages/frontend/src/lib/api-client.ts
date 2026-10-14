@@ -87,6 +87,7 @@ export async function requestWithAuth(url: string, options: RequestInit = {}): P
       // Retry exactly once with the new token
       return fetchWithTimeout(url, { ...options, headers, credentials: 'include' });
     }
+    onAuthExpired?.();
   }
 
   return response;
@@ -127,6 +128,7 @@ export async function executeSingleFlightRefresh<T = unknown>(
       return { token: data.token, user: data.user };
     } catch {
       setAccessToken(null);
+      onAuthExpired?.();
       return null;
     } finally {
       refreshPromise = null; // reset so the next 401 starts a new flight
