@@ -2,7 +2,7 @@
 
 | ID | Scope | Owner | Rationale | Expiry | Removal criteria |
 |----|-------|-------|-----------|--------|------------------|
-| EX-01 | `scripts/repair-monthly-rent.mjs` uses `MongoClient` (retired one-off) | DBA | One-off repair, dry-run default, zero refs; excluded from backend-src gate | 2027-04-12 | Delete file after launch cutover |
+| EX-01 | `scripts/repair-monthly-rent.mjs` (retired one-off) | DBA | RESOLVED: Unsafe repair script deleted in Phase 1 safety isolation | 2026-10-14 | Deleted; zero live mutation risk |
 | EX-02 | `errorResponseSchema` incremental adoption | Backend | Non-breaking; new handlers prefer envelope, old `{error}` preserved | 2027-04-12 | All handlers emit envelope |
 | EX-03 | `asyncHandler` pilot (dashboard+inventory wrapped; grn/delivery/rent incremental) | Backend | Avoid 250-line violations + large diffs; gate tracks expansion | 2026-12-31 | All routers wrapped |
 | EX-04 | `audit/*` branch backend-only rule; this work uses `feat/*` | Governance | Full-stack scope required frontend changes | Permanent | Keep `audit/*` for backend-only work |
