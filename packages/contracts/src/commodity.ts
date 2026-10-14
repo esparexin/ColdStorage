@@ -1,3 +1,5 @@
+import { commodityRateSchema } from './commodity-rate.js';
+
 import { z } from 'zod';
 import { hamaliRateSchema } from './hamali.js';
 
@@ -7,6 +9,15 @@ export type SeasonDuration = z.infer<typeof seasonDurationSchema>;
 export const commoditySchema = z.object({
   id: z.string().min(1),
   name: z.string().trim().min(1).max(100),
+  /**
+   * Per-commodity rate rows, populated by the LIST endpoint only.
+   *
+   * The commodities screen previously fetched this per commodity in a
+   * `Promise.all`, so a facility with N commodities issued 1 + N requests just
+   * to render one table. The list now returns them inline and the N+1 is gone.
+   * Omitted by the single-commodity endpoints, which do not need them.
+   */
+  rates: z.array(commodityRateSchema).optional(),
   seasonDuration: seasonDurationSchema.optional(),
   isHamaliApplicable: z.boolean().optional().default(false),
   hamaliRate: hamaliRateSchema.optional(),

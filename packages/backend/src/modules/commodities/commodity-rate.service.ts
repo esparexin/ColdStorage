@@ -187,7 +187,7 @@ export class CommodityRateService {
     }
   }
 
-  private toEntity(doc: CommodityRateDoc | CommodityRate): CommodityRate {
+  public toEntity(doc: CommodityRateDoc | CommodityRate): CommodityRate {
     return {
       id: doc.id,
       commodityId: doc.commodityId,

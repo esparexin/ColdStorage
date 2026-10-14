@@ -23,7 +23,20 @@ export function useBackupData(canManage: boolean) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [logsError, setLogsError] = useState<string | null>(null);
-  const beginRequest = useRequestGuard();
+  // One guard PER CONCURRENT REQUEST, not one shared guard.
+  //
+  // useRequestGuard increments a single counter and reports `thisId ===
+  // latestId.current`, so the LAST caller wins and every earlier caller is
+  // permanently invalidated. The effect below fires fetchStatus() and
+  // fetchLogs() in the same tick, so status took id N and logs took id N+1:
+  // status resolved to `N === N+1`, which is false, so setBackupStatus and
+  // setLoadingStatus never ran. The backup page rendered "NOT CONFIGURED"
+  // forever and the Refresh button stayed disabled.
+  //
+  // A guard means "has a NEWER request of MY KIND superseded this one", so each
+  // request sequence needs its own.
+  const beginStatusRequest = useRequestGuard();
+  const beginLogsRequest = useRequestGuard();
 
   // A narrower filter can leave the current page number past the end.
   const setStatusFilter = useCallback((status: '' | BackupStatus) => {
@@ -35,7 +48,7 @@ export function useBackupData(canManage: boolean) {
     if (!canManage) return;
     setLoadingStatus(true);
     setStatusError(null);
-    const isCurrent = beginRequest();
+    const isCurrent = beginStatusRequest();
     try {
       const res = await requestWithAuth('/api/backups/status');
       if (!res.ok) {
@@ -51,13 +64,13 @@ export function useBackupData(canManage: boolean) {
     } finally {
       if (isCurrent()) setLoadingStatus(false);
     }
-  }, [beginRequest, canManage]);
+  }, [beginStatusRequest, canManage]);
 
   const fetchLogs = useCallback(async () => {
     if (!canManage) return;
     setLoadingLogs(true);
     setLogsError(null);
-    const isCurrent = beginRequest();
+    const isCurrent = beginLogsRequest();
     try {
       const params = new URLSearchParams();
       params.set('page', String(page));
@@ -87,7 +100,7 @@ export function useBackupData(canManage: boolean) {
     } finally {
       if (isCurrent()) setLoadingLogs(false);
     }
-  }, [beginRequest, canManage, page, limit, statusFilter]);
+  }, [beginLogsRequest, canManage, page, limit, statusFilter]);
 
   useEffect(() => {
     if (canManage) {
