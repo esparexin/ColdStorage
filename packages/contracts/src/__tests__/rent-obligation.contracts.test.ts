@@ -74,12 +74,15 @@ describe('resolveTotalRentObligation (rent-obligation SSOT)', () => {
     ).toBe(7500);
   });
 
-  it('treats Seasonal_3M like Seasonal', () => {
+  it('Seasonal_3M takes the greater of stored rent and outward charges', () => {
     expect(
       resolveTotalRentObligation({ rentType: 'Seasonal_3M', rentAmount: 0, outwardRentCharges: 15000 }),
     ).toBe(15000);
     expect(
       resolveTotalRentObligation({ rentType: 'Seasonal_3M', rentAmount: 9000, outwardRentCharges: 15000 }),
+    ).toBe(15000);
+    expect(
+      resolveTotalRentObligation({ rentType: 'Seasonal_3M', rentAmount: 9000, outwardRentCharges: 5000 }),
     ).toBe(9000);
   });
 
@@ -167,8 +170,8 @@ describe('resolveTotalRentObligation (rent-obligation SSOT)', () => {
   it('splitRentObligation reports components that recompose to the total', () => {
     const input = {
       rentType: 'Monthly' as const,
-      rentAmount: 3000,
-      outwardRentCharges: 12000,
+      rentAmount: 12000,
+      outwardRentCharges: 3000,
       extensionAmounts: [1000],
       hamaliShare: 500,
     };
