@@ -3,7 +3,6 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { GrnModel } from '../database/models/grn.model.js';
-import { GrnService } from '../modules/grn/grn.service.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility } from './helpers/master-data-fixtures.js';
 import {

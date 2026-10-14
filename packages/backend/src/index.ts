@@ -4,6 +4,7 @@ import { connectToDatabase, disconnectDatabase } from './database/connection.js'
 import { roleService } from './modules/roles/role.service.js';
 import { userRepository } from './modules/users/user.repository.js';
 import { logger } from './utils/logger.js';
+import { stopMemoryStoreSweep } from './middleware/rate-limiter.middleware.js';
 
 export * from './app.js';
 export * from './config.js';
@@ -46,6 +47,7 @@ if (process.env.NODE_ENV !== 'test') {
     server.close(() => {
       void disconnectDatabase().finally(() => process.exit(0));
     });
+    void stopMemoryStoreSweep();
     setTimeout(() => process.exit(1), 10000).unref();
   };
   process.on('SIGTERM', () => shutdown('SIGTERM'));
