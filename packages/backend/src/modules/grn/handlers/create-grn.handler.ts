@@ -97,7 +97,7 @@ export async function createGrn(
   if (finalRentAmount == null && (isSeasonal || hasFixedMonthlyDuration)) {
     finalRentAmount = calculateRentAmount({
       rentType: input.rentType, bags: input.bags, bagType: input.bagType,
-      smallBags: composition.smallBags, bigBags: composition.bigBags,
+      smallBags: input.smallBags ?? null, bigBags: input.bigBags ?? null,
       smallBagPrice: input.smallBagPrice ?? null, bigBagPrice: input.bigBagPrice ?? null,
       bagPrice: input.bagPrice ?? null, rentMonths, rentAmount: null,
     });

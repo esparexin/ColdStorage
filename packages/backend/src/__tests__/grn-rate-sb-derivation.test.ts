@@ -93,4 +93,29 @@ describe('Canonical S/B rate validation & auto-derivation of inward obligation',
     // 60 × 12 + 40 × 18 = 720 + 720 = 1440
     expect(res.body.grn.rentAmount).toBe(1440);
   });
+
+  it('rejects unverified S/B lots when differential rates exist', async () => {
+    const res = await postInbound({
+      bags: 100,
+      smallBagPrice: 12,
+      bigBagPrice: 18,
+    });
+    expect(res.status).toBe(400);
+    expect(JSON.stringify(res.body)).toContain('Small and big bag composition unverified');
+  });
+
+  it('accepts unsegregated S/B lots when rates are equal', async () => {
+    // Configure equal rates
+    await CommodityRateModel.updateOne(
+      { commodityId, rentType: 'Seasonal' },
+      { $set: { smallRate: 15, bigRate: 15 } },
+    );
+    const res = await postInbound({
+      bags: 100,
+      smallBagPrice: 15,
+      bigBagPrice: 15,
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.grn.rentAmount).toBe(1500);
+  });
 });

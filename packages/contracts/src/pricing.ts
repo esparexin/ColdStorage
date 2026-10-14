@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { type BagType, isHybridBagCategory } from './bags.js';
+import { type BagType, isHybridBagCategory, canCalculateAuthoritativeRent } from './bags.js';
 import type { RentType } from './grn-rent.js';
 
 /**
@@ -13,14 +13,11 @@ export const bagPriceSchema = z
   .max(100000, 'Bag price cannot exceed ₹100,000');
 
 export type BagPrice = z.infer<typeof bagPriceSchema>;
-
 export interface CanonicalBagRate { small: number; big: number; }
 
 /** Canonical reference rates for Small and Big bags under Seasonal and Monthly rent types. */
 export const CANONICAL_BAG_RATES: Record<RentType, CanonicalBagRate> = {
-  Seasonal: { small: 10, big: 15 },
-  Seasonal_3M: { small: 10, big: 15 },
-  Monthly: { small: 10, big: 15 },
+  Seasonal: { small: 10, big: 15 }, Seasonal_3M: { small: 10, big: 15 }, Monthly: { small: 10, big: 15 },
 };
 
 export interface OutwardRateOverride { smallBagPrice?: number | null; bigBagPrice?: number | null; bagPrice?: number | null; }
@@ -49,35 +46,58 @@ export function calculateRentAmount(input: RentalCalculationInput): number {
   const isSeasonal = input.rentType === 'Seasonal' || input.rentType === 'Seasonal_3M';
   const months = isSeasonal ? 1 : Math.max(1, input.rentMonths ?? 1);
 
-  if (isHybridBagCategory(input.bagCategory)) {
-    if (typeof input.bagPrice === 'number' && input.bagPrice > 0) {
-      return Number((input.bags * input.bagPrice * months).toFixed(2));
-    }
+  if (isHybridBagCategory(input.bagCategory) && typeof input.bagPrice === 'number' && input.bagPrice > 0) {
+    return Number((input.bags * input.bagPrice * months).toFixed(2));
   }
 
-  const hasDiff = input.smallBagPrice != null || input.bigBagPrice != null;
+  const sRate = input.smallBagPrice ?? input.bagPrice ?? 0;
+  const bRate = input.bigBagPrice ?? input.bagPrice ?? 0;
+  const hasDiffRates = (input.smallBagPrice != null || input.bigBagPrice != null) && sRate !== bRate;
+
+  if (input.bagType === 'S') {
+    const rate = sRate > 0 ? sRate : bRate;
+    if (rate > 0) return Number((input.bags * rate * months).toFixed(2));
+  }
+  if (input.bagType === 'B') {
+    const rate = bRate > 0 ? bRate : sRate;
+    if (rate > 0) return Number((input.bags * rate * months).toFixed(2));
+  }
+
   const isSb = input.bagType === 'S+B' || input.bagType === 'S/B' || input.bagType == null || input.smallBags != null || input.bigBags != null;
-  if (hasDiff || isSb) {
-    let sCount = input.smallBags;
-    let bCount = input.bigBags;
-    if (sCount == null && bCount == null) {
-      if (input.bagType === 'B') { sCount = 0; bCount = input.bags; }
-      else { sCount = input.bags; bCount = 0; }
-    } else {
-      sCount = sCount ?? 0;
-      bCount = bCount ?? 0;
+
+  if (hasDiffRates) {
+    const canCalc = canCalculateAuthoritativeRent({
+      bagType: input.bagType, bags: input.bags,
+      smallBags: input.smallBags, bigBags: input.bigBags,
+      bagPrice: input.bagPrice, smallBagPrice: input.smallBagPrice, bigBagPrice: input.bigBagPrice,
+    });
+    if (!canCalc.canCalculate) {
+      // Differential rates require confirmed composition; unverified composition cannot produce an authoritative amount
+      return Number((input.rentAmount ?? 0).toFixed(2));
     }
-    const sRate = input.smallBagPrice ?? input.bagPrice ?? 0;
-    const bRate = input.bigBagPrice ?? input.bagPrice ?? 0;
-    if (sRate > 0 || bRate > 0) {
-      return Number(((sCount * sRate + bCount * bRate) * months).toFixed(2));
+    const sCount = input.smallBags ?? 0;
+    const bCount = input.bigBags ?? 0;
+    return Number(((sCount * sRate + bCount * bRate) * months).toFixed(2));
+  }
+
+  // Equal rates or flat per-bag rate across S/B
+  if (isSb) {
+    const hasSplit = (input.smallBags != null || input.bigBags != null) &&
+      (input.smallBags ?? 0) + (input.bigBags ?? 0) === input.bags;
+    if (hasSplit) {
+      const sCount = input.smallBags ?? 0;
+      const bCount = input.bigBags ?? 0;
+      if (sRate > 0 || bRate > 0) {
+        return Number(((sCount * sRate + bCount * bRate) * months).toFixed(2));
+      }
     }
+    const rate = sRate > 0 ? sRate : bRate;
+    if (rate > 0) return Number((input.bags * rate * months).toFixed(2));
   }
 
   if (typeof input.bagPrice === 'number' && input.bagPrice > 0) {
     return Number((input.bags * input.bagPrice * months).toFixed(2));
   }
-
   return Number((input.rentAmount ?? 0).toFixed(2));
 }
 
@@ -104,11 +124,7 @@ export function deriveBagPrice(input: {
 }
 
 /** Billing cycle label: Seasonal is fixed; Monthly is the day-of-month cycle. */
-export function deriveBillingCycle(
-  inwardDate: Date,
-  rentType: RentType,
-  asOfDate: Date = new Date(),
-): string {
+export function deriveBillingCycle(inwardDate: Date, rentType: RentType, asOfDate: Date = new Date()): string {
   if (rentType === 'Seasonal') return 'Season total (Mar–Dec)';
   if (rentType === 'Seasonal_3M') return 'Season total (3 Months)';
   const inDate = new Date(inwardDate);
@@ -122,19 +138,12 @@ export function deriveBillingCycle(
   const cycleStart = new Date(cycleStartYear, cycleStartMonth, day);
   const nextMonth = new Date(cycleStartYear, cycleStartMonth + 1, day);
   const cycleEnd = new Date(nextMonth.getTime() - 24 * 60 * 60 * 1000);
-
-  const fmt = (d: Date) =>
-    d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   return `${fmt(cycleStart)} – ${fmt(cycleEnd)}`;
 }
 
-/**
- * Authoritative elapsed monthly billing cycle calculation (1-day storage = full month minimum).
- */
-export function calculateMonthlyElapsedCycles(
-  inwardDate: Date | string,
-  outwardDate: Date | string = new Date(),
-): number {
+/** Authoritative elapsed monthly billing cycle calculation (1-day storage = full month minimum). */
+export function calculateMonthlyElapsedCycles(inwardDate: Date | string, outwardDate: Date | string = new Date()): number {
   const inD = new Date(inwardDate);
   const outD = new Date(outwardDate);
   const inTime = new Date(inD.getFullYear(), inD.getMonth(), inD.getDate()).getTime();
@@ -170,9 +179,7 @@ export interface OccupancyCalculationInput {
   totalBags: number;
   bagRate: number;
   movements: MovementSnapshot[];
-  /** End boundary; defaults to current date. */
   asOfDate?: Date;
-  /** Billing uses opening occupancy per cycle ('full_month'); 'daily_prorate' is opt-in. */
   prorationMode?: 'full_month' | 'daily_prorate';
 }
 
@@ -217,11 +224,9 @@ export function calculateMonthlyOccupancy(input: OccupancyCalculationInput) {
       }
     }
 
-    const fmt = (d: Date) =>
-      d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
     const billingPeriod = `${fmt(cycleStart)} – ${fmt(cycleEnd)}`;
     const applicableMonth = cycleStart.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
-
     const occupancyBags = currentOpening;
     const calculatedCharge = Number((occupancyBags * bagRate).toFixed(2));
 
@@ -233,10 +238,7 @@ export function calculateMonthlyOccupancy(input: OccupancyCalculationInput) {
     });
 
     currentOpening = endOfCycleRemaining;
-    if (currentOpening <= 0) {
-      break;
-    }
-
+    if (currentOpening <= 0) break;
     cycleStart = nextCycleMonth;
     periodIndex++;
   }
