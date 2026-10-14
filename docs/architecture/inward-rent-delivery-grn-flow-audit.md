@@ -38,7 +38,7 @@ App Router, modal-driven. No `services/`, no stores. Global `AuthContext`, `Faci
 
 * `/grns` (`app/grns/page.tsx`) → `CreateGrnModal` + `useCreateGrnForm.ts:98,155` → `POST /grns`.
 * `/inventory?grnId=` (`app/inventory/page.tsx:20,24`) → `usePutAway:140` → `POST /allocations`, `useInventoryData:28` → `GET /grns?status=OPEN`.
-* `/deliveries` (`app/deliveries/page.tsx`) → `CreateDeliveryModal` + `useCreateDeliveryForm.ts:27,42,79` (`GET grns?status=OPEN`, `GET inventory-summary`, `POST deliveries`).
+* `/deliveries` (`app/deliveries/page.tsx`) → `IssueDeliveryChallanPanel` + `useCreateDeliveryForm.ts:27,42,79` (`GET grns?status=OPEN`, `GET inventory-summary`, `POST deliveries`).
 * `/rent` (`app/rent/page.tsx:32-45`) → `RentTable Collect/Receipts` → `CollectPaymentModal` + `useCollectPaymentForm.ts:27,48` → `POST /rent/collect`, `useRentData.ts:19,30,43` (N+1 summary fetch).
 
 Zero `rent/Settled` refs in `app/deliveries/*`. Zero `returnUrl|router.push|redirect` repo-wide. Post-payment only closes modal + refetch. Prints via `window.open('',_blank)`.
@@ -88,7 +88,7 @@ The put-away workflow this audit describes no longer exists, and the stale refer
 
 ## 8. Governance decisions — Inward Form Edit Anti-Fragmentation Gate (frozen)
 
-Canonical edit path (exactly one SSOT, no duplicates): UI `CorrectGrnModal.tsx` →
+Canonical edit path (exactly one SSOT, no duplicates): UI `CreateGrnModal.tsx` in `mode="edit"` →
 `PATCH /facilities/:facilityId/grns/:grnId` (`correctGrnSchema`, `grn:correct`) →
 `correctGrn` handler → `GrnModel` + `INWARD_PUTAWAY` leg + `DeliveryChallan.chamber`
 fan-out → `GRN_CORRECTED/WARN` audit.

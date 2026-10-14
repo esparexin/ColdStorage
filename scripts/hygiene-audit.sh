@@ -78,6 +78,23 @@ if ! bash "$ROOT/scripts/check-db-connection-governance.sh"; then
   fail "DB connection governance constraint violated"
 fi
 
+# 11. W6 preventive controls. Each of these was written against a defect that
+# reached production or shipped green, and each is verified to fail when its
+# defect is deliberately reintroduced.
+for gate in \
+  check-money-ssot.sh \
+  check-permission-coverage.sh \
+  check-backup-restore-parity.sh \
+  check-async-boundary.sh \
+  check-contract-shadow.sh \
+  check-endpoint-wiring.sh \
+  check-numeric-hygiene.sh \
+  check-dead-css.sh ; do
+  if ! bash "$ROOT/scripts/$gate"; then
+    fail "$gate failed"
+  fi
+done
+
 if [ "$EXIT" -eq 0 ]; then echo "hygiene: PASS"; else echo "hygiene: FAIL"; fi
 exit "$EXIT"
 

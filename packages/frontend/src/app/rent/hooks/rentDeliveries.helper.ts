@@ -1,9 +1,15 @@
 import {
   seasonYearForInwardDate,
   type DeliveryChallan,
+  type OutwardBagCategory,
 } from '@cold-storage/contracts';
 
-export type OutwardBagCategory = 'Small' | 'Big' | 'Small & Big';
+// OutwardBagCategory is the contracts SSOT and was previously re-declared here
+// with only 3 of its 8 values, so a Hybrid, Modern, Modern Size, Mixed or S/B
+// delivery could not be represented at all. The local
+// `categorizeOutwardBags` still returns the narrow subset it can actually
+// derive from a bag composition; the TYPE is the full contract union.
+export type { OutwardBagCategory };
 
 export function categorizeOutwardBags(smallBags: number, bigBags: number): OutwardBagCategory {
   if (smallBags > 0 && bigBags === 0) return 'Small';
