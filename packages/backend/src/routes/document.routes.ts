@@ -6,6 +6,7 @@ import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { documentService } from '../modules/documents/document.service.js';
 import { getParamId } from '../utils/params.js';
+import { sendInternalError } from '../utils/http-error.js';
 
 export const documentRouter = asyncRouter();
 
@@ -46,10 +47,11 @@ function handleDocumentError(err: unknown, res: Response): void {
     });
     return;
   }
-  res.status(500).json({
-    error: 'Internal server error during document rendering',
-    message,
-  });
+  // The raw `message` is deliberately dropped here: this path returns a
+  // rendered customer document and the underlying error can carry internal
+  // structure (collection names, index names, driver codes). The detail is
+  // logged with a correlation id instead.
+  sendInternalError(res, err, 'Document rendering failed');
 }
 
 /**

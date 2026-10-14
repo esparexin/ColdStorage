@@ -9,6 +9,7 @@ import { authenticate, requirePasswordChanged } from '../middleware/auth.middlew
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { auditService } from '../modules/audit/audit.service.js';
 import { getParamId } from '../utils/params.js';
+import { sendInternalError } from '../utils/http-error.js';
 
 export const auditRouter = asyncRouter();
 
@@ -48,8 +49,7 @@ auditRouter.get(
       const result = await auditService.queryLogs(query, authorizedFacilityIds);
       res.status(200).json(result);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load audit logs';
-      res.status(500).json({ error: message });
+            sendInternalError(res, err, 'Failed to load audit logs');
     }
   },
 );
@@ -81,7 +81,7 @@ auditRouter.get(
         res.status(403).json({ error: message });
         return;
       }
-      res.status(500).json({ error: message });
+      sendInternalError(res, err, 'Audit log operation failed');
     }
   },
 );

@@ -15,6 +15,7 @@ import { requirePermission } from '../middleware/rbac.middleware.js';
 import { userService } from '../modules/users/user.service.js';
 import { roleService } from '../modules/roles/role.service.js';
 import { getParamId } from '../utils/params.js';
+import { sendInternalError } from '../utils/http-error.js';
 
 export const userRouter = asyncRouter();
 
@@ -93,8 +94,7 @@ userRouter.get('/', async (req: Request, res: Response): Promise<void> => {
     const result = await userService.listUsers(page, limit);
     res.status(200).json(result);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'User listing failed';
-    res.status(500).json({ error: message });
+        sendInternalError(res, err, 'User listing failed');
   }
 });
 

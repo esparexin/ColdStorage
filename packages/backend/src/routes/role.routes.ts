@@ -5,6 +5,7 @@ import { authenticate, requirePasswordChanged } from '../middleware/auth.middlew
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { roleService } from '../modules/roles/role.service.js';
 import { getParamId } from '../utils/params.js';
+import { sendInternalError } from '../utils/http-error.js';
 
 export const roleRouter = asyncRouter();
 
@@ -16,8 +17,7 @@ roleRouter.get('/', requirePermission('user:manage'), async (_req: Request, res:
     const roles = await roleService.listRoles();
     res.status(200).json({ roles });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Role listing failed';
-    res.status(500).json({ error: message });
+        sendInternalError(res, err, 'Role listing failed');
   }
 });
 
