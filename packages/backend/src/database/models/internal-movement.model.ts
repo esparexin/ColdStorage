@@ -19,9 +19,13 @@ export interface InternalMovementDoc extends Document {
   sourceBagPrice?: number | null;
   sourceSeasonalBagPrice?: number | null;
   sourceMonthlyBagPrice?: number | null;
+  /** @deprecated Legacy columns: never written by merge/transfer handlers, never returned. Do not use. */
   hamaliBags: number;
+  /** @deprecated Legacy columns: never written by merge/transfer handlers, never returned. Do not use. */
   hamaliRate?: number | null;
+  /** @deprecated Legacy columns: never written by merge/transfer handlers, never returned. Do not use. */
   hamaliCharge: number;
+  /** @deprecated Legacy columns: never written by merge/transfer handlers, never returned. Do not use. */
   hamaliCarried: number;
   referenceWeight?: number | null;
   grnId: string | null;
@@ -62,8 +66,8 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
     sourceBagPrice: { type: Number, min: 0 },
     sourceSeasonalBagPrice: { type: Number, min: 0 },
     sourceMonthlyBagPrice: { type: Number, min: 0 },
-    // Legacy hamali columns: never written, never returned. No defaults so new
-    // movements carry no hamali values; old values stay readable.
+    // @deprecated Legacy hamali columns: never written, never returned. No
+    // defaults so new movements carry no hamali values; old values stay readable.
     hamaliBags: { type: Number, min: 0 },
     hamaliRate: { type: Number, min: 0, default: 0 },
     hamaliCharge: { type: Number, min: 0 },
@@ -81,7 +85,7 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
       remainingBalance: { type: Number, required: true, min: 0 },
       paymentStatus: { type: String, required: true },
       rentState: { type: String, default: null },
-      // Legacy snapshot hamali: never written; old values stay readable.
+      // @deprecated Legacy snapshot hamali: never written; old values stay readable.
       hamaliAmount: { type: Number, min: 0 },
     },
     remarks: { type: String, trim: true, maxlength: 500, default: null },
