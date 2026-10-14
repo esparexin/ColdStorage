@@ -3,7 +3,11 @@
 import React from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import type { Commodity, CommodityRate } from '@cold-storage/contracts';
-import { DataTable, type DataTableColumn, type DataTableColumnGroup } from '@/components/ui/DataTable';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableColumnGroup,
+} from '@/components/ui/DataTable';
 import { Badge, Button } from '@/components/ui';
 import { hydrateRatesForm, type CommodityRatesFormState } from './commodityRates.helper';
 
@@ -83,7 +87,7 @@ export function CommodityTable({
       key: 'seasonDuration',
       header: 'Season',
       render: (row) => (
-        <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-medium)' }}>
+        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)' }}>
           {row.seasonDuration === 'Seasonal_3M' ? '3 Months' : '10 Months'}
         </span>
       ),
