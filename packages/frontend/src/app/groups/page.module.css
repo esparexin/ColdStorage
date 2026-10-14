@@ -128,8 +128,3 @@
   background-color: var(--color-primary-subtle);
 }
 
-.badgeGroup {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
