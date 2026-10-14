@@ -1,4 +1,5 @@
 import {
+  calculate3MAdditionalMonths,
   calculateMonthlyElapsedCycles,
   calculateOutwardSeasonalBreakdown,
   calculateRentAmount,
@@ -7,8 +8,6 @@ import {
   type OutwardBagCategory,
   type RentType,
 } from '@cold-storage/contracts';
-
-export type { OutwardBagCategory };
 
 export interface ComputeOutwardRentParams {
   rentType: RentType;
@@ -59,6 +58,27 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
     const mRate = params.monthlyBagPrice ?? params.manualBagPrice ?? params.bagPrice ?? 0;
     if (qty <= 0) return 0;
 
+    if (rentType === 'Seasonal_3M' && params.inwardDate && params.deliveryDate) {
+      const extraMonths = calculate3MAdditionalMonths(params.inwardDate, params.deliveryDate);
+      const baseRent = calculateRentAmount({
+        rentType: 'Seasonal_3M',
+        bags: qty,
+        bagCategory,
+        bagPrice: sRate,
+        rentMonths: 1,
+      });
+      const extraRent = extraMonths > 0
+        ? calculateRentAmount({
+          rentType: 'Monthly',
+          bags: qty,
+          bagCategory,
+          bagPrice: mRate,
+          rentMonths: extraMonths,
+        })
+        : 0;
+      return baseRent + extraRent;
+    }
+
     if (rentType === 'Seasonal' && params.inwardDate && params.deliveryDate) {
       const breakdown = calculateOutwardSeasonalBreakdown({
         inwardDate: params.inwardDate,
@@ -81,7 +101,7 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
       rentType,
       bags: qty,
       bagCategory,
-      bagPrice: rentType === 'Seasonal' ? sRate : mRate,
+      bagPrice: rentType === 'Monthly' ? mRate : sRate,
       rentMonths: months,
     });
   }
@@ -98,6 +118,35 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
   const totalBags = effectiveSmall + effectiveBig;
 
   if (totalBags <= 0) return 0;
+
+  if (rentType === 'Seasonal_3M' && params.inwardDate && params.deliveryDate) {
+    const monthlySmall = params.monthlySmallBagPrice ?? smallRate;
+    const monthlyBig = params.monthlyBigBagPrice ?? bigRate;
+    const extraMonths = calculate3MAdditionalMonths(params.inwardDate, params.deliveryDate);
+    const baseRent = calculateRentAmount({
+      rentType: 'Seasonal_3M',
+      bags: totalBags,
+      bagType: 'S+B',
+      smallBags: effectiveSmall,
+      bigBags: effectiveBig,
+      smallBagPrice: smallRate,
+      bigBagPrice: bigRate,
+      rentMonths: 1,
+    });
+    const extraRent = extraMonths > 0
+      ? calculateRentAmount({
+        rentType: 'Monthly',
+        bags: totalBags,
+        bagType: 'S+B',
+        smallBags: effectiveSmall,
+        bigBags: effectiveBig,
+        smallBagPrice: monthlySmall,
+        bigBagPrice: monthlyBig,
+        rentMonths: extraMonths,
+      })
+      : 0;
+    return baseRent + extraRent;
+  }
 
   if (rentType === 'Seasonal' && params.inwardDate && params.deliveryDate) {
     const monthlySmall = params.monthlySmallBagPrice ?? smallRate;
@@ -141,7 +190,11 @@ export function formatOutwardRentFormula(
   bigRate: number,
   months?: number | null,
 ): string {
-  const term = rentType === 'Seasonal' ? 'season total' : `${months ?? 1} mo`;
+  const term = rentType === 'Seasonal'
+    ? 'season total'
+    : rentType === 'Seasonal_3M'
+      ? '3-mo season total'
+      : `${months ?? 1} mo`;
   if (isHybridBagCategory(category)) {
     const totalQty = smallQty + bigQty;
     return `${totalQty} Hybrid bags × ₹${smallRate}/bag × ${term}`;

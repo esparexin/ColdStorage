@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import {
+  calculate3MAdditionalMonths,
   calculateOutwardSeasonalBreakdown,
   isHybridBagCategory,
   type OutwardBagCategory,
@@ -47,8 +48,10 @@ export function OutwardRentBreakdown({
   pendingBalance,
 }: OutwardRentBreakdownProps) {
   const isSeasonal = rentType === 'Seasonal';
+  const isSeasonal3M = rentType === 'Seasonal_3M';
   const isHybrid = isHybridBagCategory(bagCategory);
   const totalWithdrawing = smallBags + bigBags;
+  const extra3MMonths = isSeasonal3M && inwardDate ? calculate3MAdditionalMonths(inwardDate, deliveryDate) : 0;
 
   const effectiveSeasonalRates = useMemo(
     () =>
@@ -121,11 +124,28 @@ export function OutwardRentBreakdown({
       });
     }
 
-    const activeRates = isSeasonal ? effectiveSeasonalRates : effectiveMonthlyRates;
+    const activeRates = isSeasonal || isSeasonal3M ? effectiveSeasonalRates : effectiveMonthlyRates;
     let detailsFormula = '';
     if (isHybrid) {
-      const perBag = bagPrice ?? activeRates.small;
-      detailsFormula = `${totalWithdrawing} Bags × ₹${Number(perBag).toFixed(2)}`;
+      const seasonalPerBag = typeof seasonalBagPrice === 'number' && seasonalBagPrice > 0
+        ? seasonalBagPrice
+        : typeof bagPrice === 'number' && bagPrice > 0
+          ? bagPrice
+          : activeRates.small;
+      const monthlyPerBag = typeof monthlyBagPrice === 'number' && monthlyBagPrice > 0
+        ? monthlyBagPrice
+        : typeof bagPrice === 'number' && bagPrice > 0
+          ? bagPrice
+          : effectiveMonthlyRates.small;
+      if (isSeasonal3M && extra3MMonths > 0) {
+        detailsFormula = `${totalWithdrawing} Bags × ₹${Number(seasonalPerBag).toFixed(2)} (3-mo) + ${extra3MMonths} mo × ₹${Number(monthlyPerBag).toFixed(2)}`;
+      } else if (isSeasonal3M) {
+        detailsFormula = `${totalWithdrawing} Bags × ₹${Number(seasonalPerBag).toFixed(2)} (3-mo season total)`;
+      } else if (isSeasonal) {
+        detailsFormula = `${totalWithdrawing} Bags × ₹${Number(seasonalPerBag).toFixed(2)}`;
+      } else {
+        detailsFormula = `${totalWithdrawing} Bags × ₹${Number(monthlyPerBag).toFixed(2)}`;
+      }
     } else {
       detailsFormula =
         smallBags > 0 && bigBags > 0
@@ -138,22 +158,30 @@ export function OutwardRentBreakdown({
     return [
       {
         id: 'single-period',
-        title: isSeasonal ? 'Seasonal Storage' : 'Monthly Storage',
+        title: isSeasonal ? 'Seasonal Storage' : isSeasonal3M ? 'Seasonal (3 Months) Storage' : 'Monthly Storage',
         periodMeta: isSeasonal
           ? 'Seasonal • Full season total'
-          : `Monthly • ${rentMonths ?? 1} billing cycle${(rentMonths ?? 1) > 1 ? 's' : ''}`,
-        details: `${detailsFormula}${isSeasonal ? '' : ` × ${rentMonths ?? 1} mo`}`,
+          : isSeasonal3M
+            ? extra3MMonths > 0
+              ? `Seasonal 3M • Whole-season total + ${extra3MMonths} monthly cycle${extra3MMonths > 1 ? 's' : ''}`
+              : 'Seasonal 3M • Whole-season total'
+            : `Monthly • ${rentMonths ?? 1} billing cycle${(rentMonths ?? 1) > 1 ? 's' : ''}`,
+        details: `${detailsFormula}${isSeasonal || isSeasonal3M ? '' : ` × ${rentMonths ?? 1} mo`}`,
         amount: totalRent,
       },
     ];
   }, [
     isSeasonal,
+    isSeasonal3M,
+    extra3MMonths,
     seasonalBreakdown,
     isHybrid,
     totalWithdrawing,
     effectiveSeasonalRates,
     effectiveMonthlyRates,
     bagPrice,
+    seasonalBagPrice,
+    monthlyBagPrice,
     smallBags,
     bigBags,
     rentMonths,
