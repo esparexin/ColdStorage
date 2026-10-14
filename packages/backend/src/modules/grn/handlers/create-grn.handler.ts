@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
+  calculateRentAmount,
   getFinancialYearKey,
   normalizeBagComposition,
   rentMonthsForType,
@@ -85,12 +86,25 @@ export async function createGrn(
 
   // Per-bag weight is optional: the Inward form captures Total Bags and a single Bag Price.
   // A supplied weight is preserved for that bag type; an absent one is stored as null.
-  const smallBagWeight = input.smallBagWeight ?? null;
-  const bigBagWeight = input.bigBagWeight ?? null;
+  const smallBagWeight = input.smallBagWeight ?? null, bigBagWeight = input.bigBagWeight ?? null;
 
   const rentMonths = rentMonthsForType(input.rentType) ?? (input.rentMonths ?? null);
-  const finalRentAmount = input.rentAmount && input.rentAmount > 0 ? input.rentAmount : 0;
-  // Hamali is internal-only first-season rent input: never stored on the GRN.
+  const isSeasonal = input.rentType === 'Seasonal' || input.rentType === 'Seasonal_3M';
+  const hasFixedMonthlyDuration = input.rentType === 'Monthly' && typeof rentMonths === 'number' && rentMonths >= 1;
+
+  let finalRentAmount = input.rentAmount ?? null;
+  if (finalRentAmount == null && (isSeasonal || hasFixedMonthlyDuration)) {
+    finalRentAmount = calculateRentAmount({
+      rentType: input.rentType, bags: input.bags, bagType: input.bagType,
+      smallBags: input.smallBags ?? null, bigBags: input.bigBags ?? null,
+      smallBagPrice: input.smallBagPrice ?? null, bigBagPrice: input.bigBagPrice ?? null,
+      bagPrice: input.bagPrice ?? null, rentMonths, rentAmount: null,
+    });
+  }
+  finalRentAmount = finalRentAmount != null && finalRentAmount > 0 ? finalRentAmount : 0;
+  const isHamaliApp = commodity.isHamaliApplicable ?? ((commodity.hamaliRate ?? 0) > 0);
+  const hamaliRate = isHamaliApp ? (commodity.hamaliRate ?? 0) : 0;
+  const hamaliAmount = Number((input.bags * hamaliRate).toFixed(2));
 
   const id = `grn-${randomUUID()}`;
 
@@ -164,6 +178,8 @@ export async function createGrn(
             bagPrice: input.bagPrice ?? null,
             smallBagPrice: input.smallBagPrice ?? null,
             bigBagPrice: input.bigBagPrice ?? null,
+            hamaliRate,
+            hamaliAmount,
             gpNumber: input.gpNumber?.trim() || null,
             storageMark: input.storageMark?.trim() || null,
             partyMark: input.partyMark?.trim() || null,

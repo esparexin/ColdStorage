@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   calculateRentAmount,
+  isBagCompositionVerified,
   type BagType,
   type CommodityRate,
   type RentType,
@@ -137,7 +138,7 @@ export class CommodityRateService {
     const rate = await this.getRate(commodityId, rentType);
     if (!rate) return;
     const norm = (n: number) => Number(n.toFixed(2));
-    const useSplit = submitted.bagType === 'S+B';
+    const useSplit = submitted.bagType === 'S+B' || submitted.bagType === 'S/B';
     const singleSide = submitted.bagType === 'B' ? rate.bigRate : rate.smallRate;
     const hasAnyRate =
       submitted.smallBagPrice != null || submitted.bigBagPrice != null || submitted.bagPrice != null;
@@ -149,7 +150,26 @@ export class CommodityRateService {
     }
     if (!hasAnyRate) return;
     if (useSplit && (submitted.smallBagPrice == null || submitted.bigBagPrice == null)) {
-      throw rateMismatch(commodityId, rentType, 'S+B requires both Small and Big bag rates');
+      throw rateMismatch(commodityId, rentType, `${submitted.bagType} requires both Small and Big bag rates`);
+    }
+    if (
+      opts.requireRates &&
+      useSplit &&
+      norm(rate.smallRate) !== norm(rate.bigRate) &&
+      submitted.bags != null &&
+      submitted.bags > 0 &&
+      !isBagCompositionVerified({
+        bagType: submitted.bagType,
+        bags: submitted.bags,
+        smallBags: submitted.smallBags,
+        bigBags: submitted.bigBags,
+      })
+    ) {
+      throw rateMismatch(
+        commodityId,
+        rentType,
+        'Small and big bag composition unverified; differential rates require confirmed counts',
+      );
     }
     const mismatch =
       (submitted.smallBagPrice != null && norm(submitted.smallBagPrice) !== norm(rate.smallRate)) ||

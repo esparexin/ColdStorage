@@ -76,7 +76,7 @@ export class RentService {
     const delivered = netDelivered?.total ?? 0;
     const remaining = balance?.total ?? Math.max(0, grn.bags - delivered);
     const commodity = await CommodityModel.findOne({ id: grn.commodityId }).lean().exec();
-    const hamaliShare = computeFirstSeasonHamali(grn.bags, commodity, extensions);
+    const hamaliShare = computeFirstSeasonHamali(grn.bags, commodity, extensions, grn.hamaliRate, grn.hamaliAmount);
     return buildRentSummary(grn, payments, extensions, delivered, remaining, outwardRent, hamaliShare);
   }
 
@@ -106,7 +106,9 @@ export class RentService {
       const delivered = deliveredMap.get(grn.id)?.total ?? 0;
       const remaining = balanceMap.get(grn.id)?.total ?? Math.max(0, grn.bags - delivered);
       const extensions = extensionsByGrn.get(grn.id) ?? [];
-      const hamaliShare = computeFirstSeasonHamali(grn.bags, commodityMap.get(grn.commodityId) ?? null, extensions);
+      const hamaliShare = computeFirstSeasonHamali(
+        grn.bags, commodityMap.get(grn.commodityId) ?? null, extensions, grn.hamaliRate, grn.hamaliAmount,
+      );
       return buildRentSummary(
         grn,
         paymentsByGrn.get(grn.id) ?? [],

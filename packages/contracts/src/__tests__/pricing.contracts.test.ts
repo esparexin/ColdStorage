@@ -69,6 +69,19 @@ describe('Authoritative Bag Pricing & Rental Calculation SSOT', () => {
     expect(monthlyMixed).toBe(960);
   });
 
+  it('4. unverified S/B lots with differential rates return 0, while equal rates or confirmed splits calculate authoritatively', () => {
+    // Unverified S/B composition with differential rates must not produce an authoritative rent amount (Option A)
+    expect(calculateRentAmount({ rentType: 'Seasonal', bags: 100, bagType: 'S/B', smallBagPrice: 10, bigBagPrice: 15 })).toBe(0);
+    // Unsegregated with equal rates calculates authoritatively (100 × 10 = ₹1,000)
+    expect(calculateRentAmount({ rentType: 'Seasonal', bags: 100, bagType: 'S/B', smallBagPrice: 10, bigBagPrice: 10 })).toBe(1000);
+    // Confirmed compositions calculate exact weighted amounts
+    expect(calculateRentAmount({ rentType: 'Seasonal', bags: 100, bagType: 'S/B', smallBags: 100, bigBags: 0, smallBagPrice: 10, bigBagPrice: 15 })).toBe(1000);
+    expect(calculateRentAmount({ rentType: 'Seasonal', bags: 100, bagType: 'S/B', smallBags: 0, bigBags: 100, smallBagPrice: 10, bigBagPrice: 15 })).toBe(1500);
+    // Single-side Type B (100 × 15 = ₹1,500) and Type S (100 × 10 = ₹1,000)
+    expect(calculateRentAmount({ rentType: 'Seasonal', bags: 100, bagType: 'B', bigBagPrice: 15 })).toBe(1500);
+    expect(calculateRentAmount({ rentType: 'Seasonal', bags: 100, bagType: 'S', smallBagPrice: 10 })).toBe(1000);
+  });
+
   it('5. derives effective bag price accurately and falls back gracefully for historical records', () => {
     expect(deriveBagPrice({ rentType: 'Seasonal', bags: 100, bagPrice: 15 })).toBe(15);
     // Seasonal total rate: ₹1,000 / 100 bags = ₹10 (whole-season total, never ÷10)

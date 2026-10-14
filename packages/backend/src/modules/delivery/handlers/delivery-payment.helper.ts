@@ -1,8 +1,12 @@
 import type mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import type { PaymentMode } from '@cold-storage/contracts';
+import { CommodityModel } from '../../../database/models/commodity.model.js';
+import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
 import { counterService } from '../../common/counter.service.js';
+import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
+import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 
 export interface RecordDeliveryInlinePaymentParams {
   facilityId: string;
@@ -63,4 +67,52 @@ export async function recordDeliveryInlinePayment(
   );
 
   return { paidAmount: paymentAmount, receiptNumber };
+}
+
+/**
+ * Derives the total effective rent obligation across all issued challans for closure checking.
+ */
+export async function resolveEffectiveDeliveryObligation(
+  facilityId: string,
+  grn: {
+    id: string;
+    rentType: string;
+    rentAmount?: number | null;
+    bags: number;
+    commodityId: string;
+    hamaliRate?: number | null;
+    hamaliAmount?: number | null;
+  },
+  session: mongoose.ClientSession,
+): Promise<number> {
+  const [commodity, extensions, agg] = await Promise.all([
+    CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec(),
+    rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session),
+    DeliveryChallanModel.aggregate([
+      { $match: { facilityId, grnId: grn.id, status: 'ISSUED' } },
+      { $group: { _id: null, total: { $sum: '$rentCharge' } } },
+    ]).session(session),
+  ]);
+
+  const totalOutward = agg[0]?.total ?? 0;
+  const extTotal = extensions.reduce((sum, e) => sum + e.finalAmount, 0);
+  const hamali = computeFirstSeasonHamali(
+    grn.bags,
+    commodity,
+    extensions,
+    grn.hamaliRate,
+    grn.hamaliAmount,
+  );
+
+  if (grn.rentType === 'Monthly') {
+    return Number((Math.max(grn.rentAmount ?? 0, totalOutward) + extTotal).toFixed(2));
+  }
+  if (grn.rentType === 'Seasonal_3M') {
+    const base = Math.max(grn.rentAmount ?? 0, totalOutward);
+    const hamaliToAdd = base === (grn.rentAmount ?? 0) ? hamali : 0;
+    return Number((base + extTotal + hamaliToAdd).toFixed(2));
+  }
+  const base = (grn.rentAmount ?? 0) > 0 ? (grn.rentAmount ?? 0) : totalOutward;
+  const hamaliToAdd = base === (grn.rentAmount ?? 0) ? hamali : 0;
+  return Number((base + extTotal + hamaliToAdd).toFixed(2));
 }

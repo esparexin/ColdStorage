@@ -15,8 +15,15 @@ import { isTransientError, toChallanEntity } from '../delivery.mappers.js';
 import { getDeliverySummary } from '../queries/delivery.queries.js';
 import { computeExpectedDeliveryRent } from './delivery-rent.helper.js';
 import { resolveFirstSeasonOutwardShare } from './delivery-hamali.helper.js';
-import { recordDeliveryInlinePayment } from './delivery-payment.helper.js';
-import { validateDeliveryDate, validateStockAndBalances } from './delivery-validation.helper.js';
+import {
+  recordDeliveryInlinePayment,
+  resolveEffectiveDeliveryObligation,
+} from './delivery-payment.helper.js';
+import {
+  resolveSafeLedgerDrawdown,
+  validateDeliveryDate,
+  validateStockAndBalances,
+} from './delivery-validation.helper.js';
 
 export async function createDeliveryWithRetry(
   facilityId: string,
@@ -77,6 +84,13 @@ async function executeDeliveryTransaction(
 
       const isHybrid = isHybridBagCategory(input.bagCategory);
       const hasSpecificBags = (input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0;
+      const sRate = grn.smallBagPrice ?? grn.bagPrice ?? 0;
+      const bRate = grn.bigBagPrice ?? grn.bagPrice ?? 0;
+      const hasDiffRates = (grn.smallBagPrice != null || grn.bigBagPrice != null) && sRate !== bRate;
+      if (!isHybrid && (grn.bagType === 'S/B' || grn.bagType === 'S+B') && hasDiffRates && !hasSpecificBags) {
+        throw new Error('Small and big bag composition required for delivery when storage rates differ');
+      }
+
       const reqQty = input.quantity ?? 0;
       const resSmall = hasSpecificBags ? (input.smallBags ?? 0) : grn.bagType === 'B' ? 0 : reqQty;
       const resBig = hasSpecificBags ? (input.bigBags ?? 0) : grn.bagType === 'B' ? reqQty : 0;
@@ -141,25 +155,16 @@ async function executeDeliveryTransaction(
       if (input.gpNumber?.trim()) {
         gpNumber = input.gpNumber.trim();
         const match = /^GP-(\d+)$/i.exec(gpNumber);
-        if (match) {
-          const seq = parseInt(match[1], 10);
-          if (!isNaN(seq)) {
-            await counterService.syncGatePassSequence(facilityId, deliveryDate, seq, session);
-          }
+        if (match && !isNaN(parseInt(match[1], 10))) {
+          await counterService.syncGatePassSequence(facilityId, deliveryDate, parseInt(match[1], 10), session);
         }
       } else {
         gpNumber = await counterService.generateGatePassNumber(facilityId, deliveryDate, session);
       }
 
       if (gpNumber) {
-        const existingGp = await DeliveryChallanModel.findOne(
-          { facilityId, gpNumber },
-          { id: 1 },
-          { session },
-        ).lean().exec();
-        if (existingGp) {
-          throw new Error(`Gate Pass number '${gpNumber}' already exists in this facility`);
-        }
+        const existingGp = await DeliveryChallanModel.findOne({ facilityId, gpNumber }, { id: 1 }, { session }).lean().exec();
+        if (existingGp) throw new Error(`Gate Pass number '${gpNumber}' already exists in this facility`);
       }
 
       const challanDocs = await DeliveryChallanModel.create(
@@ -180,8 +185,9 @@ async function executeDeliveryTransaction(
       );
       createdChallanDoc = challanDocs[0];
 
-      const txSmall = finalSmall;
-      const txBig = finalBig;
+      const { smallQuantity: txSmall, bigQuantity: txBig } = resolveSafeLedgerDrawdown(
+        isHybrid, grn.bagType, finalSmall, finalBig, available,
+      );
 
       await InventoryTransactionModel.create(
         [
@@ -207,20 +213,13 @@ async function executeDeliveryTransaction(
       );
 
       const { paidAmount } = await recordDeliveryInlinePayment({
-        facilityId,
-        grnId: grn.id,
-        grnNumber: grn.grnNumber,
-        deliveryDate,
-        paymentAmount: input.paymentAmount,
-        paymentMode: input.paymentMode,
-        paymentReference: input.paymentReference,
-        userId,
-        session,
+        facilityId, grnId: grn.id, grnNumber: grn.grnNumber, deliveryDate,
+        paymentAmount: input.paymentAmount, paymentMode: input.paymentMode, paymentReference: input.paymentReference,
+        userId, session,
       });
 
       const closingTotal = available.total - withdrawnTotal;
-      const effectiveObligation =
-        grn.rentType === 'Seasonal' ? rentBalance.rentAmount : rentBalance.rentAmount + deliveryRentCharge;
+      const effectiveObligation = await resolveEffectiveDeliveryObligation(facilityId, grn, session);
       const totalPaidAfterDelivery = rentBalance.totalPaid + paidAmount;
       const effectiveRemaining = Math.max(0, Number((effectiveObligation - totalPaidAfterDelivery).toFixed(2)));
 

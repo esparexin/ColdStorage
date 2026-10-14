@@ -17,11 +17,15 @@ import {
 import type { LedgerBalance } from '../../inventory/ledger-balance.js';
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
 
+import { CommodityModel } from '../../../database/models/commodity.model.js';
+import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
+
 export interface MergeSourceGrn {
   id: string; grnNumber: string; inwardReceiptNumber: string; date: Date; customerName: string;
   chamber: string; commodityId: string; bagType: BagType; rentType: RentType; rentAmount: number;
   bags: number; smallBags: number; bigBags: number; bagPrice?: number | null;
   smallBagPrice?: number | null; bigBagPrice?: number | null; remarks?: string | null;
+  hamaliRate?: number | null; hamaliAmount?: number | null;
 }
 
 export interface SourceRentResolution {
@@ -39,14 +43,8 @@ export async function resolveSourceRentObligation(
   params: ResolveSourceRentParams,
 ): Promise<SourceRentResolution> {
   const {
-    facilityId,
-    sourceGrn,
-    targetGrnDate,
-    movementDate,
-    sourcePaymentAmount,
-    sourcePaymentMode,
-    userId,
-    session,
+    facilityId, sourceGrn, targetGrnDate, movementDate,
+    sourcePaymentAmount, sourcePaymentMode, userId, session,
   } = params;
 
   const targetSeason = seasonYearForInwardDate(targetGrnDate);
@@ -67,35 +65,16 @@ export async function resolveSourceRentObligation(
       );
     }
   } else if (sourceGrn.rentType === 'Seasonal' || sourceGrn.rentType === 'Seasonal_3M') {
-    const effectiveSmall =
-      sourceGrn.smallBags > 0
-        ? sourceGrn.smallBags
-        : sourceGrn.bagType === 'S'
-        ? sourceGrn.bags
-        : 0;
-    const effectiveBig =
-      sourceGrn.bigBags > 0
-        ? sourceGrn.bigBags
-        : sourceGrn.bagType === 'B' || sourceGrn.bagType === 'S/B' || sourceGrn.bagType === 'S+B'
-        ? sourceGrn.bags - effectiveSmall
-        : 0;
+    const effectiveSmall = sourceGrn.smallBags > 0 ? sourceGrn.smallBags : sourceGrn.bagType === 'S' ? sourceGrn.bags : 0;
+    const effectiveBig = sourceGrn.bigBags > 0 ? sourceGrn.bigBags : (sourceGrn.bagType === 'B' || sourceGrn.bagType === 'S/B' || sourceGrn.bagType === 'S+B') ? sourceGrn.bags - effectiveSmall : 0;
 
     const { expectedRentCharge } = await computeExpectedDeliveryRent({
       grn: {
-        id: sourceGrn.id,
-        date: sourceGrn.date,
-        rentType: sourceGrn.rentType,
-        commodityId: sourceGrn.commodityId,
-        smallBagPrice: sourceGrn.smallBagPrice,
-        bigBagPrice: sourceGrn.bigBagPrice,
-        bagPrice: sourceGrn.bagPrice,
+        id: sourceGrn.id, date: sourceGrn.date, rentType: sourceGrn.rentType, commodityId: sourceGrn.commodityId,
+        smallBagPrice: sourceGrn.smallBagPrice, bigBagPrice: sourceGrn.bigBagPrice, bagPrice: sourceGrn.bagPrice,
       },
-      withdrawal: {
-        smallBags: effectiveSmall,
-        bigBags: effectiveBig,
-      },
-      deliveryDate: movementDate,
-      session,
+      withdrawal: { smallBags: effectiveSmall, bigBags: effectiveBig },
+      deliveryDate: movementDate, session,
     });
 
     if (expectedRentCharge > effectiveRentAmount) {
@@ -154,15 +133,35 @@ export async function resolveSourceRentObligation(
     bigBagPrice: sourceGrn.bigBagPrice,
   });
 
-  const isPendingVerification =
-    effectiveRentAmount === 0 && totalPaid === 0 && !canCalc.canCalculate;
+  const [commodity, extensions] = await Promise.all([
+    CommodityModel.findOne({ id: sourceGrn.commodityId }, null, { session }).lean().exec(),
+    rentExtensionRepository.findExtensionsByGrn(facilityId, sourceGrn.id, session),
+  ]);
+  const sourceHamaliShare =
+    effectiveRentAmount > 0
+      ? computeFirstSeasonHamali(
+          sourceGrn.bags, commodity, extensions, sourceGrn.hamaliRate, sourceGrn.hamaliAmount,
+        )
+      : 0;
 
-  const sourceTotalDue = await rentExtensionRepository.resolveTotalDue(
+  const isCompositionUnverified = effectiveRentAmount === 0 && totalPaid === 0 && !canCalc.canCalculate;
+  const isLegacyUnverifiedHamali =
+    sourceGrn.hamaliRate == null && sourceGrn.hamaliAmount == null && sourceHamaliShare > 0 && totalPaid === 0;
+  const isPendingVerification = isCompositionUnverified || isLegacyUnverifiedHamali;
+
+  const baseTotalDue = await rentExtensionRepository.resolveTotalDue(
     facilityId,
     { id: sourceGrn.id, rentAmount: effectiveRentAmount },
     session,
   );
+  const sourceTotalDue = Number((baseTotalDue + sourceHamaliShare).toFixed(2));
   const rentBal = computeRentBalance(sourceTotalDue, totalPaid, { isPendingVerification });
+
+  const verificationReason = isPendingVerification
+    ? !canCalc.canCalculate
+      ? canCalc.reason
+      : 'Legacy GRN has no stored Hamali rate snapshot; historical rate requires verification'
+    : null;
 
   return {
     effectiveRentAmount,
@@ -171,7 +170,7 @@ export async function resolveSourceRentObligation(
     rentBal,
     isSameSeason,
     isPendingVerification,
-    verificationReason: isPendingVerification ? canCalc.reason : null,
+    verificationReason,
   };
 }
 
@@ -184,17 +183,9 @@ export interface CloseSourceGrnParams {
 
 export async function closeSourceGrnOnMerge(params: CloseSourceGrnParams): Promise<string> {
   const {
-    facilityId,
-    sourceGrn,
-    targetGrnNumber,
-    targetGrnId,
-    movementId,
-    movementDate,
-    ledgerBalance,
-    rentResolution,
-    remarks,
-    userId,
-    session,
+    facilityId, sourceGrn, targetGrnNumber, targetGrnId,
+    movementId, movementDate, ledgerBalance, rentResolution,
+    remarks, userId, session,
   } = params;
 
   await InventoryTransactionModel.create(

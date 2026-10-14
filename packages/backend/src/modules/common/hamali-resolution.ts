@@ -36,15 +36,21 @@ export function resolveEffectiveHamaliRate(
 }
 
 /**
- * Full first-season Hamali for a GRN's original inward bag count.
+ * Full first-season Hamali for a GRN's inward bag count.
  * Zero when a finalized SEASON renewal exists (R2) or the commodity disables it.
- * Rate is live config; callers never persist the result on transaction records.
+ * Uses snapshotted rate/amount when present on the GRN; falls back to live config
+ * for legacy GRNs without inventing historical rates.
  */
 export function computeFirstSeasonHamali(
   grnBags: number,
   commodity: HamaliCommodityConfig | null | undefined,
   extensions: Array<{ period: ExtensionPeriod }>,
+  storedHamaliRate?: number | null,
+  storedHamaliAmount?: number | null,
 ): number {
   if (!isFirstSeasonExtensions(extensions)) return 0;
-  return calculateHamaliAmount(grnBags, resolveEffectiveHamaliRate(undefined, commodity));
+  if (storedHamaliAmount !== null && storedHamaliAmount !== undefined && storedHamaliAmount >= 0) {
+    return storedHamaliAmount;
+  }
+  return calculateHamaliAmount(grnBags, resolveEffectiveHamaliRate(storedHamaliRate, commodity));
 }

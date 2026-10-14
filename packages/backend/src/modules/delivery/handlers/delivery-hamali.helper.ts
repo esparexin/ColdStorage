@@ -16,7 +16,14 @@ import { resolveEffectiveHamaliRate } from '../../common/hamali-resolution.js';
  */
 export async function resolveFirstSeasonOutwardShare(input: {
   facilityId: string;
-  grn: { id: string; bags: number; commodityId: string; commodityName: string };
+  grn: {
+    id: string;
+    bags: number;
+    commodityId: string;
+    commodityName: string;
+    hamaliRate?: number | null;
+    hamaliAmount?: number | null;
+  };
   withdrawnTotal: number;
   expectedRentCharge: number;
   session: mongoose.ClientSession;
@@ -27,12 +34,19 @@ export async function resolveFirstSeasonOutwardShare(input: {
     rentExtensionRepository.findExtensionsByGrn(input.facilityId, input.grn.id, input.session),
     readLedgerNetDelivered(input.facilityId, input.grn.id, input.session),
   ]);
-  const hamaliRate = resolveEffectiveHamaliRate(undefined, commodity);
-  const full = calculateHamaliAmount(input.grn.bags, hamaliRate);
+  const hamaliRate = resolveEffectiveHamaliRate(input.grn.hamaliRate, commodity);
+  const full =
+    input.grn.hamaliAmount != null && input.grn.hamaliAmount >= 0
+      ? input.grn.hamaliAmount
+      : calculateHamaliAmount(input.grn.bags, hamaliRate);
   if (full <= 0 || input.grn.bags <= 0) return { share: 0, hamaliRate };
   if (!isFirstSeasonExtensions(extensions)) return { share: 0, hamaliRate };
-  const prior = Number((full * (netBefore.total / input.grn.bags)).toFixed(2));
-  const share = allocateHamaliShare(full, input.withdrawnTotal, input.grn.bags, prior);
+  const obligationBags =
+    hamaliRate > 0 && input.grn.hamaliAmount != null && input.grn.hamaliAmount > 0
+      ? Math.round(input.grn.hamaliAmount / hamaliRate)
+      : input.grn.bags;
+  const prior = Number((full * (netBefore.total / obligationBags)).toFixed(2));
+  const share = allocateHamaliShare(full, input.withdrawnTotal, obligationBags, prior);
   // Rent-vs-Hamali policy: while a share applies, the effective per-bag rent
   // must exceed the Hamali rate. Post-renewal (share 0) is unaffected.
   if (share > 0 && input.withdrawnTotal > 0) {
