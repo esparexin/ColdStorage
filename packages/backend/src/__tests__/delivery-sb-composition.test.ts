@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CommodityModel } from '../database/models/commodity.model.js';
-import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
 import { readLedgerBalance } from '../modules/inventory/ledger-balance.js';
