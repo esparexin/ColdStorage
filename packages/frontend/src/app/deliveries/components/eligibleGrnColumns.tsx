@@ -115,6 +115,8 @@ export function createEligibleGrnColumns({
       align: 'right',
       render: (row) => {
         const isLoanHold = row.loanStatus === 'TAKEN';
+        const isExhausted = getAvailableStockBags(row) <= 0;
+        const isDisabled = isLoanHold || isExhausted;
         return (
           <div className={styles.actionsCell}>
             <Button
@@ -122,14 +124,20 @@ export function createEligibleGrnColumns({
               type="button"
               variant={isLoanHold ? 'danger' : 'primary'}
               size="sm"
-              disabled={isLoanHold}
+              disabled={isDisabled}
               onClick={(e) => {
                 e.stopPropagation();
-                onSelectGrn(row.id);
+                if (!isDisabled) onSelectGrn(row.id);
               }}
-              aria-label={`Issue outward delivery for GRN ${row.grnNumber}`}
+              aria-label={
+                isLoanHold
+                  ? `Loan hold active for GRN ${row.grnNumber}`
+                  : isExhausted
+                    ? `Stock exhausted for GRN ${row.grnNumber}`
+                    : `Issue outward delivery for GRN ${row.grnNumber}`
+              }
             >
-              {isLoanHold ? 'Loan Hold' : 'Outward →'}
+              {isLoanHold ? 'Loan Hold' : isExhausted ? 'Exhausted' : 'Outward →'}
             </Button>
           </div>
         );

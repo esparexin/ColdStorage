@@ -224,8 +224,8 @@ export function GrnDetailModal({
             variant="outline"
             size="sm"
             onClick={() => onInternalMove && onInternalMove(grn)}
-            disabled={!canInternalMove || !onInternalMove || grn.status !== 'OPEN' || grn.loanStatus === 'TAKEN'}
-            title={grn.loanStatus === 'TAKEN' ? 'Movement blocked — Active loan hold' : 'Internal Move'}
+            disabled={!canInternalMove || !onInternalMove || grn.status !== 'OPEN' || grn.loanStatus === 'TAKEN' || (grn.closingBags ?? grn.bags) <= 0}
+            title={grn.loanStatus === 'TAKEN' ? 'Movement blocked — Active loan hold' : (grn.closingBags ?? grn.bags) <= 0 ? 'Movement blocked — Stock exhausted' : 'Internal Move'}
             leftIcon={<ArrowRightLeft size={13} aria-hidden="true" />}
           >
             Internal Move

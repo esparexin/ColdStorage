@@ -9,6 +9,7 @@ import { DataTable } from '@/components/ui/DataTable';
 import {
   INWARD_STOCK_PAGE_SIZE,
   filterEligibleGrns,
+  getAvailableStockBags,
   paginateEligibleGrns,
 } from '../hooks/eligibleGrn.helper';
 import { createEligibleGrnColumns } from './eligibleGrnColumns';
@@ -81,7 +82,7 @@ export function EligibleGrnSection({
         rowKey={(grn) => grn.id}
         emptyMessage={`No inward GRNs matching "${filterQuery}".`}
         onRowClick={(grn) => {
-          if (grn.loanStatus !== 'TAKEN') {
+          if (grn.loanStatus !== 'TAKEN' && getAvailableStockBags(grn) > 0) {
             onSelectGrn(grn.id);
           }
         }}

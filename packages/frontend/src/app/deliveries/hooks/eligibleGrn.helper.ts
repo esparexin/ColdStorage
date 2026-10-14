@@ -12,13 +12,14 @@ export function formatGrnDate(dateVal?: string | Date | null): string {
 }
 
 /**
- * Filters eligible inward GRNs based on search query matching GRN #, Customer, Commodity,
- * Marks, or Chamber.
+ * Filters eligible inward GRNs with available stock based on search query matching
+ * GRN #, Customer, Commodity, Marks, or Chamber. Exhausted stock consignments are excluded.
  */
 export function filterEligibleGrns(grns: Grn[], query: string): Grn[] {
-  if (!query.trim()) return grns;
+  const withStock = grns.filter((g) => getAvailableStockBags(g) > 0);
+  if (!query.trim()) return withStock;
   const q = query.trim().toLowerCase();
-  return grns.filter(
+  return withStock.filter(
     (g) =>
       g.grnNumber.toLowerCase().includes(q) ||
       g.customerName.toLowerCase().includes(q) ||
@@ -71,10 +72,10 @@ export function getEligibleGrnMarks(grn: Grn): {
 }
 
 /**
- * Returns available stock bags with fallback to inward bags.
+ * Returns available stock bags with fallback to inward bags, clamped at 0.
  */
 export function getAvailableStockBags(grn: Grn): number {
-  return grn.closingBags ?? grn.bags;
+  return Math.max(0, grn.closingBags ?? grn.bags ?? 0);
 }
 
 /**
