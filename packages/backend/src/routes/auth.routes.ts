@@ -1,11 +1,12 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import { changePasswordInputSchema, loginInputSchema } from '@cold-storage/contracts';
 import { config } from '../config.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { authRateLimiter, resetAuthRateLimit } from '../middleware/rate-limiter.middleware.js';
 import { authService } from '../modules/auth/auth.service.js';
 
-export const authRouter = Router();
+export const authRouter = asyncRouter();
 
 function getCookie(req: Request, name: string): string | undefined {
   const cookieHeader = req.headers.cookie;

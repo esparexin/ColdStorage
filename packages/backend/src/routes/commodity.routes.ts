@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import {
   createCommoditySchema,
   rentTypeSchema,
@@ -12,7 +13,7 @@ import { commodityRateService } from '../modules/commodities/commodity-rate.serv
 import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
-export const commodityRouter = Router();
+export const commodityRouter = asyncRouter();
 
 commodityRouter.use(authenticate);
 commodityRouter.use(requirePasswordChanged);

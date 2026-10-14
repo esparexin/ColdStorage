@@ -1,11 +1,12 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import { createRoleSchema, updateRoleSchema } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { roleService } from '../modules/roles/role.service.js';
 import { getParamId } from '../utils/params.js';
 
-export const roleRouter = Router();
+export const roleRouter = asyncRouter();
 
 roleRouter.use(authenticate);
 roleRouter.use(requirePasswordChanged);

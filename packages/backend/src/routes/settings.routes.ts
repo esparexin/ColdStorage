@@ -1,10 +1,11 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import { systemSettingsSchema } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { settingsService } from '../modules/settings/settings.service.js';
 
-export const settingsRouter = Router();
+export const settingsRouter = asyncRouter();
 
 settingsRouter.use(authenticate);
 settingsRouter.use(requirePasswordChanged);

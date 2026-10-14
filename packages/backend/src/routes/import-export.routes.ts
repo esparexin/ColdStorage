@@ -1,5 +1,6 @@
 import path from 'node:path';
-import { Router, type Request, type Response, type NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import multer from 'multer';
 import { exportDateRangeQuerySchema, stockSummaryExportQuerySchema } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
@@ -10,7 +11,7 @@ import { exportService } from '../modules/import-export/export.service.js';
 import { importService } from '../modules/import-export/import.service.js';
 import { getParamId } from '../utils/params.js';
 
-export const importExportRouter = Router();
+export const importExportRouter = asyncRouter();
 
 importExportRouter.use(authenticate);
 importExportRouter.use(requirePasswordChanged);

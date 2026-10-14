@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import { documentFormatQuerySchema } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
@@ -6,7 +7,7 @@ import { requirePermission } from '../middleware/rbac.middleware.js';
 import { documentService } from '../modules/documents/document.service.js';
 import { getParamId } from '../utils/params.js';
 
-export const documentRouter = Router();
+export const documentRouter = asyncRouter();
 
 documentRouter.use(authenticate);
 documentRouter.use(requirePasswordChanged);

@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import {
   correctGrnSchema,
   createGrnSchema,
@@ -12,7 +13,7 @@ import { grnService } from '../modules/grn/grn.service.js';
 import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
-export const grnRouter = Router();
+export const grnRouter = asyncRouter();
 
 grnRouter.use(authenticate);
 grnRouter.use(requirePasswordChanged);

@@ -1,5 +1,6 @@
 import path from 'node:path';
-import { Router, type Request, type Response, type NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import multer from 'multer';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
@@ -8,7 +9,7 @@ import { assetService } from '../modules/assets/asset.service.js';
 import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
-export const assetRouter = Router();
+export const assetRouter = asyncRouter();
 
 const upload = multer({
   storage: multer.memoryStorage(),

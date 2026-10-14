@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import {
   assignGrnsSchema,
   createGroupSchema,
@@ -14,7 +15,7 @@ import { groupService } from '../modules/groups/group.service.js';
 import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
-export const groupRouter = Router();
+export const groupRouter = asyncRouter();
 
 groupRouter.use(authenticate);
 groupRouter.use(requirePasswordChanged);

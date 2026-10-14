@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import { backupQuerySchema, backupRestoreSchema, backupTriggerSchema } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { mutationsRateLimiter } from '../middleware/rate-limiter.middleware.js';
@@ -6,7 +7,7 @@ import { requirePermission } from '../middleware/rbac.middleware.js';
 import { inspectBackup, readBackupArchive, restoreBackup } from '../modules/backup/backup-restore.service.js';
 import { backupService } from '../modules/backup/backup.service.js';
 
-export const backupRouter = Router();
+export const backupRouter = asyncRouter();
 
 /**
  * POST /backups/trigger

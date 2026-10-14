@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import {
   createUserSchema,
   hasGlobalFacilityScope,
@@ -15,7 +16,7 @@ import { userService } from '../modules/users/user.service.js';
 import { roleService } from '../modules/roles/role.service.js';
 import { getParamId } from '../utils/params.js';
 
-export const userRouter = Router();
+export const userRouter = asyncRouter();
 
 // All user management routes require authentication, forced-password-change completion, and 'user:manage' permission
 userRouter.use(authenticate);

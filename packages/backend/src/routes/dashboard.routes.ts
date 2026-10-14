@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
@@ -6,7 +7,7 @@ import { dashboardService } from '../modules/dashboard/dashboard.service.js';
 import { asyncHandler } from '../utils/async-handler.js';
 import { getParamId } from '../utils/params.js';
 
-export const dashboardRouter = Router();
+export const dashboardRouter = asyncRouter();
 
 dashboardRouter.use(authenticate);
 dashboardRouter.use(requirePasswordChanged);

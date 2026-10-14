@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import {
   auditQuerySchema,
   hasGlobalFacilityScope,
@@ -9,7 +10,7 @@ import { requirePermission } from '../middleware/rbac.middleware.js';
 import { auditService } from '../modules/audit/audit.service.js';
 import { getParamId } from '../utils/params.js';
 
-export const auditRouter = Router();
+export const auditRouter = asyncRouter();
 
 /**
  * GET /audit-logs
