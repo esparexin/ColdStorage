@@ -90,6 +90,8 @@ describe('GRN Movement History SSOT tests', () => {
         vehicleNumber: 'DL01AB8888',
         driverName: 'Gurdeep Singh',
         remarks: 'Final settlement withdrawal',
+        paymentAmount: 1000,
+        paymentMode: 'Cash',
       },
       userId,
     );
@@ -133,7 +135,7 @@ describe('GRN Movement History SSOT tests', () => {
   it('correctly audits delivery reversal with timeline balance restoration', async () => {
     const del = await deliveryService.createDelivery(
       facilityId,
-      { grnId, smallBags: 100, bigBags: 0, remarks: 'Full delivery' },
+      { grnId, smallBags: 100, bigBags: 0, remarks: 'Full delivery', paymentAmount: 1000, paymentMode: 'Cash' },
       userId,
     );
     expect(del.summary.grnStatus).toBe('CLOSED');
