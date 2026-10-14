@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  deriveHybridRateVisibility, isHybridBagCategory, type DeliveryChallan, type DeliverySummary, type Grn, type GrnInventorySummary,
+  deriveHybridRateVisibility, isHybridBagCategory, type DeliveryChallan, type DeliverySummary, type Grn, type GrnInventorySummary, type OutwardBagCategory,
 } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { useRentGate } from '@/hooks/useRentGate';
 import { validateDeliveryForm } from './deliveryFormValidation.helper';
 import { clearWithdrawalCounts, resolveValidationStock } from './eligibleGrn.helper';
 import { buildDeliveryPayload } from './deliveryPayload.helper';
-import { computeOutwardRentCharge, resolveOutwardBillableMonths, type OutwardBagCategory } from './deliveryRent.helper';
+import { computeOutwardRentCharge, resolveOutwardBillableMonths } from './deliveryRent.helper';
 import { submitDeliveryRequest } from './deliverySubmit.helper';
 import type { GrnWithdrawal } from '../types';
 
