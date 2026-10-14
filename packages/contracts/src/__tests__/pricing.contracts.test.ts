@@ -232,6 +232,13 @@ describe('Authoritative Bag Pricing & Rental Calculation SSOT', () => {
       expect(calculateMonthlyElapsedCycles(new Date(2026, 0, 31), new Date(2026, 1, 27))).toBe(1);
       expect(calculateMonthlyElapsedCycles(new Date(2026, 0, 31), new Date(2026, 1, 28))).toBe(2);
     });
+
+    it('counts an exact 12-month stay as 13 cycles: any touch of a cycle bills it whole (D1)', () => {
+      // Cycle 1 opens on inward day Mar 15; outward day Mar 15 next year opens
+      // Cycle 13, so it bills. Anniversary stays bill cycles-touched, not months elapsed.
+      const cycles = calculateMonthlyElapsedCycles(new Date(2026, 2, 15), new Date(2027, 2, 15));
+      expect(cycles).toBe(13);
+    });
   });
 });
 

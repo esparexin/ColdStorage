@@ -6,6 +6,11 @@ export interface CommodityRateDoc extends Document {
   rentType: 'Monthly' | 'Seasonal';
   smallRate: number;
   bigRate: number;
+  /**
+   * @deprecated Persisted but never consumed: hamali-resolution reads only the
+   * Commodity master (isHamaliApplicable + hamaliRate). Retained for historical
+   * rows; do not read for calculations and do not add new readers.
+   */
   hamaliRate?: number;
   isActive: boolean;
   createdAt: Date;
@@ -19,6 +24,7 @@ const commodityRateSchema = new Schema<CommodityRateDoc>(
     rentType: { type: String, required: true, enum: ['Monthly', 'Seasonal'], index: true },
     smallRate: { type: Number, required: true, min: 0 },
     bigRate: { type: Number, required: true, min: 0 },
+    // @deprecated Never consumed by hamali-resolution; retained for historical rows.
     hamaliRate: { type: Number, min: 0, default: 0 },
     isActive: { type: Boolean, required: true, default: true, index: true },
   },

@@ -23,10 +23,19 @@ import re, sys, pathlib
 root = pathlib.Path(sys.argv[1])
 fe = root / "packages/frontend/src"
 
+def safe_read(path):
+    # TOCTOU guard (D7): a path listed by rglob can vanish before read_text
+    # (editor temp state, parallel build). A transient miss must not fail the
+    # audit; the next run re-reads the tree from scratch.
+    try:
+        return path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return ""
+
 # Classes referenced anywhere via styles.X, pageStyles.X, or via a bracket lookup.
 used = set()
 for path in list(fe.rglob("*.tsx")) + list(fe.rglob("*.ts")):
-    text = path.read_text(encoding="utf-8", errors="ignore")
+    text = safe_read(path)
     used.update(re.findall(r"(?:[a-zA-Z0-9_]*Styles|styles)\.([A-Za-z_][A-Za-z0-9_]*)", text))
     used.update(re.findall(r"(?:[a-zA-Z0-9_]*Styles|styles)\[['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]\]", text))
     # className={styles.x ? ... : styles.y} forms and template joins
@@ -38,7 +47,7 @@ for path in list(fe.rglob("*.tsx")) + list(fe.rglob("*.ts")):
 # that module: a dynamic access in an unrelated component says nothing about it.
 DYNAMIC = re.compile(r"(?:[a-zA-Z0-9_]*Styles|styles)\[\s*(?!['\"])[A-Za-z_]")
 sources = list(fe.rglob("*.tsx")) + list(fe.rglob("*.ts"))
-source_text = {p: p.read_text(encoding="utf-8", errors="ignore") for p in sources}
+source_text = {p: safe_read(p) for p in sources}
 
 def dynamically_accessed(css_path: "pathlib.Path") -> bool:
     stem = css_path.name[: -len(".module.css")]
@@ -52,7 +61,7 @@ dynamic_modules = {css for css in fe.rglob("*.module.css") if dynamically_access
 # CSS-module local names that are never referenced.
 declared = {}
 for css in fe.rglob("*.module.css"):
-    text = css.read_text(encoding="utf-8", errors="ignore")
+    text = safe_read(css)
     # drop @keyframes bodies: those names are not style lookups
     text = re.sub(r"@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}", "", text, flags=re.S)
     for m in re.finditer(r"\.([A-Za-z_][A-Za-z0-9_-]*)", text):

@@ -32,6 +32,7 @@ export interface GrnDoc extends Document {
   bagPrice: number | null;
   smallBagPrice: number | null;
   bigBagPrice: number | null;
+  /** Inward hamali snapshot: written once at GRN creation, never updated after. Preferred read source in hamali-resolution. */
   hamaliRate?: number | null;
   hamaliAmount?: number | null;
   gpNumber: string | null;
@@ -90,8 +91,9 @@ const grnSchema = new Schema<GrnDoc>(
     bagPrice: { type: Number, min: 0, default: null },
     smallBagPrice: { type: Number, min: 0, default: null },
     bigBagPrice: { type: Number, min: 0, default: null },
-    // Legacy hamali columns: never written, never returned. Retained without
-    // defaults so new documents carry no hamali values; old values stay readable.
+    // Inward hamali snapshot columns: written once at creation
+    // (create-grn.handler), never updated afterwards. Read as the preferred
+    // source by hamali-resolution; live commodity config is the fallback.
     hamaliRate: { type: Number, min: 0 },
     hamaliAmount: { type: Number, min: 0 },
     smallBags: { type: Number, required: true, min: 0 },

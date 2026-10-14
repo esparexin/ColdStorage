@@ -37,8 +37,12 @@ export class RentExtensionService {
       throw new Error(`GRN '${input.grnId}' not found in facility '${facilityId}'`);
     }
     if (grn.rentType !== 'Seasonal') {
+      // Seasonal_3M is intentionally excluded: months beyond the first three are
+      // billed automatically at each outward delivery (calculate3MAdditionalMonths
+      // in delivery-rent.helper), so no extension record is ever needed for 3M lots.
       throw new Error(
-        `Seasonal extensions apply only to Seasonal GRNs (GRN '${grn.grnNumber}' is '${grn.rentType}')`,
+        `Seasonal extensions apply only to Seasonal GRNs (GRN '${grn.grnNumber}' is '${grn.rentType}'). ` +
+          `Seasonal_3M lots bill extra months automatically at outward delivery; no extension applies.`,
       );
     }
     // Same GRN spans successive seasons: later season years are valid, earlier ones are not.

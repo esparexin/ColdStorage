@@ -1,10 +1,12 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import type { TransferOwnershipInput, Grn, InternalMovementRecord, RentPayment } from '@cold-storage/contracts';
+import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { computeRentBalance } from '../../common/rent-balance.js';
+import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
@@ -91,6 +93,21 @@ export async function transferOwnership(
       const totalPaid = (await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session))
         .reduce((sum, p) => sum + p.amountPaid, 0);
 
+      // D3: first-season hamali joins the transfer settlement like every other
+      // obligation path (rent-gate, record-payment, rent summary). Zero for
+      // non-hamali commodities and post-renewal seasons, so legacy flows are unchanged.
+      const [transferCommodity, transferExtensions] = await Promise.all([
+        CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec(),
+        rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session),
+      ]);
+      const transferHamaliShare = computeFirstSeasonHamali(
+        grn.bags,
+        transferCommodity,
+        transferExtensions,
+        grn.hamaliRate,
+        grn.hamaliAmount,
+      );
+
       // The base is PROSPECTIVE, not historical: a transfer settles rent for
       // every remaining bag, and a Monthly lot has accrued rent for its elapsed
       // cycles. A different input to the obligation, not a competing rule - the
@@ -107,6 +124,7 @@ export async function transferOwnership(
             grn.id,
             session,
           ),
+          hamaliShare: transferHamaliShare,
         },
         session,
       );

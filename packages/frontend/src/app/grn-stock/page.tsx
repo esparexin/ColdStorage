@@ -6,6 +6,8 @@ import { FilterToolbar } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { DataTable } from '@/components/ui/DataTable';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
+import { ACCESS_MESSAGES, ERROR_TITLES } from '@/components/ui/stateCopy';
+import { usePermissions } from '@/hooks/usePermissions';
 import { requestWithAuth } from '@/lib/api-client';
 import { useFacility } from '@/context/FacilityContext';
 import { GrnStockMovementModal } from './components/GrnStockMovementModal';
@@ -14,6 +16,8 @@ import styles from './page.module.css';
 
 export default function GrnStockPage() {
   const { selectedFacilityId, availableFacilities } = useFacility();
+  const { hasPermission } = usePermissions();
+  const canViewGrnStock = hasPermission('grn:view');
 
   const [grns, setGrns] = useState<Grn[]>([]);
   const [loading, setLoading] = useState(false);
@@ -30,6 +34,10 @@ export default function GrnStockPage() {
   const [ledgerError, setLedgerError] = useState<string | null>(null);
 
   const fetchGrns = async () => {
+    if (!canViewGrnStock) {
+      setGrns([]);
+      return;
+    }
     if (!selectedFacilityId) {
       setGrns([]);
       return;
@@ -59,7 +67,7 @@ export default function GrnStockPage() {
     setPage(1);
     setSelectedGrn(null);
     setHistory(null);
-  }, [selectedFacilityId]);
+  }, [selectedFacilityId, canViewGrnStock]);
 
   const filteredGrns = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -110,6 +118,17 @@ export default function GrnStockPage() {
     () => createGrnStockColumns({ onOpenMovement: handleOpenMovement }),
     [selectedFacilityId],
   );
+
+  if (!canViewGrnStock) {
+    return (
+      <div className={styles.page}>
+        <FeedbackStates.Error
+          title={ERROR_TITLES.accessRestricted}
+          message={ACCESS_MESSAGES.grnStock}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
