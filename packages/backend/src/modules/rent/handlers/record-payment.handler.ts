@@ -75,26 +75,24 @@ export async function executeRecordPayment(
         grn.id,
         session,
       );
-      const baseRent =
-        grn.rentType === 'Monthly'
-          ? Math.max(grn.rentAmount, outwardRent)
-          : grn.rentAmount > 0
-            ? grn.rentAmount
-            : outwardRent;
-      // First-season Hamali joins the collectible total exactly as in the rent
-      // summary: full share for stored-rent GRNs, nothing for zero-rent GRNs
-      // whose outward charges already embed per-delivery shares.
+      // Base selection and the Hamali join both belong to the rent-obligation
+      // SSOT (W2). This handler previously recomputed them inline, which is how
+      // the six competing derivations arose; it now only supplies inputs.
       const [commodity, extensions] = await Promise.all([
         CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec(),
         rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session),
       ]);
       const hamaliShare = grn.rentAmount > 0 ? computeFirstSeasonHamali(grn.bags, commodity, extensions) : 0;
-      const totalDue = Number(
-        ((await rentExtensionRepository.resolveTotalDue(
-          facilityId,
-          { id: grn.id, rentAmount: baseRent },
-          session,
-        )) + hamaliShare).toFixed(2),
+      const totalDue = await rentExtensionRepository.resolveTotalDue(
+        facilityId,
+        {
+          id: grn.id,
+          rentAmount: grn.rentAmount,
+          rentType: grn.rentType,
+          outwardRentCharges: outwardRent,
+          hamaliShare,
+        },
+        session,
       );
       const balanceBefore = computeRentBalance(totalDue, totalPaidBefore);
       const remainingBalance = balanceBefore.remainingBalance;

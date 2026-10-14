@@ -99,7 +99,9 @@ describe('GRN Movement History SSOT tests', () => {
     expect(history!.totalInwardBags).toBe(100);
     expect(history!.netDeliveredBags).toBe(100);
     expect(history!.currentClosingBags).toBe(0);
-    expect(history!.status).toBe('CLOSED');
+    // Stock is fully drawn down, but rent levied on the outward challans is
+    // outstanding, so the closure invariant keeps the GRN OPEN (W2).
+    expect(history!.status).toBe('OPEN');
     expect(history!.entries).toHaveLength(3);
 
     // Entry 1: INWARD

@@ -1,6 +1,6 @@
 import {
   canCalculateAuthoritativeRent,
-  totalRentDue,
+  splitRentObligation,
   type RentExtension,
   type RentSummaryDto,
 } from '@cold-storage/contracts';
@@ -35,19 +35,21 @@ export function buildRentSummary(
   outwardRentCharges = 0,
   hamaliShare = 0,
 ): RentSummaryDto {
-  const baseRent =
-    grn.rentType === 'Monthly'
-      ? Math.max(grn.rentAmount, outwardRentCharges)
-      : grn.rentAmount > 0
-        ? grn.rentAmount
-        : outwardRentCharges;
-  // First-season Hamali joins the total due exactly once: zero-rent GRNs
-  // already accumulate Hamali-inclusive outward charges in the base, so the
-  // full share applies only when the base is the stored rent obligation.
-  const hamali = grn.rentAmount > 0 && Number.isFinite(hamaliShare) && hamaliShare > 0 ? hamaliShare : 0;
-  const totalDue = Number(
-    (totalRentDue(baseRent, extensions.map((e) => e.finalAmount)) + hamali).toFixed(2),
-  );
+  // This helper was the reference implementation of the rent-obligation rule
+  // before W2. It now delegates to the SSOT like every other caller, so the
+  // rule has exactly one definition and this file can no longer drift from it.
+  // Monthly takes the greater of the stored obligation and the outward rent
+  // charges; Seasonal prefers the stored obligation and falls back to the
+  // outward charges. Hamali joins the total exactly once, and only when the
+  // base is the stored obligation, because a zero-rent GRN's outward charges
+  // already embed the per-delivery share.
+  const { baseRent, total: totalDue } = splitRentObligation({
+    rentType: grn.rentType,
+    rentAmount: grn.rentAmount,
+    outwardRentCharges,
+    hamaliShare,
+    extensionAmounts: extensions.map((e) => e.finalAmount),
+  });
 
   const canCalc = canCalculateAuthoritativeRent({
     bagType: grn.bagType,

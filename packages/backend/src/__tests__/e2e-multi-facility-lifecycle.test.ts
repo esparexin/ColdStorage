@@ -103,17 +103,23 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
     expect(outTx?.chamber).toBe(CHAMBER);
   });
 
-  it('2. Full closure: delivering the remaining bags auto-transitions the GRN to CLOSED', async () => {
+  it('2. Full bag closure: the last delivery empties stock but the GRN stays OPEN while rent is outstanding', async () => {
     const finalRes = await request(app)
       .post(`/api/facilities/${scenario.facilityA}/deliveries`)
       .set('Authorization', `Bearer ${scenario.tokens.operatorA}`)
       .send({ grnId, smallBags: 60, bigBags: 0 });
     expect(finalRes.status).toBe(201);
-    expect(finalRes.body.summary.grnStatus).toBe('CLOSED');
     expect(finalRes.body.summary.remainingDeliveryBalance).toBe(0);
 
+    // Closure invariant: CLOSED requires remainingBags === 0 AND
+    // remainingBalance === 0. Stock is now empty, but this GRN's rent is
+    // levied on the outward challans and was never collected, so it correctly
+    // stays OPEN so the outstanding dues remain tracked. Before W2 the gate
+    // derived the obligation from rentAmount alone and closed it prematurely.
+    expect(finalRes.body.summary.grnStatus).toBe('OPEN');
+
     const grnFinal = await GrnModel.findOne({ id: grnId });
-    expect(grnFinal?.status).toBe('CLOSED');
+    expect(grnFinal?.status).toBe('OPEN');
 
     const outward = await InventoryTransactionModel.find({
       facilityId: scenario.facilityA,

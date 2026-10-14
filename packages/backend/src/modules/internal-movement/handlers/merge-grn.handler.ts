@@ -4,9 +4,9 @@ import { isHybridBagCategory, resolveMergedBagType, type Grn, type InternalMovem
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { rentRepository } from '../../rent/rent.repository.js';
+import { resolveMovementObligation } from './resolve-movement-obligation.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { computeRentBalance } from '../../common/rent-balance.js';
-import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
@@ -176,9 +176,10 @@ export async function mergeGrn(
 
       resultTargetDoc = updatedTarget;
 
-      const targetPayments = await rentRepository.findPaymentsByGrnId(facilityId, targetGrn.id, session);
-      const targetPaid = targetPayments.reduce((sum, p) => sum + p.amountPaid, 0);
-      const targetTotalDue = await rentExtensionRepository.resolveTotalDue(facilityId, { id: targetGrn.id, rentAmount: newRentAmount }, session);
+      const targetPaid = (await rentRepository.findPaymentsByGrnId(facilityId, targetGrn.id, session))
+        .reduce((sum, p) => sum + p.amountPaid, 0);
+      const target = { id: targetGrn.id, rentAmount: newRentAmount, rentType: targetGrn.rentType };
+      const targetTotalDue = await resolveMovementObligation(facilityId, target, session);
       const targetRentBal = computeRentBalance(targetTotalDue, targetPaid);
 
       const movementDocs = await InternalMovementModel.create(

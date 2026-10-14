@@ -3,8 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { rentRepository } from '../../rent/rent.repository.js';
+import { resolveMovementObligation } from './resolve-movement-obligation.js';
 import { computeRentBalance, type RentBalance } from '../../common/rent-balance.js';
-import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { calculateGrnMonthlyOccupancyRent } from '../../common/occupancy-rent.js';
 import { counterService } from '../../common/counter.service.js';
 import {
@@ -157,9 +157,9 @@ export async function resolveSourceRentObligation(
   const isPendingVerification =
     effectiveRentAmount === 0 && totalPaid === 0 && !canCalc.canCalculate;
 
-  const sourceTotalDue = await rentExtensionRepository.resolveTotalDue(
+  const sourceTotalDue = await resolveMovementObligation(
     facilityId,
-    { id: sourceGrn.id, rentAmount: effectiveRentAmount },
+    { id: sourceGrn.id, rentAmount: effectiveRentAmount, rentType: sourceGrn.rentType },
     session,
   );
   const rentBal = computeRentBalance(sourceTotalDue, totalPaid, { isPendingVerification });

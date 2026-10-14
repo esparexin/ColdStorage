@@ -24,6 +24,7 @@ export * from './audit.js';
 export * from './backup.js';
 export * from './rent.js';
 export * from './rent-extension.js';
+export * from './rent-obligation.js';
 export * from './pricing.js';
 export * from './health.js';
 export * from './movement.js';

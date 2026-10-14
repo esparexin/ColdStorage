@@ -6,11 +6,11 @@ import { GrnModel } from '../../../database/models/grn.model.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { computeRentBalance } from '../../common/rent-balance.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
-import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
 import { counterService } from '../../common/counter.service.js';
 import { rentRepository } from '../../rent/rent.repository.js';
+import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { toPaymentEntity } from '../../rent/handlers/record-payment.handler.js';
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
 
@@ -81,19 +81,28 @@ export async function transferOwnership(
         session,
       });
 
-      const effectiveObligation =
-        expectedRentCharge > 0
-          ? expectedRentCharge
-          : grn.rentAmount && grn.rentAmount > 0
-          ? grn.rentAmount
-          : 0;
+      const effectiveObligation = expectedRentCharge > 0 ? expectedRentCharge : (grn.rentAmount ?? 0);
 
-      const payments = await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session);
-      const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
+      const totalPaid = (await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session))
+        .reduce((sum, p) => sum + p.amountPaid, 0);
 
+      // The base is PROSPECTIVE, not historical: a transfer settles rent for
+      // every remaining bag, and a Monthly lot has accrued rent for its elapsed
+      // cycles. A different input to the obligation, not a competing rule - the
+      // SSOT still governs extensions, outward charges and Hamali. Passing the
+      // stored rentAmount would drop the accrual and skip the gate entirely.
       const totalDue = await rentExtensionRepository.resolveTotalDue(
         facilityId,
-        { id: grn.id, rentAmount: effectiveObligation },
+        {
+          id: grn.id,
+          rentAmount: effectiveObligation,
+          rentType: grn.rentType,
+          outwardRentCharges: await rentRepository.getOutwardRentChargesForGrn(
+            facilityId,
+            grn.id,
+            session,
+          ),
+        },
         session,
       );
       const rentBal = computeRentBalance(totalDue, totalPaid);

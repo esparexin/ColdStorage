@@ -140,7 +140,7 @@ describe('Rent renewal — rent-renewal.service.test.ts', () => {
     await rentExtensionService.finalizeExtension(FACILITY_ID, { grnId, seasonYear: 2026, period: 'SEASON' }, USER_ID);
 
     // 1200 season + 1200 Jan (100×12×1) + 1200 Feb + 1200 renewal
-    const totalDue = await rentExtensionRepository.resolveTotalDue(FACILITY_ID, { id: grnId, rentAmount: 1200 });
+    const totalDue = await rentExtensionRepository.resolveTotalDue(FACILITY_ID, { id: grnId, rentAmount: 1200, rentType: 'Seasonal' });
     expect(totalDue).toBe(4800);
 
     const extensions = await rentExtensionService.getExtensionsForGrn(FACILITY_ID, grnId);
