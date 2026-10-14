@@ -1,5 +1,6 @@
 import type { GrnMovementHistory } from '@cold-storage/contracts';
 import { ORG_NAME_FALLBACK } from '../../../lib/branding';
+import { escapeHtml } from '../../../lib/escape-html';
 import { parseMovementRow } from './grnMovementView.helper';
 
 export function renderGrnStockHtml(history: GrnMovementHistory, orgName?: string): string {
@@ -29,14 +30,14 @@ export function renderGrnStockHtml(history: GrnMovementHistory, orgName?: string
               : 'transparent';
 
       return `<tr style="background: ${rowBg};">
-        <td>${dStr}</td>
-        <td style="font-weight: 600;">${p.typeLabel}</td>
-        <td>${p.refNumber}</td>
-        <td style="text-align: right;">${p.smallDisplay}</td>
-        <td style="text-align: right;">${p.bigDisplay}</td>
-        <td style="text-align: right; font-weight: bold; ${p.isReceived ? 'color: #059669;' : ''}">${p.totalDisplay}</td>
-        <td style="text-align: right; font-weight: bold;">${closing}</td>
-        <td style="color: #475569; font-size: 9px;">${p.notes}</td>
+        <td>${escapeHtml(dStr)}</td>
+        <td style="font-weight: 600;">${escapeHtml(p.typeLabel)}</td>
+        <td>${escapeHtml(p.refNumber)}</td>
+        <td style="text-align: right;">${escapeHtml(p.smallDisplay)}</td>
+        <td style="text-align: right;">${escapeHtml(p.bigDisplay)}</td>
+        <td style="text-align: right; font-weight: bold; ${p.isReceived ? 'color: #059669;' : ''}">${escapeHtml(p.totalDisplay)}</td>
+        <td style="text-align: right; font-weight: bold;">${escapeHtml(closing)}</td>
+        <td style="color: #475569; font-size: 9px;">${escapeHtml(p.notes)}</td>
       </tr>`;
     })
     .join('');
@@ -45,7 +46,7 @@ export function renderGrnStockHtml(history: GrnMovementHistory, orgName?: string
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>GRN #${history.grnNumber} — Stock Movement</title>
+  <title>GRN #${escapeHtml(history.grnNumber)} — Stock Movement</title>
   <style>
     body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 8.5px; color: #111; padding: 5mm; max-width: 148mm; margin: 0 auto; line-height: 1.3; }
     .org { font-size: 11px; font-weight: bold; text-align: center; margin-bottom: 2px; }
@@ -71,30 +72,30 @@ export function renderGrnStockHtml(history: GrnMovementHistory, orgName?: string
   </style>
 </head>
 <body>
-  <div class="org">${displayOrg}</div>
+  <div class="org">${escapeHtml(displayOrg)}</div>
   <div class="title">GRN Stock / Customer Bag Movement</div>
 
   <dl class="grn-header">
-    <dt>GRN No:</dt><dd>${history.grnNumber}</dd>
-    <dt>Customer:</dt><dd>${history.customerName}</dd>
-    <dt>Commodity:</dt><dd>${history.commodityName}</dd>
-    <dt>Chamber:</dt><dd>${history.chamber}</dd>
-    <dt>Inward Date:</dt><dd>${inwardStr}</dd>
-    <dt>Status:</dt><dd>${history.status}</dd>
+    <dt>GRN No:</dt><dd>${escapeHtml(history.grnNumber)}</dd>
+    <dt>Customer:</dt><dd>${escapeHtml(history.customerName)}</dd>
+    <dt>Commodity:</dt><dd>${escapeHtml(history.commodityName)}</dd>
+    <dt>Chamber:</dt><dd>${escapeHtml(history.chamber)}</dd>
+    <dt>Inward Date:</dt><dd>${escapeHtml(inwardStr)}</dd>
+    <dt>Status:</dt><dd>${escapeHtml(history.status)}</dd>
   </dl>
 
   <div class="summary">
     <div class="summary-box">
       <div class="sl">Opening Stock</div>
-      <div class="sv">${history.totalInwardBags.toLocaleString('en-IN')} Bags</div>
+      <div class="sv">${escapeHtml(history.totalInwardBags.toLocaleString('en-IN'))} Bags</div>
     </div>
     <div class="summary-box">
       <div class="sl">Total Outward</div>
-      <div class="sv">${history.netDeliveredBags.toLocaleString('en-IN')} Bags</div>
+      <div class="sv">${escapeHtml(history.netDeliveredBags.toLocaleString('en-IN'))} Bags</div>
     </div>
     <div class="summary-box">
       <div class="sl">Current Stock</div>
-      <div class="sv">${history.currentClosingBags.toLocaleString('en-IN')} Bags</div>
+      <div class="sv">${escapeHtml(history.currentClosingBags.toLocaleString('en-IN'))} Bags</div>
     </div>
   </div>
 
