@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
+  buildInwardReceiptNumber,
   calculateRentAmount,
   getFinancialYearKey,
   normalizeBagComposition,
@@ -15,7 +16,6 @@ import { FacilityModel } from '../../../database/models/facility.model.js';
 import { GrnModel, type GrnDoc } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { auditService } from '../../audit/audit.service.js';
-import { counterService, DOCUMENT_PREFIXES } from '../../common/counter.service.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
 import { commodityRateService } from '../../commodities/commodity-rate.service.js';
 import { toGrnAcknowledgement, toGrnEntity } from '../grn.mappers.js';
@@ -121,29 +121,23 @@ export async function createGrn(
         throw new Error(`GRN '${grnNumber}' already exists for this facility.`);
       }
 
-      let inwardReceiptNumber: string;
-      const customBill = input.billNumber?.trim();
-      if (customBill) {
-        const isNumeric = /^\d+$/.test(customBill);
-        const fy = getFinancialYearKey(inwardDate);
-        inwardReceiptNumber = isNumeric
-          ? `${DOCUMENT_PREFIXES.inwardReceipt}-${fy}-${customBill.padStart(4, '0')}`
-          : customBill;
+      // Inward Receipt Number is derived from the GR Number (P0 amendment, see
+      // docs/00-p0-lock.md). The GR Number is the sole business key, is operator
+      // entered as exactly four digits (grnNumberInputSchema) and is unique per
+      // facility, so the derived receipt is unique per facility and needs no
+      // sequence counter.
+      //
+      // This replaces a counter-backed generator that could be poisoned: an
+      // operator-supplied billNumber had its trailing digits extracted by an
+      // unanchored /(\d+)$/ match and written back with $max, ratcheting the
+      // counter monotonically upward and irreversibly. Production reached
+      // INWARD_RECEIPT lastSequence=758696 against 22 GRNs.
+      const fy = getFinancialYearKey(inwardDate);
+      const inwardReceiptNumber = buildInwardReceiptNumber(fy, grnNumber);
 
-        const existing = await GrnModel.findOne({ facilityId, inwardReceiptNumber }, null, { session });
-        if (existing) {
-          throw new Error(`Bill Number '${inwardReceiptNumber}' already exists for this facility.`);
-        }
-
-        const seqMatch = inwardReceiptNumber.match(/(\d+)$/);
-        if (seqMatch) {
-          const seqNum = parseInt(seqMatch[1], 10);
-          if (seqNum > 0) {
-            await counterService.syncInwardReceiptSequence(facilityId, inwardDate, seqNum, session);
-          }
-        }
-      } else {
-        inwardReceiptNumber = await counterService.generateInwardReceiptNumber(facilityId, inwardDate, session);
+      const existing = await GrnModel.findOne({ facilityId, inwardReceiptNumber }, null, { session });
+      if (existing) {
+        throw new Error(`Inward Receipt Number '${inwardReceiptNumber}' already exists for this facility.`);
       }
 
       // Bond # is reference-only and is not minted per receipt: the GR Number is the sole business

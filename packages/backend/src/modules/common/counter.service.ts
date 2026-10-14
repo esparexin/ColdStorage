@@ -4,11 +4,14 @@ import { CounterModel, type CounterType } from '../../database/models/counter.mo
 
 /**
  * Document numbering prefixes (P0-Decision 1). Each numbered document family owns a distinct
- * prefix so that Inward Receipts and Rent Payment Receipts can never be confused, even though
+ * prefix so that Delivery Challans and Rent Payment Receipts can never be confused, even though
  * they are sequenced by independent counters.
+ *
+ * The Inward Receipt prefix is no longer listed here: the Inward Receipt Number is derived from
+ * the GR Number by `buildInwardReceiptNumber` in `@cold-storage/contracts` and is not
+ * sequence-allocated. Keeping 'RCPT' in two places would create two sources of truth.
  */
 export const DOCUMENT_PREFIXES = {
-  inwardReceipt: 'RCPT',
   challan: 'CHL',
   rentReceipt: 'RRCPT',
   gatePass: 'GP',
@@ -28,44 +31,6 @@ export class CounterService {
     ).exec();
 
     return counter.lastSequence;
-  }
-
-  public async generateInwardReceiptNumber(
-    facilityId: string,
-    date: Date,
-    session?: ClientSession,
-    padLength = 4,
-  ): Promise<string> {
-    const fy = getFinancialYearKey(date);
-    const seq = await this.getNextSequence(facilityId, 'INWARD_RECEIPT', fy, session);
-    const padded = String(seq).padStart(padLength, '0');
-    return `${DOCUMENT_PREFIXES.inwardReceipt}-${fy}-${padded}`;
-  }
-
-  public async previewNextInwardReceiptNumber(
-    facilityId: string,
-    date: Date,
-    padLength = 4,
-  ): Promise<string> {
-    const fy = getFinancialYearKey(date);
-    const counter = await CounterModel.findOne({ facilityId, counterType: 'INWARD_RECEIPT', financialYear: fy }).exec();
-    const nextSeq = (counter?.lastSequence ?? 0) + 1;
-    const padded = String(nextSeq).padStart(padLength, '0');
-    return `${DOCUMENT_PREFIXES.inwardReceipt}-${fy}-${padded}`;
-  }
-
-  public async syncInwardReceiptSequence(
-    facilityId: string,
-    date: Date,
-    sequenceNumber: number,
-    session?: ClientSession,
-  ): Promise<void> {
-    const fy = getFinancialYearKey(date);
-    await CounterModel.findOneAndUpdate(
-      { facilityId, counterType: 'INWARD_RECEIPT', financialYear: fy },
-      { $max: { lastSequence: sequenceNumber } },
-      { session, upsert: true },
-    ).exec();
   }
 
   public async generateDeliveryChallanNumber(
@@ -98,10 +63,10 @@ export class CounterService {
     return `${DOCUMENT_PREFIXES.rentReceipt}-${fy}-${padded}`;
   }
 
-  /**
-   * Sequential Gate Pass number generator in format GP-0001, GP-0002, etc.
-   * Concurrency-safe via atomic findOneAndUpdate sequence tracking.
-   */
+/**
+ * Sequential Gate Pass number generator in format GP-0001, GP-0002, etc.
+ * Concurrency-safe via atomic findOneAndUpdate sequence tracking.
+ */
   public async generateGatePassNumber(
     facilityId: string,
     date: Date,

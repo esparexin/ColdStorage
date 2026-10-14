@@ -88,22 +88,6 @@ grnRouter.get(
   },
 );
 
-// Preview next Bill Number for facility
-grnRouter.get(
-  '/facilities/:facilityId/grns/next-bill-number',
-  requirePermission('grn:view'),
-  requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
-    const facilityId = getParamId(req.params.facilityId);
-    try {
-      const nextBillNumber = await grnService.getNextBillNumber(facilityId);
-      res.status(200).json({ nextBillNumber });
-    } catch (err: unknown) {
-      sendServiceError(res, err, 'Failed to preview next bill number');
-    }
-  },
-);
-
 // GR Number guidance for the Inward form (informational only; entry is manual and unsequenced)
 grnRouter.get(
   '/facilities/:facilityId/grns/next-grn-number',
