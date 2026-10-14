@@ -43,6 +43,25 @@ export class RentExtensionRepository {
   }
 
   /** Every finalized extension for a facility in one round trip, grouped by GRN. */
+  /** Extensions for a specific set of GRNs. Scoped counterpart of the facility-wide query. */
+  public async findExtensionsByGrnIdsGrouped(
+    facilityId: string,
+    grnIds: string[],
+  ): Promise<Map<string, RentExtension[]>> {
+    const docs = await RentExtensionModel.find({ facilityId, grnId: { $in: grnIds } })
+      .sort({ seasonYear: 1, period: 1 })
+      .lean<RentExtensionDoc[]>()
+      .exec();
+    const grouped = new Map<string, RentExtension[]>();
+    for (const doc of docs) {
+      const entity = toExtensionEntity(doc);
+      const existing = grouped.get(entity.grnId);
+      if (existing) existing.push(entity);
+      else grouped.set(entity.grnId, [entity]);
+    }
+    return grouped;
+  }
+
   public async findExtensionsByFacilityGrouped(
     facilityId: string,
   ): Promise<Map<string, RentExtension[]>> {

@@ -19,6 +19,7 @@ import { auditService } from '../../audit/audit.service.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
 import { commodityRateService } from '../../commodities/commodity-rate.service.js';
 import { toGrnAcknowledgement, toGrnEntity } from '../grn.mappers.js';
+import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 
 export interface CreateGrnOptions {
   /** Fail closed when true (interactive writes). False keeps the CSV legacy path. */
@@ -112,117 +113,119 @@ export async function createGrn(
   let createdDoc: GrnDoc;
 
   try {
-    await session.withTransaction(async () => {
-      // GR Number is operator-entered (four digits, contract-validated) and is the sole business key.
-      // Uniqueness is per facility; the unique index is the concurrent-write backstop.
-      const grnNumber = input.grnNumber;
-      const existingGrn = await GrnModel.findOne({ facilityId, grnNumber }, null, { session });
-      if (existingGrn) {
-        throw new Error(`GRN '${grnNumber}' already exists for this facility.`);
-      }
+    await withMongoRetry(() =>
+      session.withTransaction(async () => {
+              // GR Number is operator-entered (four digits, contract-validated) and is the sole business key.
+              // Uniqueness is per facility; the unique index is the concurrent-write backstop.
+              const grnNumber = input.grnNumber;
+              const existingGrn = await GrnModel.findOne({ facilityId, grnNumber }, null, { session });
+              if (existingGrn) {
+                throw new Error(`GRN '${grnNumber}' already exists for this facility.`);
+              }
 
-      // Inward Receipt Number is derived from the GR Number (P0 amendment, see
-      // docs/00-p0-lock.md). The GR Number is the sole business key, is operator
-      // entered as exactly four digits (grnNumberInputSchema) and is unique per
-      // facility, so the derived receipt is unique per facility and needs no
-      // sequence counter.
-      //
-      // This replaces a counter-backed generator that could be poisoned: an
-      // operator-supplied billNumber had its trailing digits extracted by an
-      // unanchored /(\d+)$/ match and written back with $max, ratcheting the
-      // counter monotonically upward and irreversibly. Production reached
-      // INWARD_RECEIPT lastSequence=758696 against 22 GRNs.
-      const fy = getFinancialYearKey(inwardDate);
-      const inwardReceiptNumber = buildInwardReceiptNumber(fy, grnNumber);
+              // Inward Receipt Number is derived from the GR Number (P0 amendment, see
+              // docs/00-p0-lock.md). The GR Number is the sole business key, is operator
+              // entered as exactly four digits (grnNumberInputSchema) and is unique per
+              // facility, so the derived receipt is unique per facility and needs no
+              // sequence counter.
+              //
+              // This replaces a counter-backed generator that could be poisoned: an
+              // operator-supplied billNumber had its trailing digits extracted by an
+              // unanchored /(\d+)$/ match and written back with $max, ratcheting the
+              // counter monotonically upward and irreversibly. Production reached
+              // INWARD_RECEIPT lastSequence=758696 against 22 GRNs.
+              const fy = getFinancialYearKey(inwardDate);
+              const inwardReceiptNumber = buildInwardReceiptNumber(fy, grnNumber);
 
-      const existing = await GrnModel.findOne({ facilityId, inwardReceiptNumber }, null, { session });
-      if (existing) {
-        throw new Error(`Inward Receipt Number '${inwardReceiptNumber}' already exists for this facility.`);
-      }
+              const existing = await GrnModel.findOne({ facilityId, inwardReceiptNumber }, null, { session });
+              if (existing) {
+                throw new Error(`Inward Receipt Number '${inwardReceiptNumber}' already exists for this facility.`);
+              }
 
-      // Bond # is reference-only and is not minted per receipt: the GR Number is the sole business
-      // key and is what the Bonds UI displays in the Bond # column. A value supplied by a legacy
-      // CSV import is preserved as reference text; nothing new is generated.
-      const bondNumber = input.isBondForLoan ? input.bondNumber?.trim() || null : null;
+              // Bond # is reference-only and is not minted per receipt: the GR Number is the sole business
+              // key and is what the Bonds UI displays in the Bond # column. A value supplied by a legacy
+              // CSV import is preserved as reference text; nothing new is generated.
+              const bondNumber = input.isBondForLoan ? input.bondNumber?.trim() || null : null;
 
-      const docs = await GrnModel.create(
-        [
-          {
-            id,
-            facilityId,
-            grnNumber,
-            inwardReceiptNumber,
-            date: inwardDate,
-            customerId: customer.id,
-            customerName: customer.name,
-            commodityId: commodity.id,
-            commodityName: commodity.name,
-            chamber: input.chamber.trim(),
-            bags: input.bags,
-            bagType: input.bagType,
-            smallBags: composition.smallBags,
-            bigBags: composition.bigBags,
-            smallBagWeight,
-            bigBagWeight,
-            totalBagsWeight: input.totalBagsWeight ?? null,
-            rentType: input.rentType,
-            rentMonths,
-            rentAmount: finalRentAmount,
-            bagPrice: input.bagPrice ?? null,
-            smallBagPrice: input.smallBagPrice ?? null,
-            bigBagPrice: input.bigBagPrice ?? null,
-            gpNumber: input.gpNumber?.trim() || null,
-            storageMark: input.storageMark?.trim() || null,
-            partyMark: input.partyMark?.trim() || null,
-            marks: input.marks?.trim() || [input.storageMark?.trim(), input.partyMark?.trim()].filter(Boolean).join(' / ') || null,
-            vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null,
-            remarks: input.remarks?.trim() || null,
-            status: 'OPEN',
-            bondNumber,
-            isBondForLoan: Boolean(input.isBondForLoan),
-            loanStatus: input.isBondForLoan ? (input.loanStatus && input.loanStatus !== 'NONE' ? input.loanStatus : 'NOT_TAKEN') : 'NONE',
-            loanBankName: input.loanBankName?.trim() || null,
-            loanReferenceNumber: input.loanReferenceNumber?.trim() || null,
-            loanRemarks: input.loanRemarks?.trim() || null,
-            loanTakenAt: input.isBondForLoan && input.loanStatus === 'TAKEN' ? inwardDate : null,
-            loanClearedAt: null,
-            createdBy: userId,
-          },
-        ],
-        { session },
-      );
+              const docs = await GrnModel.create(
+                [
+                  {
+                    id,
+                    facilityId,
+                    grnNumber,
+                    inwardReceiptNumber,
+                    date: inwardDate,
+                    customerId: customer.id,
+                    customerName: customer.name,
+                    commodityId: commodity.id,
+                    commodityName: commodity.name,
+                    chamber: input.chamber.trim(),
+                    bags: input.bags,
+                    bagType: input.bagType,
+                    smallBags: composition.smallBags,
+                    bigBags: composition.bigBags,
+                    smallBagWeight,
+                    bigBagWeight,
+                    totalBagsWeight: input.totalBagsWeight ?? null,
+                    rentType: input.rentType,
+                    rentMonths,
+                    rentAmount: finalRentAmount,
+                    bagPrice: input.bagPrice ?? null,
+                    smallBagPrice: input.smallBagPrice ?? null,
+                    bigBagPrice: input.bigBagPrice ?? null,
+                    gpNumber: input.gpNumber?.trim() || null,
+                    storageMark: input.storageMark?.trim() || null,
+                    partyMark: input.partyMark?.trim() || null,
+                    marks: input.marks?.trim() || [input.storageMark?.trim(), input.partyMark?.trim()].filter(Boolean).join(' / ') || null,
+                    vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null,
+                    remarks: input.remarks?.trim() || null,
+                    status: 'OPEN',
+                    bondNumber,
+                    isBondForLoan: Boolean(input.isBondForLoan),
+                    loanStatus: input.isBondForLoan ? (input.loanStatus && input.loanStatus !== 'NONE' ? input.loanStatus : 'NOT_TAKEN') : 'NONE',
+                    loanBankName: input.loanBankName?.trim() || null,
+                    loanReferenceNumber: input.loanReferenceNumber?.trim() || null,
+                    loanRemarks: input.loanRemarks?.trim() || null,
+                    loanTakenAt: input.isBondForLoan && input.loanStatus === 'TAKEN' ? inwardDate : null,
+                    loanClearedAt: null,
+                    createdBy: userId,
+                  },
+                ],
+                { session },
+              );
 
-      createdDoc = docs[0];
+              createdDoc = docs[0];
 
-      // The inward leg of the stock ledger, written in the same transaction as the receipt it
-      // describes. Without this row the ledger holds only outward movements and reversal, so any
-      // balance summed from it is one-sided and goes negative the moment a facility records its
-      // first delivery. Same transaction, so a receipt can never exist without its inward stock.
-      await InventoryTransactionModel.create(
-        [
-          {
-            id: `tx-${randomUUID()}`,
-            facilityId,
-            grnId: id,
-            grnNumber,
-            chamber: input.chamber.trim(),
-            commodityId: commodity.id,
-            bagType: input.bagType,
-            transactionType: 'INWARD_PUTAWAY' as const,
-            smallQuantity: composition.smallBags,
-            bigQuantity: composition.bigBags,
-            referenceType: 'PUT_AWAY' as const,
-            referenceId: id,
-            notes: null,
-            createdBy: userId,
-            // The movement happened at inward, not when this row happened to be written, so the
-            // ledger timeline and the monthly inward report both agree with the receipt date.
-            createdAt: inwardDate,
-          },
-        ],
-        { session, ordered: true },
-      );
-    });
+              // The inward leg of the stock ledger, written in the same transaction as the receipt it
+              // describes. Without this row the ledger holds only outward movements and reversal, so any
+              // balance summed from it is one-sided and goes negative the moment a facility records its
+              // first delivery. Same transaction, so a receipt can never exist without its inward stock.
+              await InventoryTransactionModel.create(
+                [
+                  {
+                    id: `tx-${randomUUID()}`,
+                    facilityId,
+                    grnId: id,
+                    grnNumber,
+                    chamber: input.chamber.trim(),
+                    commodityId: commodity.id,
+                    bagType: input.bagType,
+                    transactionType: 'INWARD_PUTAWAY' as const,
+                    smallQuantity: composition.smallBags,
+                    bigQuantity: composition.bigBags,
+                    referenceType: 'PUT_AWAY' as const,
+                    referenceId: id,
+                    notes: null,
+                    createdBy: userId,
+                    // The movement happened at inward, not when this row happened to be written, so the
+                    // ledger timeline and the monthly inward report both agree with the receipt date.
+                    createdAt: inwardDate,
+                  },
+                ],
+                { session, ordered: true },
+              );
+      }),
+    );
   } finally {
     await session.endSession();
   }

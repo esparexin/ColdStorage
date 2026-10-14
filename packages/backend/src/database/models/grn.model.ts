@@ -87,9 +87,9 @@ const grnSchema = new Schema<GrnDoc>(
     /** Seasonal is always the fixed 10-month period; Monthly carries the operator's count. */
     rentMonths: { type: Number, default: null },
     rentAmount: { type: Number, default: null, min: 0 },
-    bagPrice: { type: Number, default: null },
-    smallBagPrice: { type: Number, default: null },
-    bigBagPrice: { type: Number, default: null },
+    bagPrice: { type: Number, min: 0, default: null },
+    smallBagPrice: { type: Number, min: 0, default: null },
+    bigBagPrice: { type: Number, min: 0, default: null },
     // Legacy hamali columns: never written, never returned. Retained without
     // defaults so new documents carry no hamali values; old values stay readable.
     hamaliRate: { type: Number, min: 0 },
@@ -117,7 +117,7 @@ const grnSchema = new Schema<GrnDoc>(
     loanRemarks: { type: String, trim: true, default: null },
     loanTakenAt: { type: Date, default: null },
     loanClearedAt: { type: Date, default: null },
-    loanSettlementAmount: { type: Number, default: null },
+    loanSettlementAmount: { type: Number, min: 0, default: null },
     loanSettlementMode: {
       type: String,
       enum: ['Cash', 'UPI', 'Bank Transfer', null],

@@ -87,16 +87,34 @@ export class RentService {
    * directly from the immutable inventory transaction ledger so rent and physical
    * stock can never drift apart.
    */
-  public async getRentSummariesForFacility(facilityId: string): Promise<RentSummaryDto[]> {
-    const grns = await GrnModel.find({ facilityId }).sort({ date: -1, createdAt: -1 }).lean<GrnDoc[]>().exec();
+  public async getRentSummariesForFacility(facilityId: string, onlyGrnIds?: string[]): Promise<RentSummaryDto[]> {
+    // `onlyGrnIds` scopes every downstream query to the GRNs actually being
+    // rendered. The paginated delivery list used to call this unscoped and then
+    // discard all but the page's GRNs, so page 1 and page 999 cost the same:
+    // every GRN, every payment, every extension and every ledger aggregate for
+    // the whole facility, on every page request.
+    const grns = await GrnModel.find(
+      onlyGrnIds && onlyGrnIds.length > 0 ? { facilityId, id: { $in: onlyGrnIds } } : { facilityId },
+    )
+      .sort({ date: -1, createdAt: -1 })
+      .lean<GrnDoc[]>()
+      .exec();
     const grnIds = grns.map((g) => g.id);
+    if (grnIds.length === 0) return [];
+    const scoped = onlyGrnIds !== undefined;
 
     const [paymentsByGrn, deliveredMap, balanceMap, extensionsByGrn, outwardRentMap] = await Promise.all([
-      rentRepository.findPaymentsByFacilityGrouped(facilityId),
+      scoped
+        ? rentRepository.findPaymentsByGrnIdsGrouped(facilityId, grnIds)
+        : rentRepository.findPaymentsByFacilityGrouped(facilityId),
       readLedgerNetDeliveredMany(facilityId, grnIds),
       readLedgerBalanceMany(facilityId, grnIds),
-      rentExtensionRepository.findExtensionsByFacilityGrouped(facilityId),
-      rentRepository.getOutwardRentChargesByFacilityGrouped(facilityId),
+      scoped
+        ? rentExtensionRepository.findExtensionsByGrnIdsGrouped(facilityId, grnIds)
+        : rentExtensionRepository.findExtensionsByFacilityGrouped(facilityId),
+      scoped
+        ? rentRepository.getOutwardRentChargesByGrnIdsGrouped(facilityId, grnIds)
+        : rentRepository.getOutwardRentChargesByFacilityGrouped(facilityId),
     ]);
     const commodityIds = Array.from(new Set(grns.map((g) => g.commodityId)));
     const commodityDocs = await CommodityModel.find({ id: { $in: commodityIds } }).lean().exec();

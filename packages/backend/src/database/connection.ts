@@ -117,13 +117,34 @@ export async function connectToDatabase(uri?: string): Promise<boolean> {
   }
 
   const connectStart = Date.now();
+
+  // Query safety (W3).
+  //
+  // strictQuery was never set, so it defaults to false: a typo'd or stale key in
+  // a hand-built filter is silently forwarded to MongoDB instead of throwing,
+  // and the query returns a wrong (usually empty) result set. The repository
+  // builds many filters as `Record<string, unknown>`, so this is the difference
+  // between a loud failure and a silent one on a financial read.
+  //
+  // sanitizeFilter was evaluated and deliberately NOT enabled. It rewrites any
+  // filter value carrying `$` operators into `$eq`, which in Mongoose 8
+  // corrupts legitimate nested operator filters: a `{ id: { $in: [...] } }`
+  // on Facility became `{ id: { $eq: { $in: [...] } } }` and threw
+  // `CastError ... at path "id"` in the rent ledger. Object-operator injection
+  // is already blocked at the HTTP edge by noSqlInjectionGuard, which
+  // recursively rejects any body/query/param key that starts with `$` or
+  // contains a dot, and is covered by security-headers.test.ts. That is the
+  // correct enforcement point; a second, semantics-breaking layer in the ORM
+  // traded a guarded edge for broken queries.
+  mongoose.set('strictQuery', true);
+
   await mongoose.connect(mongoUri, {
     serverSelectionTimeoutMS: MONGO_SERVER_SELECTION_TIMEOUT_MS,
     connectTimeoutMS: MONGO_CONNECT_TIMEOUT_MS,
     socketTimeoutMS: MONGO_SOCKET_TIMEOUT_MS,
     // Fail fast instead of buffering auth ops while disconnected. Per-request
-    // ops then reject within the selection timeout above rather than hanging
-    // the Express handler indefinitely.
+    // ops then reject with a MongooseError rather than hanging the Express
+    // handler indefinitely.
     bufferCommands: false,
   });
   const connectMs = Date.now() - connectStart;
