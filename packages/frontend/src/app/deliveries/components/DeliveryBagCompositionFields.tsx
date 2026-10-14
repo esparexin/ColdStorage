@@ -1,9 +1,8 @@
 import React from 'react';
 import {
-  isHybridBagCategory, resolveOutwardRates, type BagType, type GrnInventorySummary, type RentSummaryDto, type RentType,
+  isHybridBagCategory, resolveOutwardRates, type BagType, type GrnInventorySummary, type OutwardBagCategory, type RentSummaryDto, type RentType,
 } from '@cold-storage/contracts';
 import type { GrnWithdrawal } from '../types';
-import type { OutwardBagCategory } from '../hooks/deliveryRent.helper';
 import { calculateRemainingStock, clampBagAllocation } from '../hooks/eligibleGrn.helper';
 import pageStyles from '../page.module.css';
 import styles from './DeliveryBagCompositionFields.module.css';
@@ -30,7 +29,6 @@ interface DeliveryBagCompositionFieldsProps {
   monthlyRates?: { small: number; big: number } | null;
   withdrawal: GrnWithdrawal;
   bagCategory?: OutwardBagCategory;
-  onBagCategoryChange?: (category: OutwardBagCategory) => void;
   onQuantityChange?: (value: number | '') => void;
   onSmallBagsChange: (value: number | '') => void;
   onBigBagsChange: (value: number | '') => void;

@@ -127,7 +127,6 @@ export function IssueDeliveryChallanModal({
                 deliveryDate={form.createDate}
                 monthlyRates={form.monthlyCommodityRates}
                 bagCategory={form.bagCategory}
-                onBagCategoryChange={form.setBagCategory}
                 manualBagPrice={form.manualBagPrice}
                 onManualBagPriceChange={form.setManualBagPrice}
                 seasonalBagPrice={form.seasonalBagPrice}

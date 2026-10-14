@@ -26,13 +26,20 @@ export function CustomerAgreedRateSection({
   onRetry,
   onAddRate,
 }: CustomerAgreedRateSectionProps) {
-  const isSeasonal = rentType === 'Seasonal';
-  const termBadgeText = isSeasonal
+  const isSeasonal = rentType === 'Seasonal' || rentType === 'Seasonal_3M';
+  const isSeasonal3M = rentType === 'Seasonal_3M';
+  const termBadgeText = isSeasonal3M
+    ? 'Rent Type: Seasonal (3 Months) — Whole-season total'
+    : isSeasonal
     ? 'Rent Type: Seasonal — Whole-season total'
     : typeof rentMonths === 'number' && rentMonths > 0
     ? `Rent Type: Monthly — ${rentMonths} Months`
     : 'Rent Type: Monthly';
-  const rateHint = isSeasonal ? '(total per bag for the Mar–Dec season)' : '(per bag per month)';
+  const rateHint = isSeasonal3M
+    ? '(total per bag for the 3-month season, reuses Seasonal rate)'
+    : isSeasonal
+    ? '(total per bag for the Mar–Dec season)'
+    : '(per bag per month)';
 
   return (
     <div id="create-rate-section" tabIndex={-1} className={styles.sectionCard} role="group" aria-label={termBadgeText}>
