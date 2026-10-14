@@ -141,9 +141,18 @@ const grnSchema = new Schema<GrnDoc>(
 
 grnSchema.index({ facilityId: 1, grnNumber: 1 }, { unique: true });
 grnSchema.index({ facilityId: 1, inwardReceiptNumber: 1 }, { unique: true });
+// Bond numbers are unique per facility, but only for GRNs that actually carry
+// one. A partial index is required so non-bond GRNs (bondNumber null) are
+// excluded from the constraint.
+//
+// `sparse` and `partialFilterExpression` must NOT be combined: MongoDB
+// rejects the pair ("You cannot specify both the 'partialFilterExpression'
+// option and the 'sparse' option"), so the previous declaration here was
+// silently never created and per-facility duplicate bond numbers were possible.
+// Verified against production: facilityId_1_bondNumber_1 was absent.
 grnSchema.index(
   { facilityId: 1, bondNumber: 1 },
-  { unique: true, sparse: true, partialFilterExpression: { bondNumber: { $type: 'string' } } },
+  { unique: true, partialFilterExpression: { bondNumber: { $type: 'string' } } },
 );
 grnSchema.index({ facilityId: 1, date: -1 });
 grnSchema.index({ customerId: 1, facilityId: 1 });
