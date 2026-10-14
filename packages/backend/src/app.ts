@@ -34,6 +34,15 @@ import { groupRouter } from './routes/group.routes.js';
 export function createApp(): Express {
   const app = express();
 
+  // req.ip is used as the rate-limit key and recorded as the audit
+  // ipAddress. Behind a reverse proxy / ALB / ingress without this, req.ip is
+  // the PROXY's address: every user then shares one 10-per-15-minute auth
+  // bucket (one attacker locks out all logins) and every audit record
+  // attributes to the proxy, destroying forensic value. Conversely, with no
+  // proxy, a client with an IPv6 /64 gets unlimited fresh buckets.
+  // 1 hop is the standard deployment; TRUST_PROXY_HOPS overrides it.
+  app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS ?? 1));
+
   app.use(securityHeadersMiddleware);
   const allowedOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
   app.use(

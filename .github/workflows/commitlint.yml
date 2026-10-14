@@ -17,18 +17,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: Install commitlint
-        run: npm install --no-save @commitlint/cli @commitlint/config-conventional
+      # Previously a live-range `npm install --no-save`, which was both
+      # unpinned and invisible to the package-lock.json drift guard used by the
+      # other workflows. commitlint now comes from the lockfile.
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
 
       - name: Validate PR commits with commitlint
         if: github.event_name == 'pull_request'
