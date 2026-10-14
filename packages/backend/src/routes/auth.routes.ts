@@ -3,7 +3,7 @@ import { asyncRouter } from '../utils/async-handler.js';
 import { changePasswordInputSchema, loginInputSchema } from '@cold-storage/contracts';
 import { config } from '../config.js';
 import { authenticate } from '../middleware/auth.middleware.js';
-import { authRateLimiter, resetAuthRateLimit } from '../middleware/rate-limiter.middleware.js';
+import { authRateLimiter, generalRateLimiter, resetAuthRateLimit } from '../middleware/rate-limiter.middleware.js';
 import { authService } from '../modules/auth/auth.service.js';
 
 export const authRouter = asyncRouter();
@@ -48,7 +48,7 @@ authRouter.post('/login', authRateLimiter, async (req: Request, res: Response): 
   }
 });
 
-authRouter.post('/refresh', authRateLimiter, async (req: Request, res: Response): Promise<void> => {
+authRouter.post('/refresh', generalRateLimiter, async (req: Request, res: Response): Promise<void> => {
   const refreshToken = getCookie(req, 'refreshToken') || req.body?.refreshToken;
   if (!refreshToken) {
     res.status(400).json({ error: 'Refresh token cookie or payload is required' });

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppHeader } from './AppHeader';
 import { SidebarNav } from './SidebarNav';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
@@ -29,6 +30,7 @@ interface ResponsiveShellProps {
 export function ResponsiveShell({ children }: ResponsiveShellProps) {
   useNumberInputWheel();
   const { isLoading, user, login } = useAuth();
+  const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -43,9 +45,9 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
   useEffect(() => {
     if (!isLoading && !user && typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
       const returnUrl = window.location.pathname + window.location.search;
-      window.location.href = `/login?returnUrl=${encodeURIComponent(returnUrl)}`;
+      router.replace(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
     }
-  }, [isLoading, user]);
+  }, [isLoading, user, router]);
 
   if (isLoading) {
     return <FeedbackStates.Loading fullPage label={LOADING_LABELS.auth} />;
@@ -65,7 +67,7 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
         if (typeof window !== 'undefined') {
           const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
           if (returnUrl) {
-            window.location.href = returnUrl;
+            router.replace(returnUrl);
           }
         }
       } catch (err: unknown) {

@@ -143,6 +143,7 @@ export function SidebarNav({ isOpen = false, onClose }: SidebarNavProps) {
                   <li key={href}>
                     <Link
                       href={href}
+                      prefetch={true}
                       className={`${styles.navItem} ${isActive ? styles.active : ''}`}
                       aria-current={isActive ? 'page' : undefined}
                       title={label}

@@ -123,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
         const returnUrl = window.location.pathname + window.location.search;
-        window.location.href = `/login?returnUrl=${encodeURIComponent(returnUrl)}&expired=true`;
+        window.history.replaceState({}, '', `/login?returnUrl=${encodeURIComponent(returnUrl)}&expired=true`);
       }
     });
     return () => setOnAuthExpired(null);
@@ -179,7 +179,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAccessToken(null);
       setUser(null);
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login';
+        window.history.replaceState({}, '', '/login');
       }
     }
   }, []);
