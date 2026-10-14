@@ -316,20 +316,15 @@ restored.
 2. **Database schema integrity & governance (P1 - commit `23e6058`):** Verified `grn.model.ts` index definition conforms to MongoDB rules (no `sparse: true` with `partialFilterExpression`), verified via `grn-bond-index.test.ts`, and enforced in `scripts/check-db-connection-governance.sh`.
 3. **Dead CSS cleanup & fail-closed gate (P1 - commit `06f6a20`):** Removed 42 unreferenced CSS classes across 7 `.module.css` files (377 lines deleted), ratcheted `line-budget-baseline.json`, and upgraded `scripts/check-dead-css.sh` from advisory to fail-closed (423/423 classes referenced).
 4. **Documentation truthfulness (P1):** Reconciled headless REST API endpoints in `docs/ui-backend-wiring-matrix.md` and validated via `scripts/check-endpoint-wiring.sh`.
+5. **Concurrency & retry handling (P2):** Integrated `withMongoRetry` in `merge-grn.handler.ts` and `transfer-ownership.handler.ts` to automatically retry transient write conflicts under concurrent counter and transaction contention. Extracted document creation and settlement helpers to preserve line budget (all files <= 243 lines) and added automated unit tests in `internal-movement-retry.test.ts`.
 
 ## Outstanding
 
-1. **merge / ownership-transfer lack counter-conflict retry.** `withMongoRetry`
-   is applied to GRN creation and rent payment but not these two. The wrap
-   required re-indenting transaction bodies containing array literals; after two
-   attempts it was reverted rather than risk working money logic late in the
-   wave. Both files are at the 250-line budget, so the fix needs an extraction
-   first.
-2. **`next` CRITICAL advisory** (Next 14.2.35) - pre-existing, untouched.
-3. **`GRN-26-27-*` rows in production** - still unverified as to ownership and
+1. **`next` CRITICAL advisory** (Next 14.2.35) - pre-existing, untouched.
+2. **`GRN-26-27-*` rows in production** - still unverified as to ownership and
    purpose. Left untouched per instruction. `GRN-26-27-0001` additionally has
    no inward stock-ledger transaction.
-4. **Test flakiness under full-suite load.** Several files intermittently fail
+3. **Test flakiness under full-suite load.** Several files intermittently fail
    with socket hang up / ECONNRESET / hook timeout, and pass in isolation.
    Observed in `bond-loan-lifecycle`, `user-lifecycle`, `grn-correction` and
    `audit-backup.routes`. This predates W1 and is worth its own investigation;
