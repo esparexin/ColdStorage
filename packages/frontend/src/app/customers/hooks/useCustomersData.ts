@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Customer } from '@cold-storage/contracts';
 import { useFacility } from '@/context/FacilityContext';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
-import { requestWithAuth } from '@/lib/api-client';
+import { cachedRequestWithAuth } from '@/lib/api-cache';
 
 export const CUSTOMER_PAGE_SIZE = 20;
 
@@ -31,7 +31,7 @@ export function useCustomersData() {
       const url = selectedFacilityId
         ? `/api/customers?facilityId=${encodeURIComponent(selectedFacilityId)}`
         : '/api/customers';
-      const res = await requestWithAuth(url);
+      const res = await cachedRequestWithAuth(url);
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);

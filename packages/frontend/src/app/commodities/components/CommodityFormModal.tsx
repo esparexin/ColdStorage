@@ -5,6 +5,7 @@ import type { Commodity, SeasonDuration } from '@cold-storage/contracts';
 import { Button, Input, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { requestWithAuth } from '@/lib/api-client';
+import { invalidateCache } from '@/lib/api-cache';
 import styles from '../page.module.css';
 
 interface CommodityFormModalProps {
@@ -70,6 +71,7 @@ export function CommodityFormModal({ commodity, onClose, onSuccess }: CommodityF
         throw new Error(err.error ?? 'Failed to save commodity');
       }
 
+      invalidateCache('/api/commodities');
       onSuccess();
     } catch (err: unknown) {
       setModalError(err instanceof Error ? err.message : 'Operation failed');

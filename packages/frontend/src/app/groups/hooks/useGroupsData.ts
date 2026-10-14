@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Customer, Group } from '@cold-storage/contracts';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
+import { cachedRequestWithAuth } from '@/lib/api-cache';
 
 export const GROUP_PAGE_SIZE = 20;
 
@@ -25,7 +26,7 @@ export function useGroupsData(selectedFacilityId: string | null) {
   const fetchLookups = useCallback(async () => {
     if (!selectedFacilityId) return;
     try {
-      const res = await requestWithAuth(
+      const res = await cachedRequestWithAuth(
         `/api/customers?facilityId=${encodeURIComponent(selectedFacilityId)}`,
       );
       if (res.ok) {
