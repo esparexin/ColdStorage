@@ -35,7 +35,14 @@ export function buildRentSummary(
   outwardRentCharges = 0,
   hamaliShare = 0,
 ): RentSummaryDto {
- 
+  const { baseRent, total: totalDue } = splitRentObligation({
+    rentType: grn.rentType,
+    rentAmount: grn.rentAmount,
+    outwardRentCharges,
+    hamaliShare,
+    extensionAmounts: extensions.map((e) => e.finalAmount),
+  });
+
   const canCalc = canCalculateAuthoritativeRent({
     bagType: grn.bagType,
     bags: grn.bags,

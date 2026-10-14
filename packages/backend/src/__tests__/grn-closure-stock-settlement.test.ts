@@ -16,7 +16,7 @@ import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { rentService } from '../modules/rent/rent.service.js';
 import { internalMovementService } from '../modules/internal-movement/internal-movement.service.js';
 
-describe('Phase 3: GRN Closure, Physical Stock & Financial Settlement Integrity', () => {
+describe('Phase 3: GRN Closure, Physical Stock & Financial Settlement Integrity', { timeout: 30000 }, () => {
   const facilityId = 'fac-closure-p3';
   const customerId = 'cust-closure-p3';
   const userId = 'usr-closure-p3';

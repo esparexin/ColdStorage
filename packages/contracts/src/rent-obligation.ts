@@ -64,13 +64,16 @@ export function resolveTotalRentObligation(input: RentObligationInput): number {
   const hamaliShare = Number(input.hamaliShare ?? 0);
 
   const baseRent =
-    input.rentType === 'Monthly'
+    input.rentType === 'Monthly' || input.rentType === 'Seasonal_3M'
       ? Math.max(rentAmount, outwardRentCharges)
       : rentAmount > 0
         ? rentAmount
         : outwardRentCharges;
 
-  const hamali = rentAmount > 0 && Number.isFinite(hamaliShare) && hamaliShare > 0 ? hamaliShare : 0;
+  const hamali =
+    baseRent === rentAmount && rentAmount > 0 && Number.isFinite(hamaliShare) && hamaliShare > 0
+      ? hamaliShare
+      : 0;
 
   return Number((totalRentDue(baseRent, extensionAmounts) + hamali).toFixed(2));
 }
@@ -92,12 +95,15 @@ export function splitRentObligation(input: RentObligationInput): {
   const outwardRentCharges = Number(input.outwardRentCharges ?? 0);
   const hamaliShare = Number(input.hamaliShare ?? 0);
   const baseRent =
-    input.rentType === 'Monthly'
+    input.rentType === 'Monthly' || input.rentType === 'Seasonal_3M'
       ? Math.max(rentAmount, outwardRentCharges)
       : rentAmount > 0
         ? rentAmount
         : outwardRentCharges;
-  const hamali = rentAmount > 0 && Number.isFinite(hamaliShare) && hamaliShare > 0 ? hamaliShare : 0;
+  const hamali =
+    baseRent === rentAmount && rentAmount > 0 && Number.isFinite(hamaliShare) && hamaliShare > 0
+      ? hamaliShare
+      : 0;
   return {
     baseRent: Number(baseRent.toFixed(2)),
     hamali: Number(hamali.toFixed(2)),

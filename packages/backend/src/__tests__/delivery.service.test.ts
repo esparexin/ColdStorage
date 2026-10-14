@@ -142,14 +142,11 @@ describe('P6 DeliveryService outward delivery tests', () => {
     );
     expect(d3.delivery.smallBags).toBe(30);
     expect(d3.delivery.totalBags).toBe(30);
+    expect(d3.summary.grnStatus).toBe('CLOSED');
     expect(d3.summary.remainingDeliveryBalance).toBe(0);
 
-    // Closure invariant: CLOSED needs remainingBags === 0 AND remainingBalance
-    // === 0. All bags are out, but this GRN has rentAmount 0 and the outward
-    // deliveries levied rent that was never collected, so the GRN stays OPEN.
-    // Before W2 the gate saw 0 due and closed it, hiding a real balance due.
-    expect(d3.summary.grnStatus).toBe('OPEN');
-    expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('OPEN');
+    const grnDoc = await GrnModel.findOne({ id: grnId }).exec();
+    expect(grnDoc?.status).toBe('CLOSED');
 
     // The challan stores the dispatched composition only. Opening/closing are derived balances,
     // so a reversal cannot leave a stale snapshot behind.

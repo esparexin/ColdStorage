@@ -64,6 +64,50 @@ export async function executeRecordPayment(
               }
               lockedGrn = grn;
 
+              // 2. Authoritative ledger aggregation inside transaction session.
+              // The obligation is the total due: original Seasonal rent plus any
+              // finalized January/February extensions (single-pool collection).
+              const totalPaidBefore = await rentRepository.getTotalPaidForGrn(
+                facilityId,
+                grn.id,
+                session,
+              );
+              const outwardRent = await rentRepository.getOutwardRentChargesForGrn(
+                facilityId,
+                grn.id,
+                session,
+              );
+              // Base selection and the Hamali join both belong to the rent-obligation
+              // SSOT (W2). This handler previously recomputed them inline, which is how
+              // the six competing derivations arose; it now only supplies inputs.
+              const [commodity, extensions] = await Promise.all([
+                CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec(),
+                rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session),
+              ]);
+              const hamaliShare =
+                grn.rentAmount > 0
+                  ? computeFirstSeasonHamali(
+                      grn.bags,
+                      commodity,
+                      extensions,
+                      grn.hamaliRate,
+                      grn.hamaliAmount,
+                    )
+                  : 0;
+              const totalDue = await rentExtensionRepository.resolveTotalDue(
+                facilityId,
+                {
+                  id: grn.id,
+                  rentAmount: grn.rentAmount,
+                  rentType: grn.rentType,
+                  outwardRentCharges: outwardRent,
+                  hamaliShare,
+                },
+                session,
+              );
+              const balanceBefore = computeRentBalance(totalDue, totalPaidBefore);
+              const remainingBalance = balanceBefore.remainingBalance;
+
               // 3. Strict Overpayment Guard (Zero negative balance permitted per P0-Decision 9)
               if (input.amountPaid > remainingBalance) {
                 throw new Error(

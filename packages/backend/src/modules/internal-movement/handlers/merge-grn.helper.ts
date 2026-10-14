@@ -19,6 +19,7 @@ import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-re
 
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
+import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 
 export interface MergeSourceGrn {
   id: string; grnNumber: string; inwardReceiptNumber: string; date: Date; customerName: string;
@@ -132,11 +133,37 @@ export async function resolveSourceRentObligation(
     smallBagPrice: sourceGrn.smallBagPrice,
     bigBagPrice: sourceGrn.bigBagPrice,
   });
+
+  const [commodity, extensions] = await Promise.all([
+    CommodityModel.findOne({ id: sourceGrn.commodityId }, null, { session }).lean().exec(),
+    rentExtensionRepository.findExtensionsByGrn(facilityId, sourceGrn.id, session),
+  ]);
+  const sourceHamaliShare =
+    effectiveRentAmount > 0
+      ? computeFirstSeasonHamali(
+          sourceGrn.bags,
+          commodity,
+          extensions,
+          sourceGrn.hamaliRate,
+          sourceGrn.hamaliAmount,
+        )
+      : 0;
+
+  const isCompositionUnverified = effectiveRentAmount === 0 && totalPaid === 0 && !canCalc.canCalculate;
+  const isLegacyUnverifiedHamali =
+    sourceGrn.hamaliRate == null && sourceGrn.hamaliAmount == null && sourceHamaliShare > 0 && totalPaid === 0;
+  const isPendingVerification = isCompositionUnverified || isLegacyUnverifiedHamali;
+
+  const sourceTotalDue = await resolveMovementObligation(
     facilityId,
-    { id: sourceGrn.id, rentAmount: effectiveRentAmount, rentType: sourceGrn.rentType },
+    {
+      id: sourceGrn.id,
+      rentAmount: effectiveRentAmount,
+      rentType: sourceGrn.rentType,
+      hamaliShare: sourceHamaliShare,
+    },
     session,
   );
-  const sourceTotalDue = Number((baseTotalDue + sourceHamaliShare).toFixed(2));
   const rentBal = computeRentBalance(sourceTotalDue, totalPaid, { isPendingVerification });
 
   const verificationReason = isPendingVerification
