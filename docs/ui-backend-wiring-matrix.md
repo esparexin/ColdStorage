@@ -46,17 +46,16 @@
 | Commodity rate lookup (Inward read-only rates) | `GET /api/commodities/:id/rates?rentType=` (`useCommodityRate`) | `commodity.routes.ts` | `commodityRateQuerySchema`, `commodityRateSchema` | ✅ wired |
 | Commodity rate upsert (managers only) | `CommodityRatesModal` → `PUT /api/commodities/:id/rates` via `useCommodityRates` (Rates action, `commodity:manage`-gated) | `commodity.routes.ts` (`commodity:manage`) | `upsertCommodityRateSchema` | ✅ wired |
 | Inward with controller rates | `POST .../grns` (read-only agreed rates from lookup) | `grn.routes.ts` (mismatch → 400, unconfigured → legacy path) | `createGrnSchema` | ✅ wired |
-| Seasonal renewal + Jan/Feb finalize/override/list | `POST .../rent/extensions/finalize`, `PATCH .../rent/extensions/:id/override`, `GET .../rent/grn/:id/extensions` | `rent.routes.ts` (`rent:extend` for writes) | `finalizeExtensionInputSchema` (`JANUARY\|FEBRUARY\|SEASON`), `overrideExtensionInputSchema` | ✅ wired |
-| Billing-period history | `RentHistoryModal` billing-periods section over `RentSummaryDto.extensions/totalDue` | `rent.routes.ts` (`GET .../rent/grn/:id`) | `rentSummaryDtoSchema`, `rentExtensionSchema` | ✅ wired (display only, no math duplicated) |
+| Billing-period history & extension display | `RentHistoryModal` and `RentCashMemosTab` display over `RentSummaryDto.extensions/totalDue` | `rent.routes.ts` (`GET .../rent/grn/:id`) | `rentSummaryDtoSchema`, `rentExtensionSchema` | ✅ wired (display only; finalization/override writes are headless REST APIs) |
 | Settings get/put + logo | `GET/PUT /api/settings`, `POST/DELETE /api/settings/logo`, `GET /api/assets/:id` (`AppHeader`, `BrandLogoSection`) | `settings.routes.ts`, `asset.routes.ts` | `systemSettingsSchema` | ✅ wired |
 | Import / Export | `POST .../import/customers|grns` (FormData `file`), `GET .../export/grns|deliveries|inventory-ledger|customers|stock-summary` | `import-export.routes.ts` | `exportDateRangeQuerySchema`, `stockSummaryExportQuerySchema` | ✅ wired |
 | Dashboard summary | `GET .../dashboard/summary` | `dashboard.routes.ts` | `dashboardSummarySchema` | ✅ wired |
 
 No frontend call targets retired endpoints (`/api/storage/*`, `/api/chambers/*`, PUT customers). Dynamic `documents/${type}` constrained to `grn|receipt`; `import/${target}` constrained to `customers|grns`; `export/${endpoint}` callers pass only the 5 canonical types.
 
-## 4. Headless REST API Endpoints (Retained & Fully Tested)
+## 5. Headless REST API Endpoints (Retained & Fully Tested)
 
-Per architecture governance, the endpoints below are intentionally retained as headless REST API capabilities (implemented, routed inline in `*routes.ts`, and covered by backend tests). Detail modals in the web UI reuse list entity props to avoid redundant network round-trips. Delivery reversal remains API-only: `POST .../deliveries/:id/reverse` is implemented and tested but has no UI. (An earlier revision of this document claimed it was 'wired via DeliveryReversalModal in deliveries/page.tsx'; that component never existed and the claim was removed in W4/W6.) There is no gate-pass endpoint (balances are ledger-derived).}
+Per architecture governance, the endpoints below are intentionally retained as headless REST API capabilities (implemented, routed inline in `*routes.ts`, and covered by backend tests). Detail modals in the web UI reuse list entity props to avoid redundant network round-trips. Delivery reversal remains API-only: `POST .../deliveries/:id/reverse` is implemented and tested but has no UI. (An earlier revision of this document claimed it was 'wired via DeliveryReversalModal in deliveries/page.tsx'; that component never existed and the claim was removed in W4/W6.) There is no gate-pass endpoint (balances are ledger-derived).
 
 | # | Endpoint & Method | Handler / Module | Contract Schema | Capability / Purpose |
 |---|---|---|---|---|
@@ -67,9 +66,10 @@ Per architecture governance, the endpoints below are intentionally retained as h
 | 5 | `GET /api/customers/:id` | `customer.routes.ts:59` (inline) | `customerParamsSchema` | Programmatic single-customer entity lookup (UI modals are prop-based by design) |
 | 6 | `GET /api/commodities/:id` | `commodity.routes.ts:38` (inline) | `commodityParamsSchema` | Programmatic single-commodity entity lookup (UI modals are prop-based by design) |
 | 7 | `GET /api/audit-logs/:id` | `audit.routes.ts:60` (inline) | `auditParamsSchema` | Forensic single audit log entry lookup by immutable ID (UI modal is prop-based by design) |
+| 8 | `POST /api/facilities/:fid/rent/extensions/finalize`, `PATCH .../override`, `GET .../extensions` | `rent.routes.ts:150,188,218` (inline) | `finalizeExtensionInputSchema`, `overrideExtensionInputSchema` | Recurring billing extension finalization & authorized override (headless REST capability; UI displays finalized extensions) |
 
 
-## 5. Fixed in this branch (no new features)
+## 6. Fixed in this branch (no new features)
 
 1. UI tokens: removed compact `.actionBtn` overrides (`grns/deliveries/page.module.css`) in favour of DS `Button size=sm`; replaced hardcoded `11px/10px` cell text with `var(--text-xs)`; replaced `gap:1/2/3px`, `margin/padding px` with `var(--space-*)`; removed hex fallbacks (`BondLoanSection`); fixed non-existent tokens (`--color-surface-3` → `--color-surface-2`, `--color-danger-border` → `--color-danger`, `--space-2-5` → `--space-2`, `letter-spacing:0.5px` → `var(--tracking-label)`); corrected fill-vs-text roles (`--color-primary/success/warning` → `*-text` for text).
 2. Contracts: `useProvisionUserForm` mobile regex now delegates to `indianMobileSchema`; `deliveries/page.tsx` rent lookup now uses `requestWithAuth` (was bare `fetch` without refresh); `record-payment.handler` post-payment balance + audit status now derive from `computeRentBalance`; rent-receipt preview derives status from `computeRentBalance`; fixed stale `counter.service` comment.

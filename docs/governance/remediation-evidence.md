@@ -292,7 +292,7 @@ update is rejected. Order: dropIndex, then the two updates.
 | check-contract-shadow.sh | a frontend type shadowing contracts | **YES - 3 shadows of `OutwardBagCategory`**, one a 3-value union against the contract's 8 |
 | check-endpoint-wiring.sh | docs asserting a non-existent component/endpoint | **YES - 3 false claims** in the wiring matrix + 2 renamed modals |
 | check-numeric-hygiene.sh | a redeclared rounding helper / double rounding | n/a |
-| check-dead-css.sh | unreferenced CSS classes | 42 reported (advisory, see below) |
+| check-dead-css.sh | unreferenced CSS classes | **YES - 42 dead classes removed**; gate flipped to fail-closed |
 
 Each gate was proven to FAIL when its defect was deliberately reintroduced, then
 restored.
@@ -310,6 +310,13 @@ restored.
   the stored amount dropped the accrual and let an unsettled lot transfer with
   no gate at all. Caught by a test that expected a 400 and got a 200.
 
+## Post-Audit Remediation Completed (2026-10-14)
+
+1. **Safety isolation (P0 - commit `65486a7`):** Removed unsafe script `scripts/repair-monthly-rent.mjs` and updated exception register `EX-01` to RESOLVED.
+2. **Database schema integrity & governance (P1 - commit `23e6058`):** Verified `grn.model.ts` index definition conforms to MongoDB rules (no `sparse: true` with `partialFilterExpression`), verified via `grn-bond-index.test.ts`, and enforced in `scripts/check-db-connection-governance.sh`.
+3. **Dead CSS cleanup & fail-closed gate (P1 - commit `06f6a20`):** Removed 42 unreferenced CSS classes across 7 `.module.css` files (377 lines deleted), ratcheted `line-budget-baseline.json`, and upgraded `scripts/check-dead-css.sh` from advisory to fail-closed (423/423 classes referenced).
+4. **Documentation truthfulness (P1):** Reconciled headless REST API endpoints in `docs/ui-backend-wiring-matrix.md` and validated via `scripts/check-endpoint-wiring.sh`.
+
 ## Outstanding
 
 1. **merge / ownership-transfer lack counter-conflict retry.** `withMongoRetry`
@@ -318,25 +325,14 @@ restored.
    attempts it was reverted rather than risk working money logic late in the
    wave. Both files are at the 250-line budget, so the fix needs an extraction
    first.
-2. **12 orphan endpoints not yet deleted** (W4 scope, deferred): backup
-   `download` / `inspect` / `restore`, `audit-logs/:id`, `inventory/ledger`,
-   `grns/acknowledgement`, `rent/occupancy-report`, `GET /deliveries/:id`,
-   `GET /internal-movements`, `rent/extensions/finalize`, `extensions/:id/override`,
-   `rent/grn/:id/extensions`.
-3. **4 orphan files + 24 dead contract exports not yet deleted** (W4 scope,
-   deferred). `scripts/repair-monthly-rent.mjs` is the highest-risk of these:
-   it hardcodes `mongodb://127.0.0.1:27017/cold_storage`, has no `--allow-live`
-   guard, bypasses `assertSafeDatabaseTarget`, declares neither `mongodb` nor
-   `dotenv`, and runs only via npm hoisting.
-4. **42 dead CSS classes** - detected, not yet deleted. `check-dead-css.sh` is
-   ADVISORY until that cleanup lands; the fail switch is marked in the script.
-5. **`next` CRITICAL advisory** (Next 14.2.35) - pre-existing, untouched.
-6. **`GRN-26-27-*` rows in production** - still unverified as to ownership and
+2. **`next` CRITICAL advisory** (Next 14.2.35) - pre-existing, untouched.
+3. **`GRN-26-27-*` rows in production** - still unverified as to ownership and
    purpose. Left untouched per instruction. `GRN-26-27-0001` additionally has
    no inward stock-ledger transaction.
-7. **Test flakiness under full-suite load.** Several files intermittently fail
+4. **Test flakiness under full-suite load.** Several files intermittently fail
    with socket hang up / ECONNRESET / hook timeout, and pass in isolation.
    Observed in `bond-loan-lifecycle`, `user-lifecycle`, `grn-correction` and
    `audit-backup.routes`. This predates W1 and is worth its own investigation;
    `--fileParallelism=false` shares one database across 117 files, so residual
    state between files is the likely cause.
+
