@@ -108,7 +108,7 @@ describe('Hamali Snapshot Lifecycle & Historical Fallback Verification', () => {
       facilityId, { grnId: grn.id, date: d2Date, smallBags: 60, bigBags: 0, rentCharge: rent2 }, userId,
     );
     expect(d2.rentCharge).toBeCloseTo(rent2 + 240, 2);
-    expect((d1.rentCharge - rent1) + (d2.rentCharge - rent2)).toBeCloseTo(400, 2);
+    expect(((d1.rentCharge ?? 0) - rent1) + ((d2.rentCharge ?? 0) - rent2)).toBeCloseTo(400, 2);
   });
 
   it('preserves zero hamali obligation when commodity initially has hamali disabled', async () => {
@@ -187,7 +187,7 @@ describe('Hamali Snapshot Lifecycle & Historical Fallback Verification', () => {
       facilityId, { grnId: grn.id, date: d3Date, smallBags: 34, bigBags: 0, rentCharge: r3 }, userId,
     );
 
-    const h1 = del1.rentCharge - r1, h2 = del2.rentCharge - r2, h3 = del3.rentCharge - r3;
+    const h1 = (del1.rentCharge ?? 0) - r1, h2 = (del2.rentCharge ?? 0) - r2, h3 = (del3.rentCharge ?? 0) - r3;
     expect(h1).toBeCloseTo(132, 2);
     expect(h2).toBeCloseTo(132, 2);
     expect(h3).toBeCloseTo(136, 2);

@@ -133,6 +133,7 @@ describe('Flexible S/B Bag Composition & Non-Negative Inventory (Phase 2)', () =
       facilityId,
       {
         grnNumber: '9003',
+        date: new Date(),
         customerId,
         commodityId: 'cmd-potato-sb',
         chamber: 'CH-01',

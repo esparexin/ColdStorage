@@ -104,7 +104,7 @@ describe('Phase 3: GRN Closure, Physical Stock & Financial Settlement Integrity'
   it('Scenario 2: final outward delivery with all dues paid transitions GRN to CLOSED', async () => {
     const grn = await makeGrn(100);
     // Settle full 3400 (3000 rent + 400 hamali)
-    await rentService.recordPayment(facilityId, { grnId: grn.id, amountPaid: 3400, paymentMode: 'Cash' }, userId);
+    await rentService.recordPayment(facilityId, { grnId: grn.id, amountPaid: 3400, paymentMode: 'Cash', paymentDate: new Date('2025-07-01') }, userId);
     const dDate = new Date('2025-07-15');
     const rent = await expectedRentOnly(grn.id, 100, dDate);
     const { summary } = await createDeliveryWithRetry(
@@ -123,7 +123,7 @@ describe('Phase 3: GRN Closure, Physical Stock & Financial Settlement Integrity'
   it('Scenario 3: final outward delivery with rent or hamali outstanding keeps GRN OPEN', async () => {
     const grn = await makeGrn(100);
     // Pay rent only (3000), leaving ₹400 Hamali outstanding
-    await rentService.recordPayment(facilityId, { grnId: grn.id, amountPaid: 3000, paymentMode: 'Cash' }, userId);
+    await rentService.recordPayment(facilityId, { grnId: grn.id, amountPaid: 3000, paymentMode: 'Cash', paymentDate: new Date('2025-07-01') }, userId);
 
     const dDate = new Date('2025-07-15');
     const rent = await expectedRentOnly(grn.id, 100, dDate);
@@ -148,13 +148,13 @@ describe('Phase 3: GRN Closure, Physical Stock & Financial Settlement Integrity'
 
   it('Scenario 4: zero-stock GRN transitions to CLOSED upon settling outstanding rent', async () => {
     const grn = await makeGrn(100);
-    await rentService.recordPayment(facilityId, { grnId: grn.id, amountPaid: 2000, paymentMode: 'Cash' }, userId);
+    await rentService.recordPayment(facilityId, { grnId: grn.id, amountPaid: 2000, paymentMode: 'Cash', paymentDate: new Date('2025-07-01') }, userId);
     const dDate = new Date('2025-07-15');
     const rent = await expectedRentOnly(grn.id, 100, dDate);
     await createDeliveryWithRetry(facilityId, { grnId: grn.id, date: dDate, smallBags: 100, bigBags: 0, rentCharge: rent }, userId);
 
     // Dues outstanding: 3400 - 2000 = 1400.
-    const res = await rentService.recordPayment(facilityId, { grnId: grn.id, amountPaid: 1400, paymentMode: 'Cash' }, userId);
+    const res = await rentService.recordPayment(facilityId, { grnId: grn.id, amountPaid: 1400, paymentMode: 'Cash', paymentDate: new Date('2025-07-16') }, userId);
     expect(res.summary.remainingBalance).toBe(0);
     expect(res.summary.paymentStatus).toBe('Settled');
 
@@ -164,7 +164,7 @@ describe('Phase 3: GRN Closure, Physical Stock & Financial Settlement Integrity'
 
   it('Scenario 5: fully paid GRN with stock remaining stays OPEN', async () => {
     const grn = await makeGrn(100);
-    await rentService.recordPayment(facilityId, { grnId: grn.id, amountPaid: 3400, paymentMode: 'Cash' }, userId);
+    await rentService.recordPayment(facilityId, { grnId: grn.id, amountPaid: 3400, paymentMode: 'Cash', paymentDate: new Date('2025-07-01') }, userId);
     const rentSum = await rentService.getRentSummary(facilityId, grn.id);
     expect(rentSum.remainingBalance).toBe(0);
     expect(rentSum.paymentStatus).toBe('Settled');
@@ -201,12 +201,12 @@ describe('Phase 3: GRN Closure, Physical Stock & Financial Settlement Integrity'
 
     // Attempt merge into depleted target GRN is rejected
     await expect(
-      internalMovementService.mergeGrn(facilityId, { targetGrnId: target.id, sourceGrnIds: [source.id], movementDate: new Date('2025-07-20') }, userId),
+      internalMovementService.mergeGrn(facilityId, { targetGrnId: target.id, sourceGrnIds: [source.id], movementDate: new Date('2025-07-20'), remarks: 'Depleted merge test', additionalRentAmount: 0 }, userId),
     ).rejects.toThrow(/zero remaining stock/);
 
     // Attempt ownership transfer of depleted target GRN is rejected
     await expect(
-      internalMovementService.transferOwnership(facilityId, { grnId: target.id, newCustomerId: otherCust.id, movementDate: new Date('2025-07-20') }, userId),
+      internalMovementService.transferOwnership(facilityId, { grnId: target.id, newCustomerId: otherCust.id, movementDate: new Date('2025-07-20'), remarks: 'Depleted transfer test', paymentDecision: 'SETTLE_NOW' }, userId),
     ).rejects.toThrow(/No stock remaining/);
   });
 
@@ -218,7 +218,7 @@ describe('Phase 3: GRN Closure, Physical Stock & Financial Settlement Integrity'
     });
     const grn = await makeGrn(100, { rentType: 'Seasonal_3M', inwardDate: new Date('2025-01-05') });
     // Inward rent = 3000, hamali = 400. Pay 3400.
-    await rentService.recordPayment(facilityId, { grnId: grn.id, amountPaid: 3400, paymentMode: 'Cash' }, userId);
+    await rentService.recordPayment(facilityId, { grnId: grn.id, amountPaid: 3400, paymentMode: 'Cash', paymentDate: new Date('2025-01-10') }, userId);
 
     // Delivery after 5 months (2 extra months = 100 * 2 * 10 = 2000 extra rent)
     const dDate = new Date('2025-05-10');
@@ -236,7 +236,7 @@ describe('Phase 3: GRN Closure, Physical Stock & Financial Settlement Integrity'
     expect(rentSum.remainingBalance).toBe(2000);
 
     // Settle the extra 2000
-    await rentService.recordPayment(facilityId, { grnId: grn.id, amountPaid: 2000, paymentMode: 'Cash' }, userId);
+    await rentService.recordPayment(facilityId, { grnId: grn.id, amountPaid: 2000, paymentMode: 'Cash', paymentDate: new Date('2025-05-11') }, userId);
     const finalDoc = await GrnModel.findOne({ id: grn.id }).lean();
     expect(finalDoc?.status).toBe('CLOSED');
   });
