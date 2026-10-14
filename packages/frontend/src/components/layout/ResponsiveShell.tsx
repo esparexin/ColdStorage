@@ -13,6 +13,7 @@ import { LOADING_LABELS } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { useNumberInputWheel } from '@/hooks/useNumberInputWheel';
 import { LOGIN_BACKGROUND_IMAGE_URL, PRODUCT_NAME } from '@/lib/branding';
+import { sanitizeReturnUrl } from '@/lib/safe-url';
 import styles from './ResponsiveShell.module.css';
 
 interface ResponsiveShellProps {
@@ -65,10 +66,9 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
       try {
         await login(username, password);
         if (typeof window !== 'undefined') {
-          const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
-          if (returnUrl) {
-            router.replace(returnUrl);
-          }
+          const rawReturnUrl = new URLSearchParams(window.location.search).get('returnUrl');
+          const safeReturnUrl = sanitizeReturnUrl(rawReturnUrl);
+          router.replace(safeReturnUrl);
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Invalid credentials';

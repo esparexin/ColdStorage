@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { sanitizeReturnUrl } from '@/lib/safe-url';
 
 export default function LoginPage() {
   const { user, isLoading } = useAuth();
@@ -10,11 +11,11 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      const returnUrl =
+      const rawReturnUrl =
         typeof window !== 'undefined'
-          ? new URLSearchParams(window.location.search).get('returnUrl') || '/'
-          : '/';
-      router.replace(returnUrl);
+          ? new URLSearchParams(window.location.search).get('returnUrl')
+          : null;
+      router.replace(sanitizeReturnUrl(rawReturnUrl));
     }
   }, [user, isLoading, router]);
 
