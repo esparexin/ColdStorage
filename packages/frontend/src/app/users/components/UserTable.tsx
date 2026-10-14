@@ -6,6 +6,7 @@ import type { UserSummary } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { EMPTY_MESSAGES, LOADING_LABELS } from '@/components/ui/stateCopy';
+import { formatDisplayDate } from '@/lib/date-format';
 import { PAGE_SIZE } from '../hooks/useUsersData';
 import { UserRowActions } from './UserRowActions';
 import styles from '../page.module.css';
@@ -59,6 +60,9 @@ export function UserTable({
     {
       key: 'user',
       header: 'User',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (u) => u.fullName,
       render: (u) => (
         <div className={styles.userInfo}>
           <span className={styles.userName}>{u.fullName}</span>
@@ -69,19 +73,25 @@ export function UserTable({
     {
       key: 'employeeId',
       header: 'Emp ID',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (u) => u.employeeId,
       render: (u) => <span className={styles.codeText}>{u.employeeId}</span>,
     },
     {
       key: 'role',
       header: 'Role',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (u) => resolveRoleLabel(u),
       render: (u) => (
         <Badge
           variant={
             u.role === 'SUPER_ADMIN' || u.role === 'ADMIN'
               ? 'primary'
               : u.role === 'OPERATOR'
-              ? 'warning'
-              : 'neutral'
+                ? 'warning'
+                : 'neutral'
           }
         >
           {resolveRoleLabel(u)}
@@ -137,28 +147,26 @@ export function UserTable({
     {
       key: 'status',
       header: 'Status',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (u) => u.status,
       render: (u) => (
-        <Badge variant={u.status === 'ACTIVE' ? 'success' : 'danger'}>
-          {u.status}
-        </Badge>
+        <Badge variant={u.status === 'ACTIVE' ? 'success' : 'danger'}>{u.status}</Badge>
       ),
     },
     {
       key: 'lastLogin',
       header: 'Last Login',
+      sortable: true,
+      sortType: 'date',
+      sortAccessor: (u) => u.lastLoginAt,
       render: (u) => (
         <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
-          {u.lastLoginAt
-            ? new Date(u.lastLoginAt).toLocaleDateString('en-IN', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-              })
-            : 'Never'}
+          {formatDisplayDate(u.lastLoginAt, { fallback: 'Never' })}
         </span>
       ),
     },
-{
+    {
       key: 'actions',
       header: 'Lifecycle Actions',
       render: (u) => (

@@ -3,6 +3,7 @@ import { Eye } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { Badge, Button } from '@/components/ui';
+import { formatDisplayDate } from '@/lib/date-format';
 
 interface CreateBondsColumnsParams {
   onOpenDetail: (grn: Grn) => void;
@@ -15,6 +16,9 @@ export function createBondsColumns({
     {
       key: 'customerName',
       header: 'Customer',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.customerName,
       render: (row) => (
         <span style={{ fontWeight: 'var(--font-semibold)' }}>{row.customerName}</span>
       ),
@@ -22,11 +26,16 @@ export function createBondsColumns({
     {
       key: 'grnNumber',
       header: 'GRN / Bond #',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.grnNumber,
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)' }}>
-          <span style={{ fontWeight: 'var(--font-medium)', whiteSpace: 'nowrap' }}>{row.grnNumber}</span>
+          <span style={{ fontWeight: 'var(--font-medium)', whiteSpace: 'nowrap' }}>
+            {row.grnNumber}
+          </span>
           <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-            {new Date(row.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+            {formatDisplayDate(row.date)}
           </span>
         </div>
       ),
@@ -34,11 +43,17 @@ export function createBondsColumns({
     {
       key: 'commodityName',
       header: 'Commodity',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.commodityName,
       render: (row) => row.commodityName,
     },
     {
       key: 'loanStatus',
       header: 'Loan Status',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.loanStatus ?? '',
       render: (row) => {
         if (row.loanStatus === 'TAKEN') {
           return <Badge variant="danger">Loan Active (Hold)</Badge>;
@@ -55,14 +70,15 @@ export function createBondsColumns({
     {
       key: 'status',
       header: 'GRN Status',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.status,
       render: (row) => {
         if (row.mergedIntoGrnNumber) {
           return <Badge variant="neutral">Merged → {row.mergedIntoGrnNumber}</Badge>;
         }
         return (
-          <Badge variant={row.status === 'CLOSED' ? 'neutral' : 'warning'}>
-            {row.status}
-          </Badge>
+          <Badge variant={row.status === 'CLOSED' ? 'neutral' : 'warning'}>{row.status}</Badge>
         );
       },
     },

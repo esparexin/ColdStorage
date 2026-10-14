@@ -22,6 +22,9 @@ export function createEligibleGrnColumns({
     {
       key: 'grnNumber',
       header: 'GRN',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.grnNumber,
       render: (row) => (
         <div className={styles.grnCell}>
           <span className={styles.grnNumber}>{row.grnNumber}</span>
@@ -36,34 +39,34 @@ export function createEligibleGrnColumns({
     {
       key: 'date',
       header: 'Inward Date',
-      render: (row) => (
-        <span className={styles.dateCell}>
-          {formatGrnDate(row.date)}
-        </span>
-      ),
+      sortable: true,
+      sortType: 'date',
+      sortAccessor: (row) => row.date,
+      render: (row) => <span className={styles.dateCell}>{formatGrnDate(row.date)}</span>,
     },
     {
       key: 'customerName',
       header: 'Customer',
-      render: (row) => (
-        <span className={styles.customerName}>{row.customerName}</span>
-      ),
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.customerName,
+      render: (row) => <span className={styles.customerName}>{row.customerName}</span>,
     },
     {
       key: 'commodityName',
       header: 'Commodity',
-      render: (row) => (
-        <span className={styles.commodityName}>{row.commodityName}</span>
-      ),
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.commodityName,
+      render: (row) => <span className={styles.commodityName}>{row.commodityName}</span>,
     },
     {
       key: 'chamber',
       header: 'Chamber',
-      render: (row) => (
-        <span className={styles.chamberCell}>
-          Ch {row.chamber}
-        </span>
-      ),
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.chamber,
+      render: (row) => <span className={styles.chamberCell}>Ch {row.chamber}</span>,
     },
     {
       key: 'rentType',
@@ -82,9 +85,7 @@ export function createEligibleGrnColumns({
         return (
           <div className={styles.markCell}>
             <span className={styles.storageMark}>{primaryMark}</span>
-            {partyMarkSub && (
-              <span className={styles.partyMarkSub}>Party: {partyMarkSub}</span>
-            )}
+            {partyMarkSub && <span className={styles.partyMarkSub}>Party: {partyMarkSub}</span>}
           </div>
         );
       },
@@ -93,6 +94,9 @@ export function createEligibleGrnColumns({
       key: 'availableStock',
       header: 'Available Stock',
       align: 'right',
+      sortable: true,
+      sortType: 'number',
+      sortAccessor: (row) => getAvailableStockBags(row),
       render: (row) => {
         const availableBags = getAvailableStockBags(row);
         return (
@@ -100,11 +104,7 @@ export function createEligibleGrnColumns({
             <span className={styles.stockQuantity}>
               {availableBags.toLocaleString('en-IN')} bags
             </span>
-            {row.bagType && (
-              <span className={styles.bagTypeSub}>
-                {row.bagType}
-              </span>
-            )}
+            {row.bagType && <span className={styles.bagTypeSub}>{row.bagType}</span>}
           </div>
         );
       },

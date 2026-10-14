@@ -41,20 +41,26 @@ export function BackupLogTable({
     {
       key: 'createdAt',
       header: 'Created At',
+      sortable: true,
+      sortType: 'date',
+      sortAccessor: (log) => log.createdAt,
       render: (log) => formatDate(log.createdAt),
     },
     {
       key: 'status',
       header: 'Status',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (log) => log.status,
       render: (log) => {
         const variant =
           log.status === 'COMPLETED'
             ? 'success'
             : log.status === 'FAILED'
-            ? 'danger'
-            : log.status === 'IN_PROGRESS'
-            ? 'warning'
-            : 'neutral';
+              ? 'danger'
+              : log.status === 'IN_PROGRESS'
+                ? 'warning'
+                : 'neutral';
 
         return (
           <div>
@@ -77,11 +83,17 @@ export function BackupLogTable({
     {
       key: 'backupType',
       header: 'Type',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (log) => log.backupType,
       render: (log) => log.backupType,
     },
     {
       key: 'sizeBytes',
       header: 'File Size',
+      sortable: true,
+      sortType: 'number',
+      sortAccessor: (log) => log.sizeBytes,
       render: (log) => formatBytes(log.sizeBytes),
     },
     {

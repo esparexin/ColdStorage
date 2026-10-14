@@ -1,16 +1,9 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle2, Clock, Eye, Plus } from 'lucide-react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
-import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
-import { Badge, Button } from '@/components/ui';
-import {
-  formatPaymentStatus,
-  formatRentStructure,
-  formatAgreedRates,
-} from '../hooks/rentDisplay.helper';
-import styles from '../page.module.css';
+import { DataTable } from '@/components/ui/DataTable';
+import { createRentColumns } from './rentTableColumns';
 
 interface RentTableProps {
   accounts: RentSummaryDto[];
@@ -37,185 +30,11 @@ export function RentTable({
   onOpenCollect,
   onOpenHistory,
 }: RentTableProps) {
-  const columns: DataTableColumn<RentSummaryDto>[] = [
-    {
-      key: 'customer',
-      header: 'Customer',
-      render: (row) => (
-        <div className={styles.tableCustomer}>
-          <span className={styles.tableCustomerName}>{row.customerName}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'grnNumber',
-      header: 'GRN # / Date',
-      render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span className={styles.tableMono}>{row.grnNumber}</span>
-          <span className={styles.tableSubtext}>
-            {new Date(row.inwardDate).toLocaleDateString('en-IN', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-            })}
-          </span>
-        </div>
-      ),
-    },
-    {
-      key: 'commodity',
-      header: 'Commodity & Chamber',
-      render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)' }}>
-          <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)' }}>
-            {row.commodityName}
-          </span>
-          <span className={styles.tableSubtext}>
-            Chamber {row.chamber}
-          </span>
-        </div>
-      ),
-    },
-    {
-      key: 'inwardBags',
-      header: 'Inward',
-      align: 'right',
-      render: (row) => (
-        <span className={styles.bagNumber}>{row.totalBags.toLocaleString('en-IN')}</span>
-      ),
-    },
-    {
-      key: 'outwardBags',
-      header: 'Outward',
-      align: 'right',
-      render: (row) => (
-        <span className={styles.bagNumber}>
-          {(row.deliveredBags ?? 0).toLocaleString('en-IN')}
-        </span>
-      ),
-    },
-    {
-      key: 'remainingBags',
-      header: 'Balance',
-      align: 'right',
-      render: (row) => {
-        const bal =
-          row.remainingBags ?? Math.max(0, row.totalBags - (row.deliveredBags ?? 0));
-        return (
-          <span
-            className={`${styles.bagNumber} ${bal > 0 ? styles.balancePositive : styles.balanceZero}`}
-          >
-            {bal.toLocaleString('en-IN')}
-          </span>
-        );
-      },
-    },
-    {
-      key: 'structure',
-      header: 'Rent Structure',
-      render: (row) => {
-        const agreedRates = formatAgreedRates(row);
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)' }}>
-            <span style={{ fontSize: 'var(--text-xs)' }}>
-              {row.rentType}
-              {row.rentType === 'Monthly' && row.rentMonths ? ` (${row.rentMonths}m)` : ''}
-            </span>
-            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)' }}>
-              {formatRentStructure(row)}
-            </span>
-            {agreedRates && (
-              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
-                {agreedRates}
-              </span>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      key: 'accounting',
-      header: 'Paid / Due',
-      align: 'right',
-      render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--space-0-5)' }}>
-          <span
-            style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-semibold)',
-              color: 'var(--color-success-text)',
-            }}
-          >
-            Paid: ₹{row.totalPaid.toLocaleString('en-IN')}
-          </span>
-          <span
-            style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-semibold)',
-              color: row.remainingBalance > 0 ? 'var(--color-warning-text)' : 'var(--color-text-muted)',
-            }}
-          >
-            Due: ₹{row.remainingBalance.toLocaleString('en-IN')}
-          </span>
-        </div>
-      ),
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      align: 'center',
-      render: (row) => {
-        const status = formatPaymentStatus(row);
-        return (
-          <Badge
-            variant={status.variant}
-            icon={
-              status.variant === 'success' ? (
-                <CheckCircle2 size={12} aria-hidden="true" />
-              ) : (
-                <Clock size={12} aria-hidden="true" />
-              )
-            }
-          >
-            {status.label}
-          </Badge>
-        );
-      },
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      align: 'right',
-      render: (row) => (
-        <div className={styles.actionGroup}>
-          {row.paymentStatus !== 'Settled' && canCollect && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => onOpenCollect(row)}
-              title="Collect rent payment"
-              aria-label={`Collect rent payment for ${row.grnNumber}`}
-              leftIcon={<Plus size={12} aria-hidden="true" />}
-            >
-              Collect
-            </Button>
-          )}
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onOpenHistory(row)}
-            title="View payment cash memos history"
-            aria-label={`View cash memos history for ${row.grnNumber}`}
-            leftIcon={<Eye size={12} aria-hidden="true" />}
-          >
-            Cash Memos ({row.payments.length})
-          </Button>
-        </div>
-      ),
-    },
-  ];
+  const columns = createRentColumns({
+    canCollect,
+    onOpenCollect,
+    onOpenHistory,
+  });
 
   return (
     <DataTable

@@ -86,16 +86,29 @@ export function GroupDetailModal({
     {
       key: 'grnNumber',
       header: 'GRN #',
-      render: (g: Grn) => <strong>{g.grnNumber}</strong>,
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (g: Grn) => g.grnNumber,
+      render: (g: Grn) => (
+        <span style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-text-primary)' }}>
+          {g.grnNumber}
+        </span>
+      ),
     },
     {
       key: 'commodity',
       header: 'Commodity',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (g: Grn) => g.commodityName,
       render: (g: Grn) => g.commodityName,
     },
     {
       key: 'chamber',
       header: 'Chamber',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (g: Grn) => g.chamber,
       render: (g: Grn) => g.chamber,
     },
     {
@@ -106,19 +119,18 @@ export function GroupDetailModal({
     {
       key: 'closingBags',
       header: 'On-Hand Stock',
+      sortable: true,
+      sortType: 'number',
+      sortAccessor: (g: Grn) => g.closingBags ?? g.bags,
       render: (g: Grn) => (
-        <span style={{ fontWeight: 'var(--font-semibold)' }}>
-          {g.closingBags ?? g.bags} bags
-        </span>
+        <span style={{ fontWeight: 'var(--font-semibold)' }}>{g.closingBags ?? g.bags} bags</span>
       ),
     },
     {
       key: 'status',
       header: 'Status',
       render: (g: Grn) => (
-        <Badge variant={g.status === 'OPEN' ? 'success' : 'neutral'}>
-          {g.status}
-        </Badge>
+        <Badge variant={g.status === 'OPEN' ? 'success' : 'neutral'}>{g.status}</Badge>
       ),
     },
     {
@@ -169,15 +181,18 @@ export function GroupDetailModal({
             label="Big Bags (B)"
             value={stockSummary ? `${stockSummary.bigBags.toLocaleString()} bags` : '—'}
           />
-          <StatCard
-            label="Total Member GRNs"
-            value={String(memberGrns.length)}
-          />
+          <StatCard label="Total Member GRNs" value={String(memberGrns.length)} />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: 'var(--text-base)', fontWeight: 'var(--font-semibold)' }}>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: 'var(--text-base)',
+                fontWeight: 'var(--font-semibold)',
+              }}
+            >
               Member Goods Receipt Notes
             </h3>
             {group.customerName && (

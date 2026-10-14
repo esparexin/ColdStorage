@@ -72,11 +72,21 @@ export function CommodityTable({
     {
       key: 'name',
       header: 'Commodity Name',
-      render: (row) => <strong>{row.name}</strong>,
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.name,
+      render: (row) => (
+        <span style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-text-primary)' }}>
+          {row.name}
+        </span>
+      ),
     },
     {
       key: 'status',
       header: 'Status',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => (row.isActive ? 'Active' : 'Inactive'),
       render: (row) => (
         <Badge variant={row.isActive ? 'success' : 'neutral'}>
           {row.isActive ? 'Active' : 'Inactive'}
@@ -96,6 +106,9 @@ export function CommodityTable({
       key: 'hamaliRate',
       header: 'Hamali',
       align: 'right',
+      sortable: true,
+      sortType: 'number',
+      sortAccessor: (row) => row.hamaliRate ?? 0,
       render: (row) => (
         <span style={{ fontVariantNumeric: 'tabular-nums' }}>
           {row.hamaliRate ? `₹${row.hamaliRate}/bag` : '—'}
