@@ -1,16 +1,8 @@
 'use client';
 
 /**
- * AuthContext — owns authenticated user state, bootstrap lifecycle,
- * and login/logout actions.
- *
- * Ownership:
- *   - user: User | null  (authenticated user state)
- *   - isLoading: boolean  (bootstrap state — true until first refresh resolves)
- *   - login / logout actions
- *
- * It does NOT own the access token value.
- * The access token lives exclusively in api-client.ts (browser memory).
+ * AuthContext — owns authenticated user state, bootstrap lifecycle, and login/logout actions.
+ * Access token lives exclusively in api-client.ts (browser memory).
  */
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
@@ -129,6 +121,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setOnAuthExpired(() => {
       setUser(null);
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        const returnUrl = window.location.pathname + window.location.search;
+        window.history.replaceState({}, '', `/login?returnUrl=${encodeURIComponent(returnUrl)}&expired=true`);
+      }
     });
     return () => setOnAuthExpired(null);
   }, []);
@@ -182,6 +178,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setAccessToken(null);
       setUser(null);
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        window.history.replaceState({}, '', '/login');
+      }
     }
   }, []);
 

@@ -7,6 +7,7 @@ import type { OutwardBagCategory } from '../hooks/deliveryRent.helper';
 import { calculateRemainingStock, clampBagAllocation } from '../hooks/eligibleGrn.helper';
 import pageStyles from '../page.module.css';
 import styles from './DeliveryBagCompositionFields.module.css';
+import { OutwardRentBreakdown } from './OutwardRentBreakdown';
 
 interface DeliveryBagCompositionFieldsProps {
   summary: GrnInventorySummary;
@@ -45,10 +46,12 @@ interface DeliveryBagCompositionFieldsProps {
 }
 
 export function DeliveryBagCompositionFields({
-  summary, bagType, rentType, smallBagPrice, bigBagPrice, bagPrice,
+  summary, bagType, rentType, rentMonths, smallBagPrice, bigBagPrice, bagPrice,
   manualBagPrice, onManualBagPriceChange, seasonalBagPrice, monthlyBagPrice,
   onSeasonalBagPriceChange, onMonthlyBagPriceChange, showSeasonalRate, showMonthlyRate,
+  inwardDate, deliveryDate, monthlyRates,
   withdrawal, bagCategory, onQuantityChange, onSmallBagsChange, onBigBagsChange,
+  outwardRent = 0, rentSummary,
   fieldErrors = {},
 }: DeliveryBagCompositionFieldsProps) {
   const { bags: bagsError, smallBags: smallError, bigBags: bigError } = fieldErrors;
@@ -223,6 +226,25 @@ export function DeliveryBagCompositionFields({
       {bagsError && !smallError && !bigError && !isHybrid && (
         <span id="delivery-bags-error" className={styles.fieldErrorText} role="alert">{bagsError}</span>
       )}
+
+      <OutwardRentBreakdown
+        rentType={rentType}
+        inwardDate={inwardDate}
+        deliveryDate={deliveryDate || new Date().toISOString().split('T')[0]}
+        smallBags={isHybrid ? hybridQty : smallQty}
+        bigBags={isHybrid ? 0 : bigQty}
+        bagCategory={bagCategory}
+        bagPrice={typeof manualBagPrice === 'number' ? manualBagPrice : bagPrice}
+        seasonalBagPrice={typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined}
+        monthlyBagPrice={typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined}
+        seasonalRates={rates}
+        monthlyRates={monthlyRates ?? rates}
+        rentMonths={rentMonths}
+        totalRent={outwardRent}
+        pendingBalance={rentSummary?.remainingBalance}
+        remainingStock={remainingStock}
+        totalStock={availableTotal}
+      />
     </>
   );
 }

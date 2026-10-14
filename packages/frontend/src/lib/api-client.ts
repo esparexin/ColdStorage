@@ -117,8 +117,10 @@ export async function executeSingleFlightRefresh<T = unknown>(
       );
 
       if (!res.ok) {
-        setAccessToken(null);
-        onAuthExpired?.();
+        if (res.status === 401) {
+          setAccessToken(null);
+          onAuthExpired?.();
+        }
         return null;
       }
 
@@ -126,7 +128,7 @@ export async function executeSingleFlightRefresh<T = unknown>(
       setAccessToken(data.token);
       return { token: data.token, user: data.user };
     } catch {
-      setAccessToken(null);
+      // Network timeout / transient fetch failure: do not clear session or redirect to login.
       return null;
     } finally {
       refreshPromise = null; // reset so the next 401 starts a new flight

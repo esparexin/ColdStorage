@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppHeader } from './AppHeader';
 import { SidebarNav } from './SidebarNav';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
@@ -12,6 +13,7 @@ import { LOADING_LABELS } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { useNumberInputWheel } from '@/hooks/useNumberInputWheel';
 import { LOGIN_BACKGROUND_IMAGE_URL, PRODUCT_NAME } from '@/lib/branding';
+import { sanitizeReturnUrl } from '@/lib/safe-url';
 import styles from './ResponsiveShell.module.css';
 
 interface ResponsiveShellProps {
@@ -29,6 +31,7 @@ interface ResponsiveShellProps {
 export function ResponsiveShell({ children }: ResponsiveShellProps) {
   useNumberInputWheel();
   const { isLoading, user, login } = useAuth();
+  const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -40,17 +43,33 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
   const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
   const toggleMobileNav = useCallback(() => setMobileNavOpen((prev) => !prev), []);
 
+  useEffect(() => {
+    if (!isLoading && !user && typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+      const returnUrl = window.location.pathname + window.location.search;
+      router.replace(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
+    }
+  }, [isLoading, user, router]);
+
   if (isLoading) {
     return <FeedbackStates.Loading fullPage label={LOADING_LABELS.auth} />;
   }
 
   if (!user) {
+    const isSessionExpired =
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('expired') === 'true';
+
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
       setIsSubmitting(true);
       try {
         await login(username, password);
+        if (typeof window !== 'undefined') {
+          const rawReturnUrl = new URLSearchParams(window.location.search).get('returnUrl');
+          const safeReturnUrl = sanitizeReturnUrl(rawReturnUrl);
+          router.replace(safeReturnUrl);
+        }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Invalid credentials';
         setError(message);
@@ -70,6 +89,10 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
             <h1 className={styles.loginTitle}>{PRODUCT_NAME}</h1>
             <p className={styles.loginSubtitle}>Sign in to access your facility dashboard</p>
           </div>
+
+          {isSessionExpired && !error && (
+            <Banner variant="info" message="Your session has expired. Please sign in again." id="session-expired-banner" />
+          )}
 
           {error && <Banner message={error} id="login-error" />}
 
