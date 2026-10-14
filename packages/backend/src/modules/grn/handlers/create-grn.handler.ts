@@ -86,8 +86,7 @@ export async function createGrn(
 
   // Per-bag weight is optional: the Inward form captures Total Bags and a single Bag Price.
   // A supplied weight is preserved for that bag type; an absent one is stored as null.
-  const smallBagWeight = input.smallBagWeight ?? null;
-  const bigBagWeight = input.bigBagWeight ?? null;
+  const smallBagWeight = input.smallBagWeight ?? null, bigBagWeight = input.bigBagWeight ?? null;
 
   const rentMonths = rentMonthsForType(input.rentType) ?? (input.rentMonths ?? null);
   const isSeasonal = input.rentType === 'Seasonal' || input.rentType === 'Seasonal_3M';
@@ -103,7 +102,9 @@ export async function createGrn(
     });
   }
   finalRentAmount = finalRentAmount != null && finalRentAmount > 0 ? finalRentAmount : 0;
-  // Hamali is internal-only first-season rent input: never stored on the GRN.
+  const isHamaliApp = commodity.isHamaliApplicable ?? ((commodity.hamaliRate ?? 0) > 0);
+  const hamaliRate = isHamaliApp ? (commodity.hamaliRate ?? 0) : 0;
+  const hamaliAmount = Number((input.bags * hamaliRate).toFixed(2));
 
   const id = `grn-${randomUUID()}`;
 
@@ -177,6 +178,8 @@ export async function createGrn(
             bagPrice: input.bagPrice ?? null,
             smallBagPrice: input.smallBagPrice ?? null,
             bigBagPrice: input.bigBagPrice ?? null,
+            hamaliRate,
+            hamaliAmount,
             gpNumber: input.gpNumber?.trim() || null,
             storageMark: input.storageMark?.trim() || null,
             partyMark: input.partyMark?.trim() || null,

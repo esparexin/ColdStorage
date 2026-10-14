@@ -59,7 +59,10 @@ export function buildRentSummary(
     bigBagPrice: grn.bigBagPrice,
   });
 
-  const isPendingVerification = baseRent === 0 && payments.length === 0 && !canCalc.canCalculate;
+  const isCompositionUnverified = baseRent === 0 && payments.length === 0 && !canCalc.canCalculate;
+  const isLegacyUnverifiedHamali =
+    grn.hamaliRate == null && grn.hamaliAmount == null && hamaliShare > 0 && payments.length === 0;
+  const isPendingVerification = isCompositionUnverified || isLegacyUnverifiedHamali;
   const balance = computeRentBalance(
     totalDue,
     payments.reduce((sum, p) => sum + p.amountPaid, 0),
@@ -89,7 +92,11 @@ export function buildRentSummary(
     remainingBalance: balance.remainingBalance,
     paymentStatus: balance.paymentStatus,
     rentState: balance.rentState,
-    verificationReason: isPendingVerification ? (canCalc.reason ?? 'Small and big bag composition unverified') : null,
+    verificationReason: isPendingVerification
+      ? !canCalc.canCalculate
+        ? (canCalc.reason ?? 'Small and big bag composition unverified')
+        : 'Legacy GRN has no stored Hamali rate snapshot; historical rate requires verification'
+      : null,
     payments: payments.map((p) => toPaymentEntity(p)),
     extensions,
     totalDue: balance.rentAmount,

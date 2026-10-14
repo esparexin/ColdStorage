@@ -104,8 +104,8 @@ describe('Inward stores no Hamali & Seasonal_3M Delivery Rent Engine', () => {
 
     const persisted = await GrnModel.findOne({ id: grn.id }).lean().exec();
     expect(persisted).not.toBeNull();
-    expect('hamaliRate' in persisted!).toBe(false);
-    expect('hamaliAmount' in persisted!).toBe(false);
+    expect(persisted!.hamaliRate).toBe(4);
+    expect(persisted!.hamaliAmount).toBe(400);
   });
 
   it('ignores legacy hamaliRate input on Inward GRN', async () => {

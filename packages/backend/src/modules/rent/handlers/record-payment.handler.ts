@@ -88,7 +88,10 @@ export async function executeRecordPayment(
         CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec(),
         rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session),
       ]);
-      const hamaliShare = grn.rentAmount > 0 ? computeFirstSeasonHamali(grn.bags, commodity, extensions) : 0;
+      const hamaliShare =
+        grn.rentAmount > 0
+          ? computeFirstSeasonHamali(grn.bags, commodity, extensions, grn.hamaliRate, grn.hamaliAmount)
+          : 0;
       const totalDue = Number(
         ((await rentExtensionRepository.resolveTotalDue(
           facilityId,

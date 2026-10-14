@@ -82,11 +82,9 @@ export async function transferOwnership(
       });
 
       const effectiveObligation =
-        expectedRentCharge > 0
-          ? expectedRentCharge
-          : grn.rentAmount && grn.rentAmount > 0
-          ? grn.rentAmount
-          : 0;
+        grn.rentAmount && grn.rentAmount > 0
+          ? Math.max(grn.rentAmount, expectedRentCharge)
+          : expectedRentCharge;
 
       const payments = await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session);
       const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);

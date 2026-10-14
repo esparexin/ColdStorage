@@ -96,7 +96,7 @@ describe('First-season internal hamali', () => {
     }
   }
 
-  it('includes the full one-time hamali in first-season total due without storing it', async () => {
+  it('includes the full one-time hamali in first-season total due with internal rate snapshotting', async () => {
     const grn = await makeGrn(100);
     expect('hamaliRate' in grn).toBe(false);
     expect('hamaliAmount' in grn).toBe(false);
@@ -107,8 +107,8 @@ describe('First-season internal hamali', () => {
     expect('hamaliAmount' in summary).toBe(false);
     const persisted = await GrnModel.findOne({ id: grn.id }).lean().exec();
     expect(persisted).not.toBeNull();
-    expect('hamaliRate' in persisted!).toBe(false);
-    expect('hamaliAmount' in persisted!).toBe(false);
+    expect(persisted!.hamaliRate).toBe(4);
+    expect(persisted!.hamaliAmount).toBe(400);
   });
 
   it('resolves zero hamali when the commodity disables it', async () => {
@@ -130,11 +130,11 @@ describe('First-season internal hamali', () => {
     expect(renewed.totalDue).toBe(3000 + extTotal);
   });
 
-  it('reprices live when the Admin rate changes (no stored history)', async () => {
+  it('preserves snapshotted rate when the Admin rate changes (no retroactive repricing)', async () => {
     const grn = await makeGrn(100);
     expect((await rentService.getRentSummary(facilityId, grn.id)).totalDue).toBe(3400);
     await CommodityModel.updateOne({ id: 'cmd-fs' }, { $set: { hamaliRate: 10 } });
-    expect((await rentService.getRentSummary(facilityId, grn.id)).totalDue).toBe(4000);
+    expect((await rentService.getRentSummary(facilityId, grn.id)).totalDue).toBe(3400);
   });
 
   it('allocates partial outward shares that never exceed the original amount', async () => {
