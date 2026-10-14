@@ -233,13 +233,14 @@ export class AuditService {
   ): Promise<AuditLogDoc | null> {
     const log = await AuditLogModel.findOne({ id }).lean().exec();
     if (!log) return null;
-
-    if (authorizedFacilityIds !== null && log.facilityId) {
-      if (!authorizedFacilityIds.includes(log.facilityId)) {
-        throw new Error('ACCESS_DENIED: Target audit record belongs to an unassigned facility');
-      }
+    // Must also cover records with NO facilityId: global system events (USER_*,
+    // ROLE_*, SETTINGS_UPDATED, BACKUP_TRIGGERED, AUTH_*) are written with
+    // facilityId null, and the old `&& log.facilityId` skipped them, letting a
+    // facility-scoped ADMIN read SUPER_ADMIN-only events. The list endpoint
+    // already excluded null; this aligns both paths.
+    if (authorizedFacilityIds !== null && (log.facilityId === null || !authorizedFacilityIds.includes(log.facilityId))) {
+      throw new Error('ACCESS_DENIED: Target audit record belongs to an unassigned facility');
     }
-
     return log as unknown as AuditLogDoc;
   }
 }
