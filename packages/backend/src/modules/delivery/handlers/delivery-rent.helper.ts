@@ -10,6 +10,7 @@ import {
   type RentType,
 } from '@cold-storage/contracts';
 import { CommodityRateModel } from '../../../database/models/commodity-rate.model.js';
+import { logger } from '../../../utils/logger.js';
 
 export interface ComputeDeliveryRentParams {
   grn: {
@@ -37,6 +38,11 @@ export interface ComputeDeliveryRentParams {
  * - March-December: Full season rate
  * - January & February: Monthly rate from Commodity Rate Table (or manual monthlyBagPrice for Hybrid)
  * - March 1 renewals: Full renewal rate (Option A Standard Seasonal Rule)
+ *
+ * Rate hierarchy (D2): GRN agreed rates win outright; else the active
+ * controller row for the period kind; else the canonical 10/15 reference with
+ * a warn log so the fallback is auditable instead of silent. Legacy and
+ * rate-unconfigured lots keep billing exactly as before.
  */
 export async function computeExpectedDeliveryRent(
   params: ComputeDeliveryRentParams,
@@ -104,14 +110,21 @@ export async function computeExpectedDeliveryRent(
   });
 
   if (grn.rentType === 'Seasonal' || grn.rentType === 'Seasonal_3M') {
-    const seasonalRateDoc =
-      grn.smallBagPrice == null && grn.bigBagPrice == null && grn.bagPrice == null
-        ? await CommodityRateModel.findOne({
-            commodityId: grn.commodityId,
-            rentType: 'Seasonal',
-            isActive: true,
-          }).session(session)
-        : null;
+    const hasNoAgreedRates =
+      grn.smallBagPrice == null && grn.bigBagPrice == null && grn.bagPrice == null;
+    const seasonalRateDoc = hasNoAgreedRates
+      ? await CommodityRateModel.findOne({
+          commodityId: grn.commodityId,
+          rentType: 'Seasonal',
+          isActive: true,
+        }).session(session)
+      : null;
+    if (hasNoAgreedRates && !seasonalRateDoc) {
+      logger.warn('Outward rent falling back to canonical rates: no active Seasonal controller row', {
+        grnId: grn.id,
+        commodityId: grn.commodityId,
+      });
+    }
 
     const seasonalRates = seasonalRateDoc
       ? { small: seasonalRateDoc.smallRate, big: seasonalRateDoc.bigRate }
@@ -122,6 +135,12 @@ export async function computeExpectedDeliveryRent(
       rentType: 'Monthly',
       isActive: true,
     }).session(session);
+    if (hasNoAgreedRates && !monthlyRateDoc) {
+      logger.warn('Outward rent falling back to canonical rates: no active Monthly controller row', {
+        grnId: grn.id,
+        commodityId: grn.commodityId,
+      });
+    }
 
     const monthlyRates = monthlyRateDoc
       ? { small: monthlyRateDoc.smallRate, big: monthlyRateDoc.bigRate }
@@ -180,6 +199,17 @@ export async function computeExpectedDeliveryRent(
           isActive: true,
         }).session(session)
       : null;
+  if (
+    grn.smallBagPrice == null &&
+    grn.bigBagPrice == null &&
+    grn.bagPrice == null &&
+    !monthlyRateDoc
+  ) {
+    logger.warn('Outward rent falling back to canonical rates: no active Monthly controller row', {
+      grnId: grn.id,
+      commodityId: grn.commodityId,
+    });
+  }
 
   const monthlyEffectiveRates = monthlyRateDoc
     ? { small: monthlyRateDoc.smallRate, big: monthlyRateDoc.bigRate }
