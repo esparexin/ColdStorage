@@ -185,3 +185,79 @@ Note the `GRN-26-27-*` series resembles e2e/test seed data in production.
 | 12 orphan endpoints | Delete (blast radius presented per-endpoint before removal) |
 | gpNumber duplicates | De-duplicate, then add index (approved; execution gated) |
 | Receipt numbering | `RCPT-<FY>-<grnNumber>`; requires amendment to `docs/00-p0-lock.md:14` |
+
+---
+
+# W1.6-1.7 — Production Write Evidence (2026-10-13)
+
+**Authorisation:** explicit user approval for de-duplicate-then-index, with the two
+document changes, collision check, index definition and rollback presented in advance
+and confirmed before execution.
+
+**Branch:** `fix/w1-emergency-data-and-security` · **Target:** Atlas `cold_storage`
+
+## Pre-write snapshot (captured BEFORE any write)
+
+| id | challanNumber | gpNumber | createdAt |
+|---|---|---|---|
+| `del-5a6e35e4-a496-43a5-a671-4f1d7a89739e` | `CHL-26-27-0002` | `094049` | 2026-10-05T05:20:54.362Z |
+| `del-770b781f-ab4b-4250-babf-f2b7c5d7dc44` | `CHL-26-27-0003` | `094049` | 2026-10-05T09:32:52.546Z |
+| `del-61f289ba-6c9d-434a-ad1e-53bc45d20f0e` | `CHL-26-27-0006` | `994477` | 2026-10-06T07:47:51.483Z |
+| `del-5680b372-2719-43ed-83a9-a49dc025ca77` | `CHL-26-27-0009` | `994477` | 2026-10-06T11:59:50.906Z |
+
+All four share `facilityId = fac-246d79d6-e935-49fa-bafa-12fe6d506a6e`, status `ISSUED`,
+and represent two genuinely distinct delivery pairs (different challan numbers and
+different GRNs) that happened to receive the same operator-entered gate-pass number.
+
+## Writes applied (2 documents)
+
+| id | from | to | matched | modified |
+|---|---|---|---|---|
+| `del-770b781f-ab4b-4250-babf-f2b7c5d7dc44` | `094049` | **`GP-0010`** | 1 | 1 |
+| `del-5680b372-2719-43ed-83a9-a49dc025ca77` | `994477` | **`GP-0011`** | 1 | 1 |
+
+The earlier challan of each pair keeps its original operator-entered value. Guarded
+updates matched on `{id, gpNumber}` so a concurrent change would have been a no-op
+rather than a blind overwrite.
+
+## Collision check
+
+`GP-0010` and `GP-0011` each matched 0 documents immediately before writing. The
+highest existing auto-format gate pass was `GP-0009`.
+
+## Index created
+
+```js
+db.deliverychallans.createIndex(
+  { facilityId: 1, gpNumber: 1 },
+  { unique: true, partialFilterExpression: { gpNumber: { $type: 'string' } } }
+)
+```
+
+Verified present, `unique: true`, correct `partialFilterExpression`, and crucially
+`sparse` **absent** (the illegal combination that made the bond-number index fail to
+build is not reproduced here).
+
+## Enforcement probe
+
+A deliberate duplicate insert of `GP-0010` was rejected with `code 11000`,
+`E11000 duplicate key error collection: cold_storage.deliverychallans
+index: facilityId_1_gpNumber_1`. Both probe documents were confirmed absent
+afterwards. Collection count unchanged at 22.
+
+This closes a latent startup failure: with `autoIndex: true`, the next application
+boot would previously have attempted this index and failed on the pre-existing
+duplicates.
+
+## Rollback
+
+```js
+db.deliverychallans.updateOne({id:'del-770b781f-ab4b-4250-babf-f2b7c5d7dc44'},
+  {$set:{gpNumber:'094049'}})
+db.deliverychallans.updateOne({id:'del-5680b372-2719-43ed-83a9-a49dc025ca77'},
+  {$set:{gpNumber:'994477'}})
+db.deliverychallans.dropIndex('facilityId_1_gpNumber_1')
+```
+
+Reverting to the duplicate values REQUIRES dropping the index first, otherwise the
+update is rejected. Order: dropIndex, then the two updates.
