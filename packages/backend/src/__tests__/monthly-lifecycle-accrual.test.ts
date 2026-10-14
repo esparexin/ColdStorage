@@ -16,11 +16,18 @@ describe('Phase 4: Continuous Monthly & Seasonal Storage Accrual in Rent Ledger'
   let facilityId: string;
   let customerId: string;
 
+  const originalEnv = process.env.ALLOW_HISTORICAL_TESTING_DATES;
+
   beforeAll(async () => {
+    process.env.ALLOW_HISTORICAL_TESTING_DATES = 'true';
     await connectToTestDatabase();
   });
 
-  afterAll(disconnectTestDatabase);
+  afterAll(async () => {
+    if (originalEnv !== undefined) process.env.ALLOW_HISTORICAL_TESTING_DATES = originalEnv;
+    else delete process.env.ALLOW_HISTORICAL_TESTING_DATES;
+    await disconnectTestDatabase();
+  });
 
   beforeEach(async () => {
     await resetStockCollections();
