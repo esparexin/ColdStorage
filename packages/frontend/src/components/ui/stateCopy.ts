@@ -78,6 +78,7 @@ export function noMatchMessage(kind: 'customers' | 'commodities' | 'groups', ter
 
 export const ACCESS_MESSAGES = {
   audit: "Inspecting audit trails requires the 'audit:view' permission.",
+  grnStock: "GRN stock history requires the 'grn:view' permission.",
   settings: "System settings require the 'settings:manage' permission.",
   backup: "Backup management requires the 'backup:manage' permission.",
   users: "Requires the 'user:manage' permission.",
