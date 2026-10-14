@@ -219,9 +219,7 @@ async function executeDeliveryTransaction(
       });
 
       const closingTotal = available.total - withdrawnTotal;
-      const effectiveObligation = await resolveEffectiveDeliveryObligation(
-        facilityId, grn, rentBalance.rentAmount, session,
-      );
+      const effectiveObligation = await resolveEffectiveDeliveryObligation(facilityId, grn, session);
       const totalPaidAfterDelivery = rentBalance.totalPaid + paidAmount;
       const effectiveRemaining = Math.max(0, Number((effectiveObligation - totalPaidAfterDelivery).toFixed(2)));
 

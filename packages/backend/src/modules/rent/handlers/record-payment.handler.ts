@@ -76,7 +76,7 @@ export async function executeRecordPayment(
         session,
       );
       const baseRent =
-        grn.rentType === 'Monthly'
+        grn.rentType === 'Monthly' || grn.rentType === 'Seasonal_3M'
           ? Math.max(grn.rentAmount, outwardRent)
           : grn.rentAmount > 0
             ? grn.rentAmount
@@ -89,7 +89,7 @@ export async function executeRecordPayment(
         rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session),
       ]);
       const hamaliShare =
-        grn.rentAmount > 0
+        baseRent === grn.rentAmount && grn.rentAmount > 0
           ? computeFirstSeasonHamali(grn.bags, commodity, extensions, grn.hamaliRate, grn.hamaliAmount)
           : 0;
       const totalDue = Number(
