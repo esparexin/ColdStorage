@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Commodity, CommodityRate } from '@cold-storage/contracts';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
+import { cachedRequestWithAuth, invalidateCache } from '@/lib/api-cache';
 
 export const COMMODITY_PAGE_SIZE = 20;
 
@@ -28,7 +29,7 @@ export function useCommodities() {
     setError(null);
     const isCurrent = beginRequest();
     try {
-      const res = await requestWithAuth('/api/commodities');
+      const res = await cachedRequestWithAuth('/api/commodities');
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -85,6 +86,7 @@ export function useCommodities() {
         throw new Error(err.error ?? 'Failed to update commodity status');
       }
 
+      invalidateCache('/api/commodities');
       await fetchCommodities();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to update status');

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { customerNameSchema, type Customer } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
+import { invalidateCache } from '@/lib/api-cache';
 import { Button, Input, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import styles from '../page.module.css';
@@ -75,6 +76,7 @@ export function CustomerFormModal({
         throw new Error(err.error ?? (customer ? 'Failed to update customer' : 'Failed to register customer'));
       }
 
+      invalidateCache('/api/customers');
       onSuccess();
     } catch (err: unknown) {
       setModalError(err instanceof Error ? err.message : 'Operation failed');

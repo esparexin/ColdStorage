@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { CommodityRate } from '@cold-storage/contracts';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
+import { cachedRequestWithAuth, invalidateCache } from '@/lib/api-cache';
 import type { RateUpsertPayload } from '../components/commodityRates.helper';
 
 /**
@@ -30,7 +31,7 @@ export function useCommodityRates(commodityId: string | null) {
     setError(null);
     const isCurrent = beginRequest();
     try {
-      const res = await requestWithAuth(`/api/commodities/${encodeURIComponent(commodityId)}/rates`);
+      const res = await cachedRequestWithAuth(`/api/commodities/${encodeURIComponent(commodityId)}/rates`);
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -70,6 +71,7 @@ export function useCommodityRates(commodityId: string | null) {
             throw new Error(err.error ?? `Failed to save ${payload.rentType} rates`);
           }
         }
+        invalidateCache('/api/commodities');
         await fetchRates();
       } finally {
         setSaving(false);

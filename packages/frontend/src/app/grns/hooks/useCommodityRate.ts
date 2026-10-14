@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { CommodityRate, RentType } from '@cold-storage/contracts';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
-import { requestWithAuth } from '@/lib/api-client';
+import { cachedRequestWithAuth } from '@/lib/api-cache';
 
 export interface CommodityRateState {
   rate: { small: number; big: number } | null;
@@ -43,7 +43,7 @@ export function useCommodityRate(
     setError(null);
     const isCurrent = beginRequest();
     const mappedRentType = rentType === 'Seasonal_3M' ? 'Seasonal' : rentType;
-    requestWithAuth(
+    cachedRequestWithAuth(
       `/api/commodities/${encodeURIComponent(commodityId)}/rates?rentType=${encodeURIComponent(mappedRentType)}`,
     )
       .then(async (res) => {
