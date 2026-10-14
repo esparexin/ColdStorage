@@ -117,7 +117,11 @@ describe('P6 DeliveryService reversal tests', () => {
   });
 
   it('re-opens a CLOSED GRN when the delivery that caused closure is reversed', async () => {
-    const delRes = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 100, bigBags: 0 }, userId);
+    const delRes = await deliveryService.createDelivery(
+      facilityId,
+      { grnId, smallBags: 100, bigBags: 0, paymentAmount: 1000, paymentMode: 'Cash' },
+      userId,
+    );
     expect((await GrnModel.findOne({ id: grnId }).exec())?.status).toBe('CLOSED');
 
     const revRes = await deliveryService.reverseDelivery(

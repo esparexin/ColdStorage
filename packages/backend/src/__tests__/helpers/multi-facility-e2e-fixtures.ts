@@ -37,8 +37,13 @@ export interface MultiFacilityScenario {
 }
 
 export async function seedMultiFacilityScenario(prefix: string): Promise<MultiFacilityScenario> {
+  const facilityAId = `fac-${prefix}-alpha`;
+  const facilityBId = `fac-${prefix}-beta`;
+  await mongoose.connection
+    .collection('rentpayments')
+    .deleteMany({ facilityId: { $in: [facilityAId, facilityBId] } });
   const facilityA = await seedFacility({
-    id: `fac-${prefix}-alpha`,
+    id: facilityAId,
     name: `Facility ${prefix.toUpperCase()} Alpha`,
     code: `${prefix.toUpperCase()}-A`,
   });
@@ -128,6 +133,9 @@ export async function cleanupMultiFacilityScenario(scenario: MultiFacilityScenar
   await InventoryTransactionModel.deleteMany({ facilityId: { $in: facilityIds } });
   await DeliveryChallanModel.deleteMany({ facilityId: { $in: facilityIds } });
   await DeliveryReversalModel.deleteMany({ facilityId: { $in: facilityIds } });
+  await mongoose.connection
+    .collection('rentpayments')
+    .deleteMany({ facilityId: { $in: facilityIds } });
   await CounterModel.deleteMany({ facilityId: { $in: facilityIds } });
   // AuditLog is immutable through the model, so teardown goes straight to the collection.
   await mongoose.connection

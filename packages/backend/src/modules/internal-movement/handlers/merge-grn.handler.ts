@@ -40,6 +40,8 @@ export async function mergeGrn(
       if (!targetGrn) throw new Error(`Target GRN '${input.targetGrnId}' not found in facility '${facilityId}'`);
       if (targetGrn.status === 'CLOSED') throw new Error(`Cannot merge into CLOSED GRN '${targetGrn.grnNumber}'`);
       if (targetGrn.loanStatus === 'TAKEN') throw new Error(`Target GRN '${targetGrn.grnNumber}' has an active loan hold`);
+      const targetBal = await readLedgerBalance(facilityId, targetGrn.id, session);
+      if (targetBal.total <= 0) throw new Error(`Cannot merge into Target GRN '${targetGrn.grnNumber}' with zero remaining stock`);
 
       const sourceGrns = await GrnModel.find({ id: { $in: input.sourceGrnIds }, facilityId }, null, { session }).lean().exec();
       if (sourceGrns.length !== input.sourceGrnIds.length) {
@@ -89,18 +91,12 @@ export async function mergeGrn(
       }
 
       const { smallMoved, bigMoved } = validateMergeRepackedCounts({
-        targetGrn,
-        sourceGrns,
-        repackedSmallBags: input.repackedSmallBags,
-        repackedBigBags: input.repackedBigBags,
-        sourceBagCategory: input.sourceBagCategory ?? null,
-        sourceQuantity: input.sourceQuantity ?? null,
-        sourceBagPrice: input.sourceBagPrice ?? null,
-        sourceSeasonalBagPrice: input.sourceSeasonalBagPrice ?? null,
+        targetGrn, sourceGrns,
+        repackedSmallBags: input.repackedSmallBags, repackedBigBags: input.repackedBigBags,
+        sourceBagCategory: input.sourceBagCategory ?? null, sourceQuantity: input.sourceQuantity ?? null,
+        sourceBagPrice: input.sourceBagPrice ?? null, sourceSeasonalBagPrice: input.sourceSeasonalBagPrice ?? null,
         sourceMonthlyBagPrice: input.sourceMonthlyBagPrice ?? null,
-        totalMovedBags,
-        defaultSmallMoved: totalMovedSmall,
-        defaultBigMoved: totalMovedBig,
+        totalMovedBags, defaultSmallMoved: totalMovedSmall, defaultBigMoved: totalMovedBig,
         movementDate: moveDate,
       });
       totalMovedSmall = smallMoved;

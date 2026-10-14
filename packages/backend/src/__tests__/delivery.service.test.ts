@@ -110,9 +110,9 @@ describe('P6 DeliveryService outward delivery tests', () => {
 
   it('automatically closes the GRN when balance and stored stock both reach zero', async () => {
     await allocateWholeLot();
-
-    const res = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 100, bigBags: 0 }, userId);
-
+    const res = await deliveryService.createDelivery(
+      facilityId, { grnId, smallBags: 100, bigBags: 0, paymentAmount: 1000, paymentMode: 'Cash' }, userId,
+    );
     expect(res.delivery.totalBags).toBe(100);
     expect(res.summary.remainingDeliveryBalance).toBe(0);
     expect(res.summary.physicallyStoredBags).toBe(0);
@@ -122,9 +122,7 @@ describe('P6 DeliveryService outward delivery tests', () => {
 
   it('correctly records multi-step partial deliveries with exact opening and closing snapshots', async () => {
     const d1 = await deliveryService.createDelivery(
-      facilityId,
-      { grnId, smallBags: 40, bigBags: 0, marks: 'LOT-A', gpNumber: 'GP-001' },
-      userId,
+      facilityId, { grnId, smallBags: 40, bigBags: 0, marks: 'LOT-A', gpNumber: 'GP-001' }, userId,
     );
     expect(d1.delivery.smallBags).toBe(40);
     expect(d1.delivery.totalBags).toBe(40);
@@ -133,20 +131,14 @@ describe('P6 DeliveryService outward delivery tests', () => {
     expect(d1.summary.grnStatus).toBe('OPEN');
     expect(d1.summary.remainingDeliveryBalance).toBe(60);
 
-    const d2 = await deliveryService.createDelivery(
-      facilityId,
-      { grnId, smallBags: 30, bigBags: 0 },
-      userId,
-    );
+    const d2 = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 30, bigBags: 0 }, userId);
     expect(d2.delivery.smallBags).toBe(30);
     expect(d2.delivery.totalBags).toBe(30);
     expect(d2.summary.grnStatus).toBe('OPEN');
     expect(d2.summary.remainingDeliveryBalance).toBe(30);
 
     const d3 = await deliveryService.createDelivery(
-      facilityId,
-      { grnId, smallBags: 30, bigBags: 0 },
-      userId,
+      facilityId, { grnId, smallBags: 30, bigBags: 0, paymentAmount: 1000, paymentMode: 'Cash' }, userId,
     );
     expect(d3.delivery.smallBags).toBe(30);
     expect(d3.delivery.totalBags).toBe(30);
@@ -170,7 +162,9 @@ describe('P6 DeliveryService outward delivery tests', () => {
 
   it('rejects any delivery attempt targeting an already CLOSED GRN', async () => {
     await allocateWholeLot();
-    await deliveryService.createDelivery(facilityId, { grnId, smallBags: 100, bigBags: 0 }, userId);
+    await deliveryService.createDelivery(
+      facilityId, { grnId, smallBags: 100, bigBags: 0, paymentAmount: 1000, paymentMode: 'Cash' }, userId,
+    );
 
     await expect(
       deliveryService.createDelivery(facilityId, { grnId, smallBags: 10, bigBags: 0 }, userId),

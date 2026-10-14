@@ -3,6 +3,7 @@ import {
   bagCompositionConsistent,
   bagCompositionIssueMessage,
   bagTypeSchema,
+  isBagCompositionVerified,
   perBagWeightSchema,
 } from './bags.js';
 import { chamberTextSchema, indianVehicleSchema, rentalAmountSchema } from './common.js';
@@ -125,6 +126,27 @@ export const createGrnSchema = z
       }),
     {
       message: bagCompositionIssueMessage,
+      path: ['smallBags'],
+    },
+  )
+  .refine(
+    (data) => {
+      const sRate = data.smallBagPrice ?? data.bagPrice ?? 0;
+      const bRate = data.bigBagPrice ?? data.bagPrice ?? 0;
+      const hasDiffRates = (data.smallBagPrice != null || data.bigBagPrice != null) && sRate !== bRate;
+      const isSb = data.bagType === 'S+B' || data.bagType === 'S/B';
+      if (hasDiffRates && isSb) {
+        return isBagCompositionVerified({
+          bagType: data.bagType,
+          bags: data.bags,
+          smallBags: data.smallBags,
+          bigBags: data.bigBags,
+        });
+      }
+      return true;
+    },
+    {
+      message: 'Small and big bag composition unverified; differential rates require confirmed counts',
       path: ['smallBags'],
     },
   )

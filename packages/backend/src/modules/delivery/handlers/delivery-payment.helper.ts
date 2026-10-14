@@ -1,9 +1,10 @@
 import type mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { resolveTotalRentObligation, type PaymentMode } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
 import { counterService } from '../../common/counter.service.js';
+import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
+import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 
 export interface RecordDeliveryInlinePaymentParams {
   facilityId: string;
@@ -71,26 +72,4 @@ export async function recordDeliveryInlinePayment(
  */
 export async function resolveEffectiveDeliveryObligation(
   facilityId: string,
-  grn: { id: string; rentType: 'Monthly' | 'Seasonal' | 'Seasonal_3M'; rentAmount?: number | null },
-  rentBalanceAmount: number,
-  session: mongoose.ClientSession,
-): Promise<number> {
-  // A Seasonal GRN's closure check uses the full balance, which already runs
-  // through the rent-obligation SSOT via the rent gate.
-  if (grn.rentType === 'Seasonal' || grn.rentType === 'Seasonal_3M') {
-    return rentBalanceAmount;
-  }
-  // A Monthly GRN's closure check also accounts for rent already levied on
-  // outward challans. This previously took the larger of the stored rent and
-  // the outward total itself, which was a SEVENTH independent copy of the
-  // base-selection rule. check-money-ssot.sh is what surfaced it.
-  const agg = await DeliveryChallanModel.aggregate([
-    { $match: { facilityId, grnId: grn.id, status: 'ISSUED' } },
-    { $group: { _id: null, total: { $sum: '$rentCharge' } } },
-  ]).session(session);
-  return resolveTotalRentObligation({
-    rentType: 'Monthly',
-    rentAmount: grn.rentAmount,
-    outwardRentCharges: agg[0]?.total ?? 0,
-  });
 }

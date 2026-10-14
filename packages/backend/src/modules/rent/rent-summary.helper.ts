@@ -35,22 +35,7 @@ export function buildRentSummary(
   outwardRentCharges = 0,
   hamaliShare = 0,
 ): RentSummaryDto {
-  // This helper was the reference implementation of the rent-obligation rule
-  // before W2. It now delegates to the SSOT like every other caller, so the
-  // rule has exactly one definition and this file can no longer drift from it.
-  // Monthly takes the greater of the stored obligation and the outward rent
-  // charges; Seasonal prefers the stored obligation and falls back to the
-  // outward charges. Hamali joins the total exactly once, and only when the
-  // base is the stored obligation, because a zero-rent GRN's outward charges
-  // already embed the per-delivery share.
-  const { baseRent, total: totalDue } = splitRentObligation({
-    rentType: grn.rentType,
-    rentAmount: grn.rentAmount,
-    outwardRentCharges,
-    hamaliShare,
-    extensionAmounts: extensions.map((e) => e.finalAmount),
-  });
-
+ 
   const canCalc = canCalculateAuthoritativeRent({
     bagType: grn.bagType,
     bags: grn.bags,
@@ -61,7 +46,10 @@ export function buildRentSummary(
     bigBagPrice: grn.bigBagPrice,
   });
 
-  const isPendingVerification = baseRent === 0 && payments.length === 0 && !canCalc.canCalculate;
+  const isCompositionUnverified = baseRent === 0 && payments.length === 0 && !canCalc.canCalculate;
+  const isLegacyUnverifiedHamali =
+    grn.hamaliRate == null && grn.hamaliAmount == null && hamaliShare > 0 && payments.length === 0;
+  const isPendingVerification = isCompositionUnverified || isLegacyUnverifiedHamali;
   const balance = computeRentBalance(
     totalDue,
     payments.reduce((sum, p) => sum + p.amountPaid, 0),
@@ -91,7 +79,11 @@ export function buildRentSummary(
     remainingBalance: balance.remainingBalance,
     paymentStatus: balance.paymentStatus,
     rentState: balance.rentState,
-    verificationReason: isPendingVerification ? (canCalc.reason ?? 'Small and big bag composition unverified') : null,
+    verificationReason: isPendingVerification
+      ? !canCalc.canCalculate
+        ? (canCalc.reason ?? 'Small and big bag composition unverified')
+        : 'Legacy GRN has no stored Hamali rate snapshot; historical rate requires verification'
+      : null,
     payments: payments.map((p) => toPaymentEntity(p)),
     extensions,
     totalDue: balance.rentAmount,

@@ -107,7 +107,7 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
     const finalRes = await request(app)
       .post(`/api/facilities/${scenario.facilityA}/deliveries`)
       .set('Authorization', `Bearer ${scenario.tokens.operatorA}`)
-      .send({ grnId, smallBags: 60, bigBags: 0 });
+      .send({ grnId, smallBags: 60, bigBags: 0, paymentAmount: 1000, paymentMode: 'Cash' });
     expect(finalRes.status).toBe(201);
     expect(finalRes.body.summary.remainingDeliveryBalance).toBe(0);
 

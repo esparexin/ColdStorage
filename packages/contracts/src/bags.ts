@@ -181,11 +181,14 @@ export function canCalculateAuthoritativeRent(input: {
   smallBagPrice?: number | null;
   bigBagPrice?: number | null;
 }): { canCalculate: boolean; reason?: string } {
+  const sRate = input.smallBagPrice ?? input.bagPrice ?? 0;
+  const bRate = input.bigBagPrice ?? input.bagPrice ?? 0;
   const hasDiffRates =
     (input.smallBagPrice != null || input.bigBagPrice != null) &&
-    input.smallBagPrice !== input.bigBagPrice;
+    sRate !== bRate;
+  const isSb = input.bagType === 'S+B' || input.bagType === 'S/B' || input.bagType == null;
 
-  if (hasDiffRates && !isBagCompositionVerified(input)) {
+  if (hasDiffRates && isSb && !isBagCompositionVerified(input)) {
     return {
       canCalculate: false,
       reason: 'Small and big bag composition unverified; differential rates require confirmed counts',

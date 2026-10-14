@@ -84,6 +84,13 @@ async function executeDeliveryTransaction(
 
       const isHybrid = isHybridBagCategory(input.bagCategory);
       const hasSpecificBags = (input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0;
+      const sRate = grn.smallBagPrice ?? grn.bagPrice ?? 0;
+      const bRate = grn.bigBagPrice ?? grn.bagPrice ?? 0;
+      const hasDiffRates = (grn.smallBagPrice != null || grn.bigBagPrice != null) && sRate !== bRate;
+      if (!isHybrid && (grn.bagType === 'S/B' || grn.bagType === 'S+B') && hasDiffRates && !hasSpecificBags) {
+        throw new Error('Small and big bag composition required for delivery when storage rates differ');
+      }
+
       const reqQty = input.quantity ?? 0;
       const resSmall = hasSpecificBags ? (input.smallBags ?? 0) : grn.bagType === 'B' ? 0 : reqQty;
       const resBig = hasSpecificBags ? (input.bigBags ?? 0) : grn.bagType === 'B' ? reqQty : 0;
@@ -205,21 +212,13 @@ async function executeDeliveryTransaction(
       );
 
       const { paidAmount } = await recordDeliveryInlinePayment({
-        facilityId,
-        grnId: grn.id,
-        grnNumber: grn.grnNumber,
-        deliveryDate,
-        paymentAmount: input.paymentAmount,
-        paymentMode: input.paymentMode,
-        paymentReference: input.paymentReference,
-        userId,
-        session,
+        facilityId, grnId: grn.id, grnNumber: grn.grnNumber, deliveryDate,
+        paymentAmount: input.paymentAmount, paymentMode: input.paymentMode, paymentReference: input.paymentReference,
+        userId, session,
       });
 
       const closingTotal = available.total - withdrawnTotal;
-      const effectiveObligation = await resolveEffectiveDeliveryObligation(
-        facilityId, grn, rentBalance.rentAmount, session,
-      );
+      const effectiveObligation = await resolveEffectiveDeliveryObligation(facilityId, grn, session);
       const totalPaidAfterDelivery = rentBalance.totalPaid + paidAmount;
       const effectiveRemaining = Math.max(0, Number((effectiveObligation - totalPaidAfterDelivery).toFixed(2)));
 

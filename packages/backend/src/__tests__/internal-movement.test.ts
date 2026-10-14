@@ -215,7 +215,7 @@ describe('Internal Movement Workflows (Merge & Transfer Ownership)', () => {
     const updated = await GrnModel.findOne({ id: grn38 }).lean().exec();
     expect(updated?.customerId).toBe(customerB);
     expect(updated?.remarks).toContain('OWNERSHIP TRANSFERRED');
-    expect(updated?.remarks).toContain('Rent obligation: ₹800 previously settled');
+    expect(updated?.remarks).toContain('Rent obligation: ₹2000 (Status: Settled)');
     expect(updated?.remarks).toContain('Trader Suresh');
 
     const histRes = await request(app)

@@ -127,4 +127,33 @@ describe('Flexible S/B Bag Composition & Non-Negative Inventory (Phase 2)', () =
     expect(bal.bigBags).toBe(0);
     expect(d2.summary.remainingDeliveryBalance).toBe(0);
   });
+
+  it('rejects delivery without confirmed bag composition when storage rates differ', async () => {
+    const { grn } = await grnService.createGrn(
+      facilityId,
+      {
+        grnNumber: '9003',
+        date: new Date(),
+        customerId,
+        commodityId: 'cmd-potato-sb',
+        chamber: 'CH-01',
+        bags: 100,
+        bagType: 'S/B',
+        smallBags: 60,
+        bigBags: 40,
+        smallBagPrice: 10,
+        bigBagPrice: 15,
+        rentType: 'Seasonal',
+      },
+      USER_ID,
+    );
+
+    await expect(
+      deliveryService.createDelivery(
+        facilityId,
+        { grnId: grn.id, quantity: 50 },
+        USER_ID,
+      ),
+    ).rejects.toThrow('Small and big bag composition required for delivery when storage rates differ');
+  });
 });

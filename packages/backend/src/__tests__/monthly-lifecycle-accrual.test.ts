@@ -16,11 +16,18 @@ describe('Phase 4: Continuous Monthly & Seasonal Storage Accrual in Rent Ledger'
   let facilityId: string;
   let customerId: string;
 
+  const originalEnv = process.env.ALLOW_HISTORICAL_TESTING_DATES;
+
   beforeAll(async () => {
+    process.env.ALLOW_HISTORICAL_TESTING_DATES = 'true';
     await connectToTestDatabase();
   });
 
-  afterAll(disconnectTestDatabase);
+  afterAll(async () => {
+    if (originalEnv !== undefined) process.env.ALLOW_HISTORICAL_TESTING_DATES = originalEnv;
+    else delete process.env.ALLOW_HISTORICAL_TESTING_DATES;
+    await disconnectTestDatabase();
+  });
 
   beforeEach(async () => {
     await resetStockCollections();
@@ -36,10 +43,10 @@ describe('Phase 4: Continuous Monthly & Seasonal Storage Accrual in Rent Ledger'
   });
 
   it('accumulates monthly outward charges exceeding initial contract rent in rent summary', async () => {
-    // Keep all dates within same financial year (FY 25-26)
-    const inwardDate = new Date('2025-04-01');
-    const d1Date = new Date('2025-05-01'); // 1 month
-    const d2Date = new Date('2025-07-01'); // 3 months
+    // Keep all dates within same financial year (FY 26-27)
+    const inwardDate = new Date('2026-04-01');
+    const d1Date = new Date('2026-05-01'); // 1 month
+    const d2Date = new Date('2026-07-01'); // 3 months
 
     // Inward with 1-month contract rent = 100 bags × 10 = ₹1,000
     const grnId = await seedGrn({
@@ -102,9 +109,9 @@ describe('Phase 4: Continuous Monthly & Seasonal Storage Accrual in Rent Ledger'
 
   it('keeps GRN OPEN across multiple partial deliveries when dues remain unpaid', async () => {
     // Inward on April 1, partial deliveries within Cycle 1 (same month)
-    const inwardDate = new Date('2025-04-01');
-    const d1Date = new Date('2025-04-10');
-    const d2Date = new Date('2025-04-20');
+    const inwardDate = new Date('2026-04-01');
+    const d1Date = new Date('2026-04-10');
+    const d2Date = new Date('2026-04-20');
 
     const grnId = await seedGrn({
       facilityId, customerId, commodityId: 'cmd-onions-accrual', commodityName: 'Onions Accrual',
