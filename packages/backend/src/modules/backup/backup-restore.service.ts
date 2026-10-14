@@ -7,29 +7,9 @@ import { assertSafeDatabaseTarget } from '../../database/connection.js';
 import { BackupLogModel } from '../../database/models/backup-log.model.js';
 import { auditService } from '../audit/audit.service.js';
 import { decryptBackupArchive, getValidEncryptionKey } from './backup-crypto.js';
+import { COMPOUND_IDENTITY_FIELDS, RESTORE_TARGETS } from './backup-restore-targets.js';
 
 const EXPECTED_FORMAT = 'COLD_STORAGE_BACKUP';
-
-/** Restorable collections: model name -> mongoose model name. Upsert by `id`, never wipe. */
-const RESTORABLE_MODELS = [
-  'SystemSettings',
-  'User',
-  'Facility',
-  'Customer',
-  'Commodity',
-  'CommodityRate',
-  'Grn',
-  'InventoryTransaction',
-  'DeliveryChallan',
-  'DeliveryReversal',
-  'RentPayment',
-  'RentExtension',
-  'Asset',
-  'Counter',
-  'Group',
-  'InternalMovement',
-  'AuditLog',
-] as const;
 
 function sha256Hex(buf: Buffer): string {
   return createHash('sha256').update(buf).digest('hex');
@@ -137,29 +117,73 @@ export async function restoreBackup(
     return { backupId, dryRun: true, targetDatabase: targetDb, entityCounts };
   }
   const upsertedCounts: Record<string, number> = {};
-  for (const modelName of RESTORABLE_MODELS) {
-    const key = modelName.charAt(0).toLowerCase() + modelName.slice(1) + 's';
-    const docs = entities[key] ?? entities[modelName] ?? [];
-    if (!Array.isArray(docs) || docs.length === 0) {
-      upsertedCounts[key] = 0;
-      continue;
-    }
-    const model = mongoose.models[modelName];
-    if (!model) {
-      upsertedCounts[key] = 0;
-      continue;
-    }
-    let upserted = 0;
-    for (const doc of docs as Array<Record<string, unknown>>) {
-      const id = doc['id'];
-      if (typeof id !== 'string' || !id) continue;
-      const { _id, __v, ...rest } = doc;
-      void _id;
-      void __v;
-      await model.updateOne({ id }, { $set: rest }, { upsert: true }).exec();
-      upserted += 1;
-    }
-    upsertedCounts[key] = upserted;
+  // The restore writes to up to 17 collections. Without a transaction a
+  // failure part-way through (for example the immutability guard on
+  // RentPaymentModel, which throws for every updateOne including an upsert)
+  // left the database partially restored with no compensating action and no
+  // way back other than a separate backup. One transaction makes the whole
+  // restore all-or-nothing.
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      for (const target of RESTORE_TARGETS) {
+        const docs = entities[target.key];
+        if (!Array.isArray(docs) || docs.length === 0) {
+          upsertedCounts[target.key] = 0;
+          continue;
+        }
+        const { modelRef, identity, key } = target;
+        let upserted = 0;
+        for (const doc of docs as Array<Record<string, unknown>>) {
+          const { _id, __v, ...rest } = doc;
+          void _id;
+          void __v;
+
+          let filter: Record<string, unknown>;
+          if (identity === 'compound') {
+            // No `id` on the model; the natural key is the composite tuple.
+            filter = Object.fromEntries(
+              COMPOUND_IDENTITY_FIELDS.map((f) => [f, doc[f] as unknown]),
+            );
+            if (COMPOUND_IDENTITY_FIELDS.some((f) => doc[f] === undefined)) continue;
+          } else {
+            const docId = doc[identity];
+            if (typeof docId !== 'string' || !docId) continue;
+            // SystemSettings has no `id`; its document key is the fixed _id.
+            filter = { [identity]: docId };
+          }
+
+          if (target.bypassImmutabilityGuard) {
+            // Native driver: the model's blocking immutability hook would
+            // otherwise abort the whole (now transactional) restore. See
+            // RESTORE_TARGETS.bypassImmutabilityGuard for the rationale.
+            const collName = (modelRef as unknown as { collection: { collectionName: string } })
+              .collection.collectionName;
+            await mongoose.connection
+              .collection(collName)
+              .updateOne(filter as never, { $set: rest } as never, {
+                upsert: true,
+                session,
+              } as never);
+          } else {
+            // runValidators was absent, so no schema validation ran on write
+            // and an archive could insert documents the model itself would
+            // have rejected (for example a DeliveryChallan with zero bags).
+            await modelRef
+              .updateOne(filter, { $set: rest }, {
+                upsert: true,
+                runValidators: true,
+                session,
+              })
+              .exec();
+          }
+          upserted += 1;
+        }
+        upsertedCounts[key] = upserted;
+      }
+    });
+  } finally {
+    await session.endSession();
   }
   await auditService.log({
     eventType: 'BACKUP_TRIGGERED',

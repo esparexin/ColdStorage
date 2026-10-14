@@ -35,7 +35,7 @@ const rentExtensionSchema = new Schema<RentExtensionDoc>(
     snapshotBags: { type: Number, required: true, min: 0 },
     bagRate: { type: Number, required: true, min: 0 },
     calculatedAmount: { type: Number, required: true, min: 0 },
-    manualAmount: { type: Number, default: null },
+    manualAmount: { type: Number, min: 0, default: null },
     finalAmount: { type: Number, required: true, min: 0 },
     overrideReason: { type: String, trim: true, default: null },
     overriddenBy: { type: String, default: null },

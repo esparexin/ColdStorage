@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { config, resolveMongoUri } from '../config.js';
-import { assertSafeDatabaseTarget, connectToDatabase } from '../database/connection.js';
+import {
+  assertSafeDatabaseTarget,
+  connectToDatabase,
+  extractDatabaseName,
+  isLiveDatabaseName,
+} from '../database/connection.js';
 
 describe('Database Safety Guard & Environment Isolation', () => {
   it('resolves mongoUri to an isolated test database under NODE_ENV=test', () => {
@@ -53,6 +58,70 @@ describe('Database Safety Guard & Environment Isolation', () => {
     expect(() => assertSafeDatabaseTarget(liveAtlasUri)).toThrow(/FATAL SAFETY VIOLATION/);
     // resolveMongoUri() rewrites any inherited live URI to the isolated test DB.
     expect(resolveMongoUri()).not.toMatch(/\/cold_storage(\?|$)/);
+  });
+
+  it('rejects bypasses that the previous last-segment parser missed', () => {
+    // Each of these passed the old implementation:
+    //   const dbName = uri.split('?')[0].split('/').pop()
+    // A trailing slash yields '' from lastIndexOf('/'), and only the exact
+    // lowercase string was compared.
+
+    // 1. Trailing slash -> old parser read '' and allowed the live target.
+    expect(() =>
+      assertSafeDatabaseTarget('mongodb://127.0.0.1:27017/cold_storage/'),
+    ).toThrow(/FATAL SAFETY VIOLATION/);
+
+    // 2. Multiple trailing slashes.
+    expect(() =>
+      assertSafeDatabaseTarget('mongodb://127.0.0.1:27017/cold_storage///'),
+    ).toThrow(/FATAL SAFETY VIOLATION/);
+
+    // 3. Case variation: a live database renamed by case is still live.
+    expect(() =>
+      assertSafeDatabaseTarget('mongodb://127.0.0.1:27017/Cold_Storage'),
+    ).toThrow(/FATAL SAFETY VIOLATION/);
+    expect(() =>
+      assertSafeDatabaseTarget('mongodb://127.0.0.1:27017/COLD_STORAGE'),
+    ).toThrow(/FATAL SAFETY VIOLATION/);
+
+    // 4. An unencoded '/' in the password must not shift the parse.
+    expect(() =>
+      assertSafeDatabaseTarget('mongodb://user:pa/ss@127.0.0.1:27017/cold_storage'),
+    ).toThrow(/FATAL SAFETY VIOLATION/);
+
+    // 5. Percent-encoded credentials are decoded correctly.
+    expect(() =>
+      assertSafeDatabaseTarget(
+        'mongodb+srv://user:p%40ss@cluster0.example.net/cold_storage?retryWrites=true',
+      ),
+    ).toThrow(/FATAL SAFETY VIOLATION/);
+  });
+
+  it('extractDatabaseName parses the database path correctly', () => {
+    const cases: Array<[string, string]> = [
+      ['mongodb://127.0.0.1:27017/cold_storage', 'cold_storage'],
+      ['mongodb://127.0.0.1:27017/cold_storage/', 'cold_storage'],
+      ['mongodb://127.0.0.1:27017/cold_storage///', 'cold_storage'],
+      ['mongodb://127.0.0.1:27017/cold_storage?replicaSet=rs0', 'cold_storage'],
+      ['mongodb://127.0.0.1:27017/', ''],
+      ['mongodb://127.0.0.1:27017', ''],
+      ['mongodb+srv://u:p@cluster0.example.net/cold_storage_test', 'cold_storage_test'],
+      ['mongodb://user:pa/ss@127.0.0.1:27017/cold_storage', 'cold_storage'],
+      ['mongodb+srv://user:p%40ss@cluster0.example.net/cold_storage?x=1', 'cold_storage'],
+      ['mongodb://h/a,b:27017/cold_storage', 'cold_storage'],
+    ];
+    for (const [uri, expected] of cases) {
+      expect(extractDatabaseName(uri), uri).toBe(expected);
+    }
+  });
+
+  it('isLiveDatabaseName is case-insensitive and does not match suffixed names', () => {
+    expect(isLiveDatabaseName('cold_storage')).toBe(true);
+    expect(isLiveDatabaseName('COLD_STORAGE')).toBe(true);
+    expect(isLiveDatabaseName('Cold_Storage')).toBe(true);
+    // A different database is not the live one; the guard is not a prefix test.
+    expect(isLiveDatabaseName('cold_storage_prod')).toBe(false);
+    expect(isLiveDatabaseName('cold_storage_test')).toBe(false);
   });
 
   it('keeps stock suites on an isolated database even when MONGODB_URI is Atlas', async () => {

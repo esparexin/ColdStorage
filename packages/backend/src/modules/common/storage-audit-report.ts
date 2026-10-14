@@ -1,6 +1,5 @@
 import type { FilterQuery } from 'mongoose';
 import {
-  totalRentDue,
   type StorageOccupancyFilter,
   type StorageOccupancyReport,
   type StorageOccupancyReportItem,
@@ -8,6 +7,7 @@ import {
 import { GrnModel, type GrnDoc } from '../../database/models/grn.model.js';
 import { RentPaymentModel } from '../../database/models/rent-payment.model.js';
 import { computeRentBalance } from './rent-balance.js';
+import { rentRepository } from '../rent/rent.repository.js';
 import { rentExtensionRepository } from '../rent/rent-extension.repository.js';
 import { getGrnMovementHistory } from './grn-movement-history.js';
 import {
@@ -51,11 +51,6 @@ export async function generateStorageOccupancyReport(
       totalPaidByGrn.set(row._id as string, row.total as number);
     }
   }
-  const extensionTotalsByGrn = await rentExtensionRepository.getExtensionTotalsForGrns(
-    facilityId,
-    grns.map((g) => g.id),
-  );
-
   const reportItems: StorageOccupancyReportItem[] = [];
 
   for (const grn of grns) {
@@ -68,13 +63,18 @@ export async function generateStorageOccupancyReport(
     if (!history) continue;
 
     const totalPaid = totalPaidByGrn.get(grn.id) ?? 0;
-    // extensionTotalsByGrn holds the pre-aggregated sum of all finalAmounts for this GRN.
-    // totalRentDue() accepts individual extension amounts and sums them internally; wrapping
-    // the pre-summed value in a single-element array routes through the SSOT formula
-    // (identical result, consistent rounding behaviour with all other call sites).
-    const totalDue = totalRentDue(
-      grn.rentAmount,
-      extensionTotalsByGrn.get(grn.id) ? [extensionTotalsByGrn.get(grn.id)!] : [],
+    // Routed through the rent-obligation SSOT (W2). This report previously used
+    // the bare stored rentAmount, so every GRN whose rent is carried on its
+    // outward challans was reported as owing nothing - production GRN 0015 is
+    // that shape, and the audit showed a 0 obligation against 422250 collected.
+    const totalDue = await rentExtensionRepository.resolveTotalDue(
+      facilityId,
+      {
+        id: grn.id,
+        rentAmount: grn.rentAmount,
+        rentType: grn.rentType,
+        outwardRentCharges: await rentRepository.getOutwardRentChargesForGrn(facilityId, grn.id),
+      },
     );
     const rentBalance = computeRentBalance(totalDue, totalPaid);
 

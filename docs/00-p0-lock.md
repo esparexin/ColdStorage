@@ -10,8 +10,12 @@
 ## 1. Ten Core Locked Decisions
 
 1. **Numbering (GRN / Receipt / Delivery Challan / Gate Pass / Rent Receipt)**:
-   - FY-sequential independent counters (e.g. `GRN-25-26-0001`, `CHL-25-26-0001`, `RCPT-25-26-0001`).
-   - Inward Receipt Number is strictly independent; must NOT be assumed equal to GRN Number.
+   - FY-sequential independent counters (e.g. `CHL-25-26-0001`, `RRCPT-25-26-0001`).
+   - ~~Inward Receipt Number is strictly independent; must NOT be assumed equal to GRN Number.~~
+     **AMENDED 2026-10-13 (W1.3)** — see "Amendment Log" below. The Inward Receipt Number is
+     now **derived** from the GR Number as `RCPT-<FY>-<GRN Number>` rather than allocated from
+     an independent sequence counter. It remains a distinct document family: the `RCPT-` prefix
+     keeps it visually and structurally separate from a bare GR Number, and from `CHL-`/`RRCPT-`/`GP-`.
    - Delivery Challan Number is strictly independent from inward counters.
    - Rent Payment Receipt Number is an independent system-generated identifier; must NOT reuse GR Number, Inward Receipt Number, or Delivery Challan Number.
    - G.P. Number (Gate Pass) remains optional, opaque free-text; has NO automatic sequence and NO format validation in V1.
@@ -291,3 +295,50 @@ The following billing and payment parameters remain pending formal business spec
 - GRN business key is manual 4-digit (`contracts/identifiers.ts`, boundary Rule 23b, wiring-matrix §5.1); FY-sequential numbering is retained only for RCPT/CHL/RRCPT/GP via `counter.service.ts` + `next-*-number` guidance endpoints.
 - Loan settlement additionally allows `Bank Transfer` (`contracts/loan.ts`); Decision 9 `Cash|UPI` remains for rent collection.
 - Implementation has proceeded beyond P1 scope (14 frontend routes, 19 backend routers); lock remains authoritative for decisions above as clarified here.
+
+---
+
+## Amendment Log
+
+### A-001 — Inward Receipt Number derived from the GR Number (2026-10-13, W1.3)
+
+**Supersedes:** Decision 1, bullet 2 ("Inward Receipt Number is strictly independent; must NOT
+be assumed equal to GRN Number").
+
+**New rule.** The Inward Receipt Number is derived as `RCPT-<financialYear>-<grnNumber>` by
+`buildInwardReceiptNumber` in `packages/contracts/src/identifiers.ts`. The GR Number is
+operator-entered, exactly four digits, and unique per facility, so the derived receipt number is
+unique per facility without any sequence counter.
+
+**Why this was necessary (evidence, production `cold_storage`).** The counter-backed generator
+could be poisoned and the damage was permanent:
+
+- `create-grn.handler.ts` accepted an optional `billNumber`, captured its trailing digits with an
+  **unanchored** `/(\d+)$/` match, and wrote the result back to the counter with `$max`.
+- `$max` is monotonic, so a single operator-entered value permanently ratcheted the counter upward.
+- Observed production chain: `RCPT-2026-27-0001` → `05505` → `093949` → `758686` → `758696`.
+- `counters` held `INWARD_RECEIPT FY=26-27 lastSequence = 758696` against **22** GRNs total.
+
+**What the amendment preserves.** The intent of the superseded rule — that one document family is
+never mistaken for another — is retained:
+
+| Document family | Shape | Source of truth |
+|---|---|---|
+| GR Number | `0099` | operator-entered business key |
+| Inward Receipt | `RCPT-2026-27-0099` | derived from GR Number |
+| Delivery Challan | `CHL-2026-27-0042` | independent counter |
+| Rent Receipt | `RRCPT-2026-27-0018` | independent counter |
+| Gate Pass | `GP-0009` | independent counter |
+
+**Consequences accepted.**
+
+- Two receipt conventions coexist. GRNs created before this amendment keep their existing numbers
+  (e.g. `RCPT-23-24-0001`, and the poisoned-era values `RCPT-2026-27-7586xx`). New GRNs follow the
+  derived format. `receiptNumberSchema` is deliberately permissive, so legacy rows remain valid.
+- The `INWARD_RECEIPT` counter document is left in place for historical audit and is no longer
+  written by application code. The poisoned `lastSequence` is inert and needs no data repair.
+- `GET /api/facilities/:facilityId/grns/next-bill-number` was removed. It existed only to preview
+  the counter that no longer exists. This endpoint was already a W4 orphan-deletion target.
+
+**Reversal.** Reverting the W1.3 commit restores the counter-backed generator. Because the counter
+was never reset, reverting would resume numbering at 758697 rather than at a sane baseline.

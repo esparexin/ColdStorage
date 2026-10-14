@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import {
   createFacilitySchema,
   facilityQuerySchema,
@@ -11,7 +12,7 @@ import { facilityService } from '../modules/facilities/facility.service.js';
 import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
-export const facilityRouter = Router();
+export const facilityRouter = asyncRouter();
 
 facilityRouter.use(authenticate);
 facilityRouter.use(requirePasswordChanged);

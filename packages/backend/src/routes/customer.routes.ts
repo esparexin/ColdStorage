@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import {
   createCustomerSchema,
   inFacilityScope,
@@ -10,7 +11,7 @@ import { customerService } from '../modules/customers/customer.service.js';
 import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
-export const customerRouter = Router();
+export const customerRouter = asyncRouter();
 
 customerRouter.use(authenticate);
 customerRouter.use(requirePasswordChanged);

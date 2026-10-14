@@ -43,60 +43,6 @@
   color: var(--color-text-primary);
 }
 
-/* Compact Table View */
-.tableContainer {
-  max-height: 200px;
-  overflow-y: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-1);
-}
-
-.compactTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-xs);
-  text-align: left;
-}
-
-.compactTable th {
-  position: sticky;
-  top: 0;
-  background: var(--color-surface-2);
-  color: var(--color-text-secondary);
-  font-size: var(--text-xs);
-  font-weight: var(--font-bold);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
-  padding: var(--space-1-5) var(--space-2);
-  border-bottom: 1px solid var(--color-border);
-  z-index: 1;
-}
-
-.compactTable td {
-  padding: var(--space-1-5) var(--space-2);
-  border-bottom: 1px solid var(--color-border);
-  vertical-align: middle;
-}
-
-.tableRow {
-  cursor: pointer;
-  transition: background var(--transition-fast);
-}
-
-.tableRow:hover {
-  background: var(--color-surface-2);
-}
-
-.tableRow[data-selected='true'] {
-  background: var(--color-primary-subtle);
-  font-weight: var(--font-medium);
-}
-
-.checkboxCell {
-  width: 32px;
-  text-align: center;
-}
 
 /* Review & Audit Section */
 .reviewGrid {

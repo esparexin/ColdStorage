@@ -1,4 +1,5 @@
 import { config as loadDotenv } from 'dotenv';
+import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -48,9 +49,59 @@ if (isProduction) {
   if (!process.env.MONGODB_URI) {
     throw new Error('MONGODB_URI environment variable is required in production.');
   }
-  if (!process.env.JWT_SECRET) {
-    throw new Error('JWT_SECRET environment variable is required in production.');
+}
+
+/**
+ * Minimum accepted length for a supplied `JWT_SECRET`.
+ *
+ * HMAC-SHA256 gives no strength guarantee from a short key: a 32-character
+ * floor keeps a supplied secret from being a single word or a short phrase.
+ * `BACKUP_ENCRYPTION_KEY` already asserts 64 hex characters; this is the
+ * equivalent guard for the token-signing key.
+ */
+export const MIN_JWT_SECRET_LENGTH = 32;
+
+/**
+ * Resolves the JWT signing secret (SSOT).
+ *
+ * There is deliberately **no hardcoded fallback**. The previous
+ * `'dev-super-secret-jwt-key-cold-storage-2026'` literal was committed to the
+ * repository and only guarded by `NODE_ENV === 'production'`, so any staging,
+ * preview or container deployment running any other value of `NODE_ENV`
+ * signed and verified tokens with a publicly known key. Anyone who had read
+ * the repository could mint a token carrying `role: 'SUPER_ADMIN'`.
+ *
+ * Resolution order:
+ *  1. `JWT_SECRET` is set -> validated against {@link MIN_JWT_SECRET_LENGTH}.
+ *  2. `NODE_ENV === 'test'` and unset -> an ephemeral per-process random key.
+ *     Tests never need a *stable* secret; giving each process a unique random
+ *     key is strictly better than a shared literal, because a token forged
+ *     with a known constant could never validate against it.
+ *  3. Any other environment -> throw at startup.
+ */
+export function resolveJwtSecret(): string {
+  const supplied = process.env.JWT_SECRET;
+
+  if (supplied) {
+    if (supplied.length < MIN_JWT_SECRET_LENGTH) {
+      throw new Error(
+        `JWT_SECRET must be at least ${MIN_JWT_SECRET_LENGTH} characters (received ${supplied.length}). ` +
+          'Generate one with node -e using crypto.randomBytes(48).toString("hex").',
+      );
+    }
+    return supplied;
   }
+
+  if (process.env.NODE_ENV === 'test') {
+    return randomBytes(32).toString('hex');
+  }
+
+  throw new Error(
+    'JWT_SECRET environment variable is required. It has no built-in default; ' +
+      'supply at least ' +
+      MIN_JWT_SECRET_LENGTH +
+      ' characters of entropy.',
+  );
 }
 
 /**
@@ -80,7 +131,7 @@ if (process.env.NODE_ENV === 'test' && resolvedMongoUri) {
 
 export const config: AppConfig = {
   port: Number(process.env.PORT) || 4000,
-  jwtSecret: process.env.JWT_SECRET || 'dev-super-secret-jwt-key-cold-storage-2026',
+  jwtSecret: resolveJwtSecret(),
   accessTokenExpirySeconds: Number(process.env.ACCESS_TOKEN_EXPIRY_SECONDS) || 900, // 15m
   refreshTokenExpiryDays: Number(process.env.REFRESH_TOKEN_EXPIRY_DAYS) || 7, // 7d
   mongoUri: resolvedMongoUri,

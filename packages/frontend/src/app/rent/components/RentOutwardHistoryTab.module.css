@@ -4,12 +4,6 @@
   gap: var(--space-3);
 }
 
-.summaryGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-3);
-}
-
 .sectionHeader {
   display: flex;
   align-items: center;

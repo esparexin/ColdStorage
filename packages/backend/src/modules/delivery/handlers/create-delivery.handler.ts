@@ -139,11 +139,10 @@ async function executeDeliveryTransaction(
         facilityId, grn, withdrawnTotal, expectedRentCharge, session,
       });
       const deliveryRentCharge = Number((expectedRentCharge + hamaliShare).toFixed(2));
-      const rentBalance = await assertRentAllowedForOutward(
-        facilityId,
-        { id: grn.id, grnNumber: grn.grnNumber, rentAmount: grn.rentAmount ?? 0 },
-        session,
-      );
+      // The full obligation input (W2): the gate cannot resolve a correct
+      // balance from rentAmount alone, because rent for many GRNs is carried
+      // on the outward challans rather than stored.
+      const rentBalance = await assertRentAllowedForOutward(facilityId, { ...grn, rentAmount: grn.rentAmount ?? 0 }, session);
 
       const challanNumber = await counterService.generateDeliveryChallanNumber(facilityId, deliveryDate, session);
       const deliveryId = `del-${randomUUID()}`;

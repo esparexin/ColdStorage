@@ -16,18 +16,24 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 20
           cache: 'npm'
 
+      # Resolve danger from the lockfile, never from the registry at run time.
+      # `npx --yes danger` downloaded whatever was published latest and executed
+      # it in a job holding pull-requests: write.
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
       - name: Run DangerJS
-        run: npx --yes danger ci
+        run: npx --no-install danger ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}

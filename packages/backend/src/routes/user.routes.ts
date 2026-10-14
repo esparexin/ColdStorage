@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import {
   createUserSchema,
   hasGlobalFacilityScope,
@@ -14,8 +15,9 @@ import { requirePermission } from '../middleware/rbac.middleware.js';
 import { userService } from '../modules/users/user.service.js';
 import { roleService } from '../modules/roles/role.service.js';
 import { getParamId } from '../utils/params.js';
+import { sendInternalError } from '../utils/http-error.js';
 
-export const userRouter = Router();
+export const userRouter = asyncRouter();
 
 // All user management routes require authentication, forced-password-change completion, and 'user:manage' permission
 userRouter.use(authenticate);
@@ -92,8 +94,7 @@ userRouter.get('/', async (req: Request, res: Response): Promise<void> => {
     const result = await userService.listUsers(page, limit);
     res.status(200).json(result);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'User listing failed';
-    res.status(500).json({ error: message });
+        sendInternalError(res, err, 'User listing failed');
   }
 });
 

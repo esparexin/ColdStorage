@@ -1,4 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import type { Response } from 'express';
+import { logger } from './logger.js';
 
 /**
  * Canonical domain-error to HTTP mapping.
@@ -87,3 +89,30 @@ export function sendServiceError(res: Response, err: unknown, fallbackMessage: s
   res.status(statusForDomainError(message)).json({ error: message });
 }
 
+
+/**
+ * Writes an UNEXPECTED server fault without echoing the underlying error.
+ *
+ * Route handlers previously did `res.status(500).json({ error: err.message })`
+ * in ~15 places. Mongoose and MongoDB errors carry internal structure, for
+ * example:
+ *
+ *   E11000 duplicate key error collection: cold_storage.grns
+ *   index: facilityId_1_grnNumber_1 dup key: { facilityId: "..." }
+ *
+ * which discloses the database name, collection names, index names and key
+ * paths to any authenticated user who can trigger a duplicate or a schema
+ * error. The widest exposures were settings.routes.ts and audit.routes.ts,
+ * both reachable by every READ_ONLY user.
+ *
+ * The detail is logged server-side; the client receives a fixed message plus a
+ * correlation id it can quote in a support request. This mirrors the terminal
+ * handler in app.ts, which already did this correctly and was the only place
+ * that did.
+ */
+export function sendInternalError(res: Response, err: unknown, context: string): void {
+  const reference = randomUUID();
+  const detail = err instanceof Error ? err.message : String(err);
+  logger.error('Unhandled request error', { context, reference, detail, stack: err instanceof Error ? err.stack : undefined });
+  res.status(500).json({ error: 'Internal server error', reference });
+}

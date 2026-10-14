@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import { mergeGrnInputSchema, transferOwnershipInputSchema } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
@@ -7,7 +8,7 @@ import { internalMovementService } from '../modules/internal-movement/internal-m
 import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
-export const internalMovementRouter = Router();
+export const internalMovementRouter = asyncRouter();
 
 internalMovementRouter.use(authenticate);
 internalMovementRouter.use(requirePasswordChanged);

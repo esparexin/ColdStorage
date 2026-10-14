@@ -17,6 +17,7 @@ import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { rentRepository } from '../rent.repository.js';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
+import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 
 export function toPaymentEntity(doc: RentPaymentDoc): RentPayment {
   return {
@@ -47,119 +48,125 @@ export async function executeRecordPayment(
   let computedPaymentStatus: 'Settled' | 'Not Settled' = 'Not Settled';
 
   try {
-    await session.withTransaction(async () => {
-      // 1. Acquire exclusive write-lock on the canonical GRN inside transaction
-      const grn = await GrnModel.findOneAndUpdate(
-        { id: input.grnId, facilityId },
-        { $set: { updatedAt: new Date() } },
-        { session, new: true },
-      )
-        .lean<GrnDoc>()
-        .exec();
+    await withMongoRetry(() =>
+      session.withTransaction(async () => {
+              // 1. Acquire exclusive write-lock on the canonical GRN inside transaction
+              const grn = await GrnModel.findOneAndUpdate(
+                { id: input.grnId, facilityId },
+                { $set: { updatedAt: new Date() } },
+                { session, new: true },
+              )
+                .lean<GrnDoc>()
+                .exec();
 
-      if (!grn) {
-        throw new Error(`GRN '${input.grnId}' not found in facility '${facilityId}'`);
-      }
-      lockedGrn = grn;
+              if (!grn) {
+                throw new Error(`GRN '${input.grnId}' not found in facility '${facilityId}'`);
+              }
+              lockedGrn = grn;
 
-      // 2. Authoritative ledger aggregation inside transaction session.
-      // The obligation is the total due: original Seasonal rent plus any
-      // finalized January/February extensions (single-pool collection).
-      const totalPaidBefore = await rentRepository.getTotalPaidForGrn(
-        facilityId,
-        grn.id,
-        session,
-      );
-      const outwardRent = await rentRepository.getOutwardRentChargesForGrn(
-        facilityId,
-        grn.id,
-        session,
-      );
-      const baseRent =
-        grn.rentType === 'Monthly' || grn.rentType === 'Seasonal_3M'
-          ? Math.max(grn.rentAmount, outwardRent)
-          : grn.rentAmount > 0
-            ? grn.rentAmount
-            : outwardRent;
-      // First-season Hamali joins the collectible total exactly as in the rent
-      // summary: full share for stored-rent GRNs, nothing for zero-rent GRNs
-      // whose outward charges already embed per-delivery shares.
-      const [commodity, extensions] = await Promise.all([
-        CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec(),
-        rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session),
-      ]);
-      const hamaliShare =
-        baseRent === grn.rentAmount && grn.rentAmount > 0
-          ? computeFirstSeasonHamali(grn.bags, commodity, extensions, grn.hamaliRate, grn.hamaliAmount)
-          : 0;
-      const totalDue = Number(
-        ((await rentExtensionRepository.resolveTotalDue(
-          facilityId,
-          { id: grn.id, rentAmount: baseRent },
-          session,
-        )) + hamaliShare).toFixed(2),
-      );
-      const balanceBefore = computeRentBalance(totalDue, totalPaidBefore);
-      const remainingBalance = balanceBefore.remainingBalance;
+              // 2. Authoritative ledger aggregation inside transaction session.
+              // The obligation is the total due: original Seasonal rent plus any
+              // finalized January/February extensions (single-pool collection).
+              const totalPaidBefore = await rentRepository.getTotalPaidForGrn(
+                facilityId,
+                grn.id,
+                session,
+              );
+              const outwardRent = await rentRepository.getOutwardRentChargesForGrn(
+                facilityId,
+                grn.id,
+                session,
+              );
+              // Base selection and the Hamali join both belong to the rent-obligation
+              // SSOT (W2). This handler previously recomputed them inline, which is how
+              // the six competing derivations arose; it now only supplies inputs.
+              const [commodity, extensions] = await Promise.all([
+                CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec(),
+                rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session),
+              ]);
+              const hamaliShare =
+                grn.rentAmount > 0
+                  ? computeFirstSeasonHamali(
+                      grn.bags,
+                      commodity,
+                      extensions,
+                      grn.hamaliRate,
+                      grn.hamaliAmount,
+                    )
+                  : 0;
+              const totalDue = await rentExtensionRepository.resolveTotalDue(
+                facilityId,
+                {
+                  id: grn.id,
+                  rentAmount: grn.rentAmount,
+                  rentType: grn.rentType,
+                  outwardRentCharges: outwardRent,
+                  hamaliShare,
+                },
+                session,
+              );
+              const balanceBefore = computeRentBalance(totalDue, totalPaidBefore);
+              const remainingBalance = balanceBefore.remainingBalance;
 
-      // 3. Strict Overpayment Guard (Zero negative balance permitted per P0-Decision 9)
-      if (input.amountPaid > remainingBalance) {
-        throw new Error(
-          `Requested payment ₹${input.amountPaid} exceeds remaining rent balance of ₹${remainingBalance} for GRN '${grn.grnNumber}'`,
-        );
-      }
+              // 3. Strict Overpayment Guard (Zero negative balance permitted per P0-Decision 9)
+              if (input.amountPaid > remainingBalance) {
+                throw new Error(
+                  `Requested payment ₹${input.amountPaid} exceeds remaining rent balance of ₹${remainingBalance} for GRN '${grn.grnNumber}'`,
+                );
+              }
 
-      // 4. Validate payment date in Asia/Kolkata timezone with +5 min clock skew tolerance.
-      // Backdated payment entry rules are explicitly parked in the P0 lock, so no
-      // backdating window or financial-year containment is imposed here.
-      const paymentDate = validateOperationalDate(input.paymentDate, {
-        label: 'Payment',
-        enforceFinancialYear: false,
-        enforceBackdatingWindow: false,
-      });
+              // 4. Validate payment date in Asia/Kolkata timezone with +5 min clock skew tolerance.
+              // Backdated payment entry rules are explicitly parked in the P0 lock, so no
+              // backdating window or financial-year containment is imposed here.
+              const paymentDate = validateOperationalDate(input.paymentDate, {
+                label: 'Payment',
+                enforceFinancialYear: false,
+                enforceBackdatingWindow: false,
+              });
 
-      // 5. Allocate independent FY-sequential rent receipt number inside the session
-      const receiptNumber = await counterService.generateRentReceiptNumber(
-        facilityId,
-        paymentDate,
-        session,
-      );
+              // 5. Allocate independent FY-sequential rent receipt number inside the session
+              const receiptNumber = await counterService.generateRentReceiptNumber(
+                facilityId,
+                paymentDate,
+                session,
+              );
 
-      // 6. Insert RentPayment document inside the session
-      const paymentId = `rp-${randomUUID()}`;
-      createdPaymentDoc = await rentRepository.createPayment(
-        {
-          id: paymentId,
-          facilityId,
-          grnId: grn.id,
-          grnNumber: grn.grnNumber,
-          receiptNumber,
-          amountPaid: input.amountPaid,
-          paymentMode: input.paymentMode,
-          paymentDate,
-          notes: input.notes?.trim() || null,
-          createdBy: userId,
-        },
-        session,
-      );
+              // 6. Insert RentPayment document inside the session
+              const paymentId = `rp-${randomUUID()}`;
+              createdPaymentDoc = await rentRepository.createPayment(
+                {
+                  id: paymentId,
+                  facilityId,
+                  grnId: grn.id,
+                  grnNumber: grn.grnNumber,
+                  receiptNumber,
+                  amountPaid: input.amountPaid,
+                  paymentMode: input.paymentMode,
+                  paymentDate,
+                  notes: input.notes?.trim() || null,
+                  createdBy: userId,
+                },
+                session,
+              );
 
-      const computedBalance = computeRentBalance(
-        totalDue,
-        totalPaidBefore + input.amountPaid,
-      );
-      computedRemainingBalance = computedBalance.remainingBalance;
-      computedPaymentStatus = computedBalance.paymentStatus;
+              const computedBalance = computeRentBalance(
+                totalDue,
+                totalPaidBefore + input.amountPaid,
+              );
+              computedRemainingBalance = computedBalance.remainingBalance;
+              computedPaymentStatus = computedBalance.paymentStatus;
 
-      // Closure invariant: A GRN is CLOSED only when both remainingBags === 0 AND remainingBalance === 0
-      if (computedRemainingBalance === 0) {
-        // Direct ledger read breaks the rent->delivery static cycle (F10);
-        // semantics identical to readAvailableBags (balance.total).
-        const balance = await readLedgerBalance(facilityId, grn.id, session);
-        if (balance.total === 0) {
-          await GrnModel.updateOne({ id: grn.id }, { $set: { status: 'CLOSED' } }, { session });
-        }
-      }
-    });
+              // Closure invariant: A GRN is CLOSED only when both remainingBags === 0 AND remainingBalance === 0
+              if (computedRemainingBalance === 0) {
+                // Direct ledger read breaks the rent->delivery static cycle (F10);
+                // semantics identical to readAvailableBags (balance.total).
+                const balance = await readLedgerBalance(facilityId, grn.id, session);
+                if (balance.total === 0) {
+                  await GrnModel.updateOne({ id: grn.id }, { $set: { status: 'CLOSED' } }, { session });
+                }
+              }
+      }),
+    );
   } finally {
     await session.endSession();
   }

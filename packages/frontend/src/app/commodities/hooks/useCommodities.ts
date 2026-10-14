@@ -39,31 +39,16 @@ export function useCommodities() {
       setCommodities(items);
       setLoading(false);
 
-      if (items.length > 0) {
-        setRatesLoading(true);
-        const rateEntries = await Promise.all(
-          items.map(async (c): Promise<[string, CommodityRate[]]> => {
-            try {
-              const ratesRes = await requestWithAuth(
-                `/api/commodities/${encodeURIComponent(c.id)}/rates`,
-              );
-              if (!ratesRes.ok) return [c.id, []];
-              const ratesData = (await ratesRes.json()) as { items?: CommodityRate[] };
-              return [c.id, ratesData.items ?? []];
-            } catch {
-              return [c.id, []];
-            }
-          }),
-        );
-        if (!isCurrent()) return;
-        const newMap: Record<string, CommodityRate[]> = {};
-        for (const [id, r] of rateEntries) {
-          newMap[id] = r;
-        }
-        setRatesMap(newMap);
-      } else {
-        setRatesMap({});
+      // Rates arrive inline on the list response. This used to fire one
+      // `GET /api/commodities/:id/rates` per commodity in a Promise.all, so a
+      // facility with N commodities issued 1 + N requests to render one table,
+      // and every one of them independently went through the 401-refresh path.
+      if (!isCurrent()) return;
+      const newMap: Record<string, CommodityRate[]> = {};
+      for (const c of items) {
+        newMap[c.id] = c.rates ?? [];
       }
+      setRatesMap(newMap);
     } catch (e) {
       if (!isCurrent()) return;
       setError(e instanceof Error ? e.message : 'Failed to load commodities');

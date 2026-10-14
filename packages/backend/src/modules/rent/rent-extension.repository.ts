@@ -1,5 +1,9 @@
 import type mongoose from 'mongoose';
-import { totalRentDue, type RentExtension } from '@cold-storage/contracts';
+import {
+  resolveTotalRentObligation,
+  type RentExtension,
+  type RentObligationInput,
+} from '@cold-storage/contracts';
 import { RentExtensionModel, type RentExtensionDoc } from '../../database/models/rent-extension.model.js';
 
 export function toExtensionEntity(doc: RentExtensionDoc): RentExtension {
@@ -39,6 +43,25 @@ export class RentExtensionRepository {
   }
 
   /** Every finalized extension for a facility in one round trip, grouped by GRN. */
+  /** Extensions for a specific set of GRNs. Scoped counterpart of the facility-wide query. */
+  public async findExtensionsByGrnIdsGrouped(
+    facilityId: string,
+    grnIds: string[],
+  ): Promise<Map<string, RentExtension[]>> {
+    const docs = await RentExtensionModel.find({ facilityId, grnId: { $in: grnIds } })
+      .sort({ seasonYear: 1, period: 1 })
+      .lean<RentExtensionDoc[]>()
+      .exec();
+    const grouped = new Map<string, RentExtension[]>();
+    for (const doc of docs) {
+      const entity = toExtensionEntity(doc);
+      const existing = grouped.get(entity.grnId);
+      if (existing) existing.push(entity);
+      else grouped.set(entity.grnId, [entity]);
+    }
+    return grouped;
+  }
+
   public async findExtensionsByFacilityGrouped(
     facilityId: string,
   ): Promise<Map<string, RentExtension[]>> {
@@ -75,20 +98,38 @@ export class RentExtensionRepository {
   }
 
   /**
-   * Total rent due: original Seasonal obligation plus finalized extensions.
-   * With no extensions this equals Grn.rentAmount exactly (migration-safe).
-   * Delegates the arithmetic to the canonical `totalRentDue` SSOT.
+   * Total rent due for a GRN, as a sum of its finalized extensions.
+   * The arithmetic itself is delegated to the rent-obligation SSOT so this
+   * repository cannot drift from it; this method only owns the extensions query.
+   *
+   * Callers MUST pass the full obligation input (rentType, outward rent
+   * charges, Hamali share) rather than a bare rentAmount. Before W2 the base
+   * was `rentAmount` alone, so every caller of this method reported a 0
+   * obligation for a GRN whose rent was carried on its outward challans - a
+   * 4.22 lakh phantom overpayment on production GRN 0015.
    */
   public async resolveTotalDue(
     facilityId: string,
-    grn: { id: string; rentAmount: number },
+    grn: {
+      id: string;
+      rentAmount: number | null;
+      rentType: RentObligationInput['rentType'];
+      outwardRentCharges?: number | null;
+      hamaliShare?: number | null;
+    },
     session?: mongoose.ClientSession,
   ): Promise<number> {
     const agg = await RentExtensionModel.aggregate<{ _id: null; total: number }>([
       { $match: { facilityId, grnId: grn.id } },
       { $group: { _id: null, total: { $sum: '$finalAmount' } } },
     ]).session(session ?? null);
-    return totalRentDue(Number(grn.rentAmount ?? 0), [Number(agg[0]?.total ?? 0)]);
+    return resolveTotalRentObligation({
+      rentType: grn.rentType,
+      rentAmount: grn.rentAmount,
+      outwardRentCharges: grn.outwardRentCharges,
+      hamaliShare: grn.hamaliShare,
+      extensionAmounts: [Number(agg[0]?.total ?? 0)],
+    });
   }
 }
 

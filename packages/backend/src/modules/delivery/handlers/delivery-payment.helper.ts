@@ -1,6 +1,6 @@
 import type mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import type { PaymentMode } from '@cold-storage/contracts';
+import { resolveTotalRentObligation, type PaymentMode } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
@@ -95,7 +95,6 @@ export async function resolveEffectiveDeliveryObligation(
   ]);
 
   const totalOutward = agg[0]?.total ?? 0;
-  const extTotal = extensions.reduce((sum, e) => sum + e.finalAmount, 0);
   const hamali = computeFirstSeasonHamali(
     grn.bags,
     commodity,
@@ -104,15 +103,11 @@ export async function resolveEffectiveDeliveryObligation(
     grn.hamaliAmount,
   );
 
-  if (grn.rentType === 'Monthly') {
-    return Number((Math.max(grn.rentAmount ?? 0, totalOutward) + extTotal).toFixed(2));
-  }
-  if (grn.rentType === 'Seasonal_3M') {
-    const base = Math.max(grn.rentAmount ?? 0, totalOutward);
-    const hamaliToAdd = base === (grn.rentAmount ?? 0) ? hamali : 0;
-    return Number((base + extTotal + hamaliToAdd).toFixed(2));
-  }
-  const base = (grn.rentAmount ?? 0) > 0 ? (grn.rentAmount ?? 0) : totalOutward;
-  const hamaliToAdd = base === (grn.rentAmount ?? 0) ? hamali : 0;
-  return Number((base + extTotal + hamaliToAdd).toFixed(2));
+  return resolveTotalRentObligation({
+    rentType: grn.rentType as 'Monthly' | 'Seasonal' | 'Seasonal_3M',
+    rentAmount: grn.rentAmount,
+    outwardRentCharges: totalOutward,
+    extensionAmounts: extensions.map((e) => e.finalAmount),
+    hamaliShare: hamali,
+  });
 }

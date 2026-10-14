@@ -1,10 +1,12 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import { systemSettingsSchema } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { settingsService } from '../modules/settings/settings.service.js';
+import { sendInternalError } from '../utils/http-error.js';
 
-export const settingsRouter = Router();
+export const settingsRouter = asyncRouter();
 
 settingsRouter.use(authenticate);
 settingsRouter.use(requirePasswordChanged);
@@ -19,8 +21,7 @@ settingsRouter.get('/settings', async (_req: Request, res: Response): Promise<vo
     const result = await settingsService.getSettings();
     res.status(200).json(result);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Failed to retrieve system settings';
-    res.status(500).json({ error: message });
+        sendInternalError(res, err, 'Failed to retrieve system settings');
   }
 });
 

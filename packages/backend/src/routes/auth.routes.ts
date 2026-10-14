@@ -1,11 +1,12 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import { changePasswordInputSchema, loginInputSchema } from '@cold-storage/contracts';
 import { config } from '../config.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { authRateLimiter, resetAuthRateLimit } from '../middleware/rate-limiter.middleware.js';
 import { authService } from '../modules/auth/auth.service.js';
 
-export const authRouter = Router();
+export const authRouter = asyncRouter();
 
 function getCookie(req: Request, name: string): string | undefined {
   const cookieHeader = req.headers.cookie;
@@ -27,7 +28,10 @@ authRouter.post('/login', authRateLimiter, async (req: Request, res: Response): 
 
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      // Default-secure: a deployment must opt OUT for plain-http local use.
+      // Deriving this from NODE_ENV meant any staging/preview box that did not
+      // set NODE_ENV=production sent the 7-day refresh cookie in cleartext.
+      secure: process.env.COOKIE_SECURE !== 'false',
       sameSite: 'lax',
       maxAge: config.refreshTokenExpiryDays * 86400 * 1000,
       path: '/api/auth',
@@ -57,7 +61,10 @@ authRouter.post('/refresh', authRateLimiter, async (req: Request, res: Response)
 
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      // Default-secure: a deployment must opt OUT for plain-http local use.
+      // Deriving this from NODE_ENV meant any staging/preview box that did not
+      // set NODE_ENV=production sent the 7-day refresh cookie in cleartext.
+      secure: process.env.COOKIE_SECURE !== 'false',
       sameSite: 'lax',
       maxAge: config.refreshTokenExpiryDays * 86400 * 1000,
       path: '/api/auth',

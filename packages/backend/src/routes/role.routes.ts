@@ -1,11 +1,13 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import { createRoleSchema, updateRoleSchema } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { roleService } from '../modules/roles/role.service.js';
 import { getParamId } from '../utils/params.js';
+import { sendInternalError } from '../utils/http-error.js';
 
-export const roleRouter = Router();
+export const roleRouter = asyncRouter();
 
 roleRouter.use(authenticate);
 roleRouter.use(requirePasswordChanged);
@@ -15,8 +17,7 @@ roleRouter.get('/', requirePermission('user:manage'), async (_req: Request, res:
     const roles = await roleService.listRoles();
     res.status(200).json({ roles });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Role listing failed';
-    res.status(500).json({ error: message });
+        sendInternalError(res, err, 'Role listing failed');
   }
 });
 

@@ -2,37 +2,18 @@ import type { NextFunction, Request, Response } from 'express';
 import { config } from '../config.js';
 import { auditService } from '../modules/audit/audit.service.js';
 import { logger } from '../utils/logger.js';
+import {
+  MemoryRateLimitStore,
+  startMemoryStoreSweep,
+  stopMemoryStoreSweep,
+} from './memory-rate-limit.store.js';
+
+export { MemoryRateLimitStore, startMemoryStoreSweep, stopMemoryStoreSweep };
 
 export interface RateLimitStore {
   increment(key: string, windowMs: number): Promise<{ count: number; resetAt: number }>;
   reset?(key: string): Promise<void>;
   clear?(): Promise<void>;
-}
-
-export class MemoryRateLimitStore implements RateLimitStore {
-  private hits = new Map<string, { count: number; resetAt: number }>();
-
-  async increment(key: string, windowMs: number): Promise<{ count: number; resetAt: number }> {
-    const now = Date.now();
-    const entry = this.hits.get(key);
-
-    if (!entry || entry.resetAt <= now) {
-      const resetAt = now + windowMs;
-      this.hits.set(key, { count: 1, resetAt });
-      return { count: 1, resetAt };
-    }
-
-    entry.count += 1;
-    return { count: entry.count, resetAt: entry.resetAt };
-  }
-
-  async reset(key: string): Promise<void> {
-    this.hits.delete(key);
-  }
-
-  async clear(): Promise<void> {
-    this.hits.clear();
-  }
 }
 
 export class UpstashRedisRateLimitStore implements RateLimitStore {
@@ -124,7 +105,9 @@ export function getDefaultRateLimitStore(): RateLimitStore {
         config.upstashRedisRestToken,
       );
     } else {
-      defaultStore = new MemoryRateLimitStore();
+      const memory = new MemoryRateLimitStore();
+      startMemoryStoreSweep(memory);
+      defaultStore = memory;
     }
   }
   return defaultStore;

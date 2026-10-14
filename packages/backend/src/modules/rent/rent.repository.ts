@@ -22,6 +22,38 @@ export class RentRepository {
    * database returns the same rows in one pass; the caller reassembles them per
    * GRN using the same ordering as findPaymentsByGrnId.
    */
+  /** Payments for a specific set of GRNs. Scoped counterpart of the facility-wide query. */
+  public async findPaymentsByGrnIdsGrouped(
+    facilityId: string,
+    grnIds: string[],
+  ): Promise<Map<string, RentPaymentDoc[]>> {
+    const docs = await RentPaymentModel.find({ facilityId, grnId: { $in: grnIds } }, null, { lean: true })
+      .sort({ paymentDate: -1, _id: -1 })
+      .lean<RentPaymentDoc[]>()
+      .exec();
+    const grouped = new Map<string, RentPaymentDoc[]>();
+    for (const doc of docs) {
+      const existing = grouped.get(doc.grnId);
+      if (existing) existing.push(doc);
+      else grouped.set(doc.grnId, [doc]);
+    }
+    return grouped;
+  }
+
+  /** Outward rent charges for a specific set of GRNs. */
+  public async getOutwardRentChargesByGrnIdsGrouped(
+    facilityId: string,
+    grnIds: string[],
+  ): Promise<Map<string, number>> {
+    const agg = await DeliveryChallanModel.aggregate([
+      { $match: { facilityId, status: 'ISSUED', grnId: { $in: grnIds } } },
+      { $group: { _id: '$grnId', total: { $sum: '$rentCharge' } } },
+    ]);
+    const grouped = new Map<string, number>();
+    for (const doc of agg) grouped.set(doc._id, doc.total ?? 0);
+    return grouped;
+  }
+
   public async findPaymentsByFacilityGrouped(
     facilityId: string,
   ): Promise<Map<string, RentPaymentDoc[]>> {

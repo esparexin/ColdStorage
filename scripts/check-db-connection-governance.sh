@@ -10,9 +10,9 @@ if grep -rn --include="*.ts" -E "mongoose\.connect\([A-Za-z_][A-Za-z0-9_]*\)" "$
   fail "bare mongoose.connect(target) without timeout options (use connectToDatabase or timeout constants)."
 fi
 
-# Raw MongoClient in backend src (repair script in scripts/ is retired and out of scope).
-if grep -rn --include="*.ts" "new MongoClient(" "$ROOT/packages/backend/src" 2>/dev/null; then
-  fail "raw MongoClient in backend src (use database/connection SSOT)."
+# Raw MongoClient forbidden across entire repository source (repair script in scripts/ deleted).
+if grep -rn --exclude-dir=node_modules --include="*.ts" --include="*.js" --include="*.mjs" "new MongoClient(" "$ROOT" 2>/dev/null; then
+  fail "raw MongoClient in repository source (use database/connection SSOT)."
 fi
 
 # Live-target guard must persist in connection helper and DBA scripts.
@@ -24,6 +24,23 @@ for f in packages/backend/src/scripts/migrate-free-text-chamber.ts packages/back
     fail "$f must use connectToDatabase (approved connection path)."
   fi
 done
+
+# Illegal Mongoose index declaration: sparse + partialFilterExpression
+if python3 - "$ROOT" <<'PYEOF'
+import re, sys, pathlib
+root = pathlib.Path(sys.argv[1])
+models = root / "packages/backend/src/database/models"
+for p in models.glob("*.ts"):
+    text = p.read_text(encoding="utf-8")
+    for m in re.finditer(r"\.index\((.*?)\);", text, re.S):
+        idx = m.group(1)
+        if "sparse" in idx and "partialFilterExpression" in idx:
+            print(f"Illegal index in {p.name}: cannot combine sparse and partialFilterExpression")
+            sys.exit(1)
+PYEOF
+then :; else
+  fail "illegal index specification: sparse combined with partialFilterExpression."
+fi
 
 if [ "$EXIT" -eq 0 ]; then echo "[PASS] DB connection governance checks passed."; fi
 exit "$EXIT"

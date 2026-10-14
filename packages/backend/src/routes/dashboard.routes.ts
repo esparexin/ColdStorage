@@ -1,12 +1,14 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { dashboardService } from '../modules/dashboard/dashboard.service.js';
 import { asyncHandler } from '../utils/async-handler.js';
 import { getParamId } from '../utils/params.js';
+import { sendInternalError } from '../utils/http-error.js';
 
-export const dashboardRouter = Router();
+export const dashboardRouter = asyncRouter();
 
 dashboardRouter.use(authenticate);
 dashboardRouter.use(requirePasswordChanged);
@@ -33,11 +35,9 @@ dashboardRouter.get(
       const summary = await dashboardService.getSummary(facilityId);
       res.status(200).json({ summary });
     } catch (err: unknown) {
-      // Reuse repository error-handling convention: expose err.message for known
-      // operational errors; log internally but do not expose database details.
-      const message =
-        err instanceof Error ? err.message : 'Failed to retrieve dashboard summary';
-      res.status(500).json({ error: message });
+      // Internal detail is logged with a correlation id; only a fixed message
+      // reaches the client, so database names and index names never leak.
+      sendInternalError(res, err, 'Failed to load dashboard summary');
     }
   }),
 );

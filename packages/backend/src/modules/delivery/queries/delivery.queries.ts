@@ -40,7 +40,13 @@ export async function listDeliveries(
   const [grnDocs, balanceMap, allRentSummaries] = await Promise.all([
     GrnModel.find({ id: { $in: grnIds }, facilityId }).lean().exec(),
     readLedgerBalanceMany(facilityId, grnIds),
-    rentService.getRentSummariesForFacility(facilityId).catch(() => []),
+    // Scoped to the GRNs on this page. Previously this fetched every GRN,
+    // payment, extension and ledger aggregate for the facility and then threw
+    // all but the page away, so page 1 and page 999 cost the same. The
+    // `.catch(() => [])` that used to swallow a failure is also gone: it
+    // silently blanked the rent columns on the delivery table with no log and
+    // no error, which reads as "no rent due" rather than "could not load".
+    rentService.getRentSummariesForFacility(facilityId, grnIds),
   ]);
   const wanted = new Set(grnIds);
 

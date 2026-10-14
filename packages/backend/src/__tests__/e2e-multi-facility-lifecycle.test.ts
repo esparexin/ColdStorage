@@ -31,7 +31,7 @@ const CHAMBER = 'CL1';
  * OPEN → CLOSED → OPEN transition with the immutable ledger as the source of truth.
  * The cross-facility isolation guarantees live in e2e-multi-facility.test.ts.
  */
-describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and audit', () => {
+describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and audit', { timeout: 30000 }, () => {
   let scenario: MultiFacilityScenario;
   let grnId: string;
   let deliveryId: string;

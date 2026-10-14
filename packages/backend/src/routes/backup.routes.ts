@@ -1,12 +1,14 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import { backupQuerySchema, backupRestoreSchema, backupTriggerSchema } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { mutationsRateLimiter } from '../middleware/rate-limiter.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { inspectBackup, readBackupArchive, restoreBackup } from '../modules/backup/backup-restore.service.js';
 import { backupService } from '../modules/backup/backup.service.js';
+import { sendInternalError } from '../utils/http-error.js';
 
-export const backupRouter = Router();
+export const backupRouter = asyncRouter();
 
 /**
  * POST /backups/trigger
@@ -56,7 +58,7 @@ backupRouter.post(
         });
         return;
       }
-      res.status(500).json({ error: message });
+      sendInternalError(res, err, 'Backup operation failed');
     }
   },
 );
@@ -81,8 +83,7 @@ backupRouter.get(
       const result = await backupService.queryBackupHistory(parseResult.data);
       res.status(200).json(result);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load backup history';
-      res.status(500).json({ error: message });
+            sendInternalError(res, err, 'Failed to load backup history');
     }
   },
 );
@@ -102,8 +103,7 @@ backupRouter.get(
       const status = await backupService.getBackupStatus();
       res.status(200).json(status);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load backup status';
-      res.status(500).json({ error: message });
+            sendInternalError(res, err, 'Failed to load backup status');
     }
   },
 );

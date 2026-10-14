@@ -77,7 +77,6 @@ export const createGrnSchema = z
     storageMark: z.string().trim().max(20, 'Storage mark cannot exceed 20 characters').nullish(),
     partyMark: z.string().trim().max(20, 'Party mark cannot exceed 20 characters').nullish(),
     marks: z.string().trim().max(100).nullish(),
-    billNumber: z.string().trim().min(1).max(40).nullish(),
     vehicleNumber: indianVehicleSchema.nullish(),
     remarks: z.string().trim().max(500).nullish(),
     bondNumber: bondNumberSchema.nullish(),

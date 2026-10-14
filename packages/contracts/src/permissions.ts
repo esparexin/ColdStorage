@@ -19,8 +19,6 @@ export const PERMISSIONS = {
   'grn:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   /** Authorized correction of an inward receipt's commodity, bag count or chamber. */
   'grn:correct': ['SUPER_ADMIN', 'ADMIN'],
-  /** Confirms a GRN's remaining bags are on hand in its chamber. */
-  'allocation:manage': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
   'inventory:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   'delivery:create': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
   'delivery:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
@@ -72,7 +70,6 @@ export const PERMISSION_GROUPS = {
     'grn:create',
     'grn:view',
     'grn:correct',
-    'allocation:manage',
     'inventory:view',
     'delivery:create',
     'delivery:view',

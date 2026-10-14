@@ -1,6 +1,6 @@
 import {
   canCalculateAuthoritativeRent,
-  totalRentDue,
+  splitRentObligation,
   type RentExtension,
   type RentSummaryDto,
 } from '@cold-storage/contracts';
@@ -35,22 +35,13 @@ export function buildRentSummary(
   outwardRentCharges = 0,
   hamaliShare = 0,
 ): RentSummaryDto {
-  const baseRent =
-    grn.rentType === 'Monthly' || grn.rentType === 'Seasonal_3M'
-      ? Math.max(grn.rentAmount, outwardRentCharges)
-      : grn.rentAmount > 0
-        ? grn.rentAmount
-        : outwardRentCharges;
-  // First-season Hamali joins the total due exactly once: zero-rent GRNs
-  // already accumulate Hamali-inclusive outward charges in the base, so the
-  // full share applies only when the base is the stored rent obligation.
-  const hamali =
-    baseRent === grn.rentAmount && grn.rentAmount > 0 && Number.isFinite(hamaliShare) && hamaliShare > 0
-      ? hamaliShare
-      : 0;
-  const totalDue = Number(
-    (totalRentDue(baseRent, extensions.map((e) => e.finalAmount)) + hamali).toFixed(2),
-  );
+  const { baseRent, total: totalDue } = splitRentObligation({
+    rentType: grn.rentType,
+    rentAmount: grn.rentAmount,
+    outwardRentCharges,
+    hamaliShare,
+    extensionAmounts: extensions.map((e) => e.finalAmount),
+  });
 
   const canCalc = canCalculateAuthoritativeRent({
     bagType: grn.bagType,

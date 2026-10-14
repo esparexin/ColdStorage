@@ -65,7 +65,7 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
     // Legacy hamali columns: never written, never returned. No defaults so new
     // movements carry no hamali values; old values stay readable.
     hamaliBags: { type: Number, min: 0 },
-    hamaliRate: { type: Number },
+    hamaliRate: { type: Number, min: 0, default: 0 },
     hamaliCharge: { type: Number, min: 0 },
     hamaliCarried: { type: Number, min: 0 },
     referenceWeight: { type: Number, default: null },

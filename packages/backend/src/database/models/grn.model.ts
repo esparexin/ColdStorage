@@ -87,9 +87,9 @@ const grnSchema = new Schema<GrnDoc>(
     /** Seasonal is always the fixed 10-month period; Monthly carries the operator's count. */
     rentMonths: { type: Number, default: null },
     rentAmount: { type: Number, default: null, min: 0 },
-    bagPrice: { type: Number, default: null },
-    smallBagPrice: { type: Number, default: null },
-    bigBagPrice: { type: Number, default: null },
+    bagPrice: { type: Number, min: 0, default: null },
+    smallBagPrice: { type: Number, min: 0, default: null },
+    bigBagPrice: { type: Number, min: 0, default: null },
     // Legacy hamali columns: never written, never returned. Retained without
     // defaults so new documents carry no hamali values; old values stay readable.
     hamaliRate: { type: Number, min: 0 },
@@ -117,7 +117,7 @@ const grnSchema = new Schema<GrnDoc>(
     loanRemarks: { type: String, trim: true, default: null },
     loanTakenAt: { type: Date, default: null },
     loanClearedAt: { type: Date, default: null },
-    loanSettlementAmount: { type: Number, default: null },
+    loanSettlementAmount: { type: Number, min: 0, default: null },
     loanSettlementMode: {
       type: String,
       enum: ['Cash', 'UPI', 'Bank Transfer', null],
@@ -141,9 +141,18 @@ const grnSchema = new Schema<GrnDoc>(
 
 grnSchema.index({ facilityId: 1, grnNumber: 1 }, { unique: true });
 grnSchema.index({ facilityId: 1, inwardReceiptNumber: 1 }, { unique: true });
+// Bond numbers are unique per facility, but only for GRNs that actually carry
+// one. A partial index is required so non-bond GRNs (bondNumber null) are
+// excluded from the constraint.
+//
+// `sparse` and `partialFilterExpression` must NOT be combined: MongoDB
+// rejects the pair ("You cannot specify both the 'partialFilterExpression'
+// option and the 'sparse' option"), so the previous declaration here was
+// silently never created and per-facility duplicate bond numbers were possible.
+// Verified against production: facilityId_1_bondNumber_1 was absent.
 grnSchema.index(
   { facilityId: 1, bondNumber: 1 },
-  { unique: true, sparse: true, partialFilterExpression: { bondNumber: { $type: 'string' } } },
+  { unique: true, partialFilterExpression: { bondNumber: { $type: 'string' } } },
 );
 grnSchema.index({ facilityId: 1, date: -1 });
 grnSchema.index({ customerId: 1, facilityId: 1 });

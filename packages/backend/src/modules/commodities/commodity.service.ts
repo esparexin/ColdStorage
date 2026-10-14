@@ -1,5 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import type { Commodity, CreateCommodityInput, UpdateCommodityInput } from '@cold-storage/contracts';
+import type {
+  Commodity,
+  CommodityRate,
+  CreateCommodityInput,
+  UpdateCommodityInput,
+} from '@cold-storage/contracts';
+import { CommodityRateModel, type CommodityRateDoc } from '../../database/models/commodity-rate.model.js';
+import { commodityRateService } from './commodity-rate.service.js';
 import { CommodityModel } from '../../database/models/commodity.model.js';
 
 export class CommodityService {
@@ -34,9 +41,28 @@ export class CommodityService {
     return doc ? this.toEntity(doc) : null;
   }
 
+  /**
+   * Lists commodities WITH their rate rows.
+   *
+   * The rates are included so a client rendering the commodities table needs a
+   * single request. The previous contract had the screen issue one extra
+   * `GET /api/commodities/:id/rates` per commodity in a Promise.all, turning one
+   * page into 1 + N requests; every one of those also had to pass through the
+   * 401-refresh path independently.
+   */
   public async listCommodities(): Promise<Commodity[]> {
-    const docs = await CommodityModel.find().sort({ name: 1 }).lean().exec();
-    return docs.map((d) => this.toEntity(d));
+    const [docs, allRates] = await Promise.all([
+      CommodityModel.find().sort({ name: 1 }).lean().exec(),
+      CommodityRateModel.find().sort({ rentType: 1 }).lean<CommodityRateDoc[]>().exec(),
+    ]);
+    const ratesByCommodity = new Map<string, CommodityRate[]>();
+    for (const doc of allRates) {
+      const entity = commodityRateService.toEntity(doc);
+      const existing = ratesByCommodity.get(entity.commodityId);
+      if (existing) existing.push(entity);
+      else ratesByCommodity.set(entity.commodityId, [entity]);
+    }
+    return docs.map((d) => ({ ...this.toEntity(d), rates: ratesByCommodity.get(d.id) ?? [] }));
   }
 
   public async updateCommodity(id: string, input: UpdateCommodityInput): Promise<Commodity | null> {

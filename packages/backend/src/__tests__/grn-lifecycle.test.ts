@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { getFinancialYearKey } from '@cold-storage/contracts';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
@@ -14,6 +15,13 @@ import { nextTestGrnNumber } from './helpers/grn-number-fixtures.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
+
+/**
+ * Financial year of the inbound date these tests post. The Inward Receipt
+ * Number embeds it (P0 amendment A-001: `RCPT-<FY>-<GR Number>`), so the
+ * assertions derive the expected value rather than hard-coding one.
+ */
+const FY_KEY = getFinancialYearKey(new Date());
 
 const northFacilityId = 'fac-north-lifecycle';
 const southFacilityId = 'fac-south-lifecycle';
@@ -101,7 +109,9 @@ describe('GRN Lifecycle & Sequences Integration', () => {
     expect(grn.id).toBeDefined();
     expect(grn.facilityId).toBe(northFacilityId);
     expect(grn.grnNumber).toMatch(/^\d{4}$/);
-    expect(grn.inwardReceiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0001$/);
+    // The Inward Receipt Number is derived from the GR Number (P0 amendment A-001),
+    // not allocated from a sequence counter.
+    expect(grn.inwardReceiptNumber).toBe(`RCPT-${FY_KEY}-${grn.grnNumber}`);
     expect(grn.status).toBe('OPEN');
     expect(grn.customerName).toBe('Ramesh Patel');
     expect(grn.commodityName).toBe('Potato Jyoti');
@@ -125,7 +135,10 @@ describe('GRN Lifecycle & Sequences Integration', () => {
 
     expect(res2.status).toBe(201);
     expect(res2.body.grn.grnNumber).toMatch(/^\d{4}$/);
-    expect(res2.body.grn.inwardReceiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0002$/);
+    expect(res2.body.grn.inwardReceiptNumber).toBe(
+      `RCPT-${FY_KEY}-${res2.body.grn.grnNumber}`,
+    );
+    expect(res2.body.grn.inwardReceiptNumber).not.toBe(grn.inwardReceiptNumber);
     // Seasonal is a fixed 10-month period derived server-side, never operator input.
     expect(res2.body.grn.rentMonths).toBe(SEASONAL_MONTHS);
     expect(res2.body.acknowledgement.rentTerms.rentMonths).toBe(SEASONAL_MONTHS);
@@ -148,40 +161,45 @@ describe('GRN Lifecycle & Sequences Integration', () => {
 
     expect(validRes.status).toBe(201);
     expect(validRes.body.grn.grnNumber).toMatch(/^\d{4}$/);
-    expect(validRes.body.grn.inwardReceiptNumber).toMatch(/^RCPT-\d{2}-\d{2}-0001$/);
+    expect(validRes.body.grn.inwardReceiptNumber).toBe(
+      `RCPT-${FY_KEY}-${validRes.body.grn.grnNumber}`,
+    );
   });
-  it('supports previewing next bill number and given custom bill number', async () => {
+
+  it('ignores any supplied billNumber and derives the receipt from the GR Number', async () => {
+    // P0 amendment A-001 removed the operator-supplied billNumber override.
+    // The field no longer exists on createGrnSchema, so a caller that sends it
+    // has it stripped by zod and the receipt is still derived from the GR Number.
     const previewRes = await request(app)
       .get(`/api/facilities/${northFacilityId}/grns/next-bill-number`)
       .set('Authorization', `Bearer ${operatorNorthToken}`);
 
-    expect(previewRes.status).toBe(200);
-    expect(previewRes.body.nextBillNumber).toMatch(/^RCPT-\d{2}-\d{2}-0001$/);
+    // The preview endpoint previewed the counter that no longer exists.
+    expect(previewRes.status).toBe(404);
 
-    // Create GRN with custom operator-given bill number (e.g. RCPT-26-27-0050)
-    const customRes = await postInbound(
+    const res = await postInbound(
       inbound({
         billNumber: 'RCPT-26-27-0050',
         storageMark: 'STRG-2026',
         partyMark: 'PRTY-ALPHA',
       }),
     );
-    expect(customRes.status).toBe(201);
-    expect(customRes.body.grn.billNumber).toBe('RCPT-26-27-0050');
-    expect(customRes.body.grn.inwardReceiptNumber).toBe('RCPT-26-27-0050');
-    expect(customRes.body.grn.storageMark).toBe('STRG-2026');
-    expect(customRes.body.grn.partyMark).toBe('PRTY-ALPHA');
 
-    // Duplicate bill number in same facility is rejected
-    const dupRes = await postInbound(inbound({ billNumber: 'RCPT-26-27-0050' }));
-    expect(dupRes.status).toBe(409);
-    expect(dupRes.body.error).toContain('already exists');
+    expect(res.status).toBe(201);
+    const { grnNumber, inwardReceiptNumber } = res.body.grn;
+    expect(grnNumber).toMatch(/^\d{4}$/);
+    expect(inwardReceiptNumber).toBe(`RCPT-${FY_KEY}-${grnNumber}`);
+    // The arbitrary operator string never reaches the stored receipt number.
+    expect(inwardReceiptNumber).not.toBe('RCPT-26-27-0050');
+    expect(res.body.grn.storageMark).toBe('STRG-2026');
+    expect(res.body.grn.partyMark).toBe('PRTY-ALPHA');
+  });
 
-    // Next auto-sequence should continue from 51
-    const nextPreviewRes = await request(app)
-      .get(`/api/facilities/${northFacilityId}/grns/next-bill-number`)
-      .set('Authorization', `Bearer ${operatorNorthToken}`);
-    expect(nextPreviewRes.status).toBe(200);
-    expect(nextPreviewRes.body.nextBillNumber).toMatch(/^RCPT-\d{2}-\d{2}-0051$/);
+  it('rejects a duplicate GR Number within the facility', async () => {
+    const first = await postInbound(inbound());
+    expect(first.status).toBe(201);
+
+    const dup = await postInbound(inbound({ grnNumber: first.body.grn.grnNumber }));
+    expect(dup.status).toBeGreaterThanOrEqual(400);
   });
 });

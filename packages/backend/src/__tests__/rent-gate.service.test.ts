@@ -66,6 +66,9 @@ describe('Rent gate for outward movement — rent-gate.service.test.ts', () => {
       id: grnId,
       grnNumber: GRN_NUMBER,
       rentAmount: RENT_AMOUNT,
+      rentType: 'Monthly',
+      commodityId: 'cmd-rent-gate',
+      bags: 100,
     });
 
     expect(gate.paymentStatus).toBe('Not Settled');
@@ -85,6 +88,9 @@ describe('Rent gate for outward movement — rent-gate.service.test.ts', () => {
       id: grnId,
       grnNumber: GRN_NUMBER,
       rentAmount: RENT_AMOUNT,
+      rentType: 'Monthly',
+      commodityId: 'cmd-rent-gate',
+      bags: 100,
     });
 
     expect(gate.paymentStatus).toBe('Not Settled');
@@ -104,6 +110,9 @@ describe('Rent gate for outward movement — rent-gate.service.test.ts', () => {
       id: grnId,
       grnNumber: GRN_NUMBER,
       rentAmount: RENT_AMOUNT,
+      rentType: 'Monthly',
+      commodityId: 'cmd-rent-gate',
+      bags: 100,
     });
 
     expect(gate.paymentStatus).toBe('Settled');
@@ -116,6 +125,9 @@ describe('Rent gate for outward movement — rent-gate.service.test.ts', () => {
       id: grnId,
       grnNumber: GRN_NUMBER,
       rentAmount: 0,
+      rentType: 'Monthly',
+      commodityId: 'cmd-rent-gate',
+      bags: 100,
     });
 
     expect(gate.paymentStatus).toBe('Settled');

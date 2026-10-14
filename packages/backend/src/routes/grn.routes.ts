@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import {
   correctGrnSchema,
   createGrnSchema,
@@ -12,7 +13,7 @@ import { grnService } from '../modules/grn/grn.service.js';
 import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
-export const grnRouter = Router();
+export const grnRouter = asyncRouter();
 
 grnRouter.use(authenticate);
 grnRouter.use(requirePasswordChanged);
@@ -84,22 +85,6 @@ grnRouter.get(
       res.status(200).json(result);
     } catch (err: unknown) {
       sendServiceError(res, err, 'Failed to list GRNs');
-    }
-  },
-);
-
-// Preview next Bill Number for facility
-grnRouter.get(
-  '/facilities/:facilityId/grns/next-bill-number',
-  requirePermission('grn:view'),
-  requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
-    const facilityId = getParamId(req.params.facilityId);
-    try {
-      const nextBillNumber = await grnService.getNextBillNumber(facilityId);
-      res.status(200).json({ nextBillNumber });
-    } catch (err: unknown) {
-      sendServiceError(res, err, 'Failed to preview next bill number');
     }
   },
 );

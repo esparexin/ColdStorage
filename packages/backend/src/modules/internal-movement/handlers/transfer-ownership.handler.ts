@@ -6,13 +6,13 @@ import { GrnModel } from '../../../database/models/grn.model.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { computeRentBalance } from '../../common/rent-balance.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
-import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
-import { counterService } from '../../common/counter.service.js';
+import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 import { rentRepository } from '../../rent/rent.repository.js';
-import { toPaymentEntity } from '../../rent/handlers/record-payment.handler.js';
+import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
+import { settleTransferRent } from './transfer-ownership.helper.js';
 
 export async function transferOwnership(
   facilityId: string,
@@ -25,7 +25,8 @@ export async function transferOwnership(
   let resultPayment: RentPayment | undefined;
 
   try {
-    await session.withTransaction(async () => {
+    await withMongoRetry(() =>
+      session.withTransaction(async () => {
       const grn = await GrnModel.findOne({ id: input.grnId, facilityId }, null, { session })
         .lean()
         .exec();
@@ -81,71 +82,50 @@ export async function transferOwnership(
         session,
       });
 
+      const storedRent = grn.rentAmount ?? 0;
       const effectiveObligation =
-        grn.rentAmount && grn.rentAmount > 0
-          ? Math.max(grn.rentAmount, expectedRentCharge)
+        storedRent > 0
+          ? (storedRent > expectedRentCharge ? storedRent : expectedRentCharge)
           : expectedRentCharge;
 
-      const payments = await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session);
-      const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
+      const totalPaid = (await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session))
+        .reduce((sum, p) => sum + p.amountPaid, 0);
 
+      // The base is PROSPECTIVE, not historical: a transfer settles rent for
+      // every remaining bag, and a Monthly lot has accrued rent for its elapsed
+      // cycles. A different input to the obligation, not a competing rule - the
+      // SSOT still governs extensions, outward charges and Hamali. Passing the
+      // stored rentAmount would drop the accrual and skip the gate entirely.
       const totalDue = await rentExtensionRepository.resolveTotalDue(
         facilityId,
-        { id: grn.id, rentAmount: effectiveObligation },
+        {
+          id: grn.id,
+          rentAmount: effectiveObligation,
+          rentType: grn.rentType,
+          outwardRentCharges: await rentRepository.getOutwardRentChargesForGrn(
+            facilityId,
+            grn.id,
+            session,
+          ),
+        },
         session,
       );
       const rentBal = computeRentBalance(totalDue, totalPaid);
-      let effectiveRentBal = rentBal;
-      let paymentRecord: RentPayment | undefined;
 
       // 2. Strict settlement gate: Outstanding rent must be settled prior to ownership transfer
-      if (rentBal.remainingBalance > 0) {
-        if (
-          input.paymentDecision !== 'SETTLE_NOW' ||
-          !input.settlementDetails ||
-          input.settlementDetails.amountPaid < rentBal.remainingBalance
-        ) {
-          throw new Error(
-            `Cannot transfer ownership: Outstanding rent of ₹${rentBal.remainingBalance.toLocaleString('en-IN')} must be fully settled before transfer.`,
-          );
-        }
-
-        const { amountPaid, paymentMode, paymentNotes } = input.settlementDetails;
-        if (amountPaid > rentBal.remainingBalance) {
-          throw new Error(
-            `Requested settlement ₹${amountPaid} exceeds remaining rent balance of ₹${rentBal.remainingBalance}`,
-          );
-        }
-
-        const receiptNumber = await counterService.generateRentReceiptNumber(
-          facilityId,
-          movementDate,
-          session,
-        );
-        const paymentDoc = await rentRepository.createPayment(
-          {
-            id: `rp-${randomUUID()}`,
-            facilityId,
-            grnId: grn.id,
-            grnNumber: grn.grnNumber,
-            receiptNumber,
-            amountPaid,
-            paymentMode,
-            paymentDate: movementDate,
-            notes: paymentNotes?.trim() || `Settled upon ownership transfer to ${newCustomer.name}`,
-            createdBy: userId,
-          },
-          session,
-        );
-        paymentRecord = toPaymentEntity(paymentDoc);
-        effectiveRentBal = computeRentBalance(totalDue, totalPaid + amountPaid);
-
-        if (effectiveRentBal.remainingBalance !== 0) {
-          throw new Error(
-            `Transfer aborted: Rent balance after settlement is ₹${effectiveRentBal.remainingBalance}, but full settlement (₹0) is required.`,
-          );
-        }
-      }
+      const { paymentRecord, effectiveRentBal } = await settleTransferRent({
+        facilityId,
+        grnId: grn.id,
+        grnNumber: grn.grnNumber,
+        newCustomerName: newCustomer.name,
+        movementDate,
+        totalDue,
+        totalPaid,
+        rentBal,
+        input,
+        userId,
+        session,
+      });
 
       const movementId = `mov-${randomUUID()}`;
       const transferDateStr = movementDate.toISOString().split('T')[0];
@@ -207,7 +187,8 @@ export async function transferOwnership(
       );
 
       resultMovementDoc = movementDocs[0].toObject();
-    });
+    }),
+    );
   } finally {
     await session.endSession();
   }

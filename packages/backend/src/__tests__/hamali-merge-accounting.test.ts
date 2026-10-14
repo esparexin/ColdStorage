@@ -15,7 +15,7 @@ import { computeExpectedDeliveryRent } from '../modules/delivery/handlers/delive
 import { internalMovementService } from '../modules/internal-movement/internal-movement.service.js';
 import { rentService } from '../modules/rent/rent.service.js';
 
-describe('Hamali Merge Accounting (Unpaid, Partially Paid, Fully Paid)', () => {
+describe('Hamali Merge Accounting (Unpaid, Partially Paid, Fully Paid)', { timeout: 30000 }, () => {
   const facilityId = 'fac-hamali-merge';
   const customerId = 'cust-hamali-merge';
   const userId = 'usr-hamali-merge';

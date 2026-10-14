@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import {
   finalizeExtensionInputSchema,
   overrideExtensionInputSchema,
@@ -14,7 +15,7 @@ import { rentExtensionService } from '../modules/rent/rent-extension.service.js'
 import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
-export const rentRouter = Router();
+export const rentRouter = asyncRouter();
 
 rentRouter.use(authenticate);
 rentRouter.use(requirePasswordChanged);

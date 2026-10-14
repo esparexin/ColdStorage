@@ -1,5 +1,6 @@
 import path from 'node:path';
-import { Router, type Request, type Response, type NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
+import { asyncRouter } from '../utils/async-handler.js';
 import multer from 'multer';
 import { exportDateRangeQuerySchema, stockSummaryExportQuerySchema } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
@@ -8,9 +9,10 @@ import { mutationsRateLimiter } from '../middleware/rate-limiter.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { exportService } from '../modules/import-export/export.service.js';
 import { importService } from '../modules/import-export/import.service.js';
+import { sendInternalError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
-export const importExportRouter = Router();
+export const importExportRouter = asyncRouter();
 
 importExportRouter.use(authenticate);
 importExportRouter.use(requirePasswordChanged);
@@ -142,9 +144,7 @@ importExportRouter.get(
     try {
       await exportService.exportGrns(facilityId, parseResult.data, res);
     } catch (err: unknown) {
-      if (!res.headersSent) {
-        res.status(500).json({ error: err instanceof Error ? err.message : 'Export failed' });
-      }
+      if (!res.headersSent) sendInternalError(res, err, 'Export failed');
     }
   },
 );
@@ -166,9 +166,7 @@ importExportRouter.get(
     try {
       await exportService.exportDeliveries(facilityId, parseResult.data, res);
     } catch (err: unknown) {
-      if (!res.headersSent) {
-        res.status(500).json({ error: err instanceof Error ? err.message : 'Export failed' });
-      }
+      if (!res.headersSent) sendInternalError(res, err, 'Export failed');
     }
   },
 );
@@ -190,9 +188,7 @@ importExportRouter.get(
     try {
       await exportService.exportInventoryLedger(facilityId, parseResult.data, res);
     } catch (err: unknown) {
-      if (!res.headersSent) {
-        res.status(500).json({ error: err instanceof Error ? err.message : 'Export failed' });
-      }
+      if (!res.headersSent) sendInternalError(res, err, 'Export failed');
     }
   },
 );
@@ -214,9 +210,7 @@ importExportRouter.get(
     try {
       await exportService.exportCustomers(facilityId, parseResult.data, res);
     } catch (err: unknown) {
-      if (!res.headersSent) {
-        res.status(500).json({ error: err instanceof Error ? err.message : 'Export failed' });
-      }
+      if (!res.headersSent) sendInternalError(res, err, 'Export failed');
     }
   },
 );
@@ -241,9 +235,7 @@ importExportRouter.get(
     try {
       await exportService.exportStockSummary(facilityId, res);
     } catch (err: unknown) {
-      if (!res.headersSent) {
-        res.status(500).json({ error: err instanceof Error ? err.message : 'Export failed' });
-      }
+      if (!res.headersSent) sendInternalError(res, err, 'Export failed');
     }
   },
 );

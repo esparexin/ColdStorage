@@ -3,8 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { rentRepository } from '../../rent/rent.repository.js';
+import { resolveMovementObligation } from './resolve-movement-obligation.js';
 import { computeRentBalance, type RentBalance } from '../../common/rent-balance.js';
-import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { calculateGrnMonthlyOccupancyRent } from '../../common/occupancy-rent.js';
 import { counterService } from '../../common/counter.service.js';
 import {
@@ -19,6 +19,7 @@ import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-re
 
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
+import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 
 export interface MergeSourceGrn {
   id: string; grnNumber: string; inwardReceiptNumber: string; date: Date; customerName: string;
@@ -140,7 +141,11 @@ export async function resolveSourceRentObligation(
   const sourceHamaliShare =
     effectiveRentAmount > 0
       ? computeFirstSeasonHamali(
-          sourceGrn.bags, commodity, extensions, sourceGrn.hamaliRate, sourceGrn.hamaliAmount,
+          sourceGrn.bags,
+          commodity,
+          extensions,
+          sourceGrn.hamaliRate,
+          sourceGrn.hamaliAmount,
         )
       : 0;
 
@@ -149,12 +154,16 @@ export async function resolveSourceRentObligation(
     sourceGrn.hamaliRate == null && sourceGrn.hamaliAmount == null && sourceHamaliShare > 0 && totalPaid === 0;
   const isPendingVerification = isCompositionUnverified || isLegacyUnverifiedHamali;
 
-  const baseTotalDue = await rentExtensionRepository.resolveTotalDue(
+  const sourceTotalDue = await resolveMovementObligation(
     facilityId,
-    { id: sourceGrn.id, rentAmount: effectiveRentAmount },
+    {
+      id: sourceGrn.id,
+      rentAmount: effectiveRentAmount,
+      rentType: sourceGrn.rentType,
+      hamaliShare: sourceHamaliShare,
+    },
     session,
   );
-  const sourceTotalDue = Number((baseTotalDue + sourceHamaliShare).toFixed(2));
   const rentBal = computeRentBalance(sourceTotalDue, totalPaid, { isPendingVerification });
 
   const verificationReason = isPendingVerification

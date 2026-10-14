@@ -55,9 +55,9 @@ const deliveryChallanSchema = new Schema<DeliveryChallanDoc>(
     chamber: { type: String, required: true, trim: true, maxlength: 20 },
     bagType: { type: String, trim: true, default: null },
     bagCategory: { type: String, trim: true, default: null },
-    bagPrice: { type: Number, default: null },
-    seasonalBagPrice: { type: Number, default: null },
-    monthlyBagPrice: { type: Number, default: null },
+    bagPrice: { type: Number, min: 0, default: null },
+    seasonalBagPrice: { type: Number, min: 0, default: null },
+    monthlyBagPrice: { type: Number, min: 0, default: null },
     smallBags: { type: Number, required: true, min: 0 },
     bigBags: { type: Number, required: true, min: 0 },
     marks: { type: String, trim: true, default: null },
@@ -66,7 +66,7 @@ const deliveryChallanSchema = new Schema<DeliveryChallanDoc>(
     driverName: { type: String, trim: true, default: null },
     weight: { type: Number, default: null },
     remarks: { type: String, trim: true, default: null },
-    rentCharge: { type: Number, default: 0 },
+    rentCharge: { type: Number, default: 0, min: 0 },
     // Legacy hamali columns: never written, never returned. No defaults so new
     // challans carry no hamali values; old values stay readable.
     hamaliRate: { type: Number, min: 0 },
