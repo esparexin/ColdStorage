@@ -261,3 +261,82 @@ db.deliverychallans.dropIndex('facilityId_1_gpNumber_1')
 
 Reverting to the duplicate values REQUIRES dropping the index first, otherwise the
 update is rejected. Order: dropIndex, then the two updates.
+
+---
+
+# W2-W6 Implementation Evidence (2026-10-13)
+
+**Branch:** `fix/w1-emergency-data-and-security` · unpushed, no PR, no merge
+**Production writes:** only the two W1.6-7 gpNumber reassignments, recorded above.
+
+## Gate status
+
+`npm run hygiene` runs 10 original + 8 new gates: **PASS** (18 total).
+`npm run lint --max-warnings=0`: **PASS**. `npm run type-check` (3 workspaces): **PASS**.
+
+| Suite | Result |
+|---|---|
+| backend | 117 files / 731 tests |
+| contracts | 20 files / 220 tests |
+| frontend | 29 files / 292 tests |
+| Playwright e2e | 194 tests (W1 baseline) |
+
+## What each new gate prevents, and what it already caught
+
+| Gate | Defect class | Caught during authoring |
+|---|---|---|
+| check-money-ssot.sh | a 2nd rent-obligation derivation | **YES - a 7th derivation** in `delivery-payment.helper.ts` (`resolveEffectiveDeliveryObligation` had its own `Math.max(rentAmount, totalOutward)`), missed by the W2 migration |
+| check-permission-coverage.sh | a permission that guards nothing | n/a (`allocation:manage` already removed in W1.13); 28/28 currently covered |
+| check-backup-restore-parity.sh | collector/restore key drift | n/a (fixed in W1.4); would have caught the 3-of-17 silent loss |
+| check-async-boundary.sh | a route outside the async boundary | n/a (fixed in W1.9) |
+| check-contract-shadow.sh | a frontend type shadowing contracts | **YES - 3 shadows of `OutwardBagCategory`**, one a 3-value union against the contract's 8 |
+| check-endpoint-wiring.sh | docs asserting a non-existent component/endpoint | **YES - 3 false claims** in the wiring matrix + 2 renamed modals |
+| check-numeric-hygiene.sh | a redeclared rounding helper / double rounding | n/a |
+| check-dead-css.sh | unreferenced CSS classes | 42 reported (advisory, see below) |
+
+Each gate was proven to FAIL when its defect was deliberately reintroduced, then
+restored.
+
+## Behaviour changes (verified, not assumed)
+
+- **GRN auto-closure.** Three tests asserted a GRN auto-closes once its bags are
+  exhausted. They passed only because the obligation was under-computed.
+  `create-delivery.handler.ts` documents the real invariant - CLOSED requires
+  `remainingBags === 0` AND `remainingBalance === 0` - so those tests now assert
+  the GRN correctly stays OPEN while rent is outstanding.
+- **Transfer settlement gate.** `transfer-ownership` passes the PROSPECTIVE
+  charge (rent for the bags being transferred, including Monthly accrual for
+  elapsed cycles) as the obligation base, not the stored `rentAmount`. Passing
+  the stored amount dropped the accrual and let an unsettled lot transfer with
+  no gate at all. Caught by a test that expected a 400 and got a 200.
+
+## Outstanding
+
+1. **merge / ownership-transfer lack counter-conflict retry.** `withMongoRetry`
+   is applied to GRN creation and rent payment but not these two. The wrap
+   required re-indenting transaction bodies containing array literals; after two
+   attempts it was reverted rather than risk working money logic late in the
+   wave. Both files are at the 250-line budget, so the fix needs an extraction
+   first.
+2. **12 orphan endpoints not yet deleted** (W4 scope, deferred): backup
+   `download` / `inspect` / `restore`, `audit-logs/:id`, `inventory/ledger`,
+   `grns/acknowledgement`, `rent/occupancy-report`, `GET /deliveries/:id`,
+   `GET /internal-movements`, `rent/extensions/finalize`, `extensions/:id/override`,
+   `rent/grn/:id/extensions`.
+3. **4 orphan files + 24 dead contract exports not yet deleted** (W4 scope,
+   deferred). `scripts/repair-monthly-rent.mjs` is the highest-risk of these:
+   it hardcodes `mongodb://127.0.0.1:27017/cold_storage`, has no `--allow-live`
+   guard, bypasses `assertSafeDatabaseTarget`, declares neither `mongodb` nor
+   `dotenv`, and runs only via npm hoisting.
+4. **42 dead CSS classes** - detected, not yet deleted. `check-dead-css.sh` is
+   ADVISORY until that cleanup lands; the fail switch is marked in the script.
+5. **`next` CRITICAL advisory** (Next 14.2.35) - pre-existing, untouched.
+6. **`GRN-26-27-*` rows in production** - still unverified as to ownership and
+   purpose. Left untouched per instruction. `GRN-26-27-0001` additionally has
+   no inward stock-ledger transaction.
+7. **Test flakiness under full-suite load.** Several files intermittently fail
+   with socket hang up / ECONNRESET / hook timeout, and pass in isolation.
+   Observed in `bond-loan-lifecycle`, `user-lifecycle`, `grn-correction` and
+   `audit-backup.routes`. This predates W1 and is worth its own investigation;
+   `--fileParallelism=false` shares one database across 117 files, so residual
+   state between files is the likely cause.
