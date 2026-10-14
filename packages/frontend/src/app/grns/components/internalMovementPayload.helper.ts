@@ -39,6 +39,13 @@ export interface TransferPayload {
   remarks: string;
   paymentDecision?: TransferPaymentDecision;
   settlementDetails?: TransferSettlementDetails;
+  confirmedSmallBags?: number;
+  confirmedBigBags?: number;
+  sourceBagCategory?: OutwardBagCategory;
+  sourceQuantity?: number;
+  sourceBagPrice?: number;
+  sourceSeasonalBagPrice?: number;
+  sourceMonthlyBagPrice?: number;
 }
 
 /** Single SSOT for the `reason. remarks` audit composition both flows share. */
@@ -91,6 +98,15 @@ export function buildTransferPayload(
   movementDate?: string,
   paymentDecision?: TransferPaymentDecision,
   settlementDetails?: TransferSettlementDetails,
+  confirmation?: {
+    confirmedSmallBags?: number;
+    confirmedBigBags?: number;
+    sourceBagCategory?: OutwardBagCategory;
+    sourceQuantity?: number;
+    sourceBagPrice?: number;
+    sourceSeasonalBagPrice?: number;
+    sourceMonthlyBagPrice?: number;
+  },
 ): TransferPayload {
   return {
     grnId,
@@ -99,6 +115,13 @@ export function buildTransferPayload(
     remarks: composeRemarks(reason, remarks),
     paymentDecision: paymentDecision || 'AGREED_PENDING',
     settlementDetails,
+    confirmedSmallBags: confirmation?.confirmedSmallBags,
+    confirmedBigBags: confirmation?.confirmedBigBags,
+    sourceBagCategory: confirmation?.sourceBagCategory,
+    sourceQuantity: confirmation?.sourceQuantity,
+    sourceBagPrice: confirmation?.sourceBagPrice,
+    sourceSeasonalBagPrice: confirmation?.sourceSeasonalBagPrice,
+    sourceMonthlyBagPrice: confirmation?.sourceMonthlyBagPrice,
   };
 }
 

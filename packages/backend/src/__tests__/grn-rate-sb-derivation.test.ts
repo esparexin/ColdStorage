@@ -94,14 +94,15 @@ describe('Canonical S/B rate validation & auto-derivation of inward obligation',
     expect(res.body.grn.rentAmount).toBe(1440);
   });
 
-  it('rejects unverified S/B lots when differential rates exist', async () => {
+  it('accepts total-only S/B lots with differential rates as pending (rent 0, unverified)', async () => {
     const res = await postInbound({
       bags: 100,
       smallBagPrice: 12,
       bigBagPrice: 18,
     });
-    expect(res.status).toBe(400);
-    expect(JSON.stringify(res.body)).toContain('Small and big bag composition unverified');
+    expect(res.status).toBe(201);
+    expect(res.body.grn.rentAmount).toBe(0);
+    expect(res.body.grn.isCompositionVerified).toBe(false);
   });
 
   it('accepts unsegregated S/B lots when rates are equal', async () => {

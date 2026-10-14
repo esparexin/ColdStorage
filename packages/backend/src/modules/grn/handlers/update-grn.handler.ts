@@ -113,6 +113,7 @@ export async function correctGrn(
         bags: grn.bags,
         smallBags: grn.smallBags,
         bigBags: grn.bigBags,
+        isCompositionVerified: (grn as unknown as Record<string, unknown>).isCompositionVerified as boolean | null ?? null,
       });
       Object.assign(update, bagEdit.update);
       Object.assign(inwardUpdate, bagEdit.inwardUpdate);

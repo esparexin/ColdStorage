@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import type { TransferOwnershipInput, Grn, InternalMovementRecord, RentPayment } from '@cold-storage/contracts';
+import { resolveStoredCompositionVerified, type TransferOwnershipInput, type Grn, type InternalMovementRecord, type RentPayment } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
@@ -15,7 +15,7 @@ import { rentRepository } from '../../rent/rent.repository.js';
 import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
 import { settleTransferRent } from './transfer-ownership.helper.js';
-
+import { validateTransferBagConfirmation } from './transfer-ownership-validation.helper.js';
 export async function transferOwnership(
   facilityId: string,
   input: TransferOwnershipInput,
@@ -62,6 +62,13 @@ export async function transferOwnership(
       if (bal.total <= 0) {
         throw new Error(`Cannot transfer ownership: No stock remaining in GRN '${grn.grnNumber}'`);
       }
+
+      // Unverified lots must not transfer silently; verified lots stay compatible.
+      const isVerified = resolveStoredCompositionVerified({
+        isCompositionVerified: (grn as unknown as Record<string, unknown>).isCompositionVerified as boolean | null ?? null,
+        bagType: grn.bagType as never, bags: grn.bags, smallBags: grn.smallBags, bigBags: grn.bigBags,
+      });
+      validateTransferBagConfirmation(input, bal.total, grn.grnNumber, isVerified);
 
       const movementDate = new Date(input.movementDate);
 
@@ -189,6 +196,11 @@ export async function transferOwnership(
             totalBagsMoved: bal.total,
             smallBagsMoved: bal.smallBags,
             bigBagsMoved: bal.bigBags,
+            sourceBagCategory: (input as unknown as Record<string, unknown>).sourceBagCategory as never ?? null,
+            sourceQuantity: (input as unknown as Record<string, unknown>).sourceQuantity as number | null ?? null,
+            sourceBagPrice: (input as unknown as Record<string, unknown>).sourceBagPrice as number | null ?? null,
+            sourceSeasonalBagPrice: (input as unknown as Record<string, unknown>).sourceSeasonalBagPrice as number | null ?? null,
+            sourceMonthlyBagPrice: (input as unknown as Record<string, unknown>).sourceMonthlyBagPrice as number | null ?? null,
             financialSnapshot: {
               rentAmount: effectiveRentBal.rentAmount,
               totalPaid: effectiveRentBal.totalPaid,

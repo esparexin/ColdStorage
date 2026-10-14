@@ -5,8 +5,10 @@ import type { Customer, Grn, TransferPaymentDecision, TransferSettlementDetails 
 import { Badge, Input, Select } from '@/components/ui';
 import { useRentGate } from '@/hooks/useRentGate';
 import { TransferPaymentDecisionSection, validateTransferPayment } from './TransferPaymentDecisionSection';
+import { TransferBagConfirmationFields } from './TransferBagConfirmationFields';
+import { TransferSummaryStrip } from './TransferSummaryStrip';
+import { validateTransferConfirmation } from './transferTabValidation.helper';
 import styles from './InternalMovementModal.module.css';
-
 interface InternalMovementTransferTabProps {
   currentGrn: Grn;
   facilityId: string;
@@ -19,6 +21,15 @@ interface InternalMovementTransferTabProps {
     remarks?: string,
     paymentDecision?: TransferPaymentDecision,
     settlementDetails?: TransferSettlementDetails,
+    confirmation?: {
+      confirmedSmallBags?: number;
+      confirmedBigBags?: number;
+      sourceBagCategory?: import('@cold-storage/contracts').OutwardBagCategory;
+      sourceQuantity?: number;
+      sourceBagPrice?: number;
+      sourceSeasonalBagPrice?: number;
+      sourceMonthlyBagPrice?: number;
+    },
   ) => Promise<void>;
 }
 
@@ -37,6 +48,8 @@ export function InternalMovementTransferTab({
   const [settleAmount, setSettleAmount] = useState<number>(0);
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI'>('Cash');
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>('');
+  const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>('');
 
   const { rentSummary, rentLoading, refreshRentGate } = useRentGate();
 
@@ -55,6 +68,7 @@ export function InternalMovementTransferTab({
   );
 
   const remainingBags = currentGrn.closingBags ?? currentGrn.bags;
+  const isUnverified = (currentGrn as Record<string, unknown>).isCompositionVerified === false;
   const totalPaid = rentSummary?.totalPaid ?? 0;
   const pendingAmount = rentSummary?.remainingBalance ?? 0;
   const isUnbilled = totalPaid === 0 && pendingAmount === 0 && (rentSummary?.rentAmount ?? 0) === 0;
@@ -82,16 +96,20 @@ export function InternalMovementTransferTab({
       setValidationError(payErr);
       return;
     }
+    const confirmErr = validateTransferConfirmation(isUnverified, remainingBags, confirmedSmallBags, confirmedBigBags);
+    if (confirmErr) {
+      setValidationError(confirmErr);
+      return;
+    }
+    const confirmation =
+      isUnverified && typeof confirmedSmallBags === 'number' && typeof confirmedBigBags === 'number'
+        ? { confirmedSmallBags, confirmedBigBags } : undefined;
 
     await onExecuteTransfer(
-      newCustomerId,
-      movementDate,
-      reason.trim(),
-      remarks.trim() || undefined,
+      newCustomerId, movementDate, reason.trim(), remarks.trim() || undefined,
       pendingAmount > 0 ? decision : undefined,
-      pendingAmount > 0 && decision === 'SETTLE_NOW'
-        ? { amountPaid: settleAmount, paymentMode }
-        : undefined,
+      pendingAmount > 0 && decision === 'SETTLE_NOW' ? { amountPaid: settleAmount, paymentMode } : undefined,
+      confirmation,
     );
   };
 
@@ -104,41 +122,14 @@ export function InternalMovementTransferTab({
       )}
 
       {/* Current Owner & GRN Compact Summary Strip */}
-      <div className={styles.summaryStrip}>
-        <div className={styles.metaItem}>
-          <span className={styles.metaLabel}>Current Owner</span>
-          <span className={styles.metaValue}>{currentGrn.customerName}</span>
-        </div>
-        <div className={styles.metaItem}>
-          <span className={styles.metaLabel}>GRN Number</span>
-          <span className={styles.metaValue}>{currentGrn.grnNumber}</span>
-        </div>
-        <div className={styles.metaItem}>
-          <span className={styles.metaLabel}>Inward Date</span>
-          <span className={styles.metaValue}>{new Date(currentGrn.date).toLocaleDateString('en-IN')}</span>
-        </div>
-        <div className={styles.metaItem}>
-          <span className={styles.metaLabel}>Commodity / Chamber</span>
-          <span className={styles.metaValue}>{currentGrn.commodityName} (Ch. {currentGrn.chamber})</span>
-        </div>
-        <div className={styles.metaItem}>
-          <span className={styles.metaLabel}>Remaining Stock</span>
-          <span className={styles.metaValue}>{remainingBags} Bags</span>
-        </div>
-        <div className={styles.metaItem}>
-          <span className={styles.metaLabel}>Rent State</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-            <span className={styles.metaValue}>
-              {isUnbilled
-                ? '₹0 due (At Outward / Dynamic)'
-                : `₹${totalPaid.toLocaleString('en-IN')} paid / ₹${pendingAmount.toLocaleString('en-IN')} due`}
-            </span>
-            <Badge variant={isUnbilled ? 'neutral' : pendingAmount > 0 ? 'warning' : 'success'}>
-              {rentLoading ? '...' : isUnbilled ? 'Unbilled' : pendingAmount > 0 ? 'Pending Dues' : 'Settled'}
-            </Badge>
-          </div>
-        </div>
-      </div>
+      <TransferSummaryStrip
+        currentGrn={currentGrn}
+        remainingBags={remainingBags}
+        totalPaid={totalPaid}
+        pendingAmount={pendingAmount}
+        isUnbilled={isUnbilled}
+        rentLoading={rentLoading}
+      />
 
       <TransferPaymentDecisionSection
         pendingAmount={pendingAmount}
@@ -192,6 +183,17 @@ export function InternalMovementTransferTab({
             <span className={styles.detailLabel}>Assigned Transferee:</span>
             <span className={styles.detailValue}>{selectedNewCustomer ? selectedNewCustomer.name : '—'}</span>
           </div>
+
+          {isUnverified && (
+            <TransferBagConfirmationFields
+              remainingBags={remainingBags}
+              confirmedSmallBags={confirmedSmallBags}
+              confirmedBigBags={confirmedBigBags}
+              onSmallChange={setConfirmedSmallBags}
+              onBigChange={setConfirmedBigBags}
+              disabled={submitting}
+            />
+          )}
 
           <div className={styles.noticeBox}>
             {pendingAmount > 0

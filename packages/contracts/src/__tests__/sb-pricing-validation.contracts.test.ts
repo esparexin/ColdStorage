@@ -18,17 +18,14 @@ describe('Phase 1 S/B Pricing Inward Validation & Outward Delivery Contracts (Op
       rentType: 'Seasonal' as const,
     };
 
-    it('rejects S/B when differential rates are submitted without verified bag counts', () => {
+    it('accepts total-only S/B inward with differential rates (verification deferred to outward)', () => {
       const result = createGrnSchema.safeParse({
         ...basePayload,
         bagType: 'S/B',
         smallBagPrice: 10,
         bigBagPrice: 15,
       });
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].message).toContain('Small and big bag composition unverified');
-      }
+      expect(result.success).toBe(true);
     });
 
     it('accepts S/B when differential rates are submitted with verified bag counts', () => {

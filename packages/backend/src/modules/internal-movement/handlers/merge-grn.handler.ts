@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { isHybridBagCategory, resolveMergedBagType, type Grn, type InternalMovementRecord, type MergeGrnInput } from '@cold-storage/contracts';
+import { isHybridBagCategory, resolveMergedBagType, resolveStoredCompositionVerified, type Grn, type InternalMovementRecord, type MergeGrnInput } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { resolveMovementObligation } from './resolve-movement-obligation.js';
@@ -90,7 +90,7 @@ export async function mergeGrn(
         sourceSummaries.push(summaryStr);
       }
 
-      const { smallMoved, bigMoved } = validateMergeRepackedCounts({
+      const { smallMoved, bigMoved, explicitConfirmation } = validateMergeRepackedCounts({
         targetGrn, sourceGrns,
         repackedSmallBags: input.repackedSmallBags, repackedBigBags: input.repackedBigBags,
         sourceBagCategory: input.sourceBagCategory ?? null, sourceQuantity: input.sourceQuantity ?? null,
@@ -101,6 +101,18 @@ export async function mergeGrn(
       });
       totalMovedSmall = smallMoved;
       totalMovedBig = bigMoved;
+      const targetWasVerified = resolveStoredCompositionVerified({
+        isCompositionVerified: (targetGrn as unknown as Record<string, unknown>).isCompositionVerified as boolean | null ?? null,
+        bagType: targetGrn.bagType, bags: targetGrn.bags, smallBags: targetGrn.smallBags, bigBags: targetGrn.bigBags,
+      });
+      const allSourcesVerified = (sourceGrns as unknown as Record<string, unknown>[]).every((s) =>
+        resolveStoredCompositionVerified({
+          isCompositionVerified: s.isCompositionVerified as boolean | null ?? null,
+          bagType: s.bagType as never, bags: s.bags as number,
+          smallBags: s.smallBags as number | null, bigBags: s.bigBags as number | null,
+        }),
+      );
+      const newIsCompositionVerified = explicitConfirmation ? true : targetWasVerified && allSourcesVerified;
 
       // When additionalRentAmount > 0 is supplied, it overrides the carried rent obligation;
       // otherwise (when omitted or 0), the cumulative source pending rent is automatically carried forward.
@@ -152,6 +164,7 @@ export async function mergeGrn(
             bags: newBags,
             smallBags: newSmall,
             bigBags: newBig,
+            isCompositionVerified: newIsCompositionVerified,
             rentAmount: newRentAmount,
             remarks: updatedTargetRemarks,
             updatedAt: new Date(),

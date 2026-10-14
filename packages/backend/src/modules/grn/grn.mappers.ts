@@ -24,6 +24,7 @@ export function toGrnEntity(doc: {
   bigBagPrice?: number | null;
   smallBags: number;
   bigBags: number;
+  isCompositionVerified?: boolean | null;
   gpNumber?: string | null;
   storageMark?: string | null;
   partyMark?: string | null;
@@ -79,6 +80,8 @@ export function toGrnEntity(doc: {
     bigBagPrice: doc.bigBagPrice ?? null,
     smallBags: doc.smallBags,
     bigBags: doc.bigBags,
+    isCompositionVerified:
+      ((doc as unknown as Record<string, unknown>).isCompositionVerified as boolean | undefined) ?? true,
     gpNumber: doc.gpNumber ?? null,
     storageMark: doc.storageMark ?? null,
     partyMark: doc.partyMark ?? null,

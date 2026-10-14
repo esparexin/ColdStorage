@@ -1,11 +1,6 @@
 import { z } from 'zod';
 
-/**
- * Single canonical bag model (P0-Decision 3 & 4).
- * - Bag Type: strictly controlled vocabulary of 'S', 'B', 'S+B', or 'S/B' (informational, default 'S/B').
- * - Weight is captured per individual bag only (Small Bag Weight / Big Bag Weight).
- * - Primary operational metric is Total S/B Bags (`bags`).
- */
+/** Canonical bag model: bagType S/B/S+B/S/B, per-bag weights, total `bags`. */
 export const bagTypeSchema = z.enum(['S', 'B', 'S+B', 'S/B']).default('S/B');
 export type BagType = z.infer<typeof bagTypeSchema>;
 
@@ -24,14 +19,7 @@ export const bagAccountingSchema = z.object({
 
 export type BagAccounting = z.infer<typeof bagAccountingSchema>;
 
-/**
- * Authoritative bag composition for any inward receipt.
- *
- * Every GRN carries a fully-populated composition vector, whichever bag type was declared:
- * a single-type GRN simply has one side at zero. Nulls are unrepresentable, so "how many small
- * bags and how many big bags remain" is answerable for every GRN rather than only for mixed ones,
- * and no reader has to branch on bagType to interpret a balance.
- */
+/** Fully-populated composition: single-type stores zero on unused side; bags == small + big. */
 export const bagCompositionSchema = z.object({
   smallBags: z.number().int().min(0).max(100000),
   bigBags: z.number().int().min(0).max(100000),
@@ -52,11 +40,7 @@ export interface NormalizeCompositionInput {
   bigBags?: number | null;
 }
 
-/**
- * Validates a declared receipt against its bag composition and returns the reason it is invalid,
- * or null when it is consistent. Shared by the create-GRN contract refine and the normalizer so
- * the validation rule and the normalization rule can never drift apart.
- */
+/** Returns inconsistency reason or null; shared by contract refine and normalizer. */
 export function bagCompositionIssue(input: NormalizeCompositionInput): string | null {
   const { bagType, bags, smallBags, bigBags } = input;
   const small = smallBags ?? 0;
@@ -93,14 +77,7 @@ export function bagCompositionIssue(input: NormalizeCompositionInput): string | 
   return null;
 }
 
-/**
- * The single place a receipt's declared bags are resolved into a composition.
- *
- * The browser previously derived this by adding smallBags and bigBags on every keystroke, which
- * left `bags` and its parts free to disagree in the database because nothing re-derived or
- * rejected them server-side. Normalizing once, here, means the stored composition and the stored
- * total are the same fact expressed once, and the create-delivery guard can reason per bag type.
- */
+/** Single place receipts resolve into a composition; stored total and parts cannot drift. */
 export function normalizeBagComposition(input: NormalizeCompositionInput): BagComposition {
   const issue = bagCompositionIssue(input);
   if (issue) {
@@ -168,10 +145,19 @@ export function isBagCompositionVerified(input: {
   return s + b === bags;
 }
 
-/**
- * Validates whether rent can be calculated authoritatively without guessing or fabricating bills.
- * If differential rates exist and composition is unverified, rent calculation must be marked pending verification.
- */
+/** Stored verification: explicit flag wins; derived check is fallback for pre-flag docs. */
+export function resolveStoredCompositionVerified(input: {
+  isCompositionVerified?: boolean | null;
+  bagType?: BagType | null;
+  bags: number;
+  smallBags?: number | null;
+  bigBags?: number | null;
+}): boolean {
+  if (typeof input.isCompositionVerified === 'boolean') return input.isCompositionVerified;
+  return isBagCompositionVerified(input);
+}
+
+/** Validates whether rent can be calculated authoritatively without guessing. */
 export function canCalculateAuthoritativeRent(input: {
   bagType?: BagType | null;
   bags: number;

@@ -1,5 +1,6 @@
 import {
   canCalculateAuthoritativeRent,
+  resolveStoredCompositionVerified,
   splitRentObligation,
   type RentExtension,
   type RentSummaryDto,
@@ -53,7 +54,16 @@ export function buildRentSummary(
     bigBagPrice: grn.bigBagPrice,
   });
 
-  const isCompositionUnverified = baseRent === 0 && payments.length === 0 && !canCalc.canCalculate;
+  const storedVerified = resolveStoredCompositionVerified({
+    isCompositionVerified: (grn as unknown as Record<string, unknown>).isCompositionVerified as boolean | null ?? null,
+    bagType: grn.bagType,
+    bags: grn.bags,
+    smallBags: grn.smallBags,
+    bigBags: grn.bigBags,
+  });
+
+  const isCompositionUnverified =
+    baseRent === 0 && payments.length === 0 && (!storedVerified || !canCalc.canCalculate);
   const isLegacyUnverifiedHamali =
     grn.hamaliRate == null && grn.hamaliAmount == null && hamaliShare > 0 && payments.length === 0;
   const isPendingVerification = isCompositionUnverified || isLegacyUnverifiedHamali;

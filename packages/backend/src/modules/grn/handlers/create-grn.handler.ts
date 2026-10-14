@@ -4,6 +4,7 @@ import {
   buildInwardReceiptNumber,
   calculateRentAmount,
   getFinancialYearKey,
+  isBagCompositionVerified,
   normalizeBagComposition,
   rentMonthsForType,
   type CreateGrnInput,
@@ -76,14 +77,23 @@ export async function createGrn(
   // 5. Inward Date and FY validation
   const inwardDate = validateOperationalDate(input.date, { label: 'Inward' });
 
-  // 6. Bag composition is resolved once, here, and stored as the authoritative split, so `bags`
-  // and its parts can never drift apart.
+  // 6. Inward is total-only: absent split defaults to `{bags, 0}` placeholder;
+  // `isCompositionVerified` records explicit confirmation. Unverified lots keep pending (0) rent.
   const composition = normalizeBagComposition({
     bagType: input.bagType,
     bags: input.bags,
     smallBags: input.smallBags,
     bigBags: input.bigBags,
   });
+  const isCompositionVerified =
+    input.bagType === 'S' || input.bagType === 'B'
+      ? true
+      : isBagCompositionVerified({
+          bagType: input.bagType,
+          bags: input.bags,
+          smallBags: input.smallBags,
+          bigBags: input.bigBags,
+        });
 
   // Per-bag weight is optional: the Inward form captures Total Bags and a single Bag Price.
   // A supplied weight is preserved for that bag type; an absent one is stored as null.
@@ -159,6 +169,7 @@ export async function createGrn(
               bagType: input.bagType,
               smallBags: composition.smallBags,
               bigBags: composition.bigBags,
+              isCompositionVerified,
               smallBagWeight,
               bigBagWeight,
               totalBagsWeight: input.totalBagsWeight ?? null,

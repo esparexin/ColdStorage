@@ -3,7 +3,6 @@ import {
   bagCompositionConsistent,
   bagCompositionIssueMessage,
   bagTypeSchema,
-  isBagCompositionVerified,
   perBagWeightSchema,
 } from './bags.js';
 import { chamberTextSchema, indianVehicleSchema, rentalAmountSchema } from './common.js';
@@ -131,27 +130,6 @@ export const createGrnSchema = z
   )
   .refine(
     (data) => {
-      const sRate = data.smallBagPrice ?? data.bagPrice ?? 0;
-      const bRate = data.bigBagPrice ?? data.bagPrice ?? 0;
-      const hasDiffRates = (data.smallBagPrice != null || data.bigBagPrice != null) && sRate !== bRate;
-      const isSb = data.bagType === 'S+B' || data.bagType === 'S/B';
-      if (hasDiffRates && isSb) {
-        return isBagCompositionVerified({
-          bagType: data.bagType,
-          bags: data.bags,
-          smallBags: data.smallBags,
-          bigBags: data.bigBags,
-        });
-      }
-      return true;
-    },
-    {
-      message: 'Small and big bag composition unverified; differential rates require confirmed counts',
-      path: ['smallBags'],
-    },
-  )
-  .refine(
-    (data) => {
       // Future date check with 5 min tolerance
       const maxAllowed = new Date(Date.now() + 5 * 60 * 1000);
       return data.date <= maxAllowed;
@@ -191,6 +169,8 @@ export const grnSchema = z.object({
   /** Always present: a single-type receipt stores zero on the unused side rather than null. */
   smallBags: z.number().int().min(0),
   bigBags: z.number().int().min(0),
+  /** Explicit verification: false = total-only S/B placeholder, not a verified all-small lot. */
+  isCompositionVerified: z.boolean().optional(),
   gpNumber: z.string().nullable().optional(),
   storageMark: z.string().nullable().optional(),
   partyMark: z.string().nullable().optional(),

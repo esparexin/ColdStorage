@@ -101,6 +101,15 @@ export function InternalMovementModal({
     remarks?: string,
     paymentDecision?: TransferPaymentDecision,
     settlementDetails?: TransferSettlementDetails,
+    confirmation?: {
+      confirmedSmallBags?: number;
+      confirmedBigBags?: number;
+      sourceBagCategory?: import('@cold-storage/contracts').OutwardBagCategory;
+      sourceQuantity?: number;
+      sourceBagPrice?: number;
+      sourceSeasonalBagPrice?: number;
+      sourceMonthlyBagPrice?: number;
+    },
   ) => {
     setSubmitting(true);
     setError(null);
@@ -119,6 +128,7 @@ export function InternalMovementModal({
               movementDate,
               paymentDecision,
               settlementDetails,
+              confirmation,
             ),
           ),
         },
