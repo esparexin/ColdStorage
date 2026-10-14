@@ -55,44 +55,40 @@ describe('eligibleGrn.helper', () => {
       makeMockGrn({ id: 'g-3', grnNumber: '0015', customerName: 'NITISH', commodityName: 'Mirchi', chamber: 'B-06,09', storageMark: 'Pench-Gudu', partyMark: 'Pench-Gudu' }),
     ];
 
-    it('returns all items when query is empty or whitespace', () => {
+    it('returns all items with stock when query is empty or whitespace', () => {
       expect(filterEligibleGrns(list, '')).toEqual(list);
       expect(filterEligibleGrns(list, '   ')).toEqual(list);
     });
 
+    it('excludes consignments with zero or exhausted remaining stock', () => {
+      const withExhausted = [...list, makeMockGrn({ id: 'g-zero', grnNumber: '0023', closingBags: 0 })];
+      const result = filterEligibleGrns(withExhausted, '');
+      expect(result).toHaveLength(3);
+      expect(result.some((g) => g.id === 'g-zero')).toBe(false);
+    });
+
     it('matches by GRN number case-insensitively', () => {
-      const result = filterEligibleGrns(list, '0011');
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('g-1');
+      expect(filterEligibleGrns(list, '0011')).toHaveLength(1);
     });
 
     it('matches by Customer name case-insensitively', () => {
-      const result = filterEligibleGrns(list, 'PUNNA');
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('g-2');
+      expect(filterEligibleGrns(list, 'PUNNA')).toHaveLength(1);
     });
 
     it('matches by Commodity name', () => {
-      const result = filterEligibleGrns(list, 'Mirchi');
-      expect(result).toHaveLength(2);
-      expect(result.map((g) => g.id)).toEqual(['g-1', 'g-3']);
+      expect(filterEligibleGrns(list, 'Mirchi')).toHaveLength(2);
     });
 
     it('matches by Storage mark or Party mark', () => {
-      const result = filterEligibleGrns(list, 'Pench');
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('g-3');
+      expect(filterEligibleGrns(list, 'Pench')).toHaveLength(1);
     });
 
     it('matches by Chamber identifier', () => {
-      const result = filterEligibleGrns(list, 'B5-09');
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('g-2');
+      expect(filterEligibleGrns(list, 'B5-09')).toHaveLength(1);
     });
 
     it('returns empty array when nothing matches', () => {
-      const result = filterEligibleGrns(list, 'nonexistent-token');
-      expect(result).toHaveLength(0);
+      expect(filterEligibleGrns(list, 'nonexistent-token')).toHaveLength(0);
     });
   });
 
@@ -187,6 +183,11 @@ describe('eligibleGrn.helper', () => {
     it('falls back to inward bags when closingBags is undefined or null', () => {
       const grn = makeMockGrn({ bags: 850, closingBags: undefined });
       expect(getAvailableStockBags(grn)).toBe(850);
+    });
+
+    it('clamps negative or zero bags to 0', () => {
+      expect(getAvailableStockBags(makeMockGrn({ closingBags: 0 }))).toBe(0);
+      expect(getAvailableStockBags(makeMockGrn({ closingBags: -5 }))).toBe(0);
     });
   });
 

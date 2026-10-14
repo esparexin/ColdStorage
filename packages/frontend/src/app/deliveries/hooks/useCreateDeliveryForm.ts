@@ -23,17 +23,14 @@ export function useCreateDeliveryForm(
   const [createDate, setCreateDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [bagCategory, setBagCategory] = useState<OutwardBagCategory>('S/B');
   const [manualBagPrice, setManualBagPrice] = useState<number | ''>('');
-  const [seasonalBagPrice, setSeasonalBagPrice] = useState<number | ''>('');
-  const [monthlyBagPrice, setMonthlyBagPrice] = useState<number | ''>('');
+  const [seasonalBagPrice, setSeasonalBagPrice] = useState<number | ''>(''); const [monthlyBagPrice, setMonthlyBagPrice] = useState<number | ''>('');
   const [withdrawal, setWithdrawal] = useState<GrnWithdrawal>({
     availableSmall: 0, availableBig: 0, smallBags: '', bigBags: '', quantity: '',
   });
   const [paymentAmount, setPaymentAmount] = useState<number | ''>('');
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI'>('Cash');
-  const [createVehicleNumber, setCreateVehicleNumber] = useState('');
-  const [createDriverName, setCreateDriverName] = useState('');
-  const [createWeight, setCreateWeight] = useState<number | ''>('');
-  const [createGpNumber, setCreateGpNumber] = useState('');
+  const [createVehicleNumber, setCreateVehicleNumber] = useState(''); const [createDriverName, setCreateDriverName] = useState('');
+  const [createWeight, setCreateWeight] = useState<number | ''>(''); const [createGpNumber, setCreateGpNumber] = useState('');
   const [createRemarks, setCreateRemarks] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -51,7 +48,7 @@ export function useCreateDeliveryForm(
       const res = await requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns?status=OPEN&limit=100`);
       if (res.ok) {
         const data = (await res.json()) as { items?: Grn[] };
-        setAvailableGrns(data.items ?? []);
+        setAvailableGrns((data.items ?? []).filter((g) => (g.closingBags ?? g.bags) > 0));
       }
     } catch { /* Graceful */ }
   }, [facilityId]);
@@ -85,6 +82,10 @@ export function useCreateDeliveryForm(
       setLoadingGrnSummary(true);
       setModalError(null);
       const matched = availableGrns.find((g) => g.id === grnId);
+      if (matched && (matched.closingBags ?? matched.bags) <= 0) {
+        setModalError('Consignment has no available stock remaining for outward delivery');
+        return;
+      }
       const commodityId = matched?.commodityId;
       try {
         const [invRes, , rateRes] = await Promise.all([

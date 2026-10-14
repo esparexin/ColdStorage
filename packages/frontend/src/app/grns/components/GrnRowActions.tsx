@@ -113,7 +113,7 @@ export function GrnRowActions({
       )}
 
       {/* Primary Action 2: Internal Move */}
-      {!isClosed && canInternalMove && onInternalMove && (
+      {!isClosed && canInternalMove && onInternalMove && hasRemainingStock && (
         <Button
           variant="outline"
           size="sm"
