@@ -109,19 +109,25 @@ export class UserRepository {
   }
 
   public async findById(id: string): Promise<UserEntity | null> {
-    const doc = await UserModel.findOne({ id: { $eq: sanitizeId(id) } }).lean().exec();
+    const doc = await UserModel.findOne({ id: { $eq: sanitizeId(id) } })
+      .lean()
+      .exec();
     return doc ? (doc as unknown as UserEntity) : null;
   }
 
   public async findByUsername(username: string): Promise<UserEntity | null> {
     const normalized = typeof username === 'string' ? username.trim().toLowerCase() : '';
-    const doc = await UserModel.findOne({ username: { $eq: normalized } }).lean().exec();
+    const doc = await UserModel.findOne({ username: { $eq: normalized } })
+      .lean()
+      .exec();
     return doc ? (doc as unknown as UserEntity) : null;
   }
 
   public async findByEmail(email: string): Promise<UserEntity | null> {
     const normalized = typeof email === 'string' ? email.trim().toLowerCase() : '';
-    const doc = await UserModel.findOne({ email: { $eq: normalized } }).lean().exec();
+    const doc = await UserModel.findOne({ email: { $eq: normalized } })
+      .lean()
+      .exec();
     return doc ? (doc as unknown as UserEntity) : null;
   }
 
@@ -133,7 +139,10 @@ export class UserRepository {
    */
   public async findGateStateById(
     id: string,
-  ): Promise<Pick<UserEntity, 'status' | 'mustChangePassword' | 'role' | 'roleId' | 'facilityIds'> | null> {
+  ): Promise<Pick<
+    UserEntity,
+    'status' | 'mustChangePassword' | 'role' | 'roleId' | 'facilityIds'
+  > | null> {
     const doc = await UserModel.findOne({ id: { $eq: sanitizeId(id) } })
       .select('status mustChangePassword role roleId facilityIds')
       .lean()
@@ -154,7 +163,7 @@ export class UserRepository {
   public async listUsers(page = 1, limit = 20): Promise<{ items: UserEntity[]; total: number }> {
     const offset = (page - 1) * limit;
     const [docs, total] = await Promise.all([
-      UserModel.find().skip(offset).limit(limit).lean().exec(),
+      UserModel.find().sort({ createdAt: -1, _id: -1 }).skip(offset).limit(limit).lean().exec(),
       UserModel.countDocuments().exec(),
     ]);
     return {
@@ -184,7 +193,10 @@ export class UserRepository {
   }
 
   public async updateLastLogin(userId: string): Promise<void> {
-    await UserModel.updateOne({ id: { $eq: sanitizeId(userId) } }, { lastLoginAt: new Date() }).exec();
+    await UserModel.updateOne(
+      { id: { $eq: sanitizeId(userId) } },
+      { lastLoginAt: new Date() },
+    ).exec();
   }
 
   /**
@@ -194,7 +206,10 @@ export class UserRepository {
   public async updateFields(
     userId: string,
     fields: Partial<
-      Pick<UserEntity, 'fullName' | 'mobile' | 'email' | 'role' | 'roleId' | 'facilityIds' | 'status'>
+      Pick<
+        UserEntity,
+        'fullName' | 'mobile' | 'email' | 'role' | 'roleId' | 'facilityIds' | 'status'
+      >
     >,
   ): Promise<UserEntity | null> {
     const doc = await UserModel.findOneAndUpdate(
