@@ -7,6 +7,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AUTH_BOOTSTRAP_OVERALL_TIMEOUT_MS, AUTH_REQUEST_TIMEOUT_MS, executeSingleFlightRefresh, fetchWithTimeout, requestWithAuth, setAccessToken, setOnAuthExpired } from '@/lib/api-client';
+import { LoginApiError, parseLoginResponse } from '@/lib/auth-errors';
 
 export interface AuthUser {
   userId: string;
@@ -144,24 +145,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') {
-        throw new Error('Connection to server timed out. Please try again.');
+        throw new LoginApiError('Connection timed out. Please check your network and try again.', 408);
       }
       throw err;
     }
 
-    if (!res.ok) {
-      const err = (await res.json()) as { error?: string };
-      throw new Error(err.error ?? 'Login failed');
-    }
-
-    const data = (await res.json()) as {
-      token?: string;
-      accessToken?: string;
-      user: RawAuthUserData;
-      mustChangePassword?: boolean;
-    };
-    const token = data.token ?? data.accessToken ?? null;
-    setAccessToken(token);
+    const data = await parseLoginResponse<RawAuthUserData>(res);
+    setAccessToken(data.token);
     const mapped = toAuthUser(data.user);
     // Top-level mustChangePassword (from login response) wins when present;
     // otherwise fall back to the embedded user record. Canonical contract

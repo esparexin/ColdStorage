@@ -7,11 +7,12 @@ import { SidebarNav } from './SidebarNav';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Banner } from '@/components/ui/Banner';
+import { Banner, type BannerVariant } from '@/components/ui/Banner';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { LOADING_LABELS } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { useNumberInputWheel } from '@/hooks/useNumberInputWheel';
+import { formatCountdown, LoginApiError } from '@/lib/auth-errors';
 import { LOGIN_BACKGROUND_IMAGE_URL, PRODUCT_NAME } from '@/lib/branding';
 import { sanitizeReturnUrl } from '@/lib/safe-url';
 import styles from './ResponsiveShell.module.css';
@@ -35,6 +36,8 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [errorVariant, setErrorVariant] = useState<BannerVariant>('error');
+  const [lockoutSeconds, setLockoutSeconds] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -42,6 +45,21 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
   // inline arrow would re-fire on every parent render and instantly close the drawer.
   const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
   const toggleMobileNav = useCallback(() => setMobileNavOpen((prev) => !prev), []);
+
+  useEffect(() => {
+    if (lockoutSeconds === null || lockoutSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setLockoutSeconds((prev) => {
+        if (prev === null || prev <= 1) {
+          setError('Lockout period ended. You can try signing in again.');
+          setErrorVariant('info');
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lockoutSeconds]);
 
   useEffect(() => {
     if (!isLoading && !user && typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
@@ -55,13 +73,26 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
   }
 
   if (!user) {
+    const isLocked = lockoutSeconds !== null && lockoutSeconds > 0;
+    const displayError = isLocked
+      ? `Too many login attempts. Please wait ${formatCountdown(lockoutSeconds)} before trying again.`
+      : error;
+
+    const buttonLabel = isSubmitting
+      ? LOADING_LABELS.signingIn
+      : isLocked
+        ? `Retry in ${formatCountdown(lockoutSeconds)}`
+        : 'Sign In';
+
     const isSessionExpired =
       typeof window !== 'undefined' &&
       new URLSearchParams(window.location.search).get('expired') === 'true';
 
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
+      if (isLocked) return;
       setError(null);
+      setErrorVariant('error');
       setIsSubmitting(true);
       try {
         await login(username, password);
@@ -71,10 +102,35 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
           router.replace(safeReturnUrl);
         }
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Invalid credentials';
-        setError(message);
+        if (err instanceof LoginApiError) {
+          if (err.isRateLimit && err.retryAfterSeconds) {
+            setLockoutSeconds(err.retryAfterSeconds);
+            setError(null);
+          } else {
+            setError(err.message);
+            setErrorVariant('error');
+          }
+        } else {
+          const message = err instanceof Error ? err.message : 'Invalid credentials';
+          setError(message);
+          setErrorVariant('error');
+        }
       } finally {
         setIsSubmitting(false);
+      }
+    };
+
+    const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setUsername(e.target.value);
+      if (!isLocked && error) {
+        setError(null);
+      }
+    };
+
+    const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setPassword(e.target.value);
+      if (!isLocked && error) {
+        setError(null);
       }
     };
 
@@ -90,11 +146,11 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
             <p className={styles.loginSubtitle}>Sign in to access your facility dashboard</p>
           </div>
 
-          {isSessionExpired && !error && (
+          {isSessionExpired && !displayError && (
             <Banner variant="info" message="Your session has expired. Please sign in again." id="session-expired-banner" />
           )}
 
-          {error && <Banner message={error} id="login-error" />}
+          {displayError && <Banner variant={isLocked ? 'error' : errorVariant} message={displayError} id="login-error" />}
 
           <form className={styles.loginForm} onSubmit={handleSubmit}>
             <Input
@@ -103,12 +159,12 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
               type="text"
               label="Username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={handleUsernameChange}
               autoComplete="username"
               autoCapitalize="none"
               spellCheck="false"
               required
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLocked}
               placeholder="Enter username"
             />
 
@@ -118,15 +174,15 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
               type="password"
               label="Password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={handlePasswordChange}
               autoComplete="current-password"
               required
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLocked}
               placeholder="Enter password"
             />
 
-            <Button type="submit" variant="primary" size="lg" disabled={isSubmitting} isLoading={isSubmitting}>
-              {isSubmitting ? LOADING_LABELS.signingIn : 'Sign In'}
+            <Button type="submit" variant="primary" size="lg" disabled={isSubmitting || isLocked} isLoading={isSubmitting}>
+              {buttonLabel}
             </Button>
           </form>
         </div>
