@@ -5,7 +5,7 @@ import multer from 'multer';
 import { exportDateRangeQuerySchema, stockSummaryExportQuerySchema } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
-import { mutationsRateLimiter } from '../middleware/rate-limiter.middleware.js';
+import { exportRateLimiter, mutationsRateLimiter } from '../middleware/rate-limiter.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { exportService } from '../modules/import-export/export.service.js';
 import { importService } from '../modules/import-export/import.service.js';
@@ -134,6 +134,7 @@ importExportRouter.get(
   '/facilities/:facilityId/export/grns',
   requirePermission('export:execute'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  exportRateLimiter,
   async (req: Request, res: Response): Promise<void> => {
     const facilityId = getParamId(req.params.facilityId);
     const parseResult = exportDateRangeQuerySchema.safeParse(req.query);
@@ -156,6 +157,7 @@ importExportRouter.get(
   '/facilities/:facilityId/export/deliveries',
   requirePermission('export:execute'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  exportRateLimiter,
   async (req: Request, res: Response): Promise<void> => {
     const facilityId = getParamId(req.params.facilityId);
     const parseResult = exportDateRangeQuerySchema.safeParse(req.query);
@@ -178,6 +180,7 @@ importExportRouter.get(
   '/facilities/:facilityId/export/inventory-ledger',
   requirePermission('export:execute'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  exportRateLimiter,
   async (req: Request, res: Response): Promise<void> => {
     const facilityId = getParamId(req.params.facilityId);
     const parseResult = exportDateRangeQuerySchema.safeParse(req.query);
@@ -200,6 +203,7 @@ importExportRouter.get(
   '/facilities/:facilityId/export/customers',
   requirePermission('export:execute'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  exportRateLimiter,
   async (req: Request, res: Response): Promise<void> => {
     const facilityId = getParamId(req.params.facilityId);
     const parseResult = exportDateRangeQuerySchema.safeParse(req.query);
@@ -222,6 +226,7 @@ importExportRouter.get(
   '/facilities/:facilityId/export/stock-summary',
   requirePermission('export:execute'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  exportRateLimiter,
   async (req: Request, res: Response): Promise<void> => {
     const facilityId = getParamId(req.params.facilityId);
     const parseResult = stockSummaryExportQuerySchema.safeParse(req.query);

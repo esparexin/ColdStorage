@@ -41,7 +41,12 @@ export function createApp(): Express {
   // attributes to the proxy, destroying forensic value. Conversely, with no
   // proxy, a client with an IPv6 /64 gets unlimited fresh buckets.
   // 1 hop is the standard deployment; TRUST_PROXY_HOPS overrides it.
-  app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS ?? 1));
+  const trustProxyRaw = process.env.TRUST_PROXY_HOPS ?? '1';
+  const trustProxyHops = Number(trustProxyRaw);
+  if (!Number.isInteger(trustProxyHops) || trustProxyHops < 0 || trustProxyHops > 5) {
+    throw new Error(`TRUST_PROXY_HOPS must be an integer 0-5 (received '${trustProxyRaw}')`);
+  }
+  app.set('trust proxy', trustProxyHops);
 
   app.use(securityHeadersMiddleware);
   const allowedOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:3000';

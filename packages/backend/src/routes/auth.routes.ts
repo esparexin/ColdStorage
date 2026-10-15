@@ -69,7 +69,7 @@ authRouter.post('/login', authRateLimiter, async (req: Request, res: Response): 
   }
 });
 
-authRouter.post('/refresh', generalRateLimiter, async (req: Request, res: Response): Promise<void> => {
+authRouter.post('/refresh', authRateLimiter, async (req: Request, res: Response): Promise<void> => {
   // Cookie-only: HttpOnly binding must not be bypassable via JSON body (XSS replay).
   const refreshToken = getCookie(req, 'refreshToken');
   if (!refreshToken) {
@@ -93,7 +93,7 @@ authRouter.post('/refresh', generalRateLimiter, async (req: Request, res: Respon
   }
 });
 
-authRouter.post('/logout', async (req: Request, res: Response): Promise<void> => {
+authRouter.post('/logout', generalRateLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const refreshToken = getCookie(req, 'refreshToken');
     if (refreshToken) {
@@ -107,7 +107,7 @@ authRouter.post('/logout', async (req: Request, res: Response): Promise<void> =>
   res.status(200).json({ message: 'Logged out successfully' });
 });
 
-authRouter.post('/logout-all', authenticate, async (req: Request, res: Response): Promise<void> => {
+authRouter.post('/logout-all', generalRateLimiter, authenticate, async (req: Request, res: Response): Promise<void> => {
   await authService.logoutAll(req.user!.userId);
   res.clearCookie('refreshToken', clearRefreshCookieOptions());
   res.status(200).json({ message: 'Logged out from all sessions successfully' });
