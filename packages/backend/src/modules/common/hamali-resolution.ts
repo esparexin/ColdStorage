@@ -1,16 +1,17 @@
 import {
   calculateHamaliAmount,
-  isFirstSeasonExtensions,
   type ExtensionPeriod,
 } from '@cold-storage/contracts';
 
 /**
- * Hamali internal-only SSOT (feat/hamali-first-season-internal).
+ * Hamali internal-only SSOT (Multi-Season Hamali Accounting).
  *
  * - Commodity-level `isHamaliApplicable` + `hamaliRate` is the master config,
  *   read live at calculation time.
- * - Hamali feeds first-season rent only; never stored on transaction records,
- *   never returned in API responses, never shown in transaction UI.
+ * - Inward Hamali is a one-time physical handling labor charge assessed on inward intake.
+ * - Multi-season lifecycle: Hamali is charged once at intake. Passive monthly extensions
+ *   and seasonal renewals never add new hamali charges, and the original unpaid
+ *   inward hamali obligation is preserved across seasons until collected.
  * - Price Controller `CommodityRate.hamaliRate` is never consumed.
  * - One-time charge: `calculateHamaliAmount(bags, rate)` without rent months.
  */
@@ -36,19 +37,18 @@ export function resolveEffectiveHamaliRate(
 }
 
 /**
- * Full first-season Hamali for a GRN's inward bag count.
- * Zero when a finalized SEASON renewal exists (R2) or the commodity disables it.
+ * Full inward Hamali for a GRN's intake bag count.
+ * Preserved across monthly extensions and seasonal renewals without re-charging.
  * Uses snapshotted rate/amount when present on the GRN; falls back to live config
  * for legacy GRNs without inventing historical rates.
  */
 export function computeFirstSeasonHamali(
   grnBags: number,
   commodity: HamaliCommodityConfig | null | undefined,
-  extensions: Array<{ period: ExtensionPeriod }>,
+  _extensions?: Array<{ period: ExtensionPeriod }>,
   storedHamaliRate?: number | null,
   storedHamaliAmount?: number | null,
 ): number {
-  if (!isFirstSeasonExtensions(extensions)) return 0;
   if (storedHamaliAmount !== null && storedHamaliAmount !== undefined && storedHamaliAmount >= 0) {
     return storedHamaliAmount;
   }

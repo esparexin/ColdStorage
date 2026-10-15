@@ -118,7 +118,7 @@ describe('First-season internal hamali', () => {
     expect(summary.totalDue).toBe(3000);
   });
 
-  it('keeps hamali through January/February extensions but drops it at SEASON renewal', async () => {
+  it('preserves inward hamali through January/February extensions and SEASON renewal', async () => {
     const grn = await makeGrn(100);
     await rentExtensionService.finalizeExtension(facilityId, { grnId: grn.id, seasonYear: 2025, period: 'JANUARY' }, userId);
     const jan = await rentService.getRentSummary(facilityId, grn.id);
@@ -127,7 +127,7 @@ describe('First-season internal hamali', () => {
     await rentExtensionService.finalizeExtension(facilityId, { grnId: grn.id, seasonYear: 2026, period: 'SEASON' }, userId);
     const renewed = await rentService.getRentSummary(facilityId, grn.id);
     const extTotal = renewed.extensions.reduce((s, e) => s + e.finalAmount, 0);
-    expect(renewed.totalDue).toBe(3000 + extTotal);
+    expect(renewed.totalDue).toBe(3000 + extTotal + 400);
   });
 
   it('preserves snapshotted rate when the Admin rate changes (no retroactive repricing)', async () => {
