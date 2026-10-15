@@ -87,8 +87,10 @@ export const internalMovementRecordSchema = z.object({
   sourceBagPrice: bagPriceSchema.nullish(),
   sourceSeasonalBagPrice: bagPriceSchema.nullish(),
   sourceMonthlyBagPrice: bagPriceSchema.nullish(),
-  // Legacy internal-movement hamali keys: never written, never returned.
-  // Retained as read-optional so pre-change documents still parse.
+  // Legacy internal-movement hamali keys: repack hamali (repackHamaliBags/Rate/Charge
+  // on the movement record) is written only when an explicit repacking occurs;
+  // the carried-forward `hamaliCarried` and snapshot `hamaliAmount` are never
+  // written and never returned. Retained as read-optional so old docs parse.
   hamaliBags: z.number().min(0).optional(),
   hamaliRate: z.number().min(0).nullish(),
   hamaliCharge: z.number().min(0).optional(),
