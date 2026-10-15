@@ -118,11 +118,28 @@ export async function persistCorrection(params: PersistParams): Promise<LeanGrn>
   }
 
   if (input.chamber !== undefined) {
-    await InventoryTransactionModel.updateMany(
-      { facilityId, grnId: grn.id },
-      { $set: { chamber: (update.chamber as string) } },
+    const activeChallans = await DeliveryChallanModel.find(
+      { facilityId, grnId: grn.id, status: 'ISSUED' },
+      { id: 1 },
       { session },
-    ).exec();
+    )
+      .lean()
+      .exec();
+
+    if (activeChallans.length > 0) {
+      const activeDeliveryIds = activeChallans.map((c) => c.id);
+      await InventoryTransactionModel.updateMany(
+        {
+          facilityId,
+          grnId: grn.id,
+          referenceType: 'DELIVERY',
+          referenceId: { $in: activeDeliveryIds },
+        },
+        { $set: { chamber: (update.chamber as string) } },
+        { session },
+      ).exec();
+    }
+
     await DeliveryChallanModel.updateMany(
       { facilityId, grnId: grn.id },
       { $set: { chamber: (update.chamber as string) } },

@@ -115,4 +115,89 @@ describe('GRN Chamber Relabel Ledger Synchronization', () => {
     expect(finalSummary.totalStockBags).toBe(70);
     expect(finalSummary.byChamber).toEqual([{ chamber: 'CH-BETA', totalBags: 70 }]);
   });
+
+  it('preserves settled reversed deliveries on original chamber while synchronizing active deliveries', async () => {
+    // 1. Create GRN in initial chamber CH-ORIGIN
+    const inwardRes = await request(app)
+      .post(`/api/facilities/${facilityId}/grns`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        grnNumber: nextTestGrnNumber(),
+        date: new Date().toISOString(),
+        customerId,
+        commodityId,
+        chamber: 'CH-ORIGIN',
+        bags: 100,
+        bagType: 'S',
+        smallBagWeight: 50,
+        rentType: 'Seasonal',
+        rentAmount: 4000,
+        bagPrice: 40,
+        smallBags: 100,
+        bigBags: 0,
+      });
+
+    expect(inwardRes.status).toBe(201);
+    const grnId = inwardRes.body.grn.id;
+
+    // 2. Delivery 1: 20 bags delivered and then reversed (settled history)
+    const del1 = await deliveryService.createDelivery(
+      facilityId,
+      { grnId, smallBags: 20, bigBags: 0 },
+      'usr-ch-sync-admin',
+    );
+    await deliveryService.reverseDelivery(
+      facilityId,
+      del1.delivery.id,
+      { reason: 'Customer requested cancellation at gate' },
+      'usr-ch-sync-admin',
+    );
+
+    // 3. Delivery 2: 30 bags delivered (active ISSUED delivery)
+    const del2 = await deliveryService.createDelivery(
+      facilityId,
+      { grnId, smallBags: 30, bigBags: 0 },
+      'usr-ch-sync-admin',
+    );
+
+    // 4. Chamber corrected from CH-ORIGIN to CH-DEST
+    const correctRes = await request(app)
+      .patch(`/api/facilities/${facilityId}/grns/${grnId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        chamber: 'CH-DEST',
+        reason: 'Relocated remaining lot to clean bay',
+      });
+    expect(correctRes.status).toBe(200);
+
+    // 5. Inward putaway and active delivery are on CH-DEST
+    const inward = await InventoryTransactionModel.findOne({ grnId, transactionType: 'INWARD_PUTAWAY' }).lean();
+    expect(inward?.chamber).toBe('CH-DEST');
+
+    const activeOutward = await InventoryTransactionModel.findOne({
+      grnId,
+      referenceType: 'DELIVERY',
+      referenceId: del2.delivery.id,
+    }).lean();
+    expect(activeOutward?.chamber).toBe('CH-DEST');
+
+    // 6. Settled reversed delivery rows stay on CH-ORIGIN
+    const settledOutward = await InventoryTransactionModel.findOne({
+      grnId,
+      referenceType: 'DELIVERY',
+      referenceId: del1.delivery.id,
+    }).lean();
+    expect(settledOutward?.chamber).toBe('CH-ORIGIN');
+
+    const settledReversal = await InventoryTransactionModel.findOne({
+      grnId,
+      transactionType: 'DELIVERY_REVERSAL',
+    }).lean();
+    expect(settledReversal?.chamber).toBe('CH-ORIGIN');
+
+    // 7. Inventory rollup accurately reflects remaining stock on CH-DEST
+    const summary = await inventoryService.getFacilityInventorySummary(facilityId);
+    expect(summary.totalStockBags).toBe(70);
+    expect(summary.byChamber).toEqual([{ chamber: 'CH-DEST', totalBags: 70 }]);
+  });
 });
