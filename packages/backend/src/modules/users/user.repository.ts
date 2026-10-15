@@ -16,21 +16,7 @@ function sanitizeId(raw: unknown): string {
 }
 
 export class UserRepository {
-  /**
-   * Secure bootstrap helper:
-   * Only seeds initial admin if explicit environment credentials are provided.
-   * Never hardcodes default production credentials.
-   *
-   * Recovery contract (disaster recovery only):
-   * - Restart never overwrites an existing account; this returns the stored
-   *   record untouched (password hash, mustChangePassword, updatedAt intact).
-   * - The dangerous sequence is account deletion followed by recreation with a
-   *   stale BOOTSTRAP_ADMIN_PASSWORD. After the first successful login + forced
-   *   password change, clear BOOTSTRAP_ADMIN_PASSWORD from runtime config.
-   * - To recover a lost Super Admin, set the bootstrap vars temporarily, restart
-   *   once (account genuinely absent → recreated with mustChangePassword:true),
-   *   log in, change the password, then clear the vars again.
-   */
+  /** Seeds initial admin only from explicit env creds; never overwrites existing. */
   public async bootstrapSuperAdminFromEnv(): Promise<UserEntity | null> {
     const username = process.env.BOOTSTRAP_ADMIN_USERNAME;
     const tempPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
@@ -70,6 +56,9 @@ export class UserRepository {
       passwordHash,
       mustChangePassword: true, // P0-Decision 8: mandatory password change on first login
       lastLoginAt: null,
+      failedAttempts: 0,
+      lockoutUntil: null,
+      passwordChangedAt: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -104,12 +93,16 @@ export class UserRepository {
       passwordHash: user.passwordHash,
       mustChangePassword: user.mustChangePassword,
       lastLoginAt: user.lastLoginAt,
+      failedAttempts: user.failedAttempts ?? 0,
+      lockoutUntil: user.lockoutUntil ?? null,
+      passwordChangedAt: user.passwordChangedAt ?? null,
     });
     return user;
   }
 
   public async findById(id: string): Promise<UserEntity | null> {
     const doc = await UserModel.findOne({ id: { $eq: sanitizeId(id) } })
+      .select('+passwordHash')
       .lean()
       .exec();
     return doc ? (doc as unknown as UserEntity) : null;
@@ -118,6 +111,7 @@ export class UserRepository {
   public async findByUsername(username: string): Promise<UserEntity | null> {
     const normalized = typeof username === 'string' ? username.trim().toLowerCase() : '';
     const doc = await UserModel.findOne({ username: { $eq: normalized } })
+      .select('+passwordHash')
       .lean()
       .exec();
     return doc ? (doc as unknown as UserEntity) : null;
@@ -131,12 +125,7 @@ export class UserRepository {
     return doc ? (doc as unknown as UserEntity) : null;
   }
 
-  /**
-   * Gate state used by authentication guards. Both `status` and `mustChangePassword`
-   * resolve from the canonical MongoDB record so a stale JWT claim can never force
-   * an outdated password-change requirement (or bypass a fresh one).
-   * Role and facility scope also resolve here so role changes take effect immediately.
-   */
+  /** DB-authoritative gate state for auth guards (status, password flag, role, scope). */
   public async findGateStateById(
     id: string,
   ): Promise<Pick<
@@ -172,11 +161,7 @@ export class UserRepository {
     };
   }
 
-  /**
-   * Writes a new password hash. `mustChangePassword` is explicit because the two callers
-   * have opposite intent: a completed self-service change clears the flag, whereas an
-   * Admin-issued temporary password must re-arm it for the next login (P0-Decision 8).
-   */
+  /** Writes new hash; clears lockout; explicit flag for self-change vs admin temp. */
   public async updatePassword(
     userId: string,
     newPasswordHash: string,
@@ -184,9 +169,17 @@ export class UserRepository {
   ): Promise<UserEntity | null> {
     const doc = await UserModel.findOneAndUpdate(
       { id: { $eq: sanitizeId(userId) } },
-      { passwordHash: newPasswordHash, mustChangePassword, updatedAt: new Date() },
+      {
+        passwordHash: newPasswordHash,
+        mustChangePassword,
+        failedAttempts: 0,
+        lockoutUntil: null,
+        passwordChangedAt: new Date(),
+        updatedAt: new Date(),
+      },
       { new: true },
     )
+      .select('+passwordHash')
       .lean()
       .exec();
     return doc ? (doc as unknown as UserEntity) : null;
@@ -195,8 +188,29 @@ export class UserRepository {
   public async updateLastLogin(userId: string): Promise<void> {
     await UserModel.updateOne(
       { id: { $eq: sanitizeId(userId) } },
-      { lastLoginAt: new Date() },
+      { lastLoginAt: new Date(), failedAttempts: 0, lockoutUntil: null },
     ).exec();
+  }
+
+  /** Increments consecutive failed logins and arms exponential lockout after threshold. */
+  public async recordFailedLogin(userId: string): Promise<{ failedAttempts: number; lockoutUntil: Date | null }> {
+    const doc = await UserModel.findOne({ id: { $eq: sanitizeId(userId) } })
+      .select('failedAttempts lockoutUntil')
+      .lean()
+      .exec();
+    const attempts = ((doc as unknown as { failedAttempts?: number } | null)?.failedAttempts ?? 0) + 1;
+    let lockoutUntil: Date | null = null;
+    // After 5 failures, lock with exponential backoff: 5m, 15m, 30m, 60m (capped).
+    if (attempts >= 5) {
+      const step = Math.min(attempts - 5, 3);
+      const minutes = [5, 15, 30, 60][step] ?? 60;
+      lockoutUntil = new Date(Date.now() + minutes * 60 * 1000);
+    }
+    await UserModel.updateOne(
+      { id: { $eq: sanitizeId(userId) } },
+      { failedAttempts: attempts, lockoutUntil },
+    ).exec();
+    return { failedAttempts: attempts, lockoutUntil };
   }
 
   /**

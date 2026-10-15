@@ -4,7 +4,9 @@ export interface ISessionDocument extends Document {
   id: string;
   userId: string;
   refreshTokenHash: string;
+  previousRefreshTokenHash?: string | null;
   expiresAt: Date;
+  absoluteExpiresAt: Date;
   revokedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -14,8 +16,10 @@ const sessionSchema = new Schema<ISessionDocument>(
   {
     id: { type: String, required: true, unique: true, index: true },
     userId: { type: String, required: true, index: true },
-    refreshTokenHash: { type: String, required: true, index: true },
+    refreshTokenHash: { type: String, required: true, unique: true, index: true },
+    previousRefreshTokenHash: { type: String, default: null, index: true },
     expiresAt: { type: Date, required: true },
+    absoluteExpiresAt: { type: Date, required: true },
     revokedAt: { type: Date, default: null, index: true },
   },
   {

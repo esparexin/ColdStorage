@@ -9,10 +9,15 @@ export const loginInputSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginInputSchema>;
 
-export const changePasswordInputSchema = z.object({
-  currentPassword: z.string().min(1, 'Current password is required'),
-  newPassword: z.string().min(8, 'New password must be at least 8 characters long').max(128),
-});
+export const changePasswordInputSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(8, 'New password must be at least 8 characters long').max(128),
+  })
+  .refine((v) => v.currentPassword !== v.newPassword, {
+    message: 'New password must be different from the current password',
+    path: ['newPassword'],
+  });
 
 export type ChangePasswordInput = z.infer<typeof changePasswordInputSchema>;
 
@@ -24,6 +29,10 @@ export const tokenPayloadSchema = z.object({
   permissions: z.array(permissionKeySchema).optional(),
   facilityIds: z.array(z.string()),
   mustChangePassword: z.boolean(),
+  iss: z.string().optional(),
+  aud: z.string().optional(),
+  jti: z.string().optional(),
+  iat: z.number().optional(),
 });
 
 export type TokenPayload = z.infer<typeof tokenPayloadSchema>;

@@ -14,6 +14,9 @@ export interface UserEntity {
   passwordHash: string;
   mustChangePassword: boolean;
   lastLoginAt: Date | null;
+  failedAttempts?: number;
+  lockoutUntil?: Date | null;
+  passwordChangedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

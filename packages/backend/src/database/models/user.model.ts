@@ -15,6 +15,9 @@ export interface IUserDocument extends Document {
   passwordHash: string;
   mustChangePassword: boolean;
   lastLoginAt: Date | null;
+  failedAttempts: number;
+  lockoutUntil: Date | null;
+  passwordChangedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,9 +34,12 @@ const userSchema = new Schema<IUserDocument>(
     roleId: { type: String, default: null, index: true },
     facilityIds: { type: [String], required: true, default: [], index: true },
     status: { type: String, enum: ['ACTIVE', 'DISABLED'], default: 'ACTIVE', index: true },
-    passwordHash: { type: String, required: true },
+    passwordHash: { type: String, required: true, select: false },
     mustChangePassword: { type: Boolean, default: true },
     lastLoginAt: { type: Date, default: null },
+    failedAttempts: { type: Number, default: 0, min: 0 },
+    lockoutUntil: { type: Date, default: null, index: true },
+    passwordChangedAt: { type: Date, default: null },
   },
   {
     timestamps: true,

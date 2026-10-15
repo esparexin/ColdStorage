@@ -191,7 +191,7 @@ describe('User Lifecycle — update, deactivate, and temporary password reset', 
     // The pre-reset refresh token is revoked and can no longer mint a new access token.
     const refreshRes = await request(app)
       .post('/api/auth/refresh')
-      .send({ refreshToken: revokedRefreshToken });
+      .set('Cookie', [`refreshToken=${revokedRefreshToken}`]);
     expect(refreshRes.status).toBe(401);
 
     // An access token minted before the reset stays signature-valid until it expires, but

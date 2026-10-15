@@ -1,11 +1,21 @@
 import type { ChangePasswordInput, LoginInput, UserSummary } from '@cold-storage/contracts';
 import { config } from '../../config.js';
-import { generateOpaqueToken, hashPassword, verifyPassword } from '../../utils/crypto.js';
+import {
+  generateOpaqueToken,
+  hashPassword,
+  verifyTimingMitigationPassword,
+  verifyPassword,
+} from '../../utils/crypto.js';
 import { logger } from '../../utils/logger.js';
 import { auditService } from '../audit/audit.service.js';
 import { userRepository, type UserRepository } from '../users/user.repository.js';
 import { userService, type UserService } from '../users/user.service.js';
 import { sessionRepository, type SessionRepository } from './session.repository.js';
+import {
+  handleRefreshReuse,
+  recordInvalidPassword,
+  throwIfLocked,
+} from './login-guard.helper.js';
 import {
   mintAccessToken,
   resolveUserPermissions,
@@ -39,6 +49,8 @@ export class AuthService {
     const user = await this.userRepo.findByUsername(input.username);
     tm.findByUsernameMs = Date.now() - s;
     if (!user) {
+      // Constant-time mitigation: burn Argon2 time so unknown users are not instantly distinguishable.
+      await verifyTimingMitigationPassword(input.password);
       await auditService.log({
         eventType: 'AUTH_LOGIN_FAILED',
         severity: 'SECURITY',
@@ -49,6 +61,9 @@ export class AuthService {
       });
       throw new Error('Invalid credentials');
     }
+
+    // Per-account lockout contains brute-force even when IPs rotate.
+    await throwIfLocked(user);
 
     if (user.status !== 'ACTIVE') {
       await auditService.log({
@@ -67,16 +82,7 @@ export class AuthService {
     const passwordValid = await verifyPassword(input.password, user.passwordHash);
     tm.verifyPasswordMs = Date.now() - s;
     if (!passwordValid) {
-      await auditService.log({
-        eventType: 'AUTH_LOGIN_FAILED',
-        severity: 'SECURITY',
-        userId: user.id,
-        username: user.username,
-        userRole: user.role,
-        resource: 'auth',
-        details: { reason: 'PASSWORD_MISMATCH' },
-      });
-      throw new Error('Invalid credentials');
+      await recordInvalidPassword(this.userRepo, user);
     }
     s = Date.now();
     await this.userRepo.updateLastLogin(user.id);
@@ -138,17 +144,9 @@ export class AuthService {
       config.refreshTokenExpiryDays,
     );
     const rotateMs = Date.now() - s;
+    // Governance F01: REFRESH_TOKEN_REUSE_OR_RACE guard (rotateSession null path) lives in login-guard.helper.
     if (!rotated) {
-      await auditService.log({
-        eventType: 'AUTH_LOGIN_FAILED',
-        severity: 'SECURITY',
-        userId: user.id,
-        username: user.username,
-        userRole: user.role,
-        resource: 'auth',
-        details: { reason: 'REFRESH_TOKEN_REUSE_OR_RACE' },
-      });
-      throw new Error('Invalid, expired, or revoked refresh token');
+      await handleRefreshReuse(this.sessionRepo, currentRefreshToken, user);
     }
 
     const permissions = await resolveUserPermissions(user);
@@ -178,6 +176,17 @@ export class AuthService {
       }
       await this.sessionRepo.revokeSession(refreshToken);
     }
+  }
+
+  public async logoutAll(userId: string): Promise<void> {
+    await this.sessionRepo.revokeAllUserSessions(userId);
+    await auditService.log({
+      eventType: 'AUTH_LOGOUT',
+      severity: 'INFO',
+      userId,
+      resource: 'auth',
+      details: { result: 'SUCCESS', scope: 'ALL_SESSIONS' },
+    });
   }
 
   public async changePassword(
@@ -232,9 +241,7 @@ export class AuthService {
 
   public async getMe(userId: string): Promise<UserSummary> {
     const user = await this.userRepo.findById(userId);
-    if (!user) {
-      throw new Error('User not found');
-    }
+    if (!user) throw new Error('User not found');
     const permissions = await resolveUserPermissions(user);
     return toAuthenticatedSummary(user, permissions);
   }
