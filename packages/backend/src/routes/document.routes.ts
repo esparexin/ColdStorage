@@ -156,9 +156,17 @@ documentRouter.get(
     const facilityId = getParamId(req.params.facilityId);
     const userId = req.user?.userId ?? 'SYSTEM';
 
-    const amount = req.query.amount ? Number(req.query.amount) : undefined;
-    const customerName =
-      typeof req.query.customerName === 'string' ? req.query.customerName : undefined;
+    const rawAmount = req.query.amount ? Number(req.query.amount) : undefined;
+    const amount =
+      rawAmount !== undefined && Number.isFinite(rawAmount) && rawAmount >= 0 && rawAmount <= 1e9
+        ? rawAmount
+        : undefined;
+    if (req.query.amount !== undefined && amount === undefined) {
+      res.status(400).json({ error: 'Invalid amount: must be a finite number between 0 and 1000000000' });
+      return;
+    }
+    const rawCustomerName = typeof req.query.customerName === 'string' ? req.query.customerName : undefined;
+    const customerName = rawCustomerName?.slice(0, 100);
     const paymentMode =
       req.query.paymentMode === 'UPI' || req.query.paymentMode === 'Cash'
         ? req.query.paymentMode

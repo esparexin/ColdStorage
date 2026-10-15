@@ -75,11 +75,14 @@ groupRouter.get('/facilities/:facilityId/groups', requirePermission('group:view'
 groupRouter.get('/facilities/:facilityId/groups/eligible-grns', requirePermission('group:view'), scope, async (req: Request, res: Response) => {
   try {
     const facilityId = getParamId(req.params.facilityId);
-    const search = typeof req.query.search === 'string' ? req.query.search : undefined;
-    const customerId = typeof req.query.customerId === 'string' ? req.query.customerId : undefined;
-    const commodityId = typeof req.query.commodityId === 'string' ? req.query.commodityId : undefined;
-    const page = typeof req.query.page === 'string' ? Number.parseInt(req.query.page, 10) : 1;
-    const limit = typeof req.query.limit === 'string' ? Number.parseInt(req.query.limit, 10) : 20;
+    const rawSearch = typeof req.query.search === 'string' ? req.query.search : undefined;
+    const search = rawSearch?.slice(0, 100);
+    const customerId = typeof req.query.customerId === 'string' ? req.query.customerId.slice(0, 128) : undefined;
+    const commodityId = typeof req.query.commodityId === 'string' ? req.query.commodityId.slice(0, 128) : undefined;
+    const parsedPage = typeof req.query.page === 'string' ? Number.parseInt(req.query.page, 10) : 1;
+    const parsedLimit = typeof req.query.limit === 'string' ? Number.parseInt(req.query.limit, 10) : 20;
+    const page = Number.isFinite(parsedPage) ? Math.min(Math.max(parsedPage, 1), 100) : 1;
+    const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 100) : 20;
 
     const result = await groupService.listEligibleGrns(facilityId, { search, customerId, commodityId, page, limit });
     res.status(200).json(result);

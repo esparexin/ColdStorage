@@ -24,8 +24,13 @@ export class LocalEncryptedStorageDriver implements BackupStorageDriver {
   }
 
   public async write(filename: string, content: Buffer): Promise<StorageWriteResult> {
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      throw new Error('Invalid filename: path traversal forbidden');
+    }
     await this.ensureBaseDir();
-    const targetPath = path.join(this.baseDir, filename);
+    const targetPath = path.resolve(this.baseDir, filename);
+    const baseResolved = `${path.resolve(this.baseDir)}${path.sep}`;
+    if (!targetPath.startsWith(baseResolved)) throw new Error('Storage jail violation');
     const tempPath = `${targetPath}.tmp_${Date.now()}`;
 
     // Write to temporary file first, then atomically rename
@@ -41,7 +46,10 @@ export class LocalEncryptedStorageDriver implements BackupStorageDriver {
 
   public async delete(location: string): Promise<boolean> {
     try {
-      await fs.unlink(location);
+      const resolved = path.resolve(location);
+      const baseResolved = `${path.resolve(this.baseDir)}${path.sep}`;
+      if (!resolved.startsWith(baseResolved)) throw new Error('Storage jail violation');
+      await fs.unlink(resolved);
       return true;
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code;
@@ -54,7 +62,10 @@ export class LocalEncryptedStorageDriver implements BackupStorageDriver {
 
   public async verify(location: string, expectedBytes: number): Promise<boolean> {
     try {
-      const stats = await fs.stat(location);
+      const resolved = path.resolve(location);
+      const baseResolved = `${path.resolve(this.baseDir)}${path.sep}`;
+      if (!resolved.startsWith(baseResolved)) return false;
+      const stats = await fs.stat(resolved);
       return stats.size === expectedBytes;
     } catch {
       return false;

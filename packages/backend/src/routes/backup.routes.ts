@@ -119,9 +119,14 @@ backupRouter.get(
   requirePermission('backup:manage'),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { buffer } = await readBackupArchive(req.params['id'] as string);
+      const backupId = req.params['id'] as string;
+      if (!/^[A-Za-z0-9_-]{1,128}$/.test(backupId)) {
+        res.status(400).json({ error: 'Invalid backup ID format' });
+        return;
+      }
+      const { buffer } = await readBackupArchive(backupId);
       res.setHeader('Content-Type', 'application/octet-stream');
-      res.setHeader('Content-Disposition', `attachment; filename="${req.params['id']}.enc"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(backupId)}.enc"`);
       res.status(200).send(buffer);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Download failed';
