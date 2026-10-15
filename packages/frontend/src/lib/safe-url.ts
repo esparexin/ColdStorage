@@ -11,11 +11,10 @@
 export function sanitizeReturnUrl(url: string | null | undefined): string {
   if (!url || typeof url !== 'string') return '/';
   const trimmed = url.trim();
-  if (
-    trimmed.startsWith('/') &&
-    !trimmed.startsWith('//') &&
-    !trimmed.includes('\\')
-  ) {
+  if (trimmed.length > 2048) return '/';
+  if (/%(5c|0d|0a|00)/i.test(trimmed)) return '/';
+  if (!/^\/[^/\\][\x20-\x7E]*$/.test(trimmed) && trimmed !== '/') return '/';
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//') && !trimmed.includes('\\')) {
     return trimmed;
   }
   return '/';

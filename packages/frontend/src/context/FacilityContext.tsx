@@ -80,18 +80,32 @@ export function FacilityProvider({ children }: { children: React.ReactNode }) {
     void syncFacilities();
   }, [syncFacilities]);
 
+  // Validated setter: ignores unknown IDs (DevTools tampering cannot smuggle
+  // a foreign facility into UI state; direct API calls still require backend scope).
+  const selectFacility = useCallback(
+    (id: string) => {
+      setSelectedFacilityId((current) => {
+        if (availableFacilities.length > 0 && !availableFacilities.some((f) => f.id === id)) {
+          return current;
+        }
+        return id;
+      });
+    },
+    [availableFacilities],
+  );
+
   // Memoized: the facility list is consumed by the header, the sidebar and
   // every list screen, so an unmemoized value re-renders all of them.
   const contextValue = useMemo(
     () => ({
       selectedFacilityId,
-      setSelectedFacilityId,
+      setSelectedFacilityId: selectFacility,
       availableFacilities,
       isLoadingFacilities,
       facilitiesError,
       refreshFacilities: syncFacilities,
     }),
-    [selectedFacilityId, availableFacilities, isLoadingFacilities, facilitiesError, syncFacilities],
+    [selectedFacilityId, availableFacilities, isLoadingFacilities, facilitiesError, syncFacilities, selectFacility],
   );
 
   return (

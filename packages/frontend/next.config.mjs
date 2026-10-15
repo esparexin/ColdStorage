@@ -11,6 +11,25 @@ if (!process.env.BACKEND_URL) {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  poweredByHeader: false,
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          {
+            key: 'Content-Security-Policy',
+            value:
+              "frame-ancestors 'none'; default-src 'self'; img-src 'self' https://res.cloudinary.com data:; object-src 'none'; base-uri 'self'; form-action 'self'",
+          },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

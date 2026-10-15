@@ -17,8 +17,14 @@ export function useImportExport(selectedFacilityId: string | null) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.name.endsWith('.csv')) {
+    if (!file.name.toLowerCase().endsWith('.csv')) {
       setImportError('Only .csv files are supported for bulk imports.');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setImportError('File exceeds 2 MB limit.');
+      e.target.value = '';
       return;
     }
     setSelectedFile(file);

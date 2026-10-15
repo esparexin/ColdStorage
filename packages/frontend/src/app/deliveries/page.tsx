@@ -41,7 +41,12 @@ export default function DeliveriesPage() {
     const tab = params.get('tab')?.toLowerCase();
     const grnId = params.get('grnId');
     if (action === 'create' || tab === 'issue') setActiveView('issue');
-    if (grnId) setInitialGrnId(grnId);
+    // Validate format and strip from URL after consume (history minimization).
+    if (grnId && /^[A-Za-z0-9_-]{1,128}$/.test(grnId)) setInitialGrnId(grnId);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('grnId');
+    url.searchParams.delete('action');
+    window.history.replaceState({}, '', url.toString());
   }, []);
   const canCreate = hasPermission('delivery:create');
   const canPrint = hasPermission('document:print');

@@ -31,10 +31,11 @@ export async function printHtmlDocument(options: PrintDocumentOptions): Promise<
   }
   const html = await res.text();
 
-  const printWindow = window.open('', '_blank');
+  const printWindow = window.open('', '_blank,noopener,noreferrer');
   if (!printWindow) {
     throw new Error(popupBlockedMessage);
   }
+  printWindow.opener = null;
 
   printWindow.document.open();
   printWindow.document.write(html);
@@ -58,10 +59,11 @@ export function printHtmlString(
     popupBlockedMessage = 'Pop-up blocked by browser. Please allow pop-ups to print this document.',
   } = options;
 
-  const printWindow = window.open('', '_blank');
+  const printWindow = window.open('', '_blank,noopener,noreferrer');
   if (!printWindow) {
     throw new Error(popupBlockedMessage);
   }
+  printWindow.opener = null;
 
   printWindow.document.open();
   printWindow.document.write(html);
