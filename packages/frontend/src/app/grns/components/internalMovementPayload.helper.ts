@@ -133,14 +133,17 @@ export function validateTransferPayment(
   if (pending <= 0) {
     return null;
   }
+  if (decision === 'AGREED_PENDING') {
+    return null;
+  }
   if (decision !== 'SETTLE_NOW') {
-    return `Cannot transfer ownership: Outstanding rent of ₹${pending.toLocaleString('en-IN')} must be fully settled before transfer.`;
+    return 'Invalid payment decision.';
   }
   if (amount <= 0) {
     return 'Payment amount must be greater than zero.';
   }
   if (amount < pending) {
-    return `Outstanding rent must be settled in full (₹${pending.toLocaleString('en-IN')}) before ownership transfer.`;
+    return `Outstanding rent must be settled in full (₹${pending.toLocaleString('en-IN')}) before ownership transfer under SETTLE_NOW, or choose AGREED_PENDING to carry forward.`;
   }
   if (amount > pending) {
     return `Payment cannot exceed pending balance of ₹${pending.toLocaleString('en-IN')}.`;

@@ -62,7 +62,9 @@ export function TransferPaymentDecisionSection({
           borderRadius: 'var(--radius-sm)',
         }}
       >
-        Outstanding rent must be settled in full before ownership transfer can be executed.
+        {decision === 'SETTLE_NOW'
+          ? 'Outstanding rent will be settled in full at the time of ownership transfer.'
+          : 'Outstanding rent liability will be carried forward to the new owner under agreed pending terms.'}
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
@@ -95,20 +97,19 @@ export function TransferPaymentDecisionSection({
             alignItems: 'center',
             gap: 'var(--space-1)',
             fontSize: 'var(--text-xs)',
-            cursor: 'not-allowed',
-            opacity: 0.5,
+            cursor: 'pointer',
           }}
-          title="Outstanding rent must be settled prior to ownership transfer"
         >
           <input
             id="decision-agreed-pending"
             type="radio"
             name="transfer-payment-decision"
             value="AGREED_PENDING"
-            checked={false}
-            disabled
+            checked={decision === 'AGREED_PENDING'}
+            onChange={() => onDecisionChange('AGREED_PENDING')}
+            disabled={disabled}
           />
-          <span>Carry Forward to Transferee (Disabled: Full clearance required)</span>
+          <span>Carry Forward to Transferee (Agreed Pending)</span>
         </label>
       </div>
 
