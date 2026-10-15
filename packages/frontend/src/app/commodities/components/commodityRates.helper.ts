@@ -19,20 +19,22 @@ export function parseRateInput(raw: string): number | '' {
   return Number.isFinite(value) ? value : '';
 }
 
-function checkRate(value: number | '', label: string, errors: Record<string, string>, key: string): void {
+function checkRate(value: number | '', label: string, errors: Record<string, string>, key: string, hamaliRate?: number): void {
   if (typeof value !== 'number' || !(value > 0)) {
     errors[key] = `${label} must be greater than zero`;
   } else if (value > 100000) {
     errors[key] = `${label} cannot exceed ₹100,000`;
+  } else if (typeof hamaliRate === 'number' && hamaliRate > 0 && value <= hamaliRate) {
+    errors[key] = `${label} must exceed the Hamali rate of ₹${hamaliRate}/bag`;
   }
 }
 
-export function validateRatesForm(state: CommodityRatesFormState): Record<string, string> {
+export function validateRatesForm(state: CommodityRatesFormState, hamaliRate?: number): Record<string, string> {
   const errors: Record<string, string> = {};
-  checkRate(state.seasonalSmall, 'Seasonal small-bag rate', errors, 'seasonalSmall');
-  checkRate(state.seasonalBig, 'Seasonal big-bag rate', errors, 'seasonalBig');
-  checkRate(state.monthlySmall, 'Monthly small-bag rate', errors, 'monthlySmall');
-  checkRate(state.monthlyBig, 'Monthly big-bag rate', errors, 'monthlyBig');
+  checkRate(state.seasonalSmall, 'Seasonal small-bag rate', errors, 'seasonalSmall', hamaliRate);
+  checkRate(state.seasonalBig, 'Seasonal big-bag rate', errors, 'seasonalBig', hamaliRate);
+  checkRate(state.monthlySmall, 'Monthly small-bag rate', errors, 'monthlySmall', hamaliRate);
+  checkRate(state.monthlyBig, 'Monthly big-bag rate', errors, 'monthlyBig', hamaliRate);
   return errors;
 }
 

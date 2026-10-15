@@ -38,6 +38,8 @@ export interface DeliveryChallanDoc extends Document {
   hamaliCharge?: number;
   status: DeliveryStatus;
   issuedBy: string;
+  /** Stable client retry key: same key + same payload returns original; different payload rejected. */
+  idempotencyKey?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -75,6 +77,7 @@ const deliveryChallanSchema = new Schema<DeliveryChallanDoc>(
     hamaliCharge: { type: Number, min: 0 },
     status: { type: String, required: true, enum: ['ISSUED', 'REVERSED'], default: 'ISSUED', index: true },
     issuedBy: { type: String, required: true },
+    idempotencyKey: { type: String, trim: true, default: null },
   },
   {
     timestamps: true,
@@ -96,6 +99,10 @@ deliveryChallanSchema.index({ facilityId: 1, challanNumber: 1 }, { unique: true 
 deliveryChallanSchema.index(
   { facilityId: 1, gpNumber: 1 },
   { unique: true, partialFilterExpression: { gpNumber: { $type: 'string' } } },
+);
+deliveryChallanSchema.index(
+  { facilityId: 1, idempotencyKey: 1 },
+  { unique: true, partialFilterExpression: { idempotencyKey: { $type: 'string' } } },
 );
 deliveryChallanSchema.index({ facilityId: 1, grnId: 1 });
 deliveryChallanSchema.index({ facilityId: 1, date: -1 });
