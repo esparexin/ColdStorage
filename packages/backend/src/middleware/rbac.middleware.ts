@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { can, hasPermission, type PermissionKey } from '@cold-storage/contracts';
+import { hasPermission, type PermissionKey } from '@cold-storage/contracts';
 import { auditService } from '../modules/audit/audit.service.js';
 
 /**
@@ -18,7 +18,13 @@ export function requirePermission(permission: PermissionKey) {
     const resolved = (req.gateState?.permissions ?? req.user.permissions) as
       | PermissionKey[]
       | undefined;
-    const granted = resolved ? hasPermission(resolved, permission) : can(req.user.role, permission);
+    // Fail-closed: custom roles without resolved permissions must not fall back
+    // to the static matrix (which would over-grant OPERATOR-equivalent rights).
+    if (!resolved) {
+      res.status(500).json({ error: 'Authorization check failed' });
+      return;
+    }
+    const granted = hasPermission(resolved, permission);
 
     if (!granted) {
       void auditService.log({

@@ -68,6 +68,22 @@ async function assertAssignable(actorUserId: string, roleId?: string, role?: str
   }
 }
 
+/**
+ * Prevents cross-tenant pivot: actor may only assign facilities they hold,
+ * unless they have global scope. Existence is validated where facilities are
+ * managed; here we enforce scope to close IDOR/BOLA without breaking lazy seed.
+ */
+async function assertFacilityAssignable(req: Request, facilityIds?: string[]): Promise<void> {
+  if (!facilityIds || facilityIds.length === 0) return;
+  const gateIds = req.gateState?.facilityIds ?? req.user!.facilityIds;
+  const hasGlobal = req.gateState?.hasGlobalScope;
+  const global = hasGlobal ?? hasGlobalFacilityScope(req.user!.role);
+  if (!global) {
+    const outside = facilityIds.filter((fid) => !gateIds.includes(fid));
+    if (outside.length > 0) throw new Error(`Cannot assign unassigned facilities: ${outside.join(', ')}`);
+  }
+}
+
 userRouter.post('/', async (req: Request, res: Response): Promise<void> => {
   const parseResult = createUserSchema.safeParse(req.body);
   if (!parseResult.success) {
@@ -77,6 +93,7 @@ userRouter.post('/', async (req: Request, res: Response): Promise<void> => {
 
   try {
     await assertAssignable(req.user!.userId, parseResult.data.roleId, parseResult.data.role);
+    await assertFacilityAssignable(req, parseResult.data.facilityIds);
     const user = await userService.createUser(parseResult.data, req.user!.userId);
     res.status(201).json({ user });
   } catch (err: unknown) {
@@ -118,6 +135,7 @@ userRouter.patch('/:id', async (req: Request, res: Response): Promise<void> => {
 
   try {
     await assertAssignable(req.user!.userId, parseResult.data.roleId, parseResult.data.role);
+    await assertFacilityAssignable(req, parseResult.data.facilityIds);
     const user = await userService.updateUser(targetId, parseResult.data, req.user!.userId);
     if (!user) {
       res.status(404).json({ error: 'User not found' });

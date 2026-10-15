@@ -136,10 +136,11 @@ assetRouter.delete(
 
 /**
  * GET /api/assets/:assetId
- * Public same-origin resolver for document print and browser display.
- * Strictly complies with CSP img-src 'self' by streaming image data directly without external redirects.
+ * Authenticated same-origin resolver for document print and browser display.
+ * Requires a valid access token so anonymous scrapers cannot enumerate branding
+ * assets; strictly complies with CSP img-src 'self' by streaming without redirects.
  */
-assetRouter.get('/assets/:assetId', async (req: Request, res: Response): Promise<void> => {
+assetRouter.get('/assets/:assetId', authenticate, async (req: Request, res: Response): Promise<void> => {
   const assetId = getParamId(req.params.assetId);
   if (!assetId || !/^[a-zA-Z0-9_-]{1,128}$/.test(assetId)) {
     res.status(400).json({ error: 'Invalid asset ID format' });
