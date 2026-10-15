@@ -10,11 +10,11 @@ import {
   type RentType,
 } from '@cold-storage/contracts';
 import { CommodityRateModel } from '../../../database/models/commodity-rate.model.js';
-import { logger } from '../../../utils/logger.js';
 
 export interface ComputeDeliveryRentParams {
   grn: {
     id: string;
+    grnNumber?: string;
     date: Date;
     rentType: RentType;
     commodityId: string;
@@ -119,11 +119,14 @@ export async function computeExpectedDeliveryRent(
           isActive: true,
         }).session(session)
       : null;
+    const needsMonthly =
+      grn.rentType === 'Seasonal_3M'
+        ? calculate3MAdditionalMonths(grn.date, deliveryDate) > 0
+        : resolveSeasonalElapsedPeriods(grn.date, deliveryDate).some((p) => p.period !== 'SEASON');
     if (hasNoAgreedRates && !seasonalRateDoc) {
-      logger.warn('Outward rent falling back to canonical rates: no active Seasonal controller row', {
-        grnId: grn.id,
-        commodityId: grn.commodityId,
-      });
+      throw new Error(
+        `Cannot price outward delivery for GRN '${grn.grnNumber ?? grn.id}': no agreed rates and no active Seasonal controller rate`,
+      );
     }
 
     const seasonalRates = seasonalRateDoc
@@ -135,11 +138,10 @@ export async function computeExpectedDeliveryRent(
       rentType: 'Monthly',
       isActive: true,
     }).session(session);
-    if (hasNoAgreedRates && !monthlyRateDoc) {
-      logger.warn('Outward rent falling back to canonical rates: no active Monthly controller row', {
-        grnId: grn.id,
-        commodityId: grn.commodityId,
-      });
+    if (needsMonthly && hasNoAgreedRates && !monthlyRateDoc) {
+      throw new Error(
+        `Cannot price outward delivery for GRN '${grn.grnNumber ?? grn.id}': January/February billing requires an active Monthly controller rate`,
+      );
     }
 
     const monthlyRates = monthlyRateDoc
@@ -205,10 +207,9 @@ export async function computeExpectedDeliveryRent(
     grn.bagPrice == null &&
     !monthlyRateDoc
   ) {
-    logger.warn('Outward rent falling back to canonical rates: no active Monthly controller row', {
-      grnId: grn.id,
-      commodityId: grn.commodityId,
-    });
+    throw new Error(
+      `Cannot price outward delivery for GRN '${grn.grnNumber ?? grn.id}': no agreed rates and no active Monthly controller rate`,
+    );
   }
 
   const monthlyEffectiveRates = monthlyRateDoc

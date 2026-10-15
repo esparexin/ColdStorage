@@ -2,6 +2,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { calculateGrnMonthlyOccupancyRent } from '../modules/common/occupancy-rent.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { rentService } from '../modules/rent/rent.service.js';
+import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import {
   connectToTestDatabase,
@@ -24,11 +26,15 @@ describe('Monthly Storage Rent Occupancy Calculation Tests', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityModel.findOneAndUpdate({ id: 'cmd-occ' }, { $set: { name: 'Test Commodity', normalizedName: 'test commodity', isActive: true } }, { upsert: true, new: true }).exec();
+    await CommodityRateModel.deleteMany({ commodityId: 'cmd-occ' }).exec();
+    await CommodityRateModel.create([{ id: 'crt-cmdocc-s', commodityId: 'cmd-occ', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmdocc-m', commodityId: 'cmd-occ', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
     facilityId = await seedFacility({ name: 'Rent Test Facility' });
     customerId = await seedCustomer({ facilityId, name: 'Farmer Cooperative' });
     grnId = await seedGrn({
       facilityId,
       customerId,
+      commodityId: 'cmd-occ',
       chamber: 'CH-04',
       bags: 100,
       smallBags: 100, bigBags: 0,
@@ -119,6 +125,7 @@ describe('Monthly Storage Rent Occupancy Calculation Tests', () => {
     const seasonalGrnId = await seedGrn({
       facilityId,
       customerId,
+      commodityId: 'cmd-occ',
       chamber: 'CH-05',
       bags: 200,
       smallBags: 200, bigBags: 0,

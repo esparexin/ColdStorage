@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
@@ -37,6 +38,8 @@ describe('Internal Move bag-category confirmation (outward SSOT)', () => {
 
   async function seedPair(opts?: { sourceBags?: number; sourceBagType?: 'S' | 'B' | 'S+B'; smallBags?: number; bigBags?: number }) {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-bagcat-s', commodityId: 'cmd-bagcat', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-bagcat-m', commodityId: 'cmd-bagcat', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
     await mongoose.connection.collection('rentpayments').deleteMany({});
     await mongoose.connection.collection('internalmovements').deleteMany({});
     await seedFacility({ id: facilityId, code: 'MOVBC', name: 'BagCat Facility' });

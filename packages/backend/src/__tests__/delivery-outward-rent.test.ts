@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { CommodityModel } from '../database/models/commodity.model.js';
+import { resetAllFinancialCollections, seedCommodityWithRates } from './helpers/lifecycle-testkit.js';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
@@ -7,7 +7,6 @@ import { seedCustomer, seedFacility } from './helpers/master-data-fixtures.js';
 import {
   connectToTestDatabase,
   disconnectTestDatabase,
-  resetStockCollections,
 } from './helpers/stock-reset.js';
 
 const USER_ID = 'usr-outward-rent-tester';
@@ -23,34 +22,25 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
   afterAll(disconnectTestDatabase);
 
   beforeEach(async () => {
-    await resetStockCollections();
+    await resetAllFinancialCollections();
     facilityId = await seedFacility({ name: 'Outward Rent Facility' });
     customerId = await seedCustomer({ facilityId, name: 'Agro Farms Ltd' });
-    await CommodityModel.create({
-      id: 'cmd-wheat',
-      name: 'Wheat',
-      normalizedName: 'wheat',
-      isActive: true,
-      defaultBagType: 'S',
-    });
+    await seedCommodityWithRates({ id: 'cmd-wheat', name: 'Wheat', seasonal: { small: 10, big: 15 }, monthly: { small: 10, big: 15 } });
+    await seedCommodityWithRates({ id: 'cmd-wheat-premium', name: 'Wheat Premium', seasonal: { small: 12, big: 18 }, monthly: { small: 12, big: 18 } });
   });
+
+  async function makeGrn(grnNumber: string, overrides: Record<string, unknown> = {}) {
+    const { grn } = await grnService.createGrn(facilityId, {
+      grnNumber, date: new Date(), customerId, commodityId: 'cmd-wheat',
+      chamber: 'CH-01', bags: 100, bagType: 'S', rentType: 'Seasonal', smallBagPrice: 10,
+      ...overrides,
+    }, USER_ID);
+    return grn;
+  }
 
   it('Seasonal Outward: charges withdrawn bags at the seasonal total rate', async () => {
     // 1. Inward records storage and rent type only — rentAmount is 0
-    const { grn } = await grnService.createGrn(
-      facilityId,
-      {
-        grnNumber: '1001',
-        date: new Date(),
-        customerId,
-        commodityId: 'cmd-wheat',
-        chamber: 'CH-01',
-        bags: 100,
-        bagType: 'S',
-        rentType: 'Seasonal',
-      },
-      USER_ID,
-    );
+    const grn = await makeGrn('1001');
     expect(grn.rentType).toBe('Seasonal');
 
     // 2. Outward delivery of 40 small bags
@@ -67,20 +57,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
   });
 
   it('Seasonal Outward: charges withdrawn big bags at the seasonal total rate', async () => {
-    const { grn } = await grnService.createGrn(
-      facilityId,
-      {
-        grnNumber: '1002',
-        date: new Date(),
-        customerId,
-        commodityId: 'cmd-wheat',
-        chamber: 'CH-01',
-        bags: 100,
-        bagType: 'B',
-        rentType: 'Seasonal',
-      },
-      USER_ID,
-    );
+    const grn = await makeGrn('1002', { bagType: 'B', bigBagPrice: 15, smallBagPrice: undefined });
 
     const del = await deliveryService.createDelivery(
       facilityId,
@@ -93,22 +70,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
   });
 
   it('Seasonal Outward: charges split withdrawals preserving the S+B split', async () => {
-    const { grn } = await grnService.createGrn(
-      facilityId,
-      {
-        grnNumber: '1003',
-        date: new Date(),
-        customerId,
-        commodityId: 'cmd-wheat',
-        chamber: 'CH-01',
-        bags: 100,
-        bagType: 'S+B',
-        smallBags: 50,
-        bigBags: 50,
-        rentType: 'Seasonal',
-      },
-      USER_ID,
-    );
+    const grn = await makeGrn('1003', { bagType: 'S+B', smallBags: 50, bigBags: 50, bigBagPrice: 15 });
 
     const del = await deliveryService.createDelivery(
       facilityId,
@@ -124,21 +86,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
     process.env.ALLOW_HISTORICAL_TESTING_DATES = 'true';
     const deliveryDate = new Date();
     const inwardDate = new Date(deliveryDate.getFullYear(), deliveryDate.getMonth() - 2, deliveryDate.getDate() - 5);
-    const { grn } = await grnService.createGrn(
-      facilityId,
-      {
-        grnNumber: '1004',
-        date: inwardDate,
-        customerId,
-        commodityId: 'cmd-wheat',
-        chamber: 'CH-01',
-        bags: 80,
-        bagType: 'S',
-        rentType: 'Monthly',
-        rentMonths: 3,
-      },
-      USER_ID,
-    );
+    const grn = await makeGrn('1004', { date: inwardDate, bags: 80, rentType: 'Monthly', rentMonths: 3 });
     expect(grn.rentType).toBe('Monthly');
 
     const del = await deliveryService.createDelivery(
@@ -152,20 +100,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
   });
 
   it('preserves partial delivery and full delivery balance lifecycle', async () => {
-    const { grn } = await grnService.createGrn(
-      facilityId,
-      {
-        grnNumber: '1005',
-        date: new Date(),
-        customerId,
-        commodityId: 'cmd-wheat',
-        chamber: 'CH-01',
-        bags: 100,
-        bagType: 'S',
-        rentType: 'Seasonal',
-      },
-      USER_ID,
-    );
+    const grn = await makeGrn('1005');
 
     // First partial delivery
     const d1 = await deliveryService.createDelivery(
@@ -188,20 +123,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
   });
 
   it('accepts explicitly provided rentCharge when it matches recomputed rent', async () => {
-    const { grn } = await grnService.createGrn(
-      facilityId,
-      {
-        grnNumber: '1006',
-        date: new Date(),
-        customerId,
-        commodityId: 'cmd-wheat',
-        chamber: 'CH-01',
-        bags: 50,
-        bagType: 'S',
-        rentType: 'Seasonal',
-      },
-      USER_ID,
-    );
+    const grn = await makeGrn('1006', { bags: 50 });
 
     // 20 bags × ₹10/bag season total = ₹200 (matches server recomputation)
     const del = await deliveryService.createDelivery(
@@ -214,22 +136,7 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
   });
 
   it('Seasonal Outward: charges withdrawals at the agreed GRN rate', async () => {
-    const { grn } = await grnService.createGrn(
-      facilityId,
-      {
-        grnNumber: '1007',
-        date: new Date(),
-        customerId,
-        commodityId: 'cmd-wheat',
-        chamber: 'CH-01',
-        bags: 100,
-        bagType: 'S',
-        rentType: 'Seasonal',
-        smallBagPrice: 12,
-        bigBagPrice: 18,
-      },
-      USER_ID,
-    );
+    const grn = await makeGrn('1007', { commodityId: 'cmd-wheat-premium', smallBagPrice: 12, bigBagPrice: 18 });
 
     const del = await deliveryService.createDelivery(
       facilityId,

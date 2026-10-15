@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
@@ -65,6 +66,9 @@ describe('Phase 2: ledger authority (ledger-balance.test.ts)', () => {
         smallBagWeight: 50,
         bigBagWeight: 80,
         rentType: 'Monthly',
+        smallBagPrice: 10,
+        bigBagPrice: 15,
+        rentAmount: 0,
         rentMonths: 2,
         date: inwardDate,
       },

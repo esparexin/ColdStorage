@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { seedControllerRates } from './helpers/lifecycle-testkit.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
@@ -42,6 +43,7 @@ describe('Transfer Ownership: first-season hamali settlement (D3)', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await seedControllerRates('cmd-hamali-potato');
     await mongoose.connection.collection('rentpayments').deleteMany({});
     await mongoose.connection.collection('internalmovements').deleteMany({});
     await seedFacility({ id: facilityId, code: 'TRH', name: 'Transfer Hamali Facility' });

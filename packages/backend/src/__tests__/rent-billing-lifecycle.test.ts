@@ -5,6 +5,8 @@ import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { readLedgerBalance, readLedgerInward, readLedgerNetDelivered } from '../modules/inventory/ledger-balance.js';
 import { rentService } from '../modules/rent/rent.service.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
+import { CommodityModel } from '../database/models/commodity.model.js';
+import { seedControllerRates } from './helpers/lifecycle-testkit.js';
 import {
   connectToTestDatabase,
   disconnectTestDatabase,
@@ -15,6 +17,8 @@ const USER_ID = 'usr-e2e-lifecycle-tester';
 
 async function resetAll(facilityIds: string[]): Promise<void> {
   await resetStockCollections();
+  await CommodityModel.findOneAndUpdate({ id: 'cmd-cycle' }, { $set: { name: 'Test Commodity', normalizedName: 'test commodity', isActive: true } }, { upsert: true, new: true }).exec();
+  await seedControllerRates('cmd-cycle');
   await mongoose.connection.collection('rentpayments').deleteMany({ facilityId: { $in: facilityIds } });
   await mongoose.connection.collection('auditlogs').deleteMany({ facilityId: { $in: facilityIds } });
 }
@@ -37,6 +41,7 @@ describe('E2E Suite 1: Full GRN Lifecycle — 300 bags, 3 partial deliveries, 2 
     grnId = await seedGrn({
       facilityId,
       customerId,
+      commodityId: 'cmd-cycle',
       chamber: 'CH-A1',
       bags: TOTAL_BAGS,
       commodityName: 'Potato (Chipsona)',

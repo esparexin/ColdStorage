@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { RentPaymentModel } from '../database/models/rent-payment.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
@@ -38,6 +39,8 @@ describe('GRN Merge Pre-Settlement Overpayment Guard', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-mop-onion-s', commodityId: 'cmd-mop-onion', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-mop-onion-m', commodityId: 'cmd-mop-onion', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
     await mongoose.connection.collection('rentpayments').deleteMany({});
     await mongoose.connection.collection('internalmovements').deleteMany({});
     await seedFacility({ id: facilityId, code: 'MOP', name: 'Merge Overpay Facility' });

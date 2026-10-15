@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { GroupModel } from '../database/models/group.model.js';
+import { CommodityModel } from '../database/models/commodity.model.js';
+import { seedControllerRates } from './helpers/lifecycle-testkit.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { groupService } from '../modules/groups/group.service.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
@@ -25,6 +27,8 @@ describe('Groups Full Integration & Stock Ledger Integrity', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityModel.findOneAndUpdate({ id: 'cmd-group' }, { $set: { name: 'Test Commodity', normalizedName: 'test commodity', isActive: true } }, { upsert: true, new: true }).exec();
+    await seedControllerRates('cmd-group');
     await GroupModel.deleteMany({});
     facilityA = await seedFacility({ name: 'Integration Fac A' });
     facilityB = await seedFacility({ name: 'Integration Fac B' });
@@ -33,6 +37,7 @@ describe('Groups Full Integration & Stock Ledger Integrity', () => {
 
   it('maintains exact ledger stock summaries across delivery and delivery reversal', async () => {
     const grn1 = await seedGrn({
+      commodityId: 'cmd-group',
       facilityId: facilityA,
       customerId,
       bags: 50,
@@ -40,6 +45,7 @@ describe('Groups Full Integration & Stock Ledger Integrity', () => {
       grnNumber: 'GRN-INT-001',
     });
     const grn2 = await seedGrn({
+      commodityId: 'cmd-group',
       facilityId: facilityA,
       customerId,
       bags: 100,
@@ -105,7 +111,8 @@ describe('Groups Full Integration & Stock Ledger Integrity', () => {
   });
 
   it('preserves group identity and membership through renaming', async () => {
-    const grn = await seedGrn({ facilityId: facilityA, customerId, bags: 40, grnNumber: 'GRN-INT-003' });
+    const grn = await seedGrn({
+    commodityId: 'cmd-group', facilityId: facilityA, customerId, bags: 40, grnNumber: 'GRN-INT-003' });
     const group = await groupService.createGroup(facilityA, { name: 'Pre-Rename Group' }, USER_ID);
     await groupService.assignGrns(facilityA, group.id, { grnIds: [grn] }, USER_ID);
 
@@ -125,7 +132,8 @@ describe('Groups Full Integration & Stock Ledger Integrity', () => {
   });
 
   it('validates facility boundary and handles invalid GRN inputs gracefully', async () => {
-    const foreignGrn = await seedGrn({ facilityId: facilityB, bags: 20, grnNumber: 'GRN-FACB-001' });
+    const foreignGrn = await seedGrn({
+    commodityId: 'cmd-group', facilityId: facilityB, bags: 20, grnNumber: 'GRN-FACB-001' });
     const group = await groupService.createGroup(facilityA, { name: 'Boundary Test Group' }, USER_ID);
 
     // Cross-facility assignment attempt must be rejected
@@ -139,7 +147,8 @@ describe('Groups Full Integration & Stock Ledger Integrity', () => {
     ).rejects.toThrow(/do not exist in this facility/i);
 
     // Repeated assignment of already assigned GRN in same group is idempotent / safe
-    const localGrn = await seedGrn({ facilityId: facilityA, customerId, bags: 10, grnNumber: 'GRN-INT-004' });
+    const localGrn = await seedGrn({
+    commodityId: 'cmd-group', facilityId: facilityA, customerId, bags: 10, grnNumber: 'GRN-INT-004' });
     await groupService.assignGrns(facilityA, group.id, { grnIds: [localGrn] }, USER_ID);
     const repeated = await groupService.assignGrns(facilityA, group.id, { grnIds: [localGrn] }, USER_ID);
     expect(repeated.assignedCount).toBe(1);
@@ -147,6 +156,7 @@ describe('Groups Full Integration & Stock Ledger Integrity', () => {
 
   it('supports closed / 0-balance GRNs in a group without corrupting summary', async () => {
     const grn = await seedGrn({
+      commodityId: 'cmd-group',
       facilityId: facilityA,
       customerId,
       bags: 10,

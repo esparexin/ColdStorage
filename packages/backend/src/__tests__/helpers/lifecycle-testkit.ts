@@ -49,8 +49,7 @@ export interface TestCommoditySpec {
   monthly?: { small: number; big: number };
 }
 
-/** Mandatory commodity factory: no fictional commodityIds in lifecycle tests. */
-export async function seedCommodityWithRates(spec: TestCommoditySpec): Promise<string> {
+/** Mandatory commodity factory: no fictional commodityIds in lifecycle tests. */export async function seedCommodityWithRates(spec: TestCommoditySpec): Promise<string> {
   await CommodityModel.create({
     id: spec.id, name: spec.name, normalizedName: spec.name.toLowerCase(),
     isActive: true, seasonDuration: spec.seasonDuration ?? 'Seasonal',
@@ -63,6 +62,15 @@ export async function seedCommodityWithRates(spec: TestCommoditySpec): Promise<s
     await CommodityRateModel.create({ id: `crt-${spec.id}-m`, commodityId: spec.id, rentType: 'Monthly', smallRate: spec.monthly.small, bigRate: spec.monthly.big, isActive: true });
   }
   return spec.id;
+}
+
+/** Rate-only seeding for suites that build their own commodity docs. */
+export async function seedControllerRates(commodityId: string, seasonal = { small: 10, big: 15 }, monthly = { small: 10, big: 15 }): Promise<void> {
+  await CommodityRateModel.deleteMany({ commodityId }).exec();
+  await CommodityRateModel.create([
+    { id: `crt-${commodityId}-s`, commodityId, rentType: 'Seasonal', smallRate: seasonal.small, bigRate: seasonal.big, isActive: true },
+    { id: `crt-${commodityId}-m`, commodityId, rentType: 'Monthly', smallRate: monthly.small, bigRate: monthly.big, isActive: true },
+  ]);
 }
 
 export interface PersistedGrnExpectation {

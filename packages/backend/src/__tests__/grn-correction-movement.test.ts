@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
@@ -38,6 +39,8 @@ describe('GRN Correction After Movement (grn-correction-movement.test.ts)', () =
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-potato-correct-move-s', commodityId: 'cmd-potato-correct-move', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-potato-correct-move-m', commodityId: 'cmd-potato-correct-move', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
 
     const commodity = await CommodityModel.create({
       id: 'cmd-potato-correct-move',

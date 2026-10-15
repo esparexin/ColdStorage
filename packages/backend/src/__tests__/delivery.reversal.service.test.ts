@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DeliveryReversalModel } from '../database/models/delivery-reversal.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
+import { CommodityModel } from '../database/models/commodity.model.js';
+import { seedControllerRates } from './helpers/lifecycle-testkit.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { inventoryService } from '../modules/inventory/inventory.service.js';
@@ -26,9 +28,12 @@ describe('P6 DeliveryService reversal tests', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityModel.findOneAndUpdate({ id: 'cmd-del-rev' }, { $set: { name: 'Test Commodity', normalizedName: 'test commodity', isActive: true } }, { upsert: true, new: true }).exec();
+    await seedControllerRates('cmd-del-rev');
     facilityId = await seedFacility({ name: 'Reversal Test Facility' });
     customerId = await seedCustomer({ facilityId, name: 'Kisan Agro Corp' });
     grnId = await seedGrn({
+      commodityId: 'cmd-del-rev',
       facilityId,
       customerId,
       chamber: 'CH-01',
@@ -71,6 +76,7 @@ describe('P6 DeliveryService reversal tests', () => {
     // reversal row must carry the challan's own small/big split and nothing else. A mixed GRN is
     // required so the restoration is genuinely per bag type.
     const mixedGrnId = await seedGrn({
+      commodityId: 'cmd-del-rev',
       facilityId,
       customerId,
       chamber: 'CH-02',

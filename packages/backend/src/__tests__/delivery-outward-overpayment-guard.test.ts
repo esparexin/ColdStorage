@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { RentPaymentModel } from '../database/models/rent-payment.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
@@ -26,6 +27,8 @@ describe('Outward Delivery Inline Payment Overpayment Guard', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-wheat-del-s', commodityId: 'cmd-wheat-del', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-wheat-del-m', commodityId: 'cmd-wheat-del', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
     facilityId = await seedFacility({ name: 'Delivery Overpayment Facility' });
     customerId = await seedCustomer({ facilityId, name: 'Farmer Delivery Test' });
     await CommodityModel.create({
@@ -50,6 +53,8 @@ describe('Outward Delivery Inline Payment Overpayment Guard', () => {
         bags: 100,
         bagType: 'S',
         rentType: 'Seasonal',
+        smallBagPrice: 10,
+        rentAmount: 0,
       },
       USER_ID,
     );
@@ -93,6 +98,8 @@ describe('Outward Delivery Inline Payment Overpayment Guard', () => {
         bags: 60,
         bagType: 'S',
         rentType: 'Seasonal',
+        smallBagPrice: 10,
+        rentAmount: 0,
       },
       USER_ID,
     );

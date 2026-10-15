@@ -5,6 +5,8 @@ import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { readLedgerBalance, readLedgerNetDelivered } from '../modules/inventory/ledger-balance.js';
 import { rentService } from '../modules/rent/rent.service.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
+import { CommodityModel } from '../database/models/commodity.model.js';
+import { seedControllerRates } from './helpers/lifecycle-testkit.js';
 import {
   connectToTestDatabase,
   disconnectTestDatabase,
@@ -15,6 +17,8 @@ const USER_ID = 'usr-e2e-edge-tester';
 
 async function resetAll(facilityIds: string[]): Promise<void> {
   await resetStockCollections();
+  await CommodityModel.findOneAndUpdate({ id: 'cmd-edge' }, { $set: { name: 'Test Commodity', normalizedName: 'test commodity', isActive: true } }, { upsert: true, new: true }).exec();
+  await seedControllerRates('cmd-edge');
   await mongoose.connection.collection('rentpayments').deleteMany({ facilityId: { $in: facilityIds } });
   await mongoose.connection.collection('auditlogs').deleteMany({ facilityId: { $in: facilityIds } });
 }
@@ -33,6 +37,7 @@ describe('E2E Suite 2: Delivery Reversal — bags restored and rent stays unchan
     facilityId = await seedFacility({ id: facilityId, name: 'Reversal Test Facility' });
     customerId = await seedCustomer({ facilityId, name: 'Ramesh Cold Chain' });
     grnId = await seedGrn({
+      commodityId: 'cmd-edge',
       facilityId, customerId, chamber: 'CH-R1', bags: 200,
       commodityName: 'Onion', grnNumber: 'GRN-26-27-0200', rentAmount: 6_000,
     });
@@ -94,9 +99,11 @@ describe('E2E Suite 3: Batch summary matches per-GRN summary', () => {
   it('batch summaries for 3 GRNs with different outward/payment states match individual reads', async () => {
     const customerId = await seedCustomer({ facilityId, name: 'Multi-GRN Customer' });
     const grnA = await seedGrn({
+      commodityId: 'cmd-edge',
       facilityId, customerId, bags: 100, rentAmount: 3_000, grnNumber: 'GRN-26-27-A001', chamber: 'CH-A',
     });
     const grnB = await seedGrn({
+      commodityId: 'cmd-edge',
       facilityId, customerId, bags: 200, rentAmount: 6_000, grnNumber: 'GRN-26-27-B001', chamber: 'CH-B',
     });
     await deliveryService.createDelivery(facilityId, { grnId: grnB, smallBags: 50, bigBags: 0 }, USER_ID);
@@ -105,6 +112,7 @@ describe('E2E Suite 3: Batch summary matches per-GRN summary', () => {
     );
 
     const grnC = await seedGrn({
+      commodityId: 'cmd-edge',
       facilityId, customerId, bags: 150, rentAmount: 4_500, grnNumber: 'GRN-26-27-C001', chamber: 'CH-C',
     });
     await deliveryService.createDelivery(facilityId, { grnId: grnC, smallBags: 150, bigBags: 0 }, USER_ID);
@@ -154,6 +162,7 @@ describe('E2E Suite 4: Edge cases — pre-paid and overpayment guards', () => {
 
   it('full rent paid while all bags in chamber: GRN stays OPEN until physical exit', async () => {
     const grnId = await seedGrn({
+      commodityId: 'cmd-edge',
       facilityId, customerId, bags: 120, rentAmount: 3_600, grnNumber: 'GRN-26-27-EDGE1', chamber: 'CH-E1',
     });
     const settle = await rentService.recordPayment(
@@ -172,6 +181,7 @@ describe('E2E Suite 4: Edge cases — pre-paid and overpayment guards', () => {
 
   it('already-settled GRN rejects any further payment', async () => {
     const grnId = await seedGrn({
+      commodityId: 'cmd-edge',
       facilityId, customerId, bags: 100, rentAmount: 2_000, grnNumber: 'GRN-26-27-EDGE2', chamber: 'CH-E2',
     });
     await rentService.recordPayment(
@@ -186,6 +196,7 @@ describe('E2E Suite 4: Edge cases — pre-paid and overpayment guards', () => {
 
   it('no legacy grn.bags fallback: outward-only GRN has correct delivered/remaining counts', async () => {
     const grnId = await seedGrn({
+      commodityId: 'cmd-edge',
       facilityId, customerId, bags: 80, rentAmount: 2_400, grnNumber: 'GRN-26-27-EDGE3', chamber: 'CH-E3',
     });
     await deliveryService.createDelivery(facilityId, { grnId, smallBags: 80, bigBags: 0 }, USER_ID);

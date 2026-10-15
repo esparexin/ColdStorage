@@ -40,6 +40,8 @@ describe('Delivery stored agreement — delivery-stored-agreement.test.ts', () =
   beforeEach(async () => {
     await resetStockCollections();
     await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-agr-s', commodityId: 'cmd-agr', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-agr-m', commodityId: 'cmd-agr', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
+    await CommodityRateModel.deleteMany({});
 
     await seedFacility({ id: FACILITY_ID, code: 'AGR', name: 'Agreement Facility' });
     customerId = await seedCustomer({ id: 'cust-agr', facilityId: FACILITY_ID, name: 'Agree Customer' });

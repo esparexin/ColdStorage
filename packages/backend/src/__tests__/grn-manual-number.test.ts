@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility } from './helpers/master-data-fixtures.js';
@@ -30,6 +31,8 @@ describe('Manual GR Number Entry Rules', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-potato-manual-s', commodityId: 'cmd-potato-manual', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-potato-manual-m', commodityId: 'cmd-potato-manual', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
     await seedFacility({ id: facilityId, code: 'MGRN', name: 'Manual GRN Facility' });
     customerId = await seedCustomer({ id: 'cust-grn-manual-01', facilityId, name: 'Ramesh Patel' });
     const commodity = await CommodityModel.create({

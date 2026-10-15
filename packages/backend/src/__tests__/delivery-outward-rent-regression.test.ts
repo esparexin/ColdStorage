@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
 import { seedCustomer, seedFacility } from './helpers/master-data-fixtures.js';
@@ -23,6 +24,8 @@ describe('Outward Rent Regression: screenshot 50k vs 48k + mismatch guard', () =
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-wheat-s', commodityId: 'cmd-wheat', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-wheat-m', commodityId: 'cmd-wheat', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
     facilityId = await seedFacility({ name: 'Outward Regression Facility' });
     customerId = await seedCustomer({ facilityId, name: 'Agro Farms Ltd' });
     await CommodityModel.create({
@@ -48,6 +51,9 @@ describe('Outward Rent Regression: screenshot 50k vs 48k + mismatch guard', () =
         smallBags: 200,
         bigBags: 200,
         rentType: 'Seasonal',
+        smallBagPrice: 10,
+        bigBagPrice: 15,
+        rentAmount: 0,
         ...extra,
       } as never,
       USER_ID,
@@ -66,6 +72,8 @@ describe('Outward Rent Regression: screenshot 50k vs 48k + mismatch guard', () =
         bags: 50,
         bagType: 'S',
         rentType: 'Seasonal',
+        smallBagPrice: 10,
+        rentAmount: 0,
       },
       USER_ID,
     );

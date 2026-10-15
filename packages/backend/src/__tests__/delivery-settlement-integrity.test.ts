@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
+import { CommodityModel } from '../database/models/commodity.model.js';
+import { seedControllerRates } from './helpers/lifecycle-testkit.js';
 import { RentPaymentModel } from '../database/models/rent-payment.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { rentService } from '../modules/rent/rent.service.js';
@@ -17,7 +19,6 @@ describe('Phase 5: Payment & Settlement Integrity (delivery-settlement-integrity
   let facilityId: string;
   let customerId: string;
   let grnId: string;
-  const RENT_OBLIGATION = 5000;
 
   beforeAll(async () => {
     await connectToTestDatabase();
@@ -27,16 +28,19 @@ describe('Phase 5: Payment & Settlement Integrity (delivery-settlement-integrity
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityModel.findOneAndUpdate({ id: 'cmd-del-settle' }, { $set: { name: 'Test Commodity', normalizedName: 'test commodity', isActive: true } }, { upsert: true, new: true }).exec();
+    await seedControllerRates('cmd-del-settle');
     facilityId = await seedFacility({ name: 'Settlement Integrity Facility' });
     customerId = await seedCustomer({ facilityId, name: 'Farmer Cooperative Ltd' });
     grnId = await seedGrn({
+      commodityId: 'cmd-del-settle',
       facilityId,
       customerId,
       chamber: 'CH-01',
       bags: 100,
       commodityName: 'Apples',
       grnNumber: 'GRN-26-27-0010',
-      rentAmount: RENT_OBLIGATION,
+      rentAmount: 5000,
     });
   });
 
@@ -57,7 +61,7 @@ describe('Phase 5: Payment & Settlement Integrity (delivery-settlement-integrity
 
     const rentSummary = await rentService.getRentSummary(facilityId, grnId);
     expect(rentSummary.totalPaid).toBe(0);
-    expect(rentSummary.remainingBalance).toBe(RENT_OBLIGATION);
+    expect(rentSummary.remainingBalance).toBe(5000);
     expect(rentSummary.paymentStatus).toBe('Not Settled');
   });
 

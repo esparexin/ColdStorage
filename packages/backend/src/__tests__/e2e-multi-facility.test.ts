@@ -111,6 +111,7 @@ describe('Phase 11: Multi-Facility End-to-End — cross-facility isolation', () 
           bagType: 'S',
           smallBagWeight: 50,
           rentType: 'Seasonal',
+          smallBagPrice: 10,
           rentAmount: 0,
         }),
       request(app)
@@ -125,6 +126,7 @@ describe('Phase 11: Multi-Facility End-to-End — cross-facility isolation', () 
           bagType: 'S',
           smallBagWeight: 50,
           rentType: 'Seasonal',
+          smallBagPrice: 10,
           rentAmount: 0,
         }),
     ]);

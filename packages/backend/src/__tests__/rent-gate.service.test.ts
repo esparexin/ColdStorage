@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { CounterModel } from '../database/models/counter.model.js';
 import { CustomerModel } from '../database/models/customer.model.js';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
@@ -43,6 +44,11 @@ describe('Rent gate for outward movement — rent-gate.service.test.ts', () => {
     await CounterModel.deleteMany({});
     await InventoryTransactionModel.deleteMany({});
     await DeliveryChallanModel.deleteMany({});
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([
+      { id: 'crt-gate-s', commodityId: 'cmd-rent-gate', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true },
+      { id: 'crt-gate-m', commodityId: 'cmd-rent-gate', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true },
+    ]);
     // RentPayment is immutable by design, so the reset goes through the raw collection.
     await mongoose.connection.collection('rentpayments').deleteMany({});
 

@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
@@ -12,8 +11,8 @@ import { deliveryService } from '../modules/delivery/delivery.service.js';
 import {
   connectToTestDatabase,
   disconnectTestDatabase,
-  resetStockCollections,
 } from './helpers/stock-reset.js';
+import { resetAllFinancialCollections, seedControllerRates } from './helpers/lifecycle-testkit.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
@@ -40,9 +39,8 @@ describe('Internal Movement Workflows (Merge & Transfer Ownership)', () => {
   afterAll(disconnectTestDatabase);
 
   beforeEach(async () => {
-    await resetStockCollections();
-    await mongoose.connection.collection('rentpayments').deleteMany({});
-    await mongoose.connection.collection('internalmovements').deleteMany({});
+    await resetAllFinancialCollections();
+    await seedControllerRates('cmd-tamarind');
     await seedFacility({ id: facilityId, code: 'MOV', name: 'Movement Facility' });
 
     customerA = await seedCustomer({ id: 'cust-a', facilityId, name: 'Farmer Ramesh' });

@@ -128,7 +128,8 @@ export class CommodityRateService {
    * - a positive `rentAmount` must equal the SSOT-derived obligation, so lump
    *   sums cannot contradict the agreed rates (dynamic `0` always passes);
    * - with `requireRates`, omitted rates are rejected instead of vacuously passing.
-   * When no active row exists the legacy path is preserved untouched.
+   * When no active row exists, `requireRates:true` rejects (fail-closed);
+   * only the explicit legacy path (`requireRates:false`, CSV import) passes through.
    */
   public async validateSubmittedRates(
     commodityId: string,
@@ -137,7 +138,12 @@ export class CommodityRateService {
     opts: RateValidationOptions,
   ): Promise<void> {
     const rate = await this.getRate(commodityId, rentType);
-    if (!rate) return;
+    if (!rate) {
+      if (opts.requireRates) {
+        throw rateMismatch(commodityId, rentType, 'no active controller rate is configured');
+      }
+      return;
+    }
     const norm = (n: number) => Number(n.toFixed(2));
     const useSplit = submitted.bagType === 'S+B' || submitted.bagType === 'S/B';
     const singleSide = submitted.bagType === 'B' ? rate.bigRate : rate.smallRate;

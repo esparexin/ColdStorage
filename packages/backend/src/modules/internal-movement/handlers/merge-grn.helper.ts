@@ -72,7 +72,7 @@ export async function resolveSourceRentObligation(
 
     const { expectedRentCharge } = await computeExpectedDeliveryRent({
       grn: {
-        id: sourceGrn.id, date: sourceGrn.date, rentType: sourceGrn.rentType, commodityId: sourceGrn.commodityId,
+        id: sourceGrn.id, grnNumber: sourceGrn.grnNumber, date: sourceGrn.date, rentType: sourceGrn.rentType, commodityId: sourceGrn.commodityId,
         smallBagPrice: sourceGrn.smallBagPrice, bigBagPrice: sourceGrn.bigBagPrice, bagPrice: sourceGrn.bagPrice,
       },
       withdrawal: { smallBags: effectiveSmall, bigBags: effectiveBig },

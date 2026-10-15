@@ -4,6 +4,7 @@ import { getFinancialYearKey } from '@cold-storage/contracts';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { SEASONAL_MONTHS, seedCustomer, seedFacility } from './helpers/master-data-fixtures.js';
 import {
@@ -46,6 +47,9 @@ describe('GRN Lifecycle & Sequences Integration', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-potato-life-s', commodityId: 'cmd-potato-life', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-potato-life-m', commodityId: 'cmd-potato-life', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
+    await CommodityRateModel.create([{ id: 'crt-cmd-nonexistent-s', commodityId: 'cmd-nonexistent', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-nonexistent-m', commodityId: 'cmd-nonexistent', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
 
     await seedFacility({ id: northFacilityId, code: 'NORTHL', name: 'North Cold Facility' });
     await seedFacility({ id: southFacilityId, code: 'SOUTHL', name: 'South Cold Facility' });

@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { AuditLogModel } from '../database/models/audit-log.model.js';
 import { RentPaymentModel } from '../database/models/rent-payment.model.js';
@@ -40,6 +41,8 @@ describe('Merge GRN input guards', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-mgd-tamarind-s', commodityId: 'cmd-mgd-tamarind', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-mgd-tamarind-m', commodityId: 'cmd-mgd-tamarind', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
     await mongoose.connection.collection('rentpayments').deleteMany({});
     await mongoose.connection.collection('internalmovements').deleteMany({});
     await seedFacility({ id: facilityId, code: 'MGD', name: 'Merge Guard Facility' });

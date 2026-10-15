@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { CustomerModel } from '../database/models/customer.model.js';
 import { rentService } from '../modules/rent/rent.service.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
@@ -44,6 +45,8 @@ describe('GRN Full Edit (PATCH /api/facilities/:facilityId/grns/:grnId)', () => 
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-potato-full-edit-s', commodityId: 'cmd-potato-full-edit', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-potato-full-edit-m', commodityId: 'cmd-potato-full-edit', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
 
     await seedFacility({ id: facilityId, code: 'FULLEDIT', name: 'North Full-Edit Facility' });
     customerId = await seedCustomer({

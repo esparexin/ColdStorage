@@ -10,6 +10,7 @@ import { BackupLogModel } from '../database/models/backup-log.model.js';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { DeliveryReversalModel } from '../database/models/delivery-reversal.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { SystemSettingsModel } from '../database/models/system-settings.model.js';
 import { settingsService } from '../modules/settings/settings.service.js';
@@ -69,6 +70,7 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
         bagType: 'S',
         smallBagWeight: 50,
         rentType: 'Seasonal',
+        smallBagPrice: 10,
         rentAmount: 0,
       });
     expect(grnRes.status).toBe(201);

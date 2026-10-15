@@ -2,6 +2,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { DeliveryReversalModel } from '../database/models/delivery-reversal.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
+import { CommodityModel } from '../database/models/commodity.model.js';
+import { seedControllerRates } from './helpers/lifecycle-testkit.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { readLedgerBalance } from '../modules/inventory/ledger-balance.js';
@@ -36,9 +38,12 @@ describe('Phase 7: ledger reconciliation invariants (ledger-reconciliation.test.
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityModel.findOneAndUpdate({ id: 'cmd-recon' }, { $set: { name: 'Test Commodity', normalizedName: 'test commodity', isActive: true } }, { upsert: true, new: true }).exec();
+    await seedControllerRates('cmd-recon');
     facilityId = await seedFacility({ name: 'Reconciliation Facility' });
     customerId = await seedCustomer({ facilityId, name: 'Reconciliation Farmer' });
     singleGrnId = await seedGrn({
+      commodityId: 'cmd-recon',
       facilityId,
       customerId,
       chamber: 'CH-R1',
@@ -46,6 +51,7 @@ describe('Phase 7: ledger reconciliation invariants (ledger-reconciliation.test.
       grnNumber: 'GRN-26-27-RC01',
     });
     mixedGrnId = await seedGrn({
+      commodityId: 'cmd-recon',
       facilityId,
       customerId,
       chamber: 'CH-R2',

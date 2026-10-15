@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { seedControllerRates } from './helpers/lifecycle-testkit.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { RentPaymentModel } from '../database/models/rent-payment.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
@@ -33,6 +34,7 @@ describe('Merge GRN: Rent Carry-Forward & Obligation Preservation (Phase 4)', ()
 
   beforeEach(async () => {
     await resetStockCollections();
+    await seedControllerRates('cmd-wheat-mrg');
     await mongoose.connection.collection('rentpayments').deleteMany({});
     await mongoose.connection.collection('internalmovements').deleteMany({});
     await seedFacility({ id: facilityId, code: 'MRG', name: 'Merge Rent Facility' });

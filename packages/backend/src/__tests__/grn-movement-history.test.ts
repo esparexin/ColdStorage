@@ -3,6 +3,8 @@ import { InternalMovementModel } from '../database/models/internal-movement.mode
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { getGrnMovementHistory } from '../modules/common/grn-movement-history.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
+import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import {
   connectToTestDatabase,
@@ -25,11 +27,15 @@ describe('GRN Movement History SSOT tests', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityModel.findOneAndUpdate({ id: 'cmd-mvhist' }, { $set: { name: 'Test Commodity', normalizedName: 'test commodity', isActive: true } }, { upsert: true, new: true }).exec();
+    await CommodityRateModel.deleteMany({ commodityId: 'cmd-mvhist' }).exec();
+    await CommodityRateModel.create([{ id: 'crt-cmdmvhist-s', commodityId: 'cmd-mvhist', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmdmvhist-m', commodityId: 'cmd-mvhist', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
     facilityId = await seedFacility({ name: 'Movement Test Facility' });
     customerId = await seedCustomer({ facilityId, name: 'Sardar Patel Agro' });
     grnId = await seedGrn({
       facilityId,
       customerId,
+      commodityId: 'cmd-mvhist',
       chamber: 'CH-03',
       bags: 100,
       smallBags: 100, bigBags: 0,

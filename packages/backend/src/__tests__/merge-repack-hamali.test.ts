@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import { connectToTestDatabase, disconnectTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
@@ -32,6 +33,9 @@ describe('Merge Repacking Hamali Charge Accounting', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-hamali-potato-s', commodityId: 'cmd-hamali-potato', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-hamali-potato-m', commodityId: 'cmd-hamali-potato', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
+    await CommodityRateModel.create([{ id: 'crt-cmd-no-hamali-wheat-s', commodityId: 'cmd-no-hamali-wheat', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-no-hamali-wheat-m', commodityId: 'cmd-no-hamali-wheat', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
     await mongoose.connection.collection('rentpayments').deleteMany({});
     await mongoose.connection.collection('internalmovements').deleteMany({});
     await seedFacility({ id: facilityId, code: 'RPH', name: 'Repack Hamali Facility' });

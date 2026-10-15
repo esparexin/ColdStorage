@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
@@ -39,6 +40,8 @@ describe('GRN Chamber Relabel Ledger Synchronization', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-wheat-sync-s', commodityId: 'cmd-wheat-sync', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-wheat-sync-m', commodityId: 'cmd-wheat-sync', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
     await seedFacility({ id: facilityId, code: 'CHSFAC', name: 'Chamber Sync Facility' });
     customerId = await seedCustomer({ id: 'cust-ch-sync', facilityId, name: 'Suresh Kumar' });
     const commodity = await CommodityModel.create({
