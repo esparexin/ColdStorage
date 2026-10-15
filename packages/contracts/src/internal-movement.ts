@@ -6,6 +6,14 @@ import { bagPriceSchema } from './pricing.js';
 export const internalMovementTypeSchema = z.enum(['MERGE', 'TRANSFER_OWNERSHIP']);
 export type InternalMovementType = z.infer<typeof internalMovementTypeSchema>;
 
+export const partialMoveSchema = z.object({
+  sourceGrnId: z.string().trim().min(1),
+  smallBags: z.number().int().min(0).max(100000),
+  bigBags: z.number().int().min(0).max(100000),
+}).refine((d) => d.smallBags + d.bigBags > 0, 'Partial move must move at least one bag');
+
+export type PartialMove = z.infer<typeof partialMoveSchema>;
+
 export const mergeGrnInputSchema = z.object({
   targetGrnId: z.string().trim().min(1, 'Target GRN ID is required'),
   sourceGrnIds: z.array(z.string().trim().min(1)).min(1, 'At least one source GRN is required'),
@@ -25,6 +33,7 @@ export const mergeGrnInputSchema = z.object({
   referenceWeight: z.number().positive('Reference weight must be greater than zero').max(1000000).nullish(),
   sourcePaymentAmount: z.number().min(0, 'Payment amount cannot be negative').nullish(),
   sourcePaymentMode: paymentModeSchema.nullish(),
+  partialMoves: z.array(partialMoveSchema).nullish(),
 });
 export type MergeGrnInput = z.infer<typeof mergeGrnInputSchema>;
 
@@ -53,6 +62,9 @@ export const transferOwnershipInputSchema = z.object({
   sourceBagPrice: bagPriceSchema.nullish(),
   sourceSeasonalBagPrice: bagPriceSchema.nullish(),
   sourceMonthlyBagPrice: bagPriceSchema.nullish(),
+  transferSmallBags: z.number().int().min(0).max(100000).nullish(),
+  transferBigBags: z.number().int().min(0).max(100000).nullish(),
+  newGrnNumber: z.string().trim().min(1).max(20).nullish(),
 });
 export type TransferOwnershipInput = z.infer<typeof transferOwnershipInputSchema>;
 
@@ -75,8 +87,10 @@ export const internalMovementRecordSchema = z.object({
   sourceBagPrice: bagPriceSchema.nullish(),
   sourceSeasonalBagPrice: bagPriceSchema.nullish(),
   sourceMonthlyBagPrice: bagPriceSchema.nullish(),
-  // Legacy internal-movement hamali keys: never written, never returned.
-  // Retained as read-optional so pre-change documents still parse.
+  // Legacy internal-movement hamali keys: repack hamali (repackHamaliBags/Rate/Charge
+  // on the movement record) is written only when an explicit repacking occurs;
+  // the carried-forward `hamaliCarried` and snapshot `hamaliAmount` are never
+  // written and never returned. Retained as read-optional so old docs parse.
   hamaliBags: z.number().min(0).optional(),
   hamaliRate: z.number().min(0).nullish(),
   hamaliCharge: z.number().min(0).optional(),

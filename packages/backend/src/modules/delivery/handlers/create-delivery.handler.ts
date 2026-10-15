@@ -24,6 +24,8 @@ import {
   validateDeliveryDate,
   validateStockAndBalances,
 } from './delivery-validation.helper.js';
+import { resolveDeliveryConflict, resolveIdempotentDelivery, resolveIdempotentDeliveryTx } from './delivery-idempotency.helper.js';
+import { resolveDeliveryGpNumber } from './delivery-gp.helper.js';
 
 export async function createDeliveryWithRetry(
   facilityId: string,
@@ -38,6 +40,8 @@ export async function createDeliveryWithRetry(
     try {
       return await executeDeliveryTransaction(facilityId, input, userId);
     } catch (err: unknown) {
+      const conflict = await resolveDeliveryConflict(facilityId, input as never, err);
+      if (conflict) return conflict;
       if (isTransientError(err) && attempt < maxRetries) {
         const delayMs = 50 * Math.pow(2, attempt) + Math.floor(Math.random() * 25);
         await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -60,11 +64,22 @@ async function executeDeliveryTransaction(
   input: CreateDeliveryInput,
   userId: string,
 ): Promise<{ delivery: DeliveryChallan; summary: DeliverySummary }> {
+  const idemKey = (input as Record<string, unknown>).idempotencyKey as string | null | undefined;
+  const hasKey = typeof idemKey === 'string' && idemKey.length > 0;
+  if (hasKey) {
+    const replay = await resolveIdempotentDelivery(facilityId, idemKey as string, input as never);
+    if (replay) return replay;
+  }
   const session = await mongoose.startSession();
   let createdChallanDoc: DeliveryChallanDoc;
+  let txReplay: { delivery: DeliveryChallan; summary: DeliverySummary } | null = null;
 
   try {
     await session.withTransaction(async () => {
+      if (hasKey) {
+        txReplay = await resolveIdempotentDeliveryTx(facilityId, idemKey as string, input as never, session);
+        if (txReplay) return;
+      }
       const grn = await GrnModel.findOneAndUpdate(
         { id: input.grnId, facilityId },
         { $set: { updatedAt: new Date() } },
@@ -148,23 +163,7 @@ async function executeDeliveryTransaction(
       const deliveryId = `del-${randomUUID()}`;
 
       const marks = input.marks?.trim() || grn.marks || null;
-
-      // Sequential Gate Pass generation and concurrency duplicate prevention
-      let gpNumber: string | null = null;
-      if (input.gpNumber?.trim()) {
-        gpNumber = input.gpNumber.trim();
-        const match = /^GP-(\d+)$/i.exec(gpNumber);
-        if (match && !isNaN(parseInt(match[1], 10))) {
-          await counterService.syncGatePassSequence(facilityId, deliveryDate, parseInt(match[1], 10), session);
-        }
-      } else {
-        gpNumber = await counterService.generateGatePassNumber(facilityId, deliveryDate, session);
-      }
-
-      if (gpNumber) {
-        const existingGp = await DeliveryChallanModel.findOne({ facilityId, gpNumber }, { id: 1 }, { session }).lean().exec();
-        if (existingGp) throw new Error(`Gate Pass number '${gpNumber}' already exists in this facility`);
-      }
+      const gpNumber = await resolveDeliveryGpNumber(facilityId, input.gpNumber, deliveryDate, session);
 
       const challanDocs = await DeliveryChallanModel.create(
         [
@@ -178,6 +177,7 @@ async function executeDeliveryTransaction(
             vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null, driverName: input.driverName?.trim() || null,
             weight: input.weight ?? null, remarks: input.remarks?.trim() || null,
             rentCharge: deliveryRentCharge, status: 'ISSUED', issuedBy: userId,
+            idempotencyKey: idemKey ?? null,
           },
         ],
         { session, ordered: true },
@@ -234,6 +234,7 @@ async function executeDeliveryTransaction(
     await session.endSession();
   }
 
+  if (txReplay) return txReplay;
   const delivery = toChallanEntity(createdChallanDoc!);
   const summary = await getDeliverySummary(facilityId, input.grnId);
 

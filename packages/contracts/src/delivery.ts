@@ -67,6 +67,7 @@ export const createDeliverySchema = z
     paymentAmount: z.number().min(0, 'Payment amount cannot be negative').nullish(),
     paymentMode: paymentModeSchema.nullish(),
     paymentReference: z.string().trim().max(100).nullish(),
+    idempotencyKey: z.string().trim().min(1).max(100).nullish(),
   })
   .refine((data) => (data.quantity && data.quantity > 0) || data.smallBags + data.bigBags > 0, {
     message: 'Delivery must move at least one bag',
@@ -130,6 +131,7 @@ export const deliveryChallanSchema = z.object({
   rentTotalAmount: z.number().min(0).optional(),
   rentTotalPaid: z.number().min(0).optional(),
   rentCharge: z.number().min(0).optional(),
+  idempotencyKey: z.string().min(1).nullable().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

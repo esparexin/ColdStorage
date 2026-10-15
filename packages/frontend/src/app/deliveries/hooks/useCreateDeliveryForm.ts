@@ -31,7 +31,7 @@ export function useCreateDeliveryForm(
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI'>('Cash');
   const [createVehicleNumber, setCreateVehicleNumber] = useState(''); const [createDriverName, setCreateDriverName] = useState('');
   const [createWeight, setCreateWeight] = useState<number | ''>(''); const [createGpNumber, setCreateGpNumber] = useState('');
-  const [createRemarks, setCreateRemarks] = useState('');
+  const [createRemarks, setCreateRemarks] = useState(''); const [idempotencyKey, setIdempotencyKey] = useState(() => `del-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
   const [modalError, setModalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -203,8 +203,10 @@ export function useCreateDeliveryForm(
         paymentAmount: typeof paymentAmount === 'number' && paymentAmount >= 0 ? paymentAmount : undefined,
         paymentMode: typeof paymentAmount === 'number' && paymentAmount > 0 ? paymentMode : undefined,
         createVehicleNumber, createDriverName, createWeight, createGpNumber, createRemarks,
+        idempotencyKey,
       });
       const responseData = await submitDeliveryRequest(facilityId, payload);
+      setIdempotencyKey(`del-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
       onSuccess(responseData.delivery, responseData.summary);
     } catch (err: unknown) {
       setModalError(err instanceof Error ? err.message : 'Failed to issue delivery challan');

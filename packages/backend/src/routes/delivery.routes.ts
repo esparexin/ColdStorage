@@ -56,6 +56,10 @@ deliveryRouter.post(
         return;
       }
       const message = err instanceof Error ? err.message : 'Delivery creation failed';
+      if (message.includes('Idempotency key already used')) {
+        res.status(409).json({ error: message });
+        return;
+      }
       const status =
         message.includes('not found')
           ? 404

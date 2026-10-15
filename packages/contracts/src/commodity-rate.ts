@@ -18,6 +18,15 @@ import type { ExtensionPeriod } from './rent-extension.js';
 export const commodityRentTypeSchema = z.enum(['Monthly', 'Seasonal']);
 export type CommodityRentType = z.infer<typeof commodityRentTypeSchema>;
 
+/**
+ * Controller normalization (F1): Seasonal_3M lots bill from the canonical
+ * Seasonal controller row. Billing stays distinct (3M base + monthly extra);
+ * only the rate lookup is shared. Never converts 3M into ordinary Seasonal rent.
+ */
+export function resolveControllerRentType(rentType: string): CommodityRentType {
+  return rentType === 'Seasonal_3M' ? 'Seasonal' : (rentType as CommodityRentType);
+}
+
 export const commodityRateSchema = z.object({
   id: z.string().min(1),
   commodityId: z.string().min(1),
@@ -44,6 +53,25 @@ export const upsertCommodityRateSchema = z.object({
 });
 
 export type UpsertCommodityRateInput = z.infer<typeof upsertCommodityRateSchema>;
+
+/**
+ * Atomic batch update (F2): Seasonal + Monthly submitted as one logical
+ * operation. All rows validate before any write; no partial success.
+ */
+export const upsertCommodityRateBatchSchema = z.object({
+  commodityId: z.string().trim().min(1, 'Commodity ID is required'),
+  rates: z.array(z.object({
+    rentType: commodityRentTypeSchema,
+    smallRate: bagPriceSchema,
+    bigRate: bagPriceSchema,
+    isActive: z.boolean().optional(),
+  })).min(1).max(2).refine(
+    (rows) => new Set(rows.map((r) => r.rentType)).size === rows.length,
+    'Duplicate rent types in batch',
+  ),
+});
+
+export type UpsertCommodityRateBatchInput = z.infer<typeof upsertCommodityRateBatchSchema>;
 
 export const commodityRateQuerySchema = z.object({
   commodityId: z.string().trim().min(1, 'Commodity ID is required'),

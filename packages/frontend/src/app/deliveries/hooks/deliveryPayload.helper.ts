@@ -19,6 +19,7 @@ export interface DeliveryPayloadInput {
   createWeight: number | '';
   createGpNumber: string;
   createRemarks: string;
+  idempotencyKey?: string;
 }
 
 /**
@@ -77,6 +78,9 @@ export function buildDeliveryPayload(input: DeliveryPayloadInput): Record<string
   }
   if (input.createRemarks.trim()) {
     payload.remarks = input.createRemarks.trim();
+  }
+  if (input.idempotencyKey?.trim()) {
+    payload.idempotencyKey = input.idempotencyKey.trim();
   }
 
   return payload;

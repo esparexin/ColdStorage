@@ -92,7 +92,8 @@ export function CommodityRatesModal({ commodity, onClose, onSaved }: CommodityRa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setModalError(null);
-    const errors = validateRatesForm(form);
+    const hamaliRate = commodity.isHamaliApplicable ? (commodity.hamaliRate ?? 0) : 0;
+    const errors = validateRatesForm(form, hamaliRate);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       setModalError(errors[Object.keys(errors)[0]]);
