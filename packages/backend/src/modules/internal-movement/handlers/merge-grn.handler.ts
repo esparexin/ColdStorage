@@ -12,6 +12,7 @@ import { resolveSourceRentObligation, closeSourceGrnOnMerge } from './merge-grn.
 import { validateMergeRepackedCounts } from './merge-grn-validation.helper.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 import { createMergePutawayTransaction, createMergeMovementRecord } from './merge-grn-movement.helper.js';
+import { resolveMergeRepackHamali } from './merge-repack-hamali.helper.js';
 
 export async function mergeGrn(
   facilityId: string,
@@ -32,6 +33,7 @@ export async function mergeGrn(
   let resultTargetDoc!: unknown;
   let resultMovementDoc!: unknown;
   let finalCarriedRent = 0;
+  let repackHamaliCharge = 0;
 
   try {
     await withMongoRetry(() =>
@@ -121,10 +123,19 @@ export async function mergeGrn(
           ? input.additionalRentAmount
           : totalSourcePendingRent;
 
+      const repackHamali = await resolveMergeRepackHamali({
+        commodityId: targetGrn.commodityId,
+        repackedSmallBags: input.repackedSmallBags,
+        repackedBigBags: input.repackedBigBags,
+        totalMovedBags,
+        session,
+      });
+      repackHamaliCharge = repackHamali.repackHamaliCharge;
+
       const newBags = targetGrn.bags + totalMovedBags;
       const newSmall = targetGrn.smallBags + totalMovedSmall;
       const newBig = targetGrn.bigBags + totalMovedBig;
-      const newRentAmount = targetGrn.rentAmount + finalCarriedRent;
+      const newRentAmount = Number((targetGrn.rentAmount + finalCarriedRent + repackHamali.repackHamaliCharge).toFixed(2));
       const resultingBagType = resolveMergedBagType({
         targetBagType: targetGrn.bagType,
         sourceBagTypes: sourceGrns.map((s) => s.bagType),
@@ -148,12 +159,13 @@ export async function mergeGrn(
 
       const moveDateStr = moveDate.toISOString().split('T')[0];
       const repackedNote = input.repackedSmallBags != null ? ` (Repacked: ${totalMovedSmall} S + ${totalMovedBig} B)` : '';
+      const repackHamaliNote = repackHamali.repackHamaliCharge > 0 ? `. Repacking Hamali: ₹${repackHamali.repackHamaliCharge} (${repackHamali.repackHamaliBags} bags @ ₹${repackHamali.repackHamaliRate}/bag)` : '';
       const categoryNote =
         input.sourceBagCategory != null && isHybridBagCategory(input.sourceBagCategory)
           ? ` (Confirmed Hybrid: ${totalMovedBags} bags)`
           : '';
       const carriedRentNote = finalCarriedRent > 0 ? `. Carried pending rent: ₹${finalCarriedRent}` : '';
-      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${totalMovedBags} bags${repackedNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}. Reason: ${input.remarks.trim()}]`;
+      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${totalMovedBags} bags${repackedNote}${repackHamaliNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}. Reason: ${input.remarks.trim()}]`;
       const updatedTargetRemarks = targetGrn.remarks ? `${targetGrn.remarks}\n${targetNote}` : targetNote;
 
       const updatedTarget = await GrnModel.findOneAndUpdate(
@@ -184,20 +196,13 @@ export async function mergeGrn(
       const targetRentBal = computeRentBalance(targetTotalDue, targetPaid);
 
       resultMovementDoc = await createMergeMovementRecord({
-        facilityId,
-        movementId,
-        moveDate,
-        targetGrn,
-        sourceGrns,
-        totalMovedBags,
-        totalMovedSmall,
-        totalMovedBig,
-        newRentAmount,
-        targetPaid,
-        targetRentBal,
-        input,
-        userId,
-        session,
+        facilityId, movementId, moveDate, targetGrn, sourceGrns,
+        totalMovedBags, totalMovedSmall, totalMovedBig, newRentAmount,
+        targetPaid, targetRentBal,
+        hamaliBags: repackHamali.repackHamaliBags,
+        hamaliRate: repackHamali.repackHamaliRate,
+        hamaliCharge: repackHamali.repackHamaliCharge,
+        input, userId, session,
       });
     }),
     );
@@ -220,6 +225,7 @@ export async function mergeGrn(
       sourceGrnNumbers: movementRecord.sourceGrnNumbers,
       totalBagsMoved: movementRecord.totalBagsMoved,
       carriedRent: finalCarriedRent,
+      repackHamaliCharge,
       newRentAmount: movementRecord.financialSnapshot.rentAmount,
       sourceBagCategory: movementRecord.sourceBagCategory ?? null,
       referenceWeight: input.referenceWeight ?? null,

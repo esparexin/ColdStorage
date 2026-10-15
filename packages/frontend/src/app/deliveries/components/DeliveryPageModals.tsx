@@ -6,6 +6,7 @@ import { ConfirmDialog } from '@/components/ui';
 import { CollectPaymentModal } from '../../rent/components/CollectPaymentModal';
 import { UpdateLoanStatusModal } from '../../grns/components/UpdateLoanStatusModal';
 import { DeliveryDetailModal } from './DeliveryDetailModal';
+import { DeliveryReversalModal } from './DeliveryReversalModal';
 
 interface DeliveryPageModalsProps {
   selectedFacilityId: string | null;
@@ -23,6 +24,9 @@ interface DeliveryPageModalsProps {
   rentPromptDelivery?: DeliveryChallan | null;
   onConfirmRentPrompt?: (delivery: DeliveryChallan) => void;
   onCancelRentPrompt?: () => void;
+  reverseDeliveryTarget?: DeliveryChallan | null;
+  onCloseReverse?: () => void;
+  onReversalSuccess?: () => void;
 }
 
 export function DeliveryPageModals({
@@ -41,6 +45,9 @@ export function DeliveryPageModals({
   rentPromptDelivery,
   onConfirmRentPrompt,
   onCancelRentPrompt,
+  reverseDeliveryTarget,
+  onCloseReverse,
+  onReversalSuccess,
 }: DeliveryPageModalsProps) {
   if (!selectedFacilityId) return null;
   return (
@@ -83,6 +90,15 @@ export function DeliveryPageModals({
           canPrint={canPrint}
           onClose={onCloseRentPay}
           onPaymentSuccess={onRentPaid}
+        />
+      )}
+
+      {reverseDeliveryTarget && onCloseReverse && onReversalSuccess && (
+        <DeliveryReversalModal
+          facilityId={selectedFacilityId}
+          delivery={reverseDeliveryTarget}
+          onClose={onCloseReverse}
+          onSuccess={onReversalSuccess}
         />
       )}
     </>

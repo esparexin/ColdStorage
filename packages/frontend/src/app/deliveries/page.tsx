@@ -33,6 +33,7 @@ export default function DeliveriesPage() {
   const [loanClearedTick, setLoanClearedTick] = useState(0);
   const [initialGrnId, setInitialGrnId] = useState<string | undefined>(undefined);
   const [rentPromptDelivery, setRentPromptDelivery] = useState<DeliveryChallan | null>(null);
+  const [reverseDeliveryTarget, setReverseDeliveryTarget] = useState<DeliveryChallan | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -47,6 +48,7 @@ export default function DeliveriesPage() {
   const canPrint = hasPermission('document:print');
   const canCollectRent = hasPermission('rent:collect');
   const canUpdateLoan = hasPermission('grn:create');
+  const canReverse = hasPermission('delivery:reversal');
 
   const syncTabUrl = (tab: string) => {
     if (typeof window === 'undefined') return;
@@ -77,7 +79,6 @@ export default function DeliveriesPage() {
     setRentPaidTick((t) => t + 1);
     void deliveryData.fetchDeliveries();
   };
-
   const handleLoanClearedFromDelivery = () => {
     setLoanClearGrn(null);
     setLoanClearedTick((t) => t + 1);
@@ -114,12 +115,10 @@ export default function DeliveriesPage() {
 
   const getFilteredEmptyMessage = () => {
     if (deliveryData.searchTerm) return `No delivery challans matching "${deliveryData.searchTerm}".`;
-    const tabMsg: Record<string, string> = {
-      CLOSED: 'No closed delivery challans found for this facility.',
-      DUE: 'No delivery challans with due payments found for this facility.',
-      ACTIVE: 'No active delivery challans found for this facility.',
-    };
-    return tabMsg[deliveryData.statusTab] ?? 'No delivery challans found.';
+    if (deliveryData.statusTab === 'CLOSED') return 'No closed delivery challans found for this facility.';
+    if (deliveryData.statusTab === 'DUE') return 'No delivery challans with due payments found for this facility.';
+    if (deliveryData.statusTab === 'ACTIVE') return 'No active delivery challans found for this facility.';
+    return 'No delivery challans found.';
   };
 
   return (
@@ -200,6 +199,7 @@ export default function DeliveriesPage() {
               caption={`Delivery Challans for ${deliveryData.currentFacilityName}`}
               canPrint={canPrint}
               canCollectRent={canCollectRent}
+              canReverse={canReverse}
               printingId={printingId}
               page={deliveryData.page}
               pageSize={deliveryData.pageSize}
@@ -209,6 +209,7 @@ export default function DeliveriesPage() {
               onSelectDelivery={setSelectedDelivery}
               onPrintChallan={handlePrintChallan}
               onCollectRent={handleCollectRent}
+              onReverseDelivery={setReverseDeliveryTarget}
             />
           )}
         </>
@@ -230,10 +231,10 @@ export default function DeliveriesPage() {
         onRentPaid={handleRentPaidFromDelivery}
         onPrintChallan={handlePrintChallan}
         rentPromptDelivery={rentPromptDelivery}
-        onConfirmRentPrompt={(del) => {
-          setRentPromptDelivery(null);
-          void handleCollectRent(del);
-        }}
+        reverseDeliveryTarget={reverseDeliveryTarget}
+        onCloseReverse={() => setReverseDeliveryTarget(null)}
+        onReversalSuccess={() => { setReverseDeliveryTarget(null); void deliveryData.fetchDeliveries(); }}
+        onConfirmRentPrompt={(del) => { setRentPromptDelivery(null); void handleCollectRent(del); }}
         onCancelRentPrompt={() => {
           const del = rentPromptDelivery;
           setRentPromptDelivery(null);

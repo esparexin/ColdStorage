@@ -14,19 +14,23 @@ import styles from './DeliveryTable.module.css';
 interface CreateDeliveryColumnsParams {
   canPrint: boolean;
   canCollectRent?: boolean;
+  canReverse?: boolean;
   printingId: string | null;
   onSelectDelivery: (delivery: DeliveryChallan) => void;
   onPrintChallan: (challanId: string) => void;
   onCollectRent?: (delivery: DeliveryChallan) => void;
+  onReverseDelivery?: (delivery: DeliveryChallan) => void;
 }
 
 export function createDeliveryColumns({
   canPrint,
   canCollectRent,
+  canReverse,
   printingId,
   onSelectDelivery,
   onPrintChallan,
   onCollectRent,
+  onReverseDelivery,
 }: CreateDeliveryColumnsParams): DataTableColumn<DeliveryChallan>[] {
   return [
     {
@@ -118,10 +122,12 @@ export function createDeliveryColumns({
           row={row}
           canPrint={canPrint}
           canCollectRent={canCollectRent}
+          canReverse={canReverse}
           printingId={printingId}
           onSelectDelivery={onSelectDelivery}
           onPrintChallan={onPrintChallan}
           onCollectRent={onCollectRent}
+          onReverseDelivery={onReverseDelivery}
         />
       ),
     },
