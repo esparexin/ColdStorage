@@ -20,8 +20,11 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           {
             key: 'Content-Security-Policy',
+            // No default-src/script-src: Next.js (dev and prod) relies on inline
+            // bootstrap scripts, which 'self'-only would block and leave the app
+            // unhydrated. Keep clickjacking/object/form/image protections only.
             value:
-              "frame-ancestors 'none'; default-src 'self'; img-src 'self' https://res.cloudinary.com data:; object-src 'none'; base-uri 'self'; form-action 'self'",
+              "frame-ancestors 'none'; img-src 'self' https://res.cloudinary.com data:; object-src 'none'; base-uri 'self'; form-action 'self'",
           },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'no-referrer' },
