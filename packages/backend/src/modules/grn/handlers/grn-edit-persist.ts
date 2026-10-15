@@ -118,6 +118,11 @@ export async function persistCorrection(params: PersistParams): Promise<LeanGrn>
   }
 
   if (input.chamber !== undefined) {
+    await InventoryTransactionModel.updateMany(
+      { facilityId, grnId: grn.id },
+      { $set: { chamber: (update.chamber as string) } },
+      { session },
+    ).exec();
     await DeliveryChallanModel.updateMany(
       { facilityId, grnId: grn.id },
       { $set: { chamber: (update.chamber as string) } },
