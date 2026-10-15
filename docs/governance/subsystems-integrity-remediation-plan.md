@@ -37,10 +37,12 @@
 - **Obligation Base Verification:** Verified `Math.max(rentAmount, outwardRentCharges)` for Monthly/Seasonal_3M and seasonal lock for Seasonal.
 - **Test Evidence:** Verified across `pricing.contracts.test.ts`, `rent-extension.contracts.test.ts`, `seasonal-3m-and-hamali.contracts.test.ts`, `occupancy-rent.test.ts`, `delivery-outward-rent.test.ts`, and `rent-billing-lifecycle.test.ts`. All 250 contract tests and 17 backend rent tests passing.
 
-### Phase 5 — Internal Movement and GRN Merging
-- **Rent Type Guard:** Verify strict rent type equality (`source.rentType === target.rentType`).
-- **Repacking Hamali Labor:** Verify `merge-repack-hamali.helper.ts` labor calculation ($B_{\text{moved}} \times \text{hamaliRate}$) added to `targetGrn.rentAmount`.
-- **Bag Type Rollup:** Verify `resolveMergedBagType` transitions.
+### Phase 5 — Internal Movement and GRN Merging (Verified)
+- **Rent Type Guard:** Enforced strict rent type equality (`source.rentType === target.rentType`).
+- **Repacking Hamali Labor:** Verified `merge-repack-hamali.helper.ts` labor calculation ($B_{\text{moved}} \times \text{hamaliRate}$) added to `targetGrn.rentAmount`.
+- **Bag Type Rollup & Partial Moves:** Verified `resolveMergedBagType` transitions, ledger stock movement, partial deduction preserving source OPEN status, and full merge closing source lot.
+- **Financial & Payment Continuity:** Verified source pre-merge payments remain intact, unpaid rent is carried without duplication, and overpayments are rejected.
+- **Test Evidence:** Verified across `merge-repack-hamali.test.ts`, `hamali-merge-accounting.test.ts`, `merge-bag-category.test.ts`, `merge-grn-rent.test.ts`, `merge-grn-guards.test.ts`, `internal-movement.test.ts`, `seasonal-merge-rent-verification.test.ts`, and `merge-pre-settlement-overpayment.test.ts`. All 39 integration tests passing.
 
 ### Phase 6 — Ownership Transfer
 - **Full Transfer:** Verify prospective delivery-style rent evaluation at transfer date (`computeExpectedDeliveryRent`) and settlement gate (`SETTLE_NOW` vs `AGREED_PENDING`).
