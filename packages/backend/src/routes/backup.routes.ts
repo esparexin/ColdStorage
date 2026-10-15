@@ -147,7 +147,12 @@ backupRouter.get(
   requirePermission('backup:manage'),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const result = await inspectBackup(req.params['id'] as string);
+      const backupId = req.params['id'] as string;
+      if (!/^[A-Za-z0-9_-]{1,128}$/.test(backupId)) {
+        res.status(400).json({ error: 'Invalid backup ID format' });
+        return;
+      }
+      const result = await inspectBackup(backupId);
       res.status(200).json(result);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Inspect failed';

@@ -3,11 +3,14 @@ import type { Request, Response, NextFunction } from 'express';
 export function securityHeadersMiddleware(req: Request, res: Response, next: NextFunction): void {
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'",
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
   );
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
 
   if (process.env.NODE_ENV === 'production' || process.env.ENABLE_HSTS === 'true') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');

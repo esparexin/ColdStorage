@@ -50,6 +50,17 @@ export function createApp(): Express {
 
   app.use(securityHeadersMiddleware);
   const allowedOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
+  if (process.env.NODE_ENV === 'production') {
+    if (allowedOrigin === '*' || allowedOrigin.includes(',')) {
+      throw new Error('CORS_ORIGIN must be a single origin in production (no "*" or lists).');
+    }
+    if (!allowedOrigin.startsWith('https://')) {
+      throw new Error('CORS_ORIGIN must be https:// in production.');
+    }
+    if (process.env.COOKIE_SECURE === 'false') {
+      throw new Error('COOKIE_SECURE=false is forbidden in production.');
+    }
+  }
   app.use(
     cors({
       origin: allowedOrigin,

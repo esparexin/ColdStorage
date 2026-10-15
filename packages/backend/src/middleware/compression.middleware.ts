@@ -14,6 +14,12 @@ export function compressionMiddleware(req: Request, res: Response, next: NextFun
     return;
   }
 
+  // 1b. Never compress auth responses (tokens + PII) to close BREACH-style oracle.
+  if (req.path.includes('/api/auth/') || req.path.includes('/auth/')) {
+    next();
+    return;
+  }
+
   // 2. Verify client accepts gzip encoding
   const acceptEncoding = req.headers['accept-encoding'];
   if (!acceptEncoding || typeof acceptEncoding !== 'string' || !acceptEncoding.includes('gzip')) {
