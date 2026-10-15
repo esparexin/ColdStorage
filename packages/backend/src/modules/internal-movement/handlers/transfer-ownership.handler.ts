@@ -14,7 +14,7 @@ import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
-import { settleTransferRent } from './transfer-ownership.helper.js';
+import { formatTransferAuditNote, settleTransferRent } from './transfer-ownership.helper.js';
 import { validateTransferBagConfirmation } from './transfer-ownership-validation.helper.js';
 export async function transferOwnership(
   facilityId: string,
@@ -83,10 +83,7 @@ export async function transferOwnership(
           bigBagPrice: grn.bigBagPrice,
           bagPrice: grn.bagPrice,
         },
-        withdrawal: {
-          smallBags: bal.smallBags,
-          bigBags: bal.bigBags,
-        },
+        withdrawal: { smallBags: bal.smallBags, bigBags: bal.bigBags },
         deliveryDate: movementDate,
         session,
       });
@@ -126,37 +123,31 @@ export async function transferOwnership(
           id: grn.id,
           rentAmount: effectiveObligation,
           rentType: grn.rentType,
-          outwardRentCharges: await rentRepository.getOutwardRentChargesForGrn(
-            facilityId,
-            grn.id,
-            session,
-          ),
+          outwardRentCharges: await rentRepository.getOutwardRentChargesForGrn(facilityId, grn.id, session),
           hamaliShare: transferHamaliShare,
         },
         session,
       );
       const rentBal = computeRentBalance(totalDue, totalPaid);
 
-      // 2. Strict settlement gate: Outstanding rent must be settled prior to ownership transfer
+      // 2. Settlement gate: Settles dues under SETTLE_NOW or carries forward under AGREED_PENDING
       const { paymentRecord, effectiveRentBal } = await settleTransferRent({
-        facilityId,
-        grnId: grn.id,
-        grnNumber: grn.grnNumber,
-        newCustomerName: newCustomer.name,
-        movementDate,
-        totalDue,
-        totalPaid,
-        rentBal,
-        input,
-        userId,
-        session,
+        facilityId, grnId: grn.id, grnNumber: grn.grnNumber, newCustomerName: newCustomer.name,
+        movementDate, totalDue, totalPaid, rentBal, input, userId, session,
       });
 
       const movementId = `mov-${randomUUID()}`;
       const transferDateStr = movementDate.toISOString().split('T')[0];
-      const transferNote = paymentRecord
-        ? `[OWNERSHIP TRANSFERRED on ${transferDateStr}: from ${grn.customerName} (ID: ${grn.customerId}) to ${newCustomer.name} (ID: ${newCustomer.id}). Settled at transfer: ₹${paymentRecord.amountPaid} (Receipt #${paymentRecord.receiptNumber}). Rent obligation: ₹${effectiveRentBal.rentAmount} (Status: Settled). Reason: ${input.remarks.trim()}]`
-        : `[OWNERSHIP TRANSFERRED on ${transferDateStr}: from ${grn.customerName} (ID: ${grn.customerId}) to ${newCustomer.name} (ID: ${newCustomer.id}). Rent obligation: ₹${effectiveRentBal.rentAmount} previously settled (Prior collected: ₹${effectiveRentBal.totalPaid}). Reason: ${input.remarks.trim()}]`;
+      const transferNote = formatTransferAuditNote({
+        transferDateStr,
+        fromName: grn.customerName,
+        fromId: grn.customerId,
+        toName: newCustomer.name,
+        toId: newCustomer.id,
+        paymentRecord,
+        effectiveRentBal,
+        remarks: input.remarks,
+      });
       const updatedRemarks = grn.remarks ? `${grn.remarks}\n${transferNote}` : transferNote;
 
       const updateFields: Record<string, unknown> = {
