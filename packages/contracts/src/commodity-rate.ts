@@ -95,8 +95,8 @@ export function pickRateForBags(rate: Pick<CommodityRate, 'smallRate' | 'bigRate
  * `calculateRentAmount` SSOT (no duplicated formula).
  * - SEASON: whole-season total (never × months).
  * - JANUARY/FEBRUARY: one month at the monthly rate.
- * S+B snapshots keep their small/big split; single bag types resolve to the
- * matching side (S and informational S/B resolve to the small-bag rate).
+ * S+B and S/B snapshots keep their small/big split; single bag types resolve
+ * to the matching side.
  */
 export function calculatePeriodRent(input: {
   period: ExtensionPeriod;
@@ -107,7 +107,7 @@ export function calculatePeriodRent(input: {
   bigRate: number;
 }): number {
   const total = input.snapshotSmallBags + input.snapshotBigBags;
-  const useSplit = input.bagType === 'S+B';
+  const useSplit = input.bagType === 'S+B' || input.bagType === 'S/B';
   return calculateRentAmount({
     rentType: input.period === 'SEASON' ? 'Seasonal' : 'Monthly',
     bags: total,

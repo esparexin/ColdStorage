@@ -80,16 +80,18 @@ describe('Price Controller commodity rates', () => {
     ).toBe(1200);
     // S+B split preserved: 60 × 10 + 40 × 15 = ₹1,200 either period kind
     for (const period of ['SEASON', 'FEBRUARY'] as const) {
-      expect(
-        calculatePeriodRent({
-          period,
-          bagType: 'S+B',
-          snapshotSmallBags: 60,
-          snapshotBigBags: 40,
-          smallRate: 10,
-          bigRate: 15,
-        }),
-      ).toBe(1200);
+      for (const bagType of ['S+B', 'S/B'] as const) {
+        expect(
+          calculatePeriodRent({
+            period,
+            bagType,
+            snapshotSmallBags: 60,
+            snapshotBigBags: 40,
+            smallRate: 10,
+            bigRate: 15,
+          }),
+        ).toBe(1200);
+      }
     }
   });
 
