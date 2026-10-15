@@ -5,6 +5,7 @@ import {
   rentTypeSchema,
   resolveControllerRentType,
   updateCommoditySchema,
+  upsertCommodityRateBatchSchema,
   upsertCommodityRateSchema,
 } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
@@ -103,6 +104,28 @@ commodityRouter.get(
  * row for one (commodity, rent type) pair. Restricted to commodity managers.
  * Never reprices existing GRNs or payments.
  */
+commodityRouter.put(
+  '/:commodityId/rates/batch',
+  requirePermission('commodity:manage'),
+  async (req: Request, res: Response): Promise<void> => {
+    const commodityId = getParamId(req.params.commodityId);
+    const parseResult = upsertCommodityRateBatchSchema.safeParse({ commodityId, rates: req.body.rates ?? req.body });
+    if (!parseResult.success) {
+      res.status(400).json({ error: 'Validation failed', details: parseResult.error.flatten() });
+      return;
+    }
+    try {
+      const rates = await commodityRateService.upsertRateBatch(
+        commodityId,
+        parseResult.data.rates.map((r) => ({ ...r, commodityId })),
+      );
+      res.status(200).json({ rates });
+    } catch (err: unknown) {
+      sendServiceError(res, err, 'Commodity rate batch update failed');
+    }
+  },
+);
+
 commodityRouter.put(
   '/:commodityId/rates',
   requirePermission('commodity:manage'),

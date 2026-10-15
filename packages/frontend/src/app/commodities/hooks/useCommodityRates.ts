@@ -57,6 +57,23 @@ export function useCommodityRates(commodityId: string | null) {
       if (!commodityId) throw new Error('No commodity selected');
       setSaving(true);
       try {
+        const batchRes = await requestWithAuth(
+          `/api/commodities/${encodeURIComponent(commodityId)}/rates/batch`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rates: payloads }),
+          },
+        );
+        if (batchRes.ok) {
+          invalidateCache('/api/commodities');
+          await fetchRates();
+          return;
+        }
+        if (batchRes.status !== 404) {
+          const err = (await batchRes.json().catch(() => ({}))) as { error?: string };
+          throw new Error(err.error ?? 'Failed to save rates as one operation');
+        }
         for (const payload of payloads) {
           const res = await requestWithAuth(
             `/api/commodities/${encodeURIComponent(commodityId)}/rates`,

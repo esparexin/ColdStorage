@@ -202,6 +202,42 @@ export class CommodityRateService {
       isActive: doc.isActive,
     };
   }
+
+  /**
+   * Atomic batch upsert (F2): validate all rows (incl. hamali guard) before
+   * any write; on partial failure restore snapshots (rollback). No txn
+   * dependency: safe on standalone MongoDB; uses same per-row upsert path.
+   */
+  public async upsertRateBatch(commodityId: string, rows: UpsertCommodityRateInput[]): Promise<CommodityRate[]> {
+    const commodity = await CommodityModel.findOne({ id: commodityId }).lean().exec();
+    if (!commodity) throw new Error(`Commodity '${commodityId}' not found`);
+    const hamaliRate = commodity.isHamaliApplicable ? (commodity.hamaliRate ?? 0) : 0;
+    for (const r of rows) {
+      if (hamaliRate > 0 && (r.smallRate <= hamaliRate || r.bigRate <= hamaliRate)) {
+        throw new Error(`Submitted ${r.rentType} rates must exceed Hamali ₹${hamaliRate}/bag`);
+      }
+    }
+    const snapshots = await CommodityRateModel.find({ commodityId }).lean().exec();
+    const results: CommodityRate[] = [];
+    try {
+      for (const r of rows) results.push(await this.upsertRate({ ...r, commodityId }));
+      return results;
+    } catch (err) {
+      for (const snap of snapshots) {
+        await CommodityRateModel.findOneAndUpdate(
+          { commodityId, rentType: snap.rentType },
+          { $set: { smallRate: snap.smallRate, bigRate: snap.bigRate, isActive: snap.isActive } },
+        ).exec();
+      }
+      const added = snapshots.length === 0 ? [] : snapshots.map((s) => s.rentType);
+      for (const r of rows) {
+        if (!added.includes(r.rentType as never) && !snapshots.some((s) => s.rentType === (r.rentType as string))) {
+          await CommodityRateModel.deleteOne({ commodityId, rentType: r.rentType }).exec();
+        }
+      }
+      throw err;
+    }
+  }
 }
 
 export const commodityRateService = new CommodityRateService();

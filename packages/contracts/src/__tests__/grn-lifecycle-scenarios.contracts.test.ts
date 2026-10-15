@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateRentAmount, calculateMonthlyElapsedCycles, resolveControllerRentType } from '../index.js';
+import { calculateRentAmount, calculateMonthlyElapsedCycles, resolveControllerRentType, upsertCommodityRateBatchSchema } from '../index.js';
 import { GRN_LIFECYCLE_FIXTURES } from './grn-lifecycle-scenarios.fixtures.js';
 
 describe('GRN lifecycle baseline scenarios (Phase 0)', () => {
@@ -32,5 +32,24 @@ describe('GRN lifecycle baseline scenarios (Phase 0)', () => {
       rentType: 'Seasonal_3M', bags: 40, bagType: 'S',
       smallBagPrice: 10, bigBagPrice: 15, rentMonths: 3,
     })).toBe(400);
+  });
+
+  it('batch rate schema requires distinct rent types (F2 atomicity)', () => {
+    const ok = upsertCommodityRateBatchSchema.safeParse({
+      commodityId: 'cmd-1',
+      rates: [
+        { rentType: 'Seasonal', smallRate: 10, bigRate: 15 },
+        { rentType: 'Monthly', smallRate: 12, bigRate: 18 },
+      ],
+    });
+    expect(ok.success).toBe(true);
+    const dup = upsertCommodityRateBatchSchema.safeParse({
+      commodityId: 'cmd-1',
+      rates: [
+        { rentType: 'Seasonal', smallRate: 10, bigRate: 15 },
+        { rentType: 'Seasonal', smallRate: 11, bigRate: 16 },
+      ],
+    });
+    expect(dup.success).toBe(false);
   });
 });

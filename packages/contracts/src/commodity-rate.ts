@@ -54,6 +54,25 @@ export const upsertCommodityRateSchema = z.object({
 
 export type UpsertCommodityRateInput = z.infer<typeof upsertCommodityRateSchema>;
 
+/**
+ * Atomic batch update (F2): Seasonal + Monthly submitted as one logical
+ * operation. All rows validate before any write; no partial success.
+ */
+export const upsertCommodityRateBatchSchema = z.object({
+  commodityId: z.string().trim().min(1, 'Commodity ID is required'),
+  rates: z.array(z.object({
+    rentType: commodityRentTypeSchema,
+    smallRate: bagPriceSchema,
+    bigRate: bagPriceSchema,
+    isActive: z.boolean().optional(),
+  })).min(1).max(2).refine(
+    (rows) => new Set(rows.map((r) => r.rentType)).size === rows.length,
+    'Duplicate rent types in batch',
+  ),
+});
+
+export type UpsertCommodityRateBatchInput = z.infer<typeof upsertCommodityRateBatchSchema>;
+
 export const commodityRateQuerySchema = z.object({
   commodityId: z.string().trim().min(1, 'Commodity ID is required'),
   rentType: commodityRentTypeSchema,
