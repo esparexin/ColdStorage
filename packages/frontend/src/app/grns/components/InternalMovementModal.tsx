@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { ArrowRightLeft, GitMerge, UserCheck } from 'lucide-react';
-import type { Customer, Grn, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
+import type { Commodity, Customer, Grn, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
 import { Banner, Button, Modal } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
 import { InternalMovementMergeTab } from './InternalMovementMergeTab';
@@ -15,6 +15,7 @@ interface InternalMovementModalProps {
   facilityId: string;
   allGrns: Grn[];
   customers: Customer[];
+  commodities?: Commodity[];
   onClose: () => void;
   onSuccess: (updatedGrn: Grn) => void;
 }
@@ -34,6 +35,7 @@ export function InternalMovementModal({
   facilityId,
   allGrns,
   customers,
+  commodities,
   onClose,
   onSuccess,
 }: InternalMovementModalProps) {
@@ -45,10 +47,7 @@ export function InternalMovementModal({
 
   const formatApiError = (data: ApiErrorResponse, fallback: string): string => {
     if (data.details?.fieldErrors && Object.keys(data.details.fieldErrors).length > 0) {
-      const fieldEntries = Object.entries(data.details.fieldErrors).map(
-        ([field, msgs]) => `${field}: ${msgs.join(', ')}`,
-      );
-      return `Validation failed: ${fieldEntries.join(' | ')}`;
+      return `Validation failed: ${Object.entries(data.details.fieldErrors).map(([f, m]) => `${f}: ${m.join(', ')}`).join(' | ')}`;
     }
     if (data.details?.formErrors && data.details.formErrors.length > 0) {
       return `Validation failed: ${data.details.formErrors.join(' | ')}`;
@@ -228,6 +227,7 @@ export function InternalMovementModal({
           <InternalMovementMergeTab
             currentGrn={grn}
             allGrns={allGrns}
+            commodities={commodities}
             submitting={submitting}
             onExecuteMerge={handleExecuteMerge}
           />

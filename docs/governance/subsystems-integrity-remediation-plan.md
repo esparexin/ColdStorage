@@ -49,9 +49,10 @@
 - **Partial Transfer:** Verified split-GRN initialization (`rentAmount: 0`, `hamaliRate: 0`, `hamaliAmount: 0`, preserved inward date, inherited rent rates), ledger inventory transfer (`OUTWARD_DELIVERY` + `INWARD_PUTAWAY`), and source liability retention.
 - **Test Evidence:** Verified across `transfer-ownership-rent.test.ts` and `transfer-ownership-hamali.test.ts`. All 8 integration tests passing.
 
-### Phase 7 — UI/UX and Code Quality
-- **Merge Tab Transparency:** Add live repacking labor charge preview card in `InternalMovementMergeTab.tsx`.
-- **Schema Cleanup:** Tag dead delivery challan hamali fields and dormant commodity rate hamali fields as `@deprecated`.
+### Phase 7 — UI/UX and Code Quality (Completed)
+- **Merge Tab Transparency:** Added live repacking labor charge preview card in `InternalMovementMergeTab.tsx` displaying `₹{repackHamaliCharge} ({totalSourceBags} bags @ ₹{commodityHamaliRate}/bag)` based on the target commodity's master hamali rate. Passed `commodities` from `GrnPageModals` through `InternalMovementModal`.
+- **Schema Governance:** Verified `@deprecated` documentation and schema comments on dead delivery challan hamali fields (`hamaliRate`, `hamaliCharge`) and dormant commodity rate hamali fields (`hamaliRate`).
+- **Code Quality & Line Budgets:** Kept all modified frontend files strictly within the 250-line budget ratchet (`GrnPageModals.tsx`: 182 lines, `InternalMovementModal.tsx`: 246 lines, `InternalMovementMergeTab.tsx`: 247 lines). All a11y, SSOT, boundary, and hygiene gates passing.
 
 ### Phase 8 — Verification and PR Readiness
 - Run full regression suites across all packages.

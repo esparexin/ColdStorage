@@ -138,6 +138,7 @@ export function GrnPageModals({
           facilityId={selectedFacilityId}
           allGrns={allGrns}
           customers={customers}
+          commodities={commodities}
           onClose={onCloseInternalMovementModal}
           onSuccess={onInternalMovementSuccess}
         />

@@ -2,10 +2,12 @@
 
 import React, { useMemo, useState } from 'react';
 import {
+  calculateHamaliAmount,
   isBagCompositionVerified,
   isHybridBagCategory,
   resolveMergedBagType,
   seasonYearForInwardDate,
+  type Commodity,
   type Grn,
   type OutwardBagCategory,
   type PaymentMode,
@@ -19,9 +21,7 @@ import { MergeSourceTable } from './MergeSourceTable';
 import styles from './InternalMovementModal.module.css';
 
 interface InternalMovementMergeTabProps {
-  currentGrn: Grn;
-  allGrns: Grn[];
-  submitting: boolean;
+  currentGrn: Grn; allGrns: Grn[]; commodities?: Commodity[]; submitting: boolean;
   onExecuteMerge: (
     targetGrnId: string, sourceGrnIds: string[], reason: string, remarks?: string,
     movementDate?: string, additionalRentAmount?: number, repackedSmallBags?: number,
@@ -33,24 +33,17 @@ interface InternalMovementMergeTabProps {
 }
 
 export function InternalMovementMergeTab({
-  currentGrn,
-  allGrns,
-  submitting,
-  onExecuteMerge,
+  currentGrn, allGrns, commodities, submitting, onExecuteMerge,
 }: InternalMovementMergeTabProps) {
   const [targetGrnId, setTargetGrnId] = useState<string>(currentGrn.id);
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
   const [movementDate, setMovementDate] = useState(new Date().toISOString().slice(0, 10));
-  const [reason, setReason] = useState('');
-  const [remarks, setRemarks] = useState('');
+  const [reason, setReason] = useState(''), [remarks, setRemarks] = useState('');
   const [repackMode, setRepackMode] = useState(false);
-  const [repackSmall, setRepackSmall] = useState<number | ''>('');
-  const [repackBig, setRepackBig] = useState<number | ''>('');
+  const [repackSmall, setRepackSmall] = useState<number | ''>(''), [repackBig, setRepackBig] = useState<number | ''>('');
   const [confirmation, setConfirmation] = useState<BagConfirmationValue>(DEFAULT_BAG_CONFIRMATION);
-  const [rentAcknowledged, setRentAcknowledged] = useState(false);
-  const [aggregatePending, setAggregatePending] = useState(0);
-  const [referenceWeight, setReferenceWeight] = useState<number | ''>('');
-  const [sourcePaymentAmount, setSourcePaymentAmount] = useState<number | ''>('');
+  const [rentAcknowledged, setRentAcknowledged] = useState(false), [aggregatePending, setAggregatePending] = useState(0);
+  const [referenceWeight, setReferenceWeight] = useState<number | ''>(''), [sourcePaymentAmount, setSourcePaymentAmount] = useState<number | ''>('');
   const [sourcePaymentMode, setSourcePaymentMode] = useState<PaymentMode>('Cash');
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -70,7 +63,6 @@ export function InternalMovementMergeTab({
   const isTargetLoanHold = targetGrn.loanStatus === 'TAKEN';
 
   const hasPreviousSeason = useMemo(() => selectedSources.some((s) => seasonYearForInwardDate(s.date) < targetSeason), [selectedSources, targetSeason]);
-
   const isTargetDiff = (targetGrn.smallBagPrice != null || targetGrn.bigBagPrice != null) && targetGrn.smallBagPrice !== targetGrn.bigBagPrice;
   const isTargetUnverified = !isBagCompositionVerified({ bagType: targetGrn.bagType, bags: targetGrn.bags, smallBags: targetGrn.smallBags, bigBags: targetGrn.bigBags });
   const hasDiffRates = isTargetDiff || selectedSources.some((s) => (s.smallBagPrice != null || s.bigBagPrice != null) && s.smallBagPrice !== s.bigBagPrice);
@@ -80,6 +72,17 @@ export function InternalMovementMergeTab({
   const isRepackRequired = repackMode || hasUnconfirmedMix;
   const isRepackFilled = typeof repackSmall === 'number' && typeof repackBig === 'number' && Number.isInteger(repackSmall) && Number.isInteger(repackBig);
   const patchConfirmation = (patch: Partial<BagConfirmationValue>) => setConfirmation((prev) => ({ ...prev, ...patch }));
+
+  const targetCommodity = useMemo(() => commodities?.find((c) => c.id === targetGrn.commodityId), [commodities, targetGrn.commodityId]);
+  const commodityHamaliRate = useMemo(() => {
+    if (!targetCommodity) return 0;
+    const isApp = targetCommodity.isHamaliApplicable ?? (targetCommodity.hamaliRate ?? 0) > 0;
+    return isApp ? (targetCommodity.hamaliRate ?? 0) : 0;
+  }, [targetCommodity]);
+  const repackHamaliCharge = useMemo(() => {
+    if (!isRepackFilled || totalSourceBags <= 0 || commodityHamaliRate <= 0) return 0;
+    return calculateHamaliAmount(totalSourceBags, commodityHamaliRate);
+  }, [isRepackFilled, totalSourceBags, commodityHamaliRate]);
 
   const rawMovedSmall = selectedSources.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
   const rawMovedBig = selectedSources.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
@@ -109,27 +112,20 @@ export function InternalMovementMergeTab({
     if (selectedSourceIds.length === 0) return setValidationError('Select at least one source GRN to merge.');
     if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
     if (isTargetLoanHold) return setValidationError(`Target GRN '${targetGrn.grnNumber}' has an active loan hold.`);
-
     const confirmError = validateBagConfirmation({
       category: confirmation.category, quantity: confirmation.quantity, bagPrice: confirmation.bagPrice, seasonalBagPrice: confirmation.seasonalBagPrice,
       monthlyBagPrice: confirmation.monthlyBagPrice, repackSmall, repackBig, totalMovedBags: totalSourceBags, isRepackRequired,
     });
     if (confirmError) return setValidationError(confirmError);
-
-    const confSmall = isRepackFilled ? Number(repackSmall) : undefined;
-    const confBig = isRepackFilled ? Number(repackBig) : undefined;
-    if (aggregatePending > 0 && !rentAcknowledged) {
-      return setValidationError('Please acknowledge the reviewed source dues above. Amounts are revalidated at execution.');
-    }
-    const refWeight = typeof referenceWeight === 'number' && Number.isFinite(referenceWeight) && referenceWeight > 0 ? referenceWeight : undefined;
+    if (aggregatePending > 0 && !rentAcknowledged) return setValidationError('Please acknowledge the reviewed source dues above. Amounts are revalidated at execution.');
     const srcPayment = typeof sourcePaymentAmount === 'number' && Number.isFinite(sourcePaymentAmount) && sourcePaymentAmount >= 0 ? sourcePaymentAmount : undefined;
     if (srcPayment != null && srcPayment > 0 && selectedSourceIds.length > 1) {
       return setValidationError('Previous-season settlement can only be collected when merging a single source GRN. Merge one source at a time when collecting payment.');
     }
-
-    // Untouched default category stays legacy; explicit/required/filled confirmations record informationally.
-    const sendCategory = (confirmation.category !== 'Small & Big' || isRepackRequired || isRepackFilled) ? confirmation.category : undefined;
-    await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0, confSmall, confBig, refWeight, srcPayment, sourcePaymentMode, sendCategory, typeof confirmation.quantity === 'number' ? confirmation.quantity : undefined, typeof confirmation.bagPrice === 'number' ? confirmation.bagPrice : undefined, typeof confirmation.seasonalBagPrice === 'number' ? confirmation.seasonalBagPrice : undefined, typeof confirmation.monthlyBagPrice === 'number' ? confirmation.monthlyBagPrice : undefined);
+    const confSmall = isRepackFilled ? Number(repackSmall) : undefined, confBig = isRepackFilled ? Number(repackBig) : undefined;
+    const refWeight = typeof referenceWeight === 'number' && Number.isFinite(referenceWeight) && referenceWeight > 0 ? referenceWeight : undefined;
+    const sendCat = (confirmation.category !== 'Small & Big' || isRepackRequired || isRepackFilled) ? confirmation.category : undefined;
+    await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0, confSmall, confBig, refWeight, srcPayment, sourcePaymentMode, sendCat, typeof confirmation.quantity === 'number' ? confirmation.quantity : undefined, typeof confirmation.bagPrice === 'number' ? confirmation.bagPrice : undefined, typeof confirmation.seasonalBagPrice === 'number' ? confirmation.seasonalBagPrice : undefined, typeof confirmation.monthlyBagPrice === 'number' ? confirmation.monthlyBagPrice : undefined);
   };
 
   return (
@@ -172,11 +168,8 @@ export function InternalMovementMergeTab({
           </div>
         )}
         <MergeSourceTable
-          eligibleSources={eligibleSources}
-          selectedSourceIds={selectedSourceIds}
-          targetGrnDate={targetGrn.date}
-          submitting={submitting}
-          onToggleSource={toggleSource}
+          eligibleSources={eligibleSources} selectedSourceIds={selectedSourceIds}
+          targetGrnDate={targetGrn.date} submitting={submitting} onToggleSource={toggleSource}
         />
       </div>
 
@@ -197,10 +190,18 @@ export function InternalMovementMergeTab({
               <strong>{!hasDiffRates ? `${targetNewRemaining} Hybrid Bags` : `${resultingSmall}S · ${resultingBig}B`}</strong>
             </span>
           </div>
+          {repackHamaliCharge > 0 && (
+            <div className={styles.detailRow} style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
+              <span className={styles.detailLabel}>Repacking Hamali Labor:</span>
+              <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}>
+                ₹{repackHamaliCharge} ({totalSourceBags} bags @ ₹{commodityHamaliRate}/bag)
+              </span>
+            </div>
+          )}
 
           <MergeBagCategoryFields
-            value={confirmation} onChange={patchConfirmation}
-            totalMovedBags={totalSourceBags} rentType={confirmSource.rentType} inwardDate={confirmSource.date} movementDate={movementDate}
+            value={confirmation} onChange={patchConfirmation} totalMovedBags={totalSourceBags}
+            rentType={confirmSource.rentType} inwardDate={confirmSource.date} movementDate={movementDate}
             repackMode={repackMode} onRepackModeChange={(v) => { setRepackMode(v); if (!v && !hasUnconfirmedMix) { setRepackSmall(''); setRepackBig(''); setReferenceWeight(''); } }}
             repackSmall={repackSmall} onRepackSmallChange={setRepackSmall} repackBig={repackBig} onRepackBigChange={setRepackBig}
             referenceWeight={referenceWeight} onReferenceWeightChange={setReferenceWeight}
@@ -217,13 +218,11 @@ export function InternalMovementMergeTab({
               <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
                 <Input id="source-payment" type="number" min={0} placeholder="Payment Received (₹)" aria-label="Previous season payment received in rupees" value={sourcePaymentAmount} onChange={(e) => setSourcePaymentAmount(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
                 <Select id="source-pay-mode" aria-label="Payment mode" value={sourcePaymentMode} onChange={(e) => setSourcePaymentMode(e.target.value as PaymentMode)} disabled={submitting}>
-                  <option value="Cash">Cash</option>
-                  <option value="UPI">UPI</option>
+                  <option value="Cash">Cash</option><option value="UPI">UPI</option>
                 </Select>
               </div>
             </div>
           )}
-
           <div className={styles.formSection}>
             <label htmlFor="merge-date" className={styles.inputLabel}>Movement Date *</label>
             <Input id="merge-date" type="date" value={movementDate} onChange={(e) => setMovementDate(e.target.value)} disabled={submitting} required />
@@ -240,9 +239,7 @@ export function InternalMovementMergeTab({
             <label htmlFor="merge-remarks" className={styles.inputLabel}>Additional Remarks (Optional)</label>
             <textarea id="merge-remarks" aria-label="Additional Remarks" rows={2} className={styles.textarea} placeholder="Notes for ledger history..." value={remarks} onChange={(e) => setRemarks(e.target.value)} disabled={submitting} />
           </div>
-          <div className={styles.noticeBox} style={{ marginTop: 'auto' }}>
-            Stock completion ≠ Financial settlement. Original financial obligations, payments, and balances are preserved.
-          </div>
+          <div className={styles.noticeBox} style={{ marginTop: 'auto' }}>Stock completion ≠ Financial settlement. Original financial obligations, payments, and balances are preserved.</div>
         </div>
       </div>
     </form>
