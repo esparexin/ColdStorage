@@ -48,6 +48,10 @@ describe('Phase 2: ledger authority (ledger-balance.test.ts)', () => {
       isActive: true,
     });
     commodityId = commodity.id;
+    await CommodityRateModel.create([
+      { id: `crt-${commodityId}-s`, commodityId, rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true },
+      { id: `crt-${commodityId}-m`, commodityId, rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true },
+    ]);
   });
 
   it('createGrn writes exactly one INWARD_PUTAWAY row carrying the composition', async () => {
@@ -91,8 +95,7 @@ describe('Phase 2: ledger authority (ledger-balance.test.ts)', () => {
 
   it('a mixed receipt balances per bag type through delivery and full reversal', async () => {
     const grnId = await seedGrn({
-      facilityId,
-      customerId,
+      facilityId, customerId, commodityId,
       chamber: 'CH-L1',
       bags: 200,
       bagType: 'S+B',
@@ -150,8 +153,7 @@ describe('Phase 2: ledger authority (ledger-balance.test.ts)', () => {
 
   it('the per-type guard rejects a withdrawal the combined total would allow', async () => {
     const grnId = await seedGrn({
-      facilityId,
-      customerId,
+      facilityId, customerId, commodityId,
       chamber: 'CH-L1',
       bags: 200,
       bagType: 'S+B',
@@ -170,15 +172,13 @@ describe('Phase 2: ledger authority (ledger-balance.test.ts)', () => {
 
   it('rolls stock up by chamber and commodity across GRNs in one facility', async () => {
     await seedGrn({
-      facilityId,
-      customerId,
+      facilityId, customerId, commodityId,
       chamber: 'CH-A',
       bags: 100,
       grnNumber: 'GRN-26-27-LB03',
     });
     await seedGrn({
-      facilityId,
-      customerId,
+      facilityId, customerId, commodityId,
       chamber: 'CH-B',
       bags: 200,
       bagType: 'S+B',
@@ -204,8 +204,7 @@ describe('Phase 2: ledger authority (ledger-balance.test.ts)', () => {
 
   it('outward movement never mutates the rent obligation', async () => {
     const grnId = await seedGrn({
-      facilityId,
-      customerId,
+      facilityId, customerId, commodityId,
       chamber: 'CH-L1',
       bags: 200,
       bagType: 'S+B',

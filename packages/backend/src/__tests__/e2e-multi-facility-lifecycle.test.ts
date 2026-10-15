@@ -10,7 +10,6 @@ import { BackupLogModel } from '../database/models/backup-log.model.js';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { DeliveryReversalModel } from '../database/models/delivery-reversal.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
-import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { SystemSettingsModel } from '../database/models/system-settings.model.js';
 import { settingsService } from '../modules/settings/settings.service.js';
