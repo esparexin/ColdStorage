@@ -6,6 +6,7 @@
 
 export const LOADING_LABELS = {
   auth: 'Checking authentication…',
+  authServerWaking: 'Connecting to server (waking up)…',
   dashboard: 'Loading dashboard…',
   grns: 'Loading Inward of Goods…',
   deliveries: 'Loading Delivery Challans…',
@@ -26,6 +27,10 @@ export const LOADING_LABELS = {
   exporting: 'Exporting…',
   importing: 'Processing Import…',
   uploading: 'Uploading…',
+} as const;
+
+export const SERVER_MESSAGES = {
+  serverWakingUp: 'Backend server is waking up. If sign-in takes a moment, please retry once the service starts.',
 } as const;
 
 export const ERROR_TITLES = {

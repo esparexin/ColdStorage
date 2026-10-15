@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Banner, type BannerVariant } from '@/components/ui/Banner';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
-import { LOADING_LABELS } from '@/components/ui/stateCopy';
+import { LOADING_LABELS, SERVER_MESSAGES } from '@/components/ui/stateCopy';
 import { useAuth } from '@/context/AuthContext';
 import { useNumberInputWheel } from '@/hooks/useNumberInputWheel';
+import { getLastRefreshFailure } from '@/lib/api-client';
 import { formatCountdown, LoginApiError } from '@/lib/auth-errors';
 import { LOGIN_BACKGROUND_IMAGE_URL, PRODUCT_NAME } from '@/lib/branding';
 import { sanitizeReturnUrl } from '@/lib/safe-url';
@@ -40,6 +41,7 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
   const [lockoutSeconds, setLockoutSeconds] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [authLoadingLabel, setAuthLoadingLabel] = useState<string>(LOADING_LABELS.auth);
 
   // Stable identities: SidebarNav's route-change effect depends on `onClose`, so an
   // inline arrow would re-fire on every parent render and instantly close the drawer.
@@ -68,12 +70,24 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
     }
   }, [isLoading, user, router]);
 
+  useEffect(() => {
+    if (!isLoading) {
+      setAuthLoadingLabel(LOADING_LABELS.auth);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setAuthLoadingLabel(LOADING_LABELS.authServerWaking);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
   if (isLoading) {
-    return <FeedbackStates.Loading fullPage label={LOADING_LABELS.auth} />;
+    return <FeedbackStates.Loading fullPage label={authLoadingLabel} />;
   }
 
   if (!user) {
     const isLocked = lockoutSeconds !== null && lockoutSeconds > 0;
+    const isServerColdStart = getLastRefreshFailure() === 'timeout';
     const displayError = isLocked
       ? `Too many login attempts. Please wait ${formatCountdown(lockoutSeconds)} before trying again.`
       : error;
@@ -148,6 +162,10 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
 
           {isSessionExpired && !displayError && (
             <Banner variant="info" message="Your session has expired. Please sign in again." id="session-expired-banner" />
+          )}
+
+          {isServerColdStart && !isSessionExpired && !displayError && (
+            <Banner variant="info" message={SERVER_MESSAGES.serverWakingUp} id="server-cold-start-banner" />
           )}
 
           {displayError && <Banner variant={isLocked ? 'error' : errorVariant} message={displayError} id="login-error" />}
