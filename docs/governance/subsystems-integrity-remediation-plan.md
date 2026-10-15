@@ -44,9 +44,10 @@
 - **Financial & Payment Continuity:** Verified source pre-merge payments remain intact, unpaid rent is carried without duplication, and overpayments are rejected.
 - **Test Evidence:** Verified across `merge-repack-hamali.test.ts`, `hamali-merge-accounting.test.ts`, `merge-bag-category.test.ts`, `merge-grn-rent.test.ts`, `merge-grn-guards.test.ts`, `internal-movement.test.ts`, `seasonal-merge-rent-verification.test.ts`, and `merge-pre-settlement-overpayment.test.ts`. All 39 integration tests passing.
 
-### Phase 6 — Ownership Transfer
-- **Full Transfer:** Verify prospective delivery-style rent evaluation at transfer date (`computeExpectedDeliveryRent`) and settlement gate (`SETTLE_NOW` vs `AGREED_PENDING`).
-- **Partial Transfer:** Verify split-GRN initialization (`rentAmount: 0`, `hamaliRate: 0`, `hamaliAmount: 0`, preserved inward date, inherited rent rates) and source liability retention.
+### Phase 6 — Ownership Transfer (Verified)
+- **Full Transfer:** Enforced prospective delivery-style rent evaluation at transfer date (`computeExpectedDeliveryRent`), composition confirmation on unverified lots, first-season Hamali inclusion (`computeFirstSeasonHamali`), and settlement gate (`SETTLE_NOW` vs `AGREED_PENDING`).
+- **Partial Transfer:** Verified split-GRN initialization (`rentAmount: 0`, `hamaliRate: 0`, `hamaliAmount: 0`, preserved inward date, inherited rent rates), ledger inventory transfer (`OUTWARD_DELIVERY` + `INWARD_PUTAWAY`), and source liability retention.
+- **Test Evidence:** Verified across `transfer-ownership-rent.test.ts` and `transfer-ownership-hamali.test.ts`. All 8 integration tests passing.
 
 ### Phase 7 — UI/UX and Code Quality
 - **Merge Tab Transparency:** Add live repacking labor charge preview card in `InternalMovementMergeTab.tsx`.
