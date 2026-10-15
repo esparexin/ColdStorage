@@ -35,6 +35,11 @@ export interface RefreshResult {
   user: UserSummary;
 }
 
+export interface AuthRequestContext {
+  ipAddress?: string;
+  userAgent?: string;
+}
+
 export class AuthService {
   constructor(
     private userRepo: UserRepository = userRepository,
@@ -42,20 +47,19 @@ export class AuthService {
     private sessionRepo: SessionRepository = sessionRepository,
   ) {}
 
-  public async login(input: LoginInput): Promise<LoginResult> {
+  public async login(input: LoginInput, ctx: AuthRequestContext = {}): Promise<LoginResult> {
     const opStart = Date.now();
-    const tm: Record<string, number> = {};
-    let s = Date.now();
     const user = await this.userRepo.findByUsername(input.username);
-    tm.findByUsernameMs = Date.now() - s;
     if (!user) {
-      // Constant-time mitigation: burn Argon2 time so unknown users are not instantly distinguishable.
+      // Constant-time mitigation for unknown users.
       await verifyTimingMitigationPassword(input.password);
       await auditService.log({
         eventType: 'AUTH_LOGIN_FAILED',
         severity: 'SECURITY',
         username: input.username,
         userRole: 'ANONYMOUS',
+        ipAddress: ctx.ipAddress,
+        userAgent: ctx.userAgent,
         resource: 'auth',
         details: { reason: 'USER_NOT_FOUND' },
       });
@@ -78,37 +82,28 @@ export class AuthService {
       throw new Error('User account is disabled');
     }
 
-    s = Date.now();
     const passwordValid = await verifyPassword(input.password, user.passwordHash);
-    tm.verifyPasswordMs = Date.now() - s;
     if (!passwordValid) {
       await recordInvalidPassword(this.userRepo, user);
     }
-    s = Date.now();
     await this.userRepo.updateLastLogin(user.id);
-    tm.updateLastLoginMs = Date.now() - s;
-
     const permissions = await resolveUserPermissions(user);
     const accessToken = mintAccessToken(user, permissions);
-
     const refreshToken = generateOpaqueToken(32);
-    s = Date.now();
     await this.sessionRepo.createSession(user.id, refreshToken, config.refreshTokenExpiryDays);
-    tm.createSessionMs = Date.now() - s;
-    s = Date.now();
     await auditService.log({
       eventType: 'AUTH_LOGIN_SUCCESS',
       severity: 'INFO',
       userId: user.id,
       username: user.username,
       userRole: user.role,
+      ipAddress: ctx.ipAddress,
+      userAgent: ctx.userAgent,
       resource: 'auth',
       details: { mustChangePassword: user.mustChangePassword },
     });
-    tm.auditSuccessMs = Date.now() - s;
     const totalMs = Date.now() - opStart;
-    // Attribute login wall-clock to DB vs. crypto vs. audit; Argon2 ~100-500ms is normal.
-    if (totalMs > 1000) logger.warn('auth.login slow', { ...tm, totalMs });
+    if (totalMs > 1000) logger.warn('auth.login slow', { totalMs });
 
     return {
       accessToken,

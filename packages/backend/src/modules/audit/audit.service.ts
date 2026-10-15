@@ -8,6 +8,11 @@ import type {
 } from '@cold-storage/contracts';
 import { AuditLogModel, type AuditLogDoc } from '../../database/models/audit-log.model.js';
 import { logger } from '../../utils/logger.js';
+import {
+  normalizeIpAddress,
+  normalizeUserAgentString,
+  sanitizeLogString,
+} from './audit-sanitize.helper.js';
 
 export interface AuditEventInput {
   eventType: AuditEventType;
@@ -73,21 +78,15 @@ export class AuditService {
     return sanitized;
   }
 
-  /**
-   * Normalizes IP address to safe standard format.
-   */
-  public normalizeIp(rawIp?: string): string {
-    if (!rawIp) return '127.0.0.1';
-    const firstIp = rawIp.split(',')[0].trim();
-    return firstIp.replace(/^::ffff:/, '') || '127.0.0.1';
+  /** Delegates to shared sanitizer (single SSOT for log forging defense). */
+  public sanitizeLogString(raw: string, maxLength = 255): string {
+    return sanitizeLogString(raw, maxLength);
   }
-
-  /**
-   * Normalizes User-Agent to max 255 chars.
-   */
+  public normalizeIp(rawIp?: string): string {
+    return normalizeIpAddress(rawIp);
+  }
   public normalizeUserAgent(rawAgent?: string): string {
-    if (!rawAgent) return 'Unknown';
-    return rawAgent.substring(0, 255);
+    return normalizeUserAgentString(rawAgent);
   }
 
   /**
@@ -106,7 +105,7 @@ export class AuditService {
         severity: input.severity,
         facilityId: input.facilityId ?? null,
         userId: input.userId ?? 'SYSTEM',
-        username: input.username ?? 'SYSTEM',
+        username: input.username ? this.sanitizeLogString(input.username, 120) : 'SYSTEM',
         userRole: input.userRole ?? 'SYSTEM',
         ipAddress: this.normalizeIp(input.ipAddress),
         userAgent: this.normalizeUserAgent(input.userAgent),

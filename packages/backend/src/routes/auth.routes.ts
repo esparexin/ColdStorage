@@ -52,7 +52,10 @@ authRouter.post('/login', authRateLimiter, async (req: Request, res: Response): 
   }
 
   try {
-    const result = await authService.login(parseResult.data);
+    const result = await authService.login(parseResult.data, {
+      ipAddress: req.ip || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'] as string | undefined,
+    });
     void resetAuthRateLimit(req);
 
     res.cookie('refreshToken', result.refreshToken, refreshCookieOptions());

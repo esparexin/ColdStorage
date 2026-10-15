@@ -106,6 +106,12 @@ export async function connectToDatabase(uri?: string): Promise<boolean> {
 
   assertSafeDatabaseTarget(mongoUri);
 
+  // Production TLS: credentials and session hashes must never traverse cleartext.
+  if (process.env.NODE_ENV === 'production') {
+    const usesTls = /tls=true/i.test(mongoUri) || mongoUri.startsWith('mongodb+srv://');
+    if (!usesTls) throw new Error('MONGODB_URI must use TLS in production (tls=true or mongodb+srv).');
+  }
+
   if (mongoose.connection.readyState === 1) {
     if (process.env.NODE_ENV === 'test' && isLiveDatabaseName(mongoose.connection.name)) {
       await mongoose.disconnect();
