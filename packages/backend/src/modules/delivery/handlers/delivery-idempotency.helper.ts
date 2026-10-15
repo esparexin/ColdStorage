@@ -1,5 +1,6 @@
 import type { CreateDeliveryDTO, DeliveryChallan, DeliverySummary } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
+import { ConcurrencyConflictError } from '../../inventory/inventory.mappers.js';
 import { toChallanEntity } from '../delivery.mappers.js';
 import { getDeliverySummary } from '../queries/delivery.queries.js';
 
@@ -38,4 +39,51 @@ export async function resolveIdempotentDelivery(facilityId: string, key: string,
   if (!existing) return null;
   assertSameDeliveryPayload(existing as unknown as Record<string, unknown>, input);
   return { delivery: toChallanEntity(existing), summary: await getDeliverySummary(facilityId, input.grnId) };
+}
+
+/** Session-bound replay check for inside the write transaction (race layer 2). */
+export async function resolveIdempotentDeliveryTx(facilityId: string, key: string, input: CreateDeliveryDTO, session: import('mongoose').ClientSession): Promise<{ delivery: DeliveryChallan; summary: DeliverySummary } | null> {
+  const existing = await DeliveryChallanModel.findOne({ facilityId, idempotencyKey: key }, null, { session }).lean().exec();
+  if (!existing) return null;
+  assertSameDeliveryPayload(existing as unknown as Record<string, unknown>, input);
+  return { delivery: toChallanEntity(existing), summary: await getDeliverySummary(facilityId, input.grnId) };
+}
+
+/** True for any MongoDB duplicate-key error (code 11000), without echoing its details. */
+export function isDuplicateKeyError(err: unknown): boolean {
+  return !!err && typeof err === 'object' && (err as { code?: number }).code === 11000;
+}
+
+/** True when the duplicate key is the delivery idempotency constraint. */
+export function isIdempotencyDuplicateKey(err: unknown): boolean {
+  if (!isDuplicateKeyError(err)) return false;
+  const e = err as { message?: string; keyPattern?: Record<string, unknown> };
+  if (e.keyPattern && 'idempotencyKey' in e.keyPattern) return true;
+  return typeof e.message === 'string' && e.message.includes('idempotencyKey');
+}
+
+/**
+ * Commit-race recovery: both requests passed the pre-check, one won the unique
+ * index. Returns the winner for a matching retry (safe conflict otherwise),
+ * so concurrent duplicates never leak raw duplicate-key details nor double-post.
+ */
+export async function resolveIdempotentRaceResult(facilityId: string, key: string, input: CreateDeliveryDTO): Promise<{ delivery: DeliveryChallan; summary: DeliverySummary }> {
+  const existing = await findIdempotentDelivery(facilityId, key);
+  if (!existing) throw new ConcurrencyConflictError();
+  assertSameDeliveryPayload(existing as unknown as Record<string, unknown>, input);
+  return { delivery: toChallanEntity(existing), summary: await getDeliverySummary(facilityId, input.grnId) };
+}
+
+/**
+ * Duplicate-key funnel for the delivery retry loop: idempotency races resolve
+ * to the winner, all other uniqueness races become a safe retryable conflict.
+ * Returns null when the error is not a duplicate key. Never rethrows internals.
+ */
+export async function resolveDeliveryConflict(facilityId: string, input: CreateDeliveryDTO, err: unknown): Promise<{ delivery: DeliveryChallan; summary: DeliverySummary } | null> {
+  const key = (input as unknown as Record<string, unknown>).idempotencyKey;
+  if (typeof key === 'string' && key.length > 0 && isIdempotencyDuplicateKey(err)) {
+    return resolveIdempotentRaceResult(facilityId, key, input);
+  }
+  if (isDuplicateKeyError(err)) throw new ConcurrencyConflictError();
+  return null;
 }

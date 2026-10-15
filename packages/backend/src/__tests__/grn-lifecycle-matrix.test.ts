@@ -11,6 +11,7 @@ import { GrnModel } from '../database/models/grn.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import { connectToTestDatabase, disconnectTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
+import { isDuplicateKeyError, isIdempotencyDuplicateKey } from '../modules/delivery/handlers/delivery-idempotency.helper.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
@@ -88,6 +89,24 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     expect(r3.status).toBe(409);
   });
 
+  it('concurrent identical deliveries with one key both return the original', async () => {
+    const gid = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S', smallBags: 100, bigBags: 0, rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0202', date: new Date('2026-06-01') });
+    const key = 'idem-matrix-race-001';
+    const payload = { grnId: gid, quantity: 10, smallBags: 10, bigBags: 0, date: '2026-07-01', vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: 'GP-9002', idempotencyKey: key };
+    const [r1, r2] = await Promise.all([
+      request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send(payload),
+      request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send(payload),
+    ]);
+    expect([200, 201]).toContain(r1.status);
+    expect([200, 201]).toContain(r2.status);
+    expect(r1.body.delivery.id).toBe(r2.body.delivery.id);
+    const challans = await DeliveryChallanModel.find({ facilityId: FAC, idempotencyKey: key }).lean().exec();
+    expect(challans.length).toBe(1);
+    const txns = await InventoryTransactionModel.find({ facilityId: FAC, grnId: gid, transactionType: 'OUTWARD_DELIVERY' }).lean().exec();
+    expect(txns.length).toBe(1);
+    expect(txns.reduce((s, t) => s + t.smallQuantity + t.bigQuantity, 0)).toBe(10);
+  });
+
   it('partial merge keeps source OPEN with remainder', async () => {
     const target = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S', smallBags: 100, bigBags: 0, rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0301' });
     const source = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S', smallBags: 100, bigBags: 0, rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0302' });
@@ -128,6 +147,17 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     expect(dst?.bags).toBe(30);
     expect(dst?.customerId).toBe(custB);
     expect(mongoose.connection.readyState).toBe(1);
+  });
+
+  it('duplicate-key classifier routes idempotency races without leaking internals', () => {
+    const idemDup = { code: 11000, keyPattern: { facilityId: 1, idempotencyKey: 1 }, message: 'E11000 duplicate key error collection: db.deliverychallans index: facilityId_1_idempotencyKey_1' };
+    expect(isDuplicateKeyError(idemDup)).toBe(true);
+    expect(isIdempotencyDuplicateKey(idemDup)).toBe(true);
+    const otherDup = { code: 11000, keyPattern: { facilityId: 1, gpNumber: 1 }, message: 'E11000 duplicate key error index: facilityId_1_gpNumber_1' };
+    expect(isDuplicateKeyError(otherDup)).toBe(true);
+    expect(isIdempotencyDuplicateKey(otherDup)).toBe(false);
+    expect(isDuplicateKeyError({ code: 112 })).toBe(false);
+    expect(isDuplicateKeyError(new Error('plain'))).toBe(false);
   });
 
   it('repeated partials then final outward preserve receipt and reconcile ledger', async () => {

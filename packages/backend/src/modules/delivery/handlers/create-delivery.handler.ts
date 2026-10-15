@@ -24,7 +24,7 @@ import {
   validateDeliveryDate,
   validateStockAndBalances,
 } from './delivery-validation.helper.js';
-import { resolveIdempotentDelivery } from './delivery-idempotency.helper.js';
+import { resolveDeliveryConflict, resolveIdempotentDelivery, resolveIdempotentDeliveryTx } from './delivery-idempotency.helper.js';
 import { resolveDeliveryGpNumber } from './delivery-gp.helper.js';
 
 export async function createDeliveryWithRetry(
@@ -40,6 +40,8 @@ export async function createDeliveryWithRetry(
     try {
       return await executeDeliveryTransaction(facilityId, input, userId);
     } catch (err: unknown) {
+      const conflict = await resolveDeliveryConflict(facilityId, input as never, err);
+      if (conflict) return conflict;
       if (isTransientError(err) && attempt < maxRetries) {
         const delayMs = 50 * Math.pow(2, attempt) + Math.floor(Math.random() * 25);
         await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -63,15 +65,21 @@ async function executeDeliveryTransaction(
   userId: string,
 ): Promise<{ delivery: DeliveryChallan; summary: DeliverySummary }> {
   const idemKey = (input as Record<string, unknown>).idempotencyKey as string | null | undefined;
-  if (typeof idemKey === 'string' && idemKey.length > 0) {
-    const replay = await resolveIdempotentDelivery(facilityId, idemKey, input as never);
+  const hasKey = typeof idemKey === 'string' && idemKey.length > 0;
+  if (hasKey) {
+    const replay = await resolveIdempotentDelivery(facilityId, idemKey as string, input as never);
     if (replay) return replay;
   }
   const session = await mongoose.startSession();
   let createdChallanDoc: DeliveryChallanDoc;
+  let txReplay: { delivery: DeliveryChallan; summary: DeliverySummary } | null = null;
 
   try {
     await session.withTransaction(async () => {
+      if (hasKey) {
+        txReplay = await resolveIdempotentDeliveryTx(facilityId, idemKey as string, input as never, session);
+        if (txReplay) return;
+      }
       const grn = await GrnModel.findOneAndUpdate(
         { id: input.grnId, facilityId },
         { $set: { updatedAt: new Date() } },
@@ -226,6 +234,7 @@ async function executeDeliveryTransaction(
     await session.endSession();
   }
 
+  if (txReplay) return txReplay;
   const delivery = toChallanEntity(createdChallanDoc!);
   const summary = await getDeliverySummary(facilityId, input.grnId);
 
