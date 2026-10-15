@@ -86,8 +86,9 @@ export async function validateStockAndBalances(
 }
 
 /**
- * Resolves ledger transaction quantities to safely draw from available stock pools
- * without producing negative inventory balances on either side.
+ * Resolves ledger transaction quantities for S/B lots. Exact reconciliation:
+ * each requested side must fit its own available pool — cross-pool
+ * reallocation is rejected so the challan and the ledger can never disagree.
  */
 export function resolveSafeLedgerDrawdown(
   isHybrid: boolean,
@@ -99,16 +100,15 @@ export function resolveSafeLedgerDrawdown(
   if (isHybrid || (bagType !== 'S/B' && bagType !== 'S+B')) {
     return { smallQuantity: finalSmall, bigQuantity: finalBig };
   }
-  const drawSmall = Math.min(finalSmall, Math.max(0, available.smallBags));
-  const drawBig = Math.min(finalBig, Math.max(0, available.bigBags));
-  const unallocated = finalSmall + finalBig - (drawSmall + drawBig);
-  if (unallocated <= 0) {
-    return { smallQuantity: drawSmall, bigQuantity: drawBig };
+  const availSmall = Math.max(0, available.smallBags);
+  const availBig = Math.max(0, available.bigBags);
+  if (finalSmall > availSmall || finalBig > availBig) {
+    throw new Error(
+      `Requested ${finalSmall} small and ${finalBig} big bags exceeds the available pools of ` +
+        `${availSmall} small and ${availBig} big bags; small and big counts must reconcile exactly`,
+    );
   }
-  const remSmallPool = Math.max(0, available.smallBags - drawSmall);
-  const addSmall = Math.min(unallocated, remSmallPool);
-  const addBig = unallocated - addSmall;
-  return { smallQuantity: drawSmall + addSmall, bigQuantity: drawBig + addBig };
+  return { smallQuantity: finalSmall, bigQuantity: finalBig };
 }
 
 export function validateDeliveryDate(

@@ -44,7 +44,7 @@ interface DeliveryBagCompositionFieldsProps {
 }
 
 export function DeliveryBagCompositionFields({
-  summary, bagType, rentType, rentMonths, smallBagPrice, bigBagPrice, bagPrice,
+  summary, rentType, rentMonths, smallBagPrice, bigBagPrice, bagPrice,
   manualBagPrice, onManualBagPriceChange, seasonalBagPrice, monthlyBagPrice,
   onSeasonalBagPriceChange, onMonthlyBagPriceChange, showSeasonalRate, showMonthlyRate,
   inwardDate, deliveryDate, monthlyRates,
@@ -54,10 +54,9 @@ export function DeliveryBagCompositionFields({
 }: DeliveryBagCompositionFieldsProps) {
   const { bags: bagsError, smallBags: smallError, bigBags: bigError } = fieldErrors;
   const availableTotal = summary.availableSmallBags + summary.availableBigBags;
-  const isSbLot = bagType === 'S+B' || bagType === 'S/B';
   const isSegregated = summary.availableSmallBags > 0 && summary.availableBigBags > 0;
   const isHybrid = isHybridBagCategory(bagCategory);
-  const isCombinedPool = (isSbLot || isHybrid) && !isSegregated;
+  const isCombinedPool = isHybrid && !isSegregated;
 
   const smallQty = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigQty = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;

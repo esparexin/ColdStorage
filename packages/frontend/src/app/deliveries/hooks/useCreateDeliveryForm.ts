@@ -163,7 +163,6 @@ export function useCreateDeliveryForm(
     e.preventDefault();
     if (!facilityId) return;
 
-    const isSb = selectedGrn?.bagType === 'S+B' || selectedGrn?.bagType === 'S/B';
     const isSeg = (grnSummary?.availableSmallBags ?? 0) > 0 && (grnSummary?.availableBigBags ?? 0) > 0;
     const totalAvail = (grnSummary?.availableSmallBags ?? 0) + (grnSummary?.availableBigBags ?? 0);
 
@@ -171,7 +170,7 @@ export function useCreateDeliveryForm(
     const validation = validateDeliveryForm({
       createGrnId, createDate, smallBags, bigBags, totalWithdrawingBags,
       availableSmall: validationStock.availableSmall, availableBig: validationStock.availableBig,
-      availableTotal: totalAvail, isCombinedPool: (isSb || isHybrid) && !isSeg,
+      availableTotal: totalAvail, isCombinedPool: isHybrid && !isSeg,
       isHybrid: isHybrid, bagPrice: manualBagPrice,
       seasonalBagPrice: typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
       monthlyBagPrice: typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,

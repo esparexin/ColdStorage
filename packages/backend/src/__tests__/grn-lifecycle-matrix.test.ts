@@ -140,8 +140,7 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     expect(mongoose.connection.readyState).toBe(1);
   });
 
-  it('duplicate-key classifier routes idempotency races without leaking internals', () => {
-    const idemDup = { code: 11000, keyPattern: { facilityId: 1, idempotencyKey: 1 }, message: 'E11000 duplicate key error collection: db.deliverychallans index: facilityId_1_idempotencyKey_1' };
+  it('duplicate-key classifier routes idempotency races without leaking internals', () => {    const idemDup = { code: 11000, keyPattern: { facilityId: 1, idempotencyKey: 1 }, message: 'E11000 duplicate key error collection: db.deliverychallans index: facilityId_1_idempotencyKey_1' };
     expect(isDuplicateKeyError(idemDup)).toBe(true);
     expect(isIdempotencyDuplicateKey(idemDup)).toBe(true);
     const otherDup = { code: 11000, keyPattern: { facilityId: 1, gpNumber: 1 }, message: 'E11000 duplicate key error index: facilityId_1_gpNumber_1' };
@@ -189,5 +188,22 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     expect(sum2.body.remainingBalance).toBe(0);
     const tgt = await GrnModel.findOne({ id: target }).lean().exec();
     expect(tgt?.bags).toBe(150);
+  });
+
+  it('unsegregated lots enforce exact per-side reconciliation', async () => {
+    const gid = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S/B', rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0801', date: new Date('2026-06-01') });
+    const cross = await request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send({
+      grnId: gid, quantity: 50, smallBags: 30, bigBags: 20, date: '2026-07-01',
+      vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: 'GP-9301',
+    });
+    expect(cross.status).toBe(400);
+    expect(String(cross.body.error ?? '')).toMatch(/reconcile exactly/i);
+    const exact = await request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send({
+      grnId: gid, quantity: 50, smallBags: 50, bigBags: 0, date: '2026-07-01',
+      vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: 'GP-9302',
+    });
+    expect([200, 201]).toContain(exact.status);
+    expect(exact.body.delivery.smallBags).toBe(50);
+    expect(exact.body.delivery.bigBags).toBe(0);
   });
 });
