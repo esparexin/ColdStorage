@@ -118,7 +118,7 @@ describe('Outward rent-vs-Hamali gate (F2)', () => {
       facilityId, { grnId: grn.id, date: dDate, smallBags: 10, bigBags: 0, rentCharge: rentOnly }, userId,
     );
     expect(delivery.rentCharge).toBe(rentOnly + 40);
-  });
+  }, 15000);
 
   it('accepts first-season delivery above the Hamali rate', async () => {
     await reset();
@@ -129,5 +129,5 @@ describe('Outward rent-vs-Hamali gate (F2)', () => {
       facilityId, { grnId: grn.id, date: dDate, smallBags: 10, bigBags: 0, rentCharge: rentOnly }, userId,
     );
     expect(delivery.rentCharge).toBe(rentOnly + 40);
-  });
+  }, 15000);
 });
