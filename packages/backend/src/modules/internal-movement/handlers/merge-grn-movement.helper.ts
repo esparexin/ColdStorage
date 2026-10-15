@@ -72,6 +72,9 @@ export interface CreateMergeMovementRecordParams {
   newRentAmount: number;
   targetPaid: number;
   targetRentBal: RentBalance;
+  hamaliBags?: number;
+  hamaliRate?: number;
+  hamaliCharge?: number;
   input: MergeGrnInput;
   userId: string;
   session: mongoose.ClientSession;
@@ -92,6 +95,9 @@ export async function createMergeMovementRecord(
     newRentAmount,
     targetPaid,
     targetRentBal,
+    hamaliBags = 0,
+    hamaliRate = 0,
+    hamaliCharge = 0,
     input,
     userId,
     session,
@@ -116,6 +122,13 @@ export async function createMergeMovementRecord(
         sourceBagPrice: input.sourceBagPrice ?? null,
         sourceSeasonalBagPrice: input.sourceSeasonalBagPrice ?? null,
         sourceMonthlyBagPrice: input.sourceMonthlyBagPrice ?? null,
+        ...(hamaliCharge > 0
+          ? {
+              hamaliBags,
+              hamaliRate,
+              hamaliCharge,
+            }
+          : {}),
         referenceWeight: input.referenceWeight ?? null,
         financialSnapshot: {
           rentAmount: newRentAmount,
@@ -123,6 +136,7 @@ export async function createMergeMovementRecord(
           remainingBalance: targetRentBal.remainingBalance,
           paymentStatus: targetRentBal.paymentStatus,
           rentState: targetRentBal.rentState,
+          ...(hamaliCharge > 0 ? { hamaliAmount: hamaliCharge } : {}),
         },
         remarks: input.remarks.trim(),
         performedBy: userId,
