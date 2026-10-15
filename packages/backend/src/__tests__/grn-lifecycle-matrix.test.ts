@@ -3,14 +3,14 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
-import { CommodityModel } from '../database/models/commodity.model.js';
 import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
-import { connectToTestDatabase, disconnectTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
+import { connectToTestDatabase, disconnectTestDatabase } from './helpers/stock-reset.js';
+import { assertCollectionsEmpty, resetAllFinancialCollections, seedCommodityWithRates } from './helpers/lifecycle-testkit.js';
 import { isDuplicateKeyError, isIdempotencyDuplicateKey } from '../modules/delivery/handlers/delivery-idempotency.helper.js';
 
 const app = createApp();
@@ -30,21 +30,12 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
   afterAll(disconnectTestDatabase);
 
   beforeEach(async () => {
-    await resetStockCollections();
-    await CommodityRateModel.deleteMany({});
-    await DeliveryChallanModel.deleteMany({});
-    await mongoose.connection.collection('rentpayments').deleteMany({});
-    await mongoose.connection.collection('rentextensions').deleteMany({});
-    await mongoose.connection.collection('internalmovements').deleteMany({});
+    await resetAllFinancialCollections();
+    await assertCollectionsEmpty();
     await seedFacility({ id: FAC, code: 'MTX', name: 'Matrix Facility' });
     custA = await seedCustomer({ id: 'cust-mtx-a', facilityId: FAC, name: 'Kalyan' });
     custB = await seedCustomer({ id: 'cust-mtx-b', facilityId: FAC, name: 'Balaji' });
-    const c = await CommodityModel.create({ id: 'cmd-mtx', name: 'Potato', normalizedName: 'potato', isActive: true });
-    cmd = c.id;
-    await CommodityRateModel.create([
-      { id: 'crt-mtx-s', commodityId: cmd, rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true },
-      { id: 'crt-mtx-m', commodityId: cmd, rentType: 'Monthly', smallRate: 12, bigRate: 18, isActive: true },
-    ]);
+    cmd = await seedCommodityWithRates({ id: 'cmd-mtx', name: 'Potato', seasonal: { small: 10, big: 15 }, monthly: { small: 12, big: 18 } });
   });
 
   const auth = () => ({ Authorization: `Bearer ${adminToken}` });
