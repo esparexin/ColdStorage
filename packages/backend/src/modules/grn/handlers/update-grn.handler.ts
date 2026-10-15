@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import type { CorrectGrnInput, Grn } from '@cold-storage/contracts';
+import { calculateHamaliAmount, type CorrectGrnInput, type Grn } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
@@ -156,6 +156,15 @@ export async function correctGrn(
             session,
           }),
         );
+      }
+
+      if (input.commodityId !== undefined || bagEdit.wantsBagsChange) {
+        const commId = input.commodityId ?? grn.commodityId;
+        const comm = await CommodityModel.findOne({ id: commId }).lean().exec();
+        const isApplicable = comm?.isHamaliApplicable ?? true;
+        const rate = isApplicable ? (comm?.hamaliRate ?? 0) : 0;
+        update.hamaliRate = rate;
+        update.hamaliAmount = calculateHamaliAmount(bagEdit.finalBags, rate);
       }
 
       applyDescriptiveEdits(input, update, inwardUpdate);

@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
 import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { CustomerModel } from '../database/models/customer.model.js';
+import { GrnModel } from '../database/models/grn.model.js';
 import { rentService } from '../modules/rent/rent.service.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedChallan, seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
@@ -47,45 +48,15 @@ describe('GRN Full Edit (PATCH /api/facilities/:facilityId/grns/:grnId)', () => 
     await resetStockCollections();
     await CommodityRateModel.deleteMany({});
     await CommodityRateModel.create([{ id: 'crt-cmd-potato-full-edit-s', commodityId: 'cmd-potato-full-edit', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-potato-full-edit-m', commodityId: 'cmd-potato-full-edit', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
-
     await seedFacility({ id: facilityId, code: 'FULLEDIT', name: 'North Full-Edit Facility' });
-    customerId = await seedCustomer({
-      id: 'cust-full-edit',
-      facilityId,
-      name: 'Ramesh Patel',
-    });
-
-    const commodity = await CommodityModel.create({
-      id: 'cmd-potato-full-edit',
-      name: 'Potato Jyoti',
-      normalizedName: 'potato jyoti full edit',
-      isActive: true,
-    });
+    customerId = await seedCustomer({ id: 'cust-full-edit', facilityId, name: 'Ramesh Patel' });
+    const commodity = await CommodityModel.create({ id: 'cmd-potato-full-edit', name: 'Potato Jyoti', normalizedName: 'potato jyoti full edit', isActive: true });
     commodityId = commodity.id;
-
-    grnId = await seedGrn({
-      facilityId,
-      customerId,
-      commodityId,
-      commodityName: 'Potato Jyoti',
-      chamber: 'CH-01',
-      bags: 200,
-      rentAmount: 5000,
-    });
+    grnId = await seedGrn({ facilityId, customerId, commodityId, commodityName: 'Potato Jyoti', chamber: 'CH-01', bagType: 'S/B', bags: 200, smallBags: 100, bigBags: 100, smallBagPrice: 10, bigBagPrice: 15, rentAmount: 2500 });
   });
 
-  function correct(body: Record<string, unknown>) {
-    return request(app)
-      .patch(`/api/facilities/${facilityId}/grns/${grnId}`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send(body);
-  }
-
-  function storedGrn() {
-    return request(app)
-      .get(`/api/grns/${grnId}`)
-      .set('Authorization', `Bearer ${adminToken}`);
-  }
+  const correct = (body: Record<string, unknown>) => request(app).patch(`/api/facilities/${facilityId}/grns/${grnId}`).set('Authorization', `Bearer ${adminToken}`).send(body);
+  const storedGrn = () => request(app).get(`/api/grns/${grnId}`).set('Authorization', `Bearer ${adminToken}`);
 
   it('full-edits customer, rent terms and logistics metadata on an OPEN receipt', async () => {
     const newCustomerId = await seedCustomer({ facilityId, name: 'New Customer Full Edit' });
@@ -95,7 +66,9 @@ describe('GRN Full Edit (PATCH /api/facilities/:facilityId/grns/:grnId)', () => 
       remarks: 'Updated via full edit',
       partyMark: 'PM-1',
       gpNumber: 'GP-99',
-      rentAmount: 6000,
+      smallBagPrice: 10,
+      bigBagPrice: 15,
+      rentAmount: 2500,
       reason: 'Full edit of identity and logistics fields',
     });
     expect(res.status).toBe(200);
@@ -104,7 +77,7 @@ describe('GRN Full Edit (PATCH /api/facilities/:facilityId/grns/:grnId)', () => 
     expect(stored.body.grn.customerId).toBe(newCustomerId);
     expect(stored.body.grn.vehicleNumber).toBe('UP32AA1111');
     expect(stored.body.grn.remarks).toBe('Updated via full edit');
-    expect(stored.body.grn.rentAmount).toBe(6000);
+    expect(stored.body.grn.rentAmount).toBe(2500);
   });
 
   it('edits bag type and per-bag weights on an OPEN receipt', async () => {
@@ -143,8 +116,13 @@ describe('GRN Full Edit (PATCH /api/facilities/:facilityId/grns/:grnId)', () => 
       commodityId,
       commodityName: 'Potato Jyoti',
       chamber: 'CH-01',
+      bagType: 'S/B',
       bags: 200,
-      rentAmount: 5000,
+      smallBags: 100,
+      bigBags: 100,
+      smallBagPrice: 10,
+      bigBagPrice: 15,
+      rentAmount: 2500,
     });
     const { token: payToken } = await seedAuth({
       userId: `usr-full-edit-rent-${tag}`,
@@ -154,14 +132,22 @@ describe('GRN Full Edit (PATCH /api/facilities/:facilityId/grns/:grnId)', () => 
     });
     await rentService.recordPayment(
       payFacilityId,
-      { grnId: payGrnId, amountPaid: 5000, paymentMode: 'Cash', paymentDate: new Date() },
+      { grnId: payGrnId, amountPaid: 2500, paymentMode: 'Cash', paymentDate: new Date() },
       `usr-full-edit-rent-${tag}`,
     );
 
     const res = await request(app)
       .patch(`/api/facilities/${payFacilityId}/grns/${payGrnId}`)
       .set('Authorization', `Bearer ${payToken}`)
-      .send({ rentAmount: 1000, reason: 'Trying to lower rent below collections' });
+      .send({
+        bags: 50,
+        smallBags: 25,
+        bigBags: 25,
+        smallBagPrice: 10,
+        bigBagPrice: 15,
+        rentAmount: 625,
+        reason: 'Trying to lower rent below collections',
+      });
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('already been collected');
   });
@@ -234,6 +220,22 @@ describe('GRN Full Edit (PATCH /api/facilities/:facilityId/grns/:grnId)', () => 
     expect(stored.body.grn.rentType).toBe('Monthly');
     expect(stored.body.grn.rentAmount).toBe(0);
     expect(stored.body.grn.bags).toBe(120);
+  });
+
+  it('recalculates hamali snapshot when bags change on an inward receipt correction', async () => {
+    await CommodityModel.updateOne({ id: commodityId }, { $set: { isHamaliApplicable: true, hamaliRate: 4 } });
+    await GrnModel.updateOne({ id: grnId }, { $set: { hamaliRate: 4, hamaliAmount: 800 } });
+
+    const res = await correct({
+      bags: 250,
+      reason: 'Recounted bags at intake',
+    });
+    expect(res.status).toBe(200);
+
+    const doc = await GrnModel.findOne({ id: grnId }).lean().exec();
+    expect(doc?.bags).toBe(250);
+    expect(doc?.hamaliRate).toBe(4);
+    expect(doc?.hamaliAmount).toBe(1000);
   });
 });
 
