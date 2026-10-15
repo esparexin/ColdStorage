@@ -1,4 +1,4 @@
-import { allocateHybridSplit, isBagCompositionVerified, isHybridBagCategory, seasonYearForInwardDate, type BagType, type OutwardBagCategory } from '@cold-storage/contracts';
+import { allocateHybridSplit, isHybridBagCategory, resolveStoredCompositionVerified, seasonYearForInwardDate, type BagType, type OutwardBagCategory } from '@cold-storage/contracts';
 import type { MergeSourceGrn } from './merge-grn.helper.js';
 
 export interface ValidateMergeRepackedParams {
@@ -11,6 +11,7 @@ export interface ValidateMergeRepackedParams {
     bigBagPrice?: number | null;
     date: Date;
     grnNumber: string;
+    isCompositionVerified?: boolean | null;
   };
   sourceGrns: MergeSourceGrn[];
   repackedSmallBags?: number | null;
@@ -32,6 +33,7 @@ export interface ValidateMergeRepackedParams {
 export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams): {
   smallMoved: number;
   bigMoved: number;
+  explicitConfirmation: boolean;
 } {
   const { targetGrn, sourceGrns, repackedSmallBags, repackedBigBags, totalMovedBags, movementDate } = params;
   const { sourceBagCategory, sourceQuantity, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice } = params;
@@ -57,35 +59,24 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
     }
   }
 
-  // 3. Composition verification on both sides
-  const isDiffTarget =
-    (targetGrn.smallBagPrice != null || targetGrn.bigBagPrice != null) &&
-    targetGrn.smallBagPrice !== targetGrn.bigBagPrice;
-  const hasDiffSource = sourceGrns.some(
-    (s) =>
-      (s.smallBagPrice != null || s.bigBagPrice != null) &&
-      s.smallBagPrice !== s.bigBagPrice,
-  );
-  const hasDiffRates = isDiffTarget || hasDiffSource;
-
-  const isTargetVerified = isBagCompositionVerified(targetGrn);
+  // 3. Explicit stored flag preferred: any unverified lot requires confirmation,
+  // even when rates are equal — uniform `{bags, 0}` placeholders must not propagate silently.
+  const isTargetVerified = resolveStoredCompositionVerified(targetGrn);
   const hasUnverifiedSource = sourceGrns.some(
     (s) =>
-      !isBagCompositionVerified({
+      !resolveStoredCompositionVerified({
+        isCompositionVerified: (s as unknown as Record<string, unknown>).isCompositionVerified as boolean | null ?? null,
         bagType: s.bagType,
         bags: s.bags,
         smallBags: s.smallBags,
         bigBags: s.bigBags,
       }),
   );
+  const requiresComposition = !isTargetVerified || hasUnverifiedSource;
 
-  // Confirmed Small and Big counts are required when differential rates exist and composition is unconfirmed.
-  // When rates are uniform (e.g. Hybrid lots with single per-bag price), composition does not affect billing.
-  const requiresComposition = hasDiffRates && (!isTargetVerified || hasUnverifiedSource);
-
-  if (requiresComposition && (repackedSmallBags == null || repackedBigBags == null)) {
+  if (requiresComposition && (repackedSmallBags == null || repackedBigBags == null) && !(sourceBagCategory != null && isHybridBagCategory(sourceBagCategory))) {
     throw new Error(
-      'Confirmed small and big bag counts are required when merging lots with unverified composition or differential rates',
+      'Confirmed small and big bag counts are required when merging lots with unverified composition',
     );
   }
 
@@ -159,6 +150,9 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
     );
   }
 
-  return { smallMoved, bigMoved };
+  const explicitConfirmation =
+    (sourceBagCategory != null && isHybridBagCategory(sourceBagCategory)) ||
+    (repackedSmallBags != null && repackedBigBags != null);
+  return { smallMoved, bigMoved, explicitConfirmation };
 }
 

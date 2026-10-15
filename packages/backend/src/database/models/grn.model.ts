@@ -22,6 +22,8 @@ export interface GrnDoc extends Document {
    */
   smallBags: number;
   bigBags: number;
+  /** Explicit flag: false = total-only S/B placeholder, not a verified all-small lot. */
+  isCompositionVerified?: boolean;
   /** Per-bag weight (kg per individual bag). S uses smallBagWeight, B uses bigBagWeight, S+B uses both. */
   smallBagWeight: number | null;
   bigBagWeight: number | null;
@@ -98,6 +100,7 @@ const grnSchema = new Schema<GrnDoc>(
     hamaliAmount: { type: Number, min: 0 },
     smallBags: { type: Number, required: true, min: 0 },
     bigBags: { type: Number, required: true, min: 0 },
+    isCompositionVerified: { type: Boolean, default: true },
     gpNumber: { type: String, trim: true, default: null },
     storageMark: { type: String, trim: true, maxlength: 20, default: null },
     partyMark: { type: String, trim: true, maxlength: 20, default: null },

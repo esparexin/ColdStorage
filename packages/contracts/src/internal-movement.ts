@@ -45,6 +45,14 @@ export const transferOwnershipInputSchema = z.object({
   remarks: z.string().trim().min(3, 'Remarks must be at least 3 characters').max(500),
   paymentDecision: transferPaymentDecisionSchema.default('AGREED_PENDING'),
   settlementDetails: transferSettlementDetailsSchema.optional(),
+  /** Explicit confirmation required when stored composition is unverified. */
+  confirmedSmallBags: z.number().int().min(0).max(100000).nullish(),
+  confirmedBigBags: z.number().int().min(0).max(100000).nullish(),
+  sourceBagCategory: outwardBagCategorySchema.nullish(),
+  sourceQuantity: z.number().int().min(0).max(100000).nullish(),
+  sourceBagPrice: bagPriceSchema.nullish(),
+  sourceSeasonalBagPrice: bagPriceSchema.nullish(),
+  sourceMonthlyBagPrice: bagPriceSchema.nullish(),
 });
 export type TransferOwnershipInput = z.infer<typeof transferOwnershipInputSchema>;
 

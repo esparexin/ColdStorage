@@ -1,4 +1,5 @@
 import {
+  isBagCompositionVerified,
   normalizeBagComposition,
   type BagType,
   type CorrectGrnInput,
@@ -9,6 +10,7 @@ export interface StoredBagState {
   bags: number;
   smallBags: number;
   bigBags: number;
+  isCompositionVerified?: boolean | null;
 }
 
 export interface BagEditResult {
@@ -17,6 +19,7 @@ export interface BagEditResult {
   finalBags: number;
   finalSmallBags: number;
   finalBigBags: number;
+  finalIsCompositionVerified?: boolean;
   update: Record<string, unknown>;
   inwardUpdate: Record<string, unknown>;
 }
@@ -53,6 +56,7 @@ export function resolveBagEdit(input: CorrectGrnInput, grn: StoredBagState): Bag
       finalBags,
       finalSmallBags,
       finalBigBags,
+      finalIsCompositionVerified: grn.isCompositionVerified ?? undefined,
       update,
       inwardUpdate,
     };
@@ -70,10 +74,26 @@ export function resolveBagEdit(input: CorrectGrnInput, grn: StoredBagState): Bag
       input.bigBags ??
       (finalBagType === 'S+B' ? (input.bags !== undefined ? undefined : grn.bigBags) : undefined),
   });
+  let finalIsCompositionVerified: boolean;
+  if (input.smallBags !== undefined || input.bigBags !== undefined) {
+    finalIsCompositionVerified = isBagCompositionVerified({
+      bagType: finalBagType,
+      bags: finalBags,
+      smallBags: input.smallBags ?? null,
+      bigBags: input.bigBags ?? null,
+    });
+  } else if (finalBagType === 'S' || finalBagType === 'B') {
+    finalIsCompositionVerified = true;
+  } else if (input.bags !== undefined || input.bagType !== undefined) {
+    finalIsCompositionVerified = false;
+  } else {
+    finalIsCompositionVerified = grn.isCompositionVerified ?? true;
+  }
   update.bagType = finalBagType;
   update.bags = finalBags;
   update.smallBags = composition.smallBags;
   update.bigBags = composition.bigBags;
+  update.isCompositionVerified = finalIsCompositionVerified;
   inwardUpdate.bagType = finalBagType;
   inwardUpdate.smallQuantity = composition.smallBags;
   inwardUpdate.bigQuantity = composition.bigBags;
@@ -88,6 +108,7 @@ export function resolveBagEdit(input: CorrectGrnInput, grn: StoredBagState): Bag
     finalBags,
     finalSmallBags,
     finalBigBags,
+    finalIsCompositionVerified,
     update,
     inwardUpdate,
   };

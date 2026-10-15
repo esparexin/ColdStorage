@@ -27,6 +27,7 @@ export interface MergeSourceGrn {
   bags: number; smallBags: number; bigBags: number; bagPrice?: number | null;
   smallBagPrice?: number | null; bigBagPrice?: number | null; remarks?: string | null;
   hamaliRate?: number | null; hamaliAmount?: number | null;
+  isCompositionVerified?: boolean | null;
 }
 
 export interface SourceRentResolution {

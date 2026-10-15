@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { normalizeBagComposition, type BagType, type DeliveryStatus } from '@cold-storage/contracts';
+import { isBagCompositionVerified, normalizeBagComposition, type BagType, type DeliveryStatus } from '@cold-storage/contracts';
 import { GrnModel } from '../../database/models/grn.model.js';
 import { CustomerModel } from '../../database/models/customer.model.js';
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
@@ -107,14 +107,10 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
   const grnNumber = options.grnNumber ?? `GRN-26-27-${id.slice(-4).toUpperCase()}`;
   const chamber = options.chamber ?? 'CH-01';
   const grnDate = options.date ?? new Date();
-  // Every GRN carries a fully-populated composition, so a fixture can never seed a receipt the
-  // production validator would reject.
-  const composition = normalizeBagComposition({
-    bagType,
-    bags,
-    smallBags: options.smallBags,
-    bigBags: options.bigBags,
-  });
+  // Every GRN carries a fully-populated composition.
+  const composition = normalizeBagComposition({ bagType, bags, smallBags: options.smallBags, bigBags: options.bigBags });
+  const isCompositionVerified =
+    bagType === 'S' || bagType === 'B' ? true : isBagCompositionVerified({ bagType, bags, smallBags: options.smallBags, bigBags: options.bigBags });
   // Per-bag weight defaults mirror the form: S needs small, B needs big, S+B needs both.
   const smallBagWeight =
     options.smallBagWeight ?? (bagType === 'S' || bagType === 'S+B' ? 50 : null);
@@ -139,6 +135,7 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
         bagType,
         smallBags: composition.smallBags,
         bigBags: composition.bigBags,
+        isCompositionVerified,
         smallBagWeight,
         bigBagWeight,
         rentType,

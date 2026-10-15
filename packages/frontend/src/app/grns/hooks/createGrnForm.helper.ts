@@ -74,8 +74,7 @@ export function validateCreateGrnForm(state: CreateGrnState, rateCheck?: Control
     errors.chamber = parsedChamber.error.issues[0]?.message ?? 'Chamber is required';
   }
 
-  // Total Bags is a manual numbers-only input. Bag type is Small-only or
-  // Big-only, so the split is derived server-side and no composition check applies.
+  // Total-only S/B inward; Small/Big composition is confirmed at outward delivery.
   if (typeof state.createBags !== 'number' || !Number.isInteger(state.createBags) || state.createBags < 1) {
     errors.bags = 'Total S/B Bags is required (a positive whole number)';
   }

@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
   calculateRentAmount,
-  isBagCompositionVerified,
   type BagType,
   type CommodityRate,
   type RentType,
@@ -152,25 +151,8 @@ export class CommodityRateService {
     if (useSplit && (submitted.smallBagPrice == null || submitted.bigBagPrice == null)) {
       throw rateMismatch(commodityId, rentType, `${submitted.bagType} requires both Small and Big bag rates`);
     }
-    if (
-      opts.requireRates &&
-      useSplit &&
-      norm(rate.smallRate) !== norm(rate.bigRate) &&
-      submitted.bags != null &&
-      submitted.bags > 0 &&
-      !isBagCompositionVerified({
-        bagType: submitted.bagType,
-        bags: submitted.bags,
-        smallBags: submitted.smallBags,
-        bigBags: submitted.bigBags,
-      })
-    ) {
-      throw rateMismatch(
-        commodityId,
-        rentType,
-        'Small and big bag composition unverified; differential rates require confirmed counts',
-      );
-    }
+    // Inward is total-only: composition confirmation is deferred to outward.
+    // Unverified differential lots keep pending (0) rent via SSOT, never a guess.
     const mismatch =
       (submitted.smallBagPrice != null && norm(submitted.smallBagPrice) !== norm(rate.smallRate)) ||
       (submitted.bigBagPrice != null && norm(submitted.bigBagPrice) !== norm(rate.bigRate)) ||
