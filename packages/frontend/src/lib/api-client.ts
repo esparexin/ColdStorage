@@ -53,9 +53,20 @@ export async function fetchWithTimeout(
   }
 }
 
+export type RefreshFailureType = 'unauthorized' | 'timeout' | 'network' | null;
+
 let activeAccessToken: string | null = null;
 let refreshPromise: Promise<RefreshResult | null> | null = null;
 let onAuthExpired: (() => void) | null = null;
+let lastRefreshFailure: RefreshFailureType = null;
+
+export function getLastRefreshFailure(): RefreshFailureType {
+  return lastRefreshFailure;
+}
+
+export function resetLastRefreshFailure(): void {
+  lastRefreshFailure = null;
+}
 
 export function setOnAuthExpired(handler: (() => void) | null): void {
   onAuthExpired = handler;
@@ -64,6 +75,9 @@ export function setOnAuthExpired(handler: (() => void) | null): void {
 /** Called by AuthContext after login or bootstrap refresh. */
 export function setAccessToken(token: string | null): void {
   activeAccessToken = token;
+  if (token) {
+    lastRefreshFailure = null;
+  }
 }
 
 /**
@@ -117,6 +131,7 @@ export async function executeSingleFlightRefresh<T = unknown>(
       );
 
       if (!res.ok) {
+        lastRefreshFailure = 'unauthorized';
         if (res.status === 401) {
           setAccessToken(null);
           onAuthExpired?.();
@@ -125,10 +140,14 @@ export async function executeSingleFlightRefresh<T = unknown>(
       }
 
       const data = (await res.json()) as { token: string; user?: T };
+      lastRefreshFailure = null;
       setAccessToken(data.token);
       return { token: data.token, user: data.user };
-    } catch {
-      // Network timeout / transient fetch failure: do not clear session or redirect to login.
+    } catch (err: unknown) {
+      const isAbort =
+        (err instanceof DOMException && err.name === 'AbortError') ||
+        (err instanceof Error && err.name === 'AbortError');
+      lastRefreshFailure = isAbort ? 'timeout' : 'network';
       return null;
     } finally {
       refreshPromise = null; // reset so the next 401 starts a new flight

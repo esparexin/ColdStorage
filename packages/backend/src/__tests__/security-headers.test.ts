@@ -59,5 +59,15 @@ describe('Phase 11: Security Headers & OWASP Hardening Controls', () => {
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('PARAMETER_POLLUTION');
   });
+
+  it('7. reflects sanitized CORS origin and allows credentials', async () => {
+    const res = await request(app)
+      .get('/health')
+      .set('Origin', 'http://localhost:3000');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+    expect(res.headers['access-control-allow-credentials']).toBe('true');
+  });
 });
 
