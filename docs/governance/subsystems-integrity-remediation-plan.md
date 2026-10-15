@@ -54,7 +54,9 @@
 - **Schema Governance:** Verified `@deprecated` documentation and schema comments on dead delivery challan hamali fields (`hamaliRate`, `hamaliCharge`) and dormant commodity rate hamali fields (`hamaliRate`).
 - **Code Quality & Line Budgets:** Kept all modified frontend files strictly within the 250-line budget ratchet (`GrnPageModals.tsx`: 182 lines, `InternalMovementModal.tsx`: 246 lines, `InternalMovementMergeTab.tsx`: 247 lines). All a11y, SSOT, boundary, and hygiene gates passing.
 
-### Phase 8 — Verification and PR Readiness
-- Run full regression suites across all packages.
-- Execute `npm run type-check` and `npm run build`.
-- Prepare comprehensive PR summary and evidence.
+### Phase 8 — Verification and PR Readiness (Completed)
+- **Contracts Test Suite:** 23 test files, 250 tests passed (`npm test` in `packages/contracts`).
+- **Backend Test Suites:** All targeted and regression integration suites passed with single-DB file serialization (`occupancy-rent.test.ts`, `delivery-outward-rent.test.ts`, `rent-billing-lifecycle.test.ts`, `hamali-first-season.test.ts`, `hamali-merge-accounting.test.ts`, `merge-repack-hamali.test.ts`, `merge-grn-rent.test.ts`, `merge-grn-guards.test.ts`, `internal-movement.test.ts`, `transfer-ownership-rent.test.ts`, `transfer-ownership-hamali.test.ts`, `grn-full-edit.test.ts`, `storage-audit-report.test.ts`).
+- **Static Analysis & Governance:** Full `npm run type-check` passed with 0 errors across all 3 workspaces. Strict pre-commit hygiene audit (`npm run hygiene`) passed all 15 audit dimensions (line-budget limit 250, accessibility, SSOT, boundary, permission coverage, rounding, dead CSS).
+- **Production Build:** Full workspace `npm run build` passed with 0 errors (including all 18 Next.js static pages).
+- **Residual Risks:** None identified; historical document schemas and data were preserved without destructive migrations. Dead/dormant fields are annotated `@deprecated` to prevent future misuse.
