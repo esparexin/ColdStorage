@@ -38,7 +38,7 @@ export function BrandLogoSection({
         <div className={styles.logoPreviewWrapper}>
           {logoAssetId ? (
             <img
-              src={`/api/assets/${logoAssetId}`}
+              src={`/api/assets/${encodeURIComponent(logoAssetId)}`}
               alt="Organization Logo Preview"
               className={styles.logoImage}
             />

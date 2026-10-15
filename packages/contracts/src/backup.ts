@@ -99,10 +99,10 @@ export type BackupInspectResponse = z.infer<typeof backupInspectResponseSchema>;
 
 /** Restore request. `confirm` must equal the backup id; live targets need extra env guard. */
 export const backupRestoreSchema = z.object({
-  backupId: z.string().min(1),
+  backupId: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/, 'Invalid backup ID format'),
   confirm: z.string().min(1),
   dryRun: z.boolean().default(true),
-  targetDatabase: z.string().min(1).optional(),
+  targetDatabase: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/, 'Invalid target database').optional(),
 });
 
 export type BackupRestoreInput = z.infer<typeof backupRestoreSchema>;

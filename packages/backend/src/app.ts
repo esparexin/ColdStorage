@@ -2,7 +2,7 @@ import cors from 'cors';
 import express, { type Express, type Request, type Response, type NextFunction } from 'express';
 import type { HealthResponse } from '@cold-storage/contracts';
 import { config } from './config.js';
-import { getDatabaseName, getDatabaseState } from './database/connection.js';
+import { getDatabaseState } from './database/connection.js';
 import { logger } from './utils/logger.js';
 import {
   securityHeadersMiddleware,
@@ -41,10 +41,26 @@ export function createApp(): Express {
   // attributes to the proxy, destroying forensic value. Conversely, with no
   // proxy, a client with an IPv6 /64 gets unlimited fresh buckets.
   // 1 hop is the standard deployment; TRUST_PROXY_HOPS overrides it.
-  app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS ?? 1));
+  const trustProxyRaw = process.env.TRUST_PROXY_HOPS ?? '1';
+  const trustProxyHops = Number(trustProxyRaw);
+  if (!Number.isInteger(trustProxyHops) || trustProxyHops < 0 || trustProxyHops > 5) {
+    throw new Error(`TRUST_PROXY_HOPS must be an integer 0-5 (received '${trustProxyRaw}')`);
+  }
+  app.set('trust proxy', trustProxyHops);
 
   app.use(securityHeadersMiddleware);
   const allowedOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
+  if (process.env.NODE_ENV === 'production') {
+    if (allowedOrigin === '*' || allowedOrigin.includes(',')) {
+      throw new Error('CORS_ORIGIN must be a single origin in production (no "*" or lists).');
+    }
+    if (!allowedOrigin.startsWith('https://')) {
+      throw new Error('CORS_ORIGIN must be https:// in production.');
+    }
+    if (process.env.COOKIE_SECURE === 'false') {
+      throw new Error('COOKIE_SECURE=false is forbidden in production.');
+    }
+  }
   app.use(
     cors({
       origin: allowedOrigin,
@@ -67,10 +83,10 @@ export function createApp(): Express {
   // rewrite in next.config.mjs (which proxies /api/:path* only) can actually reach it, and
   // reports the observed datastore state rather than assuming it.
   app.get('/api/health', (_req: Request, res: Response) => {
+    // Omit database name from unauthenticated payload (info minimization).
     const database = {
       state: getDatabaseState(),
       configured: Boolean(config.mongoUri),
-      name: getDatabaseName(),
     };
     const healthy = database.state === 'connected';
     res.status(healthy ? 200 : 503).json({

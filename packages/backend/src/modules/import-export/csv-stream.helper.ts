@@ -41,6 +41,11 @@ export function buildDateFilter(
  * Pipes a Mongoose cursor through CsvSerializer to Express response with backpressure,
  * client-disconnect cleanup, and error handling without buffering.
  */
+export function sanitizeExportFilename(filename: string): string {
+  const safe = filename.replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 128);
+  return safe.endsWith('.csv') ? safe : `${safe}.csv`;
+}
+
 export async function streamCursor<T>(
   cursor: AsyncIterable<T> & { close: () => Promise<void> },
   headers: string[],
@@ -48,8 +53,9 @@ export async function streamCursor<T>(
   res: Response,
   filename: string,
 ): Promise<void> {
+  const safeFilename = sanitizeExportFilename(filename);
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
   res.setHeader('Transfer-Encoding', 'chunked');
 
   let headerWritten = false;

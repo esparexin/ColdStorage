@@ -38,11 +38,12 @@ export default function DeliveriesPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
-    const action = params.get('action');
-    const tab = params.get('tab')?.toLowerCase();
+    if (params.get('action') === 'create' || params.get('tab')?.toLowerCase() === 'issue') setActiveView('issue');
     const grnId = params.get('grnId');
-    if (action === 'create' || tab === 'issue') setActiveView('issue');
-    if (grnId) setInitialGrnId(grnId);
+    if (grnId && /^[A-Za-z0-9_-]{1,128}$/.test(grnId)) setInitialGrnId(grnId);
+    const url = new URL(window.location.href);
+    ['grnId', 'action'].forEach((k) => url.searchParams.delete(k));
+    window.history.replaceState({}, '', url.toString());
   }, []);
   const canCreate = hasPermission('delivery:create');
   const canPrint = hasPermission('document:print');

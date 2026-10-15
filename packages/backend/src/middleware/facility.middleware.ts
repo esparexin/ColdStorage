@@ -26,8 +26,11 @@ export function requireFacilityScope(extractor: FacilityIdExtractor) {
       res.status(500).json({ error: 'Authorization check failed' });
       return;
     }
-    const targetFacilityId = Array.isArray(raw) ? raw[0] : raw;
-    if (!targetFacilityId) {
+    // Bulk safety: when an extractor yields multiple IDs, every target must be
+    // in scope (checking only [0] would let [allowed, victim] bypass). Single-ID
+    // callers are unaffected.
+    const targets: string[] = Array.isArray(raw) ? raw.filter(Boolean) : raw ? [raw] : [];
+    if (targets.length === 0) {
       res.status(404).json({ error: 'Target facility or parent entity not found' });
       return;
     }
@@ -36,10 +39,11 @@ export function requireFacilityScope(extractor: FacilityIdExtractor) {
     const hasGlobal = req.gateState?.hasGlobalScope;
     let permitted: boolean;
     if (hasGlobal !== undefined) {
-      permitted = hasGlobal ? true : gateFacilityIds.includes(targetFacilityId);
+      permitted = hasGlobal ? true : targets.every((id) => gateFacilityIds.includes(id));
     } else {
-      permitted = inFacilityScope(req.user.role, gateFacilityIds, targetFacilityId);
+      permitted = targets.every((id) => inFacilityScope(req.user!.role, gateFacilityIds, id));
     }
+    const targetFacilityId = targets[0] as string;
     if (!permitted) {
       void auditService.log({
         eventType: 'ACCESS_DENIED',

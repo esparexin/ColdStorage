@@ -5,14 +5,10 @@ import { roleService } from '../roles/role.service.js';
 import { userService } from '../users/user.service.js';
 import type { UserEntity } from '../users/user.entity.js';
 
-/** Resolves DB-authoritative permissions for token minting; never throws. */
+/** Resolves DB-authoritative permissions for token minting; fails closed. */
 export async function resolveUserPermissions(user: UserEntity): Promise<PermissionKey[]> {
-  try {
-    const resolved = await roleService.resolvePermissionsForUser(user);
-    return [...resolved.permissions];
-  } catch {
-    return [];
-  }
+  const resolved = await roleService.resolvePermissionsForUser(user);
+  return [...resolved.permissions];
 }
 
 /** Mints a short-lived access token carrying role identity + resolved permissions. */

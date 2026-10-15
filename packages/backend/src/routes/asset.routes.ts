@@ -136,10 +136,11 @@ assetRouter.delete(
 
 /**
  * GET /api/assets/:assetId
- * Public same-origin resolver for document print and browser display.
- * Strictly complies with CSP img-src 'self' by streaming image data directly without external redirects.
+ * Authenticated same-origin resolver for document print and browser display.
+ * Requires a valid access token so anonymous scrapers cannot enumerate branding
+ * assets; strictly complies with CSP img-src 'self' by streaming without redirects.
  */
-assetRouter.get('/assets/:assetId', async (req: Request, res: Response): Promise<void> => {
+assetRouter.get('/assets/:assetId', authenticate, async (req: Request, res: Response): Promise<void> => {
   const assetId = getParamId(req.params.assetId);
   if (!assetId || !/^[a-zA-Z0-9_-]{1,128}$/.test(assetId)) {
     res.status(400).json({ error: 'Invalid asset ID format' });
@@ -153,18 +154,39 @@ assetRouter.get('/assets/:assetId', async (req: Request, res: Response): Promise
       return;
     }
 
-    // Stream image content from Cloudinary
-    const response = await fetch(asset.secureUrl);
+    // SSRF guard: only Cloudinary HTTPS hosts; bounded fetch with size cap.
+    let storageUrl: URL;
+    try {
+      storageUrl = new URL(asset.secureUrl);
+    } catch {
+      res.status(502).json({ error: 'Invalid asset storage URL' });
+      return;
+    }
+    if (storageUrl.protocol !== 'https:' || storageUrl.hostname !== 'res.cloudinary.com') {
+      res.status(502).json({ error: 'Asset storage host not allowed' });
+      return;
+    }
+    const response = await fetch(storageUrl, { signal: AbortSignal.timeout(5000) });
     if (!response.ok) {
       res.status(502).json({ error: 'Failed to retrieve asset from storage' });
+      return;
+    }
+    const lengthHeader = response.headers.get('content-length');
+    if (lengthHeader && Number(lengthHeader) > 5 * 1024 * 1024) {
+      res.status(502).json({ error: 'Asset too large' });
       return;
     }
 
     res.setHeader('Content-Type', asset.mimeType);
     res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
     res.setHeader('Content-Security-Policy', "default-src 'none'");
+    res.setHeader('X-Content-Type-Options', 'nosniff');
 
     const arrayBuffer = await response.arrayBuffer();
+    if (arrayBuffer.byteLength > 5 * 1024 * 1024) {
+      res.status(502).json({ error: 'Asset too large' });
+      return;
+    }
     res.status(200).send(Buffer.from(arrayBuffer));
   } catch (err: unknown) {
       sendServiceError(res, err, 'Failed to retrieve asset');
