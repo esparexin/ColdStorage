@@ -3,6 +3,7 @@ import {
   calculateRentAmount,
   deriveBagPrice,
   rentMonthsForType,
+  SEASONAL_3M_RENT_MONTHS,
   SEASONAL_RENT_MONTHS,
   type BagType,
   type CorrectGrnInput,
@@ -70,6 +71,8 @@ export async function resolveRentEdit(
   let finalRentMonths: number | null;
   if (finalRentType === 'Seasonal') {
     finalRentMonths = SEASONAL_RENT_MONTHS;
+  } else if (finalRentType === 'Seasonal_3M') {
+    finalRentMonths = SEASONAL_3M_RENT_MONTHS;
   } else if (input.rentMonths !== undefined) {
     finalRentMonths = input.rentMonths ?? null;
   } else {
@@ -173,6 +176,8 @@ export async function resolveRentEdit(
     bigBagPrice: finalBigBagPrice,
   };
   update.rentMonths =
-    finalRentType === 'Seasonal' ? rentMonthsForType(finalRentType) : finalRentMonths;
+    finalRentType === 'Seasonal' || finalRentType === 'Seasonal_3M'
+      ? rentMonthsForType(finalRentType)
+      : finalRentMonths;
   return update;
 }

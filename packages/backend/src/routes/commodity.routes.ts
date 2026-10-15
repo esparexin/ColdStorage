@@ -3,6 +3,7 @@ import { asyncRouter } from '../utils/async-handler.js';
 import {
   createCommoditySchema,
   rentTypeSchema,
+  resolveControllerRentType,
   updateCommoditySchema,
   upsertCommodityRateSchema,
 } from '@cold-storage/contracts';
@@ -79,7 +80,8 @@ commodityRouter.get(
           res.status(400).json({ error: 'Validation failed', details: parsedType.error.flatten() });
           return;
         }
-        const rate = await commodityRateService.getRate(commodityId, parsedType.data);
+        const controllerType = resolveControllerRentType(parsedType.data);
+        const rate = await commodityRateService.getRate(commodityId, controllerType);
         if (!rate) {
           res.status(404).json({ error: `No active ${parsedType.data} rate for commodity '${commodityId}'` });
           return;

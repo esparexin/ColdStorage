@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateRentAmount, calculateMonthlyElapsedCycles } from '../index.js';
+import { calculateRentAmount, calculateMonthlyElapsedCycles, resolveControllerRentType } from '../index.js';
 import { GRN_LIFECYCLE_FIXTURES } from './grn-lifecycle-scenarios.fixtures.js';
 
 describe('GRN lifecycle baseline scenarios (Phase 0)', () => {
@@ -22,5 +22,15 @@ describe('GRN lifecycle baseline scenarios (Phase 0)', () => {
   it('monthly elapsed cycles follow full-cycle rule (same-day=1)', () => {
     expect(calculateMonthlyElapsedCycles('2026-01-01', '2026-01-01')).toBe(1);
     expect(calculateMonthlyElapsedCycles('2026-01-01', '2026-02-01')).toBe(2);
+  });
+
+  it('Seasonal_3M shares the Seasonal controller row without becoming Seasonal rent', () => {
+    expect(resolveControllerRentType('Seasonal_3M')).toBe('Seasonal');
+    expect(resolveControllerRentType('Seasonal')).toBe('Seasonal');
+    expect(resolveControllerRentType('Monthly')).toBe('Monthly');
+    expect(calculateRentAmount({
+      rentType: 'Seasonal_3M', bags: 40, bagType: 'S',
+      smallBagPrice: 10, bigBagPrice: 15, rentMonths: 3,
+    })).toBe(400);
   });
 });

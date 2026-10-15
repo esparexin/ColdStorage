@@ -18,6 +18,15 @@ import type { ExtensionPeriod } from './rent-extension.js';
 export const commodityRentTypeSchema = z.enum(['Monthly', 'Seasonal']);
 export type CommodityRentType = z.infer<typeof commodityRentTypeSchema>;
 
+/**
+ * Controller normalization (F1): Seasonal_3M lots bill from the canonical
+ * Seasonal controller row. Billing stays distinct (3M base + monthly extra);
+ * only the rate lookup is shared. Never converts 3M into ordinary Seasonal rent.
+ */
+export function resolveControllerRentType(rentType: string): CommodityRentType {
+  return rentType === 'Seasonal_3M' ? 'Seasonal' : (rentType as CommodityRentType);
+}
+
 export const commodityRateSchema = z.object({
   id: z.string().min(1),
   commodityId: z.string().min(1),

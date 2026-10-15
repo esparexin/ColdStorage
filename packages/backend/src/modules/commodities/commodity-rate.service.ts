@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   calculateRentAmount,
+  resolveControllerRentType,
   type BagType,
   type CommodityRate,
   type RentType,
@@ -84,7 +85,8 @@ export class CommodityRateService {
 
   /** Active authoritative row for one (commodity, rent type) pair, if any. */
   public async getRate(commodityId: string, rentType: RentType): Promise<CommodityRate | null> {
-    const doc = await CommodityRateModel.findOne({ commodityId, rentType, isActive: true })
+    const controllerType = resolveControllerRentType(rentType);
+    const doc = await CommodityRateModel.findOne({ commodityId, rentType: controllerType, isActive: true })
       .lean<CommodityRateDoc>()
       .exec();
     return doc ? this.toEntity(doc) : null;
