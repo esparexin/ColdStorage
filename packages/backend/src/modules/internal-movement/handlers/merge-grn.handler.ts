@@ -9,6 +9,7 @@ import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
 import { resolveSourceRentObligation, closeSourceGrnOnMerge } from './merge-grn.helper.js';
+import { validatePartialMovesInput, processMergeSource } from './merge-source-move.helper.js';
 import { validateMergeRepackedCounts } from './merge-grn-validation.helper.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 import { createMergePutawayTransaction, createMergeMovementRecord } from './merge-grn-movement.helper.js';
@@ -57,39 +58,16 @@ export async function mergeGrn(
       let totalSourcePendingRent = 0;
       const sourceSummaries: string[] = [];
       const moveDate = new Date(input.movementDate);
-
+      validatePartialMovesInput(input);
       for (const s of sourceGrns) {
-        if (s.status === 'CLOSED') throw new Error(`Source GRN '${s.grnNumber}' is already CLOSED`);
-        if (s.commodityId !== targetGrn.commodityId) {
-          throw new Error(`Commodity mismatch: Source GRN '${s.grnNumber}' (${s.commodityName}) does not match Target GRN '${targetGrn.grnNumber}' (${targetGrn.commodityName})`);
-        }
-        if (s.loanStatus === 'TAKEN') throw new Error(`Source GRN '${s.grnNumber}' has an active loan hold`);
-
-        const bal = await readLedgerBalance(facilityId, s.id, session);
-        if (bal.total <= 0) throw new Error(`Source GRN '${s.grnNumber}' has zero remaining bags to merge`);
-
-        const rentResolution = await resolveSourceRentObligation({
-          facilityId,
-          sourceGrn: s,
-          targetGrnDate: targetGrn.date,
-          movementDate: moveDate,
-          sourcePaymentAmount: input.sourcePaymentAmount,
-          sourcePaymentMode: input.sourcePaymentMode,
-          userId,
-          session,
+        const step = await processMergeSource({
+          facilityId, sourceGrn: s, targetGrn, input, movementId, moveDate, userId, session,
         });
-        totalSourcePendingRent += rentResolution.rentBal.remainingBalance;
-
-        totalMovedBags += bal.total;
-        totalMovedSmall += bal.smallBags;
-        totalMovedBig += bal.bigBags;
-
-        const summaryStr = await closeSourceGrnOnMerge({
-          facilityId, sourceGrn: s, targetGrnNumber: targetGrn.grnNumber, targetGrnId: targetGrn.id,
-          movementId, movementDate: moveDate, ledgerBalance: bal, rentResolution,
-          remarks: input.remarks, userId, session,
-        });
-        sourceSummaries.push(summaryStr);
+        totalSourcePendingRent += step.pendingRent;
+        totalMovedBags += step.movedTotal;
+        totalMovedSmall += step.movedSmall;
+        totalMovedBig += step.movedBig;
+        sourceSummaries.push(step.summary);
       }
 
       const { smallMoved, bigMoved, explicitConfirmation } = validateMergeRepackedCounts({

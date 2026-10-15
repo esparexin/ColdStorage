@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateRentAmount, calculateMonthlyElapsedCycles, resolveControllerRentType, upsertCommodityRateBatchSchema } from '../index.js';
+import { calculateRentAmount, calculateMonthlyElapsedCycles, resolveControllerRentType, upsertCommodityRateBatchSchema, mergeGrnInputSchema, transferOwnershipInputSchema } from '../index.js';
 import { GRN_LIFECYCLE_FIXTURES } from './grn-lifecycle-scenarios.fixtures.js';
 
 describe('GRN lifecycle baseline scenarios (Phase 0)', () => {
@@ -51,5 +51,23 @@ describe('GRN lifecycle baseline scenarios (Phase 0)', () => {
       ],
     });
     expect(dup.success).toBe(false);
+  });
+
+  it('partial move/transfer schemas accept explicit quantities (M2)', () => {
+    const merge = mergeGrnInputSchema.safeParse({
+      targetGrnId: 'g-t', sourceGrnIds: ['g-s'], remarks: 'partial move test',
+      partialMoves: [{ sourceGrnId: 'g-s', smallBags: 30, bigBags: 20 }],
+    });
+    expect(merge.success).toBe(true);
+    const badMerge = mergeGrnInputSchema.safeParse({
+      targetGrnId: 'g-t', sourceGrnIds: ['g-s'], remarks: 'partial move test',
+      partialMoves: [{ sourceGrnId: 'g-s', smallBags: 0, bigBags: 0 }],
+    });
+    expect(badMerge.success).toBe(false);
+    const transfer = transferOwnershipInputSchema.safeParse({
+      grnId: 'g-1', newCustomerId: 'c-2', remarks: 'partial transfer test',
+      transferSmallBags: 30, transferBigBags: 20, newGrnNumber: '0099',
+    });
+    expect(transfer.success).toBe(true);
   });
 });
