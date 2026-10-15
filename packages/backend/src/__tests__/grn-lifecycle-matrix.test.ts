@@ -6,6 +6,7 @@ import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
 import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
+import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
@@ -31,6 +32,9 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     await resetStockCollections();
     await CommodityRateModel.deleteMany({});
     await DeliveryChallanModel.deleteMany({});
+    await mongoose.connection.collection('rentpayments').deleteMany({});
+    await mongoose.connection.collection('rentextensions').deleteMany({});
+    await mongoose.connection.collection('internalmovements').deleteMany({});
     await seedFacility({ id: FAC, code: 'MTX', name: 'Matrix Facility' });
     custA = await seedCustomer({ id: 'cust-mtx-a', facilityId: FAC, name: 'Kalyan' });
     custB = await seedCustomer({ id: 'cust-mtx-b', facilityId: FAC, name: 'Balaji' });
@@ -94,7 +98,8 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     expect(res.status).toBe(200);
     const src = await GrnModel.findOne({ id: source }).lean().exec();
     expect(src?.status).toBe('OPEN');
-    expect(src?.bags).toBe(70);
+    expect(src?.bags).toBe(100);
+    expect(src?.smallBags).toBe(100);
     expect(res.body.targetGrn.bags).toBe(130);
   });
 
@@ -118,9 +123,50 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     const src = await GrnModel.findOne({ id: gid }).lean().exec();
     const dst = await GrnModel.findOne({ facilityId: FAC, grnNumber: '0502' }).lean().exec();
     expect(src?.status).toBe('OPEN');
-    expect(src?.bags).toBe(70);
+    expect(src?.bags).toBe(100);
+    expect(src?.smallBags).toBe(100);
     expect(dst?.bags).toBe(30);
     expect(dst?.customerId).toBe(custB);
     expect(mongoose.connection.readyState).toBe(1);
+  });
+
+  it('repeated partials then final outward preserve receipt and reconcile ledger', async () => {
+    const target = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S', smallBags: 100, bigBags: 0, rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0601', date: new Date('2026-06-01') });
+    const source = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S', smallBags: 100, bigBags: 0, rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0602', date: new Date('2026-06-01') });
+    for (const [qty, day] of [[30, '2026-07-01'], [20, '2026-07-05']] as const) {
+      const res = await request(app).post(`/api/facilities/${FAC}/internal-movements/merge`).set(auth()).send({
+        targetGrnId: target, sourceGrnIds: [source], movementDate: new Date(day),
+        remarks: `repeat partial ${qty}`, partialMoves: [{ sourceGrnId: source, smallBags: qty, bigBags: 0 }],
+      });
+      expect(res.status).toBe(200);
+    }
+    let src = await GrnModel.findOne({ id: source }).lean().exec();
+    expect(src?.status).toBe('OPEN');
+    expect(src?.bags).toBe(100);
+    expect(src?.smallBags).toBe(100);
+    const d1 = await request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send({
+      grnId: source, quantity: 50, smallBags: 50, bigBags: 0, date: '2026-07-10',
+      vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: 'GP-9201',
+    });
+    expect([200, 201]).toContain(d1.status);
+    expect(d1.body.summary.remainingDeliveryBalance).toBe(0);
+    src = await GrnModel.findOne({ id: source }).lean().exec();
+    expect(src?.bags).toBe(100);
+    expect(src?.smallBags).toBe(100);
+    const outTxns = await InventoryTransactionModel.find({ facilityId: FAC, grnId: source, transactionType: 'OUTWARD_DELIVERY' }).lean().exec();
+    expect(outTxns.reduce((s, t) => s + t.smallQuantity + t.bigQuantity, 0)).toBe(100);
+    const sum = await request(app).get(`/api/facilities/${FAC}/rent/grn/${source}`).set(auth());
+    expect(sum.status).toBe(200);
+    const remaining = sum.body.remainingBalance ?? 0;
+    if (remaining > 0) {
+      const pay = await request(app).post(`/api/facilities/${FAC}/rent/collect`).set(auth()).send({
+        grnId: source, amountPaid: remaining, paymentMode: 'Cash', paymentDate: '2026-07-11',
+      });
+      expect([200, 201]).toContain(pay.status);
+    }
+    const sum2 = await request(app).get(`/api/facilities/${FAC}/rent/grn/${source}`).set(auth());
+    expect(sum2.body.remainingBalance).toBe(0);
+    const tgt = await GrnModel.findOne({ id: target }).lean().exec();
+    expect(tgt?.bags).toBe(150);
   });
 });

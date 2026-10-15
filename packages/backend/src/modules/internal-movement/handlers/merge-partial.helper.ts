@@ -34,12 +34,9 @@ export async function applyPartialMergeDeduction(params: {
     createdBy: p.userId, createdAt: p.movementDate,
   }], { session: p.session, ordered: true });
   const moveDateStr = p.movementDate.toISOString().split('T')[0];
-  const note = `[PARTIAL MERGE into GRN ${p.targetNumber} on ${moveDateStr}: ${p.moveTotal} bags moved. Liability retained on source unless explicit override. Reason: ${p.remarks.trim()}]`;
+  const note = `[PARTIAL MERGE into GRN ${p.targetNumber} on ${moveDateStr}: ${p.moveTotal} bags (${p.moveSmall} S + ${p.moveBig} B) moved via ledger. Receipt quantities preserved; balance is ledger-derived. Liability retained on source unless explicit override. Reason: ${p.remarks.trim()}]`;
   await GrnModel.updateOne({ id: p.sourceId }, [{
     $set: {
-      smallBags: { $subtract: ['$smallBags', p.moveSmall] },
-      bigBags: { $subtract: ['$bigBags', p.moveBig] },
-      bags: { $subtract: ['$bags', p.moveTotal] },
       remarks: { $concat: [{ $ifNull: ['$remarks', ''] }, '\n', note] },
       updatedAt: new Date(),
     },

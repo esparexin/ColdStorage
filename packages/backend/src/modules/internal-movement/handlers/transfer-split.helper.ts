@@ -71,9 +71,8 @@ export async function applyPartialTransferSplit(params: {
   ], { session: p.session, ordered: true });
   await GrnModel.updateOne({ id: String(src.id) }, [{
     $set: {
-      smallBags: { $subtract: ['$smallBags', p.moveSmall] },
-      bigBags: { $subtract: ['$bigBags', p.moveBig] },
-      bags: { $subtract: ['$bags', p.moveTotal] }, updatedAt: new Date(),
+      remarks: { $concat: [{ $ifNull: ['$remarks', ''] }, '\n', `Split to GRN ${p.newGrnNumber} on ${p.movementDate.toISOString().split('T')[0]}: ${p.moveTotal} bags (${p.moveSmall} S + ${p.moveBig} B) moved via ledger. Receipt quantities preserved; balance is ledger-derived. ${p.remarks.trim()}`] },
+      updatedAt: new Date(),
     },
   }], { session: p.session });
   return newId;
