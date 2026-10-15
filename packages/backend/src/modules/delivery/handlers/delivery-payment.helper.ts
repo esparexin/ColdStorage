@@ -16,6 +16,7 @@ export interface RecordDeliveryInlinePaymentParams {
   paymentAmount?: number | null;
   paymentMode?: PaymentMode | null;
   paymentReference?: string | null;
+  remainingLiability?: number | null;
   userId: string;
   session: mongoose.ClientSession;
 }
@@ -31,12 +32,19 @@ export async function recordDeliveryInlinePayment(
     paymentAmount,
     paymentMode,
     paymentReference,
+    remainingLiability,
     userId,
     session,
   } = params;
 
   if (paymentAmount == null || paymentAmount <= 0) {
     return { paidAmount: 0, receiptNumber: null };
+  }
+
+  if (remainingLiability != null && paymentAmount > remainingLiability) {
+    throw new Error(
+      `Requested payment ₹${paymentAmount} exceeds remaining rent balance of ₹${remainingLiability} for GRN '${grnNumber}'`,
+    );
   }
 
   const receiptNumber = await counterService.generateRentReceiptNumber(

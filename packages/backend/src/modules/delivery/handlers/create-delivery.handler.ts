@@ -211,14 +211,16 @@ async function executeDeliveryTransaction(
         { session, ordered: true },
       );
 
+      const effectiveObligation = await resolveEffectiveDeliveryObligation(facilityId, grn, session);
+      const remainingLiability = Math.max(0, Number((effectiveObligation - rentBalance.totalPaid).toFixed(2)));
+
       const { paidAmount } = await recordDeliveryInlinePayment({
         facilityId, grnId: grn.id, grnNumber: grn.grnNumber, deliveryDate,
         paymentAmount: input.paymentAmount, paymentMode: input.paymentMode, paymentReference: input.paymentReference,
-        userId, session,
+        remainingLiability, userId, session,
       });
 
       const closingTotal = available.total - withdrawnTotal;
-      const effectiveObligation = await resolveEffectiveDeliveryObligation(facilityId, grn, session);
       const totalPaidAfterDelivery = rentBalance.totalPaid + paidAmount;
       const effectiveRemaining = Math.max(0, Number((effectiveObligation - totalPaidAfterDelivery).toFixed(2)));
 

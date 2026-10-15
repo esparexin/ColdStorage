@@ -97,42 +97,12 @@ export async function resolveSourceRentObligation(
 
   let totalPaid = existingPayments.reduce((sum, p) => sum + p.amountPaid, 0);
 
-  // If source inline payment was provided (Scenario B: Previous season merge settlement)
-  if (sourcePaymentAmount != null && sourcePaymentAmount > 0) {
-    const receiptNumber = await counterService.generateRentReceiptNumber(
-      facilityId,
-      movementDate,
-      session,
-    );
-    await rentRepository.createPayment(
-      {
-        id: `rent-pay-${randomUUID()}`,
-        facilityId,
-        grnId: sourceGrn.id,
-        grnNumber: sourceGrn.grnNumber,
-        receiptNumber,
-        amountPaid: sourcePaymentAmount,
-        paymentMode: (sourcePaymentMode ?? 'Cash') as 'Cash' | 'UPI',
-        paymentDate: movementDate,
-        notes: `Pre-merge settlement: GRN ${sourceGrn.grnNumber}`,
-        createdBy: userId,
-      },
-      session,
-    );
-    totalPaid += sourcePaymentAmount;
-  }
-
   // Bag composition verification guard:
   // If no existing billed rent and no payments exist, check if bag quantities are verified.
   // Never assume or fabricate an estimated historical bill when small/big counts are unverified.
   const canCalc = canCalculateAuthoritativeRent({
-    bagType: sourceGrn.bagType,
-    bags: sourceGrn.bags,
-    smallBags: sourceGrn.smallBags,
-    bigBags: sourceGrn.bigBags,
-    bagPrice: sourceGrn.bagPrice,
-    smallBagPrice: sourceGrn.smallBagPrice,
-    bigBagPrice: sourceGrn.bigBagPrice,
+    bagType: sourceGrn.bagType, bags: sourceGrn.bags, smallBags: sourceGrn.smallBags, bigBags: sourceGrn.bigBags,
+    bagPrice: sourceGrn.bagPrice, smallBagPrice: sourceGrn.smallBagPrice, bigBagPrice: sourceGrn.bigBagPrice,
   });
 
   const [commodity, extensions] = await Promise.all([
@@ -165,6 +135,25 @@ export async function resolveSourceRentObligation(
     },
     session,
   );
+
+  const remainingSourceBalance = Math.max(0, Number((sourceTotalDue - totalPaid).toFixed(2)));
+
+  // If source inline payment was provided (Scenario B: Previous season merge settlement)
+  if (sourcePaymentAmount != null && sourcePaymentAmount > 0) {
+    if (sourcePaymentAmount > remainingSourceBalance) {
+      throw new Error(
+        `Requested payment ₹${sourcePaymentAmount} exceeds remaining rent balance of ₹${remainingSourceBalance} for source GRN '${sourceGrn.grnNumber}'`,
+      );
+    }
+    const receiptNumber = await counterService.generateRentReceiptNumber(facilityId, movementDate, session);
+    await rentRepository.createPayment({
+      id: `rent-pay-${randomUUID()}`, facilityId, grnId: sourceGrn.id, grnNumber: sourceGrn.grnNumber,
+      receiptNumber, amountPaid: sourcePaymentAmount, paymentMode: (sourcePaymentMode ?? 'Cash') as 'Cash' | 'UPI',
+      paymentDate: movementDate, notes: `Pre-merge settlement: GRN ${sourceGrn.grnNumber}`, createdBy: userId,
+    }, session);
+    totalPaid += sourcePaymentAmount;
+  }
+
   const rentBal = computeRentBalance(sourceTotalDue, totalPaid, { isPendingVerification });
 
   const verificationReason = isPendingVerification
