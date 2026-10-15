@@ -49,7 +49,8 @@ export function createApp(): Express {
   app.set('trust proxy', trustProxyHops);
 
   app.use(securityHeadersMiddleware);
-  const allowedOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
+  const rawAllowedOrigin = (process.env.CORS_ORIGIN ?? 'http://localhost:3000').trim();
+  const allowedOrigin = rawAllowedOrigin.replace(/\/+$/, '');
   if (process.env.NODE_ENV === 'production') {
     if (allowedOrigin === '*' || allowedOrigin.includes(',')) {
       throw new Error('CORS_ORIGIN must be a single origin in production (no "*" or lists).');
