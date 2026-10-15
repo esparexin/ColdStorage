@@ -43,7 +43,7 @@ export const transferOwnershipInputSchema = z.object({
   newCustomerId: z.string().trim().min(1, 'New Customer ID is required'),
   movementDate: z.coerce.date().default(() => new Date()),
   remarks: z.string().trim().min(3, 'Remarks must be at least 3 characters').max(500),
-  paymentDecision: transferPaymentDecisionSchema.default('AGREED_PENDING'),
+  paymentDecision: transferPaymentDecisionSchema.optional(),
   settlementDetails: transferSettlementDetailsSchema.optional(),
   /** Explicit confirmation required when stored composition is unverified. */
   confirmedSmallBags: z.number().int().min(0).max(100000).nullish(),

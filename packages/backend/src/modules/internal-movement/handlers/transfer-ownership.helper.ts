@@ -42,13 +42,20 @@ export async function settleTransferRent(params: SettleTransferRentParams): Prom
   let paymentRecord: RentPayment | undefined;
 
   if (rentBal.remainingBalance > 0) {
+    if (input.paymentDecision === 'AGREED_PENDING') {
+      return {
+        paymentRecord: undefined,
+        effectiveRentBal: rentBal,
+      };
+    }
+
     if (
       input.paymentDecision !== 'SETTLE_NOW' ||
       !input.settlementDetails ||
       input.settlementDetails.amountPaid < rentBal.remainingBalance
     ) {
       throw new Error(
-        `Cannot transfer ownership: Outstanding rent of ₹${rentBal.remainingBalance.toLocaleString('en-IN')} must be fully settled before transfer.`,
+        `Cannot transfer ownership: Outstanding rent of ₹${rentBal.remainingBalance.toLocaleString('en-IN')} must be fully settled before transfer under SETTLE_NOW, or choose AGREED_PENDING to carry forward.`,
       );
     }
 
@@ -90,4 +97,25 @@ export async function settleTransferRent(params: SettleTransferRentParams): Prom
   }
 
   return { paymentRecord, effectiveRentBal };
+}
+
+export function formatTransferAuditNote(params: {
+  transferDateStr: string;
+  fromName: string;
+  fromId: string;
+  toName: string;
+  toId: string;
+  paymentRecord?: RentPayment;
+  effectiveRentBal: RentBalance;
+  remarks: string;
+}): string {
+  const { transferDateStr, fromName, fromId, toName, toId, paymentRecord, effectiveRentBal, remarks } = params;
+  const prefix = `[OWNERSHIP TRANSFERRED on ${transferDateStr}: from ${fromName} (ID: ${fromId}) to ${toName} (ID: ${toId}).`;
+  if (paymentRecord) {
+    return `${prefix} Settled at transfer: ₹${paymentRecord.amountPaid} (Receipt #${paymentRecord.receiptNumber}). Rent obligation: ₹${effectiveRentBal.rentAmount} (Status: Settled). Reason: ${remarks.trim()}]`;
+  }
+  if (effectiveRentBal.remainingBalance > 0) {
+    return `${prefix} Pending rent obligation: ₹${effectiveRentBal.remainingBalance} carried forward under agreed pending terms. Rent obligation: ₹${effectiveRentBal.rentAmount} (Prior collected: ₹${effectiveRentBal.totalPaid}). Reason: ${remarks.trim()}]`;
+  }
+  return `${prefix} Rent obligation: ₹${effectiveRentBal.rentAmount} previously settled (Prior collected: ₹${effectiveRentBal.totalPaid}). Reason: ${remarks.trim()}]`;
 }

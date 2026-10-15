@@ -74,9 +74,8 @@ export function InternalMovementTransferTab({
   const isUnbilled = totalPaid === 0 && pendingAmount === 0 && (rentSummary?.rentAmount ?? 0) === 0;
 
   useEffect(() => {
-    if (pendingAmount > 0) {
-      setDecision('SETTLE_NOW');
-      if (settleAmount === 0) setSettleAmount(pendingAmount);
+    if (pendingAmount > 0 && settleAmount === 0) {
+      setSettleAmount(pendingAmount);
     }
   }, [pendingAmount, settleAmount]);
 
