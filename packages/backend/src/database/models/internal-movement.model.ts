@@ -19,13 +19,15 @@ export interface InternalMovementDoc extends Document {
   sourceBagPrice?: number | null;
   sourceSeasonalBagPrice?: number | null;
   sourceMonthlyBagPrice?: number | null;
-  /** @deprecated Legacy columns: never written by merge/transfer handlers, never returned. Do not use. */
+  /**
+   * Labor charges for physical repacking during GRN merge.
+   * Written by merge-grn-movement.helper when repacking hamali applies (hamaliCharge > 0).
+   * Omitted during ownership transfers.
+   */
   hamaliBags: number;
-  /** @deprecated Legacy columns: never written by merge/transfer handlers, never returned. Do not use. */
   hamaliRate?: number | null;
-  /** @deprecated Legacy columns: never written by merge/transfer handlers, never returned. Do not use. */
   hamaliCharge: number;
-  /** @deprecated Legacy columns: never written by merge/transfer handlers, never returned. Do not use. */
+  /** @deprecated Legacy column: retained for historical document reads; never written. */
   hamaliCarried: number;
   referenceWeight?: number | null;
   grnId: string | null;
@@ -66,11 +68,11 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
     sourceBagPrice: { type: Number, min: 0 },
     sourceSeasonalBagPrice: { type: Number, min: 0 },
     sourceMonthlyBagPrice: { type: Number, min: 0 },
-    // @deprecated Legacy hamali columns: never written, never returned. No
-    // defaults so new movements carry no hamali values; old values stay readable.
+    // Hamali columns for repacking labor during merge (written when hamaliCharge > 0).
     hamaliBags: { type: Number, min: 0 },
     hamaliRate: { type: Number, min: 0, default: 0 },
     hamaliCharge: { type: Number, min: 0 },
+    // @deprecated Legacy column: retained for historical rows; never written.
     hamaliCarried: { type: Number, min: 0 },
     referenceWeight: { type: Number, default: null },
     grnId: { type: String, default: null, index: true },

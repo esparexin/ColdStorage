@@ -24,6 +24,7 @@ export const commodityRateSchema = z.object({
   rentType: commodityRentTypeSchema,
   smallRate: bagPriceSchema,
   bigRate: bagPriceSchema,
+  /** @deprecated Dormant: hamali rate is configured at the Commodity master level. Retained for historical schema compatibility. */
   hamaliRate: z.number().min(0).nullish(),
   isActive: z.boolean().default(true),
   createdAt: z.date().optional(),
@@ -37,6 +38,7 @@ export const upsertCommodityRateSchema = z.object({
   rentType: commodityRentTypeSchema,
   smallRate: bagPriceSchema,
   bigRate: bagPriceSchema,
+  /** @deprecated Dormant: hamali rate is configured at the Commodity master level. */
   hamaliRate: z.number().min(0).nullish(),
   isActive: z.boolean().optional(),
 });
