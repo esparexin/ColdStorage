@@ -31,10 +31,11 @@
 - **Composition Sync:** Ensure `smallBags` and `bigBags` automatically sync to total bags when `'S'` or `'B'` is selected.
 - **Form Validation & Submission:** Ensure `createGrnForm.helper.ts` validates and submits the selected bag type.
 
-### Phase 4 — Rent Calculation Integrity
-- **Seasonal Lump-Sum Invariant:** Verify `months = 1` in `pricing.ts` (never multiplied by season duration).
-- **Monthly Elapsed Cycles:** Verify `Math.ceil` cycle counting with 1-day minimum.
-- **Obligation Base Verification:** Verify `Math.max(rentAmount, outwardRentCharges)` for Monthly/Seasonal_3M and seasonal lock for Seasonal.
+### Phase 4 — Rent Calculation Integrity (Verified)
+- **Seasonal Lump-Sum Invariant:** Verified `months = 1` in `pricing.ts` (never multiplied by season duration).
+- **Monthly Elapsed Cycles:** Verified `Math.ceil` cycle counting with 1-day minimum.
+- **Obligation Base Verification:** Verified `Math.max(rentAmount, outwardRentCharges)` for Monthly/Seasonal_3M and seasonal lock for Seasonal.
+- **Test Evidence:** Verified across `pricing.contracts.test.ts`, `rent-extension.contracts.test.ts`, `seasonal-3m-and-hamali.contracts.test.ts`, `occupancy-rent.test.ts`, `delivery-outward-rent.test.ts`, and `rent-billing-lifecycle.test.ts`. All 250 contract tests and 17 backend rent tests passing.
 
 ### Phase 5 — Internal Movement and GRN Merging
 - **Rent Type Guard:** Verify strict rent type equality (`source.rentType === target.rentType`).
