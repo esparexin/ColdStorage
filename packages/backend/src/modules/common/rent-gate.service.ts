@@ -16,6 +16,8 @@ export interface RentGateGrn {
   rentType: 'Monthly' | 'Seasonal' | 'Seasonal_3M';
   commodityId: string;
   bags: number;
+  hamaliRate?: number | null;
+  hamaliAmount?: number | null;
 }
 
 /**
@@ -51,7 +53,9 @@ export async function assertRentAllowedForOutward(
   // Hamali joins the total only when the base is the stored obligation; the
   // SSOT decides that, this only supplies the raw share.
   const hamaliShare =
-    Number(grn.rentAmount ?? 0) > 0 ? computeFirstSeasonHamali(grn.bags, commodity, extensions) : 0;
+    Number(grn.rentAmount ?? 0) > 0
+      ? computeFirstSeasonHamali(grn.bags, commodity, extensions, grn.hamaliRate, grn.hamaliAmount)
+      : 0;
 
   const totalDue = await rentExtensionRepository.resolveTotalDue(
     facilityId,

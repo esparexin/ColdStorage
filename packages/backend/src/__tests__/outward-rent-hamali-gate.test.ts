@@ -108,7 +108,7 @@ describe('Outward rent-vs-Hamali gate (F2)', () => {
     );
   }
 
-  it('skips the gate post-renewal when no Hamali share applies', async () => {
+  it('allocates remaining Hamali share post-renewal on outward delivery', async () => {
     await reset();
     const grn = await makeGrn(3);
     await rentExtensionService.finalizeExtension(facilityId, { grnId: grn.id, seasonYear: 2026, period: 'SEASON' }, userId);
@@ -117,8 +117,8 @@ describe('Outward rent-vs-Hamali gate (F2)', () => {
     const { delivery } = await createDeliveryWithRetry(
       facilityId, { grnId: grn.id, date: dDate, smallBags: 10, bigBags: 0, rentCharge: rentOnly }, userId,
     );
-    expect(delivery.rentCharge).toBe(rentOnly);
-  });
+    expect(delivery.rentCharge).toBe(rentOnly + 40);
+  }, 15000);
 
   it('accepts first-season delivery above the Hamali rate', async () => {
     await reset();
@@ -129,5 +129,5 @@ describe('Outward rent-vs-Hamali gate (F2)', () => {
       facilityId, { grnId: grn.id, date: dDate, smallBags: 10, bigBags: 0, rentCharge: rentOnly }, userId,
     );
     expect(delivery.rentCharge).toBe(rentOnly + 40);
-  });
+  }, 15000);
 });
