@@ -8,7 +8,6 @@ import { computeRentBalance } from '../../common/rent-balance.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
-import { resolveSourceRentObligation, closeSourceGrnOnMerge } from './merge-grn.helper.js';
 import { validatePartialMovesInput, processMergeSource } from './merge-source-move.helper.js';
 import { validateMergeRepackedCounts } from './merge-grn-validation.helper.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';

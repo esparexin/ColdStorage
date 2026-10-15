@@ -5,7 +5,7 @@ import type { Customer, Grn, TransferPaymentDecision, TransferSettlementDetails 
 import { Badge, Input, Select } from '@/components/ui';
 import { useRentGate } from '@/hooks/useRentGate';
 import { TransferPaymentDecisionSection, validateTransferPayment } from './TransferPaymentDecisionSection';
-import { TransferBagConfirmationFields } from './TransferBagConfirmationFields';
+import { TransferOwnershipConfirmation } from './TransferOwnershipConfirmation';
 import { TransferSummaryStrip } from './TransferSummaryStrip';
 import { validateTransferConfirmation } from './transferTabValidation.helper';
 import styles from './InternalMovementModal.module.css';
@@ -48,8 +48,8 @@ export function InternalMovementTransferTab({
   const [settleAmount, setSettleAmount] = useState<number>(0);
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI'>('Cash');
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>('');
-  const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>('');
+  const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>(''); const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>('');
+  const [sourceBagCategory, setSourceBagCategory] = useState<import('@cold-storage/contracts').OutwardBagCategory | ''>(''); const [sourceQuantity, setSourceQuantity] = useState<number | ''>(''); const [sourceBagPrice, setSourceBagPrice] = useState<number | ''>('');
 
   const { rentSummary, rentLoading, refreshRentGate } = useRentGate();
 
@@ -101,8 +101,10 @@ export function InternalMovementTransferTab({
       return;
     }
     const confirmation =
-      isUnverified && typeof confirmedSmallBags === 'number' && typeof confirmedBigBags === 'number'
-        ? { confirmedSmallBags, confirmedBigBags } : undefined;
+      sourceBagCategory === 'Hybrid' || sourceBagCategory === 'Mixed'
+        ? { sourceBagCategory, sourceQuantity: typeof sourceQuantity === 'number' ? sourceQuantity : undefined, sourceBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined }
+        : isUnverified && typeof confirmedSmallBags === 'number' && typeof confirmedBigBags === 'number'
+          ? { confirmedSmallBags, confirmedBigBags } : undefined;
 
     await onExecuteTransfer(
       newCustomerId, movementDate, reason.trim(), remarks.trim() || undefined,
@@ -183,16 +185,15 @@ export function InternalMovementTransferTab({
             <span className={styles.detailValue}>{selectedNewCustomer ? selectedNewCustomer.name : '—'}</span>
           </div>
 
-          {isUnverified && (
-            <TransferBagConfirmationFields
-              remainingBags={remainingBags}
-              confirmedSmallBags={confirmedSmallBags}
-              confirmedBigBags={confirmedBigBags}
-              onSmallChange={setConfirmedSmallBags}
-              onBigChange={setConfirmedBigBags}
-              disabled={submitting}
-            />
-          )}
+          <TransferOwnershipConfirmation
+            remainingBags={remainingBags} isUnverified={isUnverified}
+            confirmedSmallBags={confirmedSmallBags} confirmedBigBags={confirmedBigBags}
+            onSmallChange={setConfirmedSmallBags} onBigChange={setConfirmedBigBags}
+            sourceBagCategory={sourceBagCategory} onCategoryChange={setSourceBagCategory}
+            sourceQuantity={sourceQuantity} onQuantityChange={setSourceQuantity}
+            sourceBagPrice={sourceBagPrice} onPriceChange={setSourceBagPrice}
+            disabled={submitting}
+          />
 
           <div className={styles.noticeBox}>
             {pendingAmount > 0
