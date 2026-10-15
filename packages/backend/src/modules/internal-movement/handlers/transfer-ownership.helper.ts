@@ -55,7 +55,7 @@ export async function settleTransferRent(params: SettleTransferRentParams): Prom
       input.settlementDetails.amountPaid < rentBal.remainingBalance
     ) {
       throw new Error(
-        `Cannot transfer ownership: Outstanding rent of ₹${rentBal.remainingBalance.toLocaleString('en-IN')} must be fully settled under SETTLE_NOW, or choose AGREED_PENDING to carry forward.`,
+        `Cannot transfer ownership: Outstanding rent of ₹${rentBal.remainingBalance.toLocaleString('en-IN')} must be fully settled before transfer under SETTLE_NOW, or choose AGREED_PENDING to carry forward.`,
       );
     }
 
