@@ -61,11 +61,25 @@ bagAccounting: z.object({
 
 export type GrnAcknowledgement = z.infer<typeof grnAcknowledgementSchema>;
 
+export const grnProfileTabSchema = z.enum([
+  'ALL',
+  'ACTIVE',
+  'PARTIAL',
+  'PENDING_PAYMENT',
+  'CLOSED',
+  'MERGED',
+]);
+
+export type GrnProfileTab = z.infer<typeof grnProfileTabSchema>;
+
 export const grnQuerySchema = z.object({
   customerId: z.string().optional(),
   commodityId: z.string().optional(),
   chamber: z.string().trim().max(20).optional(),
   status: grnStatusSchema.optional(),
+  tab: z
+    .preprocess((val) => (typeof val === 'string' ? val.trim().toUpperCase() : val), grnProfileTabSchema)
+    .optional(),
   groupId: z.string().trim().optional(),
   search: z.string().trim().max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),

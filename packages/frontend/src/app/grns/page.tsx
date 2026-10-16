@@ -119,6 +119,7 @@ export default function GrnsPage() {
           <GrnStatusTabs
             currentTab={grnData.statusFilter}
             onTabChange={grnData.setStatusFilter}
+            counts={grnData.tabCounts}
           />
 
           <GrnFilterToolbar
@@ -149,7 +150,7 @@ export default function GrnsPage() {
               />
             ) : grnData.statusFilter || grnData.customerFilter || grnData.commodityFilter ? (
               <FeedbackStates.Empty
-                message={`No Inward of Goods found matching the selected filters${grnData.statusFilter === 'MERGED' ? ' (Merged)' : ''}.`}
+                message={`No Inward of Goods found matching the selected filters${grnData.statusFilter ? ` (${grnData.statusFilter.replace('_', ' ')})` : ''}.`}
               />
             ) : (
               <FeedbackStates.Empty
