@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { resolveStoredCompositionVerified, type TransferOwnershipInput, type Grn, type InternalMovementRecord, type RentPayment } from '@cold-storage/contracts';
+import { resolveStoredCompositionVerified, toExcludedPeriodKeys, type TransferOwnershipInput, type Grn, type InternalMovementRecord, type RentPayment } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
@@ -77,6 +77,7 @@ export async function transferOwnership(
 
       const movementDate = new Date(input.movementDate);
 
+      const transferExtensions = await rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session);
       // 1. Authoritative outward-style rent assessment for all remaining bags being transferred
       const { expectedRentCharge } = await computeExpectedDeliveryRent({
         grn: {
@@ -92,6 +93,7 @@ export async function transferOwnership(
         withdrawal: { smallBags: bal.smallBags, bigBags: bal.bigBags },
         deliveryDate: movementDate,
         session,
+        excludePeriodKeys: toExcludedPeriodKeys(transferExtensions),
       });
 
       const storedRent = grn.rentAmount ?? 0;
@@ -106,10 +108,7 @@ export async function transferOwnership(
       // D3: first-season hamali joins the transfer settlement like every other
       // obligation path (rent-gate, record-payment, rent summary). Zero for
       // non-hamali commodities and post-renewal seasons, so legacy flows are unchanged.
-      const [transferCommodity, transferExtensions] = await Promise.all([
-        CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec(),
-        rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session),
-      ]);
+      const transferCommodity = await CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec();
       const transferHamaliShare = computeFirstSeasonHamali(
         grn.bags,
         transferCommodity,

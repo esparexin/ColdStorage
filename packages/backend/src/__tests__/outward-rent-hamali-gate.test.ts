@@ -11,6 +11,8 @@ import { InventoryTransactionModel } from '../database/models/inventory-transact
 import { createGrn } from '../modules/grn/handlers/create-grn.handler.js';
 import { createDeliveryWithRetry } from '../modules/delivery/handlers/create-delivery.handler.js';
 import { computeExpectedDeliveryRent } from '../modules/delivery/handlers/delivery-rent.helper.js';
+import { rentExtensionRepository } from '../modules/rent/rent-extension.repository.js';
+import { toExcludedPeriodKeys } from '@cold-storage/contracts';
 import { rentExtensionService } from '../modules/rent/rent-extension.service.js';
 
 /**
@@ -73,6 +75,7 @@ describe('Outward rent-vs-Hamali gate (F2)', () => {
     const grnDoc = await GrnModel.findOne({ id: grnId }).lean().exec();
     const session = await mongoose.startSession();
     try {
+      const extensions = await rentExtensionRepository.findExtensionsByGrn(facilityId, grnId, session);
       const { expectedRentCharge } = await computeExpectedDeliveryRent({
         grn: {
           id: grnDoc!.id, date: grnDoc!.date, rentType: grnDoc!.rentType, commodityId: grnDoc!.commodityId,
@@ -82,6 +85,7 @@ describe('Outward rent-vs-Hamali gate (F2)', () => {
         withdrawal: { smallBags, bigBags: 0 },
         deliveryDate,
         session,
+        excludePeriodKeys: toExcludedPeriodKeys(extensions),
       });
       return expectedRentCharge;
     } finally {

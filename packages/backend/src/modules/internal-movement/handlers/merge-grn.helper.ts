@@ -9,7 +9,9 @@ import { calculateGrnMonthlyOccupancyRent } from '../../common/occupancy-rent.js
 import { counterService } from '../../common/counter.service.js';
 import {
   canCalculateAuthoritativeRent,
+  resolveStoredCompositionVerified,
   seasonYearForInwardDate,
+  toExcludedPeriodKeys,
   type BagType,
   type PaymentMode,
   type RentType,
@@ -54,6 +56,11 @@ export async function resolveSourceRentObligation(
   const isSameSeason = sourceSeason === targetSeason;
 
   let effectiveRentAmount = sourceGrn.rentAmount ?? 0;
+  const [commodity, extensions] = await Promise.all([
+    CommodityModel.findOne({ id: sourceGrn.commodityId }, null, { session }).lean().exec(),
+    rentExtensionRepository.findExtensionsByGrn(facilityId, sourceGrn.id, session),
+  ]);
+  const excludedKeys = toExcludedPeriodKeys(extensions);
   if (sourceGrn.rentType === 'Monthly' && effectiveRentAmount === 0) {
     const occupancySummary = await calculateGrnMonthlyOccupancyRent(facilityId, sourceGrn.id, {
       asOfDate: movementDate,
@@ -67,25 +74,38 @@ export async function resolveSourceRentObligation(
       );
     }
   } else if (sourceGrn.rentType === 'Seasonal' || sourceGrn.rentType === 'Seasonal_3M') {
-    const effectiveSmall = sourceGrn.smallBags > 0 ? sourceGrn.smallBags : sourceGrn.bagType === 'S' ? sourceGrn.bags : 0;
-    const effectiveBig = sourceGrn.bigBags > 0 ? sourceGrn.bigBags : (sourceGrn.bagType === 'B' || sourceGrn.bagType === 'S/B' || sourceGrn.bagType === 'S+B') ? sourceGrn.bags - effectiveSmall : 0;
+    // Never bill an unverified placeholder split at differential rates.
+    const diffSmall = sourceGrn.smallBagPrice ?? sourceGrn.bagPrice ?? 0;
+    const diffBig = sourceGrn.bigBagPrice ?? sourceGrn.bagPrice ?? 0;
+    const unverifiedDifferential =
+      (sourceGrn.smallBagPrice != null || sourceGrn.bigBagPrice != null) &&
+      diffSmall !== diffBig &&
+      sourceGrn.bagType !== 'S' && sourceGrn.bagType !== 'B' &&
+      !resolveStoredCompositionVerified({
+        isCompositionVerified: sourceGrn.isCompositionVerified ?? null, bagType: sourceGrn.bagType,
+        bags: sourceGrn.bags, smallBags: sourceGrn.smallBags, bigBags: sourceGrn.bigBags,
+      });
+    if (!unverifiedDifferential) {
+      const effectiveSmall = sourceGrn.smallBags > 0 ? sourceGrn.smallBags : sourceGrn.bagType === 'S' ? sourceGrn.bags : 0;
+      const effectiveBig = sourceGrn.bigBags > 0 ? sourceGrn.bigBags : (sourceGrn.bagType === 'B' || sourceGrn.bagType === 'S/B' || sourceGrn.bagType === 'S+B') ? sourceGrn.bags - effectiveSmall : 0;
 
-    const { expectedRentCharge } = await computeExpectedDeliveryRent({
-      grn: {
-        id: sourceGrn.id, grnNumber: sourceGrn.grnNumber, date: sourceGrn.date, rentType: sourceGrn.rentType, commodityId: sourceGrn.commodityId,
-        smallBagPrice: sourceGrn.smallBagPrice, bigBagPrice: sourceGrn.bigBagPrice, bagPrice: sourceGrn.bagPrice,
-      },
-      withdrawal: { smallBags: effectiveSmall, bigBags: effectiveBig },
-      deliveryDate: movementDate, session,
-    });
+      const { expectedRentCharge } = await computeExpectedDeliveryRent({
+        grn: {
+          id: sourceGrn.id, grnNumber: sourceGrn.grnNumber, date: sourceGrn.date, rentType: sourceGrn.rentType, commodityId: sourceGrn.commodityId,
+          smallBagPrice: sourceGrn.smallBagPrice, bigBagPrice: sourceGrn.bigBagPrice, bagPrice: sourceGrn.bagPrice,
+        },
+        withdrawal: { smallBags: effectiveSmall, bigBags: effectiveBig },
+        deliveryDate: movementDate, session, excludePeriodKeys: excludedKeys,
+      });
 
-    if (expectedRentCharge > effectiveRentAmount) {
-      effectiveRentAmount = expectedRentCharge;
-      await GrnModel.updateOne(
-        { id: sourceGrn.id },
-        { $set: { rentAmount: effectiveRentAmount, updatedAt: new Date() } },
-        { session },
-      );
+      if (expectedRentCharge > effectiveRentAmount) {
+        effectiveRentAmount = expectedRentCharge;
+        await GrnModel.updateOne(
+          { id: sourceGrn.id },
+          { $set: { rentAmount: effectiveRentAmount, updatedAt: new Date() } },
+          { session },
+        );
+      }
     }
   }
 
@@ -105,10 +125,6 @@ export async function resolveSourceRentObligation(
     bagPrice: sourceGrn.bagPrice, smallBagPrice: sourceGrn.smallBagPrice, bigBagPrice: sourceGrn.bigBagPrice,
   });
 
-  const [commodity, extensions] = await Promise.all([
-    CommodityModel.findOne({ id: sourceGrn.commodityId }, null, { session }).lean().exec(),
-    rentExtensionRepository.findExtensionsByGrn(facilityId, sourceGrn.id, session),
-  ]);
   const sourceHamaliShare =
     effectiveRentAmount > 0
       ? computeFirstSeasonHamali(

@@ -11,6 +11,8 @@ import { DeliveryChallanModel } from '../database/models/delivery-challan.model.
 import { createGrn } from '../modules/grn/handlers/create-grn.handler.js';
 import { createDeliveryWithRetry } from '../modules/delivery/handlers/create-delivery.handler.js';
 import { computeExpectedDeliveryRent } from '../modules/delivery/handlers/delivery-rent.helper.js';
+import { rentExtensionRepository } from '../modules/rent/rent-extension.repository.js';
+import { toExcludedPeriodKeys } from '@cold-storage/contracts';
 import { rentService } from '../modules/rent/rent.service.js';
 import { rentExtensionService } from '../modules/rent/rent-extension.service.js';
 
@@ -70,6 +72,7 @@ describe('Multi-Season Hamali Accounting (PR 2)', () => {
     const grnDoc = await GrnModel.findOne({ id: grnId }).lean().exec();
     const session = await mongoose.startSession();
     try {
+      const extensions = await rentExtensionRepository.findExtensionsByGrn(facilityId, grnId, session);
       const { expectedRentCharge } = await computeExpectedDeliveryRent({
         grn: {
           id: grnDoc!.id, date: grnDoc!.date, rentType: grnDoc!.rentType, commodityId: grnDoc!.commodityId,
@@ -79,6 +82,7 @@ describe('Multi-Season Hamali Accounting (PR 2)', () => {
         withdrawal: { smallBags, bigBags: 0 },
         deliveryDate,
         session,
+        excludePeriodKeys: toExcludedPeriodKeys(extensions),
       });
       return expectedRentCharge;
     } finally {
