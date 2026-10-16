@@ -55,9 +55,6 @@ export const transferOwnershipInputSchema = z.object({
   sourceBagPrice: bagPriceSchema.nullish(),
   sourceSeasonalBagPrice: bagPriceSchema.nullish(),
   sourceMonthlyBagPrice: bagPriceSchema.nullish(),
-  transferSmallBags: z.number().int().min(0).max(100000).nullish(),
-  transferBigBags: z.number().int().min(0).max(100000).nullish(),
-  newGrnNumber: z.string().trim().min(1).max(20).nullish(),
 });
 export type TransferOwnershipInput = z.infer<typeof transferOwnershipInputSchema>;
 

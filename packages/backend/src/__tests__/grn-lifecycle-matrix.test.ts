@@ -131,20 +131,17 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     expect(String(res.body.error ?? res.text ?? '')).toMatch(/Rent type mismatch/i);
   });
 
-  it('partial transfer splits to a new GRN and retains source liability', async () => {
+  it('full ownership transfer transfers entire lot to new customer', async () => {
     const gid = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S', smallBags: 100, bigBags: 0, rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0501' });
     const res = await request(app).post(`/api/facilities/${FAC}/internal-movements/transfer-ownership`).set(auth()).send({
-      grnId: gid, newCustomerId: custB, movementDate: new Date(), remarks: 'partial transfer matrix test',
-      transferSmallBags: 30, transferBigBags: 0, newGrnNumber: '0502',
+      grnId: gid, newCustomerId: custB, movementDate: new Date(), remarks: 'full transfer matrix test', paymentDecision: 'AGREED_PENDING',
     });
     expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
-    const src = await GrnModel.findOne({ id: gid }).lean().exec();
-    const dst = await GrnModel.findOne({ facilityId: FAC, grnNumber: '0502' }).lean().exec();
-    expect(src?.status).toBe('OPEN');
-    expect(src?.bags).toBe(100);
-    expect(src?.smallBags).toBe(100);
-    expect(dst?.bags).toBe(30);
-    expect(dst?.customerId).toBe(custB);
+    const updated = await GrnModel.findOne({ id: gid }).lean().exec();
+    expect(updated?.customerId).toBe(custB);
+    expect(updated?.customerName).toBe('Balaji');
+    expect(updated?.status).toBe('OPEN');
+    expect(updated?.bags).toBe(100);
     expect(mongoose.connection.readyState).toBe(1);
   });
 

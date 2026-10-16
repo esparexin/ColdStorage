@@ -16,16 +16,12 @@ import { rentExtensionRepository } from '../../rent/rent-extension.repository.js
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
 import { formatTransferAuditNote, settleTransferRent } from './transfer-ownership.helper.js';
 import { validateTransferBagConfirmation } from './transfer-ownership-validation.helper.js';
-import { executePartialTransfer } from './transfer-split.helper.js';
+
 export async function transferOwnership(
   facilityId: string,
   input: TransferOwnershipInput,
   userId: string,
 ): Promise<{ grn: Grn; movement: InternalMovementRecord; payment?: RentPayment }> {
-  if (input.transferSmallBags != null || input.transferBigBags != null) {
-    const partial = await executePartialTransfer(facilityId, input, userId);
-    return { grn: partial.grn, movement: partial.movement };
-  }
   const session = await mongoose.startSession();
   let resultGrnDoc!: unknown;
   let resultMovementDoc!: unknown;
