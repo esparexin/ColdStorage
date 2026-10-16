@@ -11,6 +11,7 @@ import { MergeBagCategoryFields, DEFAULT_BAG_CONFIRMATION, type BagConfirmationV
 import { partitionMergeSources } from './mergeEligibility.helper';
 import { previewConfirmedSplit, validateBagConfirmation } from './bagConfirmation.helper';
 import { MergeSourceTable } from './MergeSourceTable';
+import { MergeRentAssessment } from './MergeRentAssessment';
 import styles from './InternalMovementModal.module.css';
 
 interface InternalMovementMergeTabProps {
@@ -220,8 +221,22 @@ export function InternalMovementMergeTab({
             <label htmlFor="merge-remarks" className={styles.inputLabel}>Additional Remarks (Optional)</label>
             <textarea id="merge-remarks" aria-label="Additional Remarks" rows={2} className={styles.textarea} placeholder="Notes for ledger history..." value={remarks} onChange={(e) => setRemarks(e.target.value)} disabled={submitting} />
           </div>
+          <div className={styles.noticeBox}>
+            Source GRN stock will be transferred and closed. Authoritative rent will continue on surviving GRN {targetGrn.grnNumber}.
+          </div>
         </div>
       </div>
+
+      <MergeRentAssessment
+        selectedSources={selectedSources}
+        confirmation={confirmation}
+        totalSourceBags={totalSourceBags}
+        movedSmall={movedSmall}
+        movedBig={movedBig}
+        movementDate={movementDate}
+        repackMode={repackMode}
+        commodityHamaliRate={commodityHamaliRate}
+      />
     </form>
   );
 }

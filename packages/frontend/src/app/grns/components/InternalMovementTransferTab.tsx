@@ -7,6 +7,7 @@ import { useRentGate } from '@/hooks/useRentGate';
 import { TransferPaymentDecisionSection, validateTransferPayment } from './TransferPaymentDecisionSection';
 import { TransferOwnershipConfirmation } from './TransferOwnershipConfirmation';
 import { TransferSummaryStrip } from './TransferSummaryStrip';
+import { TransferRentAssessment } from './TransferRentAssessment';
 import { validateTransferConfirmation } from './transferTabValidation.helper';
 import styles from './InternalMovementModal.module.css';
 interface InternalMovementTransferTabProps {
@@ -40,6 +41,7 @@ export function InternalMovementTransferTab({
   const [sourceBagPrice, setSourceBagPrice] = useState<number | ''>('');
   const [sourceSeasonalBagPrice, setSourceSeasonalBagPrice] = useState<number | ''>('');
   const [sourceMonthlyBagPrice, setSourceMonthlyBagPrice] = useState<number | ''>('');
+  const [assessedRent, setAssessedRent] = useState<number>(0);
 
   const { rentSummary, rentLoading, refreshRentGate } = useRentGate();
   useEffect(() => { void refreshRentGate(facilityId, currentGrn.id); }, [facilityId, currentGrn.id, refreshRentGate]);
@@ -51,17 +53,18 @@ export function InternalMovementTransferTab({
   const isUnverified = (currentGrn as Record<string, unknown>).isCompositionVerified === false;
   const totalPaid = rentSummary?.totalPaid ?? 0, pendingAmount = rentSummary?.remainingBalance ?? 0;
   const isUnbilled = totalPaid === 0 && pendingAmount === 0 && (rentSummary?.rentAmount ?? 0) === 0;
+  const effectiveDue = pendingAmount > 0 ? pendingAmount : assessedRent;
 
   useEffect(() => {
-    if (pendingAmount > 0 && settleAmount === 0) setSettleAmount(pendingAmount);
-  }, [pendingAmount, settleAmount]);
+    if (effectiveDue > 0 && settleAmount === 0) setSettleAmount(effectiveDue);
+  }, [effectiveDue, settleAmount]);
 
   const handleTransferSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
     if (!newCustomerId) return setValidationError('Select the new customer to transfer ownership to.');
     if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
-    const payErr = validateTransferPayment(decision, settleAmount, pendingAmount);
+    const payErr = validateTransferPayment(decision, settleAmount, effectiveDue);
     if (payErr) return setValidationError(payErr);
     const confirmErr = validateTransferConfirmation({
       isUnverified, remainingBags, confirmedSmallBags, confirmedBigBags,
@@ -82,8 +85,8 @@ export function InternalMovementTransferTab({
 
     await onExecuteTransfer(
       newCustomerId, movementDate, reason.trim(), remarks.trim() || undefined,
-      pendingAmount > 0 ? decision : undefined,
-      pendingAmount > 0 && decision === 'SETTLE_NOW' ? { amountPaid: settleAmount, paymentMode } : undefined,
+      effectiveDue > 0 ? decision : undefined,
+      effectiveDue > 0 && decision === 'SETTLE_NOW' ? { amountPaid: settleAmount, paymentMode } : undefined,
       confirmation,
     );
   };
@@ -105,7 +108,7 @@ export function InternalMovementTransferTab({
       />
 
       <TransferPaymentDecisionSection
-        pendingAmount={pendingAmount}
+        pendingAmount={effectiveDue}
         decision={decision}
         onDecisionChange={setDecision}
         settleAmount={settleAmount}
@@ -171,10 +174,10 @@ export function InternalMovementTransferTab({
           />
 
           <div className={styles.noticeBox}>
-            {pendingAmount > 0
+            {effectiveDue > 0
               ? decision === 'SETTLE_NOW'
                 ? `Rent (₹${settleAmount}) will be settled now with receipt generated.`
-                : `Transferee agreed to assume pending rent: ₹${pendingAmount.toLocaleString('en-IN')}.`
+                : `Transferee agreed to assume pending rent: ₹${effectiveDue.toLocaleString('en-IN')}.`
               : 'Rent obligation is fully settled for this lot.'}
           </div>
         </div>
@@ -220,6 +223,20 @@ export function InternalMovementTransferTab({
           </div>
         </div>
       </div>
+
+      <TransferRentAssessment
+        currentGrn={currentGrn}
+        remainingBags={remainingBags}
+        movementDate={movementDate}
+        sourceBagCategory={sourceBagCategory}
+        sourceQuantity={sourceQuantity}
+        sourceBagPrice={sourceBagPrice}
+        sourceSeasonalBagPrice={sourceSeasonalBagPrice}
+        sourceMonthlyBagPrice={sourceMonthlyBagPrice}
+        confirmedSmallBags={confirmedSmallBags}
+        confirmedBigBags={confirmedBigBags}
+        onAssessedRentChange={setAssessedRent}
+      />
     </form>
   );
 }
