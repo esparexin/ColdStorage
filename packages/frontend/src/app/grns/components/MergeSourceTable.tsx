@@ -127,14 +127,11 @@ export function MergeSourceTable({
             return (
               <div>
                 <span style={{ fontWeight: 'var(--font-semibold)' }}>{tot}</span>
-                <div
-                  style={{
-                    fontSize: 'var(--text-xs)',
-                    color: !isVerified ? 'var(--color-warning-text)' : 'var(--color-text-muted)',
-                  }}
-                >
-                  {!isVerified ? 'Composition not confirmed' : isHybrid ? 'Uniform Rate' : `${s}S · ${b}B`}
-                </div>
+                {(s > 0 || b > 0 || isHybrid) && (
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                    {isHybrid ? 'Uniform Rate' : `${s}S · ${b}B`}
+                  </div>
+                )}
               </div>
             );
           },

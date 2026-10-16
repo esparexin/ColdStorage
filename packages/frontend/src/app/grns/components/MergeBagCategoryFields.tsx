@@ -113,11 +113,6 @@ export function MergeBagCategoryFields({
 
           {(hasUnconfirmedMix || repackMode) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
-              {hasUnconfirmedMix && (
-                <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-warning-text)' }}>
-                  Confirm Bag Mix for Unverified Lot
-                </span>
-              )}
               <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
                 <Input id="repack-small" type="number" min={0} max={totalMovedBags} placeholder={repackMode ? "Repacked Small Bags" : "Small Bags"} aria-label={repackMode ? "Repacked small bags" : "Small bags"} value={repackSmall} onChange={(e) => onRepackSmallChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
                 <Input id="repack-big" type="number" min={0} max={totalMovedBags} placeholder={repackMode ? "Repacked Big Bags" : "Big Bags"} aria-label={repackMode ? "Repacked big bags" : "Big bags"} value={repackBig} onChange={(e) => onRepackBigChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
