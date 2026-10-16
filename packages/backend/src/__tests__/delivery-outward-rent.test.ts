@@ -83,20 +83,29 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
   });
 
   it('Monthly Outward: calculates rent using canonical rates and rentMonths', async () => {
+    const originalEnv = process.env.ALLOW_HISTORICAL_TESTING_DATES;
     process.env.ALLOW_HISTORICAL_TESTING_DATES = 'true';
-    const deliveryDate = new Date();
-    const inwardDate = new Date(deliveryDate.getFullYear(), deliveryDate.getMonth() - 2, deliveryDate.getDate() - 5);
-    const grn = await makeGrn('1004', { date: inwardDate, bags: 80, rentType: 'Monthly', rentMonths: 3 });
-    expect(grn.rentType).toBe('Monthly');
+    try {
+      const deliveryDate = new Date();
+      const inwardDate = new Date(deliveryDate.getFullYear(), deliveryDate.getMonth() - 2, deliveryDate.getDate() - 5);
+      const grn = await makeGrn('1004', { date: inwardDate, bags: 80, rentType: 'Monthly', rentMonths: 3 });
+      expect(grn.rentType).toBe('Monthly');
 
-    const del = await deliveryService.createDelivery(
-      facilityId,
-      { grnId: grn.id, date: deliveryDate, smallBags: 25, bigBags: 0, bagCategory: 'Small' },
-      USER_ID,
-    );
+      const del = await deliveryService.createDelivery(
+        facilityId,
+        { grnId: grn.id, date: deliveryDate, smallBags: 25, bigBags: 0, bagCategory: 'Small' },
+        USER_ID,
+      );
 
-    // 25 bags × ₹10/bag × 3 dynamic elapsed cycles = ₹750
-    expect(del.delivery.rentCharge).toBe(750);
+      // 25 bags × ₹10/bag × 3 dynamic elapsed cycles = ₹750
+      expect(del.delivery.rentCharge).toBe(750);
+    } finally {
+      if (originalEnv !== undefined) {
+        process.env.ALLOW_HISTORICAL_TESTING_DATES = originalEnv;
+      } else {
+        delete process.env.ALLOW_HISTORICAL_TESTING_DATES;
+      }
+    }
   });
 
   it('preserves partial delivery and full delivery balance lifecycle', async () => {

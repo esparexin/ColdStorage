@@ -54,12 +54,12 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
       grnNumber: '0101', customerId: custA, commodityId: cmd, chamber: 'CH-01', bags: 40,
       bagType: 'S', rentType: 'Seasonal_3M', smallBagPrice: 999, date: '2026-06-01',
     });
-    expect(bad.status).toBe(400);
+    expect(bad.status, JSON.stringify(bad.body).slice(0, 300)).toBe(400);
     const good = await request(app).post(`/api/facilities/${FAC}/grns`).set(auth()).send({
       grnNumber: '0102', customerId: custA, commodityId: cmd, chamber: 'CH-01', bags: 40,
       bagType: 'S', rentType: 'Seasonal_3M', smallBagPrice: 10, date: '2026-06-01',
     });
-    expect([200, 201]).toContain(good.status);
+    expect([200, 201], JSON.stringify(good.body).slice(0, 300)).toContain(good.status);
   });
 
   it('batch rate update is all-or-nothing', async () => {
@@ -69,7 +69,7 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
         { rentType: 'Monthly', smallRate: 0, bigRate: 18 },
       ],
     });
-    expect(res.status).toBe(400);
+    expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(400);
     const seasonal = await CommodityRateModel.findOne({ commodityId: cmd, rentType: 'Seasonal' }).lean().exec();
     expect(seasonal?.smallRate).toBe(10);
   });
@@ -79,14 +79,14 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     const key = 'idem-matrix-001';
     const base = { grnId: gid, quantity: 10, smallBags: 10, bigBags: 0, date: '2026-07-01', vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: 'GP-9001', idempotencyKey: key };
     const r1 = await request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send(base);
-    expect([200, 201]).toContain(r1.status);
+    expect([200, 201], JSON.stringify(r1.body).slice(0, 300)).toContain(r1.status);
     const r2 = await request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send(base);
-    expect([200, 201]).toContain(r2.status);
+    expect([200, 201], JSON.stringify(r2.body).slice(0, 300)).toContain(r2.status);
     expect(r2.body.delivery.id).toBe(r1.body.delivery.id);
     const count = await DeliveryChallanModel.countDocuments({ facilityId: FAC, idempotencyKey: key });
     expect(count).toBe(1);
     const r3 = await request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send({ ...base, smallBags: 20, quantity: 20 });
-    expect(r3.status).toBe(409);
+    expect(r3.status, JSON.stringify(r3.body).slice(0, 300)).toBe(409);
   });
 
   it('concurrent identical deliveries with one key both return the original', async () => {
@@ -97,8 +97,8 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
       request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send(payload),
       request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send(payload),
     ]);
-    expect([200, 201]).toContain(r1.status);
-    expect([200, 201]).toContain(r2.status);
+    expect([200, 201], JSON.stringify(r1.body).slice(0, 300)).toContain(r1.status);
+    expect([200, 201], JSON.stringify(r2.body).slice(0, 300)).toContain(r2.status);
     expect(r1.body.delivery.id).toBe(r2.body.delivery.id);
     const challans = await DeliveryChallanModel.find({ facilityId: FAC, idempotencyKey: key }).lean().exec();
     expect(challans.length).toBe(1);
@@ -114,7 +114,7 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
       targetGrnId: target, sourceGrnIds: [source], movementDate: new Date(),
       remarks: 'partial merge matrix test', partialMoves: [{ sourceGrnId: source, smallBags: 30, bigBags: 0 }],
     });
-    expect(res.status).toBe(200);
+    expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
     const src = await GrnModel.findOne({ id: source }).lean().exec();
     expect(src?.status).toBe('OPEN');
     expect(src?.bags).toBe(100);
@@ -128,7 +128,7 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     const res = await request(app).post(`/api/facilities/${FAC}/internal-movements/merge`).set(auth()).send({
       targetGrnId: target, sourceGrnIds: [source], movementDate: new Date(), remarks: 'cross-type must block',
     });
-    expect(res.status).toBe(400);
+    expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(400);
     expect(String(res.body.error ?? res.text ?? '')).toMatch(/Rent type mismatch/i);
   });
 
@@ -138,7 +138,7 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
       grnId: gid, newCustomerId: custB, movementDate: new Date(), remarks: 'partial transfer matrix test',
       transferSmallBags: 30, transferBigBags: 0, newGrnNumber: '0502',
     });
-    expect(res.status).toBe(200);
+    expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
     const src = await GrnModel.findOne({ id: gid }).lean().exec();
     const dst = await GrnModel.findOne({ facilityId: FAC, grnNumber: '0502' }).lean().exec();
     expect(src?.status).toBe('OPEN');
@@ -157,7 +157,7 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
         targetGrnId: target, sourceGrnIds: [source], movementDate: new Date(day),
         remarks: `repeat partial ${qty}`, partialMoves: [{ sourceGrnId: source, smallBags: qty, bigBags: 0 }],
       });
-      expect(res.status).toBe(200);
+      expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
     }
     let src = await GrnModel.findOne({ id: source }).lean().exec();
     expect(src?.status).toBe('OPEN');
@@ -167,7 +167,7 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
       grnId: source, quantity: 50, smallBags: 50, bigBags: 0, date: '2026-07-10',
       vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: 'GP-9201',
     });
-    expect([200, 201]).toContain(d1.status);
+    expect([200, 201], JSON.stringify(d1.body).slice(0, 300)).toContain(d1.status);
     expect(d1.body.summary.remainingDeliveryBalance).toBe(0);
     src = await GrnModel.findOne({ id: source }).lean().exec();
     expect(src?.bags).toBe(100);
@@ -175,13 +175,13 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     const outTxns = await InventoryTransactionModel.find({ facilityId: FAC, grnId: source, transactionType: 'OUTWARD_DELIVERY' }).lean().exec();
     expect(outTxns.reduce((s, t) => s + t.smallQuantity + t.bigQuantity, 0)).toBe(100);
     const sum = await request(app).get(`/api/facilities/${FAC}/rent/grn/${source}`).set(auth());
-    expect(sum.status).toBe(200);
+    expect(sum.status, JSON.stringify(sum.body).slice(0, 300)).toBe(200);
     const remaining = sum.body.remainingBalance ?? 0;
     if (remaining > 0) {
       const pay = await request(app).post(`/api/facilities/${FAC}/rent/collect`).set(auth()).send({
         grnId: source, amountPaid: remaining, paymentMode: 'Cash', paymentDate: '2026-07-11',
       });
-      expect([200, 201]).toContain(pay.status);
+      expect([200, 201], JSON.stringify(pay.body).slice(0, 300)).toContain(pay.status);
     }
     const sum2 = await request(app).get(`/api/facilities/${FAC}/rent/grn/${source}`).set(auth());
     expect(sum2.body.remainingBalance).toBe(0);
@@ -194,13 +194,13 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
       grnId: gid, quantity: 50, smallBags: 30, bigBags: 20, date: '2026-07-01',
       vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: 'GP-9301',
     });
-    expect(cross.status).toBe(400);
+    expect(cross.status, JSON.stringify(cross.body).slice(0, 300)).toBe(400);
     expect(String(cross.body.error ?? '')).toMatch(/reconcile exactly/i);
     const exact = await request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send({
       grnId: gid, quantity: 50, smallBags: 50, bigBags: 0, date: '2026-07-01',
       vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: 'GP-9302',
     });
-    expect([200, 201]).toContain(exact.status);
+    expect([200, 201], JSON.stringify(exact.body).slice(0, 300)).toContain(exact.status);
     expect(exact.body.delivery.smallBags).toBe(50);
     expect(exact.body.delivery.bigBags).toBe(0);
   });
@@ -211,13 +211,13 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     const ext = await request(app).post(`/api/facilities/${FAC}/rent/extensions/finalize`).set(auth()).send({
       grnId: source, seasonYear: 2024, period: 'JANUARY',
     });
-    expect(ext.status).toBe(201);
+    expect(ext.status, JSON.stringify(ext.body).slice(0, 300)).toBe(201);
     expect(ext.body.extension.finalAmount).toBe(1200);
     const res = await request(app).post(`/api/facilities/${FAC}/internal-movements/merge`).set(auth()).send({
       targetGrnId: target, sourceGrnIds: [source], movementDate: new Date('2025-07-01'),
       remarks: 'merge with january extension billed once',
     });
-    expect(res.status).toBe(200);
+    expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
     // Bump covers SEASON_2024 + FEB_2025 + SEASON_2025 (JAN_2025 extended): 1000+1200+1000=3200;
     // carried = 3200 + 1200 extension = 4400; target = 1000 + 4400 = 5400 (not 6600).
     expect(res.body.targetGrn.rentAmount).toBe(5400);
@@ -230,14 +230,14 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     const ext = await request(app).post(`/api/facilities/${FAC}/rent/extensions/finalize`).set(auth()).send({
       grnId: source, seasonYear: 2024, period: 'JANUARY',
     });
-    expect(ext.status).toBe(201);
+    expect(ext.status, JSON.stringify(ext.body).slice(0, 300)).toBe(201);
     const res = await request(app).post(`/api/facilities/${FAC}/internal-movements/transfer-ownership`).set(auth()).send({
       grnId: source, newCustomerId: custB, movementDate: new Date('2025-03-15'),
       remarks: 'transfer with january extension billed once', paymentDecision: 'AGREED_PENDING',
     });
-    expect(res.status).toBe(200);
+    expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
     const sum = await request(app).get(`/api/facilities/${FAC}/rent/grn/${source}`).set(auth());
-    expect(sum.status).toBe(200);
+    expect(sum.status, JSON.stringify(sum.body).slice(0, 300)).toBe(200);
     // 3200 prospective + 1200 extension = 4400 (not 5600).
     expect(sum.body.remainingBalance).toBe(4400);
   });

@@ -22,13 +22,19 @@ describe('Phase 3: GRN Closure, Physical Stock & Financial Settlement Integrity'
   const userId = 'usr-closure-p3';
   let seq = 0;
 
+  const originalEnv = process.env.ALLOW_HISTORICAL_TESTING_DATES;
+
   beforeAll(async () => {
     process.env.ALLOW_HISTORICAL_TESTING_DATES = 'true';
     await connectToDatabase();
   });
 
   afterAll(async () => {
-    delete process.env.ALLOW_HISTORICAL_TESTING_DATES;
+    if (originalEnv !== undefined) {
+      process.env.ALLOW_HISTORICAL_TESTING_DATES = originalEnv;
+    } else {
+      delete process.env.ALLOW_HISTORICAL_TESTING_DATES;
+    }
     await disconnectDatabase();
   });
 

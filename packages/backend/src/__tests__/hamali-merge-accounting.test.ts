@@ -21,13 +21,19 @@ describe('Hamali Merge Accounting (Unpaid, Partially Paid, Fully Paid)', { timeo
   const userId = 'usr-hamali-merge';
   let seq = 0;
 
+  const originalEnv = process.env.ALLOW_HISTORICAL_TESTING_DATES;
+
   beforeAll(async () => {
     process.env.ALLOW_HISTORICAL_TESTING_DATES = 'true';
     await connectToDatabase();
   });
 
   afterAll(async () => {
-    delete process.env.ALLOW_HISTORICAL_TESTING_DATES;
+    if (originalEnv !== undefined) {
+      process.env.ALLOW_HISTORICAL_TESTING_DATES = originalEnv;
+    } else {
+      delete process.env.ALLOW_HISTORICAL_TESTING_DATES;
+    }
     await disconnectDatabase();
   });
 
