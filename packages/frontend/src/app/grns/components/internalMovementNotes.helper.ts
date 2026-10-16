@@ -20,17 +20,18 @@ export interface MergeTableRow {
 export function parseMergedGrnNotes(remarks?: string | null): MergedGrnNote[] {
   if (!remarks) return [];
   const mergeRx =
-    /\[MERGE RECEIVED on ([^:]+):\s*\+?(\d+)\s*bags(?:\s*\(([^)]*)\))?\s*from\s+([^.]+)\.(?:[^.]*Carried pending rent:\s*₹?(\d+)\.)?\s*Reason:\s*([^\]]+)\]/gi;
+    /\[MERGE RECEIVED on ([^:]+):\s*\+?(\d+)\s*bags(.*?)\s+from\s+([^.]+)\.(?:[^.]*Carried pending rent:\s*₹?(\d+)\.)?\s*Reason:\s*([^\]]+)\]/gi;
   const notes: MergedGrnNote[] = [];
   let match: RegExpExecArray | null;
   while ((match = mergeRx.exec(remarks)) !== null) {
-    const [, date, bagsStr, repacked, source, carriedRentStr, reason] = match;
+    const [, date, bagsStr, qualifiers, source, carriedRentStr, reason] = match;
+    const repackedMatch = qualifiers ? qualifiers.match(/Repacked:[^)]+/i) : null;
     notes.push({
       id: `merge-${date.trim()}-${source.trim().replace(/\s+/g, '-')}`,
       title: 'Merged Stock Inward',
       date: date.trim(),
       bags: Number(bagsStr),
-      repackedDetail: repacked ? repacked.trim() : undefined,
+      repackedDetail: repackedMatch ? repackedMatch[0].trim() : undefined,
       source: source.trim(),
       carriedRent: carriedRentStr ? Number(carriedRentStr) : 0,
       reason: reason?.trim() || 'Internal Move / Merge',
@@ -45,33 +46,31 @@ export function parseRemarksToTableRows(currentGrn: Grn, allGrns: Grn[] = []): M
 
   // 1. Check if current GRN received merged stock
   const mergeRx =
-    /\[MERGE RECEIVED on ([^:]+):\s*\+?(\d+)\s*bags(?:\s*\([^)]*\))?\s*from\s+(?:GRN\s+)?([^\s(]+)(?:\s*\(([^)]+)\))?\.(?:[^.]*\.)?\s*Reason:\s*([^\]]+)\]/gi;
+    /\[MERGE RECEIVED on ([^:]+):\s*\+?(\d+)\s*bags(.*?)\s+from\s+(?:GRN\s+)?([^\s(]+)(?:\s*\(([^)]+)\))?\.(?:[^.]*\.)?\s*Reason:\s*([^\]]+)\]/gi;
   let match: RegExpExecArray | null;
   while ((match = mergeRx.exec(remarks)) !== null) {
-    const [, date, bagsStr, sourceGrnNum, detailsStr, reason] = match;
+    const [, date, bagsStr, , sourceGrnNum, detailsStr, reason] = match;
     const sourceGrn = allGrns.find((g) => g.grnNumber === sourceGrnNum);
     const custMatch = detailsStr?.match(/Customer:\s*([^,]+)/i);
     const party = sourceGrn?.customerName || (custMatch ? custMatch[1].trim() : 'N/A');
     const partyMark = sourceGrn?.partyMark ? `PM: ${sourceGrn.partyMark}` : 'PM: N/A';
-    const chamber = sourceGrn?.chamber
-      ? `Chamber: ${sourceGrn.chamber}`
-      : currentGrn.chamber
-      ? `Chamber: ${currentGrn.chamber}`
-      : 'Chamber: N/A';
+    const chamber = sourceGrn?.chamber ? `Chamber: ${sourceGrn.chamber}` : currentGrn.chamber ? `Chamber: ${currentGrn.chamber}` : 'Chamber: N/A';
     const storageMark = sourceGrn?.storageMark ? `SM: ${sourceGrn.storageMark}` : `SM: ${sourceGrnNum}`;
     const bagType = sourceGrn?.bagType ?? currentGrn.bagType ?? 'S/B';
 
     const repackedMatch = match[0].match(/Repacked:\s*(\d+)\s*S\s*\+\s*(\d+)\s*B/i);
+    const hamaliMatch = match[0].match(/Repacking Hamali:\s*₹?(\d+)(?:\s*\(([^)]+)\))?/i);
+    const hamaliNote = hamaliMatch ? ` • Hamali: ₹${hamaliMatch[1]} (${hamaliMatch[2]})` : '';
     const isSourceHybrid = sourceGrn && ((sourceGrn.bagPrice != null && sourceGrn.smallBagPrice == null && sourceGrn.bigBagPrice == null) || isHybridBagCategory(sourceGrn.bagType));
     let sbDetail: string;
     if (repackedMatch) {
-      sbDetail = `Repacked: ${repackedMatch[1]} S • ${repackedMatch[2]} B (${bagType})`;
+      sbDetail = `Repacked: ${repackedMatch[1]} S • ${repackedMatch[2]} B (${bagType})${hamaliNote}`;
     } else if (isSourceHybrid) {
-      sbDetail = `Hybrid (${bagType})`;
+      sbDetail = `Hybrid (${bagType})${hamaliNote}`;
     } else if (sourceGrn && (sourceGrn.smallBags > 0 || sourceGrn.bigBags > 0)) {
-      sbDetail = `S: ${sourceGrn.smallBags.toLocaleString('en-IN')} • B: ${sourceGrn.bigBags.toLocaleString('en-IN')} (${bagType})`;
+      sbDetail = `S: ${sourceGrn.smallBags.toLocaleString('en-IN')} • B: ${sourceGrn.bigBags.toLocaleString('en-IN')} (${bagType})${hamaliNote}`;
     } else {
-      sbDetail = `S: Unconfirmed • B: Unconfirmed (${bagType})`;
+      sbDetail = `S: Unconfirmed • B: Unconfirmed (${bagType})${hamaliNote}`;
     }
 
     list.push({
@@ -170,11 +169,15 @@ export function mapStructuredMovementsToTableRows(
     const dateStr = rec.movementDate ? new Date(rec.movementDate).toISOString().slice(0, 10) : 'N/A';
     const bagType = currentGrn.bagType ?? 'S/B';
     const isHybrid = (currentGrn.bagPrice != null && currentGrn.smallBagPrice == null && currentGrn.bigBagPrice == null) || isHybridBagCategory(currentGrn.bagType);
-    const sbDetail = isHybrid
+    const hamaliSuffix = rec.hamaliCharge && rec.hamaliCharge > 0
+      ? ` • Hamali: ₹${rec.hamaliCharge}${rec.hamaliRate ? ` (@₹${rec.hamaliRate}/bag)` : ''}`
+      : '';
+    const baseSb = isHybrid
       ? `Hybrid (${bagType})`
       : rec.smallBagsMoved > 0 || rec.bigBagsMoved > 0
       ? `S: ${rec.smallBagsMoved.toLocaleString('en-IN')} • B: ${rec.bigBagsMoved.toLocaleString('en-IN')} (${bagType})`
       : `${rec.totalBagsMoved.toLocaleString('en-IN')} bags (${bagType})`;
+    const sbDetail = `${baseSb}${hamaliSuffix}`;
 
     if (rec.movementType === 'MERGE') {
       const isTarget = rec.targetGrnId === currentGrn.id;

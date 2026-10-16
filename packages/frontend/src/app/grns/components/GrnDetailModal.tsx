@@ -146,18 +146,9 @@ export function GrnDetailModal({
     return Array.from(set);
   }, [mergedDetails, grn.partyMark]);
 
-  const totalMergedBags = useMemo(() => {
-    return mergedDetails.reduce((sum, m) => sum + (m.bags || 0), 0);
-  }, [mergedDetails]);
-
-  const activeInitialBags = useMemo(() => {
-    return Math.max(0, grn.bags - totalMergedBags);
-  }, [grn.bags, totalMergedBags]);
-
-  const bagsBreakdown = useMemo(() => {
-    if (!hasMerged || totalMergedBags === 0) return null;
-    return `${activeInitialBags.toLocaleString('en-IN')} + ${totalMergedBags.toLocaleString('en-IN')}`;
-  }, [hasMerged, activeInitialBags, totalMergedBags]);
+  const totalMergedBags = useMemo(() => mergedDetails.reduce((sum, m) => sum + (m.bags || 0), 0), [mergedDetails]);
+  const activeInitialBags = useMemo(() => Math.max(0, grn.bags - totalMergedBags), [grn.bags, totalMergedBags]);
+  const bagsBreakdown = useMemo(() => (!hasMerged || totalMergedBags === 0 ? null : `${activeInitialBags.toLocaleString('en-IN')} + ${totalMergedBags.toLocaleString('en-IN')}`), [hasMerged, activeInitialBags, totalMergedBags]);
 
   return (
     <Modal
@@ -257,20 +248,14 @@ export function GrnDetailModal({
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Physical Status</span>
               <span className={styles.detailValue}>
-                <Badge variant={grn.status === 'OPEN' ? 'warning' : 'neutral'}>
-                  {grn.status}
-                </Badge>
+                <Badge variant={grn.status === 'OPEN' ? 'warning' : 'neutral'}>{grn.status}</Badge>
               </span>
             </div>
 
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Bond Number</span>
               <span className={styles.detailValue}>
-                {bondNumberDisplay !== 'None' ? (
-                  <strong style={{ color: 'var(--color-primary-text)' }}>{bondNumberDisplay}</strong>
-                ) : (
-                  'None'
-                )}
+                {bondNumberDisplay !== 'None' ? <strong style={{ color: 'var(--color-primary-text)' }}>{bondNumberDisplay}</strong> : 'None'}
               </span>
             </div>
 
@@ -335,6 +320,7 @@ export function GrnDetailModal({
                 </span>
               </div>
             )}
+
 
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Gate Pass (GP) #</span>
