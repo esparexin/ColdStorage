@@ -70,7 +70,7 @@ export function MergeRentAssessment({
         return (
           <div key={source.id} className={styles.compactCard}>
             <div className={styles.cardHeader}>
-              <span>Source GRN {source.grnNumber} — Financial Settlement & Carry-Forward</span>
+              <span>Source GRN {source.grnNumber} — Payment Breakdown</span>
               <Badge variant={isSettled ? 'success' : 'warning'}>
                 {isSettled ? 'Fully Settled (₹0 Due)' : `Pending Due: ₹${carriedRent.toLocaleString('en-IN')}`}
               </Badge>
