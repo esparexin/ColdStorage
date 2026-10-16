@@ -19,11 +19,21 @@ describe('GRN lifecycle properties: cumulative, concurrency, frozen dates', () =
   let cmd = '';
   let hamCmd = '';
 
+  const originalEnv = process.env.ALLOW_HISTORICAL_TESTING_DATES;
+
   beforeAll(async () => {
+    process.env.ALLOW_HISTORICAL_TESTING_DATES = 'true';
     await connectToTestDatabase();
     ({ token: adminToken } = await seedAuth({ userId: 'usr-props', username: 'props.admin', role: 'ADMIN', facilityIds: [FAC] }));
   });
-  afterAll(disconnectTestDatabase);
+  afterAll(async () => {
+    if (originalEnv !== undefined) {
+      process.env.ALLOW_HISTORICAL_TESTING_DATES = originalEnv;
+    } else {
+      delete process.env.ALLOW_HISTORICAL_TESTING_DATES;
+    }
+    await disconnectTestDatabase();
+  });
 
   beforeEach(async () => {
     await resetAllFinancialCollections();
