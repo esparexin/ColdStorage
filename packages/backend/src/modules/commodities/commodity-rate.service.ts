@@ -128,7 +128,8 @@ export class CommodityRateService {
    * - a positive `rentAmount` must equal the SSOT-derived obligation, so lump
    *   sums cannot contradict the agreed rates (dynamic `0` always passes);
    * - with `requireRates`, omitted rates are rejected instead of vacuously passing.
-   * When no active row exists the legacy path is preserved untouched.
+   * When no active row exists, `requireRates:true` rejects (fail-closed);
+   * only the explicit legacy path (`requireRates:false`, CSV import) passes through.
    */
   public async validateSubmittedRates(
     commodityId: string,

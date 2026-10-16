@@ -69,6 +69,7 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
         bagType: 'S',
         smallBagWeight: 50,
         rentType: 'Seasonal',
+        smallBagPrice: 10,
         rentAmount: 0,
       });
     expect(grnRes.status).toBe(201);

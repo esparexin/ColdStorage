@@ -81,6 +81,7 @@ export async function transferOwnership(
       const { expectedRentCharge } = await computeExpectedDeliveryRent({
         grn: {
           id: grn.id,
+          grnNumber: grn.grnNumber,
           date: grn.date,
           rentType: grn.rentType,
           commodityId: grn.commodityId,

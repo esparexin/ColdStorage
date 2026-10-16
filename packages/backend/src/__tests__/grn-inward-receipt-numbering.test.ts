@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { buildInwardReceiptNumber, getFinancialYearKey } from '@cold-storage/contracts';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { CounterModel } from '../database/models/counter.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { grnService } from '../modules/grn/grn.service.js';
@@ -45,6 +46,10 @@ describe('inward receipt numbering is derived from the GR Number', () => {
       normalizedName: `commodity ${id.slice(-6)}`,
       isActive: true,
     });
+    await CommodityRateModel.create([
+      { id: `crt-${id}-s`, commodityId: id, rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true },
+      { id: `crt-${id}-m`, commodityId: id, rentType: 'Monthly', smallRate: 100, bigRate: 100, isActive: true },
+    ]);
     return id;
   }
 

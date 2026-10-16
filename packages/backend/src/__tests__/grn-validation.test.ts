@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { SEASONAL_MONTHS, seedCustomer, seedFacility } from './helpers/master-data-fixtures.js';
 import {
@@ -53,6 +54,9 @@ describe('GRN Relational Validation & Business Constraints', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-potato-val-s', commodityId: 'cmd-potato-val', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-potato-val-m', commodityId: 'cmd-potato-val', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
+    await CommodityRateModel.create([{ id: 'crt-cmd-does-not-exist-s', commodityId: 'cmd-does-not-exist', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-does-not-exist-m', commodityId: 'cmd-does-not-exist', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
 
     await seedFacility({ id: northFacilityId, code: 'NORTHV', name: 'North Cold Facility' });
     await seedFacility({ id: southFacilityId, code: 'SOUTHV', name: 'South Cold Facility' });
@@ -90,6 +94,7 @@ describe('GRN Relational Validation & Business Constraints', () => {
         smallBagWeight: 50,
         bigBagWeight: 80,
         rentType: 'Seasonal',
+        bagPrice: 10,
         rentAmount: 500,
         ...overrides,
       });
@@ -153,6 +158,7 @@ describe('GRN Relational Validation & Business Constraints', () => {
     const monthlyValid = await postInbound(operatorNorthToken, northFacilityId, {
       rentType: 'Monthly',
       rentMonths: 3,
+      rentAmount: 1500,
     });
     expect(monthlyValid.status).toBe(201);
     expect(monthlyValid.body.grn.rentMonths).toBe(3);

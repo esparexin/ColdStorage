@@ -69,10 +69,14 @@ export function resolveBagEdit(input: CorrectGrnInput, grn: StoredBagState): Bag
     bags: finalBags,
     smallBags:
       input.smallBags ??
-      (finalBagType === 'S+B' ? (input.bags !== undefined ? undefined : grn.smallBags) : undefined),
+      (finalBagType === 'S+B' || finalBagType === 'S/B'
+        ? (input.bags !== undefined ? undefined : grn.smallBags)
+        : undefined),
     bigBags:
       input.bigBags ??
-      (finalBagType === 'S+B' ? (input.bags !== undefined ? undefined : grn.bigBags) : undefined),
+      (finalBagType === 'S+B' || finalBagType === 'S/B'
+        ? (input.bags !== undefined ? undefined : grn.bigBags)
+        : undefined),
   });
   let finalIsCompositionVerified: boolean;
   if (input.smallBags !== undefined || input.bigBags !== undefined) {

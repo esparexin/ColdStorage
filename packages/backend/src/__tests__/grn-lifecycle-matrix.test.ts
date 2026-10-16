@@ -3,14 +3,14 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
-import { CommodityModel } from '../database/models/commodity.model.js';
 import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
-import { connectToTestDatabase, disconnectTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
+import { connectToTestDatabase, disconnectTestDatabase } from './helpers/stock-reset.js';
+import { assertCollectionsEmpty, resetAllFinancialCollections, seedCommodityWithRates } from './helpers/lifecycle-testkit.js';
 import { isDuplicateKeyError, isIdempotencyDuplicateKey } from '../modules/delivery/handlers/delivery-idempotency.helper.js';
 
 const app = createApp();
@@ -40,21 +40,12 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
   });
 
   beforeEach(async () => {
-    await resetStockCollections();
-    await CommodityRateModel.deleteMany({});
-    await DeliveryChallanModel.deleteMany({});
-    await mongoose.connection.collection('rentpayments').deleteMany({});
-    await mongoose.connection.collection('rentextensions').deleteMany({});
-    await mongoose.connection.collection('internalmovements').deleteMany({});
+    await resetAllFinancialCollections();
+    await assertCollectionsEmpty();
     await seedFacility({ id: FAC, code: 'MTX', name: 'Matrix Facility' });
     custA = await seedCustomer({ id: 'cust-mtx-a', facilityId: FAC, name: 'Kalyan' });
     custB = await seedCustomer({ id: 'cust-mtx-b', facilityId: FAC, name: 'Balaji' });
-    const c = await CommodityModel.create({ id: 'cmd-mtx', name: 'Potato', normalizedName: 'potato', isActive: true });
-    cmd = c.id;
-    await CommodityRateModel.create([
-      { id: 'crt-mtx-s', commodityId: cmd, rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true },
-      { id: 'crt-mtx-m', commodityId: cmd, rentType: 'Monthly', smallRate: 12, bigRate: 18, isActive: true },
-    ]);
+    cmd = await seedCommodityWithRates({ id: 'cmd-mtx', name: 'Potato', seasonal: { small: 10, big: 15 }, monthly: { small: 12, big: 18 } });
   });
 
   const auth = () => ({ Authorization: `Bearer ${adminToken}` });
@@ -159,8 +150,7 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     expect(mongoose.connection.readyState).toBe(1);
   });
 
-  it('duplicate-key classifier routes idempotency races without leaking internals', () => {
-    const idemDup = { code: 11000, keyPattern: { facilityId: 1, idempotencyKey: 1 }, message: 'E11000 duplicate key error collection: db.deliverychallans index: facilityId_1_idempotencyKey_1' };
+  it('duplicate-key classifier routes idempotency races without leaking internals', () => {    const idemDup = { code: 11000, keyPattern: { facilityId: 1, idempotencyKey: 1 }, message: 'E11000 duplicate key error collection: db.deliverychallans index: facilityId_1_idempotencyKey_1' };
     expect(isDuplicateKeyError(idemDup)).toBe(true);
     expect(isIdempotencyDuplicateKey(idemDup)).toBe(true);
     const otherDup = { code: 11000, keyPattern: { facilityId: 1, gpNumber: 1 }, message: 'E11000 duplicate key error index: facilityId_1_gpNumber_1' };
@@ -208,5 +198,22 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     expect(sum2.body.remainingBalance).toBe(0);
     const tgt = await GrnModel.findOne({ id: target }).lean().exec();
     expect(tgt?.bags).toBe(150);
+  });
+
+  it('unsegregated lots enforce exact per-side reconciliation', async () => {
+    const gid = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S/B', rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0801', date: new Date('2026-06-01') });
+    const cross = await request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send({
+      grnId: gid, quantity: 50, smallBags: 30, bigBags: 20, date: '2026-07-01',
+      vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: 'GP-9301',
+    });
+    expect(cross.status).toBe(400);
+    expect(String(cross.body.error ?? '')).toMatch(/reconcile exactly/i);
+    const exact = await request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send({
+      grnId: gid, quantity: 50, smallBags: 50, bigBags: 0, date: '2026-07-01',
+      vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: 'GP-9302',
+    });
+    expect([200, 201]).toContain(exact.status);
+    expect(exact.body.delivery.smallBags).toBe(50);
+    expect(exact.body.delivery.bigBags).toBe(0);
   });
 });

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
+import type { BagType, Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
 import { Button, ConfirmDialog, Input, Modal, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
@@ -159,6 +159,16 @@ export function CreateGrnModal({
                 aria-describedby={form.fieldErrors.bags ? 'create-bags-error' : undefined}
               />
               {form.fieldErrors.bags && <span id="create-bags-error" className={styles.fieldErrorText} role="alert">{form.fieldErrors.bags}</span>}
+            </div>
+            <div className={styles.fieldGroup}>
+              <Select
+                id="create-bag-type" label="Bag Type" required disabled={structuralLocked}
+                value={form.createBagType} onChange={(e) => form.setCreateBagType(e.target.value as BagType)}
+              >
+                <option value="S/B">Mixed S/B (Small &amp; Big)</option>
+                <option value="S">Small Bags Only (S)</option>
+                <option value="B">Big Bags Only (B)</option>
+              </Select>
             </div>
             <div className={styles.fieldGroup}>
               <Select

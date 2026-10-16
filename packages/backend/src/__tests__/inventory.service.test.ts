@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { inventoryService } from '../modules/inventory/inventory.service.js';
@@ -24,6 +25,9 @@ describe('InventoryService GRN Chamber SSOT tests', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-potatoes-s', commodityId: 'cmd-potatoes', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-potatoes-m', commodityId: 'cmd-potatoes', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
+    await CommodityRateModel.create([{ id: 'crt-cmd-onions-s', commodityId: 'cmd-onions', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-onions-m', commodityId: 'cmd-onions', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
     await CommodityModel.create([
       { id: 'cmd-potatoes', name: 'Seed Potatoes', normalizedName: 'seed potatoes', isActive: true },
       { id: 'cmd-onions', name: 'Onions', normalizedName: 'onions', isActive: true },

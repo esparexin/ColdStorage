@@ -2,6 +2,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { rentService } from '../modules/rent/rent.service.js';
+import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import {
   connectToTestDatabase,
@@ -24,11 +26,15 @@ describe('Phase 6: Storage Occupancy Audit & Reporting (storage-audit-report.tes
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityModel.findOneAndUpdate({ id: 'cmd-audit' }, { $set: { name: 'Test Commodity', normalizedName: 'test commodity', isActive: true } }, { upsert: true, new: true }).exec();
+    await CommodityRateModel.deleteMany({ commodityId: 'cmd-audit' }).exec();
+    await CommodityRateModel.create([{ id: 'crt-cmdaudit-s', commodityId: 'cmd-audit', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmdaudit-m', commodityId: 'cmd-audit', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
     facilityId = await seedFacility({ name: 'Audit Report Facility' });
     customerId = await seedCustomer({ facilityId, name: 'Audit Farms Ltd' });
     grnId = await seedGrn({
       facilityId,
       customerId,
+      commodityId: 'cmd-audit',
       chamber: 'CH-01',
       bags: 100,
       smallBags: 100, bigBags: 0,

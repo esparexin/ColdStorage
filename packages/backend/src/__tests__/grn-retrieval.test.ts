@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { SEASONAL_MONTHS, seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import {
@@ -38,6 +39,8 @@ describe('GRN Retrieval & Acknowledgement Projections', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-potato-ret-s', commodityId: 'cmd-potato-ret', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-potato-ret-m', commodityId: 'cmd-potato-ret', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
 
     await seedFacility({ id: northFacilityId, code: 'NORTHR', name: 'North Cold Facility' });
 
@@ -70,7 +73,9 @@ describe('GRN Retrieval & Acknowledgement Projections', () => {
         smallBagWeight: 50,
         bigBagWeight: 80,
         rentType: 'Seasonal',
-        rentAmount: 1800,
+        smallBagPrice: 10,
+        bigBagPrice: 15,
+        rentAmount: 1450,
       });
     createdGrnId = res.body.grn.id;
   });

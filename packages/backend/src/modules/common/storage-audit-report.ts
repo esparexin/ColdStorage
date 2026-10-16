@@ -4,9 +4,11 @@ import {
   type StorageOccupancyReport,
   type StorageOccupancyReportItem,
 } from '@cold-storage/contracts';
+import { CommodityModel } from '../../database/models/commodity.model.js';
 import { GrnModel, type GrnDoc } from '../../database/models/grn.model.js';
 import { RentPaymentModel } from '../../database/models/rent-payment.model.js';
 import { computeRentBalance } from './rent-balance.js';
+import { computeFirstSeasonHamali } from './hamali-resolution.js';
 import { rentRepository } from '../rent/rent.repository.js';
 import { rentExtensionRepository } from '../rent/rent-extension.repository.js';
 import { getGrnMovementHistory } from './grn-movement-history.js';
@@ -51,6 +53,16 @@ export async function generateStorageOccupancyReport(
       totalPaidByGrn.set(row._id as string, row.total as number);
     }
   }
+
+  const commodityIds = Array.from(new Set(grns.map((g) => g.commodityId)));
+  const [commodityDocs, extensionsByGrn] = await Promise.all([
+    CommodityModel.find({ id: { $in: commodityIds } }).lean().exec(),
+    grns.length > 0
+      ? rentExtensionRepository.findExtensionsByGrnIdsGrouped(facilityId, grns.map((g) => g.id))
+      : new Map(),
+  ]);
+  const commodityMap = new Map(commodityDocs.map((c) => [c.id, c]));
+
   const reportItems: StorageOccupancyReportItem[] = [];
 
   for (const grn of grns) {
@@ -63,6 +75,14 @@ export async function generateStorageOccupancyReport(
     if (!history) continue;
 
     const totalPaid = totalPaidByGrn.get(grn.id) ?? 0;
+    const extensions = extensionsByGrn.get(grn.id) ?? [];
+    const hamaliShare = computeFirstSeasonHamali(
+      grn.bags,
+      commodityMap.get(grn.commodityId) ?? null,
+      extensions,
+      grn.hamaliRate,
+      grn.hamaliAmount,
+    );
     // Routed through the rent-obligation SSOT (W2). This report previously used
     // the bare stored rentAmount, so every GRN whose rent is carried on its
     // outward challans was reported as owing nothing - production GRN 0015 is
@@ -74,6 +94,7 @@ export async function generateStorageOccupancyReport(
         rentAmount: grn.rentAmount,
         rentType: grn.rentType,
         outwardRentCharges: await rentRepository.getOutwardRentChargesForGrn(facilityId, grn.id),
+        hamaliShare,
       },
     );
     const rentBalance = computeRentBalance(totalDue, totalPaid);

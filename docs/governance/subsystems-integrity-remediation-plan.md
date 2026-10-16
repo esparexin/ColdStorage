@@ -1,0 +1,62 @@
+# Subsystems Integrity Remediation Plan
+**Branch:** `fix/hamali-bag-types-rent-integrity`  
+**Date:** 2026-10-15  
+**Scope:** Hamali Rate Configuration, Small/Big/Hybrid Bag Types, Seasonal/Monthly Rent, Internal Movement, GRN Merging, Repacking/Rebagging, Full/Partial Ownership Transfer.
+
+---
+
+## 1. Baseline Verification
+- **Base Branch:** `fix/rent-inventory-hamali-ssot` (verified clean working tree, `81f67f7`).
+- **Feature Branch:** `fix/hamali-bag-types-rent-integrity`.
+- **Pre-execution Verification:**
+  - `npm run type-check`: Passed (Contracts, Backend, Frontend).
+  - `npm run build`: Passed (Production builds successful across all workspaces).
+  - Contracts Vitest Suite: 23 test files, 249 tests passing.
+  - Backend Vitest Integration Suites: Database service running; `hamali-first-season`, `hamali-merge-accounting`, `merge-repack-hamali`, `merge-bag-category`, `transfer-ownership-hamali`, `transfer-ownership-rent`, `storage-audit-report` passing.
+
+---
+
+## 2. Phased Implementation Roadmap
+
+### Phase 1 — SSOT and Business Rule Audit
+- Establish formal baseline, verify canonical math formulas, bag composition invariants, rent obligations, and movement rules.
+
+### Phase 2 — Hamali Integrity
+- **Stale Snapshot on GRN Edit:** In `packages/backend/src/modules/grn/handlers/update-grn.handler.ts`, update `hamaliRate` and recompute `hamaliAmount = calculateHamaliAmount(finalBags, hamaliRate)` when bags or commodity change.
+- **Storage Audit Report Inclusion:** In `packages/backend/src/modules/common/storage-audit-report.ts`, resolve and pass `hamaliShare` to `rentExtensionRepository.resolveTotalDue` using `computeFirstSeasonHamali`.
+- **Zero-Rent Intake Hamali Settlement:** In `packages/contracts/src/rent-obligation.ts`, allow Hamali share to join total due when `outwardRentCharges === 0 && rentAmount === 0`.
+
+### Phase 3 — Bag Type Integrity
+- **Inward Selection:** In `packages/frontend/src/app/grns/hooks/useCreateGrnForm.ts` and `CreateGrnModal.tsx`, provide explicit Bag Type selector (`'S/B' | 'S' | 'B'`) and expose setter `setCreateBagType`.
+- **Composition Sync:** Ensure `smallBags` and `bigBags` automatically sync to total bags when `'S'` or `'B'` is selected.
+- **Form Validation & Submission:** Ensure `createGrnForm.helper.ts` validates and submits the selected bag type.
+
+### Phase 4 — Rent Calculation Integrity (Verified)
+- **Seasonal Lump-Sum Invariant:** Verified `months = 1` in `pricing.ts` (never multiplied by season duration).
+- **Monthly Elapsed Cycles:** Verified `Math.ceil` cycle counting with 1-day minimum.
+- **Obligation Base Verification:** Verified `Math.max(rentAmount, outwardRentCharges)` for Monthly/Seasonal_3M and seasonal lock for Seasonal.
+- **Test Evidence:** Verified across `pricing.contracts.test.ts`, `rent-extension.contracts.test.ts`, `seasonal-3m-and-hamali.contracts.test.ts`, `occupancy-rent.test.ts`, `delivery-outward-rent.test.ts`, and `rent-billing-lifecycle.test.ts`. All 250 contract tests and 17 backend rent tests passing.
+
+### Phase 5 — Internal Movement and GRN Merging (Verified)
+- **Rent Type Guard:** Enforced strict rent type equality (`source.rentType === target.rentType`).
+- **Repacking Hamali Labor:** Verified `merge-repack-hamali.helper.ts` labor calculation ($B_{\text{moved}} \times \text{hamaliRate}$) added to `targetGrn.rentAmount`.
+- **Bag Type Rollup & Partial Moves:** Verified `resolveMergedBagType` transitions, ledger stock movement, partial deduction preserving source OPEN status, and full merge closing source lot.
+- **Financial & Payment Continuity:** Verified source pre-merge payments remain intact, unpaid rent is carried without duplication, and overpayments are rejected.
+- **Test Evidence:** Verified across `merge-repack-hamali.test.ts`, `hamali-merge-accounting.test.ts`, `merge-bag-category.test.ts`, `merge-grn-rent.test.ts`, `merge-grn-guards.test.ts`, `internal-movement.test.ts`, `seasonal-merge-rent-verification.test.ts`, and `merge-pre-settlement-overpayment.test.ts`. All 39 integration tests passing.
+
+### Phase 6 — Ownership Transfer (Verified)
+- **Full Transfer:** Enforced prospective delivery-style rent evaluation at transfer date (`computeExpectedDeliveryRent`), composition confirmation on unverified lots, first-season Hamali inclusion (`computeFirstSeasonHamali`), and settlement gate (`SETTLE_NOW` vs `AGREED_PENDING`).
+- **Partial Transfer:** Verified split-GRN initialization (`rentAmount: 0`, `hamaliRate: 0`, `hamaliAmount: 0`, preserved inward date, inherited rent rates), ledger inventory transfer (`OUTWARD_DELIVERY` + `INWARD_PUTAWAY`), and source liability retention.
+- **Test Evidence:** Verified across `transfer-ownership-rent.test.ts` and `transfer-ownership-hamali.test.ts`. All 8 integration tests passing.
+
+### Phase 7 — UI/UX and Code Quality (Completed)
+- **Merge Tab Transparency:** Added live repacking labor charge preview card in `InternalMovementMergeTab.tsx` displaying `₹{repackHamaliCharge} ({totalSourceBags} bags @ ₹{commodityHamaliRate}/bag)` based on the target commodity's master hamali rate. Passed `commodities` from `GrnPageModals` through `InternalMovementModal`.
+- **Schema Governance:** Verified `@deprecated` documentation and schema comments on dead delivery challan hamali fields (`hamaliRate`, `hamaliCharge`) and dormant commodity rate hamali fields (`hamaliRate`).
+- **Code Quality & Line Budgets:** Kept all modified frontend files strictly within the 250-line budget ratchet (`GrnPageModals.tsx`: 182 lines, `InternalMovementModal.tsx`: 246 lines, `InternalMovementMergeTab.tsx`: 247 lines). All a11y, SSOT, boundary, and hygiene gates passing.
+
+### Phase 8 — Verification and PR Readiness (Completed)
+- **Contracts Test Suite:** 23 test files, 250 tests passed (`npm test` in `packages/contracts`).
+- **Backend Test Suites:** All targeted and regression integration suites passed with single-DB file serialization (`occupancy-rent.test.ts`, `delivery-outward-rent.test.ts`, `rent-billing-lifecycle.test.ts`, `hamali-first-season.test.ts`, `hamali-merge-accounting.test.ts`, `merge-repack-hamali.test.ts`, `merge-grn-rent.test.ts`, `merge-grn-guards.test.ts`, `internal-movement.test.ts`, `transfer-ownership-rent.test.ts`, `transfer-ownership-hamali.test.ts`, `grn-full-edit.test.ts`, `storage-audit-report.test.ts`).
+- **Static Analysis & Governance:** Full `npm run type-check` passed with 0 errors across all 3 workspaces. Strict pre-commit hygiene audit (`npm run hygiene`) passed all 15 audit dimensions (line-budget limit 250, accessibility, SSOT, boundary, permission coverage, rounding, dead CSS).
+- **Production Build:** Full workspace `npm run build` passed with 0 errors (including all 18 Next.js static pages).
+- **Residual Risks:** None identified; historical document schemas and data were preserved without destructive migrations. Dead/dormant fields are annotated `@deprecated` to prevent future misuse.

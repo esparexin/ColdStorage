@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { CustomerModel } from '../database/models/customer.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility } from './helpers/master-data-fixtures.js';
@@ -68,6 +69,8 @@ describe('GRN Facility Scoping, RBAC & Child-ID Protection', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-potato-scope-s', commodityId: 'cmd-potato-scope', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-potato-scope-m', commodityId: 'cmd-potato-scope', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
 
     await seedFacility({ id: northFacilityId, code: 'NORTHS', name: 'North Cold Facility' });
     await seedFacility({ id: southFacilityId, code: 'SOUTHS', name: 'South Cold Facility' });
@@ -88,6 +91,11 @@ describe('GRN Facility Scoping, RBAC & Child-ID Protection', () => {
   });
 
   function inbound(facilityId: string, token: string, overrides: Record<string, unknown> = {}) {
+    const bags = (overrides.bags as number | undefined) ?? 50;
+    const bagType = (overrides.bagType as string | undefined) ?? 'S';
+    const rate = bagType === 'B' ? 15 : 10;
+    const bagPrice = (overrides.bagPrice as number | undefined) ?? rate;
+    const rentAmount = (overrides.rentAmount as number | undefined) ?? bags * bagPrice;
     return request(app)
       .post(`/api/facilities/${facilityId}/grns`)
       .set('Authorization', `Bearer ${token}`)
@@ -96,12 +104,13 @@ describe('GRN Facility Scoping, RBAC & Child-ID Protection', () => {
         customerId: customerNorthId,
         commodityId,
         chamber: 'CH-01',
-        bags: 50,
-        bagType: 'S',
+        bags,
+        bagType,
         smallBagWeight: 50,
         bigBagWeight: 80,
         rentType: 'Seasonal',
-        rentAmount: 500,
+        bagPrice,
+        rentAmount,
         ...overrides,
       });
   }

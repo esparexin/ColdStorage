@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { AuditLogModel } from '../database/models/audit-log.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility } from './helpers/master-data-fixtures.js';
@@ -36,6 +37,8 @@ describe('Bond Loan Payment Modes & Settlement Lifecycle (Phase 5)', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-apple-loan-s', commodityId: 'cmd-apple-loan', rentType: 'Seasonal', smallRate: 30, bigRate: 30, isActive: true }, { id: 'crt-cmd-apple-loan-m', commodityId: 'cmd-apple-loan', rentType: 'Monthly', smallRate: 30, bigRate: 30, isActive: true }]);
     await seedFacility({ id: testFacilityId, code: 'LSFAC1', name: 'Loan Settle Facility' });
     customerId = await seedCustomer({ id: 'cust-loan-settle-01', facilityId: testFacilityId, name: 'Ramesh Patel' });
     const commodity = await CommodityModel.create({

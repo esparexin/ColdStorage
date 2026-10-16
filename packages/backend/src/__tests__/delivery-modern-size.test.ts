@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
@@ -35,6 +36,8 @@ describe('Hybrid Bag Outward Delivery Flow', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
+    await CommodityRateModel.create([{ id: 'crt-cmd-potato-s', commodityId: 'cmd-potato', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-potato-m', commodityId: 'cmd-potato', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
     facilityId = await seedFacility({ name: 'Hybrid Facility' });
     customerId = await seedCustomer({ facilityId, name: 'Kisan Traders' });
     await CommodityModel.create({
@@ -60,6 +63,9 @@ describe('Hybrid Bag Outward Delivery Flow', () => {
         smallBags: 50,
         bigBags: 50,
         rentType: 'Seasonal',
+        smallBagPrice: 10,
+        bigBagPrice: 15,
+        rentAmount: 0,
       },
       USER_ID,
     );
@@ -104,6 +110,9 @@ describe('Hybrid Bag Outward Delivery Flow', () => {
         smallBags: 30,
         bigBags: 70,
         rentType: 'Seasonal',
+        smallBagPrice: 10,
+        bigBagPrice: 15,
+        rentAmount: 0,
       },
       USER_ID,
     );
@@ -144,6 +153,9 @@ describe('Hybrid Bag Outward Delivery Flow', () => {
         smallBags: 40,
         bigBags: 60,
         rentType: 'Seasonal',
+        smallBagPrice: 10,
+        bigBagPrice: 15,
+        rentAmount: 0,
       },
       USER_ID,
     );
@@ -187,6 +199,9 @@ describe('Hybrid Bag Outward Delivery Flow', () => {
         smallBags: 50,
         bigBags: 50,
         rentType: 'Seasonal',
+        smallBagPrice: 10,
+        bigBagPrice: 15,
+        rentAmount: 0,
       },
       USER_ID,
     );

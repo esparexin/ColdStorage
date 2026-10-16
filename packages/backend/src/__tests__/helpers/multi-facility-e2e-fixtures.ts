@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { BackupLogModel } from '../../database/models/backup-log.model.js';
 import { CommodityModel } from '../../database/models/commodity.model.js';
+import { CommodityRateModel } from '../../database/models/commodity-rate.model.js';
 import { CounterModel } from '../../database/models/counter.model.js';
 import { CustomerModel } from '../../database/models/customer.model.js';
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
@@ -65,6 +66,11 @@ export async function seedMultiFacilityScenario(prefix: string): Promise<MultiFa
     },
     { upsert: true, new: true, setDefaultsOnInsert: true },
   ).exec();
+  await CommodityRateModel.deleteMany({ commodityId }).exec();
+  await CommodityRateModel.create([
+    { id: `crt-${prefix}-s`, commodityId, rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true },
+    { id: `crt-${prefix}-m`, commodityId, rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true },
+  ]);
 
   const customerA = await seedCustomer({
     id: `cust-${prefix}-alpha`,

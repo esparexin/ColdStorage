@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
@@ -25,6 +26,7 @@ describe('Outward Rent Settlement Flow (delivery-outward-rent-settlement.test.ts
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityRateModel.deleteMany({});
     facilityId = await seedFacility({ name: 'Rent Settlement Facility' });
     customerId = await seedCustomer({ facilityId, name: 'Farmer Cooperative' });
     await CommodityModel.create({
@@ -34,6 +36,10 @@ describe('Outward Rent Settlement Flow (delivery-outward-rent-settlement.test.ts
       isActive: true,
       defaultBagType: 'S',
     });
+    await CommodityRateModel.create([
+      { id: 'crt-settle-s', commodityId: 'cmd-potato', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true },
+      { id: 'crt-settle-m', commodityId: 'cmd-potato', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true },
+    ]);
   });
 
   it('connects outward delivery rent dues to rent ledger and enforces overpayment guard', async () => {
@@ -49,6 +55,8 @@ describe('Outward Rent Settlement Flow (delivery-outward-rent-settlement.test.ts
         bags: 100,
         bagType: 'S',
         rentType: 'Seasonal',
+        smallBagPrice: 10,
+        rentAmount: 0,
       },
       USER_ID,
     );
@@ -176,6 +184,8 @@ describe('Outward Rent Settlement Flow (delivery-outward-rent-settlement.test.ts
         bags: 50,
         bagType: 'S',
         rentType: 'Seasonal',
+        smallBagPrice: 10,
+        rentAmount: 0,
       },
       USER_ID,
     );

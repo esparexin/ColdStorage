@@ -3,6 +3,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
+import { CommodityModel } from '../database/models/commodity.model.js';
+import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import {
   connectToTestDatabase,
@@ -56,12 +58,16 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
 
   beforeEach(async () => {
     await resetStockCollections();
+    await CommodityModel.findOneAndUpdate({ id: 'cmd-del-routes' }, { $set: { name: 'Test Commodity', normalizedName: 'test commodity', isActive: true } }, { upsert: true, new: true }).exec();
+    await CommodityRateModel.deleteMany({ commodityId: 'cmd-del-routes' }).exec();
+    await CommodityRateModel.create([{ id: 'crt-cmddelroutes-s', commodityId: 'cmd-del-routes', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmddelroutes-m', commodityId: 'cmd-del-routes', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
     await seedFacility({ id: facilityId, name: 'Main Facility' });
     await seedFacility({ id: otherFacilityId, name: 'Other Facility' });
     const customerId = await seedCustomer({ facilityId, name: 'Kisan Traders' });
     grnId = await seedGrn({
       facilityId,
       customerId,
+      commodityId: 'cmd-del-routes',
       chamber: 'CH-1',
       bags: 80,
       commodityName: 'Onions',
@@ -149,6 +155,7 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
     const unpaidGrnId = await seedGrn({
       facilityId,
       customerId,
+      commodityId: 'cmd-del-routes',
       chamber: 'CH-2',
       bags: 40,
       rentAmount: 5000,

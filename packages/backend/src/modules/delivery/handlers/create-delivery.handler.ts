@@ -131,7 +131,7 @@ async function executeDeliveryTransaction(
       // effective-rate source of truth. Client rentCharge is reconciled, never trusted blindly.
       const { expectedRentCharge } = await computeExpectedDeliveryRent({
         grn: {
-          id: grn.id, date: grn.date, rentType: grn.rentType, commodityId: grn.commodityId,
+          id: grn.id, grnNumber: grn.grnNumber, date: grn.date, rentType: grn.rentType, commodityId: grn.commodityId,
           smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, bagPrice: grn.bagPrice,
         },
         withdrawal, deliveryDate, session,
