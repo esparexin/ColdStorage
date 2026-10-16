@@ -95,6 +95,7 @@ describe('Global GRN Search Integration', () => {
         bagType: 'S',
         smallBagWeight: 50,
         rentType: 'Seasonal',
+        bagPrice: 10,
         rentAmount: 1000,
         ...payload,
       });

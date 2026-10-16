@@ -73,7 +73,9 @@ describe('GRN Retrieval & Acknowledgement Projections', () => {
         smallBagWeight: 50,
         bigBagWeight: 80,
         rentType: 'Seasonal',
-        rentAmount: 1800,
+        smallBagPrice: 10,
+        bigBagPrice: 15,
+        rentAmount: 1450,
       });
     createdGrnId = res.body.grn.id;
   });

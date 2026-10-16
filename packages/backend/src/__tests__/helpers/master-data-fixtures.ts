@@ -104,7 +104,7 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
   const commodityId = options.commodityId ?? `cmd-${randomUUID()}`;
   const bagType = options.bagType ?? 'S';
   const bags = options.bags ?? 100;
-  const grnNumber = options.grnNumber ?? `GRN-26-27-${id.slice(-4).toUpperCase()}`;
+  const grnNumber = options.grnNumber ?? `GRN-26-27-${id.replace(/-/g, '').slice(-8).toUpperCase()}`;
   const chamber = options.chamber ?? 'CH-01';
   const grnDate = options.date ?? new Date();
   // Every GRN carries a fully-populated composition.
@@ -124,7 +124,7 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
         facilityId: options.facilityId,
         grnNumber,
         inwardReceiptNumber:
-          options.inwardReceiptNumber ?? `RCPT-26-27-${id.slice(-4).toUpperCase()}`,
+          options.inwardReceiptNumber ?? `RCPT-26-27-${randomUUID().replace(/-/g, '').slice(-8).toUpperCase()}`,
         date: grnDate,
         customerId: options.customerId ?? (await seedCustomer({ facilityId: options.facilityId })),
         customerName: options.customerName ?? `Customer ${id.slice(-6)}`,

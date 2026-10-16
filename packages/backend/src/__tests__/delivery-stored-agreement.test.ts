@@ -40,9 +40,6 @@ describe('Delivery stored agreement — delivery-stored-agreement.test.ts', () =
   beforeEach(async () => {
     await resetStockCollections();
     await CommodityRateModel.deleteMany({});
-    await CommodityRateModel.create([{ id: 'crt-cmd-agr-s', commodityId: 'cmd-agr', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-agr-m', commodityId: 'cmd-agr', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
-    await CommodityRateModel.deleteMany({});
-
     await seedFacility({ id: FACILITY_ID, code: 'AGR', name: 'Agreement Facility' });
     customerId = await seedCustomer({ id: 'cust-agr', facilityId: FACILITY_ID, name: 'Agree Customer' });
     await CommodityModel.create({
@@ -114,6 +111,8 @@ describe('Delivery stored agreement — delivery-stored-agreement.test.ts', () =
         chamber: 'CH-01',
         bags: 200,
         bagType: 'S/B',
+        smallBags: 100,
+        bigBags: 100,
         rentType: 'Seasonal',
         smallBagPrice: 150,
         bigBagPrice: 210,
@@ -122,10 +121,7 @@ describe('Delivery stored agreement — delivery-stored-agreement.test.ts', () =
     );
 
     // Deliver on Oct 11, 2026 (spans Season 2024, Jan 2025, Feb 2025, Season 2025, Jan 2026, Feb 2026, Season 2026)
-    // 50 Small + 50 Big
-    // Seasonal period: 50*150 + 50*210 = 18,000 (3 seasons = 54,000)
-    // Monthly period: 50*15 + 50*21 = 1,800 (4 months = 7,200)
-    // Total = 61,200
+    // 50 Small + 50 Big: Seasonal = 54,000, Monthly = 7,200, Total = 61,200
     const deliveryRes = await deliveryService.createDelivery(
       FACILITY_ID,
       {
@@ -141,7 +137,7 @@ describe('Delivery stored agreement — delivery-stored-agreement.test.ts', () =
     expect(deliveryRes.delivery.rentCharge).toBe(61200);
   });
 
-  it('supports unsegregated S+B inward lots with partial delivery of small and big bags', async () => {
+  it('supports S+B inward lots with partial delivery of small and big bags', async () => {
     const { grn } = await grnService.createGrn(
       FACILITY_ID,
       {
@@ -152,6 +148,8 @@ describe('Delivery stored agreement — delivery-stored-agreement.test.ts', () =
         chamber: 'CH-01',
         bags: 200,
         bagType: 'S+B',
+        smallBags: 100,
+        bigBags: 100,
         rentType: 'Seasonal',
         smallBagPrice: 150,
         bigBagPrice: 210,
@@ -197,7 +195,7 @@ describe('Delivery stored agreement — delivery-stored-agreement.test.ts', () =
     const { grn: grnSmall } = await grnService.createGrn(FACILITY_ID, {
       grnNumber: '8004', date: new Date('2026-04-10T00:00:00.000Z'),
       customerId, commodityId: 'cmd-agr', chamber: 'CH-01', bags: 200, bagType: 'S/B',
-      rentType: 'Seasonal', smallBagPrice: 150, bigBagPrice: 210,
+      smallBags: 200, bigBags: 0, rentType: 'Seasonal', smallBagPrice: 150, bigBagPrice: 210,
     }, USER_ID);
     const delSmall = await deliveryService.createDelivery(FACILITY_ID, {
       grnId: grnSmall.id, date: new Date('2026-05-15T00:00:00.000Z'),
@@ -212,7 +210,7 @@ describe('Delivery stored agreement — delivery-stored-agreement.test.ts', () =
     const { grn: grnBig } = await grnService.createGrn(FACILITY_ID, {
       grnNumber: '8005', date: new Date('2026-04-10T00:00:00.000Z'),
       customerId, commodityId: 'cmd-agr', chamber: 'CH-01', bags: 200, bagType: 'S/B',
-      rentType: 'Seasonal', smallBagPrice: 150, bigBagPrice: 210,
+      smallBags: 0, bigBags: 200, rentType: 'Seasonal', smallBagPrice: 150, bigBagPrice: 210,
     }, USER_ID);
     const delBig = await deliveryService.createDelivery(FACILITY_ID, {
       grnId: grnBig.id, date: new Date('2026-05-15T00:00:00.000Z'),
@@ -227,7 +225,7 @@ describe('Delivery stored agreement — delivery-stored-agreement.test.ts', () =
     const { grn: grnMixed } = await grnService.createGrn(FACILITY_ID, {
       grnNumber: '8006', date: new Date('2026-04-10T00:00:00.000Z'),
       customerId, commodityId: 'cmd-agr', chamber: 'CH-01', bags: 200, bagType: 'S/B',
-      rentType: 'Seasonal', smallBagPrice: 150, bigBagPrice: 210,
+      smallBags: 10, bigBags: 190, rentType: 'Seasonal', smallBagPrice: 150, bigBagPrice: 210,
     }, USER_ID);
     const delPart = await deliveryService.createDelivery(FACILITY_ID, {
       grnId: grnMixed.id, date: new Date('2026-05-15T00:00:00.000Z'),

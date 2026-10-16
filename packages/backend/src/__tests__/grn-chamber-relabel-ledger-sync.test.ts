@@ -41,7 +41,7 @@ describe('GRN Chamber Relabel Ledger Synchronization', () => {
   beforeEach(async () => {
     await resetStockCollections();
     await CommodityRateModel.deleteMany({});
-    await CommodityRateModel.create([{ id: 'crt-cmd-wheat-sync-s', commodityId: 'cmd-wheat-sync', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-wheat-sync-m', commodityId: 'cmd-wheat-sync', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
+    await CommodityRateModel.create([{ id: 'crt-cmd-wheat-sync-s', commodityId: 'cmd-wheat-sync', rentType: 'Seasonal', smallRate: 40, bigRate: 40, isActive: true }, { id: 'crt-cmd-wheat-sync-m', commodityId: 'cmd-wheat-sync', rentType: 'Monthly', smallRate: 40, bigRate: 40, isActive: true }]);
     await seedFacility({ id: facilityId, code: 'CHSFAC', name: 'Chamber Sync Facility' });
     customerId = await seedCustomer({ id: 'cust-ch-sync', facilityId, name: 'Suresh Kumar' });
     const commodity = await CommodityModel.create({

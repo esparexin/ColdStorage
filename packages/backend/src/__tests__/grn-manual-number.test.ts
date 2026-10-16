@@ -32,7 +32,7 @@ describe('Manual GR Number Entry Rules', () => {
   beforeEach(async () => {
     await resetStockCollections();
     await CommodityRateModel.deleteMany({});
-    await CommodityRateModel.create([{ id: 'crt-cmd-potato-manual-s', commodityId: 'cmd-potato-manual', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-potato-manual-m', commodityId: 'cmd-potato-manual', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
+    await CommodityRateModel.create([{ id: 'crt-cmd-potato-manual-s', commodityId: 'cmd-potato-manual', rentType: 'Seasonal', smallRate: 50, bigRate: 50, isActive: true }, { id: 'crt-cmd-potato-manual-m', commodityId: 'cmd-potato-manual', rentType: 'Monthly', smallRate: 50, bigRate: 50, isActive: true }]);
     await seedFacility({ id: facilityId, code: 'MGRN', name: 'Manual GRN Facility' });
     customerId = await seedCustomer({ id: 'cust-grn-manual-01', facilityId, name: 'Ramesh Patel' });
     const commodity = await CommodityModel.create({
@@ -60,6 +60,9 @@ describe('Manual GR Number Entry Rules', () => {
       bags: 100,
       bagType: 'S',
       rentType: 'Seasonal',
+      smallBagPrice: 50,
+      bigBagPrice: 50,
+      bagPrice: 50,
       rentAmount: 5000,
       ...overrides,
     };

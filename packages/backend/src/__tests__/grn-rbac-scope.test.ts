@@ -91,6 +91,11 @@ describe('GRN Facility Scoping, RBAC & Child-ID Protection', () => {
   });
 
   function inbound(facilityId: string, token: string, overrides: Record<string, unknown> = {}) {
+    const bags = (overrides.bags as number | undefined) ?? 50;
+    const bagType = (overrides.bagType as string | undefined) ?? 'S';
+    const rate = bagType === 'B' ? 15 : 10;
+    const bagPrice = (overrides.bagPrice as number | undefined) ?? rate;
+    const rentAmount = (overrides.rentAmount as number | undefined) ?? bags * bagPrice;
     return request(app)
       .post(`/api/facilities/${facilityId}/grns`)
       .set('Authorization', `Bearer ${token}`)
@@ -99,12 +104,13 @@ describe('GRN Facility Scoping, RBAC & Child-ID Protection', () => {
         customerId: customerNorthId,
         commodityId,
         chamber: 'CH-01',
-        bags: 50,
-        bagType: 'S',
+        bags,
+        bagType,
         smallBagWeight: 50,
         bigBagWeight: 80,
         rentType: 'Seasonal',
-        rentAmount: 500,
+        bagPrice,
+        rentAmount,
         ...overrides,
       });
   }

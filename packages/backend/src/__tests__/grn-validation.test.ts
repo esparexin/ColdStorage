@@ -94,6 +94,7 @@ describe('GRN Relational Validation & Business Constraints', () => {
         smallBagWeight: 50,
         bigBagWeight: 80,
         rentType: 'Seasonal',
+        bagPrice: 10,
         rentAmount: 500,
         ...overrides,
       });
@@ -157,6 +158,7 @@ describe('GRN Relational Validation & Business Constraints', () => {
     const monthlyValid = await postInbound(operatorNorthToken, northFacilityId, {
       rentType: 'Monthly',
       rentMonths: 3,
+      rentAmount: 1500,
     });
     expect(monthlyValid.status).toBe(201);
     expect(monthlyValid.body.grn.rentMonths).toBe(3);

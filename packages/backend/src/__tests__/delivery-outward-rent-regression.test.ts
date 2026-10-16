@@ -93,6 +93,7 @@ describe('Outward Rent Regression: screenshot 50k vs 48k + mismatch guard', () =
   });
 
   it('screenshot divergence: uniform Rs 12 agreed rate = Rs 4,800 season total', async () => {
+    await CommodityRateModel.updateOne({ id: 'crt-cmd-wheat-s' }, { $set: { smallRate: 12, bigRate: 12 } });
     const { grn } = await createGrn('9003', { smallBagPrice: 12, bigBagPrice: 12 });
     const del = await deliveryService.createDelivery(
       facilityId,

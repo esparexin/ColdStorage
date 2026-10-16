@@ -40,7 +40,7 @@ describe('Bond / Loan Control Lifecycle Tests (Phase 1)', () => {
   beforeEach(async () => {
     await resetStockCollections();
     await CommodityRateModel.deleteMany({});
-    await CommodityRateModel.create([{ id: 'crt-cmd-potato-loan-s', commodityId: 'cmd-potato-loan', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-potato-loan-m', commodityId: 'cmd-potato-loan', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
+    await CommodityRateModel.create([{ id: 'crt-cmd-potato-loan-s', commodityId: 'cmd-potato-loan', rentType: 'Seasonal', smallRate: 50, bigRate: 50, isActive: true }, { id: 'crt-cmd-potato-loan-m', commodityId: 'cmd-potato-loan', rentType: 'Monthly', smallRate: 50, bigRate: 50, isActive: true }]);
 
     await seedFacility({ id: testFacilityId, code: 'BLFAC1', name: 'Bond Loan Test Facility' });
 

@@ -38,7 +38,7 @@ describe('Bond Loan Payment Modes & Settlement Lifecycle (Phase 5)', () => {
   beforeEach(async () => {
     await resetStockCollections();
     await CommodityRateModel.deleteMany({});
-    await CommodityRateModel.create([{ id: 'crt-cmd-apple-loan-s', commodityId: 'cmd-apple-loan', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-apple-loan-m', commodityId: 'cmd-apple-loan', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
+    await CommodityRateModel.create([{ id: 'crt-cmd-apple-loan-s', commodityId: 'cmd-apple-loan', rentType: 'Seasonal', smallRate: 30, bigRate: 30, isActive: true }, { id: 'crt-cmd-apple-loan-m', commodityId: 'cmd-apple-loan', rentType: 'Monthly', smallRate: 30, bigRate: 30, isActive: true }]);
     await seedFacility({ id: testFacilityId, code: 'LSFAC1', name: 'Loan Settle Facility' });
     customerId = await seedCustomer({ id: 'cust-loan-settle-01', facilityId: testFacilityId, name: 'Ramesh Patel' });
     const commodity = await CommodityModel.create({

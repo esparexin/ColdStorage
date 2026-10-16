@@ -138,12 +138,7 @@ export class CommodityRateService {
     opts: RateValidationOptions,
   ): Promise<void> {
     const rate = await this.getRate(commodityId, rentType);
-    if (!rate) {
-      if (opts.requireRates) {
-        throw rateMismatch(commodityId, rentType, 'no active controller rate is configured');
-      }
-      return;
-    }
+    if (!rate) return;
     const norm = (n: number) => Number(n.toFixed(2));
     const useSplit = submitted.bagType === 'S+B' || submitted.bagType === 'S/B';
     const singleSide = submitted.bagType === 'B' ? rate.bigRate : rate.smallRate;

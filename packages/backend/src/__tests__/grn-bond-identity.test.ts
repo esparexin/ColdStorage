@@ -39,7 +39,7 @@ describe('GRN and Bond Identity Verification Tests', () => {
   beforeEach(async () => {
     await resetStockCollections();
     await CommodityRateModel.deleteMany({});
-    await CommodityRateModel.create([{ id: 'crt-cmd-potato-identity-s', commodityId: 'cmd-potato-identity', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-potato-identity-m', commodityId: 'cmd-potato-identity', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
+    await CommodityRateModel.create([{ id: 'crt-cmd-potato-identity-s', commodityId: 'cmd-potato-identity', rentType: 'Seasonal', smallRate: 50, bigRate: 50, isActive: true }, { id: 'crt-cmd-potato-identity-m', commodityId: 'cmd-potato-identity', rentType: 'Monthly', smallRate: 50, bigRate: 50, isActive: true }]);
     await seedFacility({ id: facilityId, code: 'GBIFAC', name: 'Identity Test Facility' });
 
     customerId = await seedCustomer({
@@ -164,7 +164,7 @@ describe('GRN and Bond Identity Verification Tests', () => {
     const bondedInward = await request(app)
       .post(`/api/facilities/${facilityId}/grns`)
       .set('Authorization', `Bearer ${operatorToken}`)
-      .send(makeInwardPayload({ isBondForLoan: true, loanStatus: 'TAKEN', bags: 50, smallBags: 50 }));
+      .send(makeInwardPayload({ isBondForLoan: true, loanStatus: 'TAKEN', bags: 50, smallBags: 50, rentAmount: 2500 }));
     expect(bondedInward.status).toBe(201);
 
     const grn = bondedInward.body.grn;
