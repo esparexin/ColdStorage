@@ -46,7 +46,7 @@ export function DeliveryBagCompositionFields({
   onSeasonalBagPriceChange, onMonthlyBagPriceChange, showSeasonalRate, showMonthlyRate,
   inwardDate, deliveryDate, monthlyRates,
   withdrawal, bagCategory, onQuantityChange, onSmallBagsChange, onBigBagsChange,
-  outwardRent = 0, rentSummary, hamaliRate,
+  outwardRent = 0, hamaliRate,
   fieldErrors = {},
 }: DeliveryBagCompositionFieldsProps) {
   const { bags: bagsError, smallBags: smallError, bigBags: bigError } = fieldErrors;
@@ -233,7 +233,6 @@ export function DeliveryBagCompositionFields({
         monthlyBagPrice={typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined}
         seasonalRates={rates} monthlyRates={monthlyRates ?? rates}
         rentMonths={rentMonths} totalRent={outwardRent}
-        pendingBalance={rentSummary?.remainingBalance}
         remainingStock={remainingStock} totalStock={availableTotal}
         hamaliRate={hamaliRate}
       />

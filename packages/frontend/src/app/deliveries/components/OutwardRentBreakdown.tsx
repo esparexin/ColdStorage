@@ -31,7 +31,6 @@ export interface OutwardRentBreakdownProps {
   monthlyRates: { small: number; big: number };
   rentMonths?: number | null;
   totalRent: number;
-  pendingBalance?: number;
   remainingStock?: number;
   totalStock?: number;
   hamaliRate?: number | null;
@@ -51,7 +50,6 @@ export function OutwardRentBreakdown({
   monthlyRates,
   rentMonths,
   totalRent,
-  pendingBalance,
   hamaliRate,
 }: OutwardRentBreakdownProps) {
   const isSeasonal = rentType === 'Seasonal';
@@ -178,7 +176,7 @@ export function OutwardRentBreakdown({
     ? Number((totalWithdrawing * hamaliRate).toFixed(2))
     : 0;
 
-  if (totalWithdrawing <= 0 && (!pendingBalance || pendingBalance <= 0)) {
+  if (totalWithdrawing <= 0) {
     return null;
   }
 
@@ -219,15 +217,6 @@ export function OutwardRentBreakdown({
           </>
         }
       />
-
-      {pendingBalance != null && pendingBalance > 0 && (
-        <div className={styles.paymentSummary}>
-          <div className={styles.paymentRow}>
-            <span>Pending Balance on GRN (Previous Unsettled):</span>
-            <strong>₹{pendingBalance.toLocaleString('en-IN')}</strong>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

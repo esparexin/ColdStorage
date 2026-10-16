@@ -173,5 +173,36 @@ describe('outwardRentBreakdown.helper', () => {
       expect(rows).toHaveLength(1);
       expect(rows[0].details).toBe('50 Bags × ₹12 (₹600)');
     });
+
+    it('accurately produces multi-season rows matching delivery challan without extraneous balance items', () => {
+      const rows = formatSeasonalBreakdownRows({
+        periods: [
+          { periodKey: 's-2024', label: 'Season 2024', periodType: 'SEASON', smallBags: 6, bigBags: 4, smallRate: 150, bigRate: 210, amount: 1740 },
+          { periodKey: 'jan-2025', label: 'January 2025', periodType: 'JANUARY', smallBags: 6, bigBags: 4, smallRate: 24, bigRate: 60, amount: 192 },
+          { periodKey: 'feb-2025', label: 'February 2025', periodType: 'FEBRUARY', smallBags: 6, bigBags: 4, smallRate: 24, bigRate: 60, amount: 192 },
+          { periodKey: 's-2025', label: 'Season 2025', periodType: 'SEASON', smallBags: 6, bigBags: 4, smallRate: 150, bigRate: 210, amount: 1740 },
+          { periodKey: 'jan-2026', label: 'January 2026', periodType: 'JANUARY', smallBags: 6, bigBags: 4, smallRate: 24, bigRate: 60, amount: 192 },
+          { periodKey: 'feb-2026', label: 'February 2026', periodType: 'FEBRUARY', smallBags: 6, bigBags: 4, smallRate: 24, bigRate: 60, amount: 192 },
+          { periodKey: 's-2026', label: 'Season 2026', periodType: 'SEASON', smallBags: 6, bigBags: 4, smallRate: 150, bigRate: 210, amount: 1740 },
+        ],
+        isHybrid: false,
+        totalWithdrawing: 10,
+        hamaliRate: 20,
+      });
+
+      expect(rows).toHaveLength(6);
+      expect(rows.map((r) => r.title)).toEqual([
+        '(2024) Mar - Dec',
+        'Jan - Feb',
+        '(2025) Mar - Dec',
+        'Jan - Feb',
+        '(2026) Mar - Dec',
+        'Hamali Charges',
+      ]);
+      const totalAmount = rows.reduce((sum, r) => sum + r.amount, 0);
+      expect(totalAmount).toBe(6188);
+      expect(rows.some((r) => r.title.toLowerCase().includes('pending'))).toBe(false);
+      expect(rows.some((r) => r.title.toLowerCase().includes('unsettled'))).toBe(false);
+    });
   });
 });
