@@ -1,4 +1,13 @@
-import { allocateHybridSplit, isHybridBagCategory, resolveStoredCompositionVerified, seasonYearForInwardDate, type BagType, type OutwardBagCategory } from '@cold-storage/contracts';
+import {
+  allocateHybridSplit,
+  hasPositiveHybridRate,
+  isHybridBagCategory,
+  resolveStoredCompositionVerified,
+  seasonYearForInwardDate,
+  validateHybridQuantityInput,
+  type BagType,
+  type OutwardBagCategory,
+} from '@cold-storage/contracts';
 import type { MergeSourceGrn } from './merge-grn.helper.js';
 
 export interface ValidateMergeRepackedParams {
@@ -93,19 +102,18 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
     // Hybrid-family confirmation (Hybrid, Mixed, Modern…): quantity plus
     // informational rates, mirroring outward Hybrid validation. Rates never
     // feed rent; the split below serves ledger accounting only.
-    if (sourceQuantity == null || !Number.isInteger(sourceQuantity) || sourceQuantity <= 0) {
+    const qtyErr = validateHybridQuantityInput(sourceQuantity, totalMovedBags, 'total moved stock');
+    if (qtyErr) {
+      if (qtyErr.includes('must match')) {
+        throw new Error(`Confirmed Hybrid quantity (${sourceQuantity}) must match total moved stock of ${totalMovedBags} bags`);
+      }
       throw new Error('Confirmed Hybrid quantity must be a positive whole number');
     }
-    if (sourceQuantity !== totalMovedBags) {
-      throw new Error(
-        `Confirmed Hybrid quantity (${sourceQuantity}) must match total moved stock of ${totalMovedBags} bags`,
-      );
-    }
-    const hasRate =
-      (typeof sourceBagPrice === 'number' && sourceBagPrice > 0) ||
-      (typeof sourceSeasonalBagPrice === 'number' && sourceSeasonalBagPrice > 0) ||
-      (typeof sourceMonthlyBagPrice === 'number' && sourceMonthlyBagPrice > 0);
-    if (!hasRate) {
+    if (!hasPositiveHybridRate({
+      bagPrice: sourceBagPrice,
+      seasonalBagPrice: sourceSeasonalBagPrice,
+      monthlyBagPrice: sourceMonthlyBagPrice,
+    })) {
       throw new Error('Confirmed Hybrid lots require a per-bag rate (Each Bag Price, or Seasonal/Monthly rates)');
     }
     const ledSmall = params.defaultSmallMoved ?? sourceGrns.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);

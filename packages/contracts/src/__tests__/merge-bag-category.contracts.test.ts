@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   allocateHybridSplit,
+  appendGrnRemarks,
+  hasPositiveHybridRate,
   isHybridBagCategory,
   mergeGrnInputSchema,
+  validateHybridQuantityInput,
 } from '../index.js';
 
 /**
@@ -78,4 +81,35 @@ describe('Merge bag-category confirmation contracts', () => {
       expect(split).toEqual({ smallBags: 287, bigBags: 50 });
     });
   });
+
+  describe('Hybrid validation helpers and appendGrnRemarks SSOT', () => {
+    it('hasPositiveHybridRate returns true if any rate is positive', () => {
+      expect(hasPositiveHybridRate({ bagPrice: 10 })).toBe(true);
+      expect(hasPositiveHybridRate({ seasonalBagPrice: 20 })).toBe(true);
+      expect(hasPositiveHybridRate({ monthlyBagPrice: 5 })).toBe(true);
+      expect(hasPositiveHybridRate({})).toBe(false);
+      expect(hasPositiveHybridRate({ bagPrice: 0 })).toBe(false);
+      expect(hasPositiveHybridRate({ bagPrice: null, seasonalBagPrice: undefined })).toBe(false);
+    });
+
+    it('validateHybridQuantityInput checks whole number and reconciliation', () => {
+      expect(validateHybridQuantityInput('', 50)).toContain('positive whole number');
+      expect(validateHybridQuantityInput(0, 50)).toContain('positive whole number');
+      expect(validateHybridQuantityInput(12.5, 50)).toContain('positive whole number');
+      expect(validateHybridQuantityInput(40, 50, 'available stock')).toContain('must match available stock of 50 bags');
+      expect(validateHybridQuantityInput(40, 50, 'total moved stock')).toContain('must match total moved stock of 50 bags');
+      expect(validateHybridQuantityInput(50, 50)).toBeNull();
+    });
+
+    it('appendGrnRemarks preserves notes and caps combined text at 500 characters', () => {
+      expect(appendGrnRemarks(null, 'Single note')).toBe('Single note');
+      expect(appendGrnRemarks('Existing', 'New note')).toBe('Existing\nNew note');
+      const longExisting = 'A'.repeat(400);
+      const longNote = 'B'.repeat(200);
+      const clamped = appendGrnRemarks(longExisting, longNote, 500);
+      expect(clamped.length).toBe(500);
+      expect(clamped.endsWith(longNote)).toBe(true);
+    });
+  });
 });
+

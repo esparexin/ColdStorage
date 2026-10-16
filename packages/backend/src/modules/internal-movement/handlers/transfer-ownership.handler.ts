@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { resolveStoredCompositionVerified, toExcludedPeriodKeys, type TransferOwnershipInput, type Grn, type InternalMovementRecord, type RentPayment } from '@cold-storage/contracts';
+import { appendGrnRemarks, resolveStoredCompositionVerified, toExcludedPeriodKeys, type TransferOwnershipInput, type Grn, type InternalMovementRecord, type RentPayment } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
@@ -149,7 +149,7 @@ export async function transferOwnership(
         effectiveRentBal,
         remarks: input.remarks,
       });
-      const updatedRemarks = grn.remarks ? `${grn.remarks}\n${transferNote}` : transferNote;
+      const updatedRemarks = appendGrnRemarks(grn.remarks, transferNote);
 
       const updateFields: Record<string, unknown> = {
         customerId: newCustomer.id,

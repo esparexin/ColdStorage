@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { isHybridBagCategory, resolveMergedBagType, resolveStoredCompositionVerified, type Grn, type InternalMovementRecord, type MergeGrnInput } from '@cold-storage/contracts';
+import { appendGrnRemarks, isHybridBagCategory, resolveMergedBagType, resolveStoredCompositionVerified, type Grn, type InternalMovementRecord, type MergeGrnInput } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { resolveMovementObligation } from './resolve-movement-obligation.js';
@@ -137,7 +137,7 @@ export async function mergeGrn(
           : '';
       const carriedRentNote = finalCarriedRent > 0 ? `. Carried pending rent: ₹${finalCarriedRent}` : '';
       const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${totalMovedBags} bags${repackedNote}${repackHamaliNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}. Reason: ${input.remarks.trim()}]`;
-      const updatedTargetRemarks = targetGrn.remarks ? `${targetGrn.remarks}\n${targetNote}` : targetNote;
+      const updatedTargetRemarks = appendGrnRemarks(targetGrn.remarks, targetNote);
 
       const updatedTarget = await GrnModel.findOneAndUpdate(
         { id: targetGrn.id },

@@ -106,3 +106,51 @@ export const internalMovementRecordSchema = z.object({
   createdAt: z.coerce.date(),
 });
 export type InternalMovementRecord = z.infer<typeof internalMovementRecordSchema>;
+
+export const HYBRID_RATE_REQUIRED_MESSAGE =
+  'Confirmed Hybrid lots require a per-bag rate (Each Bag Price, or Seasonal/Monthly rates).';
+
+export interface HybridRateInputs {
+  bagPrice?: number | null | '';
+  seasonalBagPrice?: number | null | '';
+  monthlyBagPrice?: number | null | '';
+}
+
+/** Pure helper to check if at least one positive Hybrid rate is configured. */
+export function hasPositiveHybridRate(rates: HybridRateInputs): boolean {
+  return (
+    (typeof rates.bagPrice === 'number' && rates.bagPrice > 0) ||
+    (typeof rates.seasonalBagPrice === 'number' && rates.seasonalBagPrice > 0) ||
+    (typeof rates.monthlyBagPrice === 'number' && rates.monthlyBagPrice > 0)
+  );
+}
+
+/** Pure helper to validate confirmed Hybrid quantity against available/moved stock. */
+export function validateHybridQuantityInput(
+  quantity: number | null | undefined | '',
+  expectedTotal: number,
+  stockNoun: 'total moved stock' | 'available stock' = 'available stock',
+): string | null {
+  if (typeof quantity !== 'number' || !Number.isInteger(quantity) || quantity <= 0) {
+    return 'Confirmed Hybrid quantity must be a positive whole number.';
+  }
+  if (quantity !== expectedTotal) {
+    return `Confirmed Hybrid quantity (${quantity}) must match ${stockNoun} of ${expectedTotal} bags.`;
+  }
+  return null;
+}
+
+/**
+ * Appends an audit note to GRN remarks without exceeding the 500-char max constraint.
+ * If the resulting combined string exceeds maxLen (default 500), it safely trims the
+ * earliest text so the latest audit note and total length remain strictly within bounds.
+ */
+export function appendGrnRemarks(existing: string | null | undefined, newNote: string, maxLen = 500): string {
+  const note = newNote.trim();
+  if (!existing?.trim()) return note.slice(0, maxLen);
+  const combined = `${existing.trim()}\n${note}`;
+  if (combined.length <= maxLen) return combined;
+  if (note.length >= maxLen) return note.slice(0, maxLen);
+  return combined.slice(combined.length - maxLen);
+}
+
