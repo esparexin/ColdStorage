@@ -116,10 +116,15 @@ export async function resolveSourceRentObligation(
     }
   }
 
+  const sourceHamaliShare = effectiveRentAmount > 0
+    ? computeFirstSeasonHamali(sourceGrn.bags, commodity, extensions, sourceGrn.hamaliRate, sourceGrn.hamaliAmount)
+    : 0;
+
   const existingPayments = await rentRepository.findPaymentsByGrnId(facilityId, sourceGrn.id, session);
   let totalPaid = existingPayments.reduce((sum, p) => sum + p.amountPaid, 0);
-  if (totalPaid > effectiveRentAmount) {
-    effectiveRentAmount = totalPaid;
+  const totalObligationBeforePayments = effectiveRentAmount + sourceHamaliShare;
+  if (totalPaid > totalObligationBeforePayments) {
+    effectiveRentAmount = Math.max(0, totalPaid - sourceHamaliShare);
     await GrnModel.updateOne(
       { id: sourceGrn.id },
       { $set: { rentAmount: effectiveRentAmount, updatedAt: new Date() } },
@@ -134,10 +139,6 @@ export async function resolveSourceRentObligation(
     bagType: sourceGrn.bagType, bags: sourceGrn.bags, smallBags: sourceGrn.smallBags, bigBags: sourceGrn.bigBags,
     bagPrice: sourceGrn.bagPrice, smallBagPrice: sourceGrn.smallBagPrice, bigBagPrice: sourceGrn.bigBagPrice,
   });
-
-  const sourceHamaliShare = effectiveRentAmount > 0
-    ? computeFirstSeasonHamali(sourceGrn.bags, commodity, extensions, sourceGrn.hamaliRate, sourceGrn.hamaliAmount)
-    : 0;
 
   const isCompositionUnverified = effectiveRentAmount === 0 && totalPaid === 0 && !canCalc.canCalculate;
   const isLegacyUnverifiedHamali =
