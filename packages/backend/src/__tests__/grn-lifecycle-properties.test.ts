@@ -57,7 +57,7 @@ describe('GRN lifecycle properties: cumulative, concurrency, frozen dates', () =
         grnId: gid, quantity: qty, smallBags: qty, bigBags: 0, date: '2026-07-10',
         vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: gp,
       });
-      expect([200, 201]).toContain(res.status);
+      expect([200, 201], JSON.stringify(res.body).slice(0, 300)).toContain(res.status);
       expect(res.body.delivery.rentCharge).toBe(expected[n]);
       n += 1;
     }
@@ -103,13 +103,13 @@ describe('GRN lifecycle properties: cumulative, concurrency, frozen dates', () =
       grnId: gid, quantity: 10, smallBags: 10, bigBags: 0, date: '2026-08-31',
       vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: 'GP-7301',
     });
-    expect([200, 201]).toContain(at3.status);
+    expect([200, 201], JSON.stringify(at3.body).slice(0, 300)).toContain(at3.status);
     expect(at3.body.delivery.rentCharge).toBe(100);
     const after3 = await request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send({
       grnId: gid, quantity: 10, smallBags: 10, bigBags: 0, date: '2026-10-02',
       vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: 'GP-7302',
     });
-    expect([200, 201]).toContain(after3.status);
+    expect([200, 201], JSON.stringify(after3.body).slice(0, 300)).toContain(after3.status);
     expect(after3.body.delivery.rentCharge).toBe(100 + 240);
     const src = await GrnModel.findOne({ id: gid }).lean().exec();
     expect(src?.bags).toBe(100);
