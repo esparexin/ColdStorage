@@ -61,7 +61,7 @@ export function InternalMovementMergeTab({
     }),
   );
   const hasDiffRates = isTargetDiff || selectedSources.some((s) => (s.smallBagPrice != null || s.bigBagPrice != null) && s.smallBagPrice !== s.bigBagPrice);
-  const hasUnconfirmedMix = hasDiffRates && (!isTargetVerified || !allSourcesVerified);
+  const hasUnconfirmedMix = selectedSources.length > 0 && hasDiffRates && (!isTargetVerified || !allSourcesVerified);
   const isTargetHybrid = (!isTargetDiff && targetGrn.bagPrice != null) || isHybridBagCategory(targetGrn.bagType);
 
   const isRepackRequired = repackMode || hasUnconfirmedMix;
@@ -171,7 +171,7 @@ export function InternalMovementMergeTab({
         <div className={styles.compactCard}>
           <div className={styles.cardHeader}><span>3. Stock & Composition Confirmation</span><Badge variant="primary">Audit-Safe</Badge></div>
           <div className={styles.detailRow}><span className={styles.detailLabel}>{targetGrn.grnNumber} Initial:</span><span className={styles.detailValue}>{targetCurrentRemaining} bags {isTargetHybrid ? '(Hybrid)' : (targetGrn.smallBags > 0 || targetGrn.bigBags > 0) ? `(${targetGrn.smallBags ?? 0}S · ${targetGrn.bigBags ?? 0}B)` : ''}</span></div>
-          <div className={styles.detailRow}><span className={styles.detailLabel}>+ Merged Sources:</span><span className={styles.detailValue}>+{totalSourceBags} bags {isHybridBagCategory(confirmation.category) ? '(Hybrid)' : (movedSmall > 0 || movedBig > 0) ? `(${movedSmall}S · ${movedBig}B)` : ''}</span></div>
+          <div className={styles.detailRow}><span className={styles.detailLabel}>+ Merged Sources:</span><span className={styles.detailValue}>+{totalSourceBags} bags {isHybridBagCategory(confirmation.category) ? '(Hybrid)' : isRepackRequired && !isRepackFilled ? '' : (movedSmall > 0 || movedBig > 0) ? `(${movedSmall}S · ${movedBig}B)` : ''}</span></div>
           <div className={styles.detailRow} style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
             <span className={styles.detailLabel}>Combined Target Stock:</span>
             <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)' }}>{targetNewRemaining} Bags (Season {targetSeason})</span>
@@ -180,7 +180,7 @@ export function InternalMovementMergeTab({
             <span className={styles.detailLabel}>Resulting Composition:</span>
             <span className={styles.detailValue} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <Badge variant="primary">{isHybridBagCategory(confirmation.category) ? 'Hybrid' : resultingBagType}</Badge>
-              <strong>{isHybridBagCategory(confirmation.category) ? `${targetNewRemaining} Hybrid Bags` : `${resultingSmall}S · ${resultingBig}B`}</strong>
+              <strong>{isHybridBagCategory(confirmation.category) ? `${targetNewRemaining} Hybrid Bags` : isRepackRequired && !isRepackFilled ? 'Pending confirmation' : `${resultingSmall}S · ${resultingBig}B`}</strong>
             </span>
           </div>
           {repackHamaliCharge > 0 && (

@@ -111,7 +111,7 @@ export function MergeBagCategoryFields({
             <span>Physical Repacking / Rebagging (Applies Hamali handling charge)</span>
           </label>
 
-          {(hasUnconfirmedMix || repackMode) && (
+          {totalMovedBags > 0 && (hasUnconfirmedMix || repackMode) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
               <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
                 <Input id="repack-small" type="number" min={0} max={totalMovedBags} placeholder={repackMode ? "Repacked Small Bags" : "Small Bags"} aria-label={repackMode ? "Repacked small bags" : "Small bags"} value={repackSmall} onChange={(e) => onRepackSmallChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
