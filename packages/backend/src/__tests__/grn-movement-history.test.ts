@@ -178,55 +178,38 @@ describe('GRN Movement History SSOT tests', () => {
     expect(reversal.remarks).toBe('Customer vehicle broke down outside gate');
   });
 
-  it('correctly orders same-day merge-in and ownership transfer before delivery', async () => {
+  it('correctly orders same-day merge-in and ownership transfer before delivery using movementDate', async () => {
     const today = new Date();
-    await InternalMovementModel.create({
-      id: `mov-${Date.now()}-${Math.random()}`,
-      facilityId,
-      grnId,
-      movementType: 'TRANSFER_OWNERSHIP',
-      movementDate: today,
-      fromCustomerId: customerId,
-      fromCustomerName: 'Sardar Patel Agro',
-      toCustomerId: 'cust-transferee',
-      toCustomerName: 'New Owner Agro',
-      financialSnapshot: {
-        rentAmount: 0,
-        totalPaid: 0,
-        remainingBalance: 0,
-        paymentStatus: 'UNPAID',
+    const mergeMovDate = new Date(Date.now() - 10000);
+    const transferMovDate = new Date(Date.now() - 5000);
+    const mergeMovId = `mov-merge-${Date.now()}`;
+
+    await InternalMovementModel.create([
+      {
+        id: mergeMovId, facilityId, targetGrnId: grnId, targetGrnNumber: 'GRN-25-26-0099',
+        movementType: 'MERGE', movementDate: mergeMovDate, totalBagsMoved: 50, smallBagsMoved: 50, bigBagsMoved: 0,
+        financialSnapshot: { rentAmount: 0, totalPaid: 0, remainingBalance: 0, paymentStatus: 'UNPAID' },
+        performedBy: userId, remarks: 'Consolidation merge',
       },
-      performedBy: userId,
-      remarks: 'Transferred',
-    });
+      {
+        id: `mov-trans-${Date.now()}`, facilityId, grnId, movementType: 'TRANSFER_OWNERSHIP',
+        movementDate: transferMovDate, fromCustomerId: customerId, fromCustomerName: 'Sardar Patel Agro',
+        toCustomerId: 'cust-transferee', toCustomerName: 'New Owner Agro',
+        financialSnapshot: { rentAmount: 0, totalPaid: 0, remainingBalance: 0, paymentStatus: 'UNPAID' },
+        performedBy: userId, remarks: 'Transferred',
+      },
+    ]);
 
     await InventoryTransactionModel.create({
-      id: `tx-${Date.now()}-${Math.random()}`,
-      facilityId,
-      grnId,
-      grnNumber: 'GRN-25-26-0099',
-      chamber: 'CH-03',
-      commodityId: 'comm-1',
-      bagType: 'S/B',
-      transactionType: 'INWARD_PUTAWAY',
-      smallQuantity: 50,
-      bigQuantity: 0,
-      referenceType: 'PUT_AWAY',
-      referenceId: `mov-ref-${Date.now()}`,
-      notes: 'Merged from GRNs GRN-25-26-0001: test merge',
-      createdBy: userId,
-      createdAt: today,
+      id: `tx-${Date.now()}-${Math.random()}`, facilityId, grnId, grnNumber: 'GRN-25-26-0099',
+      chamber: 'CH-03', commodityId: 'comm-1', bagType: 'S/B', transactionType: 'INWARD_PUTAWAY',
+      smallQuantity: 50, bigQuantity: 0, referenceType: 'PUT_AWAY', referenceId: mergeMovId,
+      notes: 'Merged from GRNs GRN-25-26-0001: test merge', createdBy: userId, createdAt: today,
     });
 
     await deliveryService.createDelivery(
       facilityId,
-      {
-        grnId,
-        date: today,
-        smallBags: 150,
-        bigBags: 0,
-        remarks: 'Full settlement',
-      },
+      { grnId, date: today, smallBags: 150, bigBags: 0, remarks: 'Full settlement' },
       userId,
     );
 
@@ -236,8 +219,10 @@ describe('GRN Movement History SSOT tests', () => {
     expect(history!.entries).toHaveLength(4);
     expect(history!.entries[0].type).toBe('INWARD');
     expect(history!.entries[1].type).toBe('INTERNAL_MERGE_IN');
+    expect(history!.entries[1].date).toEqual(mergeMovDate);
     expect(history!.entries[1].closingBags).toBe(150);
     expect(history!.entries[2].type).toBe('OWNERSHIP_TRANSFER');
+    expect(history!.entries[2].date).toEqual(transferMovDate);
     expect(history!.entries[2].closingBags).toBe(150);
     expect(history!.entries[3].type).toBe('FINAL_OUTWARD');
     expect(history!.entries[3].closingBags).toBe(0);
