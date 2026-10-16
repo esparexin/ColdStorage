@@ -6,22 +6,16 @@ import { bagPriceSchema } from './pricing.js';
 export const internalMovementTypeSchema = z.enum(['MERGE', 'TRANSFER_OWNERSHIP']);
 export type InternalMovementType = z.infer<typeof internalMovementTypeSchema>;
 
-export const partialMoveSchema = z.object({
-  sourceGrnId: z.string().trim().min(1),
-  smallBags: z.number().int().min(0).max(100000),
-  bigBags: z.number().int().min(0).max(100000),
-}).refine((d) => d.smallBags + d.bigBags > 0, 'Partial move must move at least one bag');
-
-export type PartialMove = z.infer<typeof partialMoveSchema>;
-
 export const mergeGrnInputSchema = z.object({
   targetGrnId: z.string().trim().min(1, 'Target GRN ID is required'),
   sourceGrnIds: z.array(z.string().trim().min(1)).min(1, 'At least one source GRN is required'),
   movementDate: z.coerce.date().default(() => new Date()),
   additionalRentAmount: z.number().min(0).default(0),
   remarks: z.string().trim().min(3, 'Remarks must be at least 3 characters').max(500),
+  isRepackSelected: z.boolean().optional(),
   repackedSmallBags: z.number().int().min(0).nullish(),
   repackedBigBags: z.number().int().min(0).nullish(),
+  repackedBagCount: z.number().int().min(0).max(100000).nullish(),
   // Source bag-category confirmation: reuses the outward vocabulary
   // (Small, Big, Small & Big, Hybrid/Mixed). Informational for rent — the
   // backend recomputes obligations from source rules and never bills these.
@@ -33,7 +27,6 @@ export const mergeGrnInputSchema = z.object({
   referenceWeight: z.number().positive('Reference weight must be greater than zero').max(1000000).nullish(),
   sourcePaymentAmount: z.number().min(0, 'Payment amount cannot be negative').nullish(),
   sourcePaymentMode: paymentModeSchema.nullish(),
-  partialMoves: z.array(partialMoveSchema).nullish(),
 });
 export type MergeGrnInput = z.infer<typeof mergeGrnInputSchema>;
 

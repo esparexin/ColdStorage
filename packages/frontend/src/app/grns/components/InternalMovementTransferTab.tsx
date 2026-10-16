@@ -10,101 +10,75 @@ import { TransferSummaryStrip } from './TransferSummaryStrip';
 import { validateTransferConfirmation } from './transferTabValidation.helper';
 import styles from './InternalMovementModal.module.css';
 interface InternalMovementTransferTabProps {
-  currentGrn: Grn;
-  facilityId: string;
-  customers: Customer[];
-  submitting: boolean;
+  currentGrn: Grn; facilityId: string; customers: Customer[]; submitting: boolean;
   onExecuteTransfer: (
-    newCustomerId: string,
-    movementDate: string,
-    reason: string,
-    remarks?: string,
-    paymentDecision?: TransferPaymentDecision,
-    settlementDetails?: TransferSettlementDetails,
+    newCustomerId: string, movementDate: string, reason: string, remarks?: string,
+    paymentDecision?: TransferPaymentDecision, settlementDetails?: TransferSettlementDetails,
     confirmation?: {
-      confirmedSmallBags?: number;
-      confirmedBigBags?: number;
+      confirmedSmallBags?: number; confirmedBigBags?: number;
       sourceBagCategory?: import('@cold-storage/contracts').OutwardBagCategory;
-      sourceQuantity?: number;
-      sourceBagPrice?: number;
-      sourceSeasonalBagPrice?: number;
-      sourceMonthlyBagPrice?: number;
+      sourceQuantity?: number; sourceBagPrice?: number;
+      sourceSeasonalBagPrice?: number; sourceMonthlyBagPrice?: number;
     },
   ) => Promise<void>;
 }
 
 export function InternalMovementTransferTab({
-  currentGrn,
-  facilityId,
-  customers,
-  submitting,
-  onExecuteTransfer,
+  currentGrn, facilityId, customers, submitting, onExecuteTransfer,
 }: InternalMovementTransferTabProps) {
   const [newCustomerId, setNewCustomerId] = useState('');
   const [movementDate, setMovementDate] = useState(new Date().toISOString().slice(0, 10));
-  const [reason, setReason] = useState('');
-  const [remarks, setRemarks] = useState('');
+  const [reason, setReason] = useState(''), [remarks, setRemarks] = useState('');
   const [decision, setDecision] = useState<'AGREED_PENDING' | 'SETTLE_NOW'>('SETTLE_NOW');
   const [settleAmount, setSettleAmount] = useState<number>(0);
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI'>('Cash');
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>(''); const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>('');
-  const [sourceBagCategory, setSourceBagCategory] = useState<import('@cold-storage/contracts').OutwardBagCategory | ''>(''); const [sourceQuantity, setSourceQuantity] = useState<number | ''>(''); const [sourceBagPrice, setSourceBagPrice] = useState<number | ''>('');
+  const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>('');
+  const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>('');
+  const [sourceBagCategory, setSourceBagCategory] = useState<import('@cold-storage/contracts').OutwardBagCategory | ''>('');
+  const [sourceQuantity, setSourceQuantity] = useState<number | ''>('');
+  const [sourceBagPrice, setSourceBagPrice] = useState<number | ''>('');
+  const [sourceSeasonalBagPrice, setSourceSeasonalBagPrice] = useState<number | ''>('');
+  const [sourceMonthlyBagPrice, setSourceMonthlyBagPrice] = useState<number | ''>('');
 
   const { rentSummary, rentLoading, refreshRentGate } = useRentGate();
+  useEffect(() => { void refreshRentGate(facilityId, currentGrn.id); }, [facilityId, currentGrn.id, refreshRentGate]);
 
-  useEffect(() => {
-    void refreshRentGate(facilityId, currentGrn.id);
-  }, [facilityId, currentGrn.id, refreshRentGate]);
-
-  const candidateCustomers = useMemo(
-    () => customers.filter((c) => c.id !== currentGrn.customerId && c.isActive),
-    [customers, currentGrn.customerId],
-  );
-
-  const selectedNewCustomer = useMemo(
-    () => candidateCustomers.find((c) => c.id === newCustomerId),
-    [candidateCustomers, newCustomerId],
-  );
+  const candidateCustomers = useMemo(() => customers.filter((c) => c.id !== currentGrn.customerId && c.isActive), [customers, currentGrn.customerId]);
+  const selectedNewCustomer = useMemo(() => candidateCustomers.find((c) => c.id === newCustomerId), [candidateCustomers, newCustomerId]);
 
   const remainingBags = currentGrn.closingBags ?? currentGrn.bags;
   const isUnverified = (currentGrn as Record<string, unknown>).isCompositionVerified === false;
-  const totalPaid = rentSummary?.totalPaid ?? 0;
-  const pendingAmount = rentSummary?.remainingBalance ?? 0;
+  const totalPaid = rentSummary?.totalPaid ?? 0, pendingAmount = rentSummary?.remainingBalance ?? 0;
   const isUnbilled = totalPaid === 0 && pendingAmount === 0 && (rentSummary?.rentAmount ?? 0) === 0;
 
   useEffect(() => {
-    if (pendingAmount > 0 && settleAmount === 0) {
-      setSettleAmount(pendingAmount);
-    }
+    if (pendingAmount > 0 && settleAmount === 0) setSettleAmount(pendingAmount);
   }, [pendingAmount, settleAmount]);
 
   const handleTransferSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
-    if (!newCustomerId) {
-      setValidationError('Select the new customer to transfer ownership to.');
-      return;
-    }
-    if (reason.trim().length < 5) {
-      setValidationError('Audit reason must be at least 5 characters.');
-      return;
-    }
+    if (!newCustomerId) return setValidationError('Select the new customer to transfer ownership to.');
+    if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
     const payErr = validateTransferPayment(decision, settleAmount, pendingAmount);
-    if (payErr) {
-      setValidationError(payErr);
-      return;
-    }
-    const confirmErr = validateTransferConfirmation(isUnverified, remainingBags, confirmedSmallBags, confirmedBigBags);
-    if (confirmErr) {
-      setValidationError(confirmErr);
-      return;
-    }
-    const confirmation =
-      sourceBagCategory === 'Hybrid' || sourceBagCategory === 'Mixed'
-        ? { sourceBagCategory, sourceQuantity: typeof sourceQuantity === 'number' ? sourceQuantity : undefined, sourceBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined }
-        : isUnverified && typeof confirmedSmallBags === 'number' && typeof confirmedBigBags === 'number'
-          ? { confirmedSmallBags, confirmedBigBags } : undefined;
+    if (payErr) return setValidationError(payErr);
+    const confirmErr = validateTransferConfirmation({
+      isUnverified, remainingBags, confirmedSmallBags, confirmedBigBags,
+      sourceBagCategory, sourceQuantity, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice,
+    });
+    if (confirmErr) return setValidationError(confirmErr);
+    const isHybrid = sourceBagCategory === 'Hybrid' || sourceBagCategory === 'Mixed';
+    const confirmation = isHybrid
+      ? {
+          sourceBagCategory,
+          sourceQuantity: typeof sourceQuantity === 'number' ? sourceQuantity : undefined,
+          sourceBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
+          sourceSeasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
+          sourceMonthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
+        }
+      : isUnverified && typeof confirmedSmallBags === 'number' && typeof confirmedBigBags === 'number'
+        ? { confirmedSmallBags, confirmedBigBags } : undefined;
 
     await onExecuteTransfer(
       newCustomerId, movementDate, reason.trim(), remarks.trim() || undefined,
@@ -117,9 +91,7 @@ export function InternalMovementTransferTab({
   return (
     <form id="transfer-ownership-form" onSubmit={handleTransferSubmit} className={styles.modalContent}>
       {validationError && (
-        <div className={styles.noticeBox} style={{ color: 'var(--color-danger-text)', borderColor: 'var(--color-danger)' }}>
-          {validationError}
-        </div>
+        <div className={styles.noticeBox} style={{ color: 'var(--color-danger-text)', borderColor: 'var(--color-danger)' }}>{validationError}</div>
       )}
 
       {/* Current Owner & GRN Compact Summary Strip */}
@@ -192,6 +164,9 @@ export function InternalMovementTransferTab({
             sourceBagCategory={sourceBagCategory} onCategoryChange={setSourceBagCategory}
             sourceQuantity={sourceQuantity} onQuantityChange={setSourceQuantity}
             sourceBagPrice={sourceBagPrice} onPriceChange={setSourceBagPrice}
+            sourceSeasonalBagPrice={sourceSeasonalBagPrice} onSeasonalPriceChange={setSourceSeasonalBagPrice}
+            sourceMonthlyBagPrice={sourceMonthlyBagPrice} onMonthlyPriceChange={setSourceMonthlyBagPrice}
+            rentType={currentGrn.rentType} inwardDate={currentGrn.date} movementDate={movementDate}
             disabled={submitting}
           />
 

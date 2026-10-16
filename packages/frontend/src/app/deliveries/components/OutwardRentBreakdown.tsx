@@ -9,7 +9,12 @@ import {
   type RentType,
 } from '@cold-storage/contracts';
 import { Badge, DataTable } from '@/components/ui';
-import { breakdownColumns, getPeriodMeta, type RentBreakdownItem } from './outwardRentBreakdown.helper';
+import {
+  breakdownColumns,
+  formatSeasonalBreakdownRows,
+  appendHamaliRowIfNeeded,
+  type RentBreakdownItem,
+} from './outwardRentBreakdown.helper';
 import styles from './OutwardRentBreakdown.module.css';
 
 export interface OutwardRentBreakdownProps {
@@ -29,6 +34,7 @@ export interface OutwardRentBreakdownProps {
   pendingBalance?: number;
   remainingStock?: number;
   totalStock?: number;
+  hamaliRate?: number | null;
 }
 
 export function OutwardRentBreakdown({
@@ -46,6 +52,7 @@ export function OutwardRentBreakdown({
   rentMonths,
   totalRent,
   pendingBalance,
+  hamaliRate,
 }: OutwardRentBreakdownProps) {
   const isSeasonal = rentType === 'Seasonal';
   const isSeasonal3M = rentType === 'Seasonal_3M';
@@ -96,31 +103,11 @@ export function OutwardRentBreakdown({
 
   const rows = useMemo<RentBreakdownItem[]>(() => {
     if (isSeasonal && seasonalBreakdown && seasonalBreakdown.periods.length > 0) {
-      return seasonalBreakdown.periods.map((p) => {
-        let formula = '';
-        if (isHybrid) {
-          const rate = p.smallRate;
-          formula = `${totalWithdrawing} Bags × ₹${rate} (₹${p.amount.toLocaleString('en-IN')})`;
-        } else {
-          const parts: string[] = [];
-          if (p.smallBags > 0) {
-            const sAmt = p.smallBags * p.smallRate;
-            parts.push(`${p.smallBags} Small × ₹${p.smallRate} (₹${sAmt.toLocaleString('en-IN')})`);
-          }
-          if (p.bigBags > 0) {
-            const bAmt = p.bigBags * p.bigRate;
-            parts.push(`${p.bigBags} Big × ₹${p.bigRate} (₹${bAmt.toLocaleString('en-IN')})`);
-          }
-          formula = parts.join(' + ') || '0 bags';
-        }
-        const meta = getPeriodMeta(p.periodType);
-        return {
-          id: p.periodKey,
-          title: p.label,
-          periodMeta: `${meta.type} • ${meta.range}`,
-          details: formula,
-          amount: p.amount,
-        };
+      return formatSeasonalBreakdownRows({
+        periods: seasonalBreakdown.periods,
+        isHybrid,
+        totalWithdrawing,
+        hamaliRate,
       });
     }
 
@@ -155,21 +142,19 @@ export function OutwardRentBreakdown({
           : `${bigBags} Big × ₹${activeRates.big} (₹${(bigBags * activeRates.big).toLocaleString('en-IN')})`;
     }
 
-    return [
-      {
-        id: 'single-period',
-        title: isSeasonal ? 'Seasonal Storage' : isSeasonal3M ? 'Seasonal (3 Months) Storage' : 'Monthly Storage',
-        periodMeta: isSeasonal
-          ? 'Seasonal • Full season total'
-          : isSeasonal3M
-            ? extra3MMonths > 0
-              ? `Seasonal 3M • Whole-season total + ${extra3MMonths} monthly cycle${extra3MMonths > 1 ? 's' : ''}`
-              : 'Seasonal 3M • Whole-season total'
-            : `Monthly • ${rentMonths ?? 1} billing cycle${(rentMonths ?? 1) > 1 ? 's' : ''}`,
-        details: `${detailsFormula}${isSeasonal || isSeasonal3M ? '' : ` × ${rentMonths ?? 1} mo`}`,
-        amount: totalRent,
-      },
-    ];
+    return appendHamaliRowIfNeeded(
+      [
+        {
+          id: 'single-period',
+          title: isSeasonal ? 'Seasonal Storage' : isSeasonal3M ? 'Seasonal (3 Months) Storage' : 'Monthly Storage',
+          periodMeta: '',
+          details: `${detailsFormula}${isSeasonal || isSeasonal3M ? '' : ` × ${rentMonths ?? 1} mo`}`,
+          amount: totalRent,
+        },
+      ],
+      totalWithdrawing,
+      hamaliRate,
+    );
   }, [
     isSeasonal,
     isSeasonal3M,
@@ -186,7 +171,12 @@ export function OutwardRentBreakdown({
     bigBags,
     rentMonths,
     totalRent,
+    hamaliRate,
   ]);
+
+  const effectiveHamaliAmount = typeof hamaliRate === 'number' && hamaliRate > 0 && totalWithdrawing > 0
+    ? Number((totalWithdrawing * hamaliRate).toFixed(2))
+    : 0;
 
   if (totalWithdrawing <= 0 && (!pendingBalance || pendingBalance <= 0)) {
     return null;
@@ -207,14 +197,26 @@ export function OutwardRentBreakdown({
         rowKey={(r) => r.id}
         caption="Outward Rent Calculation Breakdown"
         footer={
-          <tr className={styles.totalRow}>
-            <td colSpan={2} style={{ textAlign: 'left' }}>
-              Total Rent
-            </td>
-            <td style={{ textAlign: 'right' }} className={styles.totalAmount}>
-              ₹{totalRent.toLocaleString('en-IN')}
-            </td>
-          </tr>
+          <>
+            <tr className={styles.totalRow}>
+              <td colSpan={2} style={{ textAlign: 'left' }}>
+                {effectiveHamaliAmount > 0 ? 'Total Storage Rent' : 'Total Rent'}
+              </td>
+              <td style={{ textAlign: 'right' }} className={styles.totalAmount}>
+                ₹{totalRent.toLocaleString('en-IN')}
+              </td>
+            </tr>
+            {effectiveHamaliAmount > 0 && (
+              <tr className={styles.totalRow}>
+                <td colSpan={2} style={{ textAlign: 'left' }}>
+                  Total Amount to Pay
+                </td>
+                <td style={{ textAlign: 'right' }} className={styles.totalAmount}>
+                  ₹{(totalRent + effectiveHamaliAmount).toLocaleString('en-IN')}
+                </td>
+              </tr>
+            )}
+          </>
         }
       />
 

@@ -142,10 +142,7 @@ export function IssueDeliveryChallanModal({
                 onBigBagsChange={form.setWithdrawalBigBags}
                 fieldErrors={form.fieldErrors}
                 rentSummary={form.rentSummary}
-                paymentAmount={form.paymentAmount}
-                paymentMode={form.paymentMode}
-                onPaymentAmountChange={form.setPaymentAmount}
-                onPaymentModeChange={form.setPaymentMode}
+                hamaliRate={form.hamaliRate}
               />
               <DeliveryTransportFields
                 createDate={form.createDate}

@@ -8,7 +8,7 @@ import { computeRentBalance } from '../../common/rent-balance.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
-import { validatePartialMovesInput, validateProspectiveMergeMove, processMergeSource } from './merge-source-move.helper.js';
+import { validateProspectiveMergeMove, processMergeSource } from './merge-source-move.helper.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 import { createMergePutawayTransaction, createMergeMovementRecord } from './merge-grn-movement.helper.js';
 import { resolveMergeRepackHamali } from './merge-repack-hamali.helper.js';
@@ -56,7 +56,6 @@ export async function mergeGrn(
       let totalSourcePendingRent = 0;
       const sourceSummaries: string[] = [];
       const moveDate = new Date(input.movementDate);
-      validatePartialMovesInput(input);
       const confirmed = await validateProspectiveMergeMove({
         facilityId, targetGrn, sourceGrns, input, moveDate, session,
       });
@@ -95,8 +94,10 @@ export async function mergeGrn(
 
       const repackHamali = await resolveMergeRepackHamali({
         commodityId: targetGrn.commodityId,
+        isRepackSelected: input.isRepackSelected,
         repackedSmallBags: input.repackedSmallBags,
         repackedBigBags: input.repackedBigBags,
+        repackedBagCount: input.repackedBagCount,
         totalMovedBags,
         session,
       });

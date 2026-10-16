@@ -91,8 +91,12 @@ commodityRouter.get(
         return;
       }
 
-      const rates = await commodityRateService.listRates(commodityId);
-      res.status(200).json({ items: rates, total: rates.length });
+      const [rates, comm] = await Promise.all([
+        commodityRateService.listRates(commodityId),
+        commodityService.getCommodityById(commodityId),
+      ]);
+      const hamaliRate = comm?.isHamaliApplicable ? (comm.hamaliRate ?? 0) : 0;
+      res.status(200).json({ items: rates, total: rates.length, hamaliRate });
     } catch (err: unknown) {
       sendServiceError(res, err, 'Failed to get commodity rates');
     }

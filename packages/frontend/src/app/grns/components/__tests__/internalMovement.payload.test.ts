@@ -120,4 +120,31 @@ describe('internalMovement payload helpers', () => {
     expect(payload.sourceBagPrice).toBe(12.5);
     expect(mergeGrnInputSchema.safeParse(payload).success).toBe(true);
   });
+
+  it('builds a merge payload with isRepackSelected and repackedBagCount', () => {
+    const payload = buildMergePayload(
+      'grn-target',
+      ['grn-a'],
+      'Repacked lot with hamali',
+      undefined,
+      '2026-10-10',
+      0,
+      30,
+      20,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true,
+      50,
+    );
+    expect(payload.isRepackSelected).toBe(true);
+    expect(payload.repackedBagCount).toBe(50);
+    expect(mergeGrnInputSchema.safeParse(payload).success).toBe(true);
+  });
 });
+

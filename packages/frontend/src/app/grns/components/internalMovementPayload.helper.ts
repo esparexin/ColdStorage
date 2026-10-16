@@ -19,8 +19,10 @@ export interface MergePayload {
   movementDate: string;
   remarks: string;
   additionalRentAmount: number;
+  isRepackSelected?: boolean;
   repackedSmallBags?: number;
   repackedBigBags?: number;
+  repackedBagCount?: number;
   // Source bag-category confirmation (outward vocabulary, informational for rent).
   sourceBagCategory?: OutwardBagCategory;
   sourceQuantity?: number;
@@ -70,6 +72,8 @@ export function buildMergePayload(
   sourceBagPrice?: number,
   sourceSeasonalBagPrice?: number,
   sourceMonthlyBagPrice?: number,
+  isRepackSelected?: boolean,
+  repackedBagCount?: number,
 ): MergePayload {
   return {
     targetGrnId,
@@ -77,8 +81,10 @@ export function buildMergePayload(
     movementDate: movementDate || new Date().toISOString(),
     remarks: composeRemarks(reason, remarks),
     additionalRentAmount: additionalRentAmount ?? 0,
+    isRepackSelected,
     repackedSmallBags,
     repackedBigBags,
+    repackedBagCount,
     sourceBagCategory,
     sourceQuantity,
     sourceBagPrice,

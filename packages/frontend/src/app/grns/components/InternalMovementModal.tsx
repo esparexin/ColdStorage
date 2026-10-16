@@ -61,7 +61,7 @@ export function InternalMovementModal({
     repackedBigBags?: number, referenceWeight?: number, sourcePaymentAmount?: number,
     sourcePaymentMode?: import('@cold-storage/contracts').PaymentMode, sourceBagCategory?: import('@cold-storage/contracts').OutwardBagCategory,
     sourceQuantity?: number, sourceBagPrice?: number, sourceSeasonalBagPrice?: number,
-    sourceMonthlyBagPrice?: number,
+    sourceMonthlyBagPrice?: number, isRepackSelected?: boolean, repackedBagCount?: number,
   ) => {
     if (submitting) return;
     setSubmitting(true);
@@ -77,6 +77,7 @@ export function InternalMovementModal({
               targetGrnId, sourceGrnIds, reason, remarks, movementDate, additionalRentAmount,
               repackedSmallBags, repackedBigBags, referenceWeight, sourcePaymentAmount, sourcePaymentMode,
               sourceBagCategory, sourceQuantity, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice,
+              isRepackSelected, repackedBagCount,
             ),
           ),
         },

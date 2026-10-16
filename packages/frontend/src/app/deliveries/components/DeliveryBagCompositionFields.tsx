@@ -37,10 +37,7 @@ interface DeliveryBagCompositionFieldsProps {
   onPayRent?: (account: RentSummaryDto) => void;
   canPayRent?: boolean;
   rentSummary?: RentSummaryDto | null;
-  paymentAmount?: number | '';
-  paymentMode?: 'Cash' | 'UPI';
-  onPaymentAmountChange?: (value: number | '') => void;
-  onPaymentModeChange?: (mode: 'Cash' | 'UPI') => void;
+  hamaliRate?: number | null;
 }
 
 export function DeliveryBagCompositionFields({
@@ -49,7 +46,7 @@ export function DeliveryBagCompositionFields({
   onSeasonalBagPriceChange, onMonthlyBagPriceChange, showSeasonalRate, showMonthlyRate,
   inwardDate, deliveryDate, monthlyRates,
   withdrawal, bagCategory, onQuantityChange, onSmallBagsChange, onBigBagsChange,
-  outwardRent = 0, rentSummary,
+  outwardRent = 0, rentSummary, hamaliRate,
   fieldErrors = {},
 }: DeliveryBagCompositionFieldsProps) {
   const { bags: bagsError, smallBags: smallError, bigBags: bigError } = fieldErrors;
@@ -234,13 +231,11 @@ export function DeliveryBagCompositionFields({
         bagPrice={typeof manualBagPrice === 'number' ? manualBagPrice : bagPrice}
         seasonalBagPrice={typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined}
         monthlyBagPrice={typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined}
-        seasonalRates={rates}
-        monthlyRates={monthlyRates ?? rates}
-        rentMonths={rentMonths}
-        totalRent={outwardRent}
+        seasonalRates={rates} monthlyRates={monthlyRates ?? rates}
+        rentMonths={rentMonths} totalRent={outwardRent}
         pendingBalance={rentSummary?.remainingBalance}
-        remainingStock={remainingStock}
-        totalStock={availableTotal}
+        remainingStock={remainingStock} totalStock={availableTotal}
+        hamaliRate={hamaliRate}
       />
     </>
   );
