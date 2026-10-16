@@ -76,7 +76,7 @@ export function MergeBagCategoryFields({
   return (
     <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
       <Select
-        id="merge-bag-category" label="Confirmed Bag Category"
+        id="merge-bag-category" label="Bag Type"
         value={value.category}
         onChange={(e) => {
           const cat = e.target.value as OutwardBagCategory;
@@ -87,8 +87,8 @@ export function MergeBagCategoryFields({
         }}
         disabled={submitting}
       >
-        <option value="S/B">S/B — confirm split below (0 allowed per side)</option>
-        <option value="Hybrid">Hybrid — quantity + per-bag rate</option>
+        <option value="S/B">S/B</option>
+        <option value="Hybrid">Hybrid</option>
       </Select>
 
       {(value.category === 'S/B' || value.category === 'Small & Big') && (
