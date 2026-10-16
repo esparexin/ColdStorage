@@ -96,7 +96,15 @@ export function parseRemarksToTableRows(currentGrn: Grn, allGrns: Grn[] = []): M
     const targetGrn = allGrns.find(
       (g) => g.grnNumber === currentGrn.mergedIntoGrnNumber || g.id === currentGrn.mergedIntoGrnId,
     );
-    const dateStr = new Date(currentGrn.date).toISOString().slice(0, 10);
+    const mergeOutRx =
+      /\[MERGED into (?:GRN\s+)?([^\s]+)\s+on\s+([^:]+):(?:\s*(?:.*?)(?:Reason:\s*([^\]]+)))?\]/i;
+    const mergeOutMatch = remarks.match(mergeOutRx);
+    const dateStr = mergeOutMatch
+      ? mergeOutMatch[2].trim()
+      : currentGrn.updatedAt
+        ? new Date(currentGrn.updatedAt).toISOString().slice(0, 10)
+        : new Date(currentGrn.date).toISOString().slice(0, 10);
+    const reason = mergeOutMatch?.[3]?.trim() || 'Merged into surviving target lot';
     const smallBags = currentGrn.smallBags != null ? currentGrn.smallBags.toLocaleString('en-IN') : 'N/A';
     const bigBags =
       currentGrn.bigBags != null
@@ -120,7 +128,7 @@ export function parseRemarksToTableRows(currentGrn: Grn, allGrns: Grn[] = []): M
         : `SM: ${currentGrn.storageMark || currentGrn.grnNumber}`,
       totalBags: `${currentGrn.bags.toLocaleString('en-IN')} bags`,
       sbDetail: `S: ${smallBags} • B: ${bigBags} (${bagType})`,
-      reason: 'Merged into surviving target lot',
+      reason,
     });
   }
 

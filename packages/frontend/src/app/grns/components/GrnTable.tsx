@@ -57,7 +57,7 @@ export function createGrnTableColumns({
   return [
     {
       key: 'date',
-      header: 'Date',
+      header: 'Inward Date',
       sortable: true,
       sortType: 'date',
       sortAccessor: (row) => row.date,

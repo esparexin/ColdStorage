@@ -8,32 +8,13 @@ import {
 
 describe('internalMovementNotes.helper', () => {
   const baseGrn: Grn = {
-    id: 'grn-1',
-    facilityId: 'fac-1',
-    grnNumber: 'GRN-0100',
-    date: new Date('2026-03-01'),
-    customerId: 'cust-1',
-    customerName: 'Ramesh Patel',
-    commodityId: 'comm-1',
-    commodityName: 'Potatoes',
-    chamber: 'Chamber 1',
-    bags: 300,
-    closingBags: 300,
-    smallBags: 150,
-    bigBags: 150,
-    bagType: 'S+B',
-    rentType: 'Seasonal',
-    rentAmount: 30000,
-    status: 'OPEN',
-    storageMark: 'LOT-A',
-    partyMark: 'PM-99',
-    loanStatus: 'NOT_TAKEN',
-    bondNumber: 'BOND-0100',
-    isBondForLoan: false,
-    inwardReceiptNumber: 'IRN-0100',
-    createdBy: 'user-admin',
-    createdAt: new Date('2026-03-01'),
-    updatedAt: new Date('2026-03-01'),
+    id: 'grn-1', facilityId: 'fac-1', grnNumber: 'GRN-0100', date: new Date('2026-03-01'),
+    customerId: 'cust-1', customerName: 'Ramesh Patel', commodityId: 'comm-1',
+    commodityName: 'Potatoes', chamber: 'Chamber 1', bags: 300, closingBags: 300,
+    smallBags: 150, bigBags: 150, bagType: 'S+B', rentType: 'Seasonal', rentAmount: 30000,
+    status: 'OPEN', storageMark: 'LOT-A', partyMark: 'PM-99', loanStatus: 'NOT_TAKEN',
+    bondNumber: 'BOND-0100', isBondForLoan: false, inwardReceiptNumber: 'IRN-0100',
+    createdBy: 'user-admin', createdAt: new Date('2026-03-01'), updatedAt: new Date('2026-03-01'),
   };
 
   describe('parseMergedGrnNotes', () => {
@@ -93,6 +74,23 @@ describe('internalMovementNotes.helper', () => {
       expect(rows[0].badgeLabel).toBe('👤 Transfer');
       expect(rows[0].partyName).toBe('Ramesh Patel → Suresh Kumar');
       expect(rows[0].reason).toBe('Sale agreement');
+    });
+
+    it('parses merged-out GRN remarks with authoritative merge date instead of inward date', () => {
+      const mergedOutGrn: Grn = {
+        ...baseGrn,
+        date: new Date('2026-03-01'), // Inward date
+        status: 'CLOSED',
+        mergedIntoGrnNumber: 'GRN-0200',
+        remarks:
+          '[MERGED into GRN GRN-0200 on 2026-10-15: 300 bags cleared. Reason: Stock consolidation into target lot]',
+      };
+      const rows = parseRemarksToTableRows(mergedOutGrn);
+      expect(rows).toHaveLength(1);
+      expect(rows[0].badgeLabel).toBe('📤 Merged Out');
+      expect(rows[0].date).toBe('2026-10-15'); // Authoritative merge date, NOT 2026-03-01
+      expect(rows[0].grnLabel).toBe('Into: GRN-0200');
+      expect(rows[0].reason).toBe('Stock consolidation into target lot');
     });
   });
 
