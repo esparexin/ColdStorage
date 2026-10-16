@@ -5,6 +5,7 @@ import { ArrowRightLeft, Edit2, FileText, Printer, Truck } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
 import { Badge, Button, Modal } from '@/components/ui';
 import { GrnMergedDetailsTable } from './GrnMergedDetailsTable';
+import { GrnOutwardDetailsTable } from './GrnOutwardDetailsTable';
 import styles from '../page.module.css';
 
 interface GrnDetailModalProps {
@@ -263,6 +264,12 @@ export function GrnDetailModal({
               <span className={styles.detailLabel}>Loan Status</span>
               <span className={styles.detailValue}>
                 <Badge variant={loanBadgeVariant}>{loanBadgeText}</Badge>
+                {grn.loanStatus === 'TAKEN' && grn.loanTakenAt && (
+                  <span className={styles.mergedSubValue}> ({new Date(grn.loanTakenAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })})</span>
+                )}
+                {grn.loanStatus === 'CLEARED' && grn.loanClearedAt && (
+                  <span className={styles.mergedSubValue}> (Cleared: {new Date(grn.loanClearedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })})</span>
+                )}
               </span>
             </div>
 
@@ -360,6 +367,7 @@ export function GrnDetailModal({
             </div>
           </div>
           <GrnMergedDetailsTable currentGrn={grn} allGrns={allGrns} />
+          <GrnOutwardDetailsTable currentGrn={grn} />
         </div>
     </Modal>
   );
