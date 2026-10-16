@@ -153,6 +153,7 @@ describe('Merge GRN input guards', () => {
   });
 
   it('rejects merging when source GRN belongs to a future season relative to target', async () => {
+    await GrnModel.updateOne({ id: targetId }, { $set: { date: new Date('2024-04-15') } });
     const futureSourceId = await seedGrn({
       facilityId,
       customerId: customerA,
@@ -163,7 +164,7 @@ describe('Merge GRN input guards', () => {
       bags: 40,
       rentAmount: 800,
       grnNumber: 'GRN-MGD-FUTURE',
-      date: new Date('2028-04-15'),
+      date: new Date('2025-04-15'),
     });
 
     const res = await request(app)
@@ -172,7 +173,7 @@ describe('Merge GRN input guards', () => {
       .send({
         targetGrnId: targetId,
         sourceGrnIds: [futureSourceId],
-        movementDate: new Date('2028-05-01'),
+        movementDate: new Date('2025-05-01'),
         remarks: 'Attempt future season merge',
       });
 
