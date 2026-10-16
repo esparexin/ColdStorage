@@ -115,7 +115,7 @@ describe('Internal Move bag-category confirmation (outward SSOT)', () => {
     expect(res.body.movement.bigBagsMoved).toBe(20);
   });
 
-  it('confirms Hybrid with quantity and informational rate, leaving rent unchanged', async () => {
+  it('confirms Hybrid with quantity and rate, updating the rent obligation according to outward SSOT', async () => {
     const { target, source } = await seedPair();
     const plain = await postMerge({
       targetGrnId: target, sourceGrnIds: [source], movementDate: new Date(),
@@ -133,11 +133,9 @@ describe('Internal Move bag-category confirmation (outward SSOT)', () => {
     expect(hybrid.body.movement.smallBagsMoved + hybrid.body.movement.bigBagsMoved).toBe(50);
     expect(hybrid.body.movement.sourceBagCategory).toBe('Hybrid');
     expect(hybrid.body.movement.sourceBagPrice).toBe(99.99);
-    // Informational rate alone must not change the rent obligation.
-    expect(hybrid.body.movement.financialSnapshot.rentAmount).toBe(
-      plain.body.movement.financialSnapshot.rentAmount,
-    );
-    expect(hybrid.body.targetGrn.rentAmount).toBe(plain.body.targetGrn.rentAmount);
+    // Hybrid rate (50 * 99.99 = 4999.50) updates source rent and carries forward into target (2000 + 4999.5 = 6999.5)
+    expect(hybrid.body.movement.financialSnapshot.rentAmount).toBe(6999.5);
+    expect(hybrid.body.targetGrn.rentAmount).toBe(6999.5);
   });
 
   it('rejects retired Small-only category with guidance toward the split', async () => {
@@ -203,5 +201,30 @@ describe('Internal Move bag-category confirmation (outward SSOT)', () => {
     expect(res.body.error).toContain('zero remaining bags');
     const persistedTarget = await GrnModel.findOne({ id: target }).lean().exec();
     expect(persistedTarget?.bags).toBe(100);
+  });
+
+  it('transfers ownership with Hybrid confirmation and applies authoritative rates', async () => {
+    const { source } = await seedPair({ sourceBags: 40 });
+    const customerB = await seedCustomer({ id: 'cust-bc-b', facilityId, name: 'Trader Buyer' });
+    const res = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/transfer-ownership`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        grnId: source,
+        newCustomerId: customerB,
+        movementDate: new Date(),
+        remarks: 'Transfer ownership with Hybrid rates',
+        sourceBagCategory: 'Hybrid',
+        sourceQuantity: 40,
+        sourceSeasonalBagPrice: 120,
+        paymentDecision: 'AGREED_PENDING',
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    // 40 bags * 120 = 4800 rent obligation assessed under Hybrid SSOT
+    expect(res.body.grn.rentAmount).toBe(4800);
+    const updated = await GrnModel.findOne({ id: source }).lean().exec();
+    expect(updated?.rentAmount).toBe(4800);
+    expect(updated?.customerId).toBe(customerB);
   });
 });

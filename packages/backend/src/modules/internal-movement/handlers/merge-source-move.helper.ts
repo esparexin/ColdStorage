@@ -68,6 +68,8 @@ export async function processMergeSource(params: {
   const rentResolution = await resolveSourceRentObligation({
     facilityId, sourceGrn: s, targetGrnDate: targetGrn.date, movementDate: moveDate,
     sourcePaymentAmount: input.sourcePaymentAmount, sourcePaymentMode: input.sourcePaymentMode, userId, session,
+    sourceBagCategory: input.sourceBagCategory, sourceQuantity: bal.total, sourceBagPrice: input.sourceBagPrice,
+    sourceSeasonalBagPrice: input.sourceSeasonalBagPrice, sourceMonthlyBagPrice: input.sourceMonthlyBagPrice,
   });
   const summary = await closeSourceGrnOnMerge({
     facilityId, sourceGrn: s, targetGrnNumber: targetGrn.grnNumber, targetGrnId: targetGrn.id,

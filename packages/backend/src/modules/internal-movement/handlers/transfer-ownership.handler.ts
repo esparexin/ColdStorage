@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { appendGrnRemarks, resolveStoredCompositionVerified, toExcludedPeriodKeys, type TransferOwnershipInput, type Grn, type InternalMovementRecord, type RentPayment } from '@cold-storage/contracts';
+import { appendGrnRemarks, isHybridBagCategory, resolveStoredCompositionVerified, toExcludedPeriodKeys, type TransferOwnershipInput, type Grn, type InternalMovementRecord, type RentPayment } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
@@ -72,24 +72,20 @@ export async function transferOwnership(
       validateTransferBagConfirmation(input, bal.total, grn.grnNumber, isVerified);
 
       const movementDate = new Date(input.movementDate);
-
+      const isHybrid = isHybridBagCategory(input.sourceBagCategory);
       const transferExtensions = await rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session);
       // 1. Authoritative outward-style rent assessment for all remaining bags being transferred
       const { expectedRentCharge } = await computeExpectedDeliveryRent({
         grn: {
-          id: grn.id,
-          grnNumber: grn.grnNumber,
-          date: grn.date,
-          rentType: grn.rentType,
-          commodityId: grn.commodityId,
-          smallBagPrice: grn.smallBagPrice,
-          bigBagPrice: grn.bigBagPrice,
-          bagPrice: grn.bagPrice,
+          id: grn.id, grnNumber: grn.grnNumber, date: grn.date, rentType: grn.rentType, commodityId: grn.commodityId,
+          smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, bagPrice: grn.bagPrice,
         },
         withdrawal: { smallBags: bal.smallBags, bigBags: bal.bigBags },
-        deliveryDate: movementDate,
-        session,
+        quantity: isHybrid ? (input.sourceQuantity ?? bal.total) : undefined,
+        deliveryDate: movementDate, session,
         excludePeriodKeys: toExcludedPeriodKeys(transferExtensions),
+        bagCategory: input.sourceBagCategory, bagPrice: input.sourceBagPrice,
+        seasonalBagPrice: input.sourceSeasonalBagPrice, monthlyBagPrice: input.sourceMonthlyBagPrice,
       });
 
       const storedRent = grn.rentAmount ?? 0;

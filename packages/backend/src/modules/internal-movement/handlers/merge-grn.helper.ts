@@ -9,6 +9,7 @@ import { calculateGrnMonthlyOccupancyRent } from '../../common/occupancy-rent.js
 import { counterService } from '../../common/counter.service.js';
 import {
   canCalculateAuthoritativeRent,
+  isHybridBagCategory,
   resolveStoredCompositionVerified,
   seasonYearForInwardDate,
   toExcludedPeriodKeys,
@@ -18,7 +19,6 @@ import {
 } from '@cold-storage/contracts';
 import type { LedgerBalance } from '../../inventory/ledger-balance.js';
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
-
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
 import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
@@ -41,6 +41,8 @@ export interface ResolveSourceRentParams {
   facilityId: string; sourceGrn: MergeSourceGrn; targetGrnDate: Date; movementDate: Date;
   sourcePaymentAmount?: number | null; sourcePaymentMode?: PaymentMode | null;
   userId: string; session: mongoose.ClientSession;
+  sourceBagCategory?: string | null; sourceQuantity?: number | null;
+  sourceBagPrice?: number | null; sourceSeasonalBagPrice?: number | null; sourceMonthlyBagPrice?: number | null;
 }
 
 export async function resolveSourceRentObligation(
@@ -54,6 +56,7 @@ export async function resolveSourceRentObligation(
   const targetSeason = seasonYearForInwardDate(targetGrnDate);
   const sourceSeason = seasonYearForInwardDate(sourceGrn.date);
   const isSameSeason = sourceSeason === targetSeason;
+  const isHybrid = isHybridBagCategory(params.sourceBagCategory);
 
   let effectiveRentAmount = sourceGrn.rentAmount ?? 0;
   const [commodity, extensions] = await Promise.all([
@@ -61,7 +64,7 @@ export async function resolveSourceRentObligation(
     rentExtensionRepository.findExtensionsByGrn(facilityId, sourceGrn.id, session),
   ]);
   const excludedKeys = toExcludedPeriodKeys(extensions);
-  if (sourceGrn.rentType === 'Monthly' && effectiveRentAmount === 0) {
+  if (sourceGrn.rentType === 'Monthly' && effectiveRentAmount === 0 && !isHybrid) {
     const occupancySummary = await calculateGrnMonthlyOccupancyRent(facilityId, sourceGrn.id, {
       asOfDate: movementDate,
     });
@@ -73,11 +76,12 @@ export async function resolveSourceRentObligation(
         { session },
       );
     }
-  } else if (sourceGrn.rentType === 'Seasonal' || sourceGrn.rentType === 'Seasonal_3M') {
+  } else if (sourceGrn.rentType === 'Seasonal' || sourceGrn.rentType === 'Seasonal_3M' || isHybrid) {
     // Never bill an unverified placeholder split at differential rates.
     const diffSmall = sourceGrn.smallBagPrice ?? sourceGrn.bagPrice ?? 0;
     const diffBig = sourceGrn.bigBagPrice ?? sourceGrn.bagPrice ?? 0;
     const unverifiedDifferential =
+      !isHybrid &&
       (sourceGrn.smallBagPrice != null || sourceGrn.bigBagPrice != null) &&
       diffSmall !== diffBig &&
       sourceGrn.bagType !== 'S' && sourceGrn.bagType !== 'B' &&
@@ -95,7 +99,10 @@ export async function resolveSourceRentObligation(
           smallBagPrice: sourceGrn.smallBagPrice, bigBagPrice: sourceGrn.bigBagPrice, bagPrice: sourceGrn.bagPrice,
         },
         withdrawal: { smallBags: effectiveSmall, bigBags: effectiveBig },
+        quantity: isHybrid ? (params.sourceQuantity ?? sourceGrn.bags) : undefined,
         deliveryDate: movementDate, session, excludePeriodKeys: excludedKeys,
+        bagCategory: params.sourceBagCategory, bagPrice: params.sourceBagPrice,
+        seasonalBagPrice: params.sourceSeasonalBagPrice, monthlyBagPrice: params.sourceMonthlyBagPrice,
       });
 
       if (expectedRentCharge > effectiveRentAmount) {
@@ -109,12 +116,7 @@ export async function resolveSourceRentObligation(
     }
   }
 
-  const existingPayments = await rentRepository.findPaymentsByGrnId(
-    facilityId,
-    sourceGrn.id,
-    session,
-  );
-
+  const existingPayments = await rentRepository.findPaymentsByGrnId(facilityId, sourceGrn.id, session);
   let totalPaid = existingPayments.reduce((sum, p) => sum + p.amountPaid, 0);
 
   // Bag composition verification guard:
@@ -125,16 +127,9 @@ export async function resolveSourceRentObligation(
     bagPrice: sourceGrn.bagPrice, smallBagPrice: sourceGrn.smallBagPrice, bigBagPrice: sourceGrn.bigBagPrice,
   });
 
-  const sourceHamaliShare =
-    effectiveRentAmount > 0
-      ? computeFirstSeasonHamali(
-          sourceGrn.bags,
-          commodity,
-          extensions,
-          sourceGrn.hamaliRate,
-          sourceGrn.hamaliAmount,
-        )
-      : 0;
+  const sourceHamaliShare = effectiveRentAmount > 0
+    ? computeFirstSeasonHamali(sourceGrn.bags, commodity, extensions, sourceGrn.hamaliRate, sourceGrn.hamaliAmount)
+    : 0;
 
   const isCompositionUnverified = effectiveRentAmount === 0 && totalPaid === 0 && !canCalc.canCalculate;
   const isLegacyUnverifiedHamali =
@@ -143,12 +138,7 @@ export async function resolveSourceRentObligation(
 
   const sourceTotalDue = await resolveMovementObligation(
     facilityId,
-    {
-      id: sourceGrn.id,
-      rentAmount: effectiveRentAmount,
-      rentType: sourceGrn.rentType,
-      hamaliShare: sourceHamaliShare,
-    },
+    { id: sourceGrn.id, rentAmount: effectiveRentAmount, rentType: sourceGrn.rentType, hamaliShare: sourceHamaliShare },
     session,
   );
 
