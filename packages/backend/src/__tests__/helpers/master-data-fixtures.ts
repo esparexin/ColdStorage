@@ -82,7 +82,7 @@ export interface SeedGrnOptions {
   bagPrice?: number | null;
   smallBagPrice?: number | null;
   bigBagPrice?: number | null;
-  rentType?: 'Monthly' | 'Seasonal';
+  rentType?: 'Monthly' | 'Seasonal' | 'Seasonal_3M';
   /** Overrides the rent period; Monthly defaults to 1 and Seasonal to SEASONAL_MONTHS. */
   rentMonths?: number | null;
   status?: 'OPEN' | 'CLOSED';
@@ -142,9 +142,11 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
         rentMonths:
           options.rentMonths !== undefined
             ? options.rentMonths
-            : rentType === 'Seasonal'
-              ? SEASONAL_MONTHS
-              : 1,
+            : rentType === 'Monthly'
+              ? 1
+              : rentType === 'Seasonal_3M'
+                ? 3
+                : SEASONAL_MONTHS,
         rentAmount: options.rentAmount ?? 0,
         bagPrice: options.bagPrice ?? null,
         smallBagPrice: options.smallBagPrice ?? null,

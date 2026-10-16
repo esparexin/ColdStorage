@@ -19,6 +19,7 @@ export async function validateProspectiveMergeMove(params: {
   let prospectiveSmall = 0;
   let prospectiveBig = 0;
   for (const s of sourceGrns) {
+    assertSourceMergeable(s, targetGrn);
     const bal = await readLedgerBalance(facilityId, s.id, session);
     if (bal.total <= 0) throw new Error(`Source GRN '${s.grnNumber}' has zero remaining bags to merge`);
     const partial = input.partialMoves?.find((m) => m.sourceGrnId === s.id);
@@ -47,6 +48,17 @@ export async function validateProspectiveMergeMove(params: {
   return { totalMovedBags: prospectiveBags, ...confirmed };
 }
 
+/** Structural guards in stable precedence order (CLOSED before zero-balance). */
+export function assertSourceMergeable(sourceGrn: MergeSourceGrn, targetGrn: MergeSourceGrn): void {
+  const s = sourceGrn;
+  if (s.status === 'CLOSED') throw new Error(`Source GRN '${s.grnNumber}' is already CLOSED`);
+  if (s.commodityId !== targetGrn.commodityId) throw new Error(`Commodity mismatch: Source GRN '${s.grnNumber}' does not match Target GRN '${targetGrn.grnNumber}'`);
+  if (s.loanStatus === 'TAKEN') throw new Error(`Source GRN '${s.grnNumber}' has an active loan hold`);
+  if (s.rentType !== targetGrn.rentType) {
+    throw new Error(`Rent type mismatch: Source GRN '${s.grnNumber}' (${s.rentType}) cannot merge into Target '${targetGrn.grnNumber}' (${targetGrn.rentType}). Same rent type required.`);
+  }
+}
+
 /** Per-source move step (M2 full + partial). Returns moved qty, summary and pending rent to carry. */
 export async function processMergeSource(params: {
   facilityId: string; sourceGrn: MergeSourceGrn; targetGrn: MergeSourceGrn & { date: Date };
@@ -54,12 +66,7 @@ export async function processMergeSource(params: {
   session: mongoose.ClientSession;
 }): Promise<{ movedTotal: number; movedSmall: number; movedBig: number; summary: string; pendingRent: number }> {
   const { facilityId, sourceGrn: s, targetGrn, input, movementId, moveDate, userId, session } = params;
-  if (s.status === 'CLOSED') throw new Error(`Source GRN '${s.grnNumber}' is already CLOSED`);
-  if (s.commodityId !== targetGrn.commodityId) throw new Error(`Commodity mismatch: Source GRN '${s.grnNumber}' does not match Target GRN '${targetGrn.grnNumber}'`);
-  if (s.loanStatus === 'TAKEN') throw new Error(`Source GRN '${s.grnNumber}' has an active loan hold`);
-  if (s.rentType !== targetGrn.rentType) {
-    throw new Error(`Rent type mismatch: Source GRN '${s.grnNumber}' (${s.rentType}) cannot merge into Target '${targetGrn.grnNumber}' (${targetGrn.rentType}). Same rent type required.`);
-  }
+  assertSourceMergeable(s, targetGrn);
   const bal = await readLedgerBalance(facilityId, s.id, session);
   if (bal.total <= 0) throw new Error(`Source GRN '${s.grnNumber}' has zero remaining bags to merge`);
   const partial = input.partialMoves?.find((m) => m.sourceGrnId === s.id);
