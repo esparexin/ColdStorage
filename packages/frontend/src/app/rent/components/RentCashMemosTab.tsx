@@ -5,6 +5,12 @@ import { Printer } from 'lucide-react';
 import { type RentExtension, type RentSummaryDto } from '@cold-storage/contracts';
 import { Badge, Button, FeedbackStates } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
+import {
+  deriveHamaliChargeFromSummary,
+  formatAgreedRates,
+  formatBillingPeriodSubtitle,
+  formatExtensionPeriodSubtitle,
+} from '../hooks/rentDisplay.helper';
 import styles from '../page.module.css';
 
 interface RentCashMemosTabProps {
@@ -26,10 +32,14 @@ export function RentCashMemosTab({
   onPrintReceipt,
   periodLabel,
 }: RentCashMemosTabProps) {
+  const agreedRates = formatAgreedRates(account);
+  const hamaliDue = deriveHamaliChargeFromSummary(account.totalDue, account.rentAmount, account.extensions);
+  const totalEntries = account.extensions.length + 1 + (hamaliDue > 0 ? 1 : 0);
+
   return (
     <>
       <h4 className={styles.sectionLabel}>
-        Billing Periods ({account.extensions.length + 1})
+        Billing Periods & Charges ({totalEntries})
       </h4>
       <div className={styles.paymentsList}>
         <div className={styles.paymentItem}>
@@ -42,7 +52,13 @@ export function RentCashMemosTab({
               </Badge>
             </div>
             <span className={styles.paymentMeta}>
-              {account.totalBags.toLocaleString('en-IN')} bags · agreed rate on record
+              {formatBillingPeriodSubtitle({
+                rentType: account.rentType,
+                seasonYear: originSeason,
+                totalBags: account.totalBags,
+                rates: agreedRates,
+                rentMonths: account.rentMonths,
+              })}
             </span>
           </div>
           <strong className={styles.paymentAmount}>
@@ -62,8 +78,7 @@ export function RentCashMemosTab({
                 </Badge>
               </div>
               <span className={styles.paymentMeta}>
-                Snapshot {ext.snapshotBags.toLocaleString('en-IN')} bags · ₹{ext.bagRate.toFixed(2)}/bag ·{' '}
-                {new Date(ext.finalizedAt).toLocaleDateString('en-IN')} · by {ext.finalizedBy}
+                {formatExtensionPeriodSubtitle(ext)} · {new Date(ext.finalizedAt).toLocaleDateString('en-IN')} · by {ext.finalizedBy}
               </span>
               {ext.manualAmount != null && (
                 <span className={styles.paymentNotes}>
@@ -77,6 +92,22 @@ export function RentCashMemosTab({
             </strong>
           </div>
         ))}
+        {hamaliDue > 0 && (
+          <div className={styles.paymentItem}>
+            <div>
+              <div className={styles.paymentHead}>
+                <strong className={styles.receiptNumber}>Hamali Labor & Handling Charges</strong>
+                <Badge variant="neutral">Handling</Badge>
+              </div>
+              <span className={styles.paymentMeta}>
+                Physical inward / repacking handling labor charge recorded on account
+              </span>
+            </div>
+            <strong className={styles.paymentAmount}>
+              ₹{hamaliDue.toLocaleString('en-IN')}
+            </strong>
+          </div>
+        )}
         <div className={styles.paymentItem}>
           <div>
             <div className={styles.paymentHead}>

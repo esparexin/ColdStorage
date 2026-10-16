@@ -95,3 +95,51 @@ export function getRentCollectionNotice(input: RentAccountDisplayInput): string 
   }
   return null;
 }
+
+/** Formats clean descriptive season, months, and agreed rates for original billing period. */
+export function formatBillingPeriodSubtitle(params: {
+  rentType: 'Seasonal' | 'Monthly' | 'Seasonal_3M' | string;
+  seasonYear: number;
+  totalBags: number;
+  rates?: string | null;
+  rentMonths?: number | null;
+}): string {
+  const { rentType, seasonYear, totalBags, rates, rentMonths } = params;
+  const ratePart = rates ? ` · ${rates}` : '';
+  if (rentType === 'Seasonal') {
+    return `March ${seasonYear} – December ${seasonYear} (10 months) · ${totalBags.toLocaleString('en-IN')} bags${ratePart}`;
+  }
+  if (rentType === 'Seasonal_3M') {
+    const months = rentMonths ?? 3;
+    return `3-Month Seasonal Period (${months} month${months === 1 ? '' : 's'}) · ${totalBags.toLocaleString('en-IN')} bags${ratePart}`;
+  }
+  if (rentType === 'Monthly') {
+    const months = rentMonths ?? 1;
+    return `Monthly Storage (${months} month${months === 1 ? '' : 's'}) · ${totalBags.toLocaleString('en-IN')} bags${ratePart}`;
+  }
+  return `${totalBags.toLocaleString('en-IN')} bags${ratePart}`;
+}
+
+/** Formats clean descriptive period, months, and snapshot rate for extension periods. */
+export function formatExtensionPeriodSubtitle(params: {
+  period: 'JANUARY' | 'FEBRUARY' | 'SEASON' | string;
+  seasonYear: number;
+  snapshotBags: number;
+  bagRate: number;
+}): string {
+  const { period, seasonYear, snapshotBags, bagRate } = params;
+  if (period === 'SEASON') {
+    return `March ${seasonYear} – December ${seasonYear} (10 months renewal) · Snapshot ${snapshotBags.toLocaleString('en-IN')} bags · ₹${bagRate.toFixed(2)}/bag`;
+  }
+  const monthName = period === 'JANUARY' ? 'January' : 'February';
+  return `${monthName} ${seasonYear + 1} (1 month extension) · Snapshot ${snapshotBags.toLocaleString('en-IN')} bags · ₹${bagRate.toFixed(2)}/bag`;
+}
+
+/** Derives any applicable Hamali handling charge included in totalDue. */
+export function deriveHamaliChargeFromSummary(totalDue: number, rentAmount: number, extensions: { finalAmount: number }[]): number {
+  const sumExt = extensions.reduce((acc, e) => acc + e.finalAmount, 0);
+  const diff = totalDue - (rentAmount + sumExt);
+  return diff > 0 ? Number(diff.toFixed(2)) : 0;
+}
+
+
