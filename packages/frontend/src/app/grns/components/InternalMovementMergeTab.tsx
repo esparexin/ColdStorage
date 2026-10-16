@@ -44,7 +44,7 @@ export function InternalMovementMergeTab({
   const openGrns = useMemo(() => allGrns.filter((g) => g.status === 'OPEN'), [allGrns]);
   const targetGrn = useMemo(() => openGrns.find((g) => g.id === targetGrnId) ?? currentGrn, [openGrns, targetGrnId, currentGrn]);
   const targetSeason = useMemo(() => seasonYearForInwardDate(targetGrn.date), [targetGrn.date]);
-  const { eligibleSources, futureSeasonCount } = useMemo(() => partitionMergeSources(openGrns, targetGrnId, targetSeason), [openGrns, targetGrnId, targetSeason]);
+  const { eligibleSources, futureSeasonCount } = useMemo(() => partitionMergeSources(openGrns, targetGrnId, targetSeason, targetGrn.commodityId, targetGrn.rentType), [openGrns, targetGrnId, targetSeason, targetGrn.commodityId, targetGrn.rentType]);
   const selectedSources = useMemo(() => eligibleSources.filter((g) => selectedSourceIds.includes(g.id)), [eligibleSources, selectedSourceIds]);
   const totalSourceBags = useMemo(() => selectedSources.reduce((acc, g) => acc + (g.closingBags ?? g.bags), 0), [selectedSources]);
   const targetCurrentRemaining = targetGrn.closingBags ?? targetGrn.bags;
