@@ -208,23 +208,22 @@ describe('Brand Asset & Logo Management Routes & Security Tests', () => {
   });
 
   describe('Same-Origin Asset Resolver (GET /api/assets/:assetId)', () => {
-    it('rejects unauthenticated asset fetch with 401', async () => {
-      const res = await request(app).get('/api/assets/ast_nonexistent_123');
-      expect(res.status).toBe(401);
+    it('allows unauthenticated asset fetch for browser <img> tags', async () => {
+      await createTestAssetDoc('ast_resolver_unauth', validPngBuffer.length, 1, 1);
+      mockFetchImageResponse(validPngBuffer);
+      const res = await request(app).get('/api/assets/ast_resolver_unauth');
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toBe('image/png');
     });
 
     it('12. rejects invalid assetId format with 400', async () => {
-      const res = await request(app)
-        .get('/api/assets/invalid@symbol!param')
-        .set('Authorization', `Bearer ${superAdminToken}`);
+      const res = await request(app).get('/api/assets/invalid@symbol!param');
       expect(res.status).toBe(400);
       expect(res.body.error).toContain('Invalid asset ID format');
     });
 
     it('13. returns 404 for nonexistent asset ID', async () => {
-      const res = await request(app)
-        .get('/api/assets/ast_nonexistent_123')
-        .set('Authorization', `Bearer ${superAdminToken}`);
+      const res = await request(app).get('/api/assets/ast_nonexistent_123');
       expect(res.status).toBe(404);
       expect(res.body.code).toBe('NOT_FOUND');
     });
@@ -233,9 +232,7 @@ describe('Brand Asset & Logo Management Routes & Security Tests', () => {
       await createTestAssetDoc('ast_resolver_test', validPngBuffer.length, 1, 1);
       mockFetchImageResponse(validPngBuffer);
 
-      const res = await request(app)
-        .get('/api/assets/ast_resolver_test')
-        .set('Authorization', `Bearer ${superAdminToken}`);
+      const res = await request(app).get('/api/assets/ast_resolver_test');
       expect(res.status).toBe(200);
       expect(res.headers['content-type']).toBe('image/png');
       expect(res.headers['cache-control']).toBe('public, max-age=86400, immutable');
