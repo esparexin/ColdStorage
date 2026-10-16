@@ -226,11 +226,8 @@ export function InternalMovementModal({
 
         {activeTab === 'merge' ? (
           <InternalMovementMergeTab
-            currentGrn={grn}
-            allGrns={allGrns}
-            commodities={commodities}
-            submitting={submitting}
-            onExecuteMerge={handleExecuteMerge}
+            currentGrn={grn} facilityId={facilityId} allGrns={allGrns}
+            commodities={commodities} submitting={submitting} onExecuteMerge={handleExecuteMerge}
           />
         ) : (
           <InternalMovementTransferTab

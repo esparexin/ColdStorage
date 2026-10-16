@@ -15,7 +15,7 @@ import { MergeRentAssessment } from './MergeRentAssessment';
 import styles from './InternalMovementModal.module.css';
 
 interface InternalMovementMergeTabProps {
-  currentGrn: Grn; allGrns: Grn[]; commodities?: Commodity[]; submitting: boolean;
+  currentGrn: Grn; facilityId?: string; allGrns: Grn[]; commodities?: Commodity[]; submitting: boolean;
   onExecuteMerge: (
     targetGrnId: string, sourceGrnIds: string[], reason: string, remarks?: string,
     movementDate?: string, additionalRentAmount?: number, repackedSmallBags?: number,
@@ -27,7 +27,7 @@ interface InternalMovementMergeTabProps {
 }
 
 export function InternalMovementMergeTab({
-  currentGrn, allGrns, commodities, submitting, onExecuteMerge,
+  currentGrn, facilityId, allGrns, commodities, submitting, onExecuteMerge,
 }: InternalMovementMergeTabProps) {
   const [targetGrnId, setTargetGrnId] = useState<string>(currentGrn.id);
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
@@ -228,6 +228,7 @@ export function InternalMovementMergeTab({
       </div>
 
       <MergeRentAssessment
+        facilityId={facilityId ?? currentGrn.facilityId}
         selectedSources={selectedSources}
         confirmation={confirmation}
         totalSourceBags={totalSourceBags}

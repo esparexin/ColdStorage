@@ -118,6 +118,14 @@ export async function resolveSourceRentObligation(
 
   const existingPayments = await rentRepository.findPaymentsByGrnId(facilityId, sourceGrn.id, session);
   let totalPaid = existingPayments.reduce((sum, p) => sum + p.amountPaid, 0);
+  if (totalPaid > effectiveRentAmount) {
+    effectiveRentAmount = totalPaid;
+    await GrnModel.updateOne(
+      { id: sourceGrn.id },
+      { $set: { rentAmount: effectiveRentAmount, updatedAt: new Date() } },
+      { session },
+    );
+  }
 
   // Bag composition verification guard:
   // If no existing billed rent and no payments exist, check if bag quantities are verified.
@@ -196,21 +204,12 @@ export async function closeSourceGrnOnMerge(params: CloseSourceGrnParams): Promi
   await InventoryTransactionModel.create(
     [
       {
-        id: `tx-${randomUUID()}`,
-        facilityId,
-        grnId: sourceGrn.id,
-        grnNumber: sourceGrn.grnNumber,
-        chamber: sourceGrn.chamber,
-        commodityId: sourceGrn.commodityId,
-        bagType: sourceGrn.bagType,
-        transactionType: 'OUTWARD_DELIVERY',
-        smallQuantity: ledgerBalance.smallBags,
-        bigQuantity: ledgerBalance.bigBags,
-        referenceType: 'DELIVERY',
-        referenceId: `${movementId}-${sourceGrn.id}`,
-        notes: `Merged into GRN ${targetGrnNumber}: ${remarks.trim()}`,
-        createdBy: userId,
-        createdAt: movementDate,
+        id: `tx-${randomUUID()}`, facilityId, grnId: sourceGrn.id, grnNumber: sourceGrn.grnNumber,
+        chamber: sourceGrn.chamber, commodityId: sourceGrn.commodityId, bagType: sourceGrn.bagType,
+        transactionType: 'OUTWARD_DELIVERY', smallQuantity: ledgerBalance.smallBags,
+        bigQuantity: ledgerBalance.bigBags, referenceType: 'DELIVERY',
+        referenceId: `${movementId}-${sourceGrn.id}`, notes: `Merged into GRN ${targetGrnNumber}: ${remarks.trim()}`,
+        createdBy: userId, createdAt: movementDate,
       },
     ],
     { session, ordered: true },

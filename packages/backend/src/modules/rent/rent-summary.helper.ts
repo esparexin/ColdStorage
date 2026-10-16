@@ -67,9 +67,12 @@ export function buildRentSummary(
   const isLegacyUnverifiedHamali =
     grn.hamaliRate == null && grn.hamaliAmount == null && hamaliShare > 0 && payments.length === 0;
   const isPendingVerification = isCompositionUnverified || isLegacyUnverifiedHamali;
+  const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
+  const effectiveTotalDue = totalPaid > totalDue ? totalPaid : totalDue;
+  const effectiveBaseRent = totalPaid > baseRent && baseRent === totalDue ? totalPaid : baseRent;
   const balance = computeRentBalance(
-    totalDue,
-    payments.reduce((sum, p) => sum + p.amountPaid, 0),
+    effectiveTotalDue,
+    totalPaid,
     { isPendingVerification },
   );
 
@@ -90,7 +93,7 @@ export function buildRentSummary(
     bigBagPrice: grn.bigBagPrice ?? null,
     totalBagsWeight: grn.totalBagsWeight ?? null,
     rentType: grn.rentType,
-    rentAmount: baseRent,
+    rentAmount: effectiveBaseRent,
     rentMonths: grn.rentMonths ?? null,
     totalPaid: balance.totalPaid,
     remainingBalance: balance.remainingBalance,

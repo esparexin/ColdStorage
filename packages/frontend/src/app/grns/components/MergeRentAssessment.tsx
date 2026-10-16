@@ -1,12 +1,15 @@
 'use client';
 
-import React from 'react';
-import type { Grn } from '@cold-storage/contracts';
+import React, { useEffect, useState } from 'react';
+import type { Grn, RentSummaryDto } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
+import { requestWithAuth } from '@/lib/api-client';
 import type { BagConfirmationValue } from './MergeBagCategoryFields';
+import { deriveMergeRentAssessment } from './mergeRentAssessment.helper';
 import styles from './InternalMovementModal.module.css';
 
 export interface MergeRentAssessmentProps {
+  facilityId?: string;
   selectedSources: Grn[];
   confirmation: BagConfirmationValue;
   totalSourceBags: number;
@@ -18,30 +21,51 @@ export interface MergeRentAssessmentProps {
 }
 
 export function MergeRentAssessment({
+  facilityId,
   selectedSources,
   totalSourceBags,
   movementDate,
   repackMode,
   commodityHamaliRate = 0,
 }: MergeRentAssessmentProps) {
+  const [summaries, setSummaries] = useState<Record<string, RentSummaryDto>>({});
+
+  useEffect(() => {
+    if (!facilityId || selectedSources.length === 0) return;
+    let isMounted = true;
+    const missingSources = selectedSources.filter((s) => !summaries[s.id]);
+    if (missingSources.length === 0) return;
+
+    for (const source of missingSources) {
+      requestWithAuth(
+        `/api/facilities/${encodeURIComponent(facilityId)}/rent/grn/${encodeURIComponent(source.id)}`,
+      )
+        .then((res) => (res.ok ? res.json() : null))
+        .then((dto: RentSummaryDto | null) => {
+          if (isMounted && dto) {
+            setSummaries((prev) => (prev[source.id] ? prev : { ...prev, [source.id]: dto }));
+          }
+        })
+        .catch(() => {});
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [facilityId, selectedSources, summaries]);
+
   if (selectedSources.length === 0 || totalSourceBags <= 0) return null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
       {selectedSources.map((source) => {
+        const summary = summaries[source.id];
         const sourceBags = source.closingBags ?? source.bags;
-        const isSettled = source.rentPaymentStatus === 'Settled' || source.rentRemainingBalance === 0;
-        const carriedRent = source.rentRemainingBalance !== undefined
-          ? source.rentRemainingBalance
-          : isSettled
-            ? 0
-            : (source.rentAmount ?? 0);
-
-        const repackHamali = repackMode && commodityHamaliRate > 0
-          ? sourceBags * commodityHamaliRate
-          : 0;
-        const totalCarried = carriedRent + repackHamali;
-        const inwardDateStr = source.date ? new Date(source.date).toLocaleDateString('en-IN') : '—';
+        const {
+          historicalObligation, amountPaid, outstandingBalance,
+          isSettled, carriedRent, repackHamali, totalCarried, inwardDateStr,
+        } = deriveMergeRentAssessment({
+          source, summary, repackMode, commodityHamaliRate,
+        });
 
         return (
           <div key={source.id} className={styles.compactCard}>
@@ -62,8 +86,18 @@ export function MergeRentAssessment({
                 <span className={styles.detailValue}>{sourceBags} bags</span>
               </div>
               <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>Stored Rent Obligation:</span>
-                <span className={styles.detailValue}>₹{(source.rentAmount ?? 0).toLocaleString('en-IN')}</span>
+                <span className={styles.detailLabel}>Historical Rent Obligation:</span>
+                <span className={styles.detailValue}>₹{historicalObligation.toLocaleString('en-IN')}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Amount Already Paid:</span>
+                <span className={styles.detailValue}>₹{amountPaid.toLocaleString('en-IN')}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Outstanding Balance:</span>
+                <span className={styles.detailValue} style={{ color: isSettled ? 'var(--color-success-text)' : 'var(--color-warning-text)', fontWeight: 'var(--font-bold)' }}>
+                  ₹{outstandingBalance.toLocaleString('en-IN')}
+                </span>
               </div>
               <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>Historical Rent Status:</span>
@@ -78,7 +112,7 @@ export function MergeRentAssessment({
                 </span>
               </div>
               <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>Repacking Hamali Labor:</span>
+                <span className={styles.detailLabel}>New Repacking Hamali:</span>
                 <span className={styles.detailValue}>
                   {repackMode
                     ? `₹${repackHamali.toLocaleString('en-IN')} (${sourceBags} bags @ ₹${commodityHamaliRate}/bag)`
@@ -98,9 +132,19 @@ export function MergeRentAssessment({
             </div>
 
             <div className={styles.noticeBox} style={{ fontSize: 'var(--text-xs)' }}>
-              {isSettled
-                ? 'Source GRN rent is fully settled. Historical seasons are preserved without recalculation or duplicate billing. Surviving GRN continues its existing lifecycle.'
-                : `Only actual outstanding dues of ₹${carriedRent.toLocaleString('en-IN')} are carried forward to the target GRN. Historical seasons are not recalculated as an outward delivery.`}
+              {isSettled ? (
+                summary?.payments && summary.payments.length > 0 ? (
+                  <>
+                    Source GRN rent is fully settled. Historical payment receipts verified:{' '}
+                    {summary.payments.map((p) => `#${p.receiptNumber} (₹${p.amountPaid.toLocaleString('en-IN')})`).join(', ')}.
+                    Historical seasons are preserved without recalculation or duplicate billing. Surviving GRN continues its existing lifecycle.
+                  </>
+                ) : (
+                  'Source GRN rent is fully settled. Historical seasons are preserved without recalculation or duplicate billing. Surviving GRN continues its existing lifecycle.'
+                )
+              ) : (
+                `Historical rent obligation: ₹${historicalObligation.toLocaleString('en-IN')}, Paid: ₹${amountPaid.toLocaleString('en-IN')}. Only verified outstanding dues of ₹${carriedRent.toLocaleString('en-IN')} are carried forward to the target GRN. Historical seasons are not recalculated as an outward delivery.`
+              )}
             </div>
           </div>
         );
