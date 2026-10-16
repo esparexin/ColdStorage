@@ -111,9 +111,7 @@ export function MergeRentAssessment({
         });
 
         const totalRent = calculatedRent > 0 ? calculatedRent : (historicalObligation > 0 ? historicalObligation : 0);
-        const effectiveHamaliRate = repackMode && commodityHamaliRate > 0
-          ? commodityHamaliRate
-          : ((source as any).hamaliRate ?? (commodityHamaliRate > 0 ? commodityHamaliRate : undefined));
+        const effectiveHamaliRate = commodityHamaliRate > 0 ? commodityHamaliRate : undefined;
 
         return (
           <div key={source.id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>

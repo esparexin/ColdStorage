@@ -25,6 +25,9 @@ describe('useOpenFacilityGrns - mergeOpenGrnsPool', () => {
     inwardReceiptNumber: 'IRN-0032',
     createdBy: 'admin',
     createdAt: new Date('2024-06-12'),
+    bondNumber: null,
+    isBondForLoan: false,
+    loanStatus: 'NONE',
   };
 
   const activeGrn0031: Grn = {
@@ -49,6 +52,9 @@ describe('useOpenFacilityGrns - mergeOpenGrnsPool', () => {
     inwardReceiptNumber: 'IRN-0031',
     createdBy: 'admin',
     createdAt: new Date('2026-03-01'),
+    bondNumber: null,
+    isBondForLoan: false,
+    loanStatus: 'NONE',
   };
 
   it('unifies partial caller GRN with active facility GRNs', () => {

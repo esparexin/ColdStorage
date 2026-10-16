@@ -26,6 +26,9 @@ describe('mergeRentAssessment.helper', () => {
       rentRemainingBalance: 0,
       status: 'OPEN',
       createdBy: 'admin',
+      bondNumber: null,
+      isBondForLoan: false,
+      loanStatus: 'NONE',
       ...overrides,
     };
   }
@@ -39,7 +42,7 @@ describe('mergeRentAssessment.helper', () => {
       customerName: 'Penchaliah',
       commodityName: 'Mirchi',
       chamber: 'A-09,10',
-      inwardDate: '2024-06-04',
+      inwardDate: new Date('2024-06-04'),
       totalBags: 10,
       deliveredBags: 0,
       remainingBags: 10,

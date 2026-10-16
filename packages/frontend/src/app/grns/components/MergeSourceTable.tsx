@@ -2,7 +2,6 @@
 
 import {
   isHybridBagCategory,
-  resolveStoredCompositionVerified,
   seasonYearForInwardDate,
   type Grn,
 } from '@cold-storage/contracts';
@@ -113,13 +112,6 @@ export function MergeSourceTable({
             const s = sg.smallBags ?? 0;
             const b = sg.bigBags ?? 0;
             const tot = sg.closingBags ?? sg.bags;
-            const isVerified = resolveStoredCompositionVerified({
-              isCompositionVerified: sg.isCompositionVerified,
-              bagType: sg.bagType,
-              bags: sg.bags,
-              smallBags: sg.smallBags,
-              bigBags: sg.bigBags,
-            });
             const hasDiff =
               (sg.smallBagPrice != null || sg.bigBagPrice != null) &&
               sg.smallBagPrice !== sg.bigBagPrice;
