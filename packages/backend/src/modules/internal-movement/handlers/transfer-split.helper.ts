@@ -6,11 +6,16 @@ import { GrnModel } from '../../../database/models/grn.model.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
+import { CommodityModel } from '../../../database/models/commodity.model.js';
 import type { LedgerBalance } from '../../inventory/ledger-balance.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
+import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
+import { computeRentBalance } from '../../common/rent-balance.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
+import { rentRepository } from '../../rent/rent.repository.js';
+import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 
 /** Partial ownership split (M2): source retains remainder OPEN with full liability; new GRN takes moved bags. */
 export function resolvePartialTransferQty(bal: LedgerBalance, small: number, big: number): { small: number; big: number; total: number } {
@@ -78,6 +83,34 @@ export async function applyPartialTransferSplit(params: {
   return newId;
 }
 
+/** Truthful liability snapshot for partial splits: actual paid and balance, never zeros. */
+async function resolveSplitFinancialSnapshot(facilityId: string, grn: Record<string, unknown>, session: mongoose.ClientSession) {
+  const [payments, extensions, commodity] = await Promise.all([
+    rentRepository.findPaymentsByGrnId(facilityId, String(grn.id), session),
+    rentExtensionRepository.findExtensionsByGrn(facilityId, String(grn.id), session),
+    CommodityModel.findOne({ id: String(grn.commodityId) }, null, { session }).lean().exec(),
+  ]);
+  const totalPaid = payments.reduce((sum: number, p: { amountPaid: number }) => sum + p.amountPaid, 0);
+  const totalDue = await rentExtensionRepository.resolveTotalDue(
+    facilityId,
+    {
+      id: String(grn.id), rentAmount: (grn.rentAmount as number | null) ?? 0,
+      rentType: grn.rentType as 'Monthly' | 'Seasonal' | 'Seasonal_3M',
+      outwardRentCharges: await rentRepository.getOutwardRentChargesForGrn(facilityId, String(grn.id), session),
+      hamaliShare: computeFirstSeasonHamali(
+        Number(grn.bags ?? 0), commodity, extensions,
+        (grn.hamaliRate as number | null) ?? null, (grn.hamaliAmount as number | null) ?? null,
+      ),
+    },
+    session,
+  );
+  const bal = computeRentBalance(totalDue, totalPaid);
+  return {
+    rentAmount: Number((grn.rentAmount as number | null) ?? 0),
+    totalPaid, remainingBalance: bal.remainingBalance, paymentStatus: bal.paymentStatus,
+  };
+}
+
 /** Full partial-transfer flow (M2): split GRN, liability retained on source, new GRN rent 0. */
 export async function executePartialTransfer(facilityId: string, input: TransferOwnershipInput, userId: string): Promise<{ grn: Grn; movement: InternalMovementRecord }> {
   const small = input.transferSmallBags ?? 0;
@@ -114,7 +147,7 @@ export async function executePartialTransfer(facilityId: string, input: Transfer
         toCustomerId: newCustomer.id, toCustomerName: newCustomer.name,
         totalBagsMoved: qty.total, smallBagsMoved: qty.small, bigBagsMoved: qty.big,
         targetGrnId: newId, targetGrnNumber: parsed.data,
-        financialSnapshot: { rentAmount: grn.rentAmount ?? 0, totalPaid: 0, remainingBalance: grn.rentAmount ?? 0, paymentStatus: 'Not Settled' },
+        financialSnapshot: await resolveSplitFinancialSnapshot(facilityId, grn, session),
         remarks: `Partial transfer: ${qty.total} bags to ${parsed.data}; liability retained on source. ${input.remarks.trim()}`,
         performedBy: userId, createdAt: new Date(),
       }], { session, ordered: true });

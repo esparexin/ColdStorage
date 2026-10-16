@@ -30,6 +30,8 @@ export interface ComputeDeliveryRentParams {
   bagPrice?: number | null;
   seasonalBagPrice?: number | null;
   monthlyBagPrice?: number | null;
+  /** Elapsed-period keys already billed via finalized extensions; skipped to prevent double-count. */
+  excludePeriodKeys?: string[] | null;
 }
 
 /**
@@ -81,6 +83,7 @@ export async function computeExpectedDeliveryRent(
       const elapsedPeriods = resolveSeasonalElapsedPeriods(grn.date, deliveryDate);
       let totalSeasonalRent = 0;
       for (const p of elapsedPeriods) {
+        if (params.excludePeriodKeys?.includes(p.key)) continue;
         const periodRate = p.period === 'SEASON' ? sRate : mRate;
         totalSeasonalRent += calculateRentAmount({
           rentType: p.period === 'SEASON' ? 'Seasonal' : 'Monthly',
@@ -176,6 +179,7 @@ export async function computeExpectedDeliveryRent(
     const elapsedPeriods = resolveSeasonalElapsedPeriods(grn.date, deliveryDate);
     let totalSeasonalRent = 0;
     for (const p of elapsedPeriods) {
+      if (params.excludePeriodKeys?.includes(p.key)) continue;
       const rates = p.period === 'SEASON' ? seasonalRates : monthlyRates;
       const periodRent = calculateRentAmount({
         rentType: p.period === 'SEASON' ? 'Seasonal' : 'Monthly',

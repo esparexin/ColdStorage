@@ -33,6 +33,13 @@ export function assertSameDeliveryPayload(stored: Record<string, unknown>, input
   if (!same) throw new Error(`Idempotency key already used for a different delivery payload`);
 }
 
+/** Pre-transaction replay check for the retry-loop entry (race layer 1). */
+export async function checkPreTransactionReplay(facilityId: string, input: CreateDeliveryDTO): Promise<{ delivery: DeliveryChallan; summary: DeliverySummary } | null> {
+  const key = (input as unknown as Record<string, unknown>).idempotencyKey;
+  if (typeof key !== 'string' || key.length === 0) return null;
+  return resolveIdempotentDelivery(facilityId, key, input);
+}
+
 /** Pre-transaction retry shortcut: returns original delivery when key replays same payload. */
 export async function resolveIdempotentDelivery(facilityId: string, key: string, input: CreateDeliveryDTO): Promise<{ delivery: DeliveryChallan; summary: DeliverySummary } | null> {
   const existing = await findIdempotentDelivery(facilityId, key);

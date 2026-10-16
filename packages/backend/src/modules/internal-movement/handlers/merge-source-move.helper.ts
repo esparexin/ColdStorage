@@ -2,7 +2,50 @@ import mongoose from 'mongoose';
 import type { MergeGrnInput } from '@cold-storage/contracts';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { resolveSourceRentObligation, closeSourceGrnOnMerge, type MergeSourceGrn } from './merge-grn.helper.js';
+import { validateMergeRepackedCounts } from './merge-grn-validation.helper.js';
 import { resolvePartialMoveQty, applyPartialMergeDeduction } from './merge-partial.helper.js';
+
+/**
+ * Pre-drain validation (D9): confirms the move composition from prospective
+ * ledger balances BEFORE any source is drained, so a repack mismatch aborts
+ * without partial side effects. Returns the confirmed credit for the target.
+ */
+export async function validateProspectiveMergeMove(params: {
+  facilityId: string; targetGrn: MergeSourceGrn & { date: Date }; sourceGrns: MergeSourceGrn[];
+  input: MergeGrnInput; moveDate: Date; session: mongoose.ClientSession;
+}): Promise<{ totalMovedBags: number; smallMoved: number; bigMoved: number; explicitConfirmation: boolean }> {
+  const { facilityId, targetGrn, sourceGrns, input, moveDate, session } = params;
+  let prospectiveBags = 0;
+  let prospectiveSmall = 0;
+  let prospectiveBig = 0;
+  for (const s of sourceGrns) {
+    const bal = await readLedgerBalance(facilityId, s.id, session);
+    if (bal.total <= 0) throw new Error(`Source GRN '${s.grnNumber}' has zero remaining bags to merge`);
+    const partial = input.partialMoves?.find((m) => m.sourceGrnId === s.id);
+    const qty = partial
+      ? resolvePartialMoveQty(bal, partial.smallBags, partial.bigBags)
+      : { small: bal.smallBags, big: bal.bigBags, total: bal.total };
+    prospectiveBags += qty.total;
+    prospectiveSmall += qty.small;
+    prospectiveBig += qty.big;
+  }
+  const confirmed = validateMergeRepackedCounts({
+    targetGrn: {
+      bagType: targetGrn.bagType, bags: targetGrn.bags, smallBags: targetGrn.smallBags,
+      bigBags: targetGrn.bigBags, smallBagPrice: targetGrn.smallBagPrice, bigBagPrice: targetGrn.bigBagPrice,
+      date: targetGrn.date, grnNumber: targetGrn.grnNumber,
+      isCompositionVerified: targetGrn.isCompositionVerified ?? null,
+    },
+    sourceGrns,
+    repackedSmallBags: input.repackedSmallBags, repackedBigBags: input.repackedBigBags,
+    sourceBagCategory: input.sourceBagCategory ?? null, sourceQuantity: input.sourceQuantity ?? null,
+    sourceBagPrice: input.sourceBagPrice ?? null, sourceSeasonalBagPrice: input.sourceSeasonalBagPrice ?? null,
+    sourceMonthlyBagPrice: input.sourceMonthlyBagPrice ?? null,
+    totalMovedBags: prospectiveBags, defaultSmallMoved: prospectiveSmall, defaultBigMoved: prospectiveBig,
+    movementDate: moveDate,
+  });
+  return { totalMovedBags: prospectiveBags, ...confirmed };
+}
 
 /** Per-source move step (M2 full + partial). Returns moved qty, summary and pending rent to carry. */
 export async function processMergeSource(params: {

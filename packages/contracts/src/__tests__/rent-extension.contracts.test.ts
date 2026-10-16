@@ -11,7 +11,9 @@ import {
 import {
   calculateOutwardSeasonalBreakdown,
   deriveHybridRateVisibility,
+  extensionPeriodKey,
   resolveSeasonalElapsedPeriods,
+  toExcludedPeriodKeys,
 } from '../seasonal-periods.js';
 
 describe('rent-extension contracts', () => {
@@ -29,6 +31,17 @@ describe('rent-extension contracts', () => {
 
   it('freezes the seasonal renewal snapshot to Mar 01 of the season year', () => {
     expect(extensionSnapshotDate(2027, 'SEASON')).toEqual(new Date(2027, 2, 1));
+  });
+
+  it('maps finalized extensions to elapsed-period keys for period dedup', () => {
+    expect(extensionPeriodKey(2024, 'SEASON')).toBe('SEASON_2024');
+    expect(extensionPeriodKey(2024, 'JANUARY')).toBe('JANUARY_2025');
+    expect(extensionPeriodKey(2024, 'FEBRUARY')).toBe('FEBRUARY_2025');
+    expect(toExcludedPeriodKeys([
+      { seasonYear: 2024, period: 'JANUARY' },
+      { seasonYear: 2025, period: 'SEASON' },
+    ])).toEqual(['JANUARY_2025', 'SEASON_2025']);
+    expect(toExcludedPeriodKeys([])).toEqual([]);
   });
 
   it('charges a full month on snapshot bags with no proration', () => {

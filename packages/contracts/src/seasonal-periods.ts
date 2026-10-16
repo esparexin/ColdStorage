@@ -189,6 +189,19 @@ export interface HybridRateVisibility {
   showMonthlyRate: boolean;
 }
 
+/**
+ * Maps a finalized rent extension to the elapsed-period key it already covers,
+ * so outward/merge/transfer recomputes can skip billed periods instead of
+ * double-counting them (period-dedup SSOT).
+ */
+export function extensionPeriodKey(seasonYear: number, period: ExtensionPeriod): string {
+  return period === 'SEASON' ? `SEASON_${seasonYear}` : `${period}_${seasonYear + 1}`;
+}
+
+export function toExcludedPeriodKeys(extensions: Array<{ seasonYear: number; period: ExtensionPeriod }>): string[] {
+  return extensions.map((e) => extensionPeriodKey(e.seasonYear, e.period));
+}
+
 
 /**
  * Determines the visibility of manual pricing fields for Hybrid outward deliveries.

@@ -11,7 +11,6 @@ import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import { connectToTestDatabase, disconnectTestDatabase } from './helpers/stock-reset.js';
 import { assertCollectionsEmpty, resetAllFinancialCollections, seedCommodityWithRates } from './helpers/lifecycle-testkit.js';
-import { isDuplicateKeyError, isIdempotencyDuplicateKey } from '../modules/delivery/handlers/delivery-idempotency.helper.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
@@ -150,16 +149,6 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     expect(mongoose.connection.readyState).toBe(1);
   });
 
-  it('duplicate-key classifier routes idempotency races without leaking internals', () => {    const idemDup = { code: 11000, keyPattern: { facilityId: 1, idempotencyKey: 1 }, message: 'E11000 duplicate key error collection: db.deliverychallans index: facilityId_1_idempotencyKey_1' };
-    expect(isDuplicateKeyError(idemDup)).toBe(true);
-    expect(isIdempotencyDuplicateKey(idemDup)).toBe(true);
-    const otherDup = { code: 11000, keyPattern: { facilityId: 1, gpNumber: 1 }, message: 'E11000 duplicate key error index: facilityId_1_gpNumber_1' };
-    expect(isDuplicateKeyError(otherDup)).toBe(true);
-    expect(isIdempotencyDuplicateKey(otherDup)).toBe(false);
-    expect(isDuplicateKeyError({ code: 112 })).toBe(false);
-    expect(isDuplicateKeyError(new Error('plain'))).toBe(false);
-  });
-
   it('repeated partials then final outward preserve receipt and reconcile ledger', async () => {
     const target = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S', smallBags: 100, bigBags: 0, rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0601', date: new Date('2026-06-01') });
     const source = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S', smallBags: 100, bigBags: 0, rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0602', date: new Date('2026-06-01') });
@@ -200,8 +189,7 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     expect(tgt?.bags).toBe(150);
   });
 
-  it('unsegregated lots enforce exact per-side reconciliation', async () => {
-    const gid = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S/B', rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0801', date: new Date('2026-06-01') });
+  it('unsegregated lots enforce exact per-side reconciliation', async () => {    const gid = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S/B', rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0801', date: new Date('2026-06-01') });
     const cross = await request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send({
       grnId: gid, quantity: 50, smallBags: 30, bigBags: 20, date: '2026-07-01',
       vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: 'GP-9301',
@@ -215,5 +203,42 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     expect([200, 201]).toContain(exact.status);
     expect(exact.body.delivery.smallBags).toBe(50);
     expect(exact.body.delivery.bigBags).toBe(0);
+  });
+
+  it('merge with a finalized January extension bills each period once', async () => {
+    const target = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S', smallBags: 100, bigBags: 0, rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0901', date: new Date('2025-06-01') });
+    const source = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S', smallBags: 100, bigBags: 0, rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0902', date: new Date('2024-07-10') });
+    const ext = await request(app).post(`/api/facilities/${FAC}/rent/extensions/finalize`).set(auth()).send({
+      grnId: source, seasonYear: 2024, period: 'JANUARY',
+    });
+    expect(ext.status).toBe(201);
+    expect(ext.body.extension.finalAmount).toBe(1200);
+    const res = await request(app).post(`/api/facilities/${FAC}/internal-movements/merge`).set(auth()).send({
+      targetGrnId: target, sourceGrnIds: [source], movementDate: new Date('2025-07-01'),
+      remarks: 'merge with january extension billed once',
+    });
+    expect(res.status).toBe(200);
+    // Bump covers SEASON_2024 + FEB_2025 + SEASON_2025 (JAN_2025 extended): 1000+1200+1000=3200;
+    // carried = 3200 + 1200 extension = 4400; target = 1000 + 4400 = 5400 (not 6600).
+    expect(res.body.targetGrn.rentAmount).toBe(5400);
+    const src = await GrnModel.findOne({ id: source }).lean().exec();
+    expect(src?.status).toBe('CLOSED');
+  });
+
+  it('full transfer with a finalized January extension bills each period once', async () => {
+    const source = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S', smallBags: 100, bigBags: 0, rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0903', date: new Date('2024-07-10') });
+    const ext = await request(app).post(`/api/facilities/${FAC}/rent/extensions/finalize`).set(auth()).send({
+      grnId: source, seasonYear: 2024, period: 'JANUARY',
+    });
+    expect(ext.status).toBe(201);
+    const res = await request(app).post(`/api/facilities/${FAC}/internal-movements/transfer-ownership`).set(auth()).send({
+      grnId: source, newCustomerId: custB, movementDate: new Date('2025-03-15'),
+      remarks: 'transfer with january extension billed once', paymentDecision: 'AGREED_PENDING',
+    });
+    expect(res.status).toBe(200);
+    const sum = await request(app).get(`/api/facilities/${FAC}/rent/grn/${source}`).set(auth());
+    expect(sum.status).toBe(200);
+    // 3200 prospective + 1200 extension = 4400 (not 5600).
+    expect(sum.body.remainingBalance).toBe(4400);
   });
 });

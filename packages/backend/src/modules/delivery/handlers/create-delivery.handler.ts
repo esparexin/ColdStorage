@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
   isHybridBagCategory, type BagComposition, type CreateDeliveryInput,
-  type DeliveryChallan, type DeliverySummary,
+  type DeliveryChallan, type DeliverySummary, toExcludedPeriodKeys,
 } from '@cold-storage/contracts';
 import { ConcurrencyConflictError } from '../../inventory/inventory.service.js';
 import { counterService } from '../../common/counter.service.js';
@@ -11,6 +11,7 @@ import { GrnModel } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { assertRentAllowedForOutward } from '../../common/rent-gate.service.js';
+import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { isTransientError, toChallanEntity } from '../delivery.mappers.js';
 import { getDeliverySummary } from '../queries/delivery.queries.js';
 import { computeExpectedDeliveryRent } from './delivery-rent.helper.js';
@@ -24,7 +25,7 @@ import {
   validateDeliveryDate,
   validateStockAndBalances,
 } from './delivery-validation.helper.js';
-import { resolveDeliveryConflict, resolveIdempotentDelivery, resolveIdempotentDeliveryTx } from './delivery-idempotency.helper.js';
+import { resolveDeliveryConflict, checkPreTransactionReplay, resolveIdempotentDeliveryTx } from './delivery-idempotency.helper.js';
 import { resolveDeliveryGpNumber } from './delivery-gp.helper.js';
 
 export async function createDeliveryWithRetry(
@@ -65,19 +66,16 @@ async function executeDeliveryTransaction(
   userId: string,
 ): Promise<{ delivery: DeliveryChallan; summary: DeliverySummary }> {
   const idemKey = (input as Record<string, unknown>).idempotencyKey as string | null | undefined;
-  const hasKey = typeof idemKey === 'string' && idemKey.length > 0;
-  if (hasKey) {
-    const replay = await resolveIdempotentDelivery(facilityId, idemKey as string, input as never);
-    if (replay) return replay;
-  }
+  const earlyReplay = await checkPreTransactionReplay(facilityId, input as never);
+  if (earlyReplay) return earlyReplay;
   const session = await mongoose.startSession();
   let createdChallanDoc: DeliveryChallanDoc;
   let txReplay: { delivery: DeliveryChallan; summary: DeliverySummary } | null = null;
 
   try {
     await session.withTransaction(async () => {
-      if (hasKey) {
-        txReplay = await resolveIdempotentDeliveryTx(facilityId, idemKey as string, input as never, session);
+      if (typeof idemKey === 'string' && idemKey.length > 0) {
+        txReplay = await resolveIdempotentDeliveryTx(facilityId, idemKey, input as never, session);
         if (txReplay) return;
       }
       const grn = await GrnModel.findOneAndUpdate(
@@ -129,12 +127,14 @@ async function executeDeliveryTransaction(
 
       // Actual rent/charge calculation happens at Outward delivery using the single
       // effective-rate source of truth. Client rentCharge is reconciled, never trusted blindly.
+      // Periods already billed via finalized extensions are excluded (no double-count).
+      const billedPeriods = toExcludedPeriodKeys(await rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session));
       const { expectedRentCharge } = await computeExpectedDeliveryRent({
         grn: {
           id: grn.id, grnNumber: grn.grnNumber, date: grn.date, rentType: grn.rentType, commodityId: grn.commodityId,
           smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, bagPrice: grn.bagPrice,
         },
-        withdrawal, deliveryDate, session,
+        withdrawal, deliveryDate, session, excludePeriodKeys: billedPeriods,
         quantity: isHybrid ? reqQty : undefined,
         bagCategory: input.bagCategory,
         bagPrice: input.bagPrice,
