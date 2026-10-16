@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import type { Customer, Grn, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
+import {
+  resolveTotalRentObligation,
+  type Customer, type Grn, type TransferPaymentDecision, type TransferSettlementDetails,
+} from '@cold-storage/contracts';
 import { Badge, Input, Select } from '@/components/ui';
 import { useRentGate } from '@/hooks/useRentGate';
 import { TransferPaymentDecisionSection, validateTransferPayment } from './TransferPaymentDecisionSection';
@@ -30,7 +33,7 @@ export function InternalMovementTransferTab({
   const [newCustomerId, setNewCustomerId] = useState('');
   const [movementDate, setMovementDate] = useState(new Date().toISOString().slice(0, 10));
   const [reason, setReason] = useState(''), [remarks, setRemarks] = useState('');
-  const [decision, setDecision] = useState<'AGREED_PENDING' | 'SETTLE_NOW'>('SETTLE_NOW');
+  const [decision, setDecision] = useState<'AGREED_PENDING' | 'SETTLE_NOW'>('AGREED_PENDING');
   const [settleAmount, setSettleAmount] = useState<number>(0);
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI'>('Cash');
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -53,7 +56,12 @@ export function InternalMovementTransferTab({
   const isUnverified = (currentGrn as Record<string, unknown>).isCompositionVerified === false;
   const totalPaid = rentSummary?.totalPaid ?? 0, pendingAmount = rentSummary?.remainingBalance ?? 0;
   const isUnbilled = totalPaid === 0 && pendingAmount === 0 && (rentSummary?.rentAmount ?? 0) === 0;
-  const effectiveDue = pendingAmount > 0 ? pendingAmount : assessedRent;
+  const effectiveObligation = resolveTotalRentObligation({
+    rentType: currentGrn.rentType, rentAmount: rentSummary?.rentAmount ?? 0,
+    outwardRentCharges: assessedRent, extensionAmounts: rentSummary?.extensions?.map((e) => e.finalAmount),
+  });
+  const outstandingBalance = isUnbilled ? assessedRent : Math.max(0, effectiveObligation - totalPaid);
+  const effectiveDue = outstandingBalance;
 
   useEffect(() => {
     if (effectiveDue > 0 && settleAmount === 0) setSettleAmount(effectiveDue);
@@ -229,13 +237,11 @@ export function InternalMovementTransferTab({
         remainingBags={remainingBags}
         movementDate={movementDate}
         sourceBagCategory={sourceBagCategory}
-        sourceQuantity={sourceQuantity}
-        sourceBagPrice={sourceBagPrice}
-        sourceSeasonalBagPrice={sourceSeasonalBagPrice}
-        sourceMonthlyBagPrice={sourceMonthlyBagPrice}
-        confirmedSmallBags={confirmedSmallBags}
-        confirmedBigBags={confirmedBigBags}
-        onAssessedRentChange={setAssessedRent}
+        sourceQuantity={sourceQuantity} sourceBagPrice={sourceBagPrice}
+        sourceSeasonalBagPrice={sourceSeasonalBagPrice} sourceMonthlyBagPrice={sourceMonthlyBagPrice}
+        confirmedSmallBags={confirmedSmallBags} confirmedBigBags={confirmedBigBags}
+        newCustomerName={selectedNewCustomer?.name} totalPaid={totalPaid}
+        outstandingBalance={outstandingBalance} onAssessedRentChange={setAssessedRent}
       />
     </form>
   );
