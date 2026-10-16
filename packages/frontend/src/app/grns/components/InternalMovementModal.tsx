@@ -8,6 +8,7 @@ import { requestWithAuth } from '@/lib/api-client';
 import { InternalMovementMergeTab } from './InternalMovementMergeTab';
 import { InternalMovementTransferTab } from './InternalMovementTransferTab';
 import { buildMergePayload, buildTransferPayload } from './internalMovementPayload.helper';
+import { useOpenFacilityGrns } from '../hooks/useOpenFacilityGrns';
 import styles from './InternalMovementModal.module.css';
 
 interface InternalMovementModalProps {
@@ -42,6 +43,7 @@ export function InternalMovementModal({
   const [activeTab, setActiveTab] = useState<'merge' | 'transfer'>('merge');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const openFacilityGrns = useOpenFacilityGrns(facilityId, grn, allGrns);
 
   const handleRequestClose = () => { if (!submitting) onClose(); };
 
@@ -226,7 +228,7 @@ export function InternalMovementModal({
 
         {activeTab === 'merge' ? (
           <InternalMovementMergeTab
-            currentGrn={grn} facilityId={facilityId} allGrns={allGrns}
+            currentGrn={grn} facilityId={facilityId} allGrns={openFacilityGrns}
             commodities={commodities} submitting={submitting} onExecuteMerge={handleExecuteMerge}
           />
         ) : (
