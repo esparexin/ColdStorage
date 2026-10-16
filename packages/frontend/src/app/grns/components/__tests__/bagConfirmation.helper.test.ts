@@ -11,14 +11,16 @@ describe('bagConfirmation.helper (outward SSOT reuse)', () => {
     }
   });
 
-  it('requires a reconciling split for Small & Big when required', () => {
-    const base = {
-      category: 'Small & Big' as const, quantity: '' as const, bagPrice: '' as const,
-      seasonalBagPrice: '' as const, monthlyBagPrice: '' as const, totalMovedBags: 50, isRepackRequired: true,
-    };
-    expect(validateBagConfirmation({ ...base, repackSmall: '', repackBig: '' })).toContain('must be confirmed');
-    expect(validateBagConfirmation({ ...base, repackSmall: 30, repackBig: 10 })).toContain('must match total available');
-    expect(validateBagConfirmation({ ...base, repackSmall: 30, repackBig: 20 })).toBeNull();
+  it('requires a reconciling split for S/B and Small & Big when required', () => {
+    for (const cat of ['S/B', 'Small & Big'] as const) {
+      const base = {
+        category: cat, quantity: '' as const, bagPrice: '' as const,
+        seasonalBagPrice: '' as const, monthlyBagPrice: '' as const, totalMovedBags: 50, isRepackRequired: true,
+      };
+      expect(validateBagConfirmation({ ...base, repackSmall: '', repackBig: '' })).toContain('must be confirmed');
+      expect(validateBagConfirmation({ ...base, repackSmall: 30, repackBig: 10 })).toContain('must match total available');
+      expect(validateBagConfirmation({ ...base, repackSmall: 30, repackBig: 20 })).toBeNull();
+    }
   });
 
   it('requires Hybrid quantity to match the moved total plus a valid rate', () => {

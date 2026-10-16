@@ -124,7 +124,8 @@ export function InternalMovementMergeTab({
     }
     const confSmall = isRepackFilled ? Number(repackSmall) : undefined, confBig = isRepackFilled ? Number(repackBig) : undefined;
     const refWeight = typeof referenceWeight === 'number' && Number.isFinite(referenceWeight) && referenceWeight > 0 ? referenceWeight : undefined;
-    const sendCat = (confirmation.category !== 'Small & Big' || isRepackRequired || isRepackFilled) ? confirmation.category : undefined;
+    const isSbCat = confirmation.category === 'S/B' || confirmation.category === 'Small & Big';
+    const sendCat = (!isSbCat || isRepackRequired || isRepackFilled) ? confirmation.category : undefined;
     await onExecuteMerge(targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0, confSmall, confBig, refWeight, srcPayment, sourcePaymentMode, sendCat, typeof confirmation.quantity === 'number' ? confirmation.quantity : undefined, typeof confirmation.bagPrice === 'number' ? confirmation.bagPrice : undefined, typeof confirmation.seasonalBagPrice === 'number' ? confirmation.seasonalBagPrice : undefined, typeof confirmation.monthlyBagPrice === 'number' ? confirmation.monthlyBagPrice : undefined);
   };
 

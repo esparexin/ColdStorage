@@ -19,7 +19,7 @@ export interface BagConfirmationValue {
 }
 
 export const DEFAULT_BAG_CONFIRMATION: BagConfirmationValue = {
-  category: 'Small & Big',
+  category: 'S/B',
   quantity: '',
   bagPrice: '',
   seasonalBagPrice: '',
@@ -81,11 +81,11 @@ export function MergeBagCategoryFields({
         value={value.category} onChange={(e) => onChange({ category: e.target.value as OutwardBagCategory })}
         disabled={submitting}
       >
-        <option value="Small & Big">Small & Big — confirm split below (0 allowed per side)</option>
-        <option value="Hybrid">Hybrid / Mixed — quantity + per-bag rate</option>
+        <option value="S/B">S/B — confirm split below (0 allowed per side)</option>
+        <option value="Hybrid">Hybrid — quantity + per-bag rate</option>
       </Select>
 
-      {value.category === 'Small & Big' && (
+      {(value.category === 'S/B' || value.category === 'Small & Big') && (
         <>
           <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-xs)', cursor: 'pointer', marginTop: '4px' }}>
             <input type="checkbox" checked={repackMode || hasUnconfirmedMix} onChange={(e) => { onRepackModeChange(e.target.checked); if (!e.target.checked && !hasUnconfirmedMix) { onRepackSmallChange(''); onRepackBigChange(''); onReferenceWeightChange(''); } }} disabled={submitting || hasUnconfirmedMix} />

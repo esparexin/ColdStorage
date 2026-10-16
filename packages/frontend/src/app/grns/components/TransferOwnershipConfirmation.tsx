@@ -36,7 +36,6 @@ export function TransferOwnershipConfirmation(p: Props) {
         <option value="">-- Auto (ledger) --</option>
         <option value="S/B">S/B (ledger split)</option>
         <option value="Hybrid">Hybrid (manual rate)</option>
-        <option value="Mixed">Mixed (manual rate)</option>
       </Select>
       {p.sourceBagCategory === 'Hybrid' || p.sourceBagCategory === 'Mixed' ? (
         <div className={styles.formSection}>
