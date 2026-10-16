@@ -37,7 +37,7 @@ export function createRentColumns({
     },
     {
       key: 'grnNumber',
-      header: 'GRN # / Date',
+      header: 'GRN # / Inward',
       sortable: true,
       sortType: 'text',
       sortAccessor: (row) => row.grnNumber,
@@ -140,36 +140,44 @@ export function createRentColumns({
       sortable: true,
       sortType: 'number',
       sortAccessor: (row) => row.remainingBalance,
-      render: (row) => (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end',
-            gap: 'var(--space-0-5)',
-          }}
-        >
-          <span
+      render: (row) => {
+        const lastP = row.payments?.length ? row.payments[row.payments.length - 1] : null;
+        return (
+          <div
             style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-semibold)',
-              color: 'var(--color-success-text)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              gap: 'var(--space-0-5)',
             }}
           >
-            Paid: ₹{row.totalPaid.toLocaleString('en-IN')}
-          </span>
-          <span
-            style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-semibold)',
-              color:
-                row.remainingBalance > 0 ? 'var(--color-warning-text)' : 'var(--color-text-muted)',
-            }}
-          >
-            Due: ₹{row.remainingBalance.toLocaleString('en-IN')}
-          </span>
-        </div>
-      ),
+            <span
+              style={{
+                fontSize: 'var(--text-xs)',
+                fontWeight: 'var(--font-semibold)',
+                color: 'var(--color-success-text)',
+              }}
+            >
+              Paid: ₹{row.totalPaid.toLocaleString('en-IN')}
+            </span>
+            <span
+              style={{
+                fontSize: 'var(--text-xs)',
+                fontWeight: 'var(--font-semibold)',
+                color:
+                  row.remainingBalance > 0 ? 'var(--color-warning-text)' : 'var(--color-text-muted)',
+              }}
+            >
+              Due: ₹{row.remainingBalance.toLocaleString('en-IN')}
+            </span>
+            {lastP && (
+              <span className={styles.tableSubtext}>
+                Paid: {formatDisplayDate(lastP.paymentDate)}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'status',
