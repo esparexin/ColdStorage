@@ -8,7 +8,6 @@ import {
   type RentType,
 } from '@cold-storage/contracts';
 import { Input, Select } from '@/components/ui';
-import styles from './InternalMovementModal.module.css';
 
 export interface BagConfirmationValue {
   category: OutwardBagCategory;
@@ -78,7 +77,14 @@ export function MergeBagCategoryFields({
     <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
       <Select
         id="merge-bag-category" label="Confirmed Bag Category"
-        value={value.category} onChange={(e) => onChange({ category: e.target.value as OutwardBagCategory })}
+        value={value.category}
+        onChange={(e) => {
+          const cat = e.target.value as OutwardBagCategory;
+          onChange({
+            category: cat,
+            ...(isHybridBagCategory(cat) ? { quantity: totalMovedBags } : {}),
+          });
+        }}
         disabled={submitting}
       >
         <option value="S/B">S/B — confirm split below (0 allowed per side)</option>
@@ -134,7 +140,16 @@ export function MergeBagCategoryFields({
 
       {isHybrid && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
-          <Input id="merge-hybrid-quantity" type="number" min={0} max={totalMovedBags} placeholder="Hybrid Bags" aria-label="Confirmed Hybrid quantity" value={value.quantity} onChange={setNum('quantity', true)} disabled={submitting} />
+          <Input
+            id="merge-hybrid-quantity"
+            type="number"
+            readOnly
+            placeholder="Total Bags"
+            aria-label="Total Bags (read-only)"
+            title="Total bags automatically calculated from selected source GRNs"
+            value={totalMovedBags > 0 ? totalMovedBags : ''}
+            disabled={submitting}
+          />
           <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
             {visibility.showSeasonalRate && (
               <Input id="merge-seasonal-rate" type="number" min={0} placeholder="Seasonal Rate (₹/bag)" aria-label="Seasonal per-bag rate" value={value.seasonalBagPrice} onChange={setNum('seasonalBagPrice', false)} disabled={submitting} />
@@ -146,7 +161,6 @@ export function MergeBagCategoryFields({
               <Input id="merge-bag-price" type="number" min={0} placeholder="Each Bag Price (₹)" aria-label="Manual per-bag price" value={value.bagPrice} onChange={setNum('bagPrice', false)} disabled={submitting} />
             )}
           </div>
-          <div className={styles.noticeBox}>Rates are informational — rent follows source GRN rules and is recomputed at execution.</div>
         </div>
       )}
     </div>

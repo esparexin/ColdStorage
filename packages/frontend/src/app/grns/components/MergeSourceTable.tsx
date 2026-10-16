@@ -1,8 +1,8 @@
 'use client';
 
 import {
-  isBagCompositionVerified,
   isHybridBagCategory,
+  resolveStoredCompositionVerified,
   seasonYearForInwardDate,
   type Grn,
 } from '@cold-storage/contracts';
@@ -113,27 +113,27 @@ export function MergeSourceTable({
             const s = sg.smallBags ?? 0;
             const b = sg.bigBags ?? 0;
             const tot = sg.closingBags ?? sg.bags;
-            const hasDiff =
-              (sg.smallBagPrice != null || sg.bigBagPrice != null) &&
-              sg.smallBagPrice !== sg.bigBagPrice;
-            const isInitialVerified = isBagCompositionVerified({
+            const isVerified = resolveStoredCompositionVerified({
+              isCompositionVerified: sg.isCompositionVerified,
               bagType: sg.bagType,
               bags: sg.bags,
               smallBags: sg.smallBags,
               bigBags: sg.bigBags,
             });
+            const hasDiff =
+              (sg.smallBagPrice != null || sg.bigBagPrice != null) &&
+              sg.smallBagPrice !== sg.bigBagPrice;
             const isHybrid = (sg.bagPrice != null && !hasDiff) || isHybridBagCategory(sg.bagType);
-            const unconf = hasDiff && !isInitialVerified;
             return (
               <div>
                 <span style={{ fontWeight: 'var(--font-semibold)' }}>{tot}</span>
                 <div
                   style={{
                     fontSize: 'var(--text-xs)',
-                    color: unconf ? 'var(--color-warning-text)' : 'var(--color-text-muted)',
+                    color: !isVerified ? 'var(--color-warning-text)' : 'var(--color-text-muted)',
                   }}
                 >
-                  {unconf ? 'Pending Verification' : isHybrid ? 'Uniform Rate' : `${s}S · ${b}B`}
+                  {!isVerified ? 'Composition not confirmed' : isHybrid ? 'Uniform Rate' : `${s}S · ${b}B`}
                 </div>
               </div>
             );

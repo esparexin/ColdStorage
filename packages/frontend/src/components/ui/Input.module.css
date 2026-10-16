@@ -58,6 +58,17 @@
   cursor: not-allowed;
 }
 
+.input:read-only {
+  background-color: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+
+.input:read-only:focus {
+  border-color: var(--color-border);
+  outline: none;
+}
+
 .hasError .input {
   border-color: var(--color-danger-text);
 }

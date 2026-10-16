@@ -12,6 +12,7 @@ import { validateProspectiveMergeMove, processMergeSource } from './merge-source
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 import { createMergePutawayTransaction, createMergeMovementRecord } from './merge-grn-movement.helper.js';
 import { resolveMergeRepackHamali } from './merge-repack-hamali.helper.js';
+import { validateOperationalDate } from '../../common/operational-date.helper.js';
 
 export async function mergeGrn(
   facilityId: string,
@@ -55,7 +56,7 @@ export async function mergeGrn(
       let totalMovedBig = 0;
       let totalSourcePendingRent = 0;
       const sourceSummaries: string[] = [];
-      const moveDate = new Date(input.movementDate);
+      const moveDate = validateOperationalDate(input.movementDate, { label: 'Movement' });
       const confirmed = await validateProspectiveMergeMove({
         facilityId, targetGrn, sourceGrns, input, moveDate, session,
       });
