@@ -102,13 +102,29 @@ export function resolveSafeLedgerDrawdown(
   }
   const availSmall = Math.max(0, available.smallBags);
   const availBig = Math.max(0, available.bigBags);
-  if (finalSmall > availSmall || finalBig > availBig) {
+  const isSegregated = availSmall > 0 && availBig > 0;
+
+  if (isSegregated) {
+    if (finalSmall > availSmall || finalBig > availBig) {
+      throw new Error(
+        `Requested ${finalSmall} small and ${finalBig} big bags exceeds the available pools of ` +
+          `${availSmall} small and ${availBig} big bags; small and big counts must reconcile exactly`,
+      );
+    }
+    return { smallQuantity: finalSmall, bigQuantity: finalBig };
+  }
+
+  const requestedTotal = finalSmall + finalBig;
+  const availableTotal = availSmall + availBig;
+  if (requestedTotal > availableTotal) {
     throw new Error(
-      `Requested ${finalSmall} small and ${finalBig} big bags exceeds the available pools of ` +
-        `${availSmall} small and ${availBig} big bags; small and big counts must reconcile exactly`,
+      `Requested ${requestedTotal} bags exceeds available stock of ${availableTotal} bags`,
     );
   }
-  return { smallQuantity: finalSmall, bigQuantity: finalBig };
+
+  const drawSmall = Math.min(availSmall, requestedTotal);
+  const drawBig = requestedTotal - drawSmall;
+  return { smallQuantity: drawSmall, bigQuantity: drawBig };
 }
 
 export function validateDeliveryDate(

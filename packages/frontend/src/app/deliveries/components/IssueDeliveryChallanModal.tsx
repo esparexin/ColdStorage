@@ -120,8 +120,8 @@ export function IssueDeliveryChallanModal({
                 bagType={form.selectedGrn.bagType}
                 rentType={form.selectedGrn.rentType}
                 rentMonths={form.billableRentMonths}
-                smallBagPrice={form.selectedGrn.smallBagPrice}
-                bigBagPrice={form.selectedGrn.bigBagPrice}
+                smallBagPrice={form.selectedGrn.smallBagPrice ?? form.seasonalCommodityRates?.small}
+                bigBagPrice={form.selectedGrn.bigBagPrice ?? form.seasonalCommodityRates?.big}
                 bagPrice={form.selectedGrn.bagPrice}
                 inwardDate={form.selectedGrn.date}
                 deliveryDate={form.createDate}

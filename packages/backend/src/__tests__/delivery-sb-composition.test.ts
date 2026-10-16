@@ -38,7 +38,7 @@ describe('Exact S/B Bag Composition & Non-Negative Inventory (Phase 2)', () => {
     });
   });
 
-  it('rejects cross-pool withdrawal from an unsegregated lot with an exact-reconciliation error', async () => {
+  it('allows S/B outward delivery with Big bags from an unsegregated lot without negative ledger balances', async () => {
     // Inward receipt declared as unsegregated S/B (100 bags total, no split)
     const { grn } = await grnService.createGrn(
       facilityId,
@@ -62,37 +62,38 @@ describe('Exact S/B Bag Composition & Non-Negative Inventory (Phase 2)', () => {
     const initBalance = await readLedgerBalance(facilityId, grn.id);
     expect(initBalance.total).toBe(100);
 
-    // Cross-pool withdrawal (40 Big from an all-small-recorded pool) is rejected
-    await expect(
-      deliveryService.createDelivery(
-        facilityId,
-        { grnId: grn.id, smallBags: 0, bigBags: 40, bagCategory: 'Big' },
-        USER_ID,
-      ),
-    ).rejects.toThrow(/reconcile exactly/);
-
-    // Rejection leaves the ledger untouched
-    const untouched = await readLedgerBalance(facilityId, grn.id);
-    expect(untouched.smallBags).toBe(100);
-    expect(untouched.bigBags).toBe(0);
-    expect(untouched.total).toBe(100);
-
-    // Pool-matching withdrawal succeeds and charges ₹10/bag = ₹400
-    const del = await deliveryService.createDelivery(
+    // Outward delivery with 40 Big bags from unsegregated lot succeeds and charges 40 * ₹15 = ₹600
+    const del1 = await deliveryService.createDelivery(
       facilityId,
-      { grnId: grn.id, smallBags: 40, bigBags: 0, bagCategory: 'Small' },
+      { grnId: grn.id, smallBags: 0, bigBags: 40, bagCategory: 'S/B' },
       USER_ID,
     );
-    expect(del.delivery.smallBags).toBe(40);
-    expect(del.delivery.bigBags).toBe(0);
-    expect(del.delivery.rentCharge).toBe(400);
+    expect(del1.delivery.smallBags).toBe(0);
+    expect(del1.delivery.bigBags).toBe(40);
+    expect(del1.delivery.rentCharge).toBe(600);
+
+    // Safe ledger drawdown: 60 remaining total, zero negative stock
+    const afterDel1 = await readLedgerBalance(facilityId, grn.id);
+    expect(afterDel1.total).toBe(60);
+    expect(afterDel1.smallBags).toBe(60);
+    expect(afterDel1.bigBags).toBe(0);
+
+    // Subsequent withdrawal of 20 Small bags succeeds and charges 20 * ₹10 = ₹200
+    const del2 = await deliveryService.createDelivery(
+      facilityId,
+      { grnId: grn.id, smallBags: 20, bigBags: 0, bagCategory: 'S/B' },
+      USER_ID,
+    );
+    expect(del2.delivery.smallBags).toBe(20);
+    expect(del2.delivery.bigBags).toBe(0);
+    expect(del2.delivery.rentCharge).toBe(200);
 
     // Ledger balance has zero negative stock on either side
     const balance = await readLedgerBalance(facilityId, grn.id);
-    expect(balance.smallBags).toBe(60);
+    expect(balance.smallBags).toBe(40);
     expect(balance.bigBags).toBe(0);
-    expect(balance.total).toBe(60);
-    expect(del.summary.remainingDeliveryBalance).toBe(60);
+    expect(balance.total).toBe(40);
+    expect(del2.summary.remainingDeliveryBalance).toBe(40);
   });
 
   it('allows full sequential dispatch of pool-matching withdrawals to zero remaining balance', async () => {

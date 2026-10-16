@@ -56,7 +56,7 @@ export function DeliveryBagCompositionFields({
   const availableTotal = summary.availableSmallBags + summary.availableBigBags;
   const isSegregated = summary.availableSmallBags > 0 && summary.availableBigBags > 0;
   const isHybrid = isHybridBagCategory(bagCategory);
-  const isCombinedPool = isHybrid && !isSegregated;
+  const isCombinedPool = !isSegregated;
 
   const smallQty = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigQty = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
