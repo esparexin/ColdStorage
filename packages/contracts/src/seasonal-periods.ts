@@ -151,6 +151,7 @@ export function calculateOutwardSeasonalBreakdown(params: {
   bigBags: number;
   seasonalRates: { small: number; big: number };
   monthlyRates: { small: number; big: number };
+  excludePeriodKeys?: string[];
 }): {
   periods: OutwardPeriodRentBreakdown[];
   totalRent: number;
@@ -160,6 +161,8 @@ export function calculateOutwardSeasonalBreakdown(params: {
   let totalRent = 0;
 
   for (const p of elapsed) {
+    if (params.excludePeriodKeys?.includes(p.key)) continue;
+
     const isSeason = p.period === 'SEASON';
     const sRate = isSeason ? params.seasonalRates.small : params.monthlyRates.small;
     const bRate = isSeason ? params.seasonalRates.big : params.monthlyRates.big;

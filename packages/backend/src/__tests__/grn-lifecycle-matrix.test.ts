@@ -196,9 +196,10 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
       remarks: 'merge with january extension billed once',
     });
     expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
-    // Bump covers SEASON_2024 + FEB_2025 + SEASON_2025 (JAN_2025 extended): 1000+1200+1000=3200;
-    // carried = 3200 + 1200 extension = 4400; target = 1000 + 4400 = 5400 (not 6600).
-    expect(res.body.targetGrn.rentAmount).toBe(5400);
+    // Carried covers SEASON_2024 + FEB_2025 (JAN_2025 finalized): 1000 + 1200 + 1200 = 3400.
+    // SEASON_2025 is excluded from carried debt because surviving target GRN bills Season 2025.
+    // target = 1000 + 3400 = 4400 (not 5400 duplicate).
+    expect(res.body.targetGrn.rentAmount).toBe(4400);
     const src = await GrnModel.findOne({ id: source }).lean().exec();
     expect(src?.status).toBe('CLOSED');
   });

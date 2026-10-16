@@ -16,11 +16,12 @@ export function deriveMergeRentAssessment(params: {
   summary?: RentSummaryDto | null;
   repackMode: boolean;
   commodityHamaliRate: number;
+  calculatedRent?: number;
 }): DerivedMergeRentAssessment {
-  const { source, summary, repackMode, commodityHamaliRate } = params;
+  const { source, summary, repackMode, commodityHamaliRate, calculatedRent } = params;
   const sourceBags = source.closingBags ?? source.bags;
 
-  const historicalObligation = summary
+  const baseObligation = summary
     ? (summary.totalDue > 0 ? summary.totalDue : summary.totalPaid > 0 ? summary.totalPaid : (summary.rentAmount ?? source.rentAmount ?? 0))
     : (source.rentAmount ?? 0);
 
@@ -28,13 +29,26 @@ export function deriveMergeRentAssessment(params: {
     ? summary.totalPaid
     : (source.rentPaymentStatus === 'Settled' && source.rentRemainingBalance === 0 ? (source.rentAmount ?? 0) : 0);
 
-  const outstandingBalance = summary
+  const sourceHamali = commodityHamaliRate > 0 ? sourceBags * commodityHamaliRate : 0;
+  const unbilledCalculatedObligation =
+    typeof calculatedRent === 'number' && calculatedRent > 0
+      ? calculatedRent + (sourceHamali > 0 ? sourceHamali : 0)
+      : 0;
+
+  const historicalObligation =
+    baseObligation > 0
+      ? baseObligation
+      : unbilledCalculatedObligation > 0
+        ? unbilledCalculatedObligation
+        : 0;
+
+  const outstandingBalance = summary && summary.totalDue > 0
     ? summary.remainingBalance
-    : (source.rentRemainingBalance !== undefined
-        ? source.rentRemainingBalance
-        : source.rentPaymentStatus === 'Settled'
-          ? 0
-          : (source.rentAmount ?? 0));
+    : source.rentRemainingBalance !== undefined && source.rentRemainingBalance > 0
+      ? source.rentRemainingBalance
+      : source.rentPaymentStatus === 'Settled'
+        ? 0
+        : Math.max(0, historicalObligation - amountPaid);
 
   const isSettled = outstandingBalance === 0;
   const carriedRent = outstandingBalance;

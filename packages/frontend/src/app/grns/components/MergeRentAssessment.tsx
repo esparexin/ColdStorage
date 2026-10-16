@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { isHybridBagCategory, type Grn, type OutwardBagCategory, type RentSummaryDto } from '@cold-storage/contracts';
+import {
+  isHybridBagCategory,
+  resolveSeasonalElapsedPeriods,
+  seasonYearForInwardDate,
+  type Grn,
+  type OutwardBagCategory,
+  type RentSummaryDto,
+} from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
 import { OutwardRentBreakdown } from '@/app/deliveries/components/OutwardRentBreakdown';
@@ -20,6 +27,7 @@ export interface MergeRentAssessmentProps {
   movementDate: string;
   repackMode: boolean;
   commodityHamaliRate?: number;
+  targetGrnDate?: Date | string | null;
 }
 
 export function MergeRentAssessment({
@@ -30,6 +38,7 @@ export function MergeRentAssessment({
   movementDate,
   repackMode,
   commodityHamaliRate = 0,
+  targetGrnDate,
 }: MergeRentAssessmentProps) {
   const [summaries, setSummaries] = useState<Record<string, RentSummaryDto>>({});
 
@@ -63,12 +72,18 @@ export function MergeRentAssessment({
       {selectedSources.map((source) => {
         const summary = summaries[source.id];
         const sourceBags = source.closingBags ?? source.bags;
-        const {
-          historicalObligation, amountPaid, outstandingBalance,
-          isSettled, carriedRent, repackHamali, totalCarried, inwardDateStr,
-        } = deriveMergeRentAssessment({
-          source, summary, repackMode, commodityHamaliRate,
-        });
+
+        const targetSeason = targetGrnDate ? seasonYearForInwardDate(targetGrnDate) : null;
+        const sourceSeason = source.date ? seasonYearForInwardDate(source.date) : null;
+        const excludePeriodKeys: string[] = [];
+        if (targetSeason !== null && sourceSeason !== null && targetSeason > sourceSeason && source.date) {
+          const elapsed = resolveSeasonalElapsedPeriods(source.date, movementDate);
+          for (const p of elapsed) {
+            if (p.period === 'SEASON' && p.seasonYear >= targetSeason) {
+              excludePeriodKeys.push(p.key);
+            }
+          }
+        }
 
         const isHybrid = isHybridBagCategory(confirmation?.category);
         const smallBags = isHybrid ? sourceBags : (source.smallBags ?? sourceBags);
@@ -108,6 +123,14 @@ export function MergeRentAssessment({
           smallBagPrice: source.smallBagPrice,
           bigBagPrice: source.bigBagPrice,
           bagPrice: source.bagPrice,
+          excludePeriodKeys,
+        });
+
+        const {
+          historicalObligation, amountPaid, outstandingBalance,
+          isSettled, carriedRent, repackHamali, totalCarried, inwardDateStr,
+        } = deriveMergeRentAssessment({
+          source, summary, repackMode, commodityHamaliRate, calculatedRent,
         });
 
         const totalRent = calculatedRent > 0 ? calculatedRent : (historicalObligation > 0 ? historicalObligation : 0);
@@ -209,6 +232,7 @@ export function MergeRentAssessment({
               monthlyRates={monthlyRates}
               totalRent={totalRent}
               hamaliRate={effectiveHamaliRate}
+              excludePeriodKeys={excludePeriodKeys}
             />
           </div>
         );

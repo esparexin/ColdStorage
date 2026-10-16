@@ -175,4 +175,27 @@ describe('mergeRentAssessment.helper', () => {
     expect(result.carriedRent).toBe(0);
     expect(result.totalCarried).toBe(0);
   });
+
+  it('6. Unbilled cross-season source GRN (e.g. 0032) derives historical obligation from calculatedRent + hamali', () => {
+    // Source GRN 0032 (1 bag, inward 2024, merge 2026): rentAmount 0, summary totalDue 0
+    // calculatedRent = 640 (2024, Jan-Feb 2025, 2025, Jan-Feb 2026; 2026 excluded), Hamali rate = 20
+    const source = makeSourceGrn({ rentAmount: 0, rentPaymentStatus: 'Not Settled', bags: 1, closingBags: 1 });
+    const summary = makeSummary({ rentAmount: 0, totalDue: 0, totalPaid: 0, remainingBalance: 0, totalBags: 1, remainingBags: 1 });
+
+    const result = deriveMergeRentAssessment({
+      source,
+      summary,
+      repackMode: false,
+      commodityHamaliRate: 20,
+      calculatedRent: 640,
+    });
+
+    // 640 historical rent + 20 inward hamali = 660
+    expect(result.historicalObligation).toBe(660);
+    expect(result.amountPaid).toBe(0);
+    expect(result.outstandingBalance).toBe(660);
+    expect(result.isSettled).toBe(false);
+    expect(result.carriedRent).toBe(660);
+    expect(result.totalCarried).toBe(660);
+  });
 });

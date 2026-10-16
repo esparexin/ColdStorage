@@ -10,6 +10,7 @@ import { counterService } from '../../common/counter.service.js';
 import {
   canCalculateAuthoritativeRent,
   isHybridBagCategory,
+  resolveSeasonalElapsedPeriods,
   resolveStoredCompositionVerified,
   seasonYearForInwardDate,
   toExcludedPeriodKeys,
@@ -64,6 +65,16 @@ export async function resolveSourceRentObligation(
     rentExtensionRepository.findExtensionsByGrn(facilityId, sourceGrn.id, session),
   ]);
   const excludedKeys = toExcludedPeriodKeys(extensions);
+  if (targetSeason > sourceSeason) {
+    const elapsed = resolveSeasonalElapsedPeriods(sourceGrn.date, movementDate);
+    for (const p of elapsed) {
+      if (p.period === 'SEASON' && p.seasonYear >= targetSeason) {
+        if (!excludedKeys.includes(p.key)) {
+          excludedKeys.push(p.key);
+        }
+      }
+    }
+  }
   if (sourceGrn.rentType === 'Monthly' && effectiveRentAmount === 0 && !isHybrid) {
     const occupancySummary = await calculateGrnMonthlyOccupancyRent(facilityId, sourceGrn.id, {
       asOfDate: movementDate,

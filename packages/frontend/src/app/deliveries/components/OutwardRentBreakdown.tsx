@@ -34,6 +34,7 @@ export interface OutwardRentBreakdownProps {
   remainingStock?: number;
   totalStock?: number;
   hamaliRate?: number | null;
+  excludePeriodKeys?: string[];
 }
 
 export function OutwardRentBreakdown({
@@ -51,6 +52,7 @@ export function OutwardRentBreakdown({
   rentMonths,
   totalRent,
   hamaliRate,
+  excludePeriodKeys,
 }: OutwardRentBreakdownProps) {
   const isSeasonal = rentType === 'Seasonal';
   const isSeasonal3M = rentType === 'Seasonal_3M';
@@ -84,6 +86,7 @@ export function OutwardRentBreakdown({
             bigBags: isHybrid ? 0 : bigBags,
             seasonalRates: effectiveSeasonalRates,
             monthlyRates: effectiveMonthlyRates,
+            excludePeriodKeys,
           })
         : null,
     [
@@ -96,6 +99,7 @@ export function OutwardRentBreakdown({
       bigBags,
       effectiveSeasonalRates,
       effectiveMonthlyRates,
+      excludePeriodKeys,
     ],
   );
 

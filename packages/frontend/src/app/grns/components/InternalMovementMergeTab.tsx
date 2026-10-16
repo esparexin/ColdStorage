@@ -232,6 +232,7 @@ export function InternalMovementMergeTab({
         movementDate={movementDate}
         repackMode={repackMode}
         commodityHamaliRate={commodityHamaliRate}
+        targetGrnDate={targetGrn.date}
       />
     </form>
   );
