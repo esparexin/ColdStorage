@@ -134,7 +134,8 @@ describe('P9 Document Routes Authorized Printing & CSP Headers', () => {
       .set('Authorization', `Bearer ${operatorToken}`);
     expectPrintedDocument(chlRes);
     expect(chlRes.text).toContain('OUTWARD DELIVERY CHALLAN (GATE PASS)');
-    expect(chlRes.text).toContain('CHL-2026-0001');
+    expect(chlRes.text).not.toContain('CHL-2026-0001');
+    expect(chlRes.text).toContain('Gate Pass #:');
 
     // 12d. Rent Receipt Preview document. Only customerName, amount and paymentMode are accepted
     // query params; there is no customer mobile or chamber number to pass any more.
