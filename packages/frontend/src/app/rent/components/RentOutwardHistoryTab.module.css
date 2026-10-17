@@ -38,7 +38,7 @@
 }
 
 .outwardCard:hover {
-  border-color: var(--color-border-hover);
+  border-color: var(--color-border-strong);
 }
 
 .cardLeft {
