@@ -40,6 +40,7 @@ export function RentFilterToolbar({
           options: [
             { value: '', label: 'All Rent Types' },
             { value: 'Seasonal', label: 'Seasonal' },
+            { value: 'Seasonal_3M', label: 'Seasonal (3 Months)' },
             { value: 'Monthly', label: 'Monthly' },
           ],
         },
