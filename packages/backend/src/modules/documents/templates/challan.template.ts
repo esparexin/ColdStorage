@@ -56,8 +56,14 @@ export function renderChallanTemplate(dto: ChallanDocumentDto): string {
       <tr>
         <th>Commodity</th>
         <td><strong>${escapeHtml(dto.commodityName)}</strong></td>
+        <th>Gate Pass #</th>
+        <td><strong>${escapeHtml(dto.gpNumber || '—')}</strong></td>
+      </tr>
+      <tr>
         <th>Chamber</th>
         <td>${escapeHtml(dto.chamber)}</td>
+        <th>Status</th>
+        <td><strong>${escapeHtml(dto.status)}</strong></td>
       </tr>
       <tr>
         <th>Vehicle No.</th>
@@ -68,14 +74,14 @@ export function renderChallanTemplate(dto: ChallanDocumentDto): string {
       <tr>
         <th>Party Mark</th>
         <td><strong>${escapeHtml(dto.partyMark ?? '—')}</strong></td>
-        <th>Status</th>
-        <td><strong>${escapeHtml(dto.status)}</strong></td>
-      </tr>
-      <tr>
         <th>Outward Weight</th>
-        <td colspan="${dto.rentCharge != null && dto.rentCharge > 0 ? 1 : 3}"><strong>${dto.weight != null ? `${escapeHtml(dto.weight.toLocaleString('en-IN'))} kg` : '—'}</strong></td>
-        ${dto.rentCharge != null && dto.rentCharge > 0 ? `<th>Outward Rent Charge</th><td><strong style="color: #0056b3;">₹${escapeHtml(dto.rentCharge.toLocaleString('en-IN'))}</strong></td>` : ''}
+        <td><strong>${dto.weight != null ? `${escapeHtml(dto.weight.toLocaleString('en-IN'))} kg` : '—'}</strong></td>
       </tr>
+      ${dto.rentCharge != null && dto.rentCharge > 0 ? `
+      <tr>
+        <th>Outward Rent Charge</th>
+        <td colspan="3"><strong style="color: #0056b3;">₹${escapeHtml(dto.rentCharge.toLocaleString('en-IN'))}</strong></td>
+      </tr>` : ''}
     </table>
 
     <div style="margin-top: 5px; margin-bottom: 3px; font-weight: 700; font-size: 8.5px;">
@@ -93,12 +99,12 @@ export function renderChallanTemplate(dto: ChallanDocumentDto): string {
   `;
 
   return renderBaseLayout({
-    title: dto.gpNumber ? `Gate Pass - ${dto.gpNumber}` : 'Gate Pass',
+    title: dto.challanNumber ? `Delivery Challan - ${dto.challanNumber}` : 'Delivery Challan',
     organization: dto.organization,
     facility: dto.facility,
     documentTitle: 'OUTWARD DELIVERY CHALLAN (GATE PASS)',
-    documentNumber: dto.gpNumber || '—',
-    documentNumberLabel: 'Gate Pass #',
+    documentNumber: dto.challanNumber,
+    documentNumberLabel: 'Challan #',
     documentDate:
       dto.date instanceof Date ? dto.date.toISOString().split('T')[0] : String(dto.date),
     generatedAt:
