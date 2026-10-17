@@ -4,6 +4,7 @@ import type { Grn } from '@cold-storage/contracts';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { Badge, Button } from '@/components/ui';
 import { formatDisplayDate } from '@/lib/date-format';
+import { getLoanStatusDisplay } from '@/lib/loanStatusFormat';
 
 interface CreateBondsColumnsParams {
   onOpenDetail: (grn: Grn) => void;
@@ -55,16 +56,8 @@ export function createBondsColumns({
       sortType: 'text',
       sortAccessor: (row) => row.loanStatus ?? '',
       render: (row) => {
-        if (row.loanStatus === 'TAKEN') {
-          return <Badge variant="danger">Loan Active (Hold)</Badge>;
-        }
-        if (row.loanStatus === 'CLEARED') {
-          return <Badge variant="success">Loan Cleared</Badge>;
-        }
-        if (row.loanStatus === 'NOT_TAKEN') {
-          return <Badge variant="neutral">Pledged</Badge>;
-        }
-        return <Badge variant="neutral">—</Badge>;
+        const { badgeLabel, variant } = getLoanStatusDisplay(row.loanStatus);
+        return <Badge variant={variant}>{badgeLabel}</Badge>;
       },
     },
     {
