@@ -89,6 +89,9 @@ export const rentSummaryDtoSchema = z.object({
    */
   totalDue: rentalAmountSchema.default(0),
   remarks: z.string().nullable().optional(),
+  rentGeneratedDate: z.coerce.date().nullable().optional(),
+  mergedIntoGrnId: z.string().nullable().optional(),
+  mergedIntoGrnNumber: z.string().nullable().optional(),
 });
 
 export type RentSummaryDto = z.infer<typeof rentSummaryDtoSchema>;

@@ -66,33 +66,24 @@ export class RentService {
    */
   public async getRentSummary(facilityId: string, identifier: string): Promise<RentSummaryDto> {
     const grn = await this.resolveGrn(facilityId, identifier);
-    const [payments, netDelivered, balance, extensions, outwardRent] = await Promise.all([
+    const [payments, netDelivered, balance, extensions, outwardInfo] = await Promise.all([
       rentRepository.findPaymentsByGrnId(facilityId, grn.id),
       readLedgerNetDelivered(facilityId, grn.id),
       readLedgerBalance(facilityId, grn.id),
       rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id),
-      rentRepository.getOutwardRentChargesForGrn(facilityId, grn.id),
+      rentRepository.getOutwardRentInfoForGrn(facilityId, grn.id),
     ]);
     const delivered = netDelivered?.total ?? 0;
     const remaining = balance?.total ?? Math.max(0, grn.bags - delivered);
     const commodity = await CommodityModel.findOne({ id: grn.commodityId }).lean().exec();
     const hamaliShare = computeFirstSeasonHamali(grn.bags, commodity, extensions, grn.hamaliRate, grn.hamaliAmount);
-    return buildRentSummary(grn, payments, extensions, delivered, remaining, outwardRent, hamaliShare);
+    return buildRentSummary(grn, payments, extensions, delivered, remaining, outwardInfo.total, hamaliShare, outwardInfo.earliestCreatedAt);
   }
 
   /**
    * Derives the rent summary for every GRN in a facility using batch queries.
-   *
-   * The balance is derived through computeRentBalance and bag balances are sourced
-   * directly from the immutable inventory transaction ledger so rent and physical
-   * stock can never drift apart.
    */
   public async getRentSummariesForFacility(facilityId: string, onlyGrnIds?: string[]): Promise<RentSummaryDto[]> {
-    // `onlyGrnIds` scopes every downstream query to the GRNs actually being
-    // rendered. The paginated delivery list used to call this unscoped and then
-    // discard all but the page's GRNs, so page 1 and page 999 cost the same:
-    // every GRN, every payment, every extension and every ledger aggregate for
-    // the whole facility, on every page request.
     const grns = await GrnModel.find(
       onlyGrnIds && onlyGrnIds.length > 0 ? { facilityId, id: { $in: onlyGrnIds } } : { facilityId },
     )
@@ -113,8 +104,8 @@ export class RentService {
         ? rentExtensionRepository.findExtensionsByGrnIdsGrouped(facilityId, grnIds)
         : rentExtensionRepository.findExtensionsByFacilityGrouped(facilityId),
       scoped
-        ? rentRepository.getOutwardRentChargesByGrnIdsGrouped(facilityId, grnIds)
-        : rentRepository.getOutwardRentChargesByFacilityGrouped(facilityId),
+        ? rentRepository.getOutwardRentInfoByGrnIdsGrouped(facilityId, grnIds)
+        : rentRepository.getOutwardRentInfoByFacilityGrouped(facilityId),
     ]);
     const commodityIds = Array.from(new Set(grns.map((g) => g.commodityId)));
     const commodityDocs = await CommodityModel.find({ id: { $in: commodityIds } }).lean().exec();
@@ -127,14 +118,16 @@ export class RentService {
       const hamaliShare = computeFirstSeasonHamali(
         grn.bags, commodityMap.get(grn.commodityId) ?? null, extensions, grn.hamaliRate, grn.hamaliAmount,
       );
+      const outwardInfo = outwardRentMap.get(grn.id);
       return buildRentSummary(
         grn,
         paymentsByGrn.get(grn.id) ?? [],
         extensions,
         delivered,
         remaining,
-        outwardRentMap.get(grn.id) ?? 0,
+        outwardInfo?.total ?? 0,
         hamaliShare,
+        outwardInfo?.earliestCreatedAt ?? null,
       );
     });
   }

@@ -104,9 +104,6 @@
 .tableCustomerName { font-weight: var(--font-semibold); font-size: var(--text-sm); color: var(--color-text-primary); }
 .tableMono { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--color-text-primary); }
 .tableSubtext { font-size: var(--text-xs); color: var(--color-text-muted); }
-.bagNumber { font-size: var(--text-sm); font-weight: var(--font-medium); }
-.balancePositive { font-weight: var(--font-bold); color: var(--color-warning-text); }
-.balanceZero { color: var(--color-text-muted); }
 
 .fieldGroup {
   display: flex;
