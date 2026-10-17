@@ -418,6 +418,16 @@ if [ -n "$CAMEL_COMPONENT_HITS" ]; then
   fail "Component File Naming SSOT violation: component files under components/ must be PascalCase (e.g. TableColumns.tsx, not tableColumns.tsx)."
 fi
 
+# 32. GRN Search Placeholder Field Alignment Governance:
+# Placeholders in GlobalGrnSearch and GrnFilterToolbar must not promise fields (such as 'Bill #' or 'Bond #')
+# that are not queryable in the backend grn.service.ts $or search clause.
+FORBIDDEN_PLACEHOLDER_HITS=$(grep -rnE '(placeholder|searchPlaceholder)=.*(Bill #|Bond #)' "$ROOT/packages/frontend/src" \
+  --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null || true)
+if [ -n "$FORBIDDEN_PLACEHOLDER_HITS" ]; then
+  echo "$FORBIDDEN_PLACEHOLDER_HITS"
+  fail "Search Placeholder Governance violation: frontend search inputs must not advertise unqueryable fields ('Bill #' or 'Bond #'). Backend grn.service.ts only indexes grnNumber, customerName, commodityName, gpNumber, vehicleNumber."
+fi
+
 if [ "$EXIT" -eq 0 ]; then
   echo "[PASS] All architecture boundaries and UI SSOT governance checks passed."
 fi

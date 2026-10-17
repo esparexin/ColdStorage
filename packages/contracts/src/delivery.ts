@@ -152,12 +152,11 @@ export const deliveryReversalSchema = z.object({
 export type DeliveryReversal = z.infer<typeof deliveryReversalSchema>;
 
 /**
- * Per-GRN outward position. The three balance figures are the bag composition of what was
- * received, what has left net of reversals, and what therefore remains on hand.
+ * Per-GRN outward position. The balance figures describe the bag composition of what was
+ * received, what has left net of reversals, and what remains on hand.
  *
- * `remainingDeliveryBalance` and `physicallyStoredBags` were previously two DTO fields assigned
- * from one expression; they are collapsed into `remaining` here so the API cannot present the
- * same quantity under two names.
+ * `remainingDeliveryBalance` is the primary business metric for stock remaining.
+ * `physicallyStoredBags` is preserved as a backward-compatible alias.
  */
 export const deliverySummarySchema = z.object({
   grnId: z.string().min(1),
@@ -166,6 +165,7 @@ export const deliverySummarySchema = z.object({
   totalReceivedBags: z.number().int().positive(),
   netDeliveredBags: z.number().int().min(0),
   remainingDeliveryBalance: z.number().int().min(0),
+  /** @deprecated Preserved as a backward-compatible alias of `remainingDeliveryBalance`. */
   physicallyStoredBags: z.number().int().min(0),
   availableSmallBags: z.number().int().min(0),
   availableBigBags: z.number().int().min(0),
