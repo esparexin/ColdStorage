@@ -46,10 +46,15 @@ export function validateTransferConfirmation(
     sourceMonthlyBagPrice,
   } = params;
 
+  if (remainingBags <= 0) {
+    return 'Cannot transfer ownership: No stock remaining in this GRN.';
+  }
+
   const isHybrid = sourceBagCategory ? isHybridBagCategory(sourceBagCategory) : false;
 
   if (isHybrid) {
-    const qtyErr = validateHybridQuantityInput(sourceQuantity, remainingBags, 'available stock');
+    const qty = sourceQuantity !== undefined && sourceQuantity !== null ? sourceQuantity : remainingBags;
+    const qtyErr = validateHybridQuantityInput(qty, remainingBags, 'available stock');
     if (qtyErr) return qtyErr;
     if (!hasPositiveHybridRate({ bagPrice: sourceBagPrice, seasonalBagPrice: sourceSeasonalBagPrice, monthlyBagPrice: sourceMonthlyBagPrice })) {
       return HYBRID_RATE_REQUIRED_MESSAGE;

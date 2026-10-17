@@ -41,7 +41,6 @@ export function InternalMovementTransferTab({
   const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>('');
   const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>('');
   const [sourceBagCategory, setSourceBagCategory] = useState<import('@cold-storage/contracts').OutwardBagCategory | ''>('');
-  const [sourceQuantity, setSourceQuantity] = useState<number | ''>('');
   const [sourceBagPrice, setSourceBagPrice] = useState<number | ''>('');
   const [sourceSeasonalBagPrice, setSourceSeasonalBagPrice] = useState<number | ''>('');
   const [sourceMonthlyBagPrice, setSourceMonthlyBagPrice] = useState<number | ''>('');
@@ -72,19 +71,21 @@ export function InternalMovementTransferTab({
     e.preventDefault();
     setValidationError(null);
     if (!newCustomerId) return setValidationError('Select the new customer to transfer ownership to.');
+    if (remainingBags <= 0) return setValidationError('Cannot transfer ownership: No stock remaining in this GRN.');
     if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
     const payErr = validateTransferPayment(decision, settleAmount, effectiveDue);
     if (payErr) return setValidationError(payErr);
+    const isHybrid = isHybridBagCategory(sourceBagCategory);
     const confirmErr = validateTransferConfirmation({
       isUnverified, remainingBags, confirmedSmallBags, confirmedBigBags,
-      sourceBagCategory, sourceQuantity, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice,
+      sourceBagCategory, sourceQuantity: isHybrid ? remainingBags : undefined,
+      sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice,
     });
     if (confirmErr) return setValidationError(confirmErr);
-    const isHybrid = isHybridBagCategory(sourceBagCategory);
     const confirmation = isHybrid
       ? {
           sourceBagCategory: sourceBagCategory || undefined,
-          sourceQuantity: typeof sourceQuantity === 'number' ? sourceQuantity : undefined,
+          sourceQuantity: remainingBags,
           sourceBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
           sourceSeasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
           sourceMonthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
@@ -171,7 +172,6 @@ export function InternalMovementTransferTab({
             confirmedSmallBags={confirmedSmallBags} confirmedBigBags={confirmedBigBags}
             onSmallChange={setConfirmedSmallBags} onBigChange={setConfirmedBigBags}
             sourceBagCategory={sourceBagCategory} onCategoryChange={setSourceBagCategory}
-            sourceQuantity={sourceQuantity} onQuantityChange={setSourceQuantity}
             sourceBagPrice={sourceBagPrice} onPriceChange={setSourceBagPrice}
             sourceSeasonalBagPrice={sourceSeasonalBagPrice} onSeasonalPriceChange={setSourceSeasonalBagPrice}
             sourceMonthlyBagPrice={sourceMonthlyBagPrice} onMonthlyPriceChange={setSourceMonthlyBagPrice}
@@ -235,7 +235,7 @@ export function InternalMovementTransferTab({
         remainingBags={remainingBags}
         movementDate={movementDate}
         sourceBagCategory={sourceBagCategory}
-        sourceQuantity={sourceQuantity} sourceBagPrice={sourceBagPrice}
+        sourceQuantity={remainingBags} sourceBagPrice={sourceBagPrice}
         sourceSeasonalBagPrice={sourceSeasonalBagPrice} sourceMonthlyBagPrice={sourceMonthlyBagPrice}
         confirmedSmallBags={confirmedSmallBags} confirmedBigBags={confirmedBigBags}
         newCustomerName={selectedNewCustomer?.name} totalPaid={totalPaid}

@@ -156,4 +156,59 @@ describe('validateTransferConfirmation', () => {
     expect(validateTransferConfirmation(true, 100, '', '')).toContain('Confirmed composition required');
     expect(validateTransferConfirmation(true, 100, 60, 40)).toBeNull();
   });
+
+  it('rejects zero or negative remaining stock', () => {
+    expect(
+      validateTransferConfirmation({
+        isUnverified: false,
+        remainingBags: 0,
+        confirmedSmallBags: '',
+        confirmedBigBags: '',
+      }),
+    ).toBe('Cannot transfer ownership: No stock remaining in this GRN.');
+
+    expect(
+      validateTransferConfirmation({
+        isUnverified: false,
+        remainingBags: -5,
+        confirmedSmallBags: '',
+        confirmedBigBags: '',
+      }),
+    ).toBe('Cannot transfer ownership: No stock remaining in this GRN.');
+  });
+
+  it('accepts Hybrid when quantity is omitted, deriving it from remaining stock', () => {
+    expect(
+      validateTransferConfirmation({
+        isUnverified: false,
+        remainingBags: 100,
+        confirmedSmallBags: '',
+        confirmedBigBags: '',
+        sourceBagCategory: 'Hybrid',
+        sourceBagPrice: 25,
+      }),
+    ).toBeNull();
+  });
+
+  it('accepts Auto (ledger) and S/B with verified stock without confirmed split counts', () => {
+    expect(
+      validateTransferConfirmation({
+        isUnverified: false,
+        remainingBags: 120,
+        confirmedSmallBags: '',
+        confirmedBigBags: '',
+        sourceBagCategory: '',
+      }),
+    ).toBeNull();
+
+    expect(
+      validateTransferConfirmation({
+        isUnverified: false,
+        remainingBags: 120,
+        confirmedSmallBags: '',
+        confirmedBigBags: '',
+        sourceBagCategory: 'S/B',
+      }),
+    ).toBeNull();
+  });
 });
