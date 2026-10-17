@@ -59,6 +59,7 @@ workflows.
 | 29 | Shared button primitive SSOT | UI primitives and feature feedback states must consume the canonical `Button` primitive rather than raw `<button>` elements |
 | 30 | Document Print Paper Size SSOT | All document templates and print stylesheets must conform exclusively to A6 dimensions (105 × 148 mm in portrait or landscape); unintended A4, A5, or Letter page sizes are strictly prohibited |
 | 31 | Component File Naming SSOT | All React `.tsx` component files under `components/` directories must be named in PascalCase; camelCase or kebab-case `.tsx` files are prohibited |
+| 32 | Spacing token ratchet | feature CSS (`src/app/**`) must consume the `var(--space-*)` scale. Raw-px `gap`/`margin`/`padding` is baselined in `scripts/spacing-token-baseline.json` as `path:line` → declaration. An unbaselined declaration FAILS; a baselined line whose declarations changed FAILS; a baseline entry whose violation is gone FAILS as stale, so debt can only shrink. `components/ui` and the intentional `StatCard` 1px hairline are out of scope |
 
 ## 4. Responsive Viewport Verification Matrix
 
