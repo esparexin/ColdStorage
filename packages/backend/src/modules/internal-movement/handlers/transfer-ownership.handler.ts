@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { resolveStoredCompositionVerified, toExcludedPeriodKeys, type TransferOwnershipInput, type Grn, type InternalMovementRecord, type RentPayment } from '@cold-storage/contracts';
+import { appendGrnRemarks, isHybridBagCategory, resolveStoredCompositionVerified, toExcludedPeriodKeys, type TransferOwnershipInput, type Grn, type InternalMovementRecord, type RentPayment } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
@@ -16,16 +16,12 @@ import { rentExtensionRepository } from '../../rent/rent-extension.repository.js
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
 import { formatTransferAuditNote, settleTransferRent } from './transfer-ownership.helper.js';
 import { validateTransferBagConfirmation } from './transfer-ownership-validation.helper.js';
-import { executePartialTransfer } from './transfer-split.helper.js';
+
 export async function transferOwnership(
   facilityId: string,
   input: TransferOwnershipInput,
   userId: string,
 ): Promise<{ grn: Grn; movement: InternalMovementRecord; payment?: RentPayment }> {
-  if (input.transferSmallBags != null || input.transferBigBags != null) {
-    const partial = await executePartialTransfer(facilityId, input, userId);
-    return { grn: partial.grn, movement: partial.movement };
-  }
   const session = await mongoose.startSession();
   let resultGrnDoc!: unknown;
   let resultMovementDoc!: unknown;
@@ -76,24 +72,20 @@ export async function transferOwnership(
       validateTransferBagConfirmation(input, bal.total, grn.grnNumber, isVerified);
 
       const movementDate = new Date(input.movementDate);
-
+      const isHybrid = isHybridBagCategory(input.sourceBagCategory);
       const transferExtensions = await rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session);
       // 1. Authoritative outward-style rent assessment for all remaining bags being transferred
       const { expectedRentCharge } = await computeExpectedDeliveryRent({
         grn: {
-          id: grn.id,
-          grnNumber: grn.grnNumber,
-          date: grn.date,
-          rentType: grn.rentType,
-          commodityId: grn.commodityId,
-          smallBagPrice: grn.smallBagPrice,
-          bigBagPrice: grn.bigBagPrice,
-          bagPrice: grn.bagPrice,
+          id: grn.id, grnNumber: grn.grnNumber, date: grn.date, rentType: grn.rentType, commodityId: grn.commodityId,
+          smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, bagPrice: grn.bagPrice,
         },
         withdrawal: { smallBags: bal.smallBags, bigBags: bal.bigBags },
-        deliveryDate: movementDate,
-        session,
+        quantity: isHybrid ? (input.sourceQuantity ?? bal.total) : undefined,
+        deliveryDate: movementDate, session,
         excludePeriodKeys: toExcludedPeriodKeys(transferExtensions),
+        bagCategory: input.sourceBagCategory, bagPrice: input.sourceBagPrice,
+        seasonalBagPrice: input.sourceSeasonalBagPrice, monthlyBagPrice: input.sourceMonthlyBagPrice,
       });
 
       const storedRent = grn.rentAmount ?? 0;
@@ -153,7 +145,7 @@ export async function transferOwnership(
         effectiveRentBal,
         remarks: input.remarks,
       });
-      const updatedRemarks = grn.remarks ? `${grn.remarks}\n${transferNote}` : transferNote;
+      const updatedRemarks = appendGrnRemarks(grn.remarks, transferNote);
 
       const updateFields: Record<string, unknown> = {
         customerId: newCustomer.id,

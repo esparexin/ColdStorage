@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  isBagCompositionVerified,
   isHybridBagCategory,
   seasonYearForInwardDate,
   type Grn,
@@ -116,25 +115,15 @@ export function MergeSourceTable({
             const hasDiff =
               (sg.smallBagPrice != null || sg.bigBagPrice != null) &&
               sg.smallBagPrice !== sg.bigBagPrice;
-            const isInitialVerified = isBagCompositionVerified({
-              bagType: sg.bagType,
-              bags: sg.bags,
-              smallBags: sg.smallBags,
-              bigBags: sg.bigBags,
-            });
             const isHybrid = (sg.bagPrice != null && !hasDiff) || isHybridBagCategory(sg.bagType);
-            const unconf = hasDiff && !isInitialVerified;
             return (
               <div>
                 <span style={{ fontWeight: 'var(--font-semibold)' }}>{tot}</span>
-                <div
-                  style={{
-                    fontSize: 'var(--text-xs)',
-                    color: unconf ? 'var(--color-warning-text)' : 'var(--color-text-muted)',
-                  }}
-                >
-                  {unconf ? 'Pending Verification' : isHybrid ? 'Uniform Rate' : `${s}S · ${b}B`}
-                </div>
+                {(s > 0 || b > 0 || isHybrid) && (
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                    {isHybrid ? 'Uniform Rate' : `${s}S · ${b}B`}
+                  </div>
+                )}
               </div>
             );
           },

@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import type { DeliveryChallan } from '@cold-storage/contracts';
 import { DataTable } from '@/components/ui/DataTable';
-import { createDeliveryColumns } from './deliveryTableColumns';
+import { createDeliveryColumns } from './DeliveryTableColumns';
 
 interface DeliveryTableProps {
   deliveries: DeliveryChallan[];

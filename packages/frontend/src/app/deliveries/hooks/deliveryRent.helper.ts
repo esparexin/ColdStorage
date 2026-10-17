@@ -26,6 +26,7 @@ export interface ComputeOutwardRentParams {
   bagPrice?: number | null;
   monthlySmallBagPrice?: number | null;
   monthlyBigBagPrice?: number | null;
+  excludePeriodKeys?: string[];
 }
 
 export function resolveOutwardBillableMonths(params: {
@@ -87,6 +88,7 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
         bigBags: 0,
         seasonalRates: { small: sRate, big: sRate },
         monthlyRates: { small: mRate, big: mRate },
+        excludePeriodKeys: params.excludePeriodKeys,
       });
       return breakdown.totalRent;
     }
@@ -158,6 +160,7 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
       bigBags: effectiveBig,
       seasonalRates: { small: smallRate, big: bigRate },
       monthlyRates: { small: monthlySmall, big: monthlyBig },
+      excludePeriodKeys: params.excludePeriodKeys,
     });
     return breakdown.totalRent;
   }

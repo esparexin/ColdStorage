@@ -1,14 +1,20 @@
-export type GrnStatusTab = '' | 'OPEN' | 'CLOSED' | 'MERGED';
+export type GrnProfileTab = '' | 'ACTIVE' | 'PARTIAL' | 'PENDING_PAYMENT' | 'CLOSED' | 'MERGED';
+export type GrnStatusTab = GrnProfileTab;
 
-export const VALID_GRN_TABS: Record<string, GrnStatusTab> = {
+export const VALID_GRN_TABS: Record<string, GrnProfileTab> = {
   '': '',
   'ALL': '',
-  'OPEN': 'OPEN',
+  'ACTIVE': 'ACTIVE',
+  'PARTIAL': 'PARTIAL',
+  'PENDING_PAYMENT': 'PENDING_PAYMENT',
+  'PENDING': 'PENDING_PAYMENT',
+  'DUE': 'PENDING_PAYMENT',
   'CLOSED': 'CLOSED',
   'MERGED': 'MERGED',
+  'OPEN': 'ACTIVE',
 };
 
-export function resolveInitialGrnTab(search?: string, storedTab?: string | null): GrnStatusTab {
+export function resolveInitialGrnTab(search?: string, storedTab?: string | null): GrnProfileTab {
   try {
     const params = new URLSearchParams(
       search ?? (typeof window !== 'undefined' ? window.location.search : ''),
@@ -29,7 +35,7 @@ export function resolveInitialGrnTab(search?: string, storedTab?: string | null)
   return '';
 }
 
-export function syncGrnTabToLocation(tab: GrnStatusTab): void {
+export function syncGrnTabToLocation(tab: GrnProfileTab): void {
   if (typeof window === 'undefined') return;
   try {
     if (tab) {

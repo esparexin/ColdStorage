@@ -1,4 +1,11 @@
-import { allocateHybridSplit, isHybridBagCategory, type OutwardBagCategory } from '@cold-storage/contracts';
+import {
+  allocateHybridSplit,
+  hasPositiveHybridRate,
+  HYBRID_RATE_REQUIRED_MESSAGE,
+  isHybridBagCategory,
+  validateHybridQuantityInput,
+  type OutwardBagCategory,
+} from '@cold-storage/contracts';
 
 /**
  * bagConfirmation.helper — pure validation for the Internal Move source
@@ -22,19 +29,9 @@ export function validateBagConfirmation(input: BagConfirmationInput): string | n
   const { category, totalMovedBags } = input;
 
   if (isHybridBagCategory(category)) {
-    if (typeof input.quantity !== 'number' || !Number.isInteger(input.quantity) || input.quantity <= 0) {
-      return 'Confirmed Hybrid quantity must be a positive whole number.';
-    }
-    if (input.quantity !== totalMovedBags) {
-      return `Confirmed Hybrid quantity (${input.quantity}) must match total moved stock of ${totalMovedBags} bags.`;
-    }
-    const hasRate =
-      (typeof input.bagPrice === 'number' && input.bagPrice > 0) ||
-      (typeof input.seasonalBagPrice === 'number' && input.seasonalBagPrice > 0) ||
-      (typeof input.monthlyBagPrice === 'number' && input.monthlyBagPrice > 0);
-    if (!hasRate) {
-      return 'Confirmed Hybrid lots require a per-bag rate (Each Bag Price, or Seasonal/Monthly rates).';
-    }
+    const qtyErr = validateHybridQuantityInput(input.quantity, totalMovedBags, 'total moved stock');
+    if (qtyErr) return qtyErr;
+    if (!hasPositiveHybridRate(input)) return HYBRID_RATE_REQUIRED_MESSAGE;
     return null;
   }
 

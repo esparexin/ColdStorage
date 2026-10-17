@@ -12,7 +12,7 @@ import {
   getAvailableStockBags,
   paginateEligibleGrns,
 } from '../hooks/eligibleGrn.helper';
-import { createEligibleGrnColumns } from './eligibleGrnColumns';
+import { createEligibleGrnColumns } from './EligibleGrnColumns';
 import styles from './EligibleGrnSection.module.css';
 
 interface EligibleGrnSectionProps {

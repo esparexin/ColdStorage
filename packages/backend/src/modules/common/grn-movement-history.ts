@@ -21,7 +21,14 @@ export async function getGrnMovementHistory(
 
   const challanIds = txs.filter((t) => t.referenceType === 'DELIVERY').map((t) => t.referenceId);
   const reversalIds = txs.filter((t) => t.referenceType === 'DELIVERY_REVERSAL').map((t) => t.referenceId);
-  const movRefIds = txs.filter((t) => t.referenceType === 'PUT_AWAY' && t.referenceId !== grn.id).map((t) => t.referenceId);
+  const getMovId = (refId: string) => refId.replace(new RegExp(`-${grn.id}$`), '');
+  const mergeOutMovIds = txs
+    .filter((t) => t.notes?.startsWith('Merged into') && t.referenceId.startsWith('mov-'))
+    .map((t) => getMovId(t.referenceId));
+  const movRefIds = [
+    ...txs.filter((t) => t.referenceType === 'PUT_AWAY' && t.referenceId !== grn.id).map((t) => t.referenceId),
+    ...mergeOutMovIds,
+  ];
 
   const [challans, reversals, referencedMovs] = await Promise.all([
     challanIds.length ? DeliveryChallanModel.find({ id: { $in: challanIds }, facilityId }).lean().exec() : [],
@@ -68,14 +75,16 @@ export async function getGrnMovementHistory(
   ];
 
   const getEventTime = (item: TimelineItem): number => {
-    if (item.kind === 'OWNERSHIP') return new Date(item.movement.createdAt).getTime();
+    if (item.kind === 'OWNERSHIP') return new Date(item.movement.movementDate ?? item.movement.createdAt).getTime();
     const t = item.tx;
     if (t.referenceType === 'DELIVERY') {
       const c = challanMap.get(t.referenceId);
-      if (c?.createdAt) return new Date(c.createdAt).getTime();
+      if (c?.date) return new Date(c.date).getTime();
+      const m = movRefMap.get(getMovId(t.referenceId));
+      if (m?.movementDate) return new Date(m.movementDate).getTime();
     }
     const m = movRefMap.get(t.referenceId);
-    if (m?.createdAt) return new Date(m.createdAt).getTime();
+    if (m?.movementDate) return new Date(m.movementDate).getTime();
     return new Date(t.createdAt).getTime();
   };
 
@@ -116,8 +125,9 @@ export async function getGrnMovementHistory(
       runningSmall += t.smallQuantity;
       runningBig += t.bigQuantity;
 
+      const mov = movRefMap.get(t.referenceId);
       entries.push({
-        date: t.createdAt,
+        date: mov?.movementDate ?? t.createdAt,
         grnId: grn.id,
         grnNumber: grn.grnNumber,
         type: 'INTERNAL_MERGE_IN',
@@ -130,7 +140,7 @@ export async function getGrnMovementHistory(
         remainingSmallBags: runningSmall,
         remainingBigBags: runningBig,
         remarks: t.notes,
-        performedBy: t.createdBy,
+        performedBy: mov?.performedBy ?? t.createdBy,
       });
     } else if (t.transactionType === 'OUTWARD_DELIVERY') {
       const isMergeOut = t.notes?.startsWith('Merged into');
@@ -143,8 +153,9 @@ export async function getGrnMovementHistory(
       netDelivered += deltaTotal;
 
       if (isMergeOut) {
+        const mov = movRefMap.get(getMovId(t.referenceId));
         entries.push({
-          date: t.createdAt,
+          date: mov?.movementDate ?? t.createdAt,
           grnId: grn.id,
           grnNumber: grn.grnNumber,
           type: 'INTERNAL_MERGE_OUT',
@@ -157,7 +168,7 @@ export async function getGrnMovementHistory(
           remainingSmallBags: 0,
           remainingBigBags: 0,
           remarks: t.notes,
-          performedBy: t.createdBy,
+          performedBy: mov?.performedBy ?? t.createdBy,
         });
       } else {
         const challan = challanMap.get(t.referenceId);
@@ -196,24 +207,13 @@ export async function getGrnMovementHistory(
       netDelivered = Math.max(0, netDelivered - deltaTotal);
 
       entries.push({
-        date: reversal?.reversedAt ?? t.createdAt,
-        grnId: grn.id,
-        grnNumber: grn.grnNumber,
-        type: 'DELIVERY_REVERSAL',
-        openingBags: opening,
-        receivedBags: deltaTotal,
-        deliveredBags: deltaTotal,
-        closingBags: closing,
-        smallBags: t.smallQuantity,
-        bigBags: t.bigQuantity,
-        remainingSmallBags: closingSmall,
-        remainingBigBags: closingBig,
-        challanNumber: reversal?.challanNumber ?? null,
-        reversalId: reversal?.id ?? t.referenceId,
-        marks: grn.partyMark ?? grn.storageMark ?? grn.marks ?? null,
-        gpNumber: grn.gpNumber ?? null,
-        remarks: reversal?.reason ?? t.notes ?? null,
-        performedBy: reversal?.reversedBy ?? t.createdBy,
+        date: reversal?.reversedAt ?? t.createdAt, grnId: grn.id, grnNumber: grn.grnNumber,
+        type: 'DELIVERY_REVERSAL', openingBags: opening, receivedBags: deltaTotal, deliveredBags: deltaTotal,
+        closingBags: closing, smallBags: t.smallQuantity, bigBags: t.bigQuantity,
+        remainingSmallBags: closingSmall, remainingBigBags: closingBig,
+        challanNumber: reversal?.challanNumber ?? null, reversalId: reversal?.id ?? t.referenceId,
+        marks: grn.partyMark ?? grn.storageMark ?? grn.marks ?? null, gpNumber: grn.gpNumber ?? null,
+        remarks: reversal?.reason ?? t.notes ?? null, performedBy: reversal?.reversedBy ?? t.createdBy,
       });
     }
   }

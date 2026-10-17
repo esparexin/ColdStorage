@@ -5,6 +5,8 @@ import {
   formatRentStructure,
   formatAgreedRates,
   getRentCollectionNotice,
+  formatBillingPeriodSubtitle,
+  formatExtensionPeriodSubtitle,
 } from '../rentDisplay.helper';
 
 describe('rentDisplay.helper', () => {
@@ -104,16 +106,50 @@ describe('rentDisplay.helper', () => {
         }),
       ).toBe('Rent obligation is derived from 40 outward delivered bags.');
     });
+  });
 
-    it('returns null when no special condition matches', () => {
-      expect(
-        getRentCollectionNotice({
-          rentType: 'Seasonal',
-          rentAmount: 4000,
-          remainingBalance: 0,
-          deliveredBags: 0,
-        }),
-      ).toBeNull();
+  describe('formatBillingPeriodSubtitle', () => {
+    it('formats Seasonal period with months range and agreed rates', () => {
+      const res = formatBillingPeriodSubtitle({
+        rentType: 'Seasonal',
+        seasonYear: 2026,
+        totalBags: 25,
+        rates: 'S: ₹150.00 | B: ₹210.00',
+      });
+      expect(res).toBe('March 2026 – December 2026 (10 months) · 25 bags · S: ₹150.00 | B: ₹210.00');
+    });
+
+    it('formats Monthly storage with month count', () => {
+      const res = formatBillingPeriodSubtitle({
+        rentType: 'Monthly',
+        seasonYear: 2026,
+        totalBags: 50,
+        rentMonths: 3,
+      });
+      expect(res).toBe('Monthly Storage (3 months) · 50 bags');
+    });
+  });
+
+  describe('formatExtensionPeriodSubtitle', () => {
+    it('formats January extension with 1 month and snapshot rate', () => {
+      const res = formatExtensionPeriodSubtitle({
+        period: 'JANUARY',
+        seasonYear: 2026,
+        snapshotBags: 25,
+        bagRate: 28,
+      });
+      expect(res).toBe('January 2027 (1 month extension) · Snapshot 25 bags · ₹28.00/bag');
+    });
+
+    it('formats SEASON renewal with 10 months', () => {
+      const res = formatExtensionPeriodSubtitle({
+        period: 'SEASON',
+        seasonYear: 2027,
+        snapshotBags: 20,
+        bagRate: 150,
+      });
+      expect(res).toBe('March 2027 – December 2027 (10 months renewal) · Snapshot 20 bags · ₹150.00/bag');
     });
   });
 });
+

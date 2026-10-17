@@ -1,4 +1,9 @@
-import { isHybridBagCategory, type TransferOwnershipInput } from '@cold-storage/contracts';
+import {
+  hasPositiveHybridRate,
+  isHybridBagCategory,
+  validateHybridQuantityInput,
+  type TransferOwnershipInput,
+} from '@cold-storage/contracts';
 
 export function validateTransferBagConfirmation(
   input: TransferOwnershipInput,
@@ -21,11 +26,11 @@ export function validateTransferBagConfirmation(
   if (!isVerified) {
     if (hasHybrid) {
       assertQty(quantity, ledgerTotal, grnNumber);
-      if (
-        typeof raw.sourceBagPrice !== 'number' &&
-        typeof raw.sourceSeasonalBagPrice !== 'number' &&
-        typeof raw.sourceMonthlyBagPrice !== 'number'
-      ) {
+      if (!hasPositiveHybridRate({
+        bagPrice: raw.sourceBagPrice as number,
+        seasonalBagPrice: raw.sourceSeasonalBagPrice as number,
+        monthlyBagPrice: raw.sourceMonthlyBagPrice as number,
+      })) {
         throw new Error('Confirmed Hybrid lots require a per-bag rate (Each Bag Price, or Seasonal/Monthly rates)');
       }
       return;
@@ -52,12 +57,12 @@ export function validateTransferBagConfirmation(
 }
 
 function assertQty(qty: number | null, total: number, grnNumber: string): void {
-  if (qty == null || !Number.isInteger(qty) || qty <= 0) {
+  const err = validateHybridQuantityInput(qty, total, 'available stock');
+  if (err) {
+    if (err.includes('must match')) {
+      throw new Error(`Confirmed Hybrid quantity (${qty}) must match available stock of ${total} bags for GRN '${grnNumber}'`);
+    }
     throw new Error('Confirmed Hybrid quantity must be a positive whole number');
   }
-  if (qty !== total) {
-    throw new Error(
-      `Confirmed Hybrid quantity (${qty}) must match available stock of ${total} bags for GRN '${grnNumber}'`,
-    );
-  }
 }
+

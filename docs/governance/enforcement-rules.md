@@ -13,6 +13,7 @@ workflows.
 | 2 | Placeholder / leftover-work markers | `dummy`, `placeholder production logic`, `lorem ipsum`, `final2`, `TODO`, `FIXME`, `XXX`, `HACK:`, `coming soon`, `not implemented` — scanned across `.ts`, `.tsx`, `.mjs` |
 | 2b | Debugger statements | `debugger;` in any package source |
 | 3 | Build artefacts in git | tracked `dist/` or `coverage/` |
+| 3b | Test leakage in build outputs | compiled `dist/__tests__` in package distributions |
 | 4 | Local env files in git | `.env`, `.env.local`, `.env.*.local` at any depth |
 | 5 | Line budget & ratchet | delegates to `check-line-budget.sh` |
 | 6 | Architecture boundaries & UI SSOT | delegates to `check-architecture-boundaries.sh` |
@@ -57,6 +58,7 @@ workflows.
 | 28 | Screen table SSOT | interactive screen tables must consume the canonical `DataTable` primitive; raw `<table>` implementations in feature screens are strictly prohibited (zero baseline exceptions) |
 | 29 | Shared button primitive SSOT | UI primitives and feature feedback states must consume the canonical `Button` primitive rather than raw `<button>` elements |
 | 30 | Document Print Paper Size SSOT | All document templates and print stylesheets must conform exclusively to A6 dimensions (105 × 148 mm in portrait or landscape); unintended A4, A5, or Letter page sizes are strictly prohibited |
+| 31 | Component File Naming SSOT | All React `.tsx` component files under `components/` directories must be named in PascalCase; camelCase or kebab-case `.tsx` files are prohibited |
 
 ## 4. Responsive Viewport Verification Matrix
 

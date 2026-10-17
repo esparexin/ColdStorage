@@ -1,10 +1,10 @@
 'use client';
 
-import { Clock, X } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { Badge } from '@/components/ui';
 import { formatDisplayDate } from '@/lib/date-format';
+import { GrnLifecycleStatusCell } from './GrnLifecycleStatusCell';
 import { GrnRowActions } from './GrnRowActions';
 import { RentTermsCell } from './RentTermsCell';
 import styles from './GrnTable.module.css';
@@ -57,7 +57,7 @@ export function createGrnTableColumns({
   return [
     {
       key: 'date',
-      header: 'Date',
+      header: 'Inward Date',
       sortable: true,
       sortType: 'date',
       sortAccessor: (row) => row.date,
@@ -155,25 +155,7 @@ export function createGrnTableColumns({
       key: 'status',
       header: 'Status',
       align: 'center',
-      render: (row) => (
-        <div className={styles.statusGroup}>
-          <Badge
-            variant={row.status === 'OPEN' ? 'warning' : 'neutral'}
-            icon={
-              row.status === 'OPEN' ? (
-                <Clock size={11} aria-hidden="true" />
-              ) : (
-                <X size={11} aria-hidden="true" />
-              )
-            }
-          >
-            {row.status === 'OPEN' ? 'Open' : 'Closed'}
-          </Badge>
-          {row.mergedIntoGrnNumber && (
-            <span className={styles.mergedReference}>Merged → {row.mergedIntoGrnNumber}</span>
-          )}
-        </div>
-      ),
+      render: (row) => <GrnLifecycleStatusCell row={row} />,
     },
     {
       key: 'actions',

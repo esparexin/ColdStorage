@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { BagType, Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
+import type { Commodity, Customer, Grn, RentType } from '@cold-storage/contracts';
 import { Button, ConfirmDialog, Input, Modal, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
@@ -149,7 +149,7 @@ export function CreateGrnModal({
           <h3 className={styles.sectionHeading}>Quantity &amp; Rent Terms</h3>
           <div className={styles.formGrid}>
             <div className={styles.fieldGroup}>
-              <label htmlFor="create-bags" className={styles.fieldLabel}>Total S/B Bags *</label>
+              <label htmlFor="create-bags" className={styles.fieldLabel}>Total Bags *</label>
               <input
                 id="create-bags" type="text" inputMode="numeric" required disabled={structuralLocked}
                 value={form.createBags} onChange={(e) => form.handleBagsChange(parseNumericInput(e.target.value))}
@@ -159,16 +159,6 @@ export function CreateGrnModal({
                 aria-describedby={form.fieldErrors.bags ? 'create-bags-error' : undefined}
               />
               {form.fieldErrors.bags && <span id="create-bags-error" className={styles.fieldErrorText} role="alert">{form.fieldErrors.bags}</span>}
-            </div>
-            <div className={styles.fieldGroup}>
-              <Select
-                id="create-bag-type" label="Bag Type" required disabled={structuralLocked}
-                value={form.createBagType} onChange={(e) => form.setCreateBagType(e.target.value as BagType)}
-              >
-                <option value="S/B">Mixed S/B (Small &amp; Big)</option>
-                <option value="S">Small Bags Only (S)</option>
-                <option value="B">Big Bags Only (B)</option>
-              </Select>
             </div>
             <div className={styles.fieldGroup}>
               <Select

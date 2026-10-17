@@ -37,10 +37,7 @@ interface DeliveryBagCompositionFieldsProps {
   onPayRent?: (account: RentSummaryDto) => void;
   canPayRent?: boolean;
   rentSummary?: RentSummaryDto | null;
-  paymentAmount?: number | '';
-  paymentMode?: 'Cash' | 'UPI';
-  onPaymentAmountChange?: (value: number | '') => void;
-  onPaymentModeChange?: (mode: 'Cash' | 'UPI') => void;
+  hamaliRate?: number | null;
 }
 
 export function DeliveryBagCompositionFields({
@@ -49,14 +46,14 @@ export function DeliveryBagCompositionFields({
   onSeasonalBagPriceChange, onMonthlyBagPriceChange, showSeasonalRate, showMonthlyRate,
   inwardDate, deliveryDate, monthlyRates,
   withdrawal, bagCategory, onQuantityChange, onSmallBagsChange, onBigBagsChange,
-  outwardRent = 0, rentSummary,
+  outwardRent = 0, hamaliRate,
   fieldErrors = {},
 }: DeliveryBagCompositionFieldsProps) {
   const { bags: bagsError, smallBags: smallError, bigBags: bigError } = fieldErrors;
   const availableTotal = summary.availableSmallBags + summary.availableBigBags;
   const isSegregated = summary.availableSmallBags > 0 && summary.availableBigBags > 0;
   const isHybrid = isHybridBagCategory(bagCategory);
-  const isCombinedPool = isHybrid && !isSegregated;
+  const isCombinedPool = !isSegregated;
 
   const smallQty = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigQty = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
@@ -234,13 +231,10 @@ export function DeliveryBagCompositionFields({
         bagPrice={typeof manualBagPrice === 'number' ? manualBagPrice : bagPrice}
         seasonalBagPrice={typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined}
         monthlyBagPrice={typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined}
-        seasonalRates={rates}
-        monthlyRates={monthlyRates ?? rates}
-        rentMonths={rentMonths}
-        totalRent={outwardRent}
-        pendingBalance={rentSummary?.remainingBalance}
-        remainingStock={remainingStock}
-        totalStock={availableTotal}
+        seasonalRates={rates} monthlyRates={monthlyRates ?? rates}
+        rentMonths={rentMonths} totalRent={outwardRent}
+        remainingStock={remainingStock} totalStock={availableTotal}
+        hamaliRate={hamaliRate}
       />
     </>
   );

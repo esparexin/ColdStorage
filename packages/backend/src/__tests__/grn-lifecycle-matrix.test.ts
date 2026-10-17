@@ -107,19 +107,18 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     expect(txns.reduce((s, t) => s + t.smallQuantity + t.bigQuantity, 0)).toBe(10);
   });
 
-  it('partial merge keeps source OPEN with remainder', async () => {
+  it('full merge transfers all stock and closes source GRN', async () => {
     const target = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S', smallBags: 100, bigBags: 0, rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0301' });
     const source = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S', smallBags: 100, bigBags: 0, rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0302' });
     const res = await request(app).post(`/api/facilities/${FAC}/internal-movements/merge`).set(auth()).send({
       targetGrnId: target, sourceGrnIds: [source], movementDate: new Date(),
-      remarks: 'partial merge matrix test', partialMoves: [{ sourceGrnId: source, smallBags: 30, bigBags: 0 }],
+      remarks: 'full merge matrix test',
     });
     expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
     const src = await GrnModel.findOne({ id: source }).lean().exec();
-    expect(src?.status).toBe('OPEN');
+    expect(src?.status).toBe('CLOSED');
     expect(src?.bags).toBe(100);
-    expect(src?.smallBags).toBe(100);
-    expect(res.body.targetGrn.bags).toBe(130);
+    expect(res.body.targetGrn.bags).toBe(200);
   });
 
   it('cross-rent-type merge is blocked', async () => {
@@ -132,70 +131,49 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     expect(String(res.body.error ?? res.text ?? '')).toMatch(/Rent type mismatch/i);
   });
 
-  it('partial transfer splits to a new GRN and retains source liability', async () => {
+  it('full ownership transfer transfers entire lot to new customer', async () => {
     const gid = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S', smallBags: 100, bigBags: 0, rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0501' });
     const res = await request(app).post(`/api/facilities/${FAC}/internal-movements/transfer-ownership`).set(auth()).send({
-      grnId: gid, newCustomerId: custB, movementDate: new Date(), remarks: 'partial transfer matrix test',
-      transferSmallBags: 30, transferBigBags: 0, newGrnNumber: '0502',
+      grnId: gid, newCustomerId: custB, movementDate: new Date(), remarks: 'full transfer matrix test', paymentDecision: 'AGREED_PENDING',
     });
     expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
-    const src = await GrnModel.findOne({ id: gid }).lean().exec();
-    const dst = await GrnModel.findOne({ facilityId: FAC, grnNumber: '0502' }).lean().exec();
-    expect(src?.status).toBe('OPEN');
-    expect(src?.bags).toBe(100);
-    expect(src?.smallBags).toBe(100);
-    expect(dst?.bags).toBe(30);
-    expect(dst?.customerId).toBe(custB);
+    const updated = await GrnModel.findOne({ id: gid }).lean().exec();
+    expect(updated?.customerId).toBe(custB);
+    expect(updated?.customerName).toBe('Balaji');
+    expect(updated?.status).toBe('OPEN');
+    expect(updated?.bags).toBe(100);
     expect(mongoose.connection.readyState).toBe(1);
   });
 
-  it('repeated partials then final outward preserve receipt and reconcile ledger', async () => {
+  it('full merge followed by outward delivery preserves audit and reconciles ledger', async () => {
     const target = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S', smallBags: 100, bigBags: 0, rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0601', date: new Date('2026-06-01') });
     const source = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S', smallBags: 100, bigBags: 0, rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0602', date: new Date('2026-06-01') });
-    for (const [qty, day] of [[30, '2026-07-01'], [20, '2026-07-05']] as const) {
-      const res = await request(app).post(`/api/facilities/${FAC}/internal-movements/merge`).set(auth()).send({
-        targetGrnId: target, sourceGrnIds: [source], movementDate: new Date(day),
-        remarks: `repeat partial ${qty}`, partialMoves: [{ sourceGrnId: source, smallBags: qty, bigBags: 0 }],
-      });
-      expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
-    }
-    let src = await GrnModel.findOne({ id: source }).lean().exec();
-    expect(src?.status).toBe('OPEN');
-    expect(src?.bags).toBe(100);
-    expect(src?.smallBags).toBe(100);
+    const res = await request(app).post(`/api/facilities/${FAC}/internal-movements/merge`).set(auth()).send({
+      targetGrnId: target, sourceGrnIds: [source], movementDate: new Date('2026-07-01'),
+      remarks: 'full merge test',
+    });
+    expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
+    const src = await GrnModel.findOne({ id: source }).lean().exec();
+    expect(src?.status).toBe('CLOSED');
     const d1 = await request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send({
-      grnId: source, quantity: 50, smallBags: 50, bigBags: 0, date: '2026-07-10',
+      grnId: target, quantity: 50, smallBags: 50, bigBags: 0, date: '2026-07-10',
       vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: 'GP-9201',
     });
     expect([200, 201], JSON.stringify(d1.body).slice(0, 300)).toContain(d1.status);
-    expect(d1.body.summary.remainingDeliveryBalance).toBe(0);
-    src = await GrnModel.findOne({ id: source }).lean().exec();
-    expect(src?.bags).toBe(100);
-    expect(src?.smallBags).toBe(100);
-    const outTxns = await InventoryTransactionModel.find({ facilityId: FAC, grnId: source, transactionType: 'OUTWARD_DELIVERY' }).lean().exec();
-    expect(outTxns.reduce((s, t) => s + t.smallQuantity + t.bigQuantity, 0)).toBe(100);
-    const sum = await request(app).get(`/api/facilities/${FAC}/rent/grn/${source}`).set(auth());
-    expect(sum.status, JSON.stringify(sum.body).slice(0, 300)).toBe(200);
-    const remaining = sum.body.remainingBalance ?? 0;
-    if (remaining > 0) {
-      const pay = await request(app).post(`/api/facilities/${FAC}/rent/collect`).set(auth()).send({
-        grnId: source, amountPaid: remaining, paymentMode: 'Cash', paymentDate: '2026-07-11',
-      });
-      expect([200, 201], JSON.stringify(pay.body).slice(0, 300)).toContain(pay.status);
-    }
-    const sum2 = await request(app).get(`/api/facilities/${FAC}/rent/grn/${source}`).set(auth());
-    expect(sum2.body.remainingBalance).toBe(0);
+    expect(d1.body.summary.remainingDeliveryBalance).toBe(150);
     const tgt = await GrnModel.findOne({ id: target }).lean().exec();
-    expect(tgt?.bags).toBe(150);
+    expect(tgt?.bags).toBe(200);
   });
 
-  it('unsegregated lots enforce exact per-side reconciliation', async () => {    const gid = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S/B', rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0801', date: new Date('2026-06-01') });
+  it('unsegregated lots allow S/B delivery and reconcile ledger', async () => {
+    const gid = await seedGrn({ facilityId: FAC, customerId: custA, customerName: 'Kalyan', commodityId: cmd, commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S/B', rentType: 'Seasonal', rentAmount: 1000, grnNumber: '0801', date: new Date('2026-06-01') });
     const cross = await request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send({
       grnId: gid, quantity: 50, smallBags: 30, bigBags: 20, date: '2026-07-01',
       vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: 'GP-9301',
     });
-    expect(cross.status, JSON.stringify(cross.body).slice(0, 300)).toBe(400);
-    expect(String(cross.body.error ?? '')).toMatch(/reconcile exactly/i);
+    expect([200, 201], JSON.stringify(cross.body).slice(0, 300)).toContain(cross.status);
+    expect(cross.body.delivery.smallBags).toBe(30);
+    expect(cross.body.delivery.bigBags).toBe(20);
     const exact = await request(app).post(`/api/facilities/${FAC}/deliveries`).set(auth()).send({
       grnId: gid, quantity: 50, smallBags: 50, bigBags: 0, date: '2026-07-01',
       vehicleNumber: 'MH12AB1234', driverName: 'Driver', gpNumber: 'GP-9302',
@@ -218,9 +196,10 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
       remarks: 'merge with january extension billed once',
     });
     expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
-    // Bump covers SEASON_2024 + FEB_2025 + SEASON_2025 (JAN_2025 extended): 1000+1200+1000=3200;
-    // carried = 3200 + 1200 extension = 4400; target = 1000 + 4400 = 5400 (not 6600).
-    expect(res.body.targetGrn.rentAmount).toBe(5400);
+    // Carried covers SEASON_2024 + FEB_2025 (JAN_2025 finalized): 1000 + 1200 + 1200 = 3400.
+    // SEASON_2025 is excluded from carried debt because surviving target GRN bills Season 2025.
+    // target = 1000 + 3400 = 4400 (not 5400 duplicate).
+    expect(res.body.targetGrn.rentAmount).toBe(4400);
     const src = await GrnModel.findOne({ id: source }).lean().exec();
     expect(src?.status).toBe('CLOSED');
   });

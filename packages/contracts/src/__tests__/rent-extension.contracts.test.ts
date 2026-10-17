@@ -144,6 +144,34 @@ describe('rent-extension contracts', () => {
     expect(res.periods[3].amount).toBe(18000);
   });
 
+  it('calculates seasonal rent breakdown excluding target season during internal merge', () => {
+    // Source GRN 0032 received on 12 June 2024, merged on 16 October 2026 into a 2026 target GRN
+    // 1 bag, seasonal rate ₹200, monthly rate ₹60
+    const mergeBreakdown = calculateOutwardSeasonalBreakdown({
+      inwardDate: '2024-06-12',
+      deliveryDate: '2026-10-16',
+      smallBags: 1,
+      bigBags: 0,
+      seasonalRates: { small: 200, big: 200 },
+      monthlyRates: { small: 60, big: 60 },
+      excludePeriodKeys: ['SEASON_2026'],
+    });
+
+    // 2 seasons (2024, 2025) @ 200 = 400
+    // 4 monthly extensions (Jan 2025, Feb 2025, Jan 2026, Feb 2026) @ 60 = 240
+    // Total = 640 (SEASON_2026 excluded because surviving target collects it)
+    expect(mergeBreakdown.totalRent).toBe(640);
+    expect(mergeBreakdown.periods).toHaveLength(6);
+    expect(mergeBreakdown.periods.map((p) => p.periodKey)).toEqual([
+      'SEASON_2024',
+      'JANUARY_2025',
+      'FEBRUARY_2025',
+      'SEASON_2025',
+      'JANUARY_2026',
+      'FEBRUARY_2026',
+    ]);
+  });
+
   describe('deriveHybridRateVisibility', () => {
     it('Scenario A: Seasonal Rent, Inward earlier year, Outward later year -> shows both Seasonal and Monthly rate', () => {
       const vis = deriveHybridRateVisibility({

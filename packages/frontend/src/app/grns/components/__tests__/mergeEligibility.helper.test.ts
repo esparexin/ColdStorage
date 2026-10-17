@@ -50,4 +50,18 @@ describe('partitionMergeSources (future-season ineligibility)', () => {
     expect(eligibleSources.map((g) => g.id)).toEqual(['g-ok']);
     expect(futureSeasonCount).toBe(0);
   });
+
+  it('excludes sources with mismatched commodity or rent type', () => {
+    const matching = grn({ id: 'g-match', commodityId: 'cmd-1', rentType: 'Seasonal' });
+    const wrongCommodity = grn({ id: 'g-diff-cmd', commodityId: 'cmd-2', rentType: 'Seasonal' });
+    const wrongRentType = grn({ id: 'g-diff-rent', commodityId: 'cmd-1', rentType: 'Monthly' });
+    const { eligibleSources } = partitionMergeSources(
+      [matching, wrongCommodity, wrongRentType],
+      'target',
+      2026,
+      'cmd-1',
+      'Seasonal',
+    );
+    expect(eligibleSources.map((g) => g.id)).toEqual(['g-match']);
+  });
 });

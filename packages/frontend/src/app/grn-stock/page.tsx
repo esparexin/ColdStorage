@@ -11,7 +11,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { requestWithAuth } from '@/lib/api-client';
 import { useFacility } from '@/context/FacilityContext';
 import { GrnStockMovementModal } from './components/GrnStockMovementModal';
-import { createGrnStockColumns } from './components/grnStockColumns';
+import { createGrnStockColumns } from './components/GrnStockColumns';
 import styles from './page.module.css';
 
 export default function GrnStockPage() {

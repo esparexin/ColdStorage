@@ -8,12 +8,13 @@ import type {
   UpdateGrnLoanStatusInput,
 } from '@cold-storage/contracts';
 import { GrnModel } from '../../database/models/grn.model.js';
-import { readLedgerNetDelivered, readLedgerNetDeliveredMany } from '../inventory/ledger-balance.js';
+import { readLedgerNetDelivered } from '../inventory/ledger-balance.js';
 import { getGrnMovementHistory } from '../common/grn-movement-history.js';
 import { toGrnAcknowledgement, toGrnEntity } from './grn.mappers.js';
 import { createGrn, type CreateGrnOptions } from './handlers/create-grn.handler.js';
 import { correctGrn } from './handlers/update-grn.handler.js';
 import { updateGrnLoanStatus } from './handlers/update-grn-loan-status.handler.js';
+import { resolveGrnFacilityTabSummaries } from './grn-tab-query.helper.js';
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -65,9 +66,28 @@ export class GrnService {
   public async listGrns(
     facilityId: string,
     query: GrnQuery,
-  ): Promise<{ items: Grn[]; total: number; page: number; limit: number }> {
+  ): Promise<{
+    items: Grn[];
+    total: number;
+    page: number;
+    limit: number;
+    counts: {
+      all: number;
+      active: number;
+      partial: number;
+      pendingPayment: number;
+      closed: number;
+      merged: number;
+    };
+  }> {
+    const tabResolution = await resolveGrnFacilityTabSummaries(facilityId, query.tab);
     const filter: Record<string, unknown> = { facilityId };
 
+    if (tabResolution.targetIds !== undefined) {
+      filter.id = { $in: tabResolution.targetIds };
+    } else if (query.status) {
+      filter.status = query.status;
+    }
     if (query.customerId) {
       filter.customerId = query.customerId;
     }
@@ -76,9 +96,6 @@ export class GrnService {
     }
     if (query.chamber) {
       filter.chamber = query.chamber;
-    }
-    if (query.status) {
-      filter.status = query.status;
     }
     if (query.groupId) {
       filter.groupId = query.groupId;
@@ -111,20 +128,22 @@ export class GrnService {
       GrnModel.countDocuments(filter).exec(),
     ]);
 
-    const deliveryMap = await readLedgerNetDeliveredMany(
-      facilityId,
-      docs.map((d) => d.id),
-    );
-
     return {
       items: docs.map((d) => {
-        const netDelivered = deliveryMap.get(d.id)?.total ?? 0;
+        const netDelivered = tabResolution.deliveredMap.get(d.id) ?? 0;
         const closing = Math.max(0, d.bags - netDelivered);
-        return toGrnEntity(d, { netDeliveredBags: netDelivered, closingBags: closing });
+        const rentBal = tabResolution.rentBalanceMap.get(d.id);
+        return toGrnEntity(d, {
+          netDeliveredBags: netDelivered,
+          closingBags: closing,
+          rentPaymentStatus: rentBal?.paymentStatus,
+          rentRemainingBalance: rentBal?.remainingBalance,
+        });
       }),
       total,
       page,
       limit,
+      counts: tabResolution.counts,
     };
   }
 

@@ -47,7 +47,14 @@ export function toGrnEntity(doc: {
   updatedAt?: Date;
   netDeliveredBags?: number;
   closingBags?: number;
-}, extras?: { netDeliveredBags?: number; closingBags?: number }): Grn {
+  rentPaymentStatus?: 'Settled' | 'Not Settled';
+  rentRemainingBalance?: number;
+}, extras?: {
+  netDeliveredBags?: number;
+  closingBags?: number;
+  rentPaymentStatus?: 'Settled' | 'Not Settled';
+  rentRemainingBalance?: number;
+}): Grn {
   // Both figures are derived at read time from the ledger-sourced extras the caller passes.
   // There is no stored snapshot to fall back to: the model no longer carries either field.
   const netDelivered = extras?.netDeliveredBags ?? 0;
@@ -110,6 +117,8 @@ export function toGrnEntity(doc: {
     loanSettlementReceiverAadhaar: ((doc as Record<string, unknown>).loanSettlementReceiverAadhaar as string | null) ?? null,
     netDeliveredBags: netDelivered,
     closingBags: closing,
+    rentPaymentStatus: extras?.rentPaymentStatus,
+    rentRemainingBalance: extras?.rentRemainingBalance,
     groupId: ((doc as Record<string, unknown>).groupId as string | null) ?? null,
     createdBy: doc.createdBy,
     createdAt: doc.createdAt,

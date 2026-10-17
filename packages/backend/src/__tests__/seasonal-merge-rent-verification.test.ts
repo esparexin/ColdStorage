@@ -8,6 +8,7 @@ import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { RentPaymentModel } from '../database/models/rent-payment.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
+import { useHistoricalTestingDates } from './helpers/historical-dates-env.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import { connectToTestDatabase, disconnectTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
 
@@ -19,6 +20,8 @@ describe('Seasonal Merge, Rent Verification & Inline Settlement Tests', () => {
   let adminToken: string;
   let customerId: string;
   let commodityId: string;
+
+  useHistoricalTestingDates();
 
   beforeAll(async () => {
     await connectToTestDatabase();

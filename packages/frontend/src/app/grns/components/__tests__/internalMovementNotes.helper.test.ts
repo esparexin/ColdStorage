@@ -8,32 +8,13 @@ import {
 
 describe('internalMovementNotes.helper', () => {
   const baseGrn: Grn = {
-    id: 'grn-1',
-    facilityId: 'fac-1',
-    grnNumber: 'GRN-0100',
-    date: new Date('2026-03-01'),
-    customerId: 'cust-1',
-    customerName: 'Ramesh Patel',
-    commodityId: 'comm-1',
-    commodityName: 'Potatoes',
-    chamber: 'Chamber 1',
-    bags: 300,
-    closingBags: 300,
-    smallBags: 150,
-    bigBags: 150,
-    bagType: 'S+B',
-    rentType: 'Seasonal',
-    rentAmount: 30000,
-    status: 'OPEN',
-    storageMark: 'LOT-A',
-    partyMark: 'PM-99',
-    loanStatus: 'NOT_TAKEN',
-    bondNumber: 'BOND-0100',
-    isBondForLoan: false,
-    inwardReceiptNumber: 'IRN-0100',
-    createdBy: 'user-admin',
-    createdAt: new Date('2026-03-01'),
-    updatedAt: new Date('2026-03-01'),
+    id: 'grn-1', facilityId: 'fac-1', grnNumber: 'GRN-0100', date: new Date('2026-03-01'),
+    customerId: 'cust-1', customerName: 'Ramesh Patel', commodityId: 'comm-1',
+    commodityName: 'Potatoes', chamber: 'Chamber 1', bags: 300, closingBags: 300,
+    smallBags: 150, bigBags: 150, bagType: 'S+B', rentType: 'Seasonal', rentAmount: 30000,
+    status: 'OPEN', storageMark: 'LOT-A', partyMark: 'PM-99', loanStatus: 'NOT_TAKEN',
+    bondNumber: 'BOND-0100', isBondForLoan: false, inwardReceiptNumber: 'IRN-0100',
+    createdBy: 'user-admin', createdAt: new Date('2026-03-01'), updatedAt: new Date('2026-03-01'),
   };
 
   describe('parseMergedGrnNotes', () => {
@@ -70,6 +51,18 @@ describe('internalMovementNotes.helper', () => {
       expect(rows[0].totalBags).toBe('+50 bags');
     });
 
+    it('parses repacking hamali from remarks into sbDetail', () => {
+      const grnWithHamaliRemarks: Grn = {
+        ...baseGrn,
+        remarks:
+          '[MERGE RECEIVED on 2026-10-16: +10 bags (Repacked: 10 S + 0 B). Repacking Hamali: ₹200 (10 bags @ ₹20/bag) from GRN-0030 (Customer: Penchaliah). Reason: Re-bagging lot]',
+      };
+      const rows = parseRemarksToTableRows(grnWithHamaliRemarks);
+      expect(rows).toHaveLength(1);
+      expect(rows[0].totalBags).toBe('+10 bags');
+      expect(rows[0].sbDetail).toContain('Hamali: ₹200 (10 bags @ ₹20/bag)');
+    });
+
     it('parses legacy ownership transfer remarks correctly', () => {
       const grnWithTransfer: Grn = {
         ...baseGrn,
@@ -81,6 +74,23 @@ describe('internalMovementNotes.helper', () => {
       expect(rows[0].badgeLabel).toBe('👤 Transfer');
       expect(rows[0].partyName).toBe('Ramesh Patel → Suresh Kumar');
       expect(rows[0].reason).toBe('Sale agreement');
+    });
+
+    it('parses merged-out GRN remarks with authoritative merge date instead of inward date', () => {
+      const mergedOutGrn: Grn = {
+        ...baseGrn,
+        date: new Date('2026-03-01'), // Inward date
+        status: 'CLOSED',
+        mergedIntoGrnNumber: 'GRN-0200',
+        remarks:
+          '[MERGED into GRN GRN-0200 on 2026-10-15: 300 bags cleared. Reason: Stock consolidation into target lot]',
+      };
+      const rows = parseRemarksToTableRows(mergedOutGrn);
+      expect(rows).toHaveLength(1);
+      expect(rows[0].badgeLabel).toBe('📤 Merged Out');
+      expect(rows[0].date).toBe('2026-10-15'); // Authoritative merge date, NOT 2026-03-01
+      expect(rows[0].grnLabel).toBe('Into: GRN-0200');
+      expect(rows[0].reason).toBe('Stock consolidation into target lot');
     });
   });
 
@@ -117,6 +127,38 @@ describe('internalMovementNotes.helper', () => {
       expect(rows[0].totalBags).toBe('+60 bags');
       expect(rows[0].sbDetail).toBe('S: 40 • B: 20 (S+B)');
       expect(rows[0].reason).toBe('Direct consolidation into target lot');
+    });
+
+    it('maps structured MERGE In record with repacking hamali rate and charge', () => {
+      const structuredMergeInWithHamali: InternalMovementRecord = {
+        id: 'mov-hamali-1',
+        facilityId: 'fac-1',
+        movementType: 'MERGE',
+        movementDate: new Date('2026-10-12'),
+        targetGrnId: 'grn-1',
+        targetGrnNumber: 'GRN-0100',
+        sourceGrnIds: ['grn-2'],
+        sourceGrnNumbers: ['GRN-0030'],
+        totalBagsMoved: 10,
+        smallBagsMoved: 10,
+        bigBagsMoved: 0,
+        hamaliBags: 10,
+        hamaliRate: 20,
+        hamaliCharge: 200,
+        financialSnapshot: {
+          rentAmount: 7200,
+          totalPaid: 0,
+          remainingBalance: 7200,
+          paymentStatus: 'UNPAID',
+        },
+        remarks: 'Re-bagging lot',
+        performedBy: 'user-admin',
+        createdAt: new Date('2026-10-12'),
+      };
+
+      const rows = mapStructuredMovementsToTableRows([structuredMergeInWithHamali], baseGrn);
+      expect(rows).toHaveLength(1);
+      expect(rows[0].sbDetail).toBe('S: 10 • B: 0 (S+B) • Hamali: ₹200 (@₹20/bag)');
     });
 
     it('maps structured MERGE Out record cleanly', () => {

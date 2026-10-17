@@ -88,7 +88,7 @@ Inward → GR No. → GRN Stock → Delivery-Out → Closing → Rent/Payment �
 - **Minting**: RCPT (`inwardReceiptNumber`) is still generated for the inward receipt. BND
   (`bondNumber`) is **no longer minted per receipt** — Bond # displays the GR Number instead.
 - **Storage Mark / Bond #**: no stored copies. `TransportLogisticsSection`, `BondLoanSection`,
-  `BondDetailsModal`, `bondsColumns`, `GrnDetailModal` and `GrnTable` all render `grnNumber`
+  `BondDetailsModal`, `BondsColumns`, `GrnDetailModal` and `GrnTable` all render `grnNumber`
   in those positions.
 - **Exports**: `GRN_EXPORT_HEADERS` keeps `inwardReceiptNumber` as a historical column with
   `grnNumber` first; `GRN_IMPORT_*_HEADERS` are unchanged so legacy CSV import keeps working.

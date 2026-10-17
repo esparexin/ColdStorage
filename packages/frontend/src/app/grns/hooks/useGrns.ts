@@ -9,15 +9,25 @@ import { requestWithAuth } from '@/lib/api-client';
 import { cachedRequestWithAuth } from '@/lib/api-cache';
 
 import {
+  type GrnProfileTab,
   type GrnStatusTab,
   VALID_GRN_TABS,
   resolveInitialGrnTab,
   syncGrnTabToLocation,
 } from './grnTabPersistence.helper';
 
-export type { GrnStatusTab };
+export type { GrnProfileTab, GrnStatusTab };
 
 export const GRN_PAGE_SIZE = 20;
+
+export interface GrnTabCounts {
+  all: number;
+  active: number;
+  partial: number;
+  pendingPayment: number;
+  closed: number;
+  merged: number;
+}
 
 export function useGrns(
   selectedFacilityId: string | null,
@@ -31,20 +41,30 @@ export function useGrns(
   const beginRequest = useRequestGuard();
   const [error, setError] = useState<string | null>(null);
 
+  // Tab counts
+  const [tabCounts, setTabCounts] = useState<GrnTabCounts>({
+    all: 0,
+    active: 0,
+    partial: 0,
+    pendingPayment: 0,
+    closed: 0,
+    merged: 0,
+  });
+
   // Lookups
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [commodities, setCommodities] = useState<Commodity[]>([]);
 
   // Filter states
   const [searchTerm, setSearchTermRaw] = useState('');
-  const [statusFilter, setStatusFilterRaw] = useState<GrnStatusTab>(() => resolveInitialGrnTab());
+  const [statusFilter, setStatusFilterRaw] = useState<GrnProfileTab>(() => resolveInitialGrnTab());
   const [customerFilter, setCustomerFilterRaw] = useState('');
   const [commodityFilter, setCommodityFilterRaw] = useState('');
 
   // Server-side filters narrow the result set, so the current page number is
   // reset to 1 whenever a filter or search term changes.
   const setSearchTerm = useCallback((v: string) => { setSearchTermRaw(v); setPage(1); }, []);
-  const setStatusFilter = useCallback((v: GrnStatusTab) => {
+  const setStatusFilter = useCallback((v: GrnProfileTab) => {
     setStatusFilterRaw(v);
     setPage(1);
     syncGrnTabToLocation(v);
@@ -89,10 +109,8 @@ export function useGrns(
       const params = new URLSearchParams();
       params.set('page', String(page));
       params.set('limit', String(GRN_PAGE_SIZE));
-      if (statusFilter === 'OPEN') {
-        params.set('status', 'OPEN');
-      } else if (statusFilter === 'CLOSED' || statusFilter === 'MERGED') {
-        params.set('status', 'CLOSED');
+      if (statusFilter) {
+        params.set('tab', statusFilter);
       }
       if (customerFilter) params.set('customerId', customerFilter);
       if (commodityFilter) params.set('commodityId', commodityFilter);
@@ -104,11 +122,18 @@ export function useGrns(
         const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
-      const data = (await res.json()) as { items?: Grn[]; total?: number };
+      const data = (await res.json()) as {
+        items?: Grn[];
+        total?: number;
+        counts?: GrnTabCounts;
+      };
       if (!isCurrent()) return;
       setGrns(data.items ?? []);
       setTotalGrns(data.total ?? 0);
       setTotalPages(Math.ceil((data.total ?? 0) / GRN_PAGE_SIZE));
+      if (data.counts) {
+        setTabCounts(data.counts);
+      }
     } catch (e) {
       if (!isCurrent()) return;
       setError(e instanceof Error ? e.message : 'Failed to load Inward of Goods');
@@ -155,31 +180,6 @@ export function useGrns(
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  // Tab-filtered records (partitions Closed vs Merged cleanly)
-  const filteredGrns = useMemo(() => {
-    if (statusFilter === 'MERGED') {
-      return grns.filter((g) => Boolean(g.mergedIntoGrnNumber));
-    }
-    if (statusFilter === 'CLOSED') {
-      return grns.filter((g) => !g.mergedIntoGrnNumber);
-    }
-    return grns;
-  }, [grns, statusFilter]);
-
-  const displayTotalGrns = useMemo(() => {
-    if (statusFilter === 'MERGED' || statusFilter === 'CLOSED') {
-      return filteredGrns.length;
-    }
-    return totalGrns;
-  }, [filteredGrns.length, statusFilter, totalGrns]);
-
-  const displayTotalPages = useMemo(() => {
-    if (statusFilter === 'MERGED' || statusFilter === 'CLOSED') {
-      return Math.max(1, Math.ceil(filteredGrns.length / GRN_PAGE_SIZE));
-    }
-    return totalPages;
-  }, [filteredGrns.length, statusFilter, totalPages]);
-
   const currentFacilityName = useMemo(() => {
     return (
       availableFacilities.find((f) => f.id === selectedFacilityId)?.name ??
@@ -197,9 +197,10 @@ export function useGrns(
 
   return {
     grns,
-    filteredGrns,
-    totalGrns: displayTotalGrns,
-    totalPages: displayTotalPages,
+    filteredGrns: grns,
+    totalGrns,
+    totalPages,
+    tabCounts,
     page,
     setPage,
     pageSize: GRN_PAGE_SIZE,

@@ -3,7 +3,7 @@
 import type { Grn, GrnInventorySummary, OutwardBagCategory } from '@cold-storage/contracts';
 import { isHybridBagCategory } from '@cold-storage/contracts';
 import { Badge, Button, Select } from '@/components/ui';
-import { formatGrnDate } from './eligibleGrnColumns';
+import { formatGrnDate } from './EligibleGrnColumns';
 import styles from './SelectedGrnCard.module.css';
 
 interface SelectedGrnCardProps {

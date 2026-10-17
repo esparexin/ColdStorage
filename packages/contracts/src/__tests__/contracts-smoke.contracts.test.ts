@@ -18,7 +18,7 @@ import {
   loanPaymentModeSchema,
   loanSettlementInputSchema,
   updateGrnLoanStatusSchema,
-} from './index.js';
+} from '../index.js';
 
 describe('P1 Governance & Shared Contracts Foundation', () => {
   it('enforces independent business identifiers and optional opaque GP', () => {

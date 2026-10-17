@@ -8,6 +8,7 @@ import { requestWithAuth } from '@/lib/api-client';
 import { InternalMovementMergeTab } from './InternalMovementMergeTab';
 import { InternalMovementTransferTab } from './InternalMovementTransferTab';
 import { buildMergePayload, buildTransferPayload } from './internalMovementPayload.helper';
+import { useOpenFacilityGrns } from '../hooks/useOpenFacilityGrns';
 import styles from './InternalMovementModal.module.css';
 
 interface InternalMovementModalProps {
@@ -42,6 +43,7 @@ export function InternalMovementModal({
   const [activeTab, setActiveTab] = useState<'merge' | 'transfer'>('merge');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const openFacilityGrns = useOpenFacilityGrns(facilityId, grn, allGrns);
 
   const handleRequestClose = () => { if (!submitting) onClose(); };
 
@@ -61,7 +63,7 @@ export function InternalMovementModal({
     repackedBigBags?: number, referenceWeight?: number, sourcePaymentAmount?: number,
     sourcePaymentMode?: import('@cold-storage/contracts').PaymentMode, sourceBagCategory?: import('@cold-storage/contracts').OutwardBagCategory,
     sourceQuantity?: number, sourceBagPrice?: number, sourceSeasonalBagPrice?: number,
-    sourceMonthlyBagPrice?: number,
+    sourceMonthlyBagPrice?: number, isRepackSelected?: boolean, repackedBagCount?: number,
   ) => {
     if (submitting) return;
     setSubmitting(true);
@@ -77,6 +79,7 @@ export function InternalMovementModal({
               targetGrnId, sourceGrnIds, reason, remarks, movementDate, additionalRentAmount,
               repackedSmallBags, repackedBigBags, referenceWeight, sourcePaymentAmount, sourcePaymentMode,
               sourceBagCategory, sourceQuantity, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice,
+              isRepackSelected, repackedBagCount,
             ),
           ),
         },
@@ -225,11 +228,8 @@ export function InternalMovementModal({
 
         {activeTab === 'merge' ? (
           <InternalMovementMergeTab
-            currentGrn={grn}
-            allGrns={allGrns}
-            commodities={commodities}
-            submitting={submitting}
-            onExecuteMerge={handleExecuteMerge}
+            currentGrn={grn} facilityId={facilityId} allGrns={openFacilityGrns}
+            commodities={commodities} submitting={submitting} onExecuteMerge={handleExecuteMerge}
           />
         ) : (
           <InternalMovementTransferTab

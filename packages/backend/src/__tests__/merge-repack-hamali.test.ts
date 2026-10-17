@@ -82,6 +82,7 @@ describe('Merge Repacking Hamali Charge Accounting', () => {
         targetGrnId,
         sourceGrnIds: [sourceGrnId],
         movementDate: new Date(),
+        isRepackSelected: true,
         repackedSmallBags: 30,
         repackedBigBags: 20,
         remarks: 'Repacked 50 bags into 30S and 20B',
@@ -98,6 +99,74 @@ describe('Merge Repacking Hamali Charge Accounting', () => {
     expect(res.body.movement.hamaliRate).toBe(4);
     expect(res.body.movement.financialSnapshot.hamaliAmount).toBe(200);
     expect(res.body.targetGrn.remarks).toContain('Repacking Hamali: ₹200 (50 bags @ ₹4/bag)');
+  });
+
+  it('charges zero repacking hamali when lot composition is confirmed but repacking is not explicitly selected', async () => {
+    const targetGrnId = await seedGrn({
+      facilityId, customerId, customerName: 'Trader Vikas', commodityId: hamaliCommodityId,
+      commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S+B', smallBags: 40,
+      bigBags: 60, rentType: 'Seasonal', rentAmount: 2000, grnNumber: 'GRN-26-27-0307',
+    });
+
+    const sourceGrnId = await seedGrn({
+      facilityId, customerId, customerName: 'Trader Vikas', commodityId: hamaliCommodityId,
+      commodityName: 'Potato', chamber: 'CH-01', bags: 50, bagType: 'S+B', smallBags: 20,
+      bigBags: 30, rentType: 'Seasonal', rentAmount: 1000, grnNumber: 'GRN-26-27-0308',
+    });
+
+    const res = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        targetGrnId,
+        sourceGrnIds: [sourceGrnId],
+        movementDate: new Date(),
+        isRepackSelected: false,
+        repackedSmallBags: 30,
+        repackedBigBags: 20,
+        remarks: 'Confirmed mix without repacking',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.targetGrn.rentAmount).toBe(3200); // 0 repacking hamali
+    expect(res.body.movement.hamaliCharge ?? 0).toBe(0);
+    expect(res.body.targetGrn.remarks).not.toContain('Repacking Hamali');
+  });
+
+  it('charges repacking hamali strictly based on actual number of bags handled', async () => {
+    const targetGrnId = await seedGrn({
+      facilityId, customerId, customerName: 'Trader Vikas', commodityId: hamaliCommodityId,
+      commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S+B', smallBags: 40,
+      bigBags: 60, rentType: 'Seasonal', rentAmount: 2000, grnNumber: 'GRN-26-27-0309',
+    });
+
+    const sourceGrnId = await seedGrn({
+      facilityId, customerId, customerName: 'Trader Vikas', commodityId: hamaliCommodityId,
+      commodityName: 'Potato', chamber: 'CH-01', bags: 50, bagType: 'S+B', smallBags: 20,
+      bigBags: 30, rentType: 'Seasonal', rentAmount: 1000, grnNumber: 'GRN-26-27-0310',
+    });
+
+    const res = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        targetGrnId,
+        sourceGrnIds: [sourceGrnId],
+        movementDate: new Date(),
+        isRepackSelected: true,
+        repackedBagCount: 20,
+        repackedSmallBags: 30,
+        repackedBigBags: 20,
+        remarks: 'Explicitly repacked 20 bags',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    // 20 bags * 4 = 80 hamali
+    expect(res.body.targetGrn.rentAmount).toBe(3280);
+    expect(res.body.movement.hamaliCharge).toBe(80);
+    expect(res.body.movement.hamaliBags).toBe(20);
   });
 
   it('charges zero repacking hamali when merge is performed without repacking', async () => {

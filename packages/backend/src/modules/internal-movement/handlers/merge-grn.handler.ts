@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { isHybridBagCategory, resolveMergedBagType, resolveStoredCompositionVerified, type Grn, type InternalMovementRecord, type MergeGrnInput } from '@cold-storage/contracts';
+import { appendGrnRemarks, isHybridBagCategory, resolveMergedBagType, resolveStoredCompositionVerified, type Grn, type InternalMovementRecord, type MergeGrnInput } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { resolveMovementObligation } from './resolve-movement-obligation.js';
@@ -8,10 +8,11 @@ import { computeRentBalance } from '../../common/rent-balance.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
-import { validatePartialMovesInput, validateProspectiveMergeMove, processMergeSource } from './merge-source-move.helper.js';
+import { validateProspectiveMergeMove, processMergeSource } from './merge-source-move.helper.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 import { createMergePutawayTransaction, createMergeMovementRecord } from './merge-grn-movement.helper.js';
 import { resolveMergeRepackHamali } from './merge-repack-hamali.helper.js';
+import { validateOperationalDate } from '../../common/operational-date.helper.js';
 
 export async function mergeGrn(
   facilityId: string,
@@ -55,8 +56,7 @@ export async function mergeGrn(
       let totalMovedBig = 0;
       let totalSourcePendingRent = 0;
       const sourceSummaries: string[] = [];
-      const moveDate = new Date(input.movementDate);
-      validatePartialMovesInput(input);
+      const moveDate = validateOperationalDate(input.movementDate, { label: 'Movement' });
       const confirmed = await validateProspectiveMergeMove({
         facilityId, targetGrn, sourceGrns, input, moveDate, session,
       });
@@ -95,8 +95,10 @@ export async function mergeGrn(
 
       const repackHamali = await resolveMergeRepackHamali({
         commodityId: targetGrn.commodityId,
+        isRepackSelected: input.isRepackSelected,
         repackedSmallBags: input.repackedSmallBags,
         repackedBigBags: input.repackedBigBags,
+        repackedBagCount: input.repackedBagCount,
         totalMovedBags,
         session,
       });
@@ -136,7 +138,7 @@ export async function mergeGrn(
           : '';
       const carriedRentNote = finalCarriedRent > 0 ? `. Carried pending rent: ₹${finalCarriedRent}` : '';
       const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${totalMovedBags} bags${repackedNote}${repackHamaliNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}. Reason: ${input.remarks.trim()}]`;
-      const updatedTargetRemarks = targetGrn.remarks ? `${targetGrn.remarks}\n${targetNote}` : targetNote;
+      const updatedTargetRemarks = appendGrnRemarks(targetGrn.remarks, targetNote);
 
       const updatedTarget = await GrnModel.findOneAndUpdate(
         { id: targetGrn.id },

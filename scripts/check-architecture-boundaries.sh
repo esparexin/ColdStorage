@@ -318,6 +318,15 @@ if [ -n "$FORBIDDEN_PAGE_SIZES" ]; then
   fail "Document Page Size SSOT violation: print layouts must use A6 dimensions (105mm 148mm or 148mm 105mm). A4/A5/Letter sizes are prohibited."
 fi
 
+# 31. Component File Naming SSOT (PascalCase Only):
+# All React .tsx component files under components/ directories must be named in PascalCase.
+# camelCase or kebab-case .tsx components are prohibited.
+CAMEL_COMPONENT_HITS=$(find "$ROOT/packages/frontend/src" -path "*/components/*.tsx" -exec basename {} \; | grep -E '^[a-z]' || true)
+if [ -n "$CAMEL_COMPONENT_HITS" ]; then
+  echo "$CAMEL_COMPONENT_HITS"
+  fail "Component File Naming SSOT violation: component files under components/ must be PascalCase (e.g. TableColumns.tsx, not tableColumns.tsx)."
+fi
+
 if [ "$EXIT" -eq 0 ]; then
   echo "[PASS] All architecture boundaries and UI SSOT governance checks passed."
 fi

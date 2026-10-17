@@ -53,20 +53,13 @@ describe('GRN lifecycle baseline scenarios (Phase 0)', () => {
     expect(dup.success).toBe(false);
   });
 
-  it('partial move/transfer schemas accept explicit quantities (M2)', () => {
+  it('merge and transfer schemas validate required inputs for full movement', () => {
     const merge = mergeGrnInputSchema.safeParse({
-      targetGrnId: 'g-t', sourceGrnIds: ['g-s'], remarks: 'partial move test',
-      partialMoves: [{ sourceGrnId: 'g-s', smallBags: 30, bigBags: 20 }],
+      targetGrnId: 'g-t', sourceGrnIds: ['g-s'], remarks: 'full merge test',
     });
     expect(merge.success).toBe(true);
-    const badMerge = mergeGrnInputSchema.safeParse({
-      targetGrnId: 'g-t', sourceGrnIds: ['g-s'], remarks: 'partial move test',
-      partialMoves: [{ sourceGrnId: 'g-s', smallBags: 0, bigBags: 0 }],
-    });
-    expect(badMerge.success).toBe(false);
     const transfer = transferOwnershipInputSchema.safeParse({
-      grnId: 'g-1', newCustomerId: 'c-2', remarks: 'partial transfer test',
-      transferSmallBags: 30, transferBigBags: 20, newGrnNumber: '0099',
+      grnId: 'g-1', newCustomerId: 'c-2', remarks: 'full transfer test',
     });
     expect(transfer.success).toBe(true);
   });

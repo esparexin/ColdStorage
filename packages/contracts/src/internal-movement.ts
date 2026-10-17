@@ -6,22 +6,16 @@ import { bagPriceSchema } from './pricing.js';
 export const internalMovementTypeSchema = z.enum(['MERGE', 'TRANSFER_OWNERSHIP']);
 export type InternalMovementType = z.infer<typeof internalMovementTypeSchema>;
 
-export const partialMoveSchema = z.object({
-  sourceGrnId: z.string().trim().min(1),
-  smallBags: z.number().int().min(0).max(100000),
-  bigBags: z.number().int().min(0).max(100000),
-}).refine((d) => d.smallBags + d.bigBags > 0, 'Partial move must move at least one bag');
-
-export type PartialMove = z.infer<typeof partialMoveSchema>;
-
 export const mergeGrnInputSchema = z.object({
   targetGrnId: z.string().trim().min(1, 'Target GRN ID is required'),
   sourceGrnIds: z.array(z.string().trim().min(1)).min(1, 'At least one source GRN is required'),
   movementDate: z.coerce.date().default(() => new Date()),
   additionalRentAmount: z.number().min(0).default(0),
   remarks: z.string().trim().min(3, 'Remarks must be at least 3 characters').max(500),
+  isRepackSelected: z.boolean().optional(),
   repackedSmallBags: z.number().int().min(0).nullish(),
   repackedBigBags: z.number().int().min(0).nullish(),
+  repackedBagCount: z.number().int().min(0).max(100000).nullish(),
   // Source bag-category confirmation: reuses the outward vocabulary
   // (Small, Big, Small & Big, Hybrid/Mixed). Informational for rent — the
   // backend recomputes obligations from source rules and never bills these.
@@ -33,7 +27,6 @@ export const mergeGrnInputSchema = z.object({
   referenceWeight: z.number().positive('Reference weight must be greater than zero').max(1000000).nullish(),
   sourcePaymentAmount: z.number().min(0, 'Payment amount cannot be negative').nullish(),
   sourcePaymentMode: paymentModeSchema.nullish(),
-  partialMoves: z.array(partialMoveSchema).nullish(),
 });
 export type MergeGrnInput = z.infer<typeof mergeGrnInputSchema>;
 
@@ -62,9 +55,6 @@ export const transferOwnershipInputSchema = z.object({
   sourceBagPrice: bagPriceSchema.nullish(),
   sourceSeasonalBagPrice: bagPriceSchema.nullish(),
   sourceMonthlyBagPrice: bagPriceSchema.nullish(),
-  transferSmallBags: z.number().int().min(0).max(100000).nullish(),
-  transferBigBags: z.number().int().min(0).max(100000).nullish(),
-  newGrnNumber: z.string().trim().min(1).max(20).nullish(),
 });
 export type TransferOwnershipInput = z.infer<typeof transferOwnershipInputSchema>;
 
@@ -116,3 +106,51 @@ export const internalMovementRecordSchema = z.object({
   createdAt: z.coerce.date(),
 });
 export type InternalMovementRecord = z.infer<typeof internalMovementRecordSchema>;
+
+export const HYBRID_RATE_REQUIRED_MESSAGE =
+  'Confirmed Hybrid lots require a per-bag rate (Each Bag Price, or Seasonal/Monthly rates).';
+
+export interface HybridRateInputs {
+  bagPrice?: number | null | '';
+  seasonalBagPrice?: number | null | '';
+  monthlyBagPrice?: number | null | '';
+}
+
+/** Pure helper to check if at least one positive Hybrid rate is configured. */
+export function hasPositiveHybridRate(rates: HybridRateInputs): boolean {
+  return (
+    (typeof rates.bagPrice === 'number' && rates.bagPrice > 0) ||
+    (typeof rates.seasonalBagPrice === 'number' && rates.seasonalBagPrice > 0) ||
+    (typeof rates.monthlyBagPrice === 'number' && rates.monthlyBagPrice > 0)
+  );
+}
+
+/** Pure helper to validate confirmed Hybrid quantity against available/moved stock. */
+export function validateHybridQuantityInput(
+  quantity: number | null | undefined | '',
+  expectedTotal: number,
+  stockNoun: 'total moved stock' | 'available stock' = 'available stock',
+): string | null {
+  if (typeof quantity !== 'number' || !Number.isInteger(quantity) || quantity <= 0) {
+    return 'Confirmed Hybrid quantity must be a positive whole number.';
+  }
+  if (quantity !== expectedTotal) {
+    return `Confirmed Hybrid quantity (${quantity}) must match ${stockNoun} of ${expectedTotal} bags.`;
+  }
+  return null;
+}
+
+/**
+ * Appends an audit note to GRN remarks without exceeding the 500-char max constraint.
+ * If the resulting combined string exceeds maxLen (default 500), it safely trims the
+ * earliest text so the latest audit note and total length remain strictly within bounds.
+ */
+export function appendGrnRemarks(existing: string | null | undefined, newNote: string, maxLen = 500): string {
+  const note = newNote.trim();
+  if (!existing?.trim()) return note.slice(0, maxLen);
+  const combined = `${existing.trim()}\n${note}`;
+  if (combined.length <= maxLen) return combined;
+  if (note.length >= maxLen) return note.slice(0, maxLen);
+  return combined.slice(combined.length - maxLen);
+}
+

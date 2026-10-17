@@ -76,7 +76,7 @@ export function validateCreateGrnForm(state: CreateGrnState, rateCheck?: Control
 
   // Total-only S/B inward; Small/Big composition is confirmed at outward delivery.
   if (typeof state.createBags !== 'number' || !Number.isInteger(state.createBags) || state.createBags < 1) {
-    errors.bags = 'Total S/B Bags is required (a positive whole number)';
+    errors.bags = 'Total Bags is required (a positive whole number)';
   }
 
   if (state.createRentType === 'Monthly' && typeof state.createRentMonths === 'number' && state.createRentMonths < 1) {
