@@ -48,6 +48,11 @@ export function validateTransferBagConfirmation(
     if (!Number.isInteger(s) || !Number.isInteger(b) || s < 0 || b < 0) {
       throw new Error('Confirmed bag counts must be whole non-negative numbers');
     }
+    if (s + b > ledgerTotal) {
+      throw new Error(
+        `Confirmed transfer counts (${s} small + ${b} big = ${s + b}) cannot exceed available stock of ${ledgerTotal} bags for GRN '${grnNumber}'`,
+      );
+    }
     if (s + b !== ledgerTotal) {
       throw new Error(
         `Confirmed transfer counts (${s} small + ${b} big = ${s + b}) must reconcile with available stock of ${ledgerTotal} bags for GRN '${grnNumber}'`,

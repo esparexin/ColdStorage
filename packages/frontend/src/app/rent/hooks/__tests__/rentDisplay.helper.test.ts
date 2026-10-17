@@ -106,6 +106,41 @@ describe('rentDisplay.helper', () => {
         }),
       ).toBe('Rent obligation is derived from 40 outward delivered bags.');
     });
+
+    it('returns carried-forward notice when merged into another GRN', () => {
+      expect(
+        getRentCollectionNotice({
+          rentType: 'Seasonal',
+          rentAmount: 2000,
+          remainingBalance: 0,
+          mergedIntoGrnNumber: '0020',
+        }),
+      ).toContain('This GRN was merged into GRN 0020. Outstanding dues were carried forward');
+    });
+  });
+
+  describe('mergedIntoGrnNumber handling', () => {
+    it('formats remaining due as "Carried Forward" for merged GRN', () => {
+      expect(
+        formatRemainingDue({
+          rentType: 'Seasonal',
+          rentAmount: 2000,
+          remainingBalance: 0,
+          mergedIntoGrnNumber: '0020',
+        }),
+      ).toBe('Carried Forward');
+    });
+
+    it('formats payment status as "Merged → {grnNumber}" with neutral variant', () => {
+      const res = formatPaymentStatus({
+        rentType: 'Seasonal',
+        rentAmount: 2000,
+        paymentStatus: 'Settled',
+        mergedIntoGrnNumber: '0020',
+      });
+      expect(res.label).toBe('Merged → 0020');
+      expect(res.variant).toBe('neutral');
+    });
   });
 
   describe('formatBillingPeriodSubtitle', () => {

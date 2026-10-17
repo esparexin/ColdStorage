@@ -8,6 +8,7 @@ import {
   formatPaymentStatus,
   formatRentStructure,
   formatAgreedRates,
+  formatRemainingDue,
 } from '../hooks/rentDisplay.helper';
 import styles from '../page.module.css';
 
@@ -48,62 +49,7 @@ export function createRentColumns({
         </div>
       ),
     },
-    {
-      key: 'commodity',
-      header: 'Commodity & Chamber',
-      sortable: true,
-      sortType: 'text',
-      sortAccessor: (row) => row.commodityName,
-      render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)' }}>
-          <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)' }}>
-            {row.commodityName}
-          </span>
-          <span className={styles.tableSubtext}>Chamber {row.chamber}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'inwardBags',
-      header: 'Inward',
-      align: 'right',
-      sortable: true,
-      sortType: 'number',
-      sortAccessor: (row) => row.totalBags,
-      render: (row) => (
-        <span className={styles.bagNumber}>{row.totalBags.toLocaleString('en-IN')}</span>
-      ),
-    },
-    {
-      key: 'outwardBags',
-      header: 'Outward',
-      align: 'right',
-      sortable: true,
-      sortType: 'number',
-      sortAccessor: (row) => row.deliveredBags ?? 0,
-      render: (row) => (
-        <span className={styles.bagNumber}>{(row.deliveredBags ?? 0).toLocaleString('en-IN')}</span>
-      ),
-    },
-    {
-      key: 'remainingBags',
-      header: 'Balance',
-      align: 'right',
-      sortable: true,
-      sortType: 'number',
-      sortAccessor: (row) =>
-        row.remainingBags ?? Math.max(0, row.totalBags - (row.deliveredBags ?? 0)),
-      render: (row) => {
-        const bal = row.remainingBags ?? Math.max(0, row.totalBags - (row.deliveredBags ?? 0));
-        return (
-          <span
-            className={`${styles.bagNumber} ${bal > 0 ? styles.balancePositive : styles.balanceZero}`}
-          >
-            {bal.toLocaleString('en-IN')}
-          </span>
-        );
-      },
-    },
+
     {
       key: 'structure',
       header: 'Rent Structure',
@@ -119,19 +65,26 @@ export function createRentColumns({
               {formatRentStructure(row)}
             </span>
             {agreedRates && (
-              <span
-                style={{
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--color-text-muted)',
-                  fontVariantNumeric: 'tabular-nums',
-                }}
-              >
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
                 {agreedRates}
               </span>
             )}
           </div>
         );
       },
+    },
+    {
+      key: 'rentGeneratedDate',
+      header: 'Rent Generated Date',
+      sortable: true,
+      sortType: 'date',
+      sortAccessor: (row) =>
+        row.rentGeneratedDate ? new Date(row.rentGeneratedDate).getTime() : 0,
+      render: (row) => (
+        <span className={styles.tableSubtext}>
+          {formatDisplayDate(row.rentGeneratedDate, { fallback: '—' })}
+        </span>
+      ),
     },
     {
       key: 'accounting',
@@ -143,38 +96,14 @@ export function createRentColumns({
       render: (row) => {
         const lastP = row.payments?.length ? row.payments[row.payments.length - 1] : null;
         return (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-end',
-              gap: 'var(--space-0-5)',
-            }}
-          >
-            <span
-              style={{
-                fontSize: 'var(--text-xs)',
-                fontWeight: 'var(--font-semibold)',
-                color: 'var(--color-success-text)',
-              }}
-            >
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--space-0-5)' }}>
+            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-success-text)' }}>
               Paid: ₹{row.totalPaid.toLocaleString('en-IN')}
             </span>
-            <span
-              style={{
-                fontSize: 'var(--text-xs)',
-                fontWeight: 'var(--font-semibold)',
-                color:
-                  row.remainingBalance > 0 ? 'var(--color-warning-text)' : 'var(--color-text-muted)',
-              }}
-            >
-              Due: ₹{row.remainingBalance.toLocaleString('en-IN')}
+            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: row.remainingBalance > 0 ? 'var(--color-warning-text)' : 'var(--color-text-muted)' }}>
+              Due: {formatRemainingDue(row)}
             </span>
-            {lastP && (
-              <span className={styles.tableSubtext}>
-                Paid: {formatDisplayDate(lastP.paymentDate)}
-              </span>
-            )}
+            {lastP && <span className={styles.tableSubtext}>Paid: {formatDisplayDate(lastP.paymentDate)}</span>}
           </div>
         );
       },
@@ -188,17 +117,9 @@ export function createRentColumns({
       sortAccessor: (row) => formatPaymentStatus(row).label,
       render: (row) => {
         const status = formatPaymentStatus(row);
+        const Icon = status.variant === 'success' ? CheckCircle2 : Clock;
         return (
-          <Badge
-            variant={status.variant}
-            icon={
-              status.variant === 'success' ? (
-                <CheckCircle2 size={12} aria-hidden="true" />
-              ) : (
-                <Clock size={12} aria-hidden="true" />
-              )
-            }
-          >
+          <Badge variant={status.variant} icon={<Icon size={12} aria-hidden="true" />}>
             {status.label}
           </Badge>
         );
@@ -208,33 +129,36 @@ export function createRentColumns({
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (row) => (
-        <div className={styles.actionGroup}>
-          {row.paymentStatus !== 'Settled' && canCollect && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => onOpenCollect(row)}
-              title="Collect rent payment"
-              aria-label={`Collect rent payment for ${row.grnNumber}`}
-              leftIcon={<Plus size={12} aria-hidden="true" />}
-            >
-              Collect
-            </Button>
-          )}
+      render: (row) => {
+        const isMergedSource = Boolean(row.mergedIntoGrnNumber || row.mergedIntoGrnId);
+        return (
+          <div className={styles.actionGroup}>
+            {!isMergedSource && row.paymentStatus !== 'Settled' && canCollect && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => onOpenCollect(row)}
+                title="Collect rent payment"
+                aria-label={`Collect rent payment for ${row.grnNumber}`}
+                leftIcon={<Plus size={12} aria-hidden="true" />}
+              >
+                Collect
+              </Button>
+            )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onOpenHistory(row)}
-            title="View payment cash memos history"
-            aria-label={`View cash memos history for ${row.grnNumber}`}
-            leftIcon={<Eye size={12} aria-hidden="true" />}
-          >
-            Cash Memos ({row.payments.length})
-          </Button>
-        </div>
-      ),
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onOpenHistory(row)}
+              title="View payment cash memos history"
+              aria-label={`View cash memos history for ${row.grnNumber}`}
+              leftIcon={<Eye size={12} aria-hidden="true" />}
+            >
+              Cash Memos ({row.payments.length})
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 }

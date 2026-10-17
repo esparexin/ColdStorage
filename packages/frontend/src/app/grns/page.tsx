@@ -37,26 +37,47 @@ export default function GrnsPage() {
   const [printError, setPrintError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  useEffect(() => {
-    const handleSelectEvent = (e: Event) => {
-      const customEvent = e as CustomEvent<Grn>;
-      if (customEvent.detail) setSelectedGrn(customEvent.detail);
-    };
-    window.addEventListener('select-grn', handleSelectEvent);
-
-    const params = new URLSearchParams(window.location.search);
-    const targetGrnId = params.get('selectedGrnId');
-    if (targetGrnId) {
-      const match = grnData.grns.find((g) => g.id === targetGrnId);
-      if (match) setSelectedGrn(match);
-    }
-    return () => window.removeEventListener('select-grn', handleSelectEvent);
-  }, [grnData.grns]);
   const canCreate = hasPermission('grn:create');
   const canPrint = hasPermission('document:print');
   const canManageLoan = hasPermission('grn:create');
   const canCorrect = hasPermission('grn:correct');
   const canCreateChallan = hasPermission('delivery:create');
+
+  useEffect(() => {
+    const handleSelectEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<Grn>;
+      if (customEvent.detail) setSelectedGrn(customEvent.detail);
+    };
+    const handleOpenCreateEvent = () => {
+      if (canCreate) setIsCreateOpen(true);
+    };
+    window.addEventListener('select-grn', handleSelectEvent);
+    window.addEventListener('open-create-grn', handleOpenCreateEvent);
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('action') === 'create' && canCreate) {
+        setIsCreateOpen(true);
+      }
+      const searchParam = params.get('search');
+      if (searchParam) {
+        grnData.setSearchTerm(searchParam);
+      }
+      const targetGrnId = params.get('selectedGrnId');
+      if (targetGrnId) {
+        const match = grnData.grns.find((g) => g.id === targetGrnId);
+        if (match) setSelectedGrn(match);
+      }
+      const url = new URL(window.location.href);
+      ['action', 'search', 'selectedGrnId'].forEach((k) => url.searchParams.delete(k));
+      window.history.replaceState({}, '', url.toString());
+    }
+
+    return () => {
+      window.removeEventListener('select-grn', handleSelectEvent);
+      window.removeEventListener('open-create-grn', handleOpenCreateEvent);
+    };
+  }, [canCreate, grnData.grns, grnData.setSearchTerm]);
 
   const handlePrint = async (type: 'grn' | 'receipt', grnId: string) => {
     if (!selectedFacilityId) return;
@@ -75,18 +96,11 @@ export default function GrnsPage() {
     }
   };
 
-  const handleCorrectGrn = (grn: Grn) => {
-    setSelectedGrn(null);
-    setCorrectModalGrn(grn);
-  };
-
-  const handleInternalMove = (grn: Grn) => {
-    setSelectedGrn(null);
-    setInternalMovementGrn(grn);
-  };
-
+  const handleCorrectGrn = (grn: Grn) => { setSelectedGrn(null); setCorrectModalGrn(grn); };
+  const handleInternalMove = (grn: Grn) => { setSelectedGrn(null); setInternalMovementGrn(grn); };
   const handleCreateChallan = (grn: Grn) => {
-    router.push(`/deliveries?action=create&grnId=${encodeURIComponent(grn.id)}`);
+    setSelectedGrn(null);
+    router.push(`/deliveries?tab=issue&grnId=${encodeURIComponent(grn.id)}`);
   };
 
   return (
@@ -170,6 +184,7 @@ export default function GrnsPage() {
             <GrnTable
               grns={grnData.filteredGrns}
               caption={`Inward of Goods for ${grnData.currentFacilityName}`}
+              isMergedTab={grnData.statusFilter === 'MERGED'}
               canPrint={canPrint}
               canCorrect={canCorrect}
               canCreateChallan={canCreateChallan}
@@ -212,34 +227,16 @@ export default function GrnsPage() {
         onCloseInternalMovementModal={() => setInternalMovementGrn(null)}
         onCloseCreateModal={() => setIsCreateOpen(false)}
         onPrint={handlePrint}
-        onManageLoan={(grn) => {
-          setSelectedGrn(null);
-          setLoanModalGrn(grn);
-        }}
+        onManageLoan={(grn) => { setSelectedGrn(null); setLoanModalGrn(grn); }}
         onCorrect={handleCorrectGrn}
         onCreateChallan={handleCreateChallan}
         onInternalMove={handleInternalMove}
-        onLoanStatusUpdated={(updatedGrn) => {
-          void grnData.fetchGrns();
-          setSelectedGrn(updatedGrn);
-        }}
-        onGrnCorrected={(updatedGrn) => {
-          setCorrectModalGrn(null);
-          void grnData.fetchGrns();
-          setSelectedGrn(updatedGrn);
-        }}
-        onInternalMovementSuccess={(updatedGrn) => {
-          setInternalMovementGrn(null);
-          void grnData.fetchGrns();
-          setSelectedGrn(updatedGrn);
-        }}
+        onLoanStatusUpdated={(updatedGrn) => { void grnData.fetchGrns(); setSelectedGrn(updatedGrn); }}
+        onGrnCorrected={(updatedGrn) => { setCorrectModalGrn(null); void grnData.fetchGrns(); setSelectedGrn(updatedGrn); }}
+        onInternalMovementSuccess={(updatedGrn) => { setInternalMovementGrn(null); void grnData.fetchGrns(); setSelectedGrn(updatedGrn); }}
         onCustomerAdded={() => void grnData.fetchLookups()}
         onCommodityAdded={() => void grnData.fetchLookups()}
-        onCreateSuccess={(newGrn) => {
-          setIsCreateOpen(false);
-          void grnData.fetchGrns();
-          setSelectedGrn(newGrn);
-        }}
+        onCreateSuccess={(newGrn) => { setIsCreateOpen(false); void grnData.fetchGrns(); setSelectedGrn(newGrn); }}
       />
     </div>
   );

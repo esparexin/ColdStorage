@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { LogOut, Menu, Search } from 'lucide-react';
-import { Modal, Select } from '@/components/ui';
+import { useRouter, usePathname } from 'next/navigation';
+import { LogOut, Menu, Plus, Search } from 'lucide-react';
+import { Button, Modal, Select } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useFacility } from '@/context/FacilityContext';
 import { useSettings } from '@/context/SettingsContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { ORG_NAME_FALLBACK } from '@/lib/branding';
 import { GlobalGrnSearch } from './GlobalGrnSearch';
 import styles from './AppHeader.module.css';
@@ -16,10 +18,32 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHeaderProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const { user, logout } = useAuth();
   const { selectedFacilityId, setSelectedFacilityId, availableFacilities } = useFacility();
   const { settings } = useSettings();
+  const { hasPermission } = usePermissions();
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+
+  const canCreateGrn = hasPermission('grn:create');
+  const canCreateDelivery = hasPermission('delivery:create');
+
+  const handleInwardClick = () => {
+    if (pathname === '/grns') {
+      window.dispatchEvent(new CustomEvent('open-create-grn'));
+    } else {
+      router.push(canCreateGrn ? '/grns?action=create' : '/grns');
+    }
+  };
+
+  const handleOutwardClick = () => {
+    if (pathname === '/deliveries') {
+      window.dispatchEvent(new CustomEvent('switch-delivery-tab', { detail: 'issue' }));
+    } else {
+      router.push(canCreateDelivery ? '/deliveries?tab=issue' : '/deliveries');
+    }
+  };
 
   // No synthetic fallback: when the facility list fails to load the selector hides
   // and pages render their own error/empty states from FacilityContext.facilitiesError.
@@ -69,6 +93,30 @@ export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHea
 
       <div className={styles.center}>
         <GlobalGrnSearch />
+        <div className={styles.quickActions}>
+          <Button
+            id="header-inward-btn"
+            variant="secondary"
+            size="sm"
+            onClick={handleInwardClick}
+            leftIcon={<Plus size={14} aria-hidden="true" />}
+            className={styles.quickActionBtn}
+            aria-label="Inward of Goods"
+          >
+            Inward
+          </Button>
+          <Button
+            id="header-outward-btn"
+            variant="secondary"
+            size="sm"
+            onClick={handleOutwardClick}
+            leftIcon={<Plus size={14} aria-hidden="true" />}
+            className={styles.quickActionBtn}
+            aria-label="Outward Delivery Challan"
+          >
+            Outward
+          </Button>
+        </div>
       </div>
 
       <div className={styles.right}>

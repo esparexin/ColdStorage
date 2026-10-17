@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  isHybridBagCategory,
   resolveTotalRentObligation,
   type Customer, type Grn, type TransferPaymentDecision, type TransferSettlementDetails,
 } from '@cold-storage/contracts';
@@ -31,7 +32,7 @@ export function InternalMovementTransferTab({
   currentGrn, facilityId, customers, submitting, onExecuteTransfer,
 }: InternalMovementTransferTabProps) {
   const [newCustomerId, setNewCustomerId] = useState('');
-  const [movementDate, setMovementDate] = useState(new Date().toISOString().slice(0, 10));
+  const [movementDate] = useState(new Date().toISOString().slice(0, 10));
   const [reason, setReason] = useState(''), [remarks, setRemarks] = useState('');
   const [decision, setDecision] = useState<'AGREED_PENDING' | 'SETTLE_NOW'>('AGREED_PENDING');
   const [settleAmount, setSettleAmount] = useState<number>(0);
@@ -40,7 +41,6 @@ export function InternalMovementTransferTab({
   const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>('');
   const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>('');
   const [sourceBagCategory, setSourceBagCategory] = useState<import('@cold-storage/contracts').OutwardBagCategory | ''>('');
-  const [sourceQuantity, setSourceQuantity] = useState<number | ''>('');
   const [sourceBagPrice, setSourceBagPrice] = useState<number | ''>('');
   const [sourceSeasonalBagPrice, setSourceSeasonalBagPrice] = useState<number | ''>('');
   const [sourceMonthlyBagPrice, setSourceMonthlyBagPrice] = useState<number | ''>('');
@@ -71,19 +71,21 @@ export function InternalMovementTransferTab({
     e.preventDefault();
     setValidationError(null);
     if (!newCustomerId) return setValidationError('Select the new customer to transfer ownership to.');
+    if (remainingBags <= 0) return setValidationError('Cannot transfer ownership: No stock remaining in this GRN.');
     if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
     const payErr = validateTransferPayment(decision, settleAmount, effectiveDue);
     if (payErr) return setValidationError(payErr);
+    const isHybrid = isHybridBagCategory(sourceBagCategory);
     const confirmErr = validateTransferConfirmation({
       isUnverified, remainingBags, confirmedSmallBags, confirmedBigBags,
-      sourceBagCategory, sourceQuantity, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice,
+      sourceBagCategory, sourceQuantity: isHybrid ? remainingBags : undefined,
+      sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice,
     });
     if (confirmErr) return setValidationError(confirmErr);
-    const isHybrid = sourceBagCategory === 'Hybrid' || sourceBagCategory === 'Mixed';
     const confirmation = isHybrid
       ? {
-          sourceBagCategory,
-          sourceQuantity: typeof sourceQuantity === 'number' ? sourceQuantity : undefined,
+          sourceBagCategory: sourceBagCategory || undefined,
+          sourceQuantity: remainingBags,
           sourceBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
           sourceSeasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
           sourceMonthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
@@ -116,14 +118,9 @@ export function InternalMovementTransferTab({
       />
 
       <TransferPaymentDecisionSection
-        pendingAmount={effectiveDue}
-        decision={decision}
-        onDecisionChange={setDecision}
-        settleAmount={settleAmount}
-        onSettleAmountChange={setSettleAmount}
-        paymentMode={paymentMode}
-        onPaymentModeChange={setPaymentMode}
-        disabled={submitting}
+        pendingAmount={effectiveDue} decision={decision} onDecisionChange={setDecision}
+        settleAmount={settleAmount} onSettleAmountChange={setSettleAmount}
+        paymentMode={paymentMode} onPaymentModeChange={setPaymentMode} disabled={submitting}
       />
 
       {/* Transfer Specification & Governance Grid */}
@@ -157,8 +154,10 @@ export function InternalMovementTransferTab({
               id="transfer-movement-date"
               type="date"
               value={movementDate}
-              onChange={(e) => setMovementDate(e.target.value)}
+              readOnly
               disabled={submitting}
+              aria-label="Movement Date (read-only)"
+              title="Authoritative operational date"
               required
             />
           </div>
@@ -173,7 +172,6 @@ export function InternalMovementTransferTab({
             confirmedSmallBags={confirmedSmallBags} confirmedBigBags={confirmedBigBags}
             onSmallChange={setConfirmedSmallBags} onBigChange={setConfirmedBigBags}
             sourceBagCategory={sourceBagCategory} onCategoryChange={setSourceBagCategory}
-            sourceQuantity={sourceQuantity} onQuantityChange={setSourceQuantity}
             sourceBagPrice={sourceBagPrice} onPriceChange={setSourceBagPrice}
             sourceSeasonalBagPrice={sourceSeasonalBagPrice} onSeasonalPriceChange={setSourceSeasonalBagPrice}
             sourceMonthlyBagPrice={sourceMonthlyBagPrice} onMonthlyPriceChange={setSourceMonthlyBagPrice}
@@ -237,7 +235,7 @@ export function InternalMovementTransferTab({
         remainingBags={remainingBags}
         movementDate={movementDate}
         sourceBagCategory={sourceBagCategory}
-        sourceQuantity={sourceQuantity} sourceBagPrice={sourceBagPrice}
+        sourceQuantity={remainingBags} sourceBagPrice={sourceBagPrice}
         sourceSeasonalBagPrice={sourceSeasonalBagPrice} sourceMonthlyBagPrice={sourceMonthlyBagPrice}
         confirmedSmallBags={confirmedSmallBags} confirmedBigBags={confirmedBigBags}
         newCustomerName={selectedNewCustomer?.name} totalPaid={totalPaid}

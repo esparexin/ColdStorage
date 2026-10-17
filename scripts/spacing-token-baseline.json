@@ -1,0 +1,14 @@
+{
+  "packages/frontend/src/app/deliveries/components/DeliveryStatusTabs.module.css:7": "padding: 3px",
+  "packages/frontend/src/app/deliveries/components/EligibleGrnSection.module.css:88": "padding: 2px 6px",
+  "packages/frontend/src/app/deliveries/components/EligibleGrnSection.module.css:97": "gap: 2px",
+  "packages/frontend/src/app/deliveries/components/EligibleGrnSection.module.css:115": "gap: 2px",
+  "packages/frontend/src/app/grn-stock/page.module.css:108": "padding: 1px 6px",
+  "packages/frontend/src/app/grn-stock/page.module.css:178": "padding: 1px var(--space-1-5)",
+  "packages/frontend/src/app/grns/components/GrnStatusTabs.module.css:6": "padding: 3px",
+  "packages/frontend/src/app/grns/components/GrnTable.module.css:40": "gap: 2px",
+  "packages/frontend/src/app/grns/components/InternalMovementModal.module.css:29": "gap: 1px",
+  "packages/frontend/src/app/page.module.css:76": "padding: 1px var(--space-2)",
+  "packages/frontend/src/app/settings/components/PricingExplainerSection.module.css:81": "gap: 2px",
+  "packages/frontend/src/app/users/page.module.css:74": "padding: 1px var(--space-1-5)"
+}

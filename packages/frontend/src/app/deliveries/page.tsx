@@ -37,6 +37,14 @@ export default function DeliveriesPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    const handleSwitchTab = (e: Event) => {
+      if ((e as CustomEvent<string>).detail === 'issue') {
+        setActiveView('issue');
+        syncTabUrl('issue');
+      }
+    };
+    window.addEventListener('switch-delivery-tab', handleSwitchTab);
+
     const params = new URLSearchParams(window.location.search);
     if (params.get('action') === 'create' || params.get('tab')?.toLowerCase() === 'issue') setActiveView('issue');
     const grnId = params.get('grnId');
@@ -44,7 +52,10 @@ export default function DeliveriesPage() {
     const url = new URL(window.location.href);
     ['grnId', 'action'].forEach((k) => url.searchParams.delete(k));
     window.history.replaceState({}, '', url.toString());
+
+    return () => window.removeEventListener('switch-delivery-tab', handleSwitchTab);
   }, []);
+
   const canCreate = hasPermission('delivery:create');
   const canPrint = hasPermission('document:print');
   const canCollectRent = hasPermission('rent:collect');
@@ -75,16 +86,8 @@ export default function DeliveriesPage() {
     }
   };
 
-  const handleRentPaidFromDelivery = () => {
-    setRentPayAccount(null);
-    setRentPaidTick((t) => t + 1);
-    void deliveryData.fetchDeliveries();
-  };
-  const handleLoanClearedFromDelivery = () => {
-    setLoanClearGrn(null);
-    setLoanClearedTick((t) => t + 1);
-    void deliveryData.fetchDeliveries();
-  };
+  const handleRentPaidFromDelivery = () => { setRentPayAccount(null); setRentPaidTick((t) => t + 1); void deliveryData.fetchDeliveries(); };
+  const handleLoanClearedFromDelivery = () => { setLoanClearGrn(null); setLoanClearedTick((t) => t + 1); void deliveryData.fetchDeliveries(); };
 
   const handleCollectRent = async (delivery: DeliveryChallan) => {
     if (!selectedFacilityId) return;
@@ -166,57 +169,53 @@ export default function DeliveriesPage() {
           ) : (
             <>
               <DeliveryFilterToolbar
-            searchTerm={deliveryData.searchTerm}
-            onSearchChange={deliveryData.setSearchTerm}
-            rentStatusFilter={deliveryData.rentStatusFilter}
-            onRentStatusChange={deliveryData.setRentStatusFilter}
-            onReset={deliveryData.resetFilters}
-          />
-          {deliveryData.loading ? (
-            <FeedbackStates.Loading label={LOADING_LABELS.deliveries} />
-          ) : deliveryData.error ? (
-            <FeedbackStates.Error
-              title={ERROR_TITLES.deliveries}
-              message={deliveryData.error}
-              onRetry={() => void deliveryData.fetchDeliveries()}
-            />
-          ) : deliveryData.deliveries.length === 0 ? (
-            <FeedbackStates.Empty
-              message={emptyForFacility(deliveryData.currentFacilityName, 'deliveries')}
-              action={canCreate ? { label: '+ Issue Delivery Challan', onClick: () => handleViewChange('issue'), id: 'create-delivery-empty-btn' } : undefined}
-            />
-          ) : deliveryData.filteredDeliveries.length === 0 ? (
-            <FeedbackStates.Empty
-              message={getFilteredEmptyMessage()}
-              action={{
-                label: 'Clear Filters',
-                onClick: deliveryData.resetFilters,
-                id: 'clear-delivery-filters-btn',
-              }}
-            />
-          ) : (
-            <DeliveryTable
-              deliveries={deliveryData.filteredDeliveries}
-              caption={`Delivery Challans for ${deliveryData.currentFacilityName}`}
-              canPrint={canPrint}
-              canCollectRent={canCollectRent}
-              canReverse={canReverse}
-              printingId={printingId}
-              page={deliveryData.page}
-              pageSize={deliveryData.pageSize}
-              totalPages={deliveryData.totalPages}
-              totalDeliveries={deliveryData.totalDeliveries}
-              onPageChange={deliveryData.setPage}
-              onSelectDelivery={setSelectedDelivery}
-              onPrintChallan={handlePrintChallan}
-              onCollectRent={handleCollectRent}
-              onReverseDelivery={setReverseDeliveryTarget}
-            />
+                searchTerm={deliveryData.searchTerm}
+                onSearchChange={deliveryData.setSearchTerm}
+                rentStatusFilter={deliveryData.rentStatusFilter}
+                onRentStatusChange={deliveryData.setRentStatusFilter}
+                onReset={deliveryData.resetFilters}
+              />
+              {deliveryData.loading ? (
+                <FeedbackStates.Loading label={LOADING_LABELS.deliveries} />
+              ) : deliveryData.error ? (
+                <FeedbackStates.Error
+                  title={ERROR_TITLES.deliveries}
+                  message={deliveryData.error}
+                  onRetry={() => void deliveryData.fetchDeliveries()}
+                />
+              ) : deliveryData.deliveries.length === 0 ? (
+                <FeedbackStates.Empty
+                  message={emptyForFacility(deliveryData.currentFacilityName, 'deliveries')}
+                  action={canCreate ? { label: '+ Issue Delivery Challan', onClick: () => handleViewChange('issue'), id: 'create-delivery-empty-btn' } : undefined}
+                />
+              ) : deliveryData.filteredDeliveries.length === 0 ? (
+                <FeedbackStates.Empty
+                  message={getFilteredEmptyMessage()}
+                  action={{ label: 'Clear Filters', onClick: deliveryData.resetFilters, id: 'clear-delivery-filters-btn' }}
+                />
+              ) : (
+                <DeliveryTable
+                  deliveries={deliveryData.filteredDeliveries}
+                  caption={`Delivery Challans for ${deliveryData.currentFacilityName}`}
+                  canPrint={canPrint}
+                  canCollectRent={canCollectRent}
+                  canReverse={canReverse}
+                  printingId={printingId}
+                  page={deliveryData.page}
+                  pageSize={deliveryData.pageSize}
+                  totalPages={deliveryData.totalPages}
+                  totalDeliveries={deliveryData.totalDeliveries}
+                  onPageChange={deliveryData.setPage}
+                  onSelectDelivery={setSelectedDelivery}
+                  onPrintChallan={handlePrintChallan}
+                  onCollectRent={handleCollectRent}
+                  onReverseDelivery={setReverseDeliveryTarget}
+                />
+              )}
+            </>
           )}
         </>
       )}
-    </>
-  )}
 
       <DeliveryPageModals
         selectedFacilityId={selectedFacilityId}

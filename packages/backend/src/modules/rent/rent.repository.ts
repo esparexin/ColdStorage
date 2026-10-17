@@ -2,6 +2,11 @@ import type { ClientSession } from 'mongoose';
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
 import { RentPaymentModel, type RentPaymentDoc } from '../../database/models/rent-payment.model.js';
 
+export interface OutwardRentInfo {
+  total: number;
+  earliestCreatedAt: Date | null;
+}
+
 export class RentRepository {
   public async findPaymentsByGrnId(
     facilityId: string,
@@ -14,14 +19,6 @@ export class RentRepository {
       .exec();
   }
 
-  /**
-   * Every payment for a facility in a single round trip, grouped by GRN.
-   *
-   * The rent list previously called findPaymentsByGrnId once per GRN, which
-   * turned one page view into ~100 sequential MongoDB queries. Grouping in the
-   * database returns the same rows in one pass; the caller reassembles them per
-   * GRN using the same ordering as findPaymentsByGrnId.
-   */
   /** Payments for a specific set of GRNs. Scoped counterpart of the facility-wide query. */
   public async findPaymentsByGrnIdsGrouped(
     facilityId: string,
@@ -40,18 +37,41 @@ export class RentRepository {
     return grouped;
   }
 
-  /** Outward rent charges for a specific set of GRNs. */
+  /** Outward rent charges and earliest creation date for a specific set of GRNs. */
+  public async getOutwardRentInfoByGrnIdsGrouped(
+    facilityId: string,
+    grnIds: string[],
+  ): Promise<Map<string, OutwardRentInfo>> {
+    const agg = await DeliveryChallanModel.aggregate([
+      { $match: { facilityId, status: 'ISSUED', grnId: { $in: grnIds } } },
+      {
+        $group: {
+          _id: '$grnId',
+          total: { $sum: '$rentCharge' },
+          earliestCreatedAt: {
+            $min: { $cond: [{ $gt: ['$rentCharge', 0] }, '$createdAt', null] },
+          },
+        },
+      },
+    ]);
+    const grouped = new Map<string, OutwardRentInfo>();
+    for (const doc of agg) {
+      grouped.set(doc._id, {
+        total: doc.total ?? 0,
+        earliestCreatedAt: doc.earliestCreatedAt ? new Date(doc.earliestCreatedAt) : null,
+      });
+    }
+    return grouped;
+  }
+
   public async getOutwardRentChargesByGrnIdsGrouped(
     facilityId: string,
     grnIds: string[],
   ): Promise<Map<string, number>> {
-    const agg = await DeliveryChallanModel.aggregate([
-      { $match: { facilityId, status: 'ISSUED', grnId: { $in: grnIds } } },
-      { $group: { _id: '$grnId', total: { $sum: '$rentCharge' } } },
-    ]);
-    const grouped = new Map<string, number>();
-    for (const doc of agg) grouped.set(doc._id, doc.total ?? 0);
-    return grouped;
+    const info = await this.getOutwardRentInfoByGrnIdsGrouped(facilityId, grnIds);
+    const charges = new Map<string, number>();
+    for (const [k, v] of info) charges.set(k, v.total);
+    return charges;
   }
 
   public async findPaymentsByFacilityGrouped(
@@ -65,11 +85,8 @@ export class RentRepository {
     const grouped = new Map<string, RentPaymentDoc[]>();
     for (const doc of docs) {
       const existing = grouped.get(doc.grnId);
-      if (existing) {
-        existing.push(doc);
-      } else {
-        grouped.set(doc.grnId, [doc]);
-      }
+      if (existing) existing.push(doc);
+      else grouped.set(doc.grnId, [doc]);
     }
     return grouped;
   }
@@ -87,32 +104,72 @@ export class RentRepository {
     return agg[0]?.total ?? 0;
   }
 
+  public async getOutwardRentInfoForGrn(
+    facilityId: string,
+    grnId: string,
+    session?: ClientSession,
+  ): Promise<OutwardRentInfo> {
+    const agg = await DeliveryChallanModel.aggregate([
+      { $match: { facilityId, grnId, status: 'ISSUED' } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$rentCharge' },
+          earliestCreatedAt: {
+            $min: { $cond: [{ $gt: ['$rentCharge', 0] }, '$createdAt', null] },
+          },
+        },
+      },
+    ]).session(session ?? null);
+
+    return {
+      total: agg[0]?.total ?? 0,
+      earliestCreatedAt: agg[0]?.earliestCreatedAt ? new Date(agg[0].earliestCreatedAt) : null,
+    };
+  }
+
   public async getOutwardRentChargesForGrn(
     facilityId: string,
     grnId: string,
     session?: ClientSession,
   ): Promise<number> {
-    const agg = await DeliveryChallanModel.aggregate([
-      { $match: { facilityId, grnId, status: 'ISSUED' } },
-      { $group: { _id: null, total: { $sum: '$rentCharge' } } },
-    ]).session(session ?? null);
+    const res = await this.getOutwardRentInfoForGrn(facilityId, grnId, session);
+    return res.total;
+  }
 
-    return agg[0]?.total ?? 0;
+  public async getOutwardRentInfoByFacilityGrouped(
+    facilityId: string,
+  ): Promise<Map<string, OutwardRentInfo>> {
+    const agg = await DeliveryChallanModel.aggregate([
+      { $match: { facilityId, status: 'ISSUED' } },
+      {
+        $group: {
+          _id: '$grnId',
+          total: { $sum: '$rentCharge' },
+          earliestCreatedAt: {
+            $min: { $cond: [{ $gt: ['$rentCharge', 0] }, '$createdAt', null] },
+          },
+        },
+      },
+    ]);
+
+    const grouped = new Map<string, OutwardRentInfo>();
+    for (const doc of agg) {
+      grouped.set(doc._id, {
+        total: doc.total ?? 0,
+        earliestCreatedAt: doc.earliestCreatedAt ? new Date(doc.earliestCreatedAt) : null,
+      });
+    }
+    return grouped;
   }
 
   public async getOutwardRentChargesByFacilityGrouped(
     facilityId: string,
   ): Promise<Map<string, number>> {
-    const agg = await DeliveryChallanModel.aggregate([
-      { $match: { facilityId, status: 'ISSUED' } },
-      { $group: { _id: '$grnId', total: { $sum: '$rentCharge' } } },
-    ]);
-
-    const grouped = new Map<string, number>();
-    for (const doc of agg) {
-      grouped.set(doc._id, doc.total ?? 0);
-    }
-    return grouped;
+    const info = await this.getOutwardRentInfoByFacilityGrouped(facilityId);
+    const charges = new Map<string, number>();
+    for (const [k, v] of info) charges.set(k, v.total);
+    return charges;
   }
 
   public async findByReceiptNumber(

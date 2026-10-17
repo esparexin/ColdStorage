@@ -23,33 +23,44 @@ export function TransferBagConfirmationFields({
 }: Props) {
   return (
     <div className={styles.formSection}>
-      <div className={styles.noticeBox}>
-        Unverified composition ({remainingBags} bags). Confirm Small + Big split reconciling to stock.
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+          gap: 'var(--space-2)',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+          <label htmlFor="transfer-confirmed-small" className={styles.inputLabel}>
+            Small Bags
+          </label>
+          <Input
+            id="transfer-confirmed-small"
+            type="number"
+            min={0}
+            max={remainingBags}
+            value={confirmedSmallBags}
+            onChange={(e) => onSmallChange(e.target.value === '' ? '' : Number(e.target.value))}
+            disabled={disabled}
+            required
+          />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+          <label htmlFor="transfer-confirmed-big" className={styles.inputLabel}>
+            Big Bags
+          </label>
+          <Input
+            id="transfer-confirmed-big"
+            type="number"
+            min={0}
+            max={remainingBags}
+            value={confirmedBigBags}
+            onChange={(e) => onBigChange(e.target.value === '' ? '' : Number(e.target.value))}
+            disabled={disabled}
+            required
+          />
+        </div>
       </div>
-      <label htmlFor="transfer-confirmed-small" className={styles.inputLabel}>
-        Confirmed Small Bags *
-      </label>
-      <Input
-        id="transfer-confirmed-small"
-        type="number"
-        min={0}
-        value={confirmedSmallBags}
-        onChange={(e) => onSmallChange(e.target.value === '' ? '' : Number(e.target.value))}
-        disabled={disabled}
-        required
-      />
-      <label htmlFor="transfer-confirmed-big" className={styles.inputLabel}>
-        Confirmed Big Bags *
-      </label>
-      <Input
-        id="transfer-confirmed-big"
-        type="number"
-        min={0}
-        value={confirmedBigBags}
-        onChange={(e) => onBigChange(e.target.value === '' ? '' : Number(e.target.value))}
-        disabled={disabled}
-        required
-      />
     </div>
   );
 }

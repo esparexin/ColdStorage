@@ -61,8 +61,22 @@
   align-items: center;
   justify-content: center;
   flex: 1;
-  max-width: 400px;
+  max-width: 680px;
+  gap: var(--space-2);
   margin: 0 var(--space-3);
+}
+
+.quickActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.quickActionBtn {
+  font-weight: var(--font-semibold);
+  font-size: var(--text-xs);
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {

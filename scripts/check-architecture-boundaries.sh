@@ -232,7 +232,9 @@ fi
 # spacing scale (var(--space-*)) and color roles (var(--color-*-text) for text). Hardcoded
 # 11px/10px cell text, hex fallbacks inside var(), and references to tokens that do not
 # exist (surface-3, danger-border, space-2-5) are how this audit's drift re-entered.
-# The standalone print template (renderPassbookHtml.ts) and tokens.css itself are excluded.
+# The standalone print template (renderGrnStockHtml.ts) and tokens.css itself are excluded:
+# it is a 148mm A6 print document that legitimately needs its own px type sizes.
+# Raw-px spacing and !important typography are enforced by the two rules that follow.
 if grep -rnE "font-size:\s*(11px|10px)" "$ROOT/packages/frontend/src" \
   --include="*.css" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null \
   | grep -v "styles/tokens.css"; then
@@ -248,18 +250,107 @@ if grep -rnE "var\(--[a-zA-Z0-9-]+\s*,\s*#[0-9a-fA-F]{3,6}" "$ROOT/packages/fron
 fi
 if grep -rnE "(surface-3|danger-border|space-2-5)" "$ROOT/packages/frontend/src" \
   --include="*.css" --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null \
-  | grep -v "renderPassbookHtml.ts"; then
+  | grep -v "renderGrnStockHtml.ts"; then
   fail "Design Token SSOT violation: reference to a non-existent token found. Use only tokens declared in styles/tokens.css."
 fi
 
-# 26. Undefined Design Token SSOT:
-# Prohibits non-existent tokens: --text-md (use --text-base), bare unindexed --color-surface (use --color-surface-1 or -2),
-# --color-border-subtle (use --color-border), and --color-surface-hover (use --color-surface-2).
-UNDEFINED_TOKEN_HITS=$(grep -rnE "var\(--(text-md\b|color-surface\)|color-border-subtle\b|color-surface-hover\b)" \
-  "$ROOT/packages/frontend/src" --include="*.css" --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null || true)
+# 25b. No !important on typography in feature CSS.
+# enforcement-rules.md rule 25 has always promised this and it was never implemented.
+# Two tab strips carried 26 !important declarations re-stating the shared Button
+# primitive's font-size, font-weight, border and color, which is exactly the drift
+# gate 24 blocks .actionBtn for. The proper fix is to scope the feature selector to
+# its container so specificity does the work -- (0,0,2,0) outranks the primitive's
+# (0,0,1,0) regardless of stylesheet emission order.
+# components/ui is excluded: the primitives legitimately own the type scale.
+# CSS comments are stripped first so prose mentioning !important does not trip it.
+IMPORTANT_TYPOGRAPHY=$(python3 - <<EOF
+import os, re
+root = "$ROOT/packages/frontend/src/app"
+decl = re.compile(r'\b(font-size|font-weight|line-height|letter-spacing|'
+                  r'text-transform|font-family|font-stretch)\s*:[^;{}]*!important')
+hits = []
+for dirpath, _, filenames in os.walk(root):
+    for fn in sorted(filenames):
+        if not fn.endswith('.css'):
+            continue
+        p = os.path.join(dirpath, fn)
+        with open(p, encoding='utf-8', errors='ignore') as f:
+            for i, line in enumerate(f, 1):
+                if '/*' in line:
+                    line = re.sub(r'/\*.*?\*/', ' ', line)
+                if decl.search(line):
+                    hits.append(f"{os.path.relpath(p, root)}:{i}: {line.strip()}")
+print('\n'.join(hits))
+EOF
+)
+if [ -n "$IMPORTANT_TYPOGRAPHY" ]; then
+  echo "$IMPORTANT_TYPOGRAPHY" | head -20
+  fail "UI SSOT violation: !important on a typography property in feature CSS. Scope the selector to its container so specificity outranks the primitive instead."
+fi
+
+# 26. Undefined Design Token SSOT.
+# Previously a four-name denylist (--text-md, bare --color-surface,
+# --color-border-subtle, --color-surface-hover). A denylist only rejects names
+# someone thought of in advance, which is how --text-2xs, --line-height-tight and
+# --color-border-hover all shipped past a green gate. This now resolves every
+# var(--x) reference against the declarations actually present in tokens.css.
+#
+# A reference is legal when the token is declared in tokens.css, when it supplies an
+# inline fallback (var(--x, y)), or when the token is set at runtime -- which is how
+# --font-inter (injected by next/font) and --stat-min (set by StatCard.tsx) stay legal.
+UNDEFINED_TOKEN_HITS=$(python3 - <<EOF
+import os, re
+root = "$ROOT/packages/frontend"
+src = os.path.join(root, "src")
+tokens_css = os.path.join(src, "styles", "tokens.css")
+
+declared = set()
+try:
+    with open(tokens_css, encoding='utf-8', errors='ignore') as f:
+        for m in re.finditer(r'(--[A-Za-z0-9-]+)\s*:', f.read()):
+            declared.add(m.group(1))
+except OSError:
+    pass
+
+runtime_set = set()
+for dirpath, dirnames, filenames in os.walk(src):
+    dirnames[:] = [d for d in dirnames if d not in ('node_modules', '.next')]
+    for fn in filenames:
+        if not fn.endswith(('.ts', '.tsx')):
+            continue
+        with open(os.path.join(dirpath, fn), encoding='utf-8', errors='ignore') as f:
+            for m in re.finditer(r"['\"](--[A-Za-z0-9-]+)['\"]\s*:", f.read()):
+                runtime_set.add(m.group(1))
+
+known = declared | runtime_set
+var_ref = re.compile(r'var\(\s*(--[A-Za-z0-9-]+)\s*(,|\))')
+hits = []
+for dirpath, dirnames, filenames in os.walk(src):
+    dirnames[:] = [d for d in dirnames if d not in ('node_modules', '.next')]
+    for fn in sorted(filenames):
+        if not fn.endswith(('.css', '.ts', '.tsx')):
+            continue
+        p = os.path.join(dirpath, fn)
+        rel = os.path.relpath(p, root)
+        with open(p, encoding='utf-8', errors='ignore') as f:
+            lines = f.read().splitlines()
+        for i, line in enumerate(lines, 1):
+            if fn.endswith('.css') and '/*' in line:
+                line = re.sub(r'/\*.*?\*/', ' ', line)
+            for m in var_ref.finditer(line):
+                name, tail = m.group(1), m.group(2)
+                if name in known:
+                    continue
+                # var(--x, fallback) carries its own default, so it cannot resolve empty.
+                if tail == ',':
+                    continue
+                hits.append(f"{rel}:{i}: {name}")
+print('\n'.join(sorted(set(hits))))
+EOF
+)
 if [ -n "$UNDEFINED_TOKEN_HITS" ]; then
-  echo "$UNDEFINED_TOKEN_HITS"
-  fail "Design Token SSOT violation: undefined token reference found (--text-md, bare --color-surface, --color-border-subtle, --color-surface-hover). Use canonical tokens."
+  echo "$UNDEFINED_TOKEN_HITS" | head -20
+  fail "Design Token SSOT violation: var() reference to a token that is neither declared in styles/tokens.css nor set at runtime. Declare it in tokens.css or use one that is."
 fi
 
 # 27. Single Bordered Surface SSOT:

@@ -20,8 +20,6 @@ interface Props {
   onBigChange: (v: number | '') => void;
   sourceBagCategory: OutwardBagCategory | '';
   onCategoryChange: (v: OutwardBagCategory | '') => void;
-  sourceQuantity: number | '';
-  onQuantityChange: (v: number | '') => void;
   sourceBagPrice: number | '';
   onPriceChange: (v: number | '') => void;
   sourceSeasonalBagPrice?: number | '';
@@ -34,7 +32,7 @@ interface Props {
   disabled?: boolean;
 }
 
-/** Ownership confirmation parity with merge: S/B split or Hybrid qty+rate (M3). */
+/** Ownership confirmation: Total Bags (read-only), Bag Category (Auto / S/B / Hybrid rates) */
 export function TransferOwnershipConfirmation(p: Props) {
   const isHybrid = isHybridBagCategory(p.sourceBagCategory);
   const visibility = deriveHybridRateVisibility({
@@ -45,6 +43,21 @@ export function TransferOwnershipConfirmation(p: Props) {
 
   return (
     <>
+      <div className={styles.formSection}>
+        <label htmlFor="transfer-total-bags" className={styles.inputLabel}>
+          Total Bags
+        </label>
+        <Input
+          id="transfer-total-bags"
+          type="number"
+          value={p.remainingBags}
+          readOnly
+          disabled={p.disabled}
+          aria-label="Total Bags (read-only)"
+          title="Authoritative remaining stock"
+        />
+      </div>
+
       <Select
         id="transfer-bag-category"
         label="Bag Category"
@@ -56,20 +69,9 @@ export function TransferOwnershipConfirmation(p: Props) {
         <option value="S/B">S/B (ledger split)</option>
         <option value="Hybrid">Hybrid (manual rate)</option>
       </Select>
+
       {isHybrid ? (
         <div className={styles.formSection}>
-          <label htmlFor="transfer-hybrid-qty" className={styles.inputLabel}>Hybrid Quantity *</label>
-          <Input
-            id="transfer-hybrid-qty"
-            type="number"
-            min={0}
-            max={p.remainingBags}
-            required
-            value={p.sourceQuantity}
-            onChange={(e) => p.onQuantityChange(e.target.value === '' ? '' : Number(e.target.value))}
-            placeholder={`e.g. ${p.remainingBags}`}
-            disabled={p.disabled}
-          />
           <div style={{ display: 'flex', gap: 'var(--space-1)', marginTop: '4px' }}>
             {visibility.showSeasonalRate && (
               <Input
@@ -111,11 +113,18 @@ export function TransferOwnershipConfirmation(p: Props) {
           <div className={styles.noticeBox}>Rates are informational — rent follows source GRN rules and is recomputed at execution.</div>
         </div>
       ) : null}
-      {p.isUnverified && !isHybrid ? (
+
+      {p.isUnverified && p.sourceBagCategory === 'S/B' ? (
         <TransferBagConfirmationFields
           remainingBags={p.remainingBags} confirmedSmallBags={p.confirmedSmallBags}
           confirmedBigBags={p.confirmedBigBags} onSmallChange={p.onSmallChange}
           onBigChange={p.onBigChange} disabled={p.disabled} />
+      ) : null}
+
+      {p.isUnverified && !p.sourceBagCategory ? (
+        <div className={styles.noticeBox} style={{ color: 'var(--color-warning-text)' }}>
+          Ledger composition is unverified. Select S/B (ledger split) to confirm composition or Hybrid (manual rate).
+        </div>
       ) : null}
     </>
   );

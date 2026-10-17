@@ -94,7 +94,8 @@ for gate in \
   check-contract-shadow.sh \
   check-endpoint-wiring.sh \
   check-numeric-hygiene.sh \
-  check-dead-css.sh ; do
+  check-dead-css.sh \
+  check-spacing-tokens.sh ; do
   if ! bash "$ROOT/scripts/$gate"; then
     fail "$gate failed"
   fi

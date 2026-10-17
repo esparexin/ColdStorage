@@ -38,9 +38,9 @@ export function RentCashMemosTab({
 
   return (
     <>
-      <h4 className={styles.sectionLabel}>
+      <p className={styles.sectionLabel}>
         Billing Periods & Charges ({totalEntries})
-      </h4>
+      </p>
       <div className={styles.paymentsList}>
         <div className={styles.paymentItem}>
           <div>
@@ -120,9 +120,9 @@ export function RentCashMemosTab({
         </div>
       </div>
 
-      <h4 className={styles.sectionLabel}>
+      <p className={styles.sectionLabel}>
         Issued Official Cash Memos ({account.payments.length})
-      </h4>
+      </p>
 
       {error && <Banner message={error} id="rent-history-error" />}
 

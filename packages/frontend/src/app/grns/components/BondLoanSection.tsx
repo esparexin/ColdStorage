@@ -22,7 +22,7 @@ export function BondLoanSection({
 }: BondLoanSectionProps) {
   return (
     <section className={styles.formSection}>
-      <h3 className={styles.sectionHeading}>Bond &amp; Loan Control</h3>
+      <p className={styles.sectionHeading}>Bond &amp; Loan Control</p>
 
       <div className={styles.formGrid}>
         {/* Loan status and Bond # only appear once pledged, so on the default path the

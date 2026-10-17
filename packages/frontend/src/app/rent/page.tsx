@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { type RentSummaryDto } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import {
@@ -14,7 +14,9 @@ import { CollectPaymentModal } from './components/CollectPaymentModal';
 import { RentFilterToolbar } from './components/RentFilterToolbar';
 import { RentHistoryModal } from './components/RentHistoryModal';
 import { RentKpiCards } from './components/RentKpiCards';
+import { RentStatusTabs } from './components/RentStatusTabs';
 import { RentTable } from './components/RentTable';
+import { getRentStatusCategory } from './hooks/rentFilter.helper';
 import { useRentData } from './hooks/useRentData';
 import styles from './page.module.css';
 
@@ -47,6 +49,26 @@ export default function RentPage() {
   const canCollect = hasPermission('rent:collect');
   const canPrint = hasPermission('rent:print');
 
+  const tabCounts = useMemo(() => {
+    let unpaid = 0;
+    let partiallyPaid = 0;
+    let settled = 0;
+
+    for (const acc of rentSummaries) {
+      const cat = getRentStatusCategory(acc);
+      if (cat === 'UNPAID') unpaid++;
+      else if (cat === 'PARTIALLY_PAID') partiallyPaid++;
+      else if (cat === 'SETTLED') settled++;
+    }
+
+    return {
+      all: rentSummaries.length,
+      unpaid,
+      partiallyPaid,
+      settled,
+    };
+  }, [rentSummaries]);
+
   const handlePaymentSuccess = (summary?: RentSummaryDto) => {
     setCollectAccount(null);
     void fetchRentAccounts();
@@ -68,6 +90,16 @@ export default function RentPage() {
       ) : (
         <>
           <RentKpiCards metrics={metrics} />
+
+          <RentStatusTabs
+            statusFilter={statusFilter}
+            onStatusChange={(status) => {
+              setStatusFilter(status);
+              setPage(1);
+            }}
+            counts={tabCounts}
+          />
+
           <RentFilterToolbar
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}

@@ -89,7 +89,7 @@ export function CreateGrnModal({
 
         <section className={styles.formSection}>
           <div className={styles.sectionHeadingRow}>
-            <h3 className={styles.sectionHeading}>Basic Information</h3>
+            <p className={styles.sectionHeading}>Basic Information</p>
             {!isEdit && (
               <span className={styles.grnGuidance}>
                 Last Created GRN: {form.lastCreatedGrn ?? '—'} · Next GRN: {form.suggestedGrnNumber || '—'}
@@ -146,7 +146,7 @@ export function CreateGrnModal({
         </section>
 
         <section className={styles.formSection}>
-          <h3 className={styles.sectionHeading}>Quantity &amp; Rent Terms</h3>
+          <p className={styles.sectionHeading}>Quantity &amp; Rent Terms</p>
           <div className={styles.formGrid}>
             <div className={styles.fieldGroup}>
               <label htmlFor="create-bags" className={styles.fieldLabel}>Total Bags *</label>

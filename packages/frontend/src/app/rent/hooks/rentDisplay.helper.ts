@@ -12,6 +12,7 @@ export interface RentAccountDisplayInput {
   smallBagPrice?: number | null;
   bigBagPrice?: number | null;
   totalBagsWeight?: number | null;
+  mergedIntoGrnNumber?: string | null;
 }
 
 /**
@@ -47,6 +48,9 @@ export function formatAgreedRates(input: RentAccountDisplayInput): string | null
  * Returns formatted remaining due amount or status string.
  */
 export function formatRemainingDue(input: RentAccountDisplayInput): string {
+  if (input.mergedIntoGrnNumber) {
+    return 'Carried Forward';
+  }
   const balance = input.remainingBalance ?? 0;
   if (input.rentType === 'Monthly' && input.rentAmount === 0 && balance === 0) {
     return 'Dynamic (Per Cycle)';
@@ -62,8 +66,11 @@ export function formatRemainingDue(input: RentAccountDisplayInput): string {
  */
 export function formatPaymentStatus(input: RentAccountDisplayInput): {
   label: string;
-  variant: 'success' | 'warning';
+  variant: 'success' | 'warning' | 'neutral';
 } {
+  if (input.mergedIntoGrnNumber) {
+    return { label: `Merged → ${input.mergedIntoGrnNumber}`, variant: 'neutral' };
+  }
   const isSettled = input.paymentStatus === 'Settled';
   const totalPaid = input.totalPaid ?? 0;
 
@@ -81,6 +88,9 @@ export function formatPaymentStatus(input: RentAccountDisplayInput): {
  * Returns contextual operator informational banners for payment collection modal.
  */
 export function getRentCollectionNotice(input: RentAccountDisplayInput): string | null {
+  if (input.mergedIntoGrnNumber) {
+    return `This GRN was merged into GRN ${input.mergedIntoGrnNumber}. Outstanding dues were carried forward to the target GRN.`;
+  }
   const balance = input.remainingBalance ?? 0;
   const delivered = input.deliveredBags ?? 0;
 

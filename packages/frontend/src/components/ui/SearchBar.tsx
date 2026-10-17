@@ -14,6 +14,7 @@ export interface SearchBarProps {
   onClear?: () => void;
   onFocus?: () => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onSearch?: (value: string) => void;
 }
 
 export function SearchBar({
@@ -26,25 +27,52 @@ export function SearchBar({
   onClear,
   onFocus,
   onKeyDown,
+  onSearch,
 }: SearchBarProps) {
   const generatedId = React.useId();
   const searchId = id || generatedId;
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
   const handleClear = () => {
     onChange('');
     onClear?.();
+    inputRef.current?.focus();
+  };
+
+  const handleMagnifierClick = () => {
+    if (onSearch) {
+      onSearch(value);
+    }
+    inputRef.current?.focus();
+  };
+
+  const handleKeyDownInternal = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      onSearch?.(value);
+    }
+    onKeyDown?.(e);
   };
 
   return (
     <div className={`${styles.searchContainer} ${className ?? ''}`}>
-      <Search size={16} className={styles.searchIcon} aria-hidden="true" />
+      <button
+        type="button"
+        id={`${searchId}-magnifier-btn`}
+        className={styles.magnifierButton}
+        onClick={handleMagnifierClick}
+        aria-label={`Search ${ariaLabel}`}
+        title={`Search ${ariaLabel}`}
+      >
+        <Search size={16} className={styles.searchIcon} aria-hidden="true" />
+      </button>
       <input
+        ref={inputRef}
         id={searchId}
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onFocus={onFocus}
-        onKeyDown={onKeyDown}
+        onKeyDown={handleKeyDownInternal}
         placeholder={placeholder}
         aria-label={ariaLabel}
         className={styles.searchInput}

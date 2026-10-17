@@ -27,6 +27,51 @@ import { toPaymentEntity } from './handlers/record-payment.handler.js';
  * If differential rates exist but bag quantities are unverified/unconfirmed,
  * historical rent calculation is marked PENDING_VERIFICATION rather than fabricating a bill.
  */
+/**
+ * Resolves the actual timestamp when the rent obligation or bill was generated.
+ * Uses existing persisted billing records and timestamps (GRN creation for upfront stored rent,
+ * delivery challan creation for outward rent, extension finalization for extensions).
+ * Does NOT substitute inward date, outward date, movement date, or current date.
+ * If historical records lack a reliable persisted generation timestamp, returns null (renders '—').
+ */
+export function resolveRentGeneratedDate(params: {
+  grnRentAmount: number | null | undefined;
+  grnCreatedAt: Date | string | null | undefined;
+  outwardRentCharges: number;
+  earliestOutwardCreatedAt: Date | string | null | undefined;
+  extensions?: Array<{ finalizedAt?: Date | string | null; createdAt?: Date | string | null }>;
+}): Date | null {
+  const {
+    grnRentAmount,
+    grnCreatedAt,
+    outwardRentCharges,
+    earliestOutwardCreatedAt,
+    extensions = [],
+  } = params;
+
+  if (grnRentAmount != null && grnRentAmount > 0 && grnCreatedAt) {
+    const d = new Date(grnCreatedAt);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  if (outwardRentCharges > 0 && earliestOutwardCreatedAt) {
+    const d = new Date(earliestOutwardCreatedAt);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  if (extensions.length > 0) {
+    for (const ext of extensions) {
+      const extDate = ext.finalizedAt ?? ext.createdAt;
+      if (extDate) {
+        const d = new Date(extDate);
+        if (!isNaN(d.getTime())) return d;
+      }
+    }
+  }
+
+  return null;
+}
+
 export function buildRentSummary(
   grn: GrnDoc,
   payments: RentPaymentDoc[],
@@ -35,6 +80,7 @@ export function buildRentSummary(
   remainingBags = grn.bags,
   outwardRentCharges = 0,
   hamaliShare = 0,
+  earliestOutwardCreatedAt?: Date | null,
 ): RentSummaryDto {
   const { baseRent, total: totalDue } = splitRentObligation({
     rentType: grn.rentType,
@@ -67,6 +113,7 @@ export function buildRentSummary(
   const isLegacyUnverifiedHamali =
     grn.hamaliRate == null && grn.hamaliAmount == null && hamaliShare > 0 && payments.length === 0;
   const isPendingVerification = isCompositionUnverified || isLegacyUnverifiedHamali;
+  const isMergedSource = Boolean(grn.mergedIntoGrnId);
   const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
   const effectiveTotalDue = totalPaid > totalDue ? totalPaid : totalDue;
   const effectiveBaseRent = totalPaid > baseRent && baseRent === totalDue ? totalPaid : baseRent;
@@ -75,6 +122,21 @@ export function buildRentSummary(
     totalPaid,
     { isPendingVerification },
   );
+
+  // When a GRN was merged into another GRN, its unpaid obligation was carried forward to
+  // the target GRN. To prevent duplicate billing, double-counting in facility metrics,
+  // and duplicate collection, its remainingBalance on the source GRN is 0 and status is Settled.
+  const remainingBalance = isMergedSource ? 0 : balance.remainingBalance;
+  const paymentStatus = isMergedSource ? 'Settled' : balance.paymentStatus;
+  const rentState = isMergedSource ? 'SETTLED' : balance.rentState;
+
+  const rentGeneratedDate = resolveRentGeneratedDate({
+    grnRentAmount: grn.rentAmount,
+    grnCreatedAt: grn.createdAt,
+    outwardRentCharges,
+    earliestOutwardCreatedAt,
+    extensions,
+  });
 
   return {
     grnId: grn.id,
@@ -96,9 +158,9 @@ export function buildRentSummary(
     rentAmount: effectiveBaseRent,
     rentMonths: grn.rentMonths ?? null,
     totalPaid: balance.totalPaid,
-    remainingBalance: balance.remainingBalance,
-    paymentStatus: balance.paymentStatus,
-    rentState: balance.rentState,
+    remainingBalance,
+    paymentStatus,
+    rentState,
     verificationReason: isPendingVerification
       ? !canCalc.canCalculate
         ? (canCalc.reason ?? 'Small and big bag composition unverified')
@@ -108,5 +170,8 @@ export function buildRentSummary(
     extensions,
     totalDue: balance.rentAmount,
     remarks: grn.remarks ?? null,
+    rentGeneratedDate,
+    mergedIntoGrnId: grn.mergedIntoGrnId ?? null,
+    mergedIntoGrnNumber: grn.mergedIntoGrnNumber ?? null,
   };
 }
