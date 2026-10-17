@@ -130,7 +130,7 @@ export function GlobalGrnSearch({ onSelect }: GlobalGrnSearchProps = {}) {
           setResults([]);
           setIsOpen(false);
         }}
-        placeholder="Search GRN #, Bill #, Customer, Bond #..."
+        placeholder="Search GRN #, Customer, Commodity, Vehicle, Gate Pass..."
         ariaLabel="Global GRN Search"
         className={styles.searchBar}
       />

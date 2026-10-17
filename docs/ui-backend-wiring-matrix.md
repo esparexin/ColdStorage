@@ -102,7 +102,7 @@ Inward → GR No. → GRN Stock → Delivery-Out → Closing → Rent/Payment �
 
 - Migrate remaining `.fieldInput` form copies to DS `Input` one route at a time (currently token-compliant; no new primitive needed).
 - Consider `eslint-plugin-jsx-a11y` as lint enforcement; extend e2e beyond mocks (rent collect/print, reversal, ledger).
-- Print template `renderPassbookHtml.ts` intentionally keeps standalone print CSS (hex/px) for print fidelity; excluded from screen-token rules. `StatCard` 1px hairline gap is intentional (border divider technique).
+- Print template `renderGrnStockHtml.ts` intentionally keeps standalone print CSS (hex/px) for print fidelity; excluded from screen-token rules. `StatCard` 1px hairline gap is intentional (border divider technique).
 
 ## 7. Verification
 
