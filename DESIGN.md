@@ -34,7 +34,7 @@ typography:
   h1:
     fontFamily: "var(--font-sans)"
     fontSize: "1.125rem"
-    fontWeight: 600
+    fontWeight: 700
     lineHeight: 1.3
   h2:
     fontFamily: "var(--font-sans)"
@@ -84,11 +84,13 @@ All colors are strictly tokenized in `packages/frontend/src/styles/tokens.css`.
 ## Typography
 
 Typography is governed by `--font-sans` with compact admin scale:
-- `12px (--text-xs)`: Micro-labels, table column headers, status badges, timestamp subtitles.
+- `12px (--text-xs)`: Micro-labels, table column headers, status badges, timestamp subtitles. Never a heading — a 12px label rendered as `<h3>`/`<h4>` breaks the heading outline. Uppercase treatments carry `--tracking-label`.
 - `14px (--text-sm)`: Default body text, data table cells, form labels, control labels.
 - `16px (--text-base)`: Section headers (H2), modal titles, prominent input values.
-- `18px (--text-lg)`: Page headers (H1), primary sheet titles.
+- `18px (--text-lg)`: Page headers (H1), primary sheet titles. Weight is `--font-bold`; this is the one step in the scale whose weight is unanimous across every implementation.
 - `20px (--text-xl)`: KPI focal metrics and summary counters.
+
+Note on weights: only `--text-lg` has a single established weight. The other steps are weighted by role at the point of use, so weight is not currently a fixed property of a size step. Treat the scale above as governing size and role, not weight, except where a weight is stated.
 
 ## Layout
 
