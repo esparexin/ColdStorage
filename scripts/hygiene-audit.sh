@@ -39,6 +39,11 @@ if git -C "$ROOT" ls-files | grep -E '(^|/)(dist|coverage)/' | grep -q .; then
   fail "build artefacts (dist/coverage) must not be tracked in git"
 fi
 
+# 3b. No test fixtures/helpers leaked into production build output (dist/**/__tests__)
+if find "$ROOT/packages" -type d -path "*/dist/__tests__" 2>/dev/null | grep -q .; then
+  fail "test files or fixtures must not be compiled into production dist/ output"
+fi
+
 # 4. No .env secrets committed (any depth, and not just the exact .env name)
 if git -C "$ROOT" ls-files | grep -E '(^|/)(\.env|\.env\.local|\.env\..*\.local)$' | grep -q .; then
   git -C "$ROOT" ls-files | grep -E '(^|/)(\.env|\.env\.local|\.env\..*\.local)$' | head -20

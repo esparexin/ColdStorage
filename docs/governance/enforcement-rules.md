@@ -13,6 +13,7 @@ workflows.
 | 2 | Placeholder / leftover-work markers | `dummy`, `placeholder production logic`, `lorem ipsum`, `final2`, `TODO`, `FIXME`, `XXX`, `HACK:`, `coming soon`, `not implemented` — scanned across `.ts`, `.tsx`, `.mjs` |
 | 2b | Debugger statements | `debugger;` in any package source |
 | 3 | Build artefacts in git | tracked `dist/` or `coverage/` |
+| 3b | Test leakage in build outputs | compiled `dist/__tests__` in package distributions |
 | 4 | Local env files in git | `.env`, `.env.local`, `.env.*.local` at any depth |
 | 5 | Line budget & ratchet | delegates to `check-line-budget.sh` |
 | 6 | Architecture boundaries & UI SSOT | delegates to `check-architecture-boundaries.sh` |
