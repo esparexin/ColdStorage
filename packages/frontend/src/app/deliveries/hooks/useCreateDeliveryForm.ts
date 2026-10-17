@@ -79,7 +79,8 @@ export function useCreateDeliveryForm(
 
       setLoadingGrnSummary(true);
       setModalError(null);
-      const matched = availableGrns.find((g) => g.id === grnId);
+      const matched = availableGrns.find((g) => g.id === grnId || g.grnNumber === grnId);
+      const targetId = matched ? matched.id : grnId;
       if (matched && (matched.closingBags ?? matched.bags) <= 0) {
         setModalError('Consignment has no available stock remaining for outward delivery');
         return;
@@ -87,8 +88,8 @@ export function useCreateDeliveryForm(
       const commodityId = matched?.commodityId;
       try {
         const [invRes, , rateRes] = await Promise.all([
-          requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns/${encodeURIComponent(grnId)}/inventory-summary`),
-          rentGate.refreshRentGate(facilityId, grnId),
+          requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/grns/${encodeURIComponent(targetId)}/inventory-summary`),
+          rentGate.refreshRentGate(facilityId, targetId),
           commodityId ? requestWithAuth(`/api/commodities/${encodeURIComponent(commodityId)}/rates`) : Promise.resolve(null),
         ]);
         if (invRes.ok) {
@@ -119,8 +120,9 @@ export function useCreateDeliveryForm(
   );
 
   useEffect(() => {
-    if (initialGrnId && availableGrns.length > 0 && !createGrnId && availableGrns.some((g) => g.id === initialGrnId)) {
-      void handleSelectGrn(initialGrnId);
+    if (initialGrnId && availableGrns.length > 0 && !createGrnId) {
+      const match = availableGrns.find((g) => g.id === initialGrnId || g.grnNumber === initialGrnId);
+      if (match) void handleSelectGrn(match.id);
     }
   }, [initialGrnId, availableGrns, createGrnId, handleSelectGrn]);
 

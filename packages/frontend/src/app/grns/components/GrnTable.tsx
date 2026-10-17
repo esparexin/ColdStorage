@@ -4,6 +4,7 @@ import type { Grn } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { Badge } from '@/components/ui';
 import { formatDisplayDate } from '@/lib/date-format';
+import { extractMergedDate } from './grnMergedDate.helper';
 import { GrnLifecycleStatusCell } from './GrnLifecycleStatusCell';
 import { GrnRowActions } from './GrnRowActions';
 import { RentTermsCell } from './RentTermsCell';
@@ -12,6 +13,7 @@ import styles from './GrnTable.module.css';
 interface GrnTableProps {
   grns: Grn[];
   caption: string;
+  isMergedTab?: boolean;
   canPrint: boolean;
   canCorrect?: boolean;
   canCreateChallan?: boolean;
@@ -30,6 +32,7 @@ interface GrnTableProps {
 }
 
 export interface CreateGrnTableColumnsParams {
+  isMergedTab?: boolean;
   canPrint: boolean;
   canCorrect?: boolean;
   canCreateChallan?: boolean;
@@ -43,6 +46,7 @@ export interface CreateGrnTableColumnsParams {
 }
 
 export function createGrnTableColumns({
+  isMergedTab = false,
   canPrint,
   canCorrect = false,
   canCreateChallan = false,
@@ -157,6 +161,22 @@ export function createGrnTableColumns({
       align: 'center',
       render: (row) => <GrnLifecycleStatusCell row={row} />,
     },
+    ...(isMergedTab
+      ? [
+          {
+            key: 'mergedDate',
+            header: 'Merged Date',
+            align: 'center' as const,
+            sortable: true,
+            sortType: 'date' as const,
+            sortAccessor: (row: Grn) => extractMergedDate(row.remarks),
+            render: (row: Grn) => {
+              const d = extractMergedDate(row.remarks);
+              return <span className={styles.dateCell}>{formatDisplayDate(d)}</span>;
+            },
+          },
+        ]
+      : []),
     {
       key: 'actions',
       header: 'Actions',
@@ -183,6 +203,7 @@ export function createGrnTableColumns({
 export function GrnTable({
   grns,
   caption,
+  isMergedTab = false,
   canPrint,
   canCorrect = false,
   canCreateChallan = false,
@@ -200,6 +221,7 @@ export function GrnTable({
   onPrint,
 }: GrnTableProps) {
   const columns = createGrnTableColumns({
+    isMergedTab,
     canPrint,
     canCorrect,
     canCreateChallan,

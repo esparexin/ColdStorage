@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import type { Grn, OutwardBagCategory } from '@cold-storage/contracts';
+import { isHybridBagCategory, type Grn, type OutwardBagCategory } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import { OutwardRentBreakdown } from '@/app/deliveries/components/OutwardRentBreakdown';
 import { computeOutwardRentCharge } from '@/app/deliveries/hooks/deliveryRent.helper';
@@ -40,7 +40,7 @@ export function TransferRentAssessment({
   outstandingBalance,
   onAssessedRentChange,
 }: TransferRentAssessmentProps) {
-  const isHybrid = sourceBagCategory === 'Hybrid' || sourceBagCategory === 'Mixed';
+  const isHybrid = isHybridBagCategory(sourceBagCategory);
   const smallBags = isHybrid
     ? (typeof sourceQuantity === 'number' ? sourceQuantity : remainingBags)
     : (typeof confirmedSmallBags === 'number' ? confirmedSmallBags : currentGrn.smallBags ?? 0);

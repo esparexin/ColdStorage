@@ -56,7 +56,12 @@ export function GrnDetailModalFooter({
       <Button
         variant="secondary"
         size="sm"
-        onClick={() => onCreateChallan && onCreateChallan(grn)}
+        onClick={() => {
+          if (onCreateChallan) {
+            onClose();
+            onCreateChallan(grn);
+          }
+        }}
         disabled={
           !canCreateChallan ||
           !onCreateChallan ||
@@ -67,7 +72,7 @@ export function GrnDetailModalFooter({
         title={grn.loanStatus === 'TAKEN' ? 'Outward blocked — Active loan hold' : 'Create Outward Challan'}
         leftIcon={<Truck size={13} aria-hidden="true" />}
       >
-        Challan
+        Outward
       </Button>
 
       <Button

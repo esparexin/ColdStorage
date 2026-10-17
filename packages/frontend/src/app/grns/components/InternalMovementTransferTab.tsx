@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  isHybridBagCategory,
   resolveTotalRentObligation,
   type Customer, type Grn, type TransferPaymentDecision, type TransferSettlementDetails,
 } from '@cold-storage/contracts';
@@ -31,7 +32,7 @@ export function InternalMovementTransferTab({
   currentGrn, facilityId, customers, submitting, onExecuteTransfer,
 }: InternalMovementTransferTabProps) {
   const [newCustomerId, setNewCustomerId] = useState('');
-  const [movementDate, setMovementDate] = useState(new Date().toISOString().slice(0, 10));
+  const [movementDate] = useState(new Date().toISOString().slice(0, 10));
   const [reason, setReason] = useState(''), [remarks, setRemarks] = useState('');
   const [decision, setDecision] = useState<'AGREED_PENDING' | 'SETTLE_NOW'>('AGREED_PENDING');
   const [settleAmount, setSettleAmount] = useState<number>(0);
@@ -79,10 +80,10 @@ export function InternalMovementTransferTab({
       sourceBagCategory, sourceQuantity, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice,
     });
     if (confirmErr) return setValidationError(confirmErr);
-    const isHybrid = sourceBagCategory === 'Hybrid' || sourceBagCategory === 'Mixed';
+    const isHybrid = isHybridBagCategory(sourceBagCategory);
     const confirmation = isHybrid
       ? {
-          sourceBagCategory,
+          sourceBagCategory: sourceBagCategory || undefined,
           sourceQuantity: typeof sourceQuantity === 'number' ? sourceQuantity : undefined,
           sourceBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
           sourceSeasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
@@ -116,14 +117,9 @@ export function InternalMovementTransferTab({
       />
 
       <TransferPaymentDecisionSection
-        pendingAmount={effectiveDue}
-        decision={decision}
-        onDecisionChange={setDecision}
-        settleAmount={settleAmount}
-        onSettleAmountChange={setSettleAmount}
-        paymentMode={paymentMode}
-        onPaymentModeChange={setPaymentMode}
-        disabled={submitting}
+        pendingAmount={effectiveDue} decision={decision} onDecisionChange={setDecision}
+        settleAmount={settleAmount} onSettleAmountChange={setSettleAmount}
+        paymentMode={paymentMode} onPaymentModeChange={setPaymentMode} disabled={submitting}
       />
 
       {/* Transfer Specification & Governance Grid */}
@@ -157,8 +153,10 @@ export function InternalMovementTransferTab({
               id="transfer-movement-date"
               type="date"
               value={movementDate}
-              onChange={(e) => setMovementDate(e.target.value)}
+              readOnly
               disabled={submitting}
+              aria-label="Movement Date (read-only)"
+              title="Authoritative operational date"
               required
             />
           </div>

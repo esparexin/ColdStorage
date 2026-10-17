@@ -85,6 +85,19 @@ export function GlobalGrnSearch({ onSelect }: GlobalGrnSearchProps = {}) {
     router.push(`/grns?selectedGrnId=${encodeURIComponent(grn.id)}`);
   };
 
+  const handleSearchAction = (searchTerm: string) => {
+    const term = searchTerm.trim();
+    if (!term) return;
+    if (selectedIndex >= 0 && results[selectedIndex]) {
+      handleSelect(results[selectedIndex]);
+    } else if (results.length > 0) {
+      handleSelect(results[0]);
+    } else {
+      setIsOpen(false);
+      router.push(`/grns?search=${encodeURIComponent(term)}`);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!isOpen) return;
     if (e.key === 'ArrowDown') {
@@ -93,9 +106,9 @@ export function GlobalGrnSearch({ onSelect }: GlobalGrnSearchProps = {}) {
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSelectedIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1));
-    } else if (e.key === 'Enter' && selectedIndex >= 0 && results[selectedIndex]) {
+    } else if (e.key === 'Enter') {
       e.preventDefault();
-      handleSelect(results[selectedIndex]);
+      handleSearchAction(query);
     } else if (e.key === 'Escape') {
       setIsOpen(false);
     }
@@ -111,6 +124,7 @@ export function GlobalGrnSearch({ onSelect }: GlobalGrnSearchProps = {}) {
         onChange={setQuery}
         onFocus={() => query.trim() && setIsOpen(true)}
         onKeyDown={handleKeyDown}
+        onSearch={handleSearchAction}
         onClear={() => {
           setQuery('');
           setResults([]);

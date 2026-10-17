@@ -9,13 +9,11 @@ import {
   type OutwardBagCategory,
   type RentSummaryDto,
 } from '@cold-storage/contracts';
-import { Badge } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
 import { OutwardRentBreakdown } from '@/app/deliveries/components/OutwardRentBreakdown';
 import { computeOutwardRentCharge } from '@/app/deliveries/hooks/deliveryRent.helper';
 import type { BagConfirmationValue } from './MergeBagCategoryFields';
 import { deriveMergeRentAssessment } from './mergeRentAssessment.helper';
-import styles from './InternalMovementModal.module.css';
 
 export interface MergeRentAssessmentProps {
   facilityId?: string;
@@ -126,10 +124,7 @@ export function MergeRentAssessment({
           excludePeriodKeys,
         });
 
-        const {
-          historicalObligation, amountPaid, outstandingBalance,
-          isSettled, carriedRent, repackHamali, totalCarried, inwardDateStr,
-        } = deriveMergeRentAssessment({
+        const { historicalObligation } = deriveMergeRentAssessment({
           source, summary, repackMode, commodityHamaliRate, calculatedRent,
         });
 
@@ -138,86 +133,6 @@ export function MergeRentAssessment({
 
         return (
           <div key={source.id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-            <div className={styles.compactCard}>
-              <div className={styles.cardHeader}>
-                <span>Source GRN {source.grnNumber} — Payment Breakdown</span>
-                <Badge variant={isSettled ? 'success' : 'warning'}>
-                  {isSettled ? 'Fully Settled (₹0 Due)' : `Pending Due: ₹${carriedRent.toLocaleString('en-IN')}`}
-                </Badge>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-1) var(--space-3)' }}>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailLabel}>Inward Date:</span>
-                  <span className={styles.detailValue}>{inwardDateStr}</span>
-                </div>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailLabel}>Bags Merged:</span>
-                  <span className={styles.detailValue}>{sourceBags} bags</span>
-                </div>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailLabel}>Historical Rent Obligation:</span>
-                  <span className={styles.detailValue}>₹{historicalObligation.toLocaleString('en-IN')}</span>
-                </div>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailLabel}>Amount Already Paid:</span>
-                  <span className={styles.detailValue}>₹{amountPaid.toLocaleString('en-IN')}</span>
-                </div>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailLabel}>Outstanding Balance:</span>
-                  <span className={styles.detailValue} style={{ color: isSettled ? 'var(--color-success-text)' : 'var(--color-warning-text)', fontWeight: 'var(--font-bold)' }}>
-                    ₹{outstandingBalance.toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailLabel}>Historical Rent Status:</span>
-                  <span className={styles.detailValue} style={{ color: isSettled ? 'var(--color-success-text)' : 'var(--color-warning-text)' }}>
-                    {isSettled ? 'Already Paid in Full' : 'Unpaid Dues'}
-                  </span>
-                </div>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailLabel}>Carried Rent Obligation:</span>
-                  <span className={styles.detailValue} style={{ fontWeight: 'var(--font-bold)' }}>
-                    ₹{carriedRent.toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailLabel}>New Repacking Hamali:</span>
-                  <span className={styles.detailValue}>
-                    {repackMode
-                      ? `₹${repackHamali.toLocaleString('en-IN')} (${sourceBags} bags @ ₹${commodityHamaliRate}/bag)`
-                      : '₹0 (Physical repacking not selected)'}
-                  </span>
-                </div>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailLabel}>Total Carried to Target:</span>
-                  <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-bold)' }}>
-                    ₹{totalCarried.toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailLabel}>Effective Movement Date:</span>
-                  <span className={styles.detailValue}>{movementDate}</span>
-                </div>
-              </div>
-
-              <div className={styles.noticeBox} style={{ fontSize: 'var(--text-xs)' }}>
-                {isSettled ? (
-                  summary?.payments && summary.payments.length > 0 ? (
-                    <>
-                      Source GRN rent is fully settled. Historical payment receipts verified:{' '}
-                      {summary.payments.map((p) => `#${p.receiptNumber} (₹${p.amountPaid.toLocaleString('en-IN')})`).join(', ')}.
-                      Historical seasons are preserved without recalculation or duplicate billing. Surviving GRN continues its existing lifecycle.
-                    </>
-                  ) : (
-                    'Source GRN rent is fully settled. Historical seasons are preserved without recalculation or duplicate billing. Surviving GRN continues its existing lifecycle.'
-                  )
-                ) : (
-                  `Historical rent obligation: ₹${historicalObligation.toLocaleString('en-IN')}, Paid: ₹${amountPaid.toLocaleString('en-IN')}. Only verified outstanding dues of ₹${carriedRent.toLocaleString('en-IN')} are carried forward to the target GRN. Historical seasons are not recalculated as an outward delivery.`
-                )}
-              </div>
-            </div>
-
             <OutwardRentBreakdown
               rentType={source.rentType}
               inwardDate={source.date}

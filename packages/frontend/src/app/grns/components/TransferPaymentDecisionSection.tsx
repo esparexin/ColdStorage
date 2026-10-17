@@ -55,27 +55,27 @@ export function TransferPaymentDecisionSection({
 
       <div
         style={{
-          fontSize: 'var(--text-xs)',
-          color: 'var(--color-text-secondary)',
-          background: 'var(--color-surface-2)',
-          padding: 'var(--space-1) var(--space-2)',
-          borderRadius: 'var(--radius-sm)',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 'var(--space-2)',
         }}
       >
-        {decision === 'SETTLE_NOW'
-          ? 'Outstanding rent will be settled in full at the time of ownership transfer.'
-          : 'Outstanding rent liability will be carried forward to the new owner under agreed pending terms.'}
-      </div>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
         <label
           htmlFor="decision-settle-now"
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 'var(--space-1)',
+            gap: 'var(--space-2)',
+            padding: 'var(--space-2) var(--space-3)',
+            borderRadius: 'var(--radius-md)',
+            border: decision === 'SETTLE_NOW' ? '1.5px solid var(--color-primary)' : '1px solid var(--color-border)',
+            background: decision === 'SETTLE_NOW' ? 'var(--color-primary-subtle)' : 'var(--color-surface-2)',
+            boxShadow: decision === 'SETTLE_NOW' ? '0 0 0 1px var(--color-primary)' : 'none',
             fontSize: 'var(--text-xs)',
-            cursor: 'pointer',
+            fontWeight: decision === 'SETTLE_NOW' ? 'var(--font-semibold)' : 'var(--font-medium)',
+            color: decision === 'SETTLE_NOW' ? 'var(--color-primary-text)' : 'var(--color-text-secondary)',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            transition: 'all var(--transition-fast, 0.15s ease)',
           }}
         >
           <input
@@ -86,8 +86,14 @@ export function TransferPaymentDecisionSection({
             checked={decision === 'SETTLE_NOW'}
             onChange={() => onDecisionChange('SETTLE_NOW')}
             disabled={disabled}
+            style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}
           />
-          <span>Settle Outstanding Dues Now (₹{pendingAmount.toLocaleString('en-IN')})</span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span>Settle Outstanding Dues Now</span>
+            <span style={{ fontSize: 'var(--text-xs)', color: decision === 'SETTLE_NOW' ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>
+              ₹{pendingAmount.toLocaleString('en-IN')} due
+            </span>
+          </div>
         </label>
 
         <label
@@ -95,9 +101,17 @@ export function TransferPaymentDecisionSection({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 'var(--space-1)',
+            gap: 'var(--space-2)',
+            padding: 'var(--space-2) var(--space-3)',
+            borderRadius: 'var(--radius-md)',
+            border: decision === 'AGREED_PENDING' ? '1.5px solid var(--color-warning)' : '1px solid var(--color-border)',
+            background: decision === 'AGREED_PENDING' ? 'var(--color-warning-subtle)' : 'var(--color-surface-2)',
+            boxShadow: decision === 'AGREED_PENDING' ? '0 0 0 1px var(--color-warning)' : 'none',
             fontSize: 'var(--text-xs)',
-            cursor: 'pointer',
+            fontWeight: decision === 'AGREED_PENDING' ? 'var(--font-semibold)' : 'var(--font-medium)',
+            color: decision === 'AGREED_PENDING' ? 'var(--color-warning-text)' : 'var(--color-text-secondary)',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            transition: 'all var(--transition-fast, 0.15s ease)',
           }}
         >
           <input
@@ -108,8 +122,14 @@ export function TransferPaymentDecisionSection({
             checked={decision === 'AGREED_PENDING'}
             onChange={() => onDecisionChange('AGREED_PENDING')}
             disabled={disabled}
+            style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}
           />
-          <span>Carry Forward to Transferee (Agreed Pending)</span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span>Carry Forward to Transferee</span>
+            <span style={{ fontSize: 'var(--text-xs)', color: decision === 'AGREED_PENDING' ? 'var(--color-warning-text)' : 'var(--color-text-muted)' }}>
+              Agreed Pending
+            </span>
+          </div>
         </label>
       </div>
 
