@@ -3,7 +3,7 @@
 import React from 'react';
 import type { RentSummaryDto } from '@cold-storage/contracts';
 import { DataTable } from '@/components/ui/DataTable';
-import { createRentColumns } from './rentTableColumns';
+import { createRentColumns } from './RentTableColumns';
 
 interface RentTableProps {
   accounts: RentSummaryDto[];

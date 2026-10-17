@@ -9,7 +9,7 @@ import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { requestWithAuth } from '@/lib/api-client';
 import { useFacility } from '@/context/FacilityContext';
 import { BondDetailsModal } from './components/BondDetailsModal';
-import { createBondsColumns } from './components/bondsColumns';
+import { createBondsColumns } from './components/BondsColumns';
 import styles from './page.module.css';
 
 export default function BondsPage() {
