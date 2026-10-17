@@ -12,6 +12,7 @@ import { requestWithAuth } from '@/lib/api-client';
 import { useFacility } from '@/context/FacilityContext';
 import { GrnStockMovementModal } from './components/GrnStockMovementModal';
 import { createGrnStockColumns } from './components/GrnStockColumns';
+import { GrnStockStatusTabs } from './components/GrnStockStatusTabs';
 import styles from './page.module.css';
 
 export default function GrnStockPage() {
@@ -84,6 +85,16 @@ export default function GrnStockPage() {
     });
   }, [grns, searchTerm, statusFilter]);
 
+  const tabCounts = useMemo(() => {
+    let open = 0;
+    let closed = 0;
+    for (const g of grns) {
+      if (g.status === 'CLOSED') closed++;
+      else open++;
+    }
+    return { all: grns.length, open, closed };
+  }, [grns]);
+
   const totalPages = Math.max(1, Math.ceil(filteredGrns.length / pageSize));
   const pagedGrns = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -114,9 +125,34 @@ export default function GrnStockPage() {
   const currentFacilityName =
     availableFacilities.find((f) => f.id === selectedFacilityId)?.name || 'Cold Storage Facility';
 
+  const mergeInMap = useMemo(() => {
+    const map = new Map<string, { sourceNumbers: string[]; date: string | Date | null }>();
+    for (const g of grns) {
+      const targetNumber = g.mergedIntoGrnNumber;
+      const targetId = g.mergedIntoGrnId;
+      if (!targetNumber && !targetId) continue;
+
+      const match = g.remarks?.match(/on\s+(\d{4}-\d{2}-\d{2})/);
+      const dateVal = match?.[1] ?? g.updatedAt ?? null;
+
+      const keys = [targetNumber, targetId].filter(Boolean) as string[];
+      for (const k of keys) {
+        const existing = map.get(k) || { sourceNumbers: [], date: dateVal };
+        if (!existing.sourceNumbers.includes(g.grnNumber)) {
+          existing.sourceNumbers.push(g.grnNumber);
+        }
+        if (!existing.date && dateVal) {
+          existing.date = dateVal;
+        }
+        map.set(k, existing);
+      }
+    }
+    return map;
+  }, [grns]);
+
   const columns = useMemo(
-    () => createGrnStockColumns({ onOpenMovement: handleOpenMovement }),
-    [selectedFacilityId],
+    () => createGrnStockColumns({ onOpenMovement: handleOpenMovement, mergeInMap }),
+    [selectedFacilityId, mergeInMap],
   );
 
   if (!canViewGrnStock) {
@@ -147,31 +183,24 @@ export default function GrnStockPage() {
         <FeedbackStates.Empty message="Please select a facility from the header to view GRN Stock." />
       ) : (
         <>
+          <GrnStockStatusTabs
+            statusFilter={statusFilter}
+            onStatusChange={(status) => {
+              setStatusFilter(status);
+              setPage(1);
+            }}
+            counts={tabCounts}
+          />
+
           <FilterToolbar
             searchValue={searchTerm}
             onSearchChange={(v) => {
               setSearchTerm(v);
               setPage(1);
             }}
-            searchPlaceholder="Search GRN #, Customer, Commodity, Chamber..."
+            searchPlaceholder="Search GRN #, Customer, Commodity..."
             searchAriaLabel="Search GRN Stock"
             searchInputId="grn-stock-search-input"
-            selects={[
-              {
-                id: 'grn-stock-status-filter',
-                ariaLabel: 'Filter by Status',
-                value: statusFilter,
-                onChange: (v) => {
-                  setStatusFilter(v as '' | GrnStatus);
-                  setPage(1);
-                },
-                options: [
-                  { value: '', label: 'All Statuses' },
-                  { value: 'OPEN', label: 'Open' },
-                  { value: 'CLOSED', label: 'Closed' },
-                ],
-              },
-            ]}
             onReset={() => {
               setSearchTerm('');
               setStatusFilter('');

@@ -5,12 +5,21 @@ import type { DataTableColumn } from '@/components/ui/DataTable';
 import { Badge, Button } from '@/components/ui';
 import { formatDisplayDate } from '@/lib/date-format';
 
+export type { MergeInInfo } from '../utils/grnStockMovementColumn.helper';
+import {
+  type MergeInInfo,
+  resolveMovementDate,
+  resolveMovementType,
+} from '../utils/grnStockMovementColumn.helper';
+
 interface CreateGrnStockColumnsParams {
   onOpenMovement: (grn: Grn) => void;
+  mergeInMap?: Map<string, MergeInInfo>;
 }
 
 export function createGrnStockColumns({
   onOpenMovement,
+  mergeInMap,
 }: CreateGrnStockColumnsParams): DataTableColumn<Grn>[] {
   return [
     {
@@ -64,24 +73,6 @@ export function createGrnStockColumns({
       sortType: 'text',
       sortAccessor: (row) => row.commodityName,
       render: (row) => row.commodityName,
-    },
-    {
-      key: 'chamber',
-      header: 'Chamber',
-      sortable: true,
-      sortType: 'text',
-      sortAccessor: (row) => row.chamber,
-      render: (row) => (
-        <span
-          style={{
-            fontFamily: 'var(--font-mono, monospace)',
-            fontSize: 'var(--text-xs)',
-            color: 'var(--color-text-primary)',
-          }}
-        >
-          {row.chamber}
-        </span>
-      ),
     },
     {
       key: 'bags',
@@ -153,9 +144,54 @@ export function createGrnStockColumns({
     {
       key: 'status',
       header: 'Status',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => row.status,
       render: (row) => (
         <Badge variant={row.status === 'CLOSED' ? 'neutral' : 'warning'}>{row.status}</Badge>
       ),
+    },
+    {
+      key: 'type',
+      header: 'Type',
+      sortable: true,
+      sortType: 'text',
+      sortAccessor: (row) => resolveMovementType(row, mergeInMap).label,
+      render: (row) => {
+        const res = resolveMovementType(row, mergeInMap);
+        if (res.kind === 'merge' || res.kind === 'merge-in') {
+          return <Badge variant="primary">{res.label}</Badge>;
+        }
+        if (res.kind === 'outward') {
+          return <Badge variant="neutral">Outward</Badge>;
+        }
+        return <span style={{ color: 'var(--color-text-muted)' }}>—</span>;
+      },
+    },
+    {
+      key: 'closureDate',
+      header: 'Movement Date',
+      sortable: true,
+      sortType: 'date',
+      sortAccessor: (row) => {
+        const d = resolveMovementDate(row, mergeInMap);
+        return d ? new Date(d).getTime() : 0;
+      },
+      render: (row) => {
+        const d = resolveMovementDate(row, mergeInMap);
+        if (!d) return <span style={{ color: 'var(--color-text-muted)' }}>—</span>;
+        return (
+          <span
+            style={{
+              fontSize: 'var(--text-xs)',
+              color: 'var(--color-text-secondary)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {formatDisplayDate(d)}
+          </span>
+        );
+      },
     },
     {
       key: 'actions',
