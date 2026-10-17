@@ -23,7 +23,7 @@ export function TransportLogisticsSection({
 }: TransportLogisticsSectionProps) {
   return (
     <section className={styles.formSection}>
-      <h3 className={styles.sectionHeading}>Transport &amp; Identification</h3>
+      <p className={styles.sectionHeading}>Transport &amp; Identification</p>
       <div className={styles.formGrid}>
         <div className={styles.fieldGroup}>
           <label htmlFor="create-storage-mark" className={styles.fieldLabel}>Storage Mark</label>

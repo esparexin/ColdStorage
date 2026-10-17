@@ -44,7 +44,7 @@ function ErrorState({ title = 'Something went wrong', message, onRetry }: ErrorP
   return (
     <div className={`${styles.feedbackWrapper} ${styles.error}`} role="alert">
       <AlertCircle size={20} className={styles.errorIcon} aria-hidden="true" />
-      {title && <h3 className={styles.title}>{title}</h3>}
+      {title && <p className={styles.title}>{title}</p>}
       <p className={styles.message}>{message}</p>
       {onRetry && (
         <Button id="retry-button" variant="primary" size="sm" onClick={onRetry}>

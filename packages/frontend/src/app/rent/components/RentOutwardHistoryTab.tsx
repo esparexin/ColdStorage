@@ -52,9 +52,9 @@ export function RentOutwardHistoryTab({ facilityId, account }: RentOutwardHistor
       {mergedNotes.length > 0 && (
         <div className={styles.mergeSection}>
           <div className={styles.sectionHeader}>
-            <h4 className={styles.sectionLabel}>
+            <p className={styles.sectionLabel}>
               Internal Movements & Seasonal Continuity ({mergedNotes.length})
-            </h4>
+            </p>
           </div>
           <div className={styles.outwardList}>
             {mergedNotes.map((note) => (
@@ -93,9 +93,9 @@ export function RentOutwardHistoryTab({ facilityId, account }: RentOutwardHistor
       )}
 
       <div className={styles.sectionHeader}>
-        <h4 className={styles.sectionLabel}>
+        <p className={styles.sectionLabel}>
           Outward Transactions & Bag Breakdown ({deliveries.length})
-        </h4>
+        </p>
       </div>
 
       {deliveries.length === 0 ? (
