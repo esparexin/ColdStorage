@@ -2,6 +2,8 @@ import type { GrnDocumentDto } from '@cold-storage/contracts';
 import { escapeHtml, renderBaseLayout } from './base.layout.js';
 
 export function renderGrnTemplate(dto: GrnDocumentDto): string {
+  const partyMark = dto.partyMark || dto.marks || '—';
+
   const bodyContent = `
     <table class="data-table">
       <tr>
@@ -13,14 +15,8 @@ export function renderGrnTemplate(dto: GrnDocumentDto): string {
       <tr>
         <th>Commodity</th>
         <td><strong>${escapeHtml(dto.commodityName)}</strong></td>
-        <th>S/B Category</th>
-        <td>${escapeHtml(dto.bagType)}</td>
-      </tr>
-      <tr>
-        <th>Total S/B Bags</th>
-        <td><strong>${escapeHtml(dto.bags)} (${escapeHtml(dto.bagType)})</strong></td>
-        <th>Inward Receipt #</th>
-        <td>${escapeHtml(dto.inwardReceiptNumber)}</td>
+        <th>Total Bags</th>
+        <td><strong>${escapeHtml(dto.bags)}</strong></td>
       </tr>
       <tr>
         <th>Rent Agreement</th>
@@ -31,16 +27,9 @@ export function renderGrnTemplate(dto: GrnDocumentDto): string {
       <tr>
         <th>Vehicle Number</th>
         <td>${escapeHtml(dto.vehicleNumber ?? '—')}</td>
-        <th>Gate Pass (GP) #</th>
-        <td>${escapeHtml(dto.gpNumber ?? '—')}</td>
+        <th>Party Mark</th>
+        <td>${escapeHtml(partyMark)}</td>
       </tr>
-      <tr>
-        <th>Small Bag Weight</th>
-        <td>${dto.smallBagWeight ? `<strong>${escapeHtml(dto.smallBagWeight)} kg per bag</strong>` : '—'}</td>
-        <th>Big Bag Weight</th>
-        <td>${dto.bigBagWeight ? `<strong>${escapeHtml(dto.bigBagWeight)} kg per bag</strong>` : '—'}</td>
-      </tr>
-      ${dto.marks ? `<tr><th>Lot / Identification Marks</th><td colspan="3">${escapeHtml(dto.marks)}</td></tr>` : ''}
     </table>
   `;
 
@@ -48,8 +37,9 @@ export function renderGrnTemplate(dto: GrnDocumentDto): string {
     title: `GRN - ${dto.grnNumber}`,
     organization: dto.organization,
     facility: dto.facility,
-    documentTitle: 'GOODS RECEIPT NOTE (STORAGE RECORD)',
+    documentTitle: 'GOODS RECEIPT NOTE (GRN)',
     documentNumber: dto.grnNumber,
+    documentNumberLabel: 'GRN #',
     documentDate:
       dto.date instanceof Date ? dto.date.toISOString().split('T')[0] : String(dto.date),
     generatedAt:

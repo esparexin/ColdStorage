@@ -30,17 +30,21 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(output1.length).toBeGreaterThan(500);
   });
 
-  // 2. GRN structure: organization, facility sub-header, numbers, free-text chamber, weights.
+  // 2. GRN structure: organization, facility sub-header, numbers, free-text chamber.
   it('renders complete GRN template structure with organization, facility and chamber label', () => {
     const html = renderGrnTemplate(makeGrnDto());
 
     expect(html).toContain('National Cold Chain Enterprise');
     expect(html).not.toContain('Operating Facility:');
     expect(html).toContain('GRN-2026-1001');
-    expect(html).toContain('GOODS RECEIPT NOTE (STORAGE RECORD)');
+    expect(html).toContain('GOODS RECEIPT NOTE (GRN)');
     expect(html).toContain('Sardar Singh');
     expect(html).toContain('300');
-    expect(html).toContain('50 kg per bag');
+    expect(html).toContain('Party Mark');
+    expect(html).toContain('Total Bags');
+    ['S/B Category', 'Gate Pass (GP) #', 'Small Bag Weight', 'Big Bag Weight'].forEach((k) =>
+      expect(html).not.toContain(k),
+    );
     expect(html).toContain('HR-10-XY-9999');
   });
 
@@ -59,12 +63,8 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).not.toContain('9812300001');
     // The document schemas strip unknown keys, so a removed field can never reach a template.
     expect(grnDocumentDtoSchema.parse(makeGrnDto()).chamber).toBe('CH-03');
-    for (const removed of [
-      { customerMobile: '9812300001' }, { chamberNumber: 'CH-03' }, { positions: [{ positionCode: 'P1', bags: 300 }] },
-    ]) {
-      expect(grnDocumentDtoSchema.parse({ ...makeGrnDto(), ...removed })).not.toHaveProperty(
-        Object.keys(removed)[0],
-      );
+    for (const removed of [{ customerMobile: '9812300001' }, { chamberNumber: 'CH-03' }, { positions: [{ positionCode: 'P1', bags: 300 }] }]) {
+      expect(grnDocumentDtoSchema.parse({ ...makeGrnDto(), ...removed })).not.toHaveProperty(Object.keys(removed)[0]);
     }
   });
 
@@ -76,7 +76,9 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).toContain('RCPT-2026-1001');
     expect(html).toContain('Sardar Singh');
     expect(html).toContain('300');
-    expect(html).toContain('12,500 kg');
+    expect(html).toContain('GRN #:');
+    expect(html).toContain('Total Bags');
+    expect(html).not.toContain('Total Bags Weight');
     expect(html).toContain('Storage Mark');
     expect(html).toContain('PM-42');
     expect(html).toContain('HR-10-XY-9999');
@@ -107,11 +109,12 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     const html = renderChallanTemplate(makeChallanDto());
 
     expect(html).toContain('OUTWARD DELIVERY CHALLAN (GATE PASS)');
-    expect(html).toContain('CHL-2026-5001');
+    expect(html).not.toContain('CHL-2026-5001');
+    expect(html).toContain('Gate Pass #:');
+    expect(html).not.toContain('Gate Pass (GP) # *');
     expect(html).toContain('CH-03');
     expect(html).toContain('PM-42');
-    expect(html).toContain('Total Bags Weight');
-    expect(html).toContain('12,500 kg');
+    expect(html).not.toContain('Total Bags Weight');
     expect(html).toContain('Outward Weight');
     expect(html).toContain('4,000 kg');
     expect(html).toContain('DL-01-AA-4321');
@@ -120,7 +123,7 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).toContain('Outward Bags Details');
     expect(html).toContain('Small Bags');
     expect(html).toContain('Big Bags');
-    expect(html).toContain('Total S/B Bags Dispatched');
+    expect(html).toContain('Total Bags Dispatched');
     expect(html).toContain('100 Total S/B Bags in total (S/B Category: S/B)');
     expect(html).not.toContain('Storage Position');
     expect(html).not.toContain('Doc #:');

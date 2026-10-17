@@ -71,7 +71,7 @@ documentRouter.get(
 
     const facilityId = getParamId(req.params.facilityId);
     const grnId = getParamId(req.params.grnId);
-    const userId = req.user?.userId ?? 'SYSTEM';
+    const userId = req.user?.username ?? req.user?.userId ?? 'SYSTEM';
 
     try {
       const html = await documentService.renderGrnDocument(facilityId, grnId, userId);
@@ -99,7 +99,7 @@ documentRouter.get(
 
     const facilityId = getParamId(req.params.facilityId);
     const grnId = getParamId(req.params.grnId);
-    const userId = req.user?.userId ?? 'SYSTEM';
+    const userId = req.user?.username ?? req.user?.userId ?? 'SYSTEM';
 
     try {
       const html = await documentService.renderReceiptDocument(facilityId, grnId, userId);
@@ -127,7 +127,7 @@ documentRouter.get(
 
     const facilityId = getParamId(req.params.facilityId);
     const challanId = getParamId(req.params.challanId);
-    const userId = req.user?.userId ?? 'SYSTEM';
+    const userId = req.user?.username ?? req.user?.userId ?? 'SYSTEM';
 
     try {
       const html = await documentService.renderChallanDocument(facilityId, challanId, userId);
@@ -154,7 +154,7 @@ documentRouter.get(
     }
 
     const facilityId = getParamId(req.params.facilityId);
-    const userId = req.user?.userId ?? 'SYSTEM';
+    const userId = req.user?.username ?? req.user?.userId ?? 'SYSTEM';
 
     const rawAmount = req.query.amount ? Number(req.query.amount) : undefined;
     const amount =

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { DeliveryChallan, Grn, RentSummaryDto } from '@cold-storage/contracts';
-import { ConfirmDialog } from '@/components/ui';
+import { Button, Modal } from '@/components/ui';
 import { CollectPaymentModal } from '../../rent/components/CollectPaymentModal';
 import { UpdateLoanStatusModal } from '../../grns/components/UpdateLoanStatusModal';
 import { DeliveryDetailModal } from './DeliveryDetailModal';
@@ -53,16 +53,36 @@ export function DeliveryPageModals({
   return (
     <>
       {rentPromptDelivery && onConfirmRentPrompt && onCancelRentPrompt && (
-        <ConfirmDialog
+        <Modal
           isOpen={Boolean(rentPromptDelivery)}
           title="Challan Issued"
-          confirmLabel={`Collect Rent Now (₹${rentPromptDelivery.rentCharge?.toLocaleString('en-IN')})`}
-          cancelLabel="Later"
-          confirmVariant="primary"
-          onCancel={onCancelRentPrompt}
-          onConfirm={() => onConfirmRentPrompt(rentPromptDelivery)}
-          message={`Delivery Challan ${rentPromptDelivery.challanNumber} issued successfully for ${rentPromptDelivery.customerName}.\n\nCollect Rent Now (₹${rentPromptDelivery.rentCharge?.toLocaleString('en-IN')})?`}
-        />
+          onClose={onCancelRentPrompt}
+          size="sm"
+          footer={
+            <>
+              <Button
+                variant="outline"
+                id="print-gate-pass-btn"
+                onClick={() => onPrintChallan(rentPromptDelivery.id)}
+                disabled={!canPrint || printingId === rentPromptDelivery.id}
+                isLoading={printingId === rentPromptDelivery.id}
+              >
+                Print Gate Pass
+              </Button>
+              <Button
+                variant="primary"
+                id="collect-rent-now-btn"
+                onClick={() => onConfirmRentPrompt(rentPromptDelivery)}
+              >
+                {`Collect Rent Now (₹${rentPromptDelivery.rentCharge?.toLocaleString('en-IN')})`}
+              </Button>
+            </>
+          }
+        >
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+            {`Delivery Challan ${rentPromptDelivery.challanNumber} issued successfully for ${rentPromptDelivery.customerName}. Collect Rent Now (₹${rentPromptDelivery.rentCharge?.toLocaleString('en-IN')})?`}
+          </div>
+        </Modal>
       )}
       {selectedDelivery && (
         <DeliveryDetailModal

@@ -69,32 +69,33 @@ export function renderBaseLayout(opts: BaseLayoutOptions): string {
     }
     .header-table {
       width: 100%;
-      border-bottom: 2px solid #222;
-      padding-bottom: 8px;
-      margin-bottom: 8px;
+      border-bottom: 1.5px solid #222;
+      padding-bottom: 4px;
+      margin-bottom: 5px;
     }
     .org-title {
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.2px;
+      line-height: 1.2;
     }
     .org-detail {
-      font-size: 9px;
+      font-size: 8px;
       color: #333;
       line-height: 1.25;
     }
     .org-logo {
-      max-height: 38px;
-      max-width: 80px;
+      max-height: 32px;
+      max-width: 72px;
       object-fit: contain;
     }
     .facility-box {
       background: #f7f7f7;
-      padding: 4px 6px;
+      padding: 3px 5px;
       border-radius: 3px;
-      font-size: 9px;
-      margin-top: 4px;
+      font-size: 8px;
+      margin-top: 3px;
     }
     .doc-banner {
       display: flex;
@@ -102,34 +103,37 @@ export function renderBaseLayout(opts: BaseLayoutOptions): string {
       align-items: center;
       background: #eee;
       border: 1px solid #ccc;
-      padding: 4px 8px;
-      margin: 8px 0;
+      padding: 3px 6px;
+      margin: 5px 0;
     }
     .doc-title {
-      font-size: 11px;
+      font-size: 8.5px;
       font-weight: 700;
       text-transform: uppercase;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
     }
     .doc-meta {
       text-align: right;
-      font-size: 9px;
+      font-size: 8px;
+      line-height: 1.25;
     }
     .data-table {
       width: 100%;
       border-collapse: collapse;
-      margin: 8px 0;
-      font-size: 9.5px;
+      margin: 5px 0;
+      font-size: 8px;
     }
-    .data-table th, .data-table td { border: 1px solid #aaa; padding: 3px 5px; text-align: left; vertical-align: middle; }
+    .data-table th, .data-table td { border: 1px solid #aaa; padding: 2.5px 4px; text-align: left; vertical-align: middle; }
     .data-table th { background: #f0f0f0; font-weight: 600; }
     .text-right { text-align: right; }
     .text-center { text-align: center; }
-    .footer-section { margin-top: 14px; padding-top: 6px; border-top: 1px solid #ccc; }
-    .signatures { display: flex; justify-content: space-between; margin-top: 24px; padding-top: 4px; gap: 8px; }
-    .sig-box { border-top: 1px solid #444; flex: 1; max-width: 48%; text-align: center; font-size: 9px; padding-top: 3px; }
+    .footer-section { margin-top: 10px; padding-top: 4px; border-top: 1px solid #ccc; }
+    .signatures { display: flex; justify-content: space-between; margin-top: 16px; padding-top: 2px; gap: 8px; }
+    .sig-box { border-top: 1px solid #444; flex: 1; max-width: 48%; text-align: center; font-size: 8px; padding-top: 2px; }
     .watermark-banner {
-      background: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 4px 6px;
-      text-align: center; font-weight: bold; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+      background: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 3px 5px;
+      text-align: center; font-weight: bold; font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
     }
     .print-controls { max-width: ${sheetWidth}; margin: 0 auto 8px auto; text-align: right; }
     .btn-print { background: #0056b3; color: #fff; border: none; padding: 6px 12px; font-size: 11px; border-radius: 4px; cursor: pointer; }
