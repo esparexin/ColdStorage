@@ -86,7 +86,20 @@ describe('rentFilter.helper', () => {
     paymentStatus: 'Settled',
   });
 
-  const accounts = [account1, account2, account3];
+  const account4 = createMockAccount({
+    grnId: 'grn-4',
+    grnNumber: 'GRN-104',
+    customerName: 'Anil Traders',
+    commodityName: 'Apple',
+    chamber: 'CH-04',
+    rentType: 'Seasonal',
+    rentAmount: 6000,
+    totalPaid: 2000,
+    remainingBalance: 4000,
+    paymentStatus: 'Not Settled',
+  });
+
+  const accounts = [account1, account2, account3, account4];
 
   it('returns all accounts when no filters are set', () => {
     const result = filterRentAccounts(accounts, {
@@ -94,7 +107,7 @@ describe('rentFilter.helper', () => {
       statusFilter: '',
       typeFilter: '',
     });
-    expect(result).toHaveLength(3);
+    expect(result).toHaveLength(4);
   });
 
   it('filters by search term matching customer name', () => {
@@ -127,24 +140,52 @@ describe('rentFilter.helper', () => {
     expect(result[0].grnNumber).toBe('GRN-102');
   });
 
-  it('filters by PENDING_DUES status', () => {
+  it('filters by UNPAID status (zero paid with outstanding balance)', () => {
     const result = filterRentAccounts(accounts, {
       searchTerm: '',
-      statusFilter: 'PENDING_DUES',
+      statusFilter: 'UNPAID',
       typeFilter: '',
     });
     expect(result).toHaveLength(1);
     expect(result[0].grnNumber).toBe('GRN-101');
   });
 
-  it('filters by SETTLED status (paid in full)', () => {
+  it('filters by PARTIALLY_PAID status (partial payment with outstanding balance)', () => {
+    const result = filterRentAccounts(accounts, {
+      searchTerm: '',
+      statusFilter: 'PARTIALLY_PAID',
+      typeFilter: '',
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].grnNumber).toBe('GRN-104');
+  });
+
+  it('filters by SETTLED status (zero remaining balance or settled state)', () => {
     const result = filterRentAccounts(accounts, {
       searchTerm: '',
       statusFilter: 'SETTLED',
       typeFilter: '',
     });
-    expect(result).toHaveLength(1);
-    expect(result[0].grnNumber).toBe('GRN-102');
+    expect(result).toHaveLength(2);
+    expect(result.map((a) => a.grnNumber)).toEqual(['GRN-102', 'GRN-103']);
+  });
+
+  it('ensures status tabs are mutually exclusive and partition the accounts exactly', () => {
+    const unpaid = filterRentAccounts(accounts, { searchTerm: '', statusFilter: 'UNPAID', typeFilter: '' });
+    const partiallyPaid = filterRentAccounts(accounts, { searchTerm: '', statusFilter: 'PARTIALLY_PAID', typeFilter: '' });
+    const settled = filterRentAccounts(accounts, { searchTerm: '', statusFilter: 'SETTLED', typeFilter: '' });
+
+    expect(unpaid.length + partiallyPaid.length + settled.length).toBe(accounts.length);
+  });
+
+  it('filters by PENDING_DUES status', () => {
+    const result = filterRentAccounts(accounts, {
+      searchTerm: '',
+      statusFilter: 'PENDING_DUES',
+      typeFilter: '',
+    });
+    expect(result).toHaveLength(2);
+    expect(result.map((a) => a.grnNumber)).toEqual(['GRN-101', 'GRN-104']);
   });
 
   it('filters by NO_DUES status (zero rent and zero balance)', () => {

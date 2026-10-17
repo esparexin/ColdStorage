@@ -1,6 +1,12 @@
 import type { RentSummaryDto } from '@cold-storage/contracts';
 
-export type RentStatusFilter = '' | 'PENDING_DUES' | 'SETTLED' | 'NO_DUES';
+export type RentStatusFilter =
+  | ''
+  | 'UNPAID'
+  | 'PARTIALLY_PAID'
+  | 'SETTLED'
+  | 'PENDING_DUES'
+  | 'NO_DUES';
 export type RentTypeFilter = '' | 'Seasonal' | 'Monthly';
 
 export interface RentFilterOptions {
@@ -10,9 +16,27 @@ export interface RentFilterOptions {
 }
 
 /**
+ * Determines the mutually exclusive rent status category for an account.
+ * - 'SETTLED': Zero remaining balance or explicit 'Settled' status.
+ * - 'PARTIALLY_PAID': Payments have been made (totalPaid > 0) with an outstanding balance (remainingBalance > 0).
+ * - 'UNPAID': No payment collected (totalPaid === 0) with an outstanding balance.
+ */
+export function getRentStatusCategory(
+  acc: Pick<RentSummaryDto, 'totalPaid' | 'remainingBalance' | 'paymentStatus'>,
+): 'UNPAID' | 'PARTIALLY_PAID' | 'SETTLED' {
+  if (acc.remainingBalance === 0 || acc.paymentStatus === 'Settled') {
+    return 'SETTLED';
+  }
+  if (acc.totalPaid > 0 && acc.remainingBalance > 0) {
+    return 'PARTIALLY_PAID';
+  }
+  return 'UNPAID';
+}
+
+/**
  * Pure filter helper for rent accounts ledger.
  * Matches search terms across GRN #, Customer, Commodity, Chamber, and Receipt numbers.
- * Supports granular status filtering (Pending Dues, Settled, No Dues) and Rent Structure types.
+ * Supports mutually exclusive status filtering (Unpaid, Partially Paid, Settled) and Rent Structure types.
  */
 export function filterRentAccounts(
   accounts: RentSummaryDto[],
@@ -41,12 +65,15 @@ export function filterRentAccounts(
     }
 
     if (statusFilter) {
-      if (statusFilter === 'PENDING_DUES') {
+      if (
+        statusFilter === 'UNPAID' ||
+        statusFilter === 'PARTIALLY_PAID' ||
+        statusFilter === 'SETTLED'
+      ) {
+        if (getRentStatusCategory(acc) !== statusFilter) return false;
+      } else if (statusFilter === 'PENDING_DUES') {
         const hasDues = acc.paymentStatus === 'Not Settled' || acc.remainingBalance > 0;
         if (!hasDues) return false;
-      } else if (statusFilter === 'SETTLED') {
-        const isSettledPaid = acc.paymentStatus === 'Settled' && acc.totalPaid > 0;
-        if (!isSettledPaid) return false;
       } else if (statusFilter === 'NO_DUES') {
         const isNoDues = acc.paymentStatus === 'Settled' && acc.totalPaid === 0 && acc.rentAmount === 0;
         if (!isNoDues) return false;

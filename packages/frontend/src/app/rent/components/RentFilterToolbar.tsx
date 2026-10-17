@@ -7,21 +7,22 @@ import type { RentStatusFilter, RentTypeFilter } from '../hooks/rentFilter.helpe
 export interface RentFilterToolbarProps {
   searchTerm: string;
   onSearchChange: (v: string) => void;
-  statusFilter: RentStatusFilter;
-  onStatusChange: (v: RentStatusFilter) => void;
+  statusFilter?: RentStatusFilter;
+  onStatusChange?: (v: RentStatusFilter) => void;
   typeFilter: RentTypeFilter;
   onTypeChange: (v: RentTypeFilter) => void;
   onReset: () => void;
+  hasActiveFilters?: boolean;
 }
 
 export function RentFilterToolbar({
   searchTerm,
   onSearchChange,
   statusFilter,
-  onStatusChange,
   typeFilter,
   onTypeChange,
   onReset,
+  hasActiveFilters,
 }: RentFilterToolbarProps) {
   return (
     <FilterToolbar
@@ -31,18 +32,6 @@ export function RentFilterToolbar({
       searchAriaLabel="Search rent billing accounts"
       searchInputId="rent-search-input"
       selects={[
-        {
-          id: 'rent-status-filter',
-          ariaLabel: 'Filter by Rent Settlement Status',
-          value: statusFilter,
-          onChange: (v) => onStatusChange(v as RentStatusFilter),
-          options: [
-            { value: '', label: 'All Payment Statuses' },
-            { value: 'PENDING_DUES', label: 'Pending Dues' },
-            { value: 'SETTLED', label: 'Settled (Fully Paid)' },
-            { value: 'NO_DUES', label: 'No Dues (At Outward)' },
-          ],
-        },
         {
           id: 'rent-type-filter',
           ariaLabel: 'Filter by Rent Structure',
@@ -56,7 +45,7 @@ export function RentFilterToolbar({
         },
       ]}
       onReset={onReset}
-      hasActiveFilters={Boolean(statusFilter || typeFilter || searchTerm)}
+      hasActiveFilters={hasActiveFilters ?? Boolean(statusFilter || typeFilter || searchTerm)}
     />
   );
 }
