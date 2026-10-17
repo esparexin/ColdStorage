@@ -27,7 +27,7 @@ export function renderChallanTemplate(dto: ChallanDocumentDto): string {
           <th style="width: 25%; text-align: center;">S/B Category</th>
           <th style="width: 25%; text-align: center;">Small Bags</th>
           <th style="width: 25%; text-align: center;">Big Bags</th>
-          <th style="width: 25%; text-align: center;">Total S/B Bags Dispatched</th>
+          <th style="width: 25%; text-align: center;">Total Bags Dispatched</th>
         </tr>
       </thead>
       <tbody>
@@ -50,59 +50,55 @@ export function renderChallanTemplate(dto: ChallanDocumentDto): string {
       <tr>
         <th style="width: 25%;">Customer Name</th>
         <td style="width: 25%;"><strong>${escapeHtml(dto.customerName)}</strong></td>
-        <th style="width: 25%;">GRN Reference</th>
+        <th style="width: 25%;">GRN</th>
         <td style="width: 25%;">${escapeHtml(dto.grnNumber)}</td>
       </tr>
       <tr>
-        <th>Commodity Delivered</th>
+        <th>Commodity</th>
         <td><strong>${escapeHtml(dto.commodityName)}</strong></td>
-        <th>Origin Chamber</th>
+        <th>Chamber</th>
         <td>${escapeHtml(dto.chamber)}</td>
       </tr>
       <tr>
-        <th>Dispatch Vehicle #</th>
+        <th>Vehicle No.</th>
         <td>${escapeHtml(dto.vehicleNumber ?? '—')}</td>
         <th>Driver Name</th>
         <td>${escapeHtml(dto.driverName ?? '—')}</td>
       </tr>
       <tr>
-        <th>Challan Number</th>
-        <td><strong>${escapeHtml(dto.challanNumber)}</strong></td>
-        <th>Challan Status</th>
+        <th>Party Mark</th>
+        <td><strong>${escapeHtml(dto.partyMark ?? '—')}</strong></td>
+        <th>Status</th>
         <td><strong>${escapeHtml(dto.status)}</strong></td>
       </tr>
       <tr>
-        <th>Party Mark</th>
-        <td colspan="${dto.rentCharge != null && dto.rentCharge > 0 ? 1 : 3}"><strong>${escapeHtml(dto.partyMark ?? '—')}</strong></td>
-        ${dto.rentCharge != null && dto.rentCharge > 0 ? `<th>Outward Rent Charge</th><td><strong style="color: #0056b3;">₹${escapeHtml(dto.rentCharge.toLocaleString('en-IN'))}</strong></td>` : ''}
-      </tr>
-      <tr>
-        <th>Total Bags Weight</th>
-        <td><strong>${dto.totalBagsWeight != null ? `${escapeHtml(dto.totalBagsWeight.toLocaleString('en-IN'))} kg` : '—'}</strong></td>
         <th>Outward Weight</th>
-        <td><strong>${dto.weight != null ? `${escapeHtml(dto.weight.toLocaleString('en-IN'))} kg` : '—'}</strong></td>
+        <td colspan="${dto.rentCharge != null && dto.rentCharge > 0 ? 1 : 3}"><strong>${dto.weight != null ? `${escapeHtml(dto.weight.toLocaleString('en-IN'))} kg` : '—'}</strong></td>
+        ${dto.rentCharge != null && dto.rentCharge > 0 ? `<th>Outward Rent Charge</th><td><strong style="color: #0056b3;">₹${escapeHtml(dto.rentCharge.toLocaleString('en-IN'))}</strong></td>` : ''}
       </tr>
     </table>
 
-    <div style="margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 13px;">
+    <div style="margin-top: 5px; margin-bottom: 3px; font-weight: 700; font-size: 8.5px;">
       Outward Bags Details
     </div>
 
     ${bagsTable}
 
-    <div style="margin-top: 20px; font-size: 11px; color: #444; border: 1px dashed #999; padding: 10px;">
-      <strong>Gate Pass Declaration:</strong>
-      <p style="margin-top: 4px;">
+    <div style="margin-top: 6px; font-size: 7.5px; color: #333; border: 1px dashed #888; padding: 4px 6px; line-height: 1.25;">
+      <strong style="font-size: 8px;">Gate Pass Declaration:</strong>
+      <p style="margin-top: 2px; line-height: 1.25;">
         ${gatePassText}
       </p>
     </div>
   `;
 
   return renderBaseLayout({
-    title: `Challan - ${dto.challanNumber}`,
+    title: dto.gpNumber ? `Gate Pass - ${dto.gpNumber}` : 'Gate Pass',
     organization: dto.organization,
     facility: dto.facility,
     documentTitle: 'OUTWARD DELIVERY CHALLAN (GATE PASS)',
+    documentNumber: dto.gpNumber || '—',
+    documentNumberLabel: 'Gate Pass #',
     documentDate:
       dto.date instanceof Date ? dto.date.toISOString().split('T')[0] : String(dto.date),
     generatedAt:
