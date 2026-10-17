@@ -39,6 +39,7 @@ export class UpstashRedisRateLimitStore implements RateLimitStore {
         },
         body: JSON.stringify([
           ['INCR', key],
+          ['PEXPIRE', key, windowMs, 'NX'],
           ['PTTL', key],
         ]),
         signal: this.upstashSignal(),
@@ -50,18 +51,8 @@ export class UpstashRedisRateLimitStore implements RateLimitStore {
 
       const results = (await response.json()) as Array<{ result: unknown }>;
       const count = Number(results[0]?.result) || 1;
-      let ttl = Number(results[1]?.result);
-
-      if (ttl < 0) {
-        await fetch(`${this.url}/pexpire/${encodeURIComponent(key)}/${windowMs}`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${this.token}`,
-          },
-          signal: this.upstashSignal(),
-        });
-        ttl = windowMs;
-      }
+      const rawTtl = Number(results[2]?.result);
+      const ttl = rawTtl > 0 ? rawTtl : windowMs;
 
       return { count, resetAt: Date.now() + ttl };
     } catch {

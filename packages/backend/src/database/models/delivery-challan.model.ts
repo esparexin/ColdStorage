@@ -105,6 +105,7 @@ deliveryChallanSchema.index(
   { unique: true, partialFilterExpression: { idempotencyKey: { $type: 'string' } } },
 );
 deliveryChallanSchema.index({ facilityId: 1, grnId: 1 });
+deliveryChallanSchema.index({ facilityId: 1, status: 1 });
 deliveryChallanSchema.index({ facilityId: 1, date: -1 });
 deliveryChallanSchema.index({ customerId: 1, facilityId: 1 });
 

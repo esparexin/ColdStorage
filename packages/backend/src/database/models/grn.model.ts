@@ -160,6 +160,8 @@ grnSchema.index(
   { unique: true, partialFilterExpression: { bondNumber: { $type: 'string' } } },
 );
 grnSchema.index({ facilityId: 1, date: -1 });
+grnSchema.index({ facilityId: 1, date: -1, createdAt: -1 });
+grnSchema.index({ facilityId: 1, status: 1 });
 grnSchema.index({ customerId: 1, facilityId: 1 });
 grnSchema.index({ facilityId: 1, loanStatus: 1 });
 grnSchema.index({ facilityId: 1, groupId: 1 });

@@ -20,6 +20,8 @@ import { logger } from '../utils/logger.js';
 export const MONGO_SERVER_SELECTION_TIMEOUT_MS = 5000;
 export const MONGO_CONNECT_TIMEOUT_MS = 5000;
 export const MONGO_SOCKET_TIMEOUT_MS = 10000;
+export const MONGO_MAX_POOL_SIZE = 50;
+export const MONGO_MIN_POOL_SIZE = process.env.NODE_ENV === 'test' ? 1 : 5;
 
 /** Database names that hold live customer and financial data. */
 export const LIVE_DATABASE_NAME = 'cold_storage';
@@ -148,6 +150,8 @@ export async function connectToDatabase(uri?: string): Promise<boolean> {
     serverSelectionTimeoutMS: MONGO_SERVER_SELECTION_TIMEOUT_MS,
     connectTimeoutMS: MONGO_CONNECT_TIMEOUT_MS,
     socketTimeoutMS: MONGO_SOCKET_TIMEOUT_MS,
+    maxPoolSize: MONGO_MAX_POOL_SIZE,
+    minPoolSize: MONGO_MIN_POOL_SIZE,
     // Fail fast instead of buffering auth ops while disconnected. Per-request
     // ops then reject with a MongooseError rather than hanging the Express
     // handler indefinitely.

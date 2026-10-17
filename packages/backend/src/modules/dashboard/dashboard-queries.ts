@@ -52,41 +52,47 @@ async function fetchLedgerStockData(
   startOfMonth: Date,
   startOfNextMonth: Date,
 ) {
-  const [totalAgg, chamberCommodityAgg] = await Promise.all([
-    InventoryTransactionModel.aggregate<{ _id: null; totalBags: number; monthlyInward: number; monthlyDelivered: number }>([
-      { $match: { facilityId } },
-      {
-        $group: {
-          _id: null,
-          totalBags: { $sum: ledgerSignedQuantity },
-          monthlyInward: { $sum: monthlyLedgerCond('INWARD_PUTAWAY', startOfMonth, startOfNextMonth) },
-          monthlyDelivered: {
-            $sum: {
-              $add: [
-                monthlyLedgerCond('OUTWARD_DELIVERY', startOfMonth, startOfNextMonth),
-                monthlyLedgerCond('DELIVERY_REVERSAL', startOfMonth, startOfNextMonth, -1),
-              ],
+  const [facetResult] = await InventoryTransactionModel.aggregate<{
+    totals: Array<{ _id: null; totalBags: number; monthlyInward: number; monthlyDelivered: number }>;
+    byChamber: Array<{ _id: string; totalBags: number }>;
+    byCommodity: Array<{ _id: string; totalBags: number }>;
+  }>([
+    { $match: { facilityId } },
+    {
+      $facet: {
+        totals: [
+          {
+            $group: {
+              _id: null,
+              totalBags: { $sum: ledgerSignedQuantity },
+              monthlyInward: { $sum: monthlyLedgerCond('INWARD_PUTAWAY', startOfMonth, startOfNextMonth) },
+              monthlyDelivered: {
+                $sum: {
+                  $add: [
+                    monthlyLedgerCond('OUTWARD_DELIVERY', startOfMonth, startOfNextMonth),
+                    monthlyLedgerCond('DELIVERY_REVERSAL', startOfMonth, startOfNextMonth, -1),
+                  ],
+                },
+              },
             },
           },
-        },
+        ],
+        byChamber: [{ $group: { _id: '$chamber', totalBags: { $sum: ledgerSignedQuantity } } }],
+        byCommodity: [
+          { $group: { _id: '$commodityId', totalBags: { $sum: ledgerSignedQuantity } } },
+          { $match: { totalBags: { $gt: 0 } } },
+        ],
       },
-    ]),
-    InventoryTransactionModel.aggregate<{
-      byChamber: Array<{ _id: string; totalBags: number }>;
-      byCommodity: Array<{ _id: string; totalBags: number }>;
-    }>([
-      { $match: { facilityId } },
-      {
-        $facet: {
-          byChamber: [{ $group: { _id: '$chamber', totalBags: { $sum: ledgerSignedQuantity } } }],
-          byCommodity: [
-            { $group: { _id: '$commodityId', totalBags: { $sum: ledgerSignedQuantity } } },
-            { $match: { totalBags: { $gt: 0 } } },
-          ],
-        },
-      },
-    ]),
+    },
   ]);
+
+  const totalAgg = facetResult?.totals ?? [];
+  const chamberCommodityAgg = [
+    {
+      byChamber: facetResult?.byChamber ?? [],
+      byCommodity: facetResult?.byCommodity ?? [],
+    },
+  ];
 
   return { totalAgg, chamberCommodityAgg };
 }
