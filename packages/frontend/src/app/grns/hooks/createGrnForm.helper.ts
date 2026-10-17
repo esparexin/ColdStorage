@@ -2,9 +2,13 @@ import {
   chamberTextSchema,
   grnNumberInputSchema,
   indianVehicleSchema,
+  normalizeIndianVehicleNumber,
   rentalAmountSchema,
+  type BagType,
+  type Grn,
+  type LoanStatus,
+  type RentType,
 } from '@cold-storage/contracts';
-import type { BagType, Grn, LoanStatus, RentType } from '@cold-storage/contracts';
 
 export function parseNumericInput(raw: string): number | '' {
   const trimmed = raw.trim();
@@ -106,7 +110,7 @@ export function validateCreateGrnForm(state: CreateGrnState, rateCheck?: Control
     }
   }
 
-  const normVehicle = state.createVehicleNumber.trim().replace(/[\s-]/g, '').toUpperCase();
+  const normVehicle = normalizeIndianVehicleNumber(state.createVehicleNumber);
   if (normVehicle && !indianVehicleSchema.safeParse(normVehicle).success) {
     errors.vehicleNumber = 'Vehicle number must be in standard Indian format (e.g., UP32AA1111)';
   }

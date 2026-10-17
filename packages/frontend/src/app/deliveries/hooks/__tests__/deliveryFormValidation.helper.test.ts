@@ -124,6 +124,20 @@ describe('validateDeliveryForm', () => {
     expect(result.errors.vehicleNumber).toBeUndefined();
   });
 
+  it('accepts valid Indian vehicle format with spaces, hyphens, and BH series', () => {
+    const resHyphen = validateDeliveryForm(makeInput({ createVehicleNumber: 'MH-12-AB-1234' }));
+    expect(resHyphen.isValid).toBe(true);
+    expect(resHyphen.errors.vehicleNumber).toBeUndefined();
+
+    const resSpaced = validateDeliveryForm(makeInput({ createVehicleNumber: 'AP 09 BZ 0959' }));
+    expect(resSpaced.isValid).toBe(true);
+    expect(resSpaced.errors.vehicleNumber).toBeUndefined();
+
+    const resBh = validateDeliveryForm(makeInput({ createVehicleNumber: '22 BH 1234 AA' }));
+    expect(resBh.isValid).toBe(true);
+    expect(resBh.errors.vehicleNumber).toBeUndefined();
+  });
+
   it('rejects missing Gate Pass number', () => {
     const result = validateDeliveryForm(makeInput({ createGpNumber: '' }));
     expect(result.isValid).toBe(false);

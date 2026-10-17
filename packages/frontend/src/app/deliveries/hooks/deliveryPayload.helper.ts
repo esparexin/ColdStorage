@@ -1,4 +1,4 @@
-import { isHybridBagCategory, type OutwardBagCategory } from '@cold-storage/contracts';
+import { isHybridBagCategory, normalizeIndianVehicleNumber, type OutwardBagCategory } from '@cold-storage/contracts';
 
 export interface DeliveryPayloadInput {
   grnId: string;
@@ -65,7 +65,7 @@ export function buildDeliveryPayload(input: DeliveryPayloadInput): Record<string
     if (input.paymentReference?.trim()) payload.paymentReference = input.paymentReference.trim();
   }
   if (input.createVehicleNumber.trim()) {
-    payload.vehicleNumber = input.createVehicleNumber.trim().toUpperCase();
+    payload.vehicleNumber = normalizeIndianVehicleNumber(input.createVehicleNumber);
   }
   if (input.createDriverName.trim()) {
     payload.driverName = input.createDriverName.trim();

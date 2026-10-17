@@ -195,4 +195,28 @@ describe('ImportService — GRN CSV import', () => {
     expect(summary.rejected).toBe(1);
     expect(summary.results[1].errors?.join(' ')).toContain('already exists for this facility');
   });
+
+  it('validates and normalizes vehicle numbers and rejects invalid format during import', async () => {
+    const validWithSpaces = String(++grnRow).padStart(4, '0');
+    const validBh = String(++grnRow).padStart(4, '0');
+    const invalidReg = String(++grnRow).padStart(4, '0');
+
+    const csv = [
+      `${GRN_HEADER},vehicleNumber`,
+      `${validWithSpaces},2026-10-01,Farmer 1,Potato,CH-01,100,S,50,80,Seasonal,1000,AP 09 BZ 0959`,
+      `${validBh},2026-10-01,Farmer 1,Potato,CH-01,100,S,50,80,Seasonal,1000,22 BH 1234 AA`,
+      `${invalidReg},2026-10-01,Farmer 1,Potato,CH-01,100,S,50,80,Seasonal,1000,INVALID_VEHICLE`,
+    ].join('\n');
+
+    const summary = await harness.importService.importGrns(IMPORT_FACILITY_ID, csv, IMPORT_USER_ID);
+
+    expect(summary.totalRows).toBe(3);
+    expect(summary.committed).toBe(2);
+    expect(summary.rejected).toBe(1);
+    expect(summary.results[2].errors?.join(' ')).toContain('vehicleNumber: Vehicle registration must be in standard Indian format');
+
+    const imported = await GrnModel.find({ grnNumber: { $in: [validWithSpaces, validBh] } });
+    expect(imported.find((g) => g.grnNumber === validWithSpaces)?.vehicleNumber).toBe('AP09BZ0959');
+    expect(imported.find((g) => g.grnNumber === validBh)?.vehicleNumber).toBe('22BH1234AA');
+  });
 });
