@@ -10,7 +10,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useState, useMemo } from 'react';
 import { useAuth } from './AuthContext';
-import { requestWithAuth } from '@/lib/api-client';
+import { cachedRequestWithAuth, invalidateCache } from '@/lib/api-cache';
 
 export interface FacilityOption {
   id: string;
@@ -38,7 +38,7 @@ export function FacilityProvider({ children }: { children: React.ReactNode }) {
   const [isLoadingFacilities, setIsLoadingFacilities] = useState<boolean>(false);
   const [facilitiesError, setFacilitiesError] = useState<string | null>(null);
 
-  const syncFacilities = useCallback(async () => {
+  const syncFacilities = useCallback(async (force = false) => {
     if (!user) {
       setSelectedFacilityId(null);
       setAvailableFacilities([]);
@@ -48,7 +48,10 @@ export function FacilityProvider({ children }: { children: React.ReactNode }) {
 
     setIsLoadingFacilities(true);
     try {
-      const res = await requestWithAuth('/api/facilities');
+      if (force) {
+        invalidateCache('/api/facilities');
+      }
+      const res = await cachedRequestWithAuth('/api/facilities', { force });
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -94,6 +97,10 @@ export function FacilityProvider({ children }: { children: React.ReactNode }) {
     [availableFacilities],
   );
 
+  const refreshFacilities = useCallback(async () => {
+    await syncFacilities(true);
+  }, [syncFacilities]);
+
   // Memoized: the facility list is consumed by the header, the sidebar and
   // every list screen, so an unmemoized value re-renders all of them.
   const contextValue = useMemo(
@@ -103,9 +110,9 @@ export function FacilityProvider({ children }: { children: React.ReactNode }) {
       availableFacilities,
       isLoadingFacilities,
       facilitiesError,
-      refreshFacilities: syncFacilities,
+      refreshFacilities,
     }),
-    [selectedFacilityId, availableFacilities, isLoadingFacilities, facilitiesError, syncFacilities, selectFacility],
+    [selectedFacilityId, availableFacilities, isLoadingFacilities, facilitiesError, refreshFacilities, selectFacility],
   );
 
   return (
