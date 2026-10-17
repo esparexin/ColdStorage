@@ -11,25 +11,24 @@
   width: fit-content;
 }
 
-.statusTab {
-  font-size: var(--text-xs) !important;
-  font-weight: var(--font-medium) !important;
-  color: var(--color-text-secondary) !important;
-  border-radius: var(--radius-sm) !important;
-  padding: var(--space-1) var(--space-3) !important;
-  border: 1px solid transparent !important;
-  transition: all var(--transition-fast);
+/* Scoped to .statusTabs so these rules carry (0,0,2,0) and deterministically
+   outrank the Button primitive's single-class .button / .sm rules. Previously
+   they used !important because both sides were (0,0,1,0), which made the
+   winner depend on stylesheet emission order. The :not(:disabled) on the hover
+   rule raises it to (0,0,4,0) so it also outranks .ghost:hover:not(:disabled).
+   Only genuinely additive declarations belong here: font-size, font-weight,
+   border and color are owned by Button's size and variant properties. */
+.statusTabs .statusTab {
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.statusTab:hover {
-  color: var(--color-text-primary) !important;
-  background: var(--color-surface-1) !important;
+.statusTabs .statusTab:hover:not(:disabled) {
+  background-color: var(--color-surface-1);
 }
 
-.statusTabActive {
-  background: var(--color-surface-1) !important;
-  color: var(--color-text-primary) !important;
-  font-weight: var(--font-semibold) !important;
-  border-color: var(--color-border) !important;
-  box-shadow: var(--shadow-sm) !important;
+.statusTabs .statusTabActive {
+  font-weight: var(--font-semibold);
+  box-shadow: var(--shadow-sm);
 }
