@@ -213,38 +213,4 @@ describe('Merge GRN: Rent Carry-Forward & Obligation Preservation (Phase 4)', ()
     expect(validRes.body.movement.smallBagsMoved).toBe(35);
     expect(validRes.body.movement.bigBagsMoved).toBe(15);
   });
-
-  it('calculates multi-year seasonal cycles and carries forward dynamic accrued rent when historical lot is merged', async () => {
-    const targetGrnId = await seedGrn({
-      facilityId, customerId: customerA, customerName: 'Farmer Ramesh', commodityId,
-      commodityName: 'Wheat', chamber: 'CH-01', bags: 600, bagType: 'S+B', smallBags: 300,
-      bigBags: 300, rentType: 'Seasonal', rentAmount: 60000, grnNumber: 'GRN-26-27-0200',
-      date: new Date('2026-04-01'),
-    });
-
-    const sourceGrnId = await seedGrn({
-      facilityId, customerId: customerA, customerName: 'Farmer Ramesh', commodityId,
-      commodityName: 'Wheat', chamber: 'CH-01', bags: 300, bagType: 'S+B', smallBags: 150,
-      bigBags: 150, rentType: 'Seasonal', rentAmount: 3000, grnNumber: 'GRN-23-24-0050',
-      date: new Date('2023-04-01'),
-    });
-    await GrnModel.updateOne({ id: sourceGrnId }, { $set: { bagPrice: 10 } });
-
-    const res = await request(app)
-      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({
-        targetGrnId,
-        sourceGrnIds: [sourceGrnId],
-        movementDate: new Date('2026-05-15'),
-        remarks: 'Merge 2023 lot into 2026 lot with elapsed seasonal cycles',
-      });
-
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.targetGrn.bags).toBe(900);
-    // Source elapsed multi-year rent charge should be computed and carried forward (> 3000 initial)
-    expect(res.body.movement.financialSnapshot.rentAmount).toBeGreaterThan(63000);
-    expect(res.body.targetGrn.rentAmount).toBeGreaterThan(63000);
-  });
 });

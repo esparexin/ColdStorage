@@ -9,6 +9,7 @@ import { GrnModel } from '../database/models/grn.model.js';
 import { AuditLogModel } from '../database/models/audit-log.model.js';
 import { RentPaymentModel } from '../database/models/rent-payment.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
+import { useHistoricalTestingDates } from './helpers/historical-dates-env.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import {
   connectToTestDatabase,
@@ -26,6 +27,8 @@ describe('Merge GRN input guards', () => {
   let commodityId: string;
   let targetId: string;
   let sourceId: string;
+
+  useHistoricalTestingDates();
 
   beforeAll(async () => {
     await connectToTestDatabase();
