@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { Commodity, SeasonDuration } from '@cold-storage/contracts';
+import { hamaliRateSchema, type Commodity, type SeasonDuration } from '@cold-storage/contracts';
 import { Button, Input, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { requestWithAuth } from '@/lib/api-client';
@@ -44,8 +44,9 @@ export function CommodityFormModal({ commodity, onClose, onSuccess }: CommodityF
     let parsedHamali = 0;
     if (isHamaliApplicable) {
       parsedHamali = parseFloat(hamaliRate);
-      if (isNaN(parsedHamali) || parsedHamali < 0) {
-        setModalError('Hamali rate must be a non-negative number');
+      const hamaliCheck = hamaliRateSchema.safeParse(parsedHamali);
+      if (!hamaliCheck.success) {
+        setModalError(hamaliCheck.error.issues[0]?.message ?? 'Hamali rate must be a non-negative number');
         return;
       }
     }
