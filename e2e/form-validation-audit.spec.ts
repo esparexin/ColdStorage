@@ -67,7 +67,7 @@ test.describe('PR 2 — Field-by-Field Validation Audit & Form Invariants', () =
     const vehicleInput = page.locator('input#create-vehicle');
     await vehicleInput.fill('INVALID-REG');
     await page.locator('#submit-create-grn-btn').click();
-    await expect(page.locator('#create-vehicle-error')).toContainText('Vehicle number must be in standard Indian format');
+    await expect(page.locator('#create-vehicle-error')).toContainText('Vehicle registration must be in standard Indian format');
     await vehicleInput.fill('MH12DE9999');
 
     // 4. Party mark max length boundary (maxLength 20 attribute and error handling)
