@@ -147,6 +147,7 @@ describe('P9 Document Routes Authorized Printing & CSP Headers', () => {
       .set('Authorization', `Bearer ${operatorToken}`);
     expectPrintedDocument(prevRes);
     expect(prevRes.text).toContain('RENT PAYMENT RECEIPT [PREVIEW]');
+    expect(prevRes.text).toContain('Receipt #:');
     expect(prevRes.text).toContain('Ramesh Kumar');
     expect(prevRes.text).toContain('15000.00');
   });
