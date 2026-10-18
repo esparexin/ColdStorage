@@ -15,9 +15,14 @@ import styles from './AppHeader.module.css';
 interface AppHeaderProps {
   onToggleMobileNav?: () => void;
   isMobileNavOpen?: boolean;
+  isCollapsed?: boolean;
 }
 
-export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHeaderProps) {
+export function AppHeader({
+  onToggleMobileNav,
+  isMobileNavOpen = false,
+  isCollapsed = false,
+}: AppHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuth();
@@ -53,7 +58,7 @@ export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHea
   const logoAssetId = settings?.logoAssetId;
 
   return (
-    <header className={styles.header}>
+    <header className={`${styles.header} ${isCollapsed ? styles.headerCollapsed : ''}`}>
       <div className={styles.left}>
         {onToggleMobileNav && (
           <button
@@ -61,8 +66,14 @@ export function AppHeader({ onToggleMobileNav, isMobileNavOpen = false }: AppHea
             id="mobile-nav-toggle"
             className={styles.menuTrigger}
             onClick={onToggleMobileNav}
-            aria-label={isMobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
-            aria-expanded={isMobileNavOpen}
+            aria-label={
+              isMobileNavOpen
+                ? 'Close navigation menu'
+                : isCollapsed
+                  ? 'Expand navigation sidebar'
+                  : 'Collapse navigation sidebar'
+            }
+            aria-expanded={isMobileNavOpen || !isCollapsed}
             aria-controls="sidebar-navigation"
           >
             <Menu size={22} aria-hidden="true" />

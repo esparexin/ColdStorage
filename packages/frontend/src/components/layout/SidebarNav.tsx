@@ -72,15 +72,17 @@ const NAV_SECTIONS: NavSection[] = [
 
 interface SidebarNavProps {
   isOpen?: boolean;
+  isCollapsed?: boolean;
   onClose?: () => void;
 }
 
-export function SidebarNav({ isOpen = false, onClose }: SidebarNavProps) {
+export function SidebarNav({ isOpen = false, isCollapsed = false, onClose }: SidebarNavProps) {
   const pathname = usePathname();
   const { hasPermission } = usePermissions();
   // Same source as the header, so the two cannot show different names.
   const { settings } = useSettings();
   const orgName = settings?.orgName || ORG_NAME_FALLBACK;
+  const navRef = React.useRef<HTMLElement>(null);
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -99,6 +101,47 @@ export function SidebarNav({ isOpen = false, onClose }: SidebarNavProps) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  // Lock body scrolling when mobile drawer is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isOpen]);
+
+  // Trap focus inside mobile drawer
+  useEffect(() => {
+    if (!isOpen || !navRef.current) return;
+    const navEl = navRef.current;
+    const focusable = navEl.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    const handleTabKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    first.focus();
+    navEl.addEventListener('keydown', handleTabKey);
+    return () => navEl.removeEventListener('keydown', handleTabKey);
+  }, [isOpen]);
+
   return (
     <>
       {isOpen && (
@@ -109,9 +152,12 @@ export function SidebarNav({ isOpen = false, onClose }: SidebarNavProps) {
         />
       )}
       <nav
-        className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}
+        ref={navRef}
+        className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''} ${isCollapsed ? styles.sidebarCollapsed : ''}`}
         aria-label="Main navigation"
         id="sidebar-navigation"
+        role="navigation"
+        aria-modal={isOpen ? 'true' : undefined}
       >
         <div className={styles.brandArea}>
           <span className={styles.brandTitle}>{orgName}</span>
