@@ -125,7 +125,7 @@
   margin: 0;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 768px) {
   .examples {
     grid-template-columns: minmax(0, 1fr);
   }

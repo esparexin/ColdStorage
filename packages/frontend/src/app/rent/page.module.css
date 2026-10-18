@@ -71,7 +71,7 @@
   gap: var(--space-3);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .infoSplit {
     grid-template-columns: 1fr;
   }
