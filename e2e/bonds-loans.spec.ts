@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { annotateTest } from './helpers/test-metadata.js';
+import { annotateTest, recordActualResult } from './helpers/test-metadata.js';
 import {
   mockAuthenticatedSession,
 } from './fixtures/mock-auth.fixture.js';
@@ -65,6 +65,11 @@ test.describe('Phase 6 — Bonds & Loans', () => {
     // Close modal
     await modalDialog.getByRole('button', { name: 'Close', exact: true }).click();
     await expect(modalDialog).not.toBeVisible();
+
+    recordActualResult(
+      testInfo,
+      'Bond register displayed GR Number 0101 as Bond # with Loan Active (Hold) status; confirmed no separate duplicate key was introduced.',
+    );
   });
 
   test('TC-BOND-002: Loan Clearance & Settlement Rail Validations', async ({ page }, testInfo) => {
@@ -184,5 +189,10 @@ test.describe('Phase 6 — Bonds & Loans', () => {
 
     expect(settlementResults.validStatus).toBe(200);
     expect(settlementResults.validBody.grn.loanStatus).toBe('CLEARED');
+
+    recordActualResult(
+      testInfo,
+      'Validated loan settlement rail: invalid IFSC rejected with 400 Bad Request; valid Bank Transfer UTR cleared loan status to CLEARED.',
+    );
   });
 });

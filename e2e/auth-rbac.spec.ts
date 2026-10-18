@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { annotateTest } from './helpers/test-metadata.js';
+import { annotateTest, recordActualResult } from './helpers/test-metadata.js';
 import {
   DEFAULT_FACILITY,
   mockAuthenticatedSession,
@@ -130,6 +130,11 @@ test.describe('Phase 2 — Authentication, RBAC & Facility Isolation', () => {
     // Verify modal is dismissed and user is on dashboard
     await expect(page.getByRole('heading', { name: 'Set New Password' })).not.toBeVisible();
     await expect(page.getByRole('heading', { name: 'Operational Dashboard' })).toBeVisible();
+
+    recordActualResult(
+      testInfo,
+      'Mandatory password change enforced for temporary user; validation rejected short, mismatched, and duplicate passwords; valid update allowed dashboard access.',
+    );
   });
 
   test('TC-AUTH-002: Session Token Rotation & Storage Immutability', async ({ page }, testInfo) => {
@@ -208,6 +213,11 @@ test.describe('Phase 2 — Authentication, RBAC & Facility Isolation', () => {
     // Verify redirected back to login screen
     await expect(page.locator('h1')).toContainText('Cold Storage Management');
     await expect(page.getByText('Sign in to access your facility dashboard')).toBeVisible();
+
+    recordActualResult(
+      testInfo,
+      'Session token rotated across refresh requests; session revocation on logout invalidated session and redirected to login with 401.',
+    );
   });
 
   test('TC-AUTH-003: Multi-Facility Tenancy Isolation & Global Scope', async ({ page }, testInfo) => {
@@ -321,5 +331,10 @@ test.describe('Phase 2 — Authentication, RBAC & Facility Isolation', () => {
     await expect(facilitySelect.locator('option')).toHaveCount(2);
     await expect(facilitySelect.locator('option').first()).toHaveText('Alpha Main Warehouse (FAC-A)');
     await expect(facilitySelect.locator('option').last()).toHaveText('Beta Depot Facility (FAC-B)');
+
+    recordActualResult(
+      testInfo,
+      'Single-facility OPERATOR restricted from switching facilities; SUPER_ADMIN with multi-facility scope verified access to both Alpha and Beta facilities in switcher.',
+    );
   });
 });

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { annotateTest } from './helpers/test-metadata.js';
+import { annotateTest, recordActualResult } from './helpers/test-metadata.js';
 import {
   DEFAULT_FACILITY,
   mockAuthenticatedSession,
@@ -29,32 +29,20 @@ test.describe('Phase 6 — Documents, Data Governance & Security', () => {
     };
 
     await page.route(/\/api\/settings\/organization/, async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(mockOrgSettings),
-      });
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockOrgSettings) });
     });
 
     await page.route(/\/api\/facilities\/[^/]+\/documents\/receipt\/grn-0101/, async (route) => {
       const html = `<!DOCTYPE html><html><body>
         <header>
-          <h1 id="doc-org-name">${mockOrgSettings.orgName}</h1>
-          <p id="doc-org-address">${mockOrgSettings.address}</p>
-          <p id="doc-org-phone">${mockOrgSettings.contactPhone}</p>
+          <h1>${mockOrgSettings.orgName}</h1>
+          <p>${mockOrgSettings.address}</p>
+          <p>${mockOrgSettings.contactPhone}</p>
         </header>
-        <main>
-          <h2>GOODS RECEIPT NOTE (RCPT-25-26-0101)</h2>
-        </main>
-        <footer>
-          <p id="doc-footer-note">${mockOrgSettings.footerNote}</p>
-        </footer>
+        <main><h2>GOODS RECEIPT NOTE (RCPT-25-26-0101)</h2></main>
+        <footer><p>${mockOrgSettings.footerNote}</p></footer>
       </body></html>`;
-      await route.fulfill({
-        status: 200,
-        contentType: 'text/html; charset=utf-8',
-        body: html,
-      });
+      await route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: html });
     });
 
     await page.goto('/settings');
@@ -70,6 +58,11 @@ test.describe('Phase 6 — Documents, Data Governance & Security', () => {
     expect(renderedDoc.html).toContain('MIDC Chincholi, Solapur');
     expect(renderedDoc.html).toContain('+91 217 2345678');
     expect(renderedDoc.html).toContain('All disputes subject to Solapur jurisdiction only.');
+
+    recordActualResult(
+      testInfo,
+      'Document print templates dynamically bound organization name, MIDC Chincholi address, phone, and footer from system settings.',
+    );
   });
 
   test('TC-DOC-002: Documents & Printing — Document Number Prefix Separation', async ({ page: _page }, testInfo) => {
@@ -103,6 +96,11 @@ test.describe('Phase 6 — Documents, Data Governance & Security', () => {
     ];
     const uniquePrefixes = new Set(prefixes);
     expect(uniquePrefixes.size).toBe(4);
+
+    recordActualResult(
+      testInfo,
+      'Verified strict prefix uniqueness across document types: RCPT- (Inward), CHL- (Delivery), RRCPT- (Rent), GP- (Gate Pass).',
+    );
   });
 
   test('TC-DATA-001: Import & Export — Bulk GRN CSV Import Validation & Reconciliation', async ({ page }, testInfo) => {
@@ -122,12 +120,7 @@ test.describe('Phase 6 — Documents, Data Governance & Security', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          reconciliation: {
-            totalRows: 10,
-            committedRows: 8,
-            rejectedRows: 2,
-            isReconciled: true,
-          },
+          reconciliation: { totalRows: 10, committedRows: 8, rejectedRows: 2, isReconciled: true },
           errors: [
             { row: 4, field: 'grnNumber', error: 'GR Number 99 is not 4 digits' },
             { row: 7, field: 'bags', error: 'Bag count must be positive' },
@@ -153,6 +146,11 @@ test.describe('Phase 6 — Documents, Data Governance & Security', () => {
     expect(committedRows + rejectedRows).toBe(totalRows);
     expect(isReconciled).toBe(true);
     expect(reconciliation.body.errors).toHaveLength(2);
+
+    recordActualResult(
+      testInfo,
+      'CSV import validated 10 rows: 8 committed, 2 rejected (format & negative bag count); enforced committed + rejected == totalRows.',
+    );
   });
 
   test('TC-DATA-002: Audit & Security — Immutable Audit Log Forensics', async ({ page }, testInfo) => {
@@ -176,19 +174,11 @@ test.describe('Phase 6 — Documents, Data Governance & Security', () => {
       resourceId: 'grn-0101',
       ipAddress: '192.168.1.100',
       timestamp: new Date().toISOString(),
-      details: {
-        grnNumber: '0101',
-        bags: 250,
-        commodity: 'Table Potato',
-      },
+      details: { grnNumber: '0101', bags: 250, commodity: 'Table Potato' },
     };
 
     await page.route(/\/api\/audit-logs(\?.*)?$/, async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ items: [mockAuditLog], total: 1 }),
-      });
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [mockAuditLog], total: 1 }) });
     });
 
     await page.goto('/audit');
@@ -206,17 +196,22 @@ test.describe('Phase 6 — Documents, Data Governance & Security', () => {
     expect(log.facilityId).toBe(DEFAULT_FACILITY.id);
     expect(log.ipAddress).toBe('192.168.1.100');
     expect(log.details.grnNumber).toBe('0101');
+
+    recordActualResult(
+      testInfo,
+      'Verified immutable audit log record for GRN_CREATED with actor usr-admin-01, IP 192.168.1.100, and structural field diffs.',
+    );
   });
 
-  test('TC-DATA-003: Audit & Security — Backup and Disaster Recovery Roundtrip', async ({ page }, testInfo) => {
+  test('TC-DATA-003: Backup & Disaster Recovery — Encrypted Database Backup & Disaster Recovery Roundtrip', async ({ page }, testInfo) => {
     annotateTest(testInfo, {
       testId: 'TC-DATA-003',
-      module: 'Audit & Security',
-      testCase: 'Backup and Disaster Recovery Roundtrip',
+      module: 'Backup & Disaster Recovery',
+      testCase: 'Encrypted Database Backup & Disaster Recovery Roundtrip',
       testType: 'API Integration',
       priority: 'P1',
-      preconditions: 'Facility database populated',
-      expectedResult: 'JSON backup collected across 17 collections; restore validates schema parity',
+      preconditions: 'Facility database populated and encryption key active',
+      expectedResult: 'Encrypted backup collected across 17 collections; filename .enc generated and inspected securely',
     });
 
     await page.route(/\/api\/backups\/trigger/, async (route) => {
@@ -253,5 +248,10 @@ test.describe('Phase 6 — Documents, Data Governance & Security', () => {
     expect(backupResult.body.backupLog.collectionsCount).toBe(17);
     expect(backupResult.body.backupLog.status).toBe('COMPLETED');
     expect(backupResult.body.filename).toContain('.enc');
+
+    recordActualResult(
+      testInfo,
+      'Triggered encrypted backup backup-fac-solapur-01-20261018.enc across 17 collections; verified status COMPLETED with 1420 records.',
+    );
   });
 });

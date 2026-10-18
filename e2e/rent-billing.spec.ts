@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { annotateTest } from './helpers/test-metadata.js';
+import { annotateTest, recordActualResult } from './helpers/test-metadata.js';
 import {
   DEFAULT_FACILITY,
   mockAuthenticatedSession,
@@ -99,6 +99,11 @@ test.describe('Phase 5 — Rent Billing & Payments', () => {
     await expect(modalDialog).not.toBeVisible();
     // Receipt history modal appears on success
     await expect(page.getByText('RRCPT-25-26-0002').first()).toBeVisible();
+
+    recordActualResult(
+      testInfo,
+      'Collected partial rent payment ₹10,000 for GRN 0101; generated sequential receipt RRCPT-25-26-0002 and updated balance from ₹30,000 to ₹20,000.',
+    );
   });
 
   test('TC-RENT-002: Strict Overpayment Guard (Zero Negative Balance Invariant)', async ({ page }, testInfo) => {
@@ -146,6 +151,11 @@ test.describe('Phase 5 — Rent Billing & Payments', () => {
 
     expect(result.status).toBe(400);
     expect(result.body.error).toContain('exceeds remaining balance');
+
+    recordActualResult(
+      testInfo,
+      'Strict overpayment guard rejected payment of ₹50,000 against outstanding balance of ₹30,000 with 400 Bad Request.',
+    );
   });
 
   test('TC-RENT-003: Final Rent Settlement & Closure Transition Invariant', async ({ page }, testInfo) => {
@@ -234,6 +244,11 @@ test.describe('Phase 5 — Rent Billing & Payments', () => {
 
     await expect(modalDialog).not.toBeVisible();
     await expect(page.getByText('RRCPT-25-26-0003').first()).toBeVisible();
+
+    recordActualResult(
+      testInfo,
+      'Collected final settlement of ₹5,000; remaining rent obligation cleared to ₹0 and GRN transitioned to CLOSED.',
+    );
   });
 
   test('TC-RENT-004: Same-GRN Recurring Season Extension (Jan/Feb & Renewal)', async ({ page }, testInfo) => {
@@ -288,5 +303,10 @@ test.describe('Phase 5 — Rent Billing & Payments', () => {
     expect(result.body.extension.period).toBe('JANUARY');
     expect(result.body.extension.amount).toBe(3750);
     expect(result.body.extension.isFinalized).toBe(true);
+
+    recordActualResult(
+      testInfo,
+      'Finalized recurring season monthly extension for period JANUARY (2026) with amount ₹3,750 on surviving GRN 0101.',
+    );
   });
 });

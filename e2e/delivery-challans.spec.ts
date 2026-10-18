@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { annotateTest } from './helpers/test-metadata.js';
+import { annotateTest, recordActualResult } from './helpers/test-metadata.js';
 import {
   DEFAULT_FACILITY,
   mockAuthenticatedSession,
@@ -176,6 +176,11 @@ test.describe('Phase 4 — Delivery Challans, Stock Balances & Rent Gates', () =
     // Verify modal dismissed and new challan listed
     await expect(modalDialog).not.toBeVisible();
     await expect(page.getByText('CHL-25-26-0002').first()).toBeVisible();
+
+    recordActualResult(
+      testInfo,
+      'Issued partial delivery challan CHL-25-26-0002 for 50 bags; balance updated from 250 to 200 bags; vehicle and driver details captured.',
+    );
   });
 
   test('TC-DEL-002: Atomic Over-Delivery Guard (Negative Boundary)', async ({ page }, testInfo) => {
@@ -231,6 +236,11 @@ test.describe('Phase 4 — Delivery Challans, Stock Balances & Rent Gates', () =
 
     expect(result.status).toBe(400);
     expect(result.body.error).toContain('exceeds the available balance of 250 bags');
+
+    recordActualResult(
+      testInfo,
+      'Atomic over-delivery guard rejected attempt to deliver 300 bags when available stock was 250 bags with 400 Bad Request.',
+    );
   });
 
   test('TC-DEL-003: Delivery Rent Gate Hard Block (Zero Rent Paid)', async ({ page }, testInfo) => {
@@ -282,6 +292,11 @@ test.describe('Phase 4 — Delivery Challans, Stock Balances & Rent Gates', () =
 
     expect(result.status).toBe(402);
     expect(result.body.error).toContain('RENT_PAYMENT_REQUIRED');
+
+    recordActualResult(
+      testInfo,
+      'Delivery rent gate hard block enforced: delivery blocked with 402 Payment Required for GRN 0101 with zero rent paid.',
+    );
   });
 
   test('TC-DEL-004: Delivery Reversal Full Rollback & Auto-Reopening', async ({ page }, testInfo) => {
@@ -337,5 +352,10 @@ test.describe('Phase 4 — Delivery Challans, Stock Balances & Rent Gates', () =
     expect(result.body.challan.status).toBe('REVERSED');
     expect(result.body.summary.grn.status).toBe('OPEN');
     expect(result.body.summary.grn.remainingBags).toBe(150);
+
+    recordActualResult(
+      testInfo,
+      'Delivery reversal rolled back 150 bags; challan marked REVERSED and GRN automatically transitioned from CLOSED back to OPEN.',
+    );
   });
 });

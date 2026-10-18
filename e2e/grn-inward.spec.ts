@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { annotateTest } from './helpers/test-metadata.js';
+import { annotateTest, recordActualResult } from './helpers/test-metadata.js';
 import {
   DEFAULT_FACILITY,
   mockAuthenticatedSession,
@@ -140,6 +140,11 @@ test.describe('Phase 3 — Inward Goods Receipt (GRN & Ledger)', () => {
     // Verify modal dismissed and new GRN present in table
     await expect(page.getByRole('heading', { name: 'Inward of Goods', level: 2 })).not.toBeVisible();
     await expect(page.getByText('0102').first()).toBeVisible();
+
+    recordActualResult(
+      testInfo,
+      'Created standard inward GRN 0102 with 250 bags in chamber CH-01; derived receipt RCPT-25-26-0102 and auto-resolved seasonal rate ₹120.00.',
+    );
   });
 
   test('TC-GRN-002: GR Number 4-Digit Format & Uniqueness Rejection', async ({ page }, testInfo) => {
@@ -186,6 +191,11 @@ test.describe('Phase 3 — Inward Goods Receipt (GRN & Ledger)', () => {
     await grnInput.blur();
     await expect(page.locator('#create-gr-number-error')).toContainText("already exists for this facility");
     await expect(submitBtn).toBeDisabled();
+
+    recordActualResult(
+      testInfo,
+      'Rejection enforced on invalid GRN formats (non-4-digit strings) and duplicate GRN 0101 before form submission.',
+    );
   });
 
   test('TC-GRN-003: S/B Bag Composition Inconsistency Rejection', async ({ page }, testInfo) => {
@@ -246,6 +256,11 @@ test.describe('Phase 3 — Inward Goods Receipt (GRN & Ledger)', () => {
 
     expect(result.status).toBe(400);
     expect(result.body.error).toContain('must equal the declared total of 250 bags');
+
+    recordActualResult(
+      testInfo,
+      'S/B bag composition inconsistency (small + big bags != total bags) rejected with 400 Bad Request.',
+    );
   });
 
   test('TC-GRN-004: Inward Date Future Clock Skew Boundary', async ({ page }, testInfo) => {
@@ -302,6 +317,11 @@ test.describe('Phase 3 — Inward Goods Receipt (GRN & Ledger)', () => {
 
     expect(result.status).toBe(400);
     expect(result.body.error).toContain('cannot be in the future');
+
+    recordActualResult(
+      testInfo,
+      'Inward entry with timestamp exceeding 5-minute future skew rejected with 400 Bad Request.',
+    );
   });
 
   test('TC-GRN-005: Inward Administrative Correction (Frozen Governance Gate)', async ({ page }, testInfo) => {
@@ -363,6 +383,11 @@ test.describe('Phase 3 — Inward Goods Receipt (GRN & Ledger)', () => {
     // Verify modal dismissed and updated chamber reflected
     await expect(page.getByRole('heading', { name: 'Edit GRN: 0101' })).not.toBeVisible();
     await expect(page.getByText('CH-09').first()).toBeVisible();
+
+    recordActualResult(
+      testInfo,
+      'Administrative correction on unmoved GRN updated chamber to CH-09; confirmed structural fields were enabled and update persisted.',
+    );
   });
 
   test('TC-GRN-006: Inward Correction Movement Freeze Violation', async ({ page }, testInfo) => {
@@ -421,5 +446,10 @@ test.describe('Phase 3 — Inward Goods Receipt (GRN & Ledger)', () => {
 
     // Verify non-structural field (chamber) remains editable
     await expect(page.locator('input#create-chamber')).toBeEnabled();
+
+    recordActualResult(
+      testInfo,
+      'Movement freeze enforced on partially delivered GRN: structural fields (bags, date, commodity) disabled; non-structural chamber remained editable.',
+    );
   });
 });

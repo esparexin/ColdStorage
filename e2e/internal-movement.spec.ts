@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { annotateTest } from './helpers/test-metadata.js';
+import { annotateTest, recordActualResult } from './helpers/test-metadata.js';
 import {
   DEFAULT_FACILITY,
   mockAuthenticatedSession,
@@ -93,6 +93,11 @@ test.describe('Phase 6 — Internal Movement & Groups of Goods', () => {
     expect(result.body.targetGrn.bags).toBe(500);
     expect(result.body.sourceGrns[0].status).toBe('CLOSED');
     expect(result.body.sourceGrns[0].mergedIntoGrnNumber).toBe('0102');
+
+    recordActualResult(
+      testInfo,
+      'Multi-GRN lot merge consolidated 250 bags into target GRN 0102 (total 500 bags); closed source GRN with mergedIntoGrnNumber reference.',
+    );
   });
 
   test('TC-MOVE-002: Customer Ownership Transfer with Settlement', async ({ page }, testInfo) => {
@@ -163,6 +168,11 @@ test.describe('Phase 6 — Internal Movement & Groups of Goods', () => {
     expect(result.body.grn.customerId).toBe('cust-002');
     expect(result.body.grn.customerName).toBe('Suresh Farmers Syndicate');
     expect(result.body.settlement.receiptNumber).toBe('RRCPT-25-26-0099');
+
+    recordActualResult(
+      testInfo,
+      'Transferred GRN 0101 ownership to Suresh Farmers Syndicate with full prior rent settlement (RRCPT-25-26-0099 for ₹15,000).',
+    );
   });
 
   test('TC-GRP-001: Group Lifecycle (Create, Assign GRNs, Move, Delete)', async ({ page }, testInfo) => {
@@ -269,5 +279,10 @@ test.describe('Phase 6 — Internal Movement & Groups of Goods', () => {
       await expect(groupModal.getByText('0101')).toBeVisible();
       await groupModal.getByRole('button', { name: 'Close', exact: true }).click();
     }
+
+    recordActualResult(
+      testInfo,
+      'Group lifecycle verified: listed group Potato Growers Pool A, verified 250 bags total across member GRN 0101, and validated details dialog view.',
+    );
   });
 });

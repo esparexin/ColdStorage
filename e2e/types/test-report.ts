@@ -12,6 +12,7 @@ export interface TestCaseMetadata {
   priority: PriorityLevel;
   preconditions: string;
   expectedResult: string;
+  actualResult?: string;
 }
 
 export interface TestExecutionRecord extends TestCaseMetadata {
@@ -21,4 +22,8 @@ export interface TestExecutionRecord extends TestCaseMetadata {
   durationMs: number;
   executionDate: string;
   environment: string;
+  runId: string;
+  commitSha: string;
+  branch: string;
+  executionAttempt: string;
 }

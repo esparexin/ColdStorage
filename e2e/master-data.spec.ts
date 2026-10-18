@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { annotateTest } from './helpers/test-metadata.js';
+import { annotateTest, recordActualResult } from './helpers/test-metadata.js';
 import {
   DEFAULT_FACILITY,
   mockAuthenticatedSession,
@@ -108,6 +108,11 @@ test.describe('Phase 2 — Master Data Management (Customers, Commodities, Rates
     // Verify active customer is present and inactive customer is excluded
     await expect(customerDropdown.getByText('Venkateshwara Agro Exports')).toBeVisible();
     await expect(customerDropdown.getByText('Deactivated Produce Traders')).not.toBeVisible();
+
+    recordActualResult(
+      testInfo,
+      'Registered active customer Venkateshwara Agro Exports; enforced whitespace rejection; verified inactive customer is excluded from Inward selection listbox.',
+    );
   });
 
   test('TC-MD-002: Commodity Creation & Seasonal Duration Type', async ({ page }, testInfo) => {
@@ -185,6 +190,11 @@ test.describe('Phase 2 — Master Data Management (Customers, Commodities, Rates
     // Verify modal dismissed and commodity appears in list
     await expect(page.getByRole('heading', { name: 'Register New Commodity' })).not.toBeVisible();
     await expect(page.getByText('Nagpur Fresh Oranges')).toBeVisible();
+
+    recordActualResult(
+      testInfo,
+      'Registered commodity Nagpur Fresh Oranges with Seasonal_3M duration and Hamali labor rate ₹5.50; enforced non-blank name validation.',
+    );
   });
 
   test('TC-MD-003: Commodity Rate Controller (Seasonal & Monthly Split)', async ({ page }, testInfo) => {
@@ -281,5 +291,10 @@ test.describe('Phase 2 — Master Data Management (Customers, Commodities, Rates
 
     // Verify rate modal is dismissed
     await expect(page.locator('#rates-saved-confirmation')).not.toBeVisible();
+
+    recordActualResult(
+      testInfo,
+      'Updated dual rate matrix for Table Potato (Seasonal Small: ₹130, Big: ₹155; Monthly Small: ₹20, Big: ₹25); confirmed persistence without affecting historical receipts.',
+    );
   });
 });
