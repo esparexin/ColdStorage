@@ -6,6 +6,7 @@ import { Button, Input, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { requestWithAuth } from '@/lib/api-client';
 import { invalidateCache } from '@/lib/api-cache';
+import { formatApiErrorMessage, parseApiResponse } from '@/lib/api-response';
 import styles from '../page.module.css';
 
 interface CommodityFormModalProps {
@@ -66,9 +67,9 @@ export function CommodityFormModal({ commodity, onClose, onSuccess }: CommodityF
         }),
       });
 
-      if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
-        throw new Error(err.error ?? 'Failed to save commodity');
+      const parsed = await parseApiResponse(res);
+      if (!parsed.ok) {
+        throw new Error(formatApiErrorMessage(parsed));
       }
 
       invalidateCache('/api/commodities');

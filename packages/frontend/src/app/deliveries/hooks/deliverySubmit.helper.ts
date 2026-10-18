@@ -1,5 +1,6 @@
 import type { DeliveryChallan, DeliverySummary } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
+import { formatApiErrorMessage, parseApiResponse } from '@/lib/api-response';
 
 export async function submitDeliveryRequest(
   facilityId: string,
@@ -14,10 +15,10 @@ export async function submitDeliveryRequest(
     },
   );
 
-  if (!res.ok) {
-    const data = (await res.json()) as { error?: string };
-    throw new Error(data.error ?? `Delivery failed with HTTP ${res.status}`);
+  const parsed = await parseApiResponse<{ delivery: DeliveryChallan; summary?: DeliverySummary }>(res);
+  if (!parsed.ok) {
+    throw new Error(formatApiErrorMessage(parsed));
   }
 
-  return (await res.json()) as { delivery: DeliveryChallan; summary?: DeliverySummary };
+  return parsed.data;
 }
