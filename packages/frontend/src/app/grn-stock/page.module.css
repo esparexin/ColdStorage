@@ -105,7 +105,7 @@
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
   letter-spacing: 0.03em;
-  padding: 1px 6px;
+  padding: var(--space-0-5) var(--space-1-5);
   border-radius: var(--radius-sm);
   display: inline-block;
 }
@@ -175,7 +175,7 @@
   font-weight: var(--font-bold);
   color: var(--color-text-muted);
   background: var(--color-surface-2);
-  padding: 1px var(--space-1-5);
+  padding: var(--space-0-5) var(--space-1-5);
   border-radius: var(--radius-sm);
   margin-left: var(--space-1);
 }
