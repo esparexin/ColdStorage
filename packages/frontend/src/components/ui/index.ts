@@ -25,6 +25,7 @@ export {
 export { FeedbackStates } from './FeedbackStates';
 export { OverflowMenu, type OverflowMenuProps, type OverflowMenuItem } from './OverflowMenu';
 export { Banner, type BannerProps, type BannerVariant } from './Banner';
+export { PageHeader, type PageHeaderProps } from './PageHeader';
 export {
   LOADING_LABELS,
   SERVER_MESSAGES,

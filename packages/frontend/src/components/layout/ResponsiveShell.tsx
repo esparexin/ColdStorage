@@ -41,12 +41,29 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
   const [lockoutSeconds, setLockoutSeconds] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [authLoadingLabel, setAuthLoadingLabel] = useState<string>(LOADING_LABELS.auth);
 
-  // Stable identities: SidebarNav's route-change effect depends on `onClose`, so an
-  // inline arrow would re-fire on every parent render and instantly close the drawer.
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && localStorage.getItem('coldstorage_sidebar_collapsed') === 'true') {
+        setIsCollapsed(true);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
-  const toggleMobileNav = useCallback(() => setMobileNavOpen((prev) => !prev), []);
+  const toggleNav = useCallback(() => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      setMobileNavOpen((prev) => !prev);
+    } else {
+      setIsCollapsed((prev) => {
+        const next = !prev;
+        try { localStorage.setItem('coldstorage_sidebar_collapsed', String(next)); } catch { /* ignore */ }
+        return next;
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (lockoutSeconds === null || lockoutSeconds <= 0) return;
@@ -210,11 +227,12 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
 
   return (
     <div className={styles.shell}>
-      <SidebarNav isOpen={mobileNavOpen} onClose={closeMobileNav} />
-      <div className={styles.main}>
+      <SidebarNav isOpen={mobileNavOpen} onClose={closeMobileNav} isCollapsed={isCollapsed} />
+      <div className={`${styles.main} ${isCollapsed ? styles.mainCollapsed : ''}`}>
         <AppHeader
           isMobileNavOpen={mobileNavOpen}
-          onToggleMobileNav={toggleMobileNav}
+          onToggleMobileNav={toggleNav}
+          isCollapsed={isCollapsed}
         />
         <main className={styles.content} id="main-content">
           {children}

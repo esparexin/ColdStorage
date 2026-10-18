@@ -4,26 +4,6 @@
   gap: var(--space-4);
 }
 
-.headerRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
-.titleArea {
-  display: flex;
-  flex-direction: column;
-}
-
-.pageTitle {
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  color: var(--color-text-primary);
-  letter-spacing: var(--tracking-tight);
-}
-
 .layoutGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));

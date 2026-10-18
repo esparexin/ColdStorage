@@ -26,6 +26,14 @@ describe('sanitizeReturnUrl', () => {
     expect(sanitizeReturnUrl('/path\\subpath')).toBe('/');
   });
 
+  it('rejects /login targets to prevent infinite redirect loops', () => {
+    expect(sanitizeReturnUrl('/login')).toBe('/');
+    expect(sanitizeReturnUrl('/login?returnUrl=%2Fgrns')).toBe('/');
+    expect(sanitizeReturnUrl('/login?expired=true')).toBe('/');
+    expect(sanitizeReturnUrl('/login/reset')).toBe('/');
+    expect(sanitizeReturnUrl('/LOGIN')).toBe('/');
+  });
+
   it('handles null, undefined, empty, or non-string inputs safely', () => {
     expect(sanitizeReturnUrl(null)).toBe('/');
     expect(sanitizeReturnUrl(undefined)).toBe('/');

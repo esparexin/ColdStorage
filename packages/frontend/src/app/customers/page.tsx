@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { type Customer } from '@cold-storage/contracts';
-import { Button, FeedbackStates, FilterToolbar } from '@/components/ui';
+import { Button, FeedbackStates, FilterToolbar, PageHeader } from '@/components/ui';
 import {
   EMPTY_MESSAGES,
   ERROR_TITLES,
@@ -56,21 +56,21 @@ export default function CustomersPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.headerRow}>
-        <div>
-          <h1 className={styles.pageTitle}>Customers</h1>
-        </div>
-        {canManage && (
-          <Button
-            id="add-customer-btn"
-            variant="primary"
-            onClick={openCreateModal}
-            leftIcon={<Plus size={16} aria-hidden="true" />}
-          >
-            Add Customer
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Customers"
+        actions={
+          canManage ? (
+            <Button
+              id="add-customer-btn"
+              variant="primary"
+              onClick={openCreateModal}
+              leftIcon={<Plus size={16} aria-hidden="true" />}
+            >
+              Add Customer
+            </Button>
+          ) : undefined
+        }
+      />
 
       <FilterToolbar
         searchValue={searchTerm}

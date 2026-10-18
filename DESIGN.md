@@ -130,6 +130,7 @@ All user interface elements must exclusively consume canonical primitives from `
 10. `Pagination`: Accessible page navigation rendered by `DataTable`.
 11. `DataTable`: Enterprise tabular view with sorting, loading skeletons, and empty states.
 12. `FeedbackStates`: Standardized Loading, Empty, and Error state banners.
+13. `PageHeader`: Standardized page header with title, subtitle, optional badge, and responsive actions.
 
 ## Do's and Don'ts
 

@@ -78,7 +78,7 @@
 .amounts div {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0-5);
 }
 
 .amounts dt {
@@ -125,7 +125,7 @@
   margin: 0;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 768px) {
   .examples {
     grid-template-columns: minmax(0, 1fr);
   }
