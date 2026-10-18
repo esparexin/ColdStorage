@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { type AuditLogRecord } from '@cold-storage/contracts';
+import { PageHeader } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import {
   ACCESS_MESSAGES,
@@ -52,11 +53,7 @@ export default function AuditLogsPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.headerRow}>
-        <div className={styles.titleArea}>
-          <h1 className={styles.pageTitle}>Immutable Audit Logs</h1>
-        </div>
-      </div>
+      <PageHeader title="Immutable Audit Logs" />
 
       <AuditFilterToolbar
         searchTerm={searchTerm}

@@ -4,32 +4,6 @@
   gap: var(--space-4);
 }
 
-.headerRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
-.titleArea {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.pageTitle {
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  color: var(--color-text-primary);
-  letter-spacing: var(--tracking-tight);
-}
-
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
 
 .summaryCardsRow {
   display: grid;

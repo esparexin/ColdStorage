@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { type Group } from '@cold-storage/contracts';
-import { Button, FeedbackStates, FilterToolbar } from '@/components/ui';
+import { Button, FeedbackStates, FilterToolbar, PageHeader } from '@/components/ui';
 import {
   EMPTY_MESSAGES,
   ERROR_TITLES,
@@ -51,12 +51,10 @@ export default function GroupsPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.headerRow}>
-        <div className={styles.titleArea}>
-          <h1 className={styles.pageTitle}>Groups of Goods</h1>
-        </div>
-        <div className={styles.headerActions}>
-          {canManage && selectedFacilityId && (
+      <PageHeader
+        title="Groups of Goods"
+        actions={
+          canManage && selectedFacilityId ? (
             <Button
               id="create-group-header-btn"
               variant="primary"
@@ -65,9 +63,9 @@ export default function GroupsPage() {
             >
               Create Group
             </Button>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       {!selectedFacilityId ? (
         <FeedbackStates.Empty message={EMPTY_MESSAGES.noFacilityGroups} />

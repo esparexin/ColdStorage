@@ -4,20 +4,6 @@
   gap: var(--space-4);
 }
 
-.headerRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
-.pageTitle {
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  color: var(--color-text-primary);
-  letter-spacing: var(--tracking-tight);
-}
 
 /* Layout only: Modal's .body already owns the padding and the scroll container. */
 .modalForm {

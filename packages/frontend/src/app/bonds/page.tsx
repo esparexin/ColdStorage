@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import type { Grn, GrnStatus } from '@cold-storage/contracts';
-import { FilterToolbar } from '@/components/ui';
+import { FilterToolbar, PageHeader } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { DataTable } from '@/components/ui/DataTable';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
@@ -104,14 +104,10 @@ export default function BondsPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.headerRow}>
-        <div className={styles.titleArea}>
-          <h1 className={styles.pageTitle}>Bonds</h1>
-          <span className={styles.pageSubtitle}>
-            Bond / Lien details by customer and GRN ({currentFacilityName})
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        title="Bonds"
+        subtitle={`Bond / Lien details by customer and GRN (${currentFacilityName})`}
+      />
 
       {error && <Banner message={error} id="bonds-error" />}
 

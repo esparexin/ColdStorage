@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { type Commodity } from '@cold-storage/contracts';
-import { Button, ConfirmDialog, FeedbackStates, FilterToolbar } from '@/components/ui';
+import { Button, ConfirmDialog, FeedbackStates, FilterToolbar, PageHeader } from '@/components/ui';
 import {
   EMPTY_MESSAGES,
   ERROR_TITLES,
@@ -61,21 +61,21 @@ export default function CommoditiesPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.headerRow}>
-        <div>
-          <h1 className={styles.pageTitle}>Commodities</h1>
-        </div>
-        {canManage && (
-          <Button
-            id="add-commodity-btn"
-            variant="primary"
-            onClick={openCreateModal}
-            leftIcon={<Plus size={16} aria-hidden="true" />}
-          >
-            Add Commodity
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Commodities"
+        actions={
+          canManage ? (
+            <Button
+              id="add-commodity-btn"
+              variant="primary"
+              onClick={openCreateModal}
+              leftIcon={<Plus size={16} aria-hidden="true" />}
+            >
+              Add Commodity
+            </Button>
+          ) : undefined
+        }
+      />
 
       <FilterToolbar
         searchValue={searchTerm}
