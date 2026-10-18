@@ -12,7 +12,7 @@ import { requirePermission } from '../middleware/rbac.middleware.js';
 import { rentService } from '../modules/rent/rent.service.js';
 import { rentExtensionRepository } from '../modules/rent/rent-extension.repository.js';
 import { rentExtensionService } from '../modules/rent/rent-extension.service.js';
-import { sendServiceError } from '../utils/http-error.js';
+import { sendInternalError, sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
 export const rentRouter = asyncRouter();
@@ -56,8 +56,12 @@ rentRouter.post(
             message.includes('future') ||
             message.includes('Validation')
           ? 400
-          : 500;
-      res.status(status).json({ error: message });
+          : null;
+      if (status) {
+        res.status(status).json({ error: message });
+        return;
+      }
+      sendInternalError(res, err, 'recordRentPayment');
     }
   },
 );
