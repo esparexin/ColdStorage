@@ -208,6 +208,21 @@ describe('rentFilter.helper', () => {
     expect(result[0].grnNumber).toBe('GRN-103');
   });
 
+  it('filters by Seasonal_3M rent type', () => {
+    const seasonal3mAccount = createMockAccount({
+      grnId: 'grn-5',
+      grnNumber: 'GRN-105',
+      rentType: 'Seasonal_3M',
+    });
+    const result = filterRentAccounts([...accounts, seasonal3mAccount], {
+      searchTerm: '',
+      statusFilter: '',
+      typeFilter: 'Seasonal_3M',
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].grnNumber).toBe('GRN-105');
+  });
+
   it('combines search term, status filter, and type filter', () => {
     const result = filterRentAccounts(accounts, {
       searchTerm: 'Potato',

@@ -82,8 +82,9 @@ describe('P9 DocumentService Record Resolution & Preview Boundary Tests', () => 
 
     const html = await documentService.renderChallanDocument(facilityA, challanId, 'usr-test');
     expect(html).toContain('OUTWARD DELIVERY CHALLAN (GATE PASS)');
-    expect(html).not.toContain('CHL-2026-0099');
-    expect(html).toContain('Gate Pass #:');
+    expect(html).toContain('CHL-2026-0099');
+    expect(html).toContain('Challan #:');
+    expect(html).toContain('Gate Pass #');
     expect(html).toContain('PB-02-BB-1122');
     expect(html).toContain('Sohan Lal');
     expect(html).toContain('Block C2');

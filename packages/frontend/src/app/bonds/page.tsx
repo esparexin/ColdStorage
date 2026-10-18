@@ -125,7 +125,7 @@ export default function BondsPage() {
               setSearchTerm(v);
               setPage(1);
             }}
-            searchPlaceholder="Search Customer, Bond #, GRN #, Lien Holder, Reference..."
+            searchPlaceholder="Search GRN #, Customer, Lien Holder, Reference..."
             searchAriaLabel="Search Bonds"
             searchInputId="bonds-search-input"
             selects={[

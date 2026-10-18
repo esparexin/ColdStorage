@@ -4,6 +4,7 @@ import type { Grn } from '@cold-storage/contracts';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { Badge } from '@/components/ui';
 import { formatDisplayDate } from '@/lib/date-format';
+import { getLoanStatusDisplay } from '@/lib/loanStatusFormat';
 import { extractMergedDate } from './grnMergedDate.helper';
 import { GrnLifecycleStatusCell } from './GrnLifecycleStatusCell';
 import { GrnRowActions } from './GrnRowActions';
@@ -141,17 +142,11 @@ export function createGrnTableColumns({
       header: 'Loan Status',
       align: 'center',
       render: (row) => {
-        if (row.loanStatus === 'CLEARED') {
-          return <Badge variant="success">Loan Cleared</Badge>;
-        }
-        if (row.loanStatus === 'TAKEN') {
-          return <Badge variant="danger">Loan Hold</Badge>;
-        }
-        if (row.loanStatus === 'NOT_TAKEN') {
-          return <Badge variant="neutral">Pledged</Badge>;
-        }
-        return (
+        const { badgeLabel, variant } = getLoanStatusDisplay(row.loanStatus);
+        return badgeLabel === '—' ? (
           <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}>—</span>
+        ) : (
+          <Badge variant={variant}>{badgeLabel}</Badge>
         );
       },
     },

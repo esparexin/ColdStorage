@@ -1,4 +1,5 @@
 import type { Grn } from '@cold-storage/contracts';
+import { getLoanStatusDisplay } from '../../../lib/loanStatusFormat';
 
 export interface MergedDetailItem {
   grnNumber: string;
@@ -64,16 +65,7 @@ export function getLoanBadgeInfo(grn: Grn, hasMerged: boolean): {
   bondNumberDisplay: string;
 } {
   const isBonded = Boolean(grn.isBondForLoan || (grn.loanStatus && grn.loanStatus !== 'NONE'));
-  const variant: 'danger' | 'success' | 'neutral' =
-    grn.loanStatus === 'TAKEN' ? 'danger' : grn.loanStatus === 'CLEARED' ? 'success' : 'neutral';
-  const text =
-    !isBonded || grn.loanStatus === 'NONE'
-      ? 'Standard Storage'
-      : grn.loanStatus === 'TAKEN'
-        ? 'Loan Active (Hold)'
-        : grn.loanStatus === 'CLEARED'
-          ? 'Loan Cleared'
-          : 'Pledged (Loan Not Taken)';
+  const statusDisplay = getLoanStatusDisplay(isBonded ? grn.loanStatus : 'NONE');
 
   const bondNumberDisplay = hasMerged
     ? grn.grnNumber
@@ -81,7 +73,12 @@ export function getLoanBadgeInfo(grn: Grn, hasMerged: boolean): {
       ? (grn.bondNumber || grn.grnNumber)
       : 'None';
 
-  return { isBonded, variant, text, bondNumberDisplay };
+  return {
+    isBonded,
+    variant: statusDisplay.variant,
+    text: statusDisplay.label,
+    bondNumberDisplay,
+  };
 }
 
 export function deriveMergedAttributes(

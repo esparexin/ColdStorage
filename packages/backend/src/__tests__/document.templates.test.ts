@@ -108,9 +108,9 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
   it('renders complete Delivery Challan template with the gate pass declaration', () => {
     const html = renderChallanTemplate(makeChallanDto());
 
-    expect(html).toContain('OUTWARD DELIVERY CHALLAN (GATE PASS)');
-    expect(html).not.toContain('CHL-2026-5001');
-    expect(html).toContain('Gate Pass #:');
+    ['OUTWARD DELIVERY CHALLAN (GATE PASS)', 'CHL-2026-5001', 'Challan #:', 'Gate Pass #'].forEach((k) =>
+      expect(html).toContain(k),
+    );
     expect(html).not.toContain('Gate Pass (GP) # *');
     expect(html).toContain('CH-03');
     expect(html).toContain('PM-42');

@@ -7,7 +7,7 @@ export type RentStatusFilter =
   | 'SETTLED'
   | 'PENDING_DUES'
   | 'NO_DUES';
-export type RentTypeFilter = '' | 'Seasonal' | 'Monthly';
+export type RentTypeFilter = '' | 'Seasonal' | 'Monthly' | 'Seasonal_3M';
 
 export interface RentFilterOptions {
   searchTerm: string;

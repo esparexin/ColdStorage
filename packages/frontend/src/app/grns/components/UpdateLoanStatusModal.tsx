@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import type { Grn, LoanStatus } from '@cold-storage/contracts';
 import { Badge, Button, Modal, Select } from '@/components/ui';
+import { getLoanStatusDisplay } from '@/lib/loanStatusFormat';
 import { requestWithAuth } from '@/lib/api-client';
 import { LoanSettlementFields } from './LoanSettlementFields';
 import {
@@ -110,23 +111,10 @@ export function UpdateLoanStatusModal({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
           <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Current Status:</span>
-          <Badge
-            variant={
-              grn.loanStatus === 'TAKEN'
-                ? 'danger'
-                : grn.loanStatus === 'CLEARED'
-                  ? 'success'
-                  : 'neutral'
-            }
-          >
-            {grn.loanStatus === 'TAKEN'
-              ? 'Loan Active (Hold)'
-              : grn.loanStatus === 'CLEARED'
-                ? 'Loan Cleared'
-                : grn.loanStatus === 'NOT_TAKEN'
-                  ? 'Loan Not Taken'
-                  : 'Standard Storage'}
-          </Badge>
+          {(() => {
+            const current = getLoanStatusDisplay(grn.loanStatus);
+            return <Badge variant={current.variant}>{current.label}</Badge>;
+          })()}
         </div>
 
         <div className={styles.fieldGroup}>

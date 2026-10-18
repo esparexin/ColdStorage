@@ -5,6 +5,7 @@ import {
   deliveryStatusSchema,
   deliveryQuerySchema,
   deliveryChallanSchema,
+  deliverySummarySchema,
   outwardBagCategorySchema,
   isHybridBagCategory,
 } from '../delivery.js';
@@ -233,5 +234,15 @@ describe('P6 Delivery Contracts', () => {
       expect(challanParsed.data.totalBags).toBe(50);
     }
   });
-});
 
+  it('validates deliverySummarySchema retaining both remainingDeliveryBalance and physicallyStoredBags', () => {
+    const summary = deliverySummarySchema.parse({
+      grnId: 'grn-1', facilityId: 'fac-1', grnNumber: 'GRN-1001', totalReceivedBags: 100,
+      netDeliveredBags: 40, remainingDeliveryBalance: 60, physicallyStoredBags: 60,
+      availableSmallBags: 30, availableBigBags: 30, netDeliveredSmallBags: 20, netDeliveredBigBags: 20,
+      grnStatus: 'OPEN', deliveries: [],
+    });
+    expect(summary.remainingDeliveryBalance).toBe(60);
+    expect(summary.physicallyStoredBags).toBe(60);
+  });
+});
