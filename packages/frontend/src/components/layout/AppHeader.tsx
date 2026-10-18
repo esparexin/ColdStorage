@@ -66,14 +66,8 @@ export function AppHeader({
             id="mobile-nav-toggle"
             className={styles.menuTrigger}
             onClick={onToggleMobileNav}
-            aria-label={
-              isMobileNavOpen
-                ? 'Close navigation menu'
-                : isCollapsed
-                  ? 'Expand navigation sidebar'
-                  : 'Collapse navigation sidebar'
-            }
-            aria-expanded={isMobileNavOpen || !isCollapsed}
+            aria-label={isMobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={isMobileNavOpen}
             aria-controls="sidebar-navigation"
           >
             <Menu size={22} aria-hidden="true" />

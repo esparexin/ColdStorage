@@ -8,6 +8,7 @@ import {
   Layers,
   LayoutDashboard,
   Link2,
+  Menu,
   PackageSearch,
   Receipt,
   Settings,
@@ -74,9 +75,15 @@ interface SidebarNavProps {
   isOpen?: boolean;
   isCollapsed?: boolean;
   onClose?: () => void;
+  onToggleCollapse?: () => void;
 }
 
-export function SidebarNav({ isOpen = false, isCollapsed = false, onClose }: SidebarNavProps) {
+export function SidebarNav({
+  isOpen = false,
+  isCollapsed = false,
+  onClose,
+  onToggleCollapse,
+}: SidebarNavProps) {
   const pathname = usePathname();
   const { hasPermission } = usePermissions();
   // Same source as the header, so the two cannot show different names.
@@ -161,6 +168,19 @@ export function SidebarNav({ isOpen = false, isCollapsed = false, onClose }: Sid
       >
         <div className={styles.brandArea}>
           <span className={styles.brandTitle}>{orgName}</span>
+          {onToggleCollapse && (
+            <button
+              type="button"
+              id="sidebar-collapse-toggle"
+              className={styles.collapseToggleBtn}
+              onClick={onToggleCollapse}
+              aria-label={isCollapsed ? 'Expand navigation sidebar' : 'Collapse navigation sidebar'}
+              aria-expanded={!isCollapsed}
+              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <Menu size={20} aria-hidden="true" />
+            </button>
+          )}
           {onClose && (
             <button
               type="button"

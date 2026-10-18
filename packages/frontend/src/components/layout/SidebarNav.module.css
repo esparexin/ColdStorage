@@ -17,10 +17,12 @@
 .brandArea {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
   padding: 0 var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--color-border);
   margin-bottom: var(--space-3);
+  min-height: 36px;
 }
 
 .brandTitle {
@@ -28,6 +30,31 @@
   font-weight: var(--font-semibold);
   color: var(--color-sidebar-text);
   letter-spacing: var(--tracking-tight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collapseToggleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: var(--radius-md);
+  color: var(--color-sidebar-text);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.collapseToggleBtn:hover {
+  background-color: var(--color-sidebar-hover);
+  color: var(--color-sidebar-text);
 }
 
 .navSection {
@@ -197,5 +224,9 @@
   .mobileCloseBtn:hover {
     color: var(--color-sidebar-text);
     background: var(--color-sidebar-hover);
+  }
+
+  .collapseToggleBtn {
+    display: none;
   }
 }
