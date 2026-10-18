@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { recordActualResult } from './helpers/test-metadata.js';
 
 const mockUser = {
   userId: 'usr-admin-001',
@@ -68,7 +69,7 @@ for (const size of SIZES) {
     test.use({ viewport: { width: size.width, height: size.height } });
 
     for (const route of ROUTES) {
-      test(`no horizontal overflow on ${route}`, async ({ page }) => {
+      test(`no horizontal overflow on ${route} [${size.name}px]`, async ({ page }, testInfo) => {
         await mockAll(page);
         await page.goto(route);
         await page.waitForTimeout(700);
@@ -78,6 +79,10 @@ for (const size of SIZES) {
         });
         expect(overflow.scrollW, `horizontal overflow at ${size.name}px on ${route}`)
           .toBeLessThanOrEqual(overflow.clientW + 1);
+        recordActualResult(
+          testInfo,
+          `Viewport ${size.name}px on ${route}: scrollWidth ${overflow.scrollW}px <= clientWidth ${overflow.clientW}px; zero horizontal overflow.`,
+        );
       });
     }
   });
@@ -86,7 +91,7 @@ for (const size of SIZES) {
 test.describe('density + a11y audit', () => {
   test.use({ viewport: { width: 1280, height: 900 } });
 
-  test('body typography is 14px with 1.5 line-height', async ({ page }) => {
+  test('body typography is 14px with 1.5 line-height', async ({ page }, testInfo) => {
     await mockAll(page);
     await page.goto('/');
     const style = await page.evaluate(() => {
@@ -95,9 +100,10 @@ test.describe('density + a11y audit', () => {
     });
     expect(style.fontSize).toBe('14px');
     expect(parseFloat(style.lineHeight)).toBeCloseTo(21, 0);
+    recordActualResult(testInfo, `Body typography: fontSize=${style.fontSize}, lineHeight=${style.lineHeight}`);
   });
 
-  test('page headings render at 18px', async ({ page }) => {
+  test('page headings render at 18px', async ({ page }, testInfo) => {
     await mockAll(page);
     await page.goto('/deliveries');
     await page.waitForTimeout(500);
@@ -106,9 +112,10 @@ test.describe('density + a11y audit', () => {
       return h1 ? getComputedStyle(h1).fontSize : null;
     });
     expect(size).toBe('18px');
+    recordActualResult(testInfo, `H1 heading font-size verified at ${size}`);
   });
 
-  test('no element exceeds viewport width at 360px', async ({ page }) => {
+  test('no element exceeds viewport width at 360px', async ({ page }, testInfo) => {
     await mockAll(page);
     await page.goto('/settings');
     await page.waitForTimeout(700);
@@ -119,9 +126,10 @@ test.describe('density + a11y audit', () => {
         .map((el) => `${el.tagName}.${el.className}`.slice(0, 90));
     });
     expect(wide).toEqual([]);
+    recordActualResult(testInfo, 'Verified 0 elements exceeding 360px viewport on /settings');
   });
 
-  test('primary buttons meet 32px minimum touch target', async ({ page }) => {
+  test('primary buttons meet 32px minimum touch target', async ({ page }, testInfo) => {
     await mockAll(page);
     await page.goto('/deliveries');
     await page.waitForTimeout(600);
@@ -132,9 +140,10 @@ test.describe('density + a11y audit', () => {
         .filter((b) => b.h < 28);
     });
     expect(small).toEqual([]);
+    recordActualResult(testInfo, 'All visible buttons on /deliveries meet or exceed touch target threshold');
   });
 
-  test('mobile nav toggle opens drawer and Escape closes it', async ({ page }) => {
+  test('mobile nav toggle opens drawer and Escape closes it', async ({ page }, testInfo) => {
     // ResponsiveShell stabilises onClose with useCallback, so the drawer opens.
     await page.setViewportSize({ width: 360, height: 780 });
     await mockAll(page);
@@ -145,9 +154,10 @@ test.describe('density + a11y audit', () => {
     await expect(page.locator('#sidebar-navigation')).toHaveClass(/sidebarOpen/);
     await page.keyboard.press('Escape');
     await expect(page.locator('#sidebar-navigation')).not.toHaveClass(/sidebarOpen/);
+    recordActualResult(testInfo, 'Mobile drawer opened on toggle click and closed on Escape key');
   });
 
-  test('modal traps focus and restores Escape close', async ({ page }) => {
+  test('modal traps focus and restores Escape close', async ({ page }, testInfo) => {
     await mockAll(page);
     await page.goto('/grns');
     await page.waitForTimeout(600);
@@ -160,10 +170,13 @@ test.describe('density + a11y audit', () => {
       expect(maxW).toBeLessThanOrEqual(641);
       await page.keyboard.press('Escape');
       await expect(dialog).toBeHidden();
+      recordActualResult(testInfo, `Modal dialog rendered within max width (${Math.round(maxW)}px) and dismissed on Escape`);
+    } else {
+      recordActualResult(testInfo, 'Create GRN button not present in current view');
     }
   });
 
-  test('inward form fits a laptop viewport without scrolling', async ({ page }) => {
+  test('inward form fits a laptop viewport without scrolling', async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await mockGrnFormPage(page);
     await page.goto('/grns');
@@ -177,9 +190,10 @@ test.describe('density + a11y audit', () => {
       return body.scrollHeight - body.clientHeight;
     });
     expect(overflow).toBeLessThanOrEqual(0);
+    recordActualResult(testInfo, `Inward form fitted laptop viewport without scrolling (overflow delta: ${overflow}px)`);
   });
 
-  test('inward form keeps three columns on tablet widths', async ({ page }) => {
+  test('inward form keeps three columns on tablet widths', async ({ page }, testInfo) => {
     // The modal is capped at 640px, so a 768px viewport still has room for three columns.
     // Collapsing here would triple the form height for no reason.
     await page.setViewportSize({ width: 768, height: 1024 });
@@ -193,13 +207,15 @@ test.describe('density + a11y audit', () => {
       return getComputedStyle(grid).gridTemplateColumns.split(' ').length;
     });
     expect(columns).toBe(3);
+    recordActualResult(testInfo, 'Inward form maintained 3-column layout at 768px tablet width');
   });
 
-  test('no decorative snowflake symbol remains', async ({ page }) => {
+  test('no decorative snowflake symbol remains', async ({ page }, testInfo) => {
     await mockAll(page);
     await page.goto('/');
     const text = await page.evaluate(() => document.body.innerText);
     expect(text).not.toContain('❄');
+    recordActualResult(testInfo, 'Verified absence of snowflake glyph across page body');
   });
 });
 
@@ -209,7 +225,7 @@ test.describe('full-width data screens', () => {
 
   for (const width of [1440, 1920]) {
     for (const route of DATA_ROUTES) {
-      test(`${route} fills the available width at ${width}px`, async ({ page }) => {
+      test(`${route} fills the available width at ${width}px`, async ({ page }, testInfo) => {
         await mockAll(page);
         await page.setViewportSize({ width, height: 900 });
         await page.goto(route);
@@ -227,6 +243,10 @@ test.describe('full-width data screens', () => {
         expect(Math.abs(box!.width - expected),
           `${route} at ${width}px should fill ${expected}px but was ${Math.round(box!.width)}px`)
           .toBeLessThanOrEqual(2);
+        recordActualResult(
+          testInfo,
+          `${route} at ${width}px filled available width: box.width ${Math.round(box!.width)}px matches expected ${expected}px within 2px tolerance`,
+        );
       });
     }
   }

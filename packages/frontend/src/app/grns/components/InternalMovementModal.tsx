@@ -5,6 +5,7 @@ import { ArrowRightLeft, GitMerge, UserCheck } from 'lucide-react';
 import type { Commodity, Customer, Grn, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
 import { Banner, Button, Modal } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
+import { formatApiErrorMessage, parseApiResponse } from '@/lib/api-response';
 import { InternalMovementMergeTab } from './InternalMovementMergeTab';
 import { InternalMovementTransferTab } from './InternalMovementTransferTab';
 import { buildMergePayload, buildTransferPayload } from './internalMovementPayload.helper';
@@ -19,16 +20,6 @@ interface InternalMovementModalProps {
   commodities?: Commodity[];
   onClose: () => void;
   onSuccess: (updatedGrn: Grn) => void;
-}
-
-interface ApiErrorResponse {
-  error?: string;
-  details?: {
-    fieldErrors?: Record<string, string[]>;
-    formErrors?: string[];
-  };
-  targetGrn?: Grn;
-  grn?: Grn;
 }
 
 export function InternalMovementModal({
@@ -46,16 +37,6 @@ export function InternalMovementModal({
   const openFacilityGrns = useOpenFacilityGrns(facilityId, grn, allGrns);
 
   const handleRequestClose = () => { if (!submitting) onClose(); };
-
-  const formatApiError = (data: ApiErrorResponse, fallback: string): string => {
-    if (data.details?.fieldErrors && Object.keys(data.details.fieldErrors).length > 0) {
-      return `Validation failed: ${Object.entries(data.details.fieldErrors).map(([f, m]) => `${f}: ${m.join(', ')}`).join(' | ')}`;
-    }
-    if (data.details?.formErrors && data.details.formErrors.length > 0) {
-      return `Validation failed: ${data.details.formErrors.join(' | ')}`;
-    }
-    return data.error || fallback;
-  };
 
   const handleExecuteMerge = async (
     targetGrnId: string, sourceGrnIds: string[], reason: string, remarks?: string,
@@ -84,11 +65,11 @@ export function InternalMovementModal({
           ),
         },
       );
-      const data = (await res.json()) as ApiErrorResponse;
-      if (!res.ok || !data.targetGrn) {
-        throw new Error(formatApiError(data, 'GRN Merge failed'));
+      const parsed = await parseApiResponse<{ targetGrn?: Grn }>(res);
+      if (!parsed.ok || !parsed.data.targetGrn) {
+        throw new Error(parsed.ok ? 'GRN Merge failed' : formatApiErrorMessage(parsed));
       }
-      onSuccess(data.targetGrn);
+      onSuccess(parsed.data.targetGrn);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Internal Movement Merge failed');
     } finally {
@@ -135,11 +116,11 @@ export function InternalMovementModal({
           ),
         },
       );
-      const data = (await res.json()) as ApiErrorResponse;
-      if (!res.ok || !data.grn) {
-        throw new Error(formatApiError(data, 'Ownership transfer failed'));
+      const parsed = await parseApiResponse<{ grn?: Grn }>(res);
+      if (!parsed.ok || !parsed.data.grn) {
+        throw new Error(parsed.ok ? 'Ownership transfer failed' : formatApiErrorMessage(parsed));
       }
-      onSuccess(data.grn);
+      onSuccess(parsed.data.grn);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Ownership transfer failed');
     } finally {

@@ -17,7 +17,36 @@ export const errorCodeSchema = z.enum([
   'BACKUP_KEY_INVALID',
   'ORGANIZATION_NOT_CONFIGURED',
   'FACILITY_MISMATCH',
+  'VALIDATION_ERROR',
+  'UNAUTHORIZED',
+  'FORBIDDEN',
+  'CONFLICT',
+  'INTERNAL_SERVER_ERROR',
 ]);
+
+export const validationDetailsSchema = z.object({
+  formErrors: z.array(z.string()).default([]),
+  fieldErrors: z.record(z.array(z.string())).default({}),
+});
+
+export type ValidationDetails = z.infer<typeof validationDetailsSchema>;
+
+/**
+ * Extracts flattened field and form errors from a ZodError into canonical ValidationDetails.
+ */
+export function extractValidationDetails(error: z.ZodError): ValidationDetails {
+  const flattened = error.flatten();
+  const fieldErrors: Record<string, string[]> = {};
+  for (const [key, val] of Object.entries(flattened.fieldErrors)) {
+    if (Array.isArray(val) && val.length > 0) {
+      fieldErrors[key] = val;
+    }
+  }
+  return {
+    formErrors: flattened.formErrors ?? [],
+    fieldErrors,
+  };
+}
 
 export const errorResponseSchema = z.object({
   error: z.string().min(1),

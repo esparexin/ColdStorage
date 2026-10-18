@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { PaymentMode, RentSummaryDto } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
+import { formatApiErrorMessage, parseApiResponse } from '@/lib/api-response';
 import { printHtmlDocument } from '@/lib/print-document';
 import { PRINT_MESSAGES } from '@/components/ui/stateCopy';
 
@@ -111,17 +112,16 @@ export function useCollectPaymentForm({
         },
       );
 
-      if (!res.ok) {
-        const d = (await res.json()) as { error?: string };
-        throw new Error(d.error ?? `Payment failed with HTTP ${res.status}`);
-      }
-
-      const result = (await res.json()) as {
+      const parsed = await parseApiResponse<{
         payment: { receiptNumber: string };
         summary: RentSummaryDto;
-      };
+      }>(res);
 
-      onPaymentSuccess(result.summary);
+      if (!parsed.ok) {
+        throw new Error(formatApiErrorMessage(parsed));
+      }
+
+      onPaymentSuccess(parsed.data.summary);
     } catch (err: unknown) {
       setCollectError(err instanceof Error ? err.message : 'Failed to collect payment');
     } finally {

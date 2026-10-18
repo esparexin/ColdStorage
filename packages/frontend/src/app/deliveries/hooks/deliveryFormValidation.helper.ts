@@ -1,4 +1,4 @@
-import { indianVehicleSchema } from '@cold-storage/contracts';
+import { indianVehicleSchema, INDIAN_VEHICLE_ERROR_MESSAGE } from '@cold-storage/contracts';
 
 export interface ValidateDeliveryFormInput {
   createGrnId: string;
@@ -93,7 +93,7 @@ export function validateDeliveryForm(input: ValidateDeliveryFormInput): Delivery
   if (!input.createVehicleNumber?.trim()) {
     errors.vehicleNumber = 'Vehicle registration is required';
   } else if (!indianVehicleSchema.safeParse(input.createVehicleNumber.trim()).success) {
-    errors.vehicleNumber = 'Vehicle registration must be in standard Indian format (e.g. UP32AA1111)';
+    errors.vehicleNumber = INDIAN_VEHICLE_ERROR_MESSAGE;
   }
 
   if (!input.createGpNumber?.trim()) {

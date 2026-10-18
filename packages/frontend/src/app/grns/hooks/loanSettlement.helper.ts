@@ -1,4 +1,9 @@
-import type { Grn, LoanPaymentMode } from '@cold-storage/contracts';
+import {
+  aadhaarNumberSchema,
+  ifscCodeSchema,
+  type Grn,
+  type LoanPaymentMode,
+} from '@cold-storage/contracts';
 
 export interface LoanSettlementState {
   amountPaid: string;
@@ -36,19 +41,31 @@ export function validateLoanSettlement(s: LoanSettlementState): string | null {
   const amt = Number(s.amountPaid);
   if (!amt || amt <= 0) return 'Valid settlement amount paid is required';
   if (!s.receiverName.trim()) return 'Receiver / Collector name is required';
-  if (s.paymentMode === 'UPI' && !s.utrNumber.trim()) {
-    return 'UPI UTR / Reference number is required';
+  if (s.paymentMode === 'UPI') {
+    if (!s.utrNumber.trim()) {
+      return 'UPI UTR / Reference number is required';
+    }
+    if (s.utrNumber.trim().length < 4) {
+      return 'UPI UTR / Reference number must be at least 4 characters';
+    }
   }
   if (s.paymentMode === 'Bank Transfer') {
     if (!s.bankName.trim() || !s.accountNumber.trim() || !s.ifscCode.trim() || !s.utrNumber.trim()) {
       return 'Bank Name, Account #, IFSC, and UTR are required for Bank Transfer';
     }
-    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(s.ifscCode.trim())) {
-      return 'Invalid IFSC Code format (e.g. SBIN0001234)';
+    if (s.utrNumber.trim().length < 4) {
+      return 'UTR / Reference number must be at least 4 characters';
+    }
+    const ifscResult = ifscCodeSchema.safeParse(s.ifscCode.trim());
+    if (!ifscResult.success) {
+      return ifscResult.error.issues[0]?.message ?? 'Invalid Indian IFSC code format (e.g. SBIN0001234)';
     }
   }
-  if (s.receiverAadhaar.trim() && !/^\d{12}$/.test(s.receiverAadhaar.trim())) {
-    return 'Receiver Aadhaar must be exactly 12 digits';
+  if (s.receiverAadhaar.trim()) {
+    const aadhaarResult = aadhaarNumberSchema.safeParse(s.receiverAadhaar.trim());
+    if (!aadhaarResult.success) {
+      return aadhaarResult.error.issues[0]?.message ?? 'Aadhaar number must be exactly 12 digits';
+    }
   }
   return null;
 }

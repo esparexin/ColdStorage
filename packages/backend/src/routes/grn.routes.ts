@@ -10,7 +10,7 @@ import { authenticate, requirePasswordChanged } from '../middleware/auth.middlew
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { grnService } from '../modules/grn/grn.service.js';
-import { sendServiceError } from '../utils/http-error.js';
+import { sendInternalError, sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
 export const grnRouter = asyncRouter();
@@ -44,25 +44,30 @@ grnRouter.post(
       const { grn, acknowledgement } = await grnService.createGrn(facilityId, parseResult.data, req.user!.userId);
       res.status(201).json({ grn, acknowledgement });
     } catch (err: unknown) {
-      const isDuplicate =
-        (typeof err === 'object' && err !== null && 'code' in err && (err as { code: number }).code === 11000) ||
-        (err instanceof Error && err.message.includes('already exists'));
-      if (isDuplicate) {
-        res.status(409).json({ error: err instanceof Error ? err.message : 'Bill Number already exists' });
+      const isMongoDuplicate =
+        typeof err === 'object' && err !== null && 'code' in err && (err as { code: number }).code === 11000;
+      const isAlreadyExists = err instanceof Error && err.message.includes('already exists');
+      if (isMongoDuplicate || isAlreadyExists) {
+        const errorMsg = isMongoDuplicate
+          ? `GRN '${parseResult.data.grnNumber}' already exists for this facility.`
+          : (err as Error).message;
+        res.status(409).json({ error: errorMsg });
         return;
       }
       const message = err instanceof Error ? err.message : 'GRN creation failed';
-      const status =
+      const isKnownClientError =
         message.includes('not found') ||
         message.includes('inactive') ||
         message.includes('not registered') ||
         message.includes('does not belong') || message.includes('do not match') ||
         message.includes('controller rate') || message.includes('future') ||
         message.includes('exceeds permitted') ||
-        message.includes('Financial Year')
-          ? 400
-          : 500;
-      res.status(status).json({ error: message });
+        message.includes('Financial Year');
+      if (isKnownClientError) {
+        res.status(400).json({ error: message });
+        return;
+      }
+      sendInternalError(res, err, 'createGrn');
     }
   },
 );

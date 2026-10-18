@@ -1,5 +1,6 @@
 import type { Grn } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
+import { formatApiErrorMessage, parseApiResponse } from '@/lib/api-response';
 import { buildEditGrnPayload } from './createGrnForm.helper';
 
 export async function submitCreateGrn(
@@ -12,13 +13,12 @@ export async function submitCreateGrn(
     body: JSON.stringify(payload),
   });
 
-  if (!res.ok) {
-    const data = (await res.json()) as { error?: string };
-    throw new Error(data.error ?? `Creation failed with HTTP ${res.status}`);
+  const parsed = await parseApiResponse<{ grn: Grn }>(res);
+  if (!parsed.ok) {
+    throw new Error(formatApiErrorMessage(parsed));
   }
 
-  const responseData = (await res.json()) as { grn: Grn };
-  return responseData.grn;
+  return parsed.data.grn;
 }
 
 async function submitEditGrn(
@@ -35,13 +35,12 @@ async function submitEditGrn(
     },
   );
 
-  if (!res.ok) {
-    const data = (await res.json()) as { error?: string };
-    throw new Error(data.error ?? `Update failed with HTTP ${res.status}`);
+  const parsed = await parseApiResponse<{ grn: Grn }>(res);
+  if (!parsed.ok) {
+    throw new Error(formatApiErrorMessage(parsed));
   }
 
-  const responseData = (await res.json()) as { grn: Grn };
-  return responseData.grn;
+  return parsed.data.grn;
 }
 
 export async function handleEditGrnSubmit(params: {

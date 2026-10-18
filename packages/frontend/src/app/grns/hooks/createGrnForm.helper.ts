@@ -1,13 +1,7 @@
 import {
-  chamberTextSchema,
-  grnNumberInputSchema,
-  indianVehicleSchema,
-  normalizeIndianVehicleNumber,
-  rentalAmountSchema,
-  type BagType,
-  type Grn,
-  type LoanStatus,
-  type RentType,
+  chamberTextSchema, grnNumberInputSchema, indianVehicleSchema,
+  INDIAN_VEHICLE_ERROR_MESSAGE, normalizeIndianVehicleNumber, rentalAmountSchema,
+  type BagType, type Grn, type LoanStatus, type RentType,
 } from '@cold-storage/contracts';
 
 export function parseNumericInput(raw: string): number | '' {
@@ -97,11 +91,15 @@ export function validateCreateGrnForm(state: CreateGrnState, rateCheck?: Control
   if (state.createSmallBagPrice !== '' && state.createSmallBagPrice !== undefined) {
     if (typeof state.createSmallBagPrice !== 'number' || state.createSmallBagPrice <= 0) {
       errors.smallBagPrice = 'Small bag rate must be greater than zero';
+    } else if (state.createSmallBagPrice > 100000) {
+      errors.smallBagPrice = 'Small bag rate cannot exceed ₹100,000';
     }
   }
   if (state.createBigBagPrice !== '' && state.createBigBagPrice !== undefined) {
     if (typeof state.createBigBagPrice !== 'number' || state.createBigBagPrice <= 0) {
       errors.bigBagPrice = 'Big bag rate must be greater than zero';
+    } else if (state.createBigBagPrice > 100000) {
+      errors.bigBagPrice = 'Big bag rate cannot exceed ₹100,000';
     }
   }
   if (state.createTotalBagsWeight !== '' && state.createTotalBagsWeight !== undefined) {
@@ -112,7 +110,7 @@ export function validateCreateGrnForm(state: CreateGrnState, rateCheck?: Control
 
   const normVehicle = normalizeIndianVehicleNumber(state.createVehicleNumber);
   if (normVehicle && !indianVehicleSchema.safeParse(normVehicle).success) {
-    errors.vehicleNumber = 'Vehicle number must be in standard Indian format (e.g., UP32AA1111)';
+    errors.vehicleNumber = INDIAN_VEHICLE_ERROR_MESSAGE;
   }
 
   if (state.createPartyMark && state.createPartyMark.trim().length > 20) {

@@ -7,7 +7,7 @@ import { requirePermission } from '../middleware/rbac.middleware.js';
 import { ConcurrencyConflictError } from '../modules/inventory/inventory.service.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
-import { sendServiceError } from '../utils/http-error.js';
+import { sendInternalError, sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
 
 export const deliveryRouter = asyncRouter();
@@ -74,8 +74,12 @@ deliveryRouter.post(
               message.includes('mismatch') ||
               message.includes('rentCharge')
             ? 400
-            : 500;
-      res.status(status).json({ error: message });
+            : null;
+      if (status) {
+        res.status(status).json({ error: message });
+        return;
+      }
+      sendInternalError(res, err, 'createDelivery');
     }
   },
 );
