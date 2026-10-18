@@ -19,7 +19,7 @@ export function renderRentReceiptTemplate(
         <th style="width: 25%;">Customer Name</th>
         <td style="width: 25%;"><strong>${escapeHtml(dto.customerName)}</strong></td>
         <th style="width: 25%;">Chamber</th>
-        <td style="width: 25%;"><span class="tag-chamber">${escapeHtml(dto.chamber)}</span></td>
+        <td style="width: 25%;"><strong>${escapeHtml(dto.chamber)}</strong></td>
       </tr>
       <tr>
         <th>Inward Receipt / GRN</th>
@@ -47,7 +47,7 @@ export function renderRentReceiptTemplate(
       </tr>
       <tr>
         <th>Amount Paid</th>
-        <td><strong style="font-size: 14px; color: #0056b3;">₹${escapeHtml(dto.amountPaid.toFixed(2))}</strong></td>
+        <td><strong style="font-size: 10px; color: #0056b3;">₹${escapeHtml(dto.amountPaid.toFixed(2))}</strong></td>
         <th>Payment Status</th>
         <td><strong>${escapeHtml(dto.paymentStatus)}</strong></td>
       </tr>
@@ -67,7 +67,7 @@ export function renderRentReceiptTemplate(
 
     ${
       isPreview
-        ? `<div style="margin-top: 20px; font-size: 11px; color: #856404; background: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 4px;">
+        ? `<div style="margin-top: 6px; font-size: 7.5px; line-height: 1.25; color: #856404; background: #fff3cd; border: 1px dashed #e0c878; padding: 4px 6px; border-radius: 3px;">
       <strong>Notice:</strong> This is a print template preview from Phase 9. Formal rent payment collection, balance mutation, and receipt numbering are executed exclusively in Phase 12 (Rent Collection &amp; Payment Management).
     </div>`
         : ''
@@ -84,6 +84,7 @@ export function renderRentReceiptTemplate(
       ? 'CASH MEMO / RENT PAYMENT RECEIPT [PREVIEW]'
       : 'CASH MEMO / RENT PAYMENT RECEIPT',
     documentNumber: dto.receiptNumber,
+    documentNumberLabel: 'Receipt #',
     documentDate:
       dto.date instanceof Date ? dto.date.toISOString().split('T')[0] : String(dto.date),
     generatedAt:

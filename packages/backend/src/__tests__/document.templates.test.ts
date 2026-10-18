@@ -166,12 +166,12 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
   it('renders the authoritative rent receipt with isPreview false and no watermark', () => {
     const html = renderRentReceiptTemplate(makeRentReceiptDto({ isPreview: false }));
 
-    expect(html).toContain('RENT PAYMENT RECEIPT');
+    ['RENT PAYMENT RECEIPT', 'Receipt #:', '₹20000.00', '₹25000.00'].forEach((k) =>
+      expect(html).toContain(k),
+    );
     expect(html).not.toContain('RENT PAYMENT RECEIPT [PREVIEW]');
     expect(html).not.toContain('PREVIEW ONLY');
     expect(html).not.toContain('Phase 12');
-    expect(html).toContain('₹20000.00');
-    expect(html).toContain('₹25000.00');
     expect(html).not.toMatch(/mobile/i);
     expect(rentReceiptDocumentDtoSchema.safeParse(makeRentReceiptDto()).success).toBe(true);
   });
