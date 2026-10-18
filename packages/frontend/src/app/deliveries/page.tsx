@@ -49,9 +49,6 @@ export default function DeliveriesPage() {
     if (params.get('action') === 'create' || params.get('tab')?.toLowerCase() === 'issue') setActiveView('issue');
     const grnId = params.get('grnId');
     if (grnId && /^[A-Za-z0-9_-]{1,128}$/.test(grnId)) setInitialGrnId(grnId);
-    const url = new URL(window.location.href);
-    ['grnId', 'action'].forEach((k) => url.searchParams.delete(k));
-    window.history.replaceState({}, '', url.toString());
 
     return () => window.removeEventListener('switch-delivery-tab', handleSwitchTab);
   }, []);

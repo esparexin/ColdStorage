@@ -43,6 +43,8 @@ export default function GrnsPage() {
   const canCorrect = hasPermission('grn:correct');
   const canCreateChallan = hasPermission('delivery:create');
 
+  const [pendingGrnId, setPendingGrnId] = useState<string | null>(null);
+
   useEffect(() => {
     const handleSelectEvent = (e: Event) => {
       const customEvent = e as CustomEvent<Grn>;
@@ -53,31 +55,30 @@ export default function GrnsPage() {
     };
     window.addEventListener('select-grn', handleSelectEvent);
     window.addEventListener('open-create-grn', handleOpenCreateEvent);
-
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('action') === 'create' && canCreate) {
-        setIsCreateOpen(true);
-      }
-      const searchParam = params.get('search');
-      if (searchParam) {
-        grnData.setSearchTerm(searchParam);
-      }
-      const targetGrnId = params.get('selectedGrnId');
-      if (targetGrnId) {
-        const match = grnData.grns.find((g) => g.id === targetGrnId);
-        if (match) setSelectedGrn(match);
-      }
-      const url = new URL(window.location.href);
-      ['action', 'search', 'selectedGrnId'].forEach((k) => url.searchParams.delete(k));
-      window.history.replaceState({}, '', url.toString());
-    }
-
     return () => {
       window.removeEventListener('select-grn', handleSelectEvent);
       window.removeEventListener('open-create-grn', handleOpenCreateEvent);
     };
-  }, [canCreate, grnData.grns, grnData.setSearchTerm]);
+  }, [canCreate]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('action') === 'create' && canCreate) setIsCreateOpen(true);
+    const searchParam = params.get('search');
+    if (searchParam) grnData.setSearchTerm(searchParam);
+    const targetGrnId = params.get('selectedGrnId');
+    if (targetGrnId) setPendingGrnId(targetGrnId);
+  }, [canCreate, grnData.setSearchTerm]);
+
+  useEffect(() => {
+    if (!pendingGrnId || grnData.grns.length === 0) return;
+    const match = grnData.grns.find((g) => g.id === pendingGrnId);
+    if (match) {
+      setSelectedGrn(match);
+      setPendingGrnId(null);
+    }
+  }, [pendingGrnId, grnData.grns]);
 
   const handlePrint = async (type: 'grn' | 'receipt', grnId: string) => {
     if (!selectedFacilityId) return;

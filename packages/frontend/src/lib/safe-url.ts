@@ -15,6 +15,10 @@ export function sanitizeReturnUrl(url: string | null | undefined): string {
   if (/%(5c|0d|0a|00)/i.test(trimmed)) return '/';
   if (!/^\/[^/\\][\x20-\x7E]*$/.test(trimmed) && trimmed !== '/') return '/';
   if (trimmed.startsWith('/') && !trimmed.startsWith('//') && !trimmed.includes('\\')) {
+    const lower = trimmed.toLowerCase();
+    if (lower === '/login' || lower.startsWith('/login?') || lower.startsWith('/login/')) {
+      return '/';
+    }
     return trimmed;
   }
   return '/';
