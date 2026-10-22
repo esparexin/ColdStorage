@@ -53,16 +53,13 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
   }, []);
 
   const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
-  const toggleNav = useCallback(() => {
-    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
-      setMobileNavOpen((prev) => !prev);
-    } else {
-      setIsCollapsed((prev) => {
-        const next = !prev;
-        try { localStorage.setItem('coldstorage_sidebar_collapsed', String(next)); } catch { /* ignore */ }
-        return next;
-      });
-    }
+  const toggleMobileNav = useCallback(() => setMobileNavOpen((prev) => !prev), []);
+  const toggleCollapse = useCallback(() => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try { localStorage.setItem('coldstorage_sidebar_collapsed', String(next)); } catch { /* ignore */ }
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -227,11 +224,16 @@ export function ResponsiveShell({ children }: ResponsiveShellProps) {
 
   return (
     <div className={styles.shell}>
-      <SidebarNav isOpen={mobileNavOpen} onClose={closeMobileNav} isCollapsed={isCollapsed} />
+      <SidebarNav
+        isOpen={mobileNavOpen}
+        onClose={closeMobileNav}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={toggleCollapse}
+      />
       <div className={`${styles.main} ${isCollapsed ? styles.mainCollapsed : ''}`}>
         <AppHeader
           isMobileNavOpen={mobileNavOpen}
-          onToggleMobileNav={toggleNav}
+          onToggleMobileNav={toggleMobileNav}
           isCollapsed={isCollapsed}
         />
         <main className={styles.content} id="main-content">

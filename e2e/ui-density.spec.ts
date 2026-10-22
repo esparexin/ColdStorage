@@ -157,6 +157,19 @@ test.describe('density + a11y audit', () => {
     recordActualResult(testInfo, 'Mobile drawer opened on toggle click and closed on Escape key');
   });
 
+  test('desktop sidebar collapse toggle collapses to rail and expands back', async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await mockAll(page);
+    await page.goto('/');
+    const collapseToggle = page.locator('#sidebar-collapse-toggle');
+    await expect(collapseToggle).toBeVisible();
+    await collapseToggle.click();
+    await expect(page.locator('#sidebar-navigation')).toHaveClass(/sidebarCollapsed/);
+    await collapseToggle.click();
+    await expect(page.locator('#sidebar-navigation')).not.toHaveClass(/sidebarCollapsed/);
+    recordActualResult(testInfo, 'Desktop sidebar collapsed to rail and expanded back via toggle button');
+  });
+
   test('modal traps focus and restores Escape close', async ({ page }, testInfo) => {
     await mockAll(page);
     await page.goto('/grns');
