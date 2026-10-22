@@ -1,4 +1,4 @@
-import { formatDisplayBagType, isHybridBagCategory, type ChallanDocumentDto } from '@cold-storage/contracts';
+import { isHybridBagCategory, type ChallanDocumentDto } from '@cold-storage/contracts';
 import { escapeHtml, renderBaseLayout } from './base.layout.js';
 
 export function renderChallanTemplate(dto: ChallanDocumentDto): string {
