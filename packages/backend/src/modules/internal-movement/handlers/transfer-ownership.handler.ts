@@ -72,7 +72,7 @@ export async function transferOwnership(
       validateTransferBagConfirmation(input, bal.total, grn.grnNumber, isVerified);
 
       const movementDate = new Date(input.movementDate);
-      const isHybrid = isHybridBagCategory(input.sourceBagCategory);
+      const isHybrid = isHybridBagCategory(input.sourceBagCategory) || grn.bagType === 'Hybrid';
       const transferExtensions = await rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session);
       // 1. Authoritative outward-style rent assessment for all remaining bags being transferred
       const { expectedRentCharge } = await computeExpectedDeliveryRent({

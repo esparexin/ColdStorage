@@ -62,6 +62,7 @@ export const createDeliverySchema = z
     driverName: z.string().trim().max(100).nullish(),
     weight: z.number().positive('weight must be positive').nullish(),
     remarks: z.string().trim().max(500).nullish(),
+    bagType: bagTypeSchema.nullish(),
     bagCategory: outwardBagCategorySchema.nullish(),
     bagPrice: bagPriceSchema.nullish(),
     seasonalBagPrice: bagPriceSchema.nullish(),

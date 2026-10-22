@@ -88,7 +88,7 @@ async function executeDeliveryTransaction(
         throw new Error(`Outward blocked — Active loan hold against ${bondRef}`);
       }
 
-      const isHybrid = isHybridBagCategory(input.bagCategory);
+      const isHybrid = input.bagType === 'Hybrid' || grn.bagType === 'Hybrid' || isHybridBagCategory(input.bagCategory);
       const hasSpecificBags = (input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0;
       const sRate = grn.smallBagPrice ?? grn.bagPrice ?? 0;
       const bRate = grn.bigBagPrice ?? grn.bagPrice ?? 0;
