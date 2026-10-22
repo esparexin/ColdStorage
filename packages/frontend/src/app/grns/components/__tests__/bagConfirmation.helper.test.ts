@@ -56,4 +56,25 @@ describe('bagConfirmation.helper (outward SSOT reuse)', () => {
       defaultSmall: 0, defaultBig: 50, repackSmall: 50, repackBig: 0, isRepackFilled: true,
     })).toEqual({ small: 50, big: 0 });
   });
+
+  it('validates Step 2 confirmed Small and Big counts for S/B', () => {
+    const base = {
+      category: 'S/B' as const, quantity: '' as const, bagPrice: '' as const,
+      seasonalBagPrice: '' as const, monthlyBagPrice: '' as const,
+      repackSmall: '' as const, repackBig: '' as const, totalMovedBags: 50, isRepackRequired: false,
+    };
+    expect(validateBagConfirmation({ ...base, smallBags: 30, bigBags: 20 })).toBeNull();
+    expect(validateBagConfirmation({ ...base, smallBags: 30, bigBags: 15 })).toContain('must equal total moved bags');
+    expect(validateBagConfirmation({ ...base, smallBags: -5, bigBags: 55 })).toContain('cannot be negative');
+  });
+
+  it('populates previewConfirmedSplit from Step 2 confirmed counts', () => {
+    const preview = previewConfirmedSplit({
+      category: 'S/B', rawSmall: 0, rawBig: 50, total: 50,
+      defaultSmall: 0, defaultBig: 50, repackSmall: '', repackBig: '', isRepackFilled: false,
+      confirmedSmall: 35, confirmedBig: 15,
+    });
+    expect(preview).toEqual({ small: 35, big: 15 });
+  });
 });
+

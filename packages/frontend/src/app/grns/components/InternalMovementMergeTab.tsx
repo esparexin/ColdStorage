@@ -183,13 +183,14 @@ export function InternalMovementMergeTab({
     if (repackMode && !isRepackFilled) return setValidationError('Both Repacked Small and Big bag counts are required.');
     if (repackMode && (Number(repackSmall) < 0 || Number(repackBig) < 0)) return setValidationError('Repacked bag counts cannot be negative.');
     const isSb = confirmation.category === 'S/B' || confirmation.category === 'Small & Big';
+    const effSmall = isRepackFilled ? Number(repackSmall) : (typeof confirmation.smallBags === 'number' ? confirmation.smallBags : undefined);
+    const effBig = isRepackFilled ? Number(repackBig) : (typeof confirmation.bigBags === 'number' ? confirmation.bigBags : undefined);
     await onExecuteMerge(
       targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0,
-      isRepackFilled ? Number(repackSmall) : undefined, isRepackFilled ? Number(repackBig) : undefined,
-      typeof referenceWeight === 'number' && referenceWeight > 0 ? referenceWeight : undefined,
+      effSmall, effBig, typeof referenceWeight === 'number' && referenceWeight > 0 ? referenceWeight : undefined,
       settlementDecision === 'SETTLE_NOW' && settleAmount > 0 ? settleAmount : undefined,
       settlementDecision === 'SETTLE_NOW' && settleAmount > 0 ? paymentMode : undefined,
-      (!isSb || isRepackRequired || isRepackFilled) ? confirmation.category : undefined,
+      (!isSb || isRepackRequired || isRepackFilled || typeof confirmation.smallBags === 'number') ? confirmation.category : undefined,
       isHybridBagCategory(confirmation.category) ? totalSourceBags : (typeof confirmation.quantity === 'number' ? confirmation.quantity : undefined),
       typeof confirmation.bagPrice === 'number' ? confirmation.bagPrice : undefined,
       typeof confirmation.seasonalBagPrice === 'number' ? confirmation.seasonalBagPrice : undefined,

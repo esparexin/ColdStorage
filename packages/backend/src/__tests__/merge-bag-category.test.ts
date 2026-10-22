@@ -227,4 +227,20 @@ describe('Internal Move bag-category confirmation (outward SSOT)', () => {
     expect(updated?.rentAmount).toBe(4800);
     expect(updated?.customerId).toBe(customerB);
   });
+
+  it('merges an unverified lot with confirmed S/B counts without physical repack', async () => {
+    const { target, source } = await seedPair({ sourceBags: 40, sourceBagType: 'S+B' });
+    const res = await postMerge({
+      targetGrnId: target, sourceGrnIds: [source], movementDate: new Date(),
+      remarks: 'Confirmed S/B without physical repack',
+      sourceBagCategory: 'S/B', repackedSmallBags: 25, repackedBigBags: 15,
+      isRepackSelected: false,
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.movement.smallBagsMoved).toBe(25);
+    expect(res.body.movement.bigBagsMoved).toBe(15);
+    expect(res.body.targetGrn.bags).toBe(140);
+    expect(res.body.targetGrn.smallBags).toBe(125);
+    expect(res.body.targetGrn.bigBags).toBe(15);
+  });
 });

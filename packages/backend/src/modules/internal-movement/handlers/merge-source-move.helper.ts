@@ -70,6 +70,7 @@ export async function processMergeSource(params: {
     sourcePaymentAmount: input.sourcePaymentAmount, sourcePaymentMode: input.sourcePaymentMode, userId, session,
     sourceBagCategory: input.sourceBagCategory, sourceQuantity: bal.total, sourceBagPrice: input.sourceBagPrice,
     sourceSeasonalBagPrice: input.sourceSeasonalBagPrice, sourceMonthlyBagPrice: input.sourceMonthlyBagPrice,
+    confirmedSmallBags: input.repackedSmallBags, confirmedBigBags: input.repackedBigBags,
   });
   const summary = await closeSourceGrnOnMerge({
     facilityId, sourceGrn: s, targetGrnNumber: targetGrn.grnNumber, targetGrnId: targetGrn.id,
