@@ -34,3 +34,4 @@ export * from './internal-movement.js';
 export * from './group.js';
 export * from './seasonal-periods.js';
 export * from './hamali.js';
+export * from './bag-display.js';

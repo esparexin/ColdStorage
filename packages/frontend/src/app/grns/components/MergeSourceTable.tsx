@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  formatDisplayBagType,
   isHybridBagCategory,
   seasonYearForInwardDate,
   type Grn,
@@ -98,7 +99,16 @@ export function MergeSourceTable({
               (sg.smallBagPrice != null || sg.bigBagPrice != null) &&
               sg.smallBagPrice !== sg.bigBagPrice;
             const isHybrid = (sg.bagPrice != null && !hasDiff) || isHybridBagCategory(sg.bagType);
-            return <Badge variant="neutral">{isHybrid ? 'Hybrid' : sg.bagType}</Badge>;
+            return (
+              <Badge variant="neutral">
+                {formatDisplayBagType({
+                  bagType: sg.bagType,
+                  smallBags: sg.smallBags,
+                  bigBags: sg.bigBags,
+                  isHybrid,
+                })}
+              </Badge>
+            );
           },
         },
         {

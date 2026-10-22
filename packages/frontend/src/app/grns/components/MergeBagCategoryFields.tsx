@@ -56,11 +56,15 @@ export function MergeBagCategoryFields({
   const smallRate = typeof rates?.small === 'number' && rates.small > 0 ? rates.small : 110;
   const bigRate = typeof rates?.big === 'number' && rates.big > 0 ? rates.big : 185;
 
-  const isBigSelected =
+  const hasConfirmedSmall =
+    (typeof value.smallBags === 'number' && value.smallBags > 0 && (value.bigBags === 0 || value.bigBags === '')) ||
+    value.category === 'Small' ||
+    (value.seasonalBagPrice === smallRate && typeof value.smallBags === 'number');
+  const hasConfirmedBig =
     (typeof value.bigBags === 'number' && value.bigBags > 0 && (value.smallBags === 0 || value.smallBags === '')) ||
     value.category === 'Big' ||
-    value.seasonalBagPrice === bigRate;
-  const selectedType: 'Small' | 'Big' = isBigSelected ? 'Big' : 'Small';
+    (value.seasonalBagPrice === bigRate && typeof value.bigBags === 'number');
+  const selectedType: 'Small' | 'Big' | null = hasConfirmedBig ? 'Big' : (hasConfirmedSmall ? 'Small' : null);
 
   const visibility = deriveHybridRateVisibility({
     rentType,
@@ -157,7 +161,8 @@ export function MergeBagCategoryFields({
           type="number"
           readOnly
           aria-label="Seasonal Rate (read-only)"
-          value={selectedType === 'Small' ? smallRate : bigRate}
+          placeholder={selectedType === null ? 'Select bag type' : undefined}
+          value={selectedType === 'Small' ? smallRate : (selectedType === 'Big' ? bigRate : '')}
           disabled={submitting}
         />
         {visibility.showMonthlyRate && (

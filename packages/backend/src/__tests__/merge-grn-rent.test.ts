@@ -202,6 +202,7 @@ describe('Merge GRN: Rent Carry-Forward & Obligation Preservation (Phase 4)', ()
         movementDate: new Date(),
         repackedSmallBags: 35,
         repackedBigBags: 20,
+        isRepackSelected: true,
         remarks: 'Physical re-bagging into 35 small and 20 big',
       });
 

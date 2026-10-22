@@ -86,6 +86,14 @@ export function MergeRentAssessment({
         }
 
         const isHybrid = isHybridBagCategory(confirmation?.category);
+        const hasChoice = typeof confirmation?.smallBags === 'number' && typeof confirmation?.bigBags === 'number';
+        if (!isHybrid && !hasChoice && !source.isCompositionVerified) {
+          return (
+            <div key={source.id} style={{ padding: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', textAlign: 'center', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)' }}>
+              Please select Small or Big bag type above to view the storage rent calculation breakdown.
+            </div>
+          );
+        }
         const confirmedSmall = typeof confirmation?.smallBags === 'number'
           ? confirmation.smallBags
           : (typeof movedSmall === 'number' ? movedSmall : (source.smallBags ?? sourceBags));

@@ -19,10 +19,8 @@ import { MergeStep4RepackConfirm } from './MergeStep4RepackConfirm';
 import styles from './InternalMovementModal.module.css';
 
 const MERGE_STEPS = [
-  { number: 1, label: '1. Batches & Surviving GRN' },
-  { number: 2, label: '2. Bag Type & History' },
-  { number: 3, label: '3. Rent Settlement' },
-  { number: 4, label: '4. Repack & Confirm' },
+  { number: 1, label: '1. Batches & Surviving GRN' }, { number: 2, label: '2. Bag Type & History' },
+  { number: 3, label: '3. Rent Settlement' }, { number: 4, label: '4. Repack & Confirm' },
 ];
 
 interface InternalMovementMergeTabProps {
@@ -138,12 +136,14 @@ export function InternalMovementMergeTab({
     if (targetCurrentRemaining <= 0) return setValidationError(`Target GRN '${targetGrn.grnNumber}' has zero remaining stock.`);
     if (selectedSourceIds.length === 0) return setValidationError('Please select at least one source GRN to merge.');
     const first = selectedSources[0];
-    const isBig = first ? first.bagType === 'B' || (first.bigBags ?? 0) === totalSourceBags : false;
-    const sRate = isBig ? (first?.bigBagPrice ?? 185) : (first?.smallBagPrice ?? first?.bagPrice ?? 110);
+    const isFirstVer = first ? resolveStoredCompositionVerified(first) : false;
+    const isBig = isFirstVer && (first?.bagType === 'B' || (first?.bigBags ?? 0) === totalSourceBags);
+    const isSmall = isFirstVer && (first?.bagType === 'S' || (first?.smallBags ?? 0) === totalSourceBags);
+    const sRate = isBig ? (first?.bigBagPrice ?? 185) : (isSmall ? (first?.smallBagPrice ?? 110) : '');
     setConfirmation((p) => ({
       ...p, category: 'S/B', quantity: totalSourceBags,
-      smallBags: isBig ? 0 : totalSourceBags, bigBags: isBig ? totalSourceBags : 0,
-      confirmedSmallBags: isBig ? 0 : totalSourceBags, confirmedBigBags: isBig ? totalSourceBags : 0,
+      smallBags: isSmall ? totalSourceBags : (isBig ? 0 : ''), bigBags: isBig ? totalSourceBags : (isSmall ? 0 : ''),
+      confirmedSmallBags: isSmall ? totalSourceBags : (isBig ? 0 : ''), confirmedBigBags: isBig ? totalSourceBags : (isSmall ? 0 : ''),
       seasonalBagPrice: sRate, bagPrice: sRate,
     }));
     setStep(2);
@@ -151,6 +151,9 @@ export function InternalMovementMergeTab({
 
   const handleProceedToStep3 = () => {
     setValidationError(null);
+    if (!isHybridBagCategory(confirmation.category) && typeof confirmation.smallBags !== 'number' && typeof confirmation.bigBags !== 'number') {
+      return setValidationError('Please confirm whether the moved bags are Small or Big before proceeding.');
+    }
     const confirmedQty = isHybridBagCategory(confirmation.category) ? totalSourceBags : confirmation.quantity;
     const confirmError = validateBagConfirmation({
       category: confirmation.category, quantity: confirmedQty, bagPrice: confirmation.bagPrice,
@@ -184,8 +187,8 @@ export function InternalMovementMergeTab({
     const effSmall = isRepackFilled ? Number(repackSmall) : (typeof confirmation.smallBags === 'number' ? confirmation.smallBags : undefined);
     const effBig = isRepackFilled ? Number(repackBig) : (typeof confirmation.bigBags === 'number' ? confirmation.bigBags : undefined);
     await onExecuteMerge(
-      targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0,
-      effSmall, effBig, typeof referenceWeight === 'number' && referenceWeight > 0 ? referenceWeight : undefined,
+      targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0, effSmall, effBig,
+      typeof referenceWeight === 'number' && referenceWeight > 0 ? referenceWeight : undefined,
       settlementDecision === 'SETTLE_NOW' && settleAmount > 0 ? settleAmount : undefined,
       settlementDecision === 'SETTLE_NOW' && settleAmount > 0 ? paymentMode : undefined,
       (!isSb || isRepackRequired || isRepackFilled || typeof confirmation.smallBags === 'number') ? confirmation.category : undefined,

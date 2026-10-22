@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { seasonYearForInwardDate, type Grn } from '@cold-storage/contracts';
+import { formatDisplayBagType, seasonYearForInwardDate, type Grn } from '@cold-storage/contracts';
 import { Badge, Select } from '@/components/ui';
 import { MergeSourceTable } from './MergeSourceTable';
 import { WizardStepActions } from './WizardStepActions';
@@ -74,7 +74,14 @@ export function MergeStep1Batches({
           <span className={styles.metaLabel}>Current Stock & Type</span>
           <span className={styles.metaValue} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
             <span>{targetCurrentRemaining} Bags</span>
-            <Badge variant="neutral">{isTargetHybrid ? 'Hybrid' : targetGrn.bagType}</Badge>
+            <Badge variant="neutral">
+              {formatDisplayBagType({
+                bagType: targetGrn.bagType,
+                smallBags: targetGrn.smallBags,
+                bigBags: targetGrn.bigBags,
+                isHybrid: isTargetHybrid,
+              })}
+            </Badge>
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
               {isTargetHybrid ? '(Uniform Rate)' : isTargetSbSplit ? `(${targetGrn.smallBags ?? 0}S · ${targetGrn.bigBags ?? 0}B)` : ''}
             </span>
@@ -97,7 +104,7 @@ export function MergeStep1Batches({
         </div>
         {futureSeasonCount > 0 && (
           <div className={styles.noticeBox} style={{ color: 'var(--color-warning-text)', borderColor: 'var(--color-warning)' }}>
-            {futureSeasonCount} future-season GRN{futureSeasonCount === 1 ? '' : 's'} excluded — same season or earlier only.
+            Notice: {futureSeasonCount} future-season batch{futureSeasonCount === 1 ? '' : 'es'} in this facility {futureSeasonCount === 1 ? 'is' : 'are'} hidden — only batches received in Season {targetSeason} or earlier can merge into this GRN.
           </div>
         )}
         <MergeSourceTable
