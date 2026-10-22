@@ -19,17 +19,18 @@ export interface CompositionBalance extends BagComposition {
  */
 export async function validateStockAndBalances(
   facilityId: string,
-  grn: { id: string; grnNumber: string; bagType?: string | null },
+  grn: { id: string; grnNumber: string; bagType?: string | null; isCompositionVerified?: boolean | null },
   withdrawal: BagComposition,
   session: mongoose.ClientSession,
   isHybrid?: boolean,
   requestedQuantity?: number | null,
+  hasSpecificBags?: boolean,
 ): Promise<CompositionBalance> {
   const available = await readLedgerBalance(facilityId, grn.id, session);
   const remainingSmall = available.smallBags;
   const remainingBig = available.bigBags;
   const requestedTotal =
-    isHybrid && typeof requestedQuantity === 'number' && requestedQuantity > 0
+    isHybrid && typeof requestedQuantity === 'number' && requestedQuantity > 0 && !hasSpecificBags
       ? requestedQuantity
       : withdrawal.smallBags + withdrawal.bigBags;
 
@@ -45,9 +46,18 @@ export async function validateStockAndBalances(
   }
 
   if (isHybrid) {
-    const split = allocateHybridSplit(remainingSmall, remainingBig, requestedTotal);
-    withdrawal.smallBags = split.smallBags;
-    withdrawal.bigBags = split.bigBags;
+    if (hasSpecificBags) {
+      if (withdrawal.smallBags > remainingSmall || withdrawal.bigBags > remainingBig) {
+        throw new Error(
+          `Requested ${withdrawal.smallBags} small and ${withdrawal.bigBags} big bags exceeds the ` +
+            `available balance of ${remainingSmall} small and ${remainingBig} big bags for GRN '${grn.grnNumber}'`,
+        );
+      }
+    } else {
+      const split = allocateHybridSplit(remainingSmall, remainingBig, requestedTotal);
+      withdrawal.smallBags = split.smallBags;
+      withdrawal.bigBags = split.bigBags;
+    }
     return {
       smallBags: remainingSmall,
       bigBags: remainingBig,
@@ -67,9 +77,10 @@ export async function validateStockAndBalances(
     );
   }
 
-  // When a GRN was historically split into distinct small and big pools (both > 0),
-  // guard per type so individual balances are not exceeded.
-  if (remainingSmall > 0 && remainingBig > 0) {
+  // When a lot has verified composition or distinct pools (both > 0), enforce per-type pool limits
+  const isSegregated = remainingSmall > 0 && remainingBig > 0;
+  const isVerifiedSplit = grn.bagType === 'S+B' || Boolean(grn.isCompositionVerified);
+  if (isSegregated || isVerifiedSplit) {
     if (withdrawal.smallBags > remainingSmall || withdrawal.bigBags > remainingBig) {
       throw new Error(
         `Requested ${withdrawal.smallBags} small and ${withdrawal.bigBags} big bags exceeds the ` +

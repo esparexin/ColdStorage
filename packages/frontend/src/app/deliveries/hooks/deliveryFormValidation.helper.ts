@@ -68,6 +68,13 @@ export function validateDeliveryForm(input: ValidateDeliveryFormInput): Delivery
     errors.bags = `Cannot deliver ${input.totalWithdrawingBags} bags (only ${availableTotal} available)`;
   }
 
+  if (input.smallBags < 0 || !Number.isInteger(input.smallBags)) {
+    errors.smallBags = 'Small bags must be a non-negative whole number';
+  }
+  if (input.bigBags < 0 || !Number.isInteger(input.bigBags)) {
+    errors.bigBags = 'Big bags must be a non-negative whole number';
+  }
+
   const isHybrid = Boolean(input.isHybrid);
   if (isHybrid) {
     const requiresDualRates = Boolean(input.showSeasonalRate || input.showMonthlyRate);
@@ -80,6 +87,13 @@ export function validateDeliveryForm(input: ValidateDeliveryFormInput): Delivery
       }
     } else if (typeof input.bagPrice !== 'number' || input.bagPrice <= 0) {
       errors.bagPrice = 'Please enter a valid price per bag';
+    }
+
+    if (input.smallBags > input.availableSmall) {
+      errors.smallBags = `Cannot deliver ${input.smallBags} small bags (only ${input.availableSmall} available)`;
+    }
+    if (input.bigBags > input.availableBig) {
+      errors.bigBags = `Cannot deliver ${input.bigBags} big bags (only ${input.availableBig} available)`;
     }
   } else if (!input.isCombinedPool) {
     if (input.smallBags > input.availableSmall) {

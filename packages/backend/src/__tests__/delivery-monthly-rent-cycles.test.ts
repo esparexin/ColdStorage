@@ -207,3 +207,5 @@ describe('Outward Delivery Monthly Rent Dynamic Cycle Calculation', () => {
     expect(grnDocAfterPayment?.status).toBe('CLOSED');
   });
 });
+
+

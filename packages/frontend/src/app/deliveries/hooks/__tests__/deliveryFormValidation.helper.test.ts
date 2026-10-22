@@ -192,4 +192,36 @@ describe('validateDeliveryForm', () => {
       expect(res.errors.bigBags).toBeUndefined();
     }
   });
+
+  it('rejects negative and non-integer quantities for small and big bags', () => {
+    const resNegativeSmall = validateDeliveryForm(
+      makeInput({ smallBags: -5, totalWithdrawingBags: 5 }),
+    );
+    expect(resNegativeSmall.isValid).toBe(false);
+    expect(resNegativeSmall.errors.smallBags).toBe('Small bags must be a non-negative whole number');
+
+    const resDecimalBig = validateDeliveryForm(
+      makeInput({ bigBags: 10.5, totalWithdrawingBags: 10.5 }),
+    );
+    expect(resDecimalBig.isValid).toBe(false);
+    expect(resDecimalBig.errors.bigBags).toBe('Big bags must be a non-negative whole number');
+  });
+
+  it('enforces per-side inventory limits in Hybrid mode', () => {
+    const hybridBase = { isHybrid: true, bagPrice: 15, availableSmall: 40, availableBig: 60, availableTotal: 100 };
+
+    const resOverSmall = validateDeliveryForm(makeInput({ ...hybridBase, smallBags: 45, bigBags: 20, totalWithdrawingBags: 65 }));
+    expect(resOverSmall.isValid).toBe(false);
+    expect(resOverSmall.errors.smallBags).toBe('Cannot deliver 45 small bags (only 40 available)');
+
+    const resOverBig = validateDeliveryForm(makeInput({ ...hybridBase, smallBags: 20, bigBags: 75, totalWithdrawingBags: 95 }));
+    expect(resOverBig.isValid).toBe(false);
+    expect(resOverBig.errors.bigBags).toBe('Cannot deliver 75 big bags (only 60 available)');
+
+    const resValid = validateDeliveryForm(makeInput({ ...hybridBase, smallBags: 30, bigBags: 50, totalWithdrawingBags: 80 }));
+    expect(resValid.isValid).toBe(true);
+    expect(resValid.errors.smallBags).toBeUndefined();
+    expect(resValid.errors.bigBags).toBeUndefined();
+  });
 });
+

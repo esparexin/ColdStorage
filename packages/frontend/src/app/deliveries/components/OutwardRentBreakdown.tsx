@@ -149,7 +149,7 @@ export function OutwardRentBreakdown({
         {
           id: 'single-period',
           title: isSeasonal ? 'Seasonal Storage' : isSeasonal3M ? 'Seasonal (3 Months) Storage' : 'Monthly Storage',
-          periodMeta: '',
+          periodMeta: isSeasonal || isSeasonal3M ? '' : `${rentMonths ?? 1} cycle${(rentMonths ?? 1) === 1 ? '' : 's'}`,
           details: `${detailsFormula}${isSeasonal || isSeasonal3M ? '' : ` × ${rentMonths ?? 1} mo`}`,
           amount: totalRent,
         },
@@ -202,7 +202,7 @@ export function OutwardRentBreakdown({
           <>
             <tr className={styles.totalRow}>
               <td colSpan={2} style={{ textAlign: 'left' }}>
-                {effectiveHamaliAmount > 0 ? 'Total Storage Rent' : 'Total Rent'}
+                {effectiveHamaliAmount > 0 ? 'Total Storage Rent' : 'Total Rent Payable'}
               </td>
               <td style={{ textAlign: 'right' }} className={styles.totalAmount}>
                 ₹{totalRent.toLocaleString('en-IN')}
