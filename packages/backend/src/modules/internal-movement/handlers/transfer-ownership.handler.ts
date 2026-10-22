@@ -72,7 +72,7 @@ export async function transferOwnership(
       validateTransferBagConfirmation(input, bal.total, grn.grnNumber, isVerified);
 
       const movementDate = new Date(input.movementDate);
-      const isHybrid = isHybridBagCategory(input.sourceBagCategory) || grn.bagType === 'Hybrid';
+      const isHybrid = input.sourceBagType === 'Hybrid' || grn.bagType === 'Hybrid' || isHybridBagCategory(input.sourceBagCategory);
       const transferExtensions = await rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session);
       // 1. Authoritative outward-style rent assessment for all remaining bags being transferred
       const { expectedRentCharge } = await computeExpectedDeliveryRent({
@@ -184,6 +184,7 @@ export async function transferOwnership(
             totalBagsMoved: bal.total,
             smallBagsMoved: bal.smallBags,
             bigBagsMoved: bal.bigBags,
+            sourceBagType: (input as unknown as Record<string, unknown>).sourceBagType as never ?? (isHybrid ? 'Hybrid' : (grn.bagType ?? null)),
             sourceBagCategory: (input as unknown as Record<string, unknown>).sourceBagCategory as never ?? null,
             sourceQuantity: (input as unknown as Record<string, unknown>).sourceQuantity as number | null ?? null,
             sourceBagPrice: (input as unknown as Record<string, unknown>).sourceBagPrice as number | null ?? null,

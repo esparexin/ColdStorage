@@ -1,4 +1,4 @@
-import { isHybridBagCategory, normalizeIndianVehicleNumber, type OutwardBagCategory } from '@cold-storage/contracts';
+import { isHybridBagCategory, normalizeIndianVehicleNumber, type BagType, type OutwardBagCategory } from '@cold-storage/contracts';
 
 export interface DeliveryPayloadInput {
   grnId: string;
@@ -6,6 +6,7 @@ export interface DeliveryPayloadInput {
   smallBags: number;
   bigBags: number;
   quantity?: number;
+  bagType?: BagType;
   bagCategory?: OutwardBagCategory;
   seasonalBagPrice?: number;
   monthlyBagPrice?: number;
@@ -28,7 +29,7 @@ export interface DeliveryPayloadInput {
  * builder stays a straight pass-through with optional transport fields.
  */
 export function buildDeliveryPayload(input: DeliveryPayloadInput): Record<string, unknown> {
-  const isHybrid = isHybridBagCategory(input.bagCategory);
+  const isHybrid = input.bagType === 'Hybrid' || isHybridBagCategory(input.bagCategory);
   const hasSpecificBags = input.smallBags > 0 || input.bigBags > 0;
   const totalQuantity =
     isHybrid && typeof input.quantity === 'number' && input.quantity > 0 && !hasSpecificBags
@@ -42,9 +43,9 @@ export function buildDeliveryPayload(input: DeliveryPayloadInput): Record<string
     bigBags: isHybrid && !hasSpecificBags ? 0 : input.bigBags,
   };
 
+  payload.bagType = input.bagType ?? (isHybrid ? 'Hybrid' : 'S/B');
   if (input.bagCategory) {
     payload.bagCategory = input.bagCategory;
-    payload.bagType = isHybrid ? 'Hybrid' : 'S/B';
   }
   if (isHybrid) {
     if (typeof input.seasonalBagPrice === 'number' && input.seasonalBagPrice > 0) {

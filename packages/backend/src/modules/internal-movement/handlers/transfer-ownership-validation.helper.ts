@@ -12,15 +12,15 @@ export function validateTransferBagConfirmation(
   isVerified: boolean,
 ): void {
   const raw = input as unknown as Record<string, unknown>;
-  const category = (raw.sourceBagCategory as string | null) ?? null;
+  const category = (raw.sourceBagType as string | null) ?? (raw.sourceBagCategory as string | null) ?? null;
   const quantity = (raw.sourceQuantity as number | null) ?? null;
   const cSmall = (raw.confirmedSmallBags as number | null) ?? null;
   const cBig = (raw.confirmedBigBags as number | null) ?? null;
 
-  if (category === 'Small' || category === 'Big') {
+  if (category === 'Small' || category === 'Big' || category === 'S' || category === 'B') {
     throw new Error('Small-only and Big-only confirmation uses the Small & Big split (enter 0 for the unused side)');
   }
-  const hasHybrid = category != null && isHybridBagCategory(category);
+  const hasHybrid = category != null && (category === 'Hybrid' || isHybridBagCategory(category));
   const hasSplit = cSmall != null || cBig != null;
 
   if (!isVerified) {

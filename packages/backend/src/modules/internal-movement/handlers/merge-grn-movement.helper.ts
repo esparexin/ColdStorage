@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import type { MergeGrnInput, BagType } from '@cold-storage/contracts';
+import { isHybridBagCategory, type MergeGrnInput, type BagType } from '@cold-storage/contracts';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import type { RentBalance } from '../../common/rent-balance.js';
@@ -119,6 +119,7 @@ export async function createMergeMovementRecord(
         totalBagsMoved: totalMovedBags,
         smallBagsMoved: totalMovedSmall,
         bigBagsMoved: totalMovedBig,
+        sourceBagType: input.sourceBagType ?? (input.sourceBagCategory && isHybridBagCategory(input.sourceBagCategory) ? 'Hybrid' : null),
         sourceBagCategory: input.sourceBagCategory ?? null,
         sourceQuantity: input.sourceQuantity ?? null,
         sourceBagPrice: input.sourceBagPrice ?? null,

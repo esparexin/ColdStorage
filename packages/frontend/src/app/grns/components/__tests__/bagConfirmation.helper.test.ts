@@ -92,5 +92,23 @@ describe('bagConfirmation.helper (outward SSOT reuse)', () => {
     expect(validateBagConfirmation({ ...base, smallBags: 10, bigBags: 5 })).toContain('cannot exceed Total Bags');
     expect(validateBagConfirmation({ ...base, quantity: 15 })).toContain('cannot exceed Total Bags');
   });
+
+  it('supports canonical bagType: "Hybrid" and "S/B" directly without requiring bagCategory', () => {
+    expect(validateBagConfirmation({
+      bagType: 'Hybrid', quantity: 50, bagPrice: 10, seasonalBagPrice: '', monthlyBagPrice: '',
+      repackSmall: '', repackBig: '', totalMovedBags: 50, isRepackRequired: false,
+    })).toBeNull();
+
+    expect(validateBagConfirmation({
+      bagType: 'S', quantity: '', bagPrice: '', seasonalBagPrice: '', monthlyBagPrice: '',
+      repackSmall: '', repackBig: '', totalMovedBags: 50, isRepackRequired: false,
+    })).toContain('Small & Big split');
+
+    const preview = previewConfirmedSplit({
+      bagType: 'Hybrid', rawSmall: 20, rawBig: 30, total: 50,
+      defaultSmall: 20, defaultBig: 30, repackSmall: '', repackBig: '', isRepackFilled: false,
+    });
+    expect(preview).toEqual({ small: 20, big: 30 });
+  });
 });
 

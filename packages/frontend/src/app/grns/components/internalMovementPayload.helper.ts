@@ -11,7 +11,7 @@
  * without importing React/CSS.
  */
 
-import type { OutwardBagCategory, PaymentMode, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
+import type { BagType, OutwardBagCategory, PaymentMode, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
 
 export interface MergePayload {
   targetGrnId: string;
@@ -23,8 +23,9 @@ export interface MergePayload {
   repackedSmallBags?: number;
   repackedBigBags?: number;
   repackedBagCount?: number;
-  // Source bag-category confirmation (outward vocabulary, informational for rent).
-  sourceBagCategory?: OutwardBagCategory;
+  // Source bag-type confirmation (outward vocabulary, informational for rent).
+  sourceBagType?: BagType;
+  sourceBagCategory?: OutwardBagCategory | BagType;
   sourceQuantity?: number;
   sourceBagPrice?: number;
   sourceSeasonalBagPrice?: number;
@@ -43,7 +44,8 @@ export interface TransferPayload {
   settlementDetails?: TransferSettlementDetails;
   confirmedSmallBags?: number;
   confirmedBigBags?: number;
-  sourceBagCategory?: OutwardBagCategory;
+  sourceBagType?: BagType;
+  sourceBagCategory?: OutwardBagCategory | BagType;
   sourceQuantity?: number;
   sourceBagPrice?: number;
   sourceSeasonalBagPrice?: number;
@@ -67,7 +69,7 @@ export function buildMergePayload(
   referenceWeight?: number,
   sourcePaymentAmount?: number,
   sourcePaymentMode?: PaymentMode,
-  sourceBagCategory?: OutwardBagCategory,
+  sourceBagCategory?: OutwardBagCategory | BagType,
   sourceQuantity?: number,
   sourceBagPrice?: number,
   sourceSeasonalBagPrice?: number,
@@ -107,7 +109,7 @@ export function buildTransferPayload(
   confirmation?: {
     confirmedSmallBags?: number;
     confirmedBigBags?: number;
-    sourceBagCategory?: OutwardBagCategory;
+    sourceBagCategory?: OutwardBagCategory | BagType;
     sourceQuantity?: number;
     sourceBagPrice?: number;
     sourceSeasonalBagPrice?: number;

@@ -3,6 +3,7 @@ import {
   HYBRID_RATE_REQUIRED_MESSAGE,
   isHybridBagCategory,
   validateHybridQuantityInput,
+  type BagType,
   type OutwardBagCategory,
 } from '@cold-storage/contracts';
 
@@ -11,7 +12,8 @@ export interface TransferConfirmationParams {
   remainingBags: number;
   confirmedSmallBags: number | '';
   confirmedBigBags: number | '';
-  sourceBagCategory?: OutwardBagCategory | '';
+  sourceBagType?: BagType;
+  sourceBagCategory?: OutwardBagCategory | BagType | '';
   sourceQuantity?: number | '';
   sourceBagPrice?: number | '';
   sourceSeasonalBagPrice?: number | '';
@@ -63,7 +65,8 @@ export function validateTransferConfirmation(
     return 'Cannot transfer ownership: No stock remaining in this GRN.';
   }
 
-  const isHybrid = sourceBagCategory ? isHybridBagCategory(sourceBagCategory) : false;
+  const effectiveBagType = params.sourceBagType || sourceBagCategory;
+  const isHybrid = effectiveBagType ? (effectiveBagType === 'Hybrid' || isHybridBagCategory(effectiveBagType)) : false;
 
   if (isHybrid) {
     const qty = sourceQuantity !== undefined && sourceQuantity !== null ? sourceQuantity : remainingBags;

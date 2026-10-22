@@ -19,6 +19,10 @@ export { isHybridBagCategory };
 export const deliveryStatusSchema = z.enum(['ISSUED', 'REVERSED']);
 export type DeliveryStatus = z.infer<typeof deliveryStatusSchema>;
 
+/**
+ * @deprecated Use `bagTypeSchema` ('S', 'B', 'S+B', 'S/B', 'Hybrid') directly.
+ * Preserved for backward compatibility with legacy API callers and historical records.
+ */
 export const outwardBagCategorySchema = z.enum([
   'Hybrid',
   'S/B',

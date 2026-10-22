@@ -1,5 +1,5 @@
 import mongoose, { Schema, type Document, type Model } from 'mongoose';
-import type { InternalMovementType, OutwardBagCategory } from '@cold-storage/contracts';
+import type { BagType, InternalMovementType, OutwardBagCategory } from '@cold-storage/contracts';
 
 export interface InternalMovementDoc extends Document {
   id: string;
@@ -13,7 +13,8 @@ export interface InternalMovementDoc extends Document {
   totalBagsMoved: number;
   smallBagsMoved: number;
   bigBagsMoved: number;
-  // Informational bag-category confirmation echo (challan-column mirror).
+  // Informational bag-type / bag-category confirmation echo (challan-column mirror).
+  sourceBagType?: BagType | null;
   sourceBagCategory?: OutwardBagCategory | null;
   sourceQuantity?: number | null;
   sourceBagPrice?: number | null;
@@ -64,6 +65,7 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
     smallBagsMoved: { type: Number, default: 0, min: 0 },
     bigBagsMoved: { type: Number, default: 0, min: 0 },
     // Informational confirmation echo: no defaults, never billed.
+    sourceBagType: { type: String, enum: ['S', 'B', 'S+B', 'S/B', 'Hybrid'], default: null },
     sourceBagCategory: { type: String },
     sourceQuantity: { type: Number, min: 0 },
     sourceBagPrice: { type: Number, min: 0 },

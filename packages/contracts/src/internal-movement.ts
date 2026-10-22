@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { bagTypeSchema } from './bags.js';
 import { paymentModeSchema } from './rent.js';
 import { outwardBagCategorySchema } from './delivery.js';
 import { bagPriceSchema } from './pricing.js';
@@ -16,9 +17,9 @@ export const mergeGrnInputSchema = z.object({
   repackedSmallBags: z.number().int().min(0).nullish(),
   repackedBigBags: z.number().int().min(0).nullish(),
   repackedBagCount: z.number().int().min(0).max(100000).nullish(),
-  // Source bag-category confirmation: reuses the outward vocabulary
-  // (Small, Big, Small & Big, Hybrid/Mixed). Informational for rent — the
-  // backend recomputes obligations from source rules and never bills these.
+  // Source bag type / category confirmation: canonical bagType ('S', 'B', 'S+B', 'S/B', 'Hybrid')
+  // or legacy category. Informational for rent — backend recomputes obligations.
+  sourceBagType: bagTypeSchema.nullish(),
   sourceBagCategory: outwardBagCategorySchema.nullish(),
   sourceQuantity: z.number().int().min(0).max(100000).nullish(),
   sourceBagPrice: bagPriceSchema.nullish(),
@@ -52,6 +53,7 @@ export const transferOwnershipInputSchema = z.object({
   /** Explicit confirmation required when stored composition is unverified. */
   confirmedSmallBags: z.number().int().min(0).max(100000).nullish(),
   confirmedBigBags: z.number().int().min(0).max(100000).nullish(),
+  sourceBagType: bagTypeSchema.nullish(),
   sourceBagCategory: outwardBagCategorySchema.nullish(),
   sourceQuantity: z.number().int().min(0).max(100000).nullish(),
   sourceBagPrice: bagPriceSchema.nullish(),
@@ -74,6 +76,7 @@ export const internalMovementRecordSchema = z.object({
   bigBagsMoved: z.number().min(0).default(0),
   // Informational confirmation echo (challan-column mirror): never billed,
   // read-optional so pre-change documents still parse.
+  sourceBagType: bagTypeSchema.nullish(),
   sourceBagCategory: outwardBagCategorySchema.nullish(),
   sourceQuantity: z.number().int().min(0).nullish(),
   sourceBagPrice: bagPriceSchema.nullish(),

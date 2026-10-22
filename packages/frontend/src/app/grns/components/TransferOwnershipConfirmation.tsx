@@ -6,6 +6,7 @@ import { TransferBagConfirmationFields } from './TransferBagConfirmationFields';
 import {
   deriveHybridRateVisibility,
   isHybridBagCategory,
+  type BagType,
   type OutwardBagCategory,
   type RentType,
 } from '@cold-storage/contracts';
@@ -18,8 +19,10 @@ interface Props {
   confirmedBigBags: number | '';
   onSmallChange: (v: number | '') => void;
   onBigChange: (v: number | '') => void;
-  sourceBagCategory: OutwardBagCategory;
-  onCategoryChange: (v: OutwardBagCategory) => void;
+  sourceBagCategory?: OutwardBagCategory | BagType;
+  sourceBagType?: BagType;
+  onCategoryChange?: (v: OutwardBagCategory) => void;
+  onBagTypeChange?: (v: BagType) => void;
   sourceBagPrice: number | '';
   onPriceChange: (v: number | '') => void;
   sourceSeasonalBagPrice?: number | '';
@@ -34,7 +37,8 @@ interface Props {
 
 /** Ownership confirmation: Total Bags (read-only), Bag Category (Auto / S/B / Hybrid rates) */
 export function TransferOwnershipConfirmation(p: Props) {
-  const isHybrid = isHybridBagCategory(p.sourceBagCategory);
+  const currentBagType = p.sourceBagType ?? p.sourceBagCategory;
+  const isHybrid = currentBagType === 'Hybrid' || isHybridBagCategory(currentBagType);
   const visibility = deriveHybridRateVisibility({
     rentType: p.rentType,
     inwardDate: p.inwardDate,
@@ -62,7 +66,11 @@ export function TransferOwnershipConfirmation(p: Props) {
         id="transfer-bag-type-select"
         label="Bag Type"
         value={isHybrid ? 'Hybrid' : 'S/B'}
-        onChange={(e) => p.onCategoryChange(e.target.value as OutwardBagCategory)}
+        onChange={(e) => {
+          const val = e.target.value as BagType;
+          if (p.onBagTypeChange) p.onBagTypeChange(val);
+          if (p.onCategoryChange) p.onCategoryChange(val as OutwardBagCategory);
+        }}
         disabled={p.disabled}
       >
         <option value="S/B">Small &amp; Big</option>

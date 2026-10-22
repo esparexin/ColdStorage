@@ -36,7 +36,7 @@ export interface ResolveSourceRentParams {
   facilityId: string; sourceGrn: MergeSourceGrn; targetGrnDate: Date; movementDate: Date;
   sourcePaymentAmount?: number | null; sourcePaymentMode?: PaymentMode | null;
   userId: string; session: mongoose.ClientSession;
-  sourceBagCategory?: string | null; sourceQuantity?: number | null;
+  sourceBagType?: BagType | null; sourceBagCategory?: string | null; sourceQuantity?: number | null;
   sourceBagPrice?: number | null; sourceSeasonalBagPrice?: number | null; sourceMonthlyBagPrice?: number | null;
   confirmedSmallBags?: number | null; confirmedBigBags?: number | null;
 }
@@ -50,7 +50,7 @@ export async function resolveSourceRentObligation(
   const targetSeason = seasonYearForInwardDate(targetGrnDate);
   const sourceSeason = seasonYearForInwardDate(sourceGrn.date);
   const isSameSeason = sourceSeason === targetSeason;
-  const isHybrid = isHybridBagCategory(params.sourceBagCategory);
+  const isHybrid = params.sourceBagType === 'Hybrid' || isHybridBagCategory(params.sourceBagCategory);
 
   let effectiveRentAmount = sourceGrn.rentAmount ?? 0;
   const [commodity, extensions] = await Promise.all([

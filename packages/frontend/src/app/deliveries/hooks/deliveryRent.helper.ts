@@ -5,13 +5,15 @@ import {
   calculateRentAmount,
   isHybridBagCategory,
   resolveOutwardRates,
+  type BagType,
   type OutwardBagCategory,
   type RentType,
 } from '@cold-storage/contracts';
 
 export interface ComputeOutwardRentParams {
   rentType: RentType;
-  bagCategory: OutwardBagCategory;
+  bagType?: BagType;
+  bagCategory?: OutwardBagCategory;
   smallBags?: number;
   bigBags?: number;
   quantity?: number;
@@ -49,9 +51,9 @@ export function getOutwardEffectiveRates(
 }
 
 export function computeOutwardRentCharge(params: ComputeOutwardRentParams): number {
-  const { rentType, bagCategory, smallBags = 0, bigBags = 0 } = params;
+  const { rentType, bagType, bagCategory, smallBags = 0, bigBags = 0 } = params;
 
-  const isHybrid = isHybridBagCategory(bagCategory);
+  const isHybrid = bagType === 'Hybrid' || isHybridBagCategory(bagCategory);
 
   if (isHybrid) {
     const qty = params.quantity ?? (smallBags + bigBags);
@@ -186,7 +188,7 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
 
 export function formatOutwardRentFormula(
   rentType: RentType,
-  category: OutwardBagCategory,
+  category: OutwardBagCategory | BagType,
   smallQty: number,
   bigQty: number,
   smallRate: number,
@@ -198,14 +200,14 @@ export function formatOutwardRentFormula(
     : rentType === 'Seasonal_3M'
       ? '3-mo season total'
       : `${months ?? 1} mo`;
-  if (isHybridBagCategory(category)) {
+  if (category === 'Hybrid' || isHybridBagCategory(category)) {
     const totalQty = smallQty + bigQty;
     return `${totalQty} Hybrid bags × ₹${smallRate}/bag × ${term}`;
   }
-  if (category === 'Small') {
+  if (category === 'Small' || category === 'S') {
     return `${smallQty} bags × ₹${smallRate}/bag × ${term}`;
   }
-  if (category === 'Big') {
+  if (category === 'Big' || category === 'B') {
     return `${bigQty} bags × ₹${bigRate}/bag × ${term}`;
   }
   return `(${smallQty} Small × ₹${smallRate} + ${bigQty} Big × ₹${bigRate}) × ${term}`;
