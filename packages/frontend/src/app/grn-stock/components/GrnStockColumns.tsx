@@ -1,24 +1,28 @@
 import React from 'react';
-import { Eye } from 'lucide-react';
+import { Eye, Trash2 } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { Badge, Button } from '@/components/ui';
 import { formatDisplayDate } from '@/lib/date-format';
 
-export type { MergeInInfo } from '../utils/grnStockMovementColumn.helper';
 import {
   type MergeInInfo,
   resolveMovementDate,
   resolveMovementType,
 } from '../utils/grnStockMovementColumn.helper';
+export type { MergeInInfo };
 
 interface CreateGrnStockColumnsParams {
   onOpenMovement: (grn: Grn) => void;
+  onMerge?: (grn: Grn) => void;
+  onDelete?: (grn: Grn) => void;
   mergeInMap?: Map<string, MergeInInfo>;
 }
 
 export function createGrnStockColumns({
   onOpenMovement,
+  onMerge,
+  onDelete,
   mergeInMap,
 }: CreateGrnStockColumnsParams): DataTableColumn<Grn>[] {
   return [
@@ -198,19 +202,41 @@ export function createGrnStockColumns({
       header: 'Actions',
       align: 'right',
       render: (row) => (
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenMovement(row);
-          }}
-          title={`View GRN Stock Movement for ${row.grnNumber}`}
-          aria-label={`View GRN Stock Movement for ${row.grnNumber}`}
-          leftIcon={<Eye size={14} aria-hidden="true" />}
-        >
-          View
-        </Button>
+        <div style={{ display: 'flex', gap: 'var(--space-1)', justifyContent: 'flex-end' }}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={(e) => { e.stopPropagation(); onOpenMovement(row); }}
+            title={`View GRN Stock Movement for ${row.grnNumber}`}
+            aria-label={`View GRN Stock Movement for ${row.grnNumber}`}
+            leftIcon={<Eye size={14} aria-hidden="true" />}
+          >
+            View
+          </Button>
+          {row.status === 'OPEN' && onMerge && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); onMerge(row); }}
+              title={`Merge GRNs into ${row.grnNumber}`}
+              aria-label={`Merge GRNs into ${row.grnNumber}`}
+            >
+              Merge
+            </Button>
+          )}
+          {row.status === 'OPEN' && onDelete && (
+            <Button
+              variant="dangerOutline"
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); onDelete(row); }}
+              title={`Delete GRN ${row.grnNumber} (testing only)`}
+              aria-label={`Delete GRN ${row.grnNumber} (testing only)`}
+              leftIcon={<Trash2 size={14} aria-hidden="true" />}
+            >
+              Delete
+            </Button>
+          )}
+        </div>
       ),
     },
   ];

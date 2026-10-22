@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import type { Grn, GrnMovementHistory, GrnStatus } from '@cold-storage/contracts';
+import React, { useMemo, useState } from 'react';
+import type { Grn, GrnMovementHistory } from '@cold-storage/contracts';
 import { FilterToolbar } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { DataTable } from '@/components/ui/DataTable';
@@ -11,8 +11,11 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { requestWithAuth } from '@/lib/api-client';
 import { useFacility } from '@/context/FacilityContext';
 import { GrnStockMovementModal } from './components/GrnStockMovementModal';
+import { InternalMovementModal } from '@/app/grns/components/InternalMovementModal';
+import { GrnDeleteConfirmDialog } from './components/GrnDeleteConfirmDialog';
 import { createGrnStockColumns } from './components/GrnStockColumns';
 import { GrnStockStatusTabs } from './components/GrnStockStatusTabs';
+import { useGrnStock } from './hooks/useGrnStock';
 import styles from './page.module.css';
 
 export default function GrnStockPage() {
@@ -20,86 +23,38 @@ export default function GrnStockPage() {
   const { hasPermission } = usePermissions();
   const canViewGrnStock = hasPermission('grn:view');
 
-  const [grns, setGrns] = useState<Grn[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'' | GrnStatus>('');
-  const [page, setPage] = useState(1);
-  const pageSize = 20;
+  const {
+    grns,
+    customers,
+    commodities,
+    loading,
+    error,
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    setStatusFilter,
+    page,
+    setPage,
+    pageSize,
+    fetchGrns,
+    filteredGrns,
+    tabCounts,
+    totalPages,
+    pagedGrns,
+    mergeInMap,
+  } = useGrnStock({ selectedFacilityId, canViewGrnStock });
 
   const [selectedGrn, setSelectedGrn] = useState<Grn | null>(null);
   const [history, setHistory] = useState<GrnMovementHistory | null>(null);
   const [loadingLedger, setLoadingLedger] = useState(false);
   const [ledgerError, setLedgerError] = useState<string | null>(null);
 
-  const fetchGrns = async () => {
-    if (!canViewGrnStock) {
-      setGrns([]);
-      return;
-    }
-    if (!selectedFacilityId) {
-      setGrns([]);
-      return;
-    }
+  const [mergeTargetGrn, setMergeTargetGrn] = useState<Grn | null>(null);
+  const [mergeOpen, setMergeOpen] = useState(false);
 
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await requestWithAuth(
-        `/api/facilities/${encodeURIComponent(selectedFacilityId)}/grns?limit=100`,
-      );
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to load facility GRNs');
-      }
-      const data = (await res.json()) as { items?: Grn[] };
-      setGrns(data.items || []);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error loading GRNs');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void fetchGrns();
-    setPage(1);
-    setSelectedGrn(null);
-    setHistory(null);
-  }, [selectedFacilityId, canViewGrnStock]);
-
-  const filteredGrns = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    return grns.filter((g) => {
-      if (statusFilter && g.status !== statusFilter) return false;
-      if (!term) return true;
-      return (
-        g.grnNumber.toLowerCase().includes(term) ||
-        g.customerName.toLowerCase().includes(term) ||
-        g.commodityName.toLowerCase().includes(term) ||
-        g.chamber.toLowerCase().includes(term) ||
-        (Boolean(g.gpNumber) && g.gpNumber!.toLowerCase().includes(term))
-      );
-    });
-  }, [grns, searchTerm, statusFilter]);
-
-  const tabCounts = useMemo(() => {
-    let open = 0;
-    let closed = 0;
-    for (const g of grns) {
-      if (g.status === 'CLOSED') closed++;
-      else open++;
-    }
-    return { all: grns.length, open, closed };
-  }, [grns]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredGrns.length / pageSize));
-  const pagedGrns = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredGrns.slice(start, start + pageSize);
-  }, [filteredGrns, page, pageSize]);
+  const [deleteTargetGrn, setDeleteTargetGrn] = useState<Grn | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleOpenMovement = async (grn: Grn) => {
     if (!selectedFacilityId) return;
@@ -122,36 +77,55 @@ export default function GrnStockPage() {
     }
   };
 
+  const handleOpenMerge = (grn: Grn) => {
+    setMergeTargetGrn(grn);
+    setMergeOpen(true);
+  };
+
+  const handleOpenDelete = (grn: Grn) => {
+    setDeleteTargetGrn(grn);
+    setDeleteOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedFacilityId || !deleteTargetGrn) return;
+    setDeleteError(null);
+    try {
+      const res = await requestWithAuth(
+        `/api/facilities/${encodeURIComponent(selectedFacilityId)}/grns/${encodeURIComponent(deleteTargetGrn.id)}`,
+        {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            grnId: deleteTargetGrn.id,
+            confirmationToken: deleteTargetGrn.grnNumber,
+            reason: `Testing-only deletion of GRN ${deleteTargetGrn.grnNumber}`,
+          }),
+        },
+      );
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'GRN deletion failed');
+      }
+      setDeleteOpen(false);
+      setDeleteTargetGrn(null);
+      void fetchGrns();
+    } catch (err: unknown) {
+      setDeleteError(err instanceof Error ? err.message : 'GRN deletion failed');
+    }
+  };
+
   const currentFacilityName =
     availableFacilities.find((f) => f.id === selectedFacilityId)?.name || 'Cold Storage Facility';
 
-  const mergeInMap = useMemo(() => {
-    const map = new Map<string, { sourceNumbers: string[]; date: string | Date | null }>();
-    for (const g of grns) {
-      const targetNumber = g.mergedIntoGrnNumber;
-      const targetId = g.mergedIntoGrnId;
-      if (!targetNumber && !targetId) continue;
-
-      const match = g.remarks?.match(/on\s+(\d{4}-\d{2}-\d{2})/);
-      const dateVal = match?.[1] ?? g.updatedAt ?? null;
-
-      const keys = [targetNumber, targetId].filter(Boolean) as string[];
-      for (const k of keys) {
-        const existing = map.get(k) || { sourceNumbers: [], date: dateVal };
-        if (!existing.sourceNumbers.includes(g.grnNumber)) {
-          existing.sourceNumbers.push(g.grnNumber);
-        }
-        if (!existing.date && dateVal) {
-          existing.date = dateVal;
-        }
-        map.set(k, existing);
-      }
-    }
-    return map;
-  }, [grns]);
-
   const columns = useMemo(
-    () => createGrnStockColumns({ onOpenMovement: handleOpenMovement, mergeInMap }),
+    () =>
+      createGrnStockColumns({
+        onOpenMovement: handleOpenMovement,
+        onMerge: handleOpenMerge,
+        onDelete: handleOpenDelete,
+        mergeInMap,
+      }),
     [selectedFacilityId, mergeInMap],
   );
 
@@ -243,6 +217,30 @@ export default function GrnStockPage() {
           onRetry={() => void handleOpenMovement(selectedGrn)}
         />
       )}
+
+      {mergeOpen && mergeTargetGrn && selectedFacilityId && (
+        <InternalMovementModal
+          grn={mergeTargetGrn}
+          facilityId={selectedFacilityId}
+          allGrns={grns}
+          customers={customers}
+          commodities={commodities}
+          onClose={() => { setMergeOpen(false); setMergeTargetGrn(null); }}
+          onSuccess={() => {
+            setMergeOpen(false);
+            setMergeTargetGrn(null);
+            void fetchGrns();
+          }}
+        />
+      )}
+
+      <GrnDeleteConfirmDialog
+        isOpen={deleteOpen}
+        targetGrn={deleteTargetGrn}
+        deleteError={deleteError}
+        onConfirm={() => void handleConfirmDelete()}
+        onCancel={() => setDeleteOpen(false)}
+      />
     </div>
   );
 }
