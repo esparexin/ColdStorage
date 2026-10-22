@@ -85,8 +85,7 @@ export function DeliveryBagCompositionFields({
   const smallQty = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigQty = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
   const hybridQty = typeof withdrawal.quantity === 'number' ? withdrawal.quantity : 0;
-  const currentTotalWithdrawn =
-    isHybrid && hybridQty > 0 && smallQty === 0 && bigQty === 0 ? hybridQty : smallQty + bigQty;
+  const currentTotalWithdrawn = isHybrid ? hybridQty : smallQty + bigQty;
   const remainingStock = Math.max(0, availableTotal - currentTotalWithdrawn);
 
   const maxAllowedSmall = isCombinedPool
@@ -102,7 +101,6 @@ export function DeliveryBagCompositionFields({
     const val = e.target.value.trim();
     if (!val) {
       onSmallBagsChange('');
-      if (isHybrid) onQuantityChange?.(bigQty > 0 ? bigQty : '');
       return;
     }
     const parsed = parseInt(val, 10);
@@ -114,7 +112,6 @@ export function DeliveryBagCompositionFields({
         isCombinedPool ? undefined : summary.availableSmallBags,
       );
       onSmallBagsChange(clamped);
-      if (isHybrid) onQuantityChange?.(clamped + bigQty);
     }
   };
 
@@ -122,7 +119,6 @@ export function DeliveryBagCompositionFields({
     const val = e.target.value.trim();
     if (!val) {
       onBigBagsChange('');
-      if (isHybrid) onQuantityChange?.(smallQty > 0 ? smallQty : '');
       return;
     }
     const parsed = parseInt(val, 10);
@@ -134,7 +130,6 @@ export function DeliveryBagCompositionFields({
         isCombinedPool ? undefined : summary.availableBigBags,
       );
       onBigBagsChange(clamped);
-      if (isHybrid) onQuantityChange?.(smallQty + clamped);
     }
   };
 
@@ -163,17 +158,9 @@ export function DeliveryBagCompositionFields({
     <>
       {isHybrid ? (
         <DeliveryHybridFields
-          summary={summary}
           availableTotal={availableTotal}
-          maxAllowedSmall={maxAllowedSmall}
-          maxAllowedBig={maxAllowedBig}
-          isCombinedPool={isCombinedPool}
           withdrawal={withdrawal}
           bagsError={bagsError}
-          smallError={smallError}
-          bigError={bigError}
-          onSmallChange={handleSmallChange}
-          onBigChange={handleBigChange}
           onQuantityChange={handleQuantityChange}
           showSeasonalRate={showSeasonalRate}
           showMonthlyRate={showMonthlyRate}

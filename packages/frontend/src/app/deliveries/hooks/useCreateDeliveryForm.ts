@@ -131,7 +131,7 @@ export function useCreateDeliveryForm(
   const smallBags = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigBags = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
   const hybridQty = typeof withdrawal.quantity === 'number' ? withdrawal.quantity : 0;
-  const totalWithdrawingBags = isHybrid && hybridQty > 0 && smallBags === 0 && bigBags === 0 ? hybridQty : smallBags + bigBags;
+  const totalWithdrawingBags = isHybrid ? hybridQty : smallBags + bigBags;
   const selectedGrn = availableGrns.find((g) => g.id === createGrnId) || null;
   const isLoanHoldActive = Boolean(selectedGrn?.loanStatus === 'TAKEN');
   const deliveryDateVal = createDate || new Date().toISOString().split('T')[0];
@@ -145,8 +145,8 @@ export function useCreateDeliveryForm(
   });
 
   const outwardRent = computeOutwardRentCharge({
-    rentType: selectedGrn?.rentType ?? 'Seasonal', bagCategory, smallBags, bigBags,
-    quantity: isHybrid && hybridQty > 0 && smallBags === 0 && bigBags === 0 ? hybridQty : undefined,
+    rentType: selectedGrn?.rentType ?? 'Seasonal', bagCategory,
+    smallBags: isHybrid ? 0 : smallBags, bigBags: isHybrid ? 0 : bigBags, quantity: isHybrid ? hybridQty : undefined,
     manualBagPrice: isHybrid && typeof manualBagPrice === 'number' ? manualBagPrice : undefined,
     seasonalBagPrice: isHybrid && typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
     monthlyBagPrice: isHybrid && typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,
@@ -178,7 +178,8 @@ export function useCreateDeliveryForm(
     const isCombinedPool = Boolean(isUnsegregatedSb && !isSeg);
     const validationStock = resolveValidationStock(grnSummary, withdrawal);
     const validation = validateDeliveryForm({
-      createGrnId, createDate, smallBags, bigBags, totalWithdrawingBags,
+      createGrnId, createDate, totalWithdrawingBags,
+      smallBags: isHybrid ? 0 : smallBags, bigBags: isHybrid ? 0 : bigBags,
       availableSmall: isCombinedPool ? totalAvail : (grnSummary?.availableSmallBags ?? validationStock.availableSmall),
       availableBig: isCombinedPool ? totalAvail : (grnSummary?.availableBigBags ?? validationStock.availableBig),
       availableTotal: totalAvail, isCombinedPool, isHybrid, bagPrice: manualBagPrice,
@@ -197,8 +198,8 @@ export function useCreateDeliveryForm(
 
     try {
       const payload = buildDeliveryPayload({
-        grnId: createGrnId, createDate, smallBags, bigBags,
-        quantity: isHybrid && hybridQty > 0 && smallBags === 0 && bigBags === 0 ? hybridQty : undefined,
+        grnId: createGrnId, createDate,
+        smallBags: isHybrid ? 0 : smallBags, bigBags: isHybrid ? 0 : bigBags, quantity: isHybrid ? hybridQty : undefined,
         bagCategory, bagPrice: isHybrid && typeof manualBagPrice === 'number' ? manualBagPrice : undefined,
         seasonalBagPrice: isHybrid && typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
         monthlyBagPrice: isHybrid && typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,

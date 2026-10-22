@@ -82,8 +82,8 @@ export function SelectedGrnCard({
         {onBagCategoryChange && (
           <div className={styles.detailItem}>
             <Select
-              id="outward-bag-category-select"
-              label="Outward Bag Type"
+              id="delivery-bag-type-select"
+              label="Bag Type"
               value={isHybridBagCategory(bagCategory) ? 'Hybrid' : 'S/B'}
               onChange={(e) => onBagCategoryChange(e.target.value as OutwardBagCategory)}
             >
