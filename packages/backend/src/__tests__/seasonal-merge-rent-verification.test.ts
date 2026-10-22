@@ -137,43 +137,35 @@ describe('Seasonal Merge, Rent Verification & Inline Settlement Tests', () => {
     expect(updatedSource?.remarks).toContain('Pending ₹5000');
   });
 
-  it('rejects invalid small/big counts for 300-bag lot, accepts reconciled total, and rejects duplicate retry', async () => {
+  it('rejects negative repacked bag counts, accepts decoupled physical repacking totals, and rejects duplicate retry', async () => {
     const targetId = await seedGrn({
       facilityId, customerId, customerName: 'Farmer Rama', commodityId, commodityName: 'Mirchi',
-      chamber: '1A', bags: 100, rentType: 'Seasonal', rentAmount: 10000, grnNumber: 'GRN-26-27-0301',
+      chamber: '1A', bags: 100, bagType: 'S+B', smallBags: 50, bigBags: 50, rentType: 'Seasonal', rentAmount: 10000, grnNumber: 'GRN-26-27-0301',
     });
     const sourceId = await seedGrn({
       facilityId, customerId, customerName: 'Farmer Rama', commodityId, commodityName: 'Mirchi',
-      chamber: '1B', bags: 300, rentType: 'Seasonal', rentAmount: 30000, grnNumber: 'GRN-26-27-0302',
+      chamber: '1B', bags: 300, bagType: 'S+B', smallBags: 150, bigBags: 150, rentType: 'Seasonal', rentAmount: 30000, grnNumber: 'GRN-26-27-0302',
     });
     // Configure differential rates on target
     await GrnModel.updateOne({ id: targetId }, { $set: { smallBagPrice: 150, bigBagPrice: 210 } });
 
-    // 1. Rejects when counts exceed total (350 > 300)
-    const resOver = await request(app)
+    // 1. Rejects negative bag counts
+    const resNegative = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/merge`)
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ targetGrnId: targetId, sourceGrnIds: [sourceId], remarks: 'Reconcile test', repackedSmallBags: 350, repackedBigBags: 0 });
-    expect(resOver.status).toBe(400);
-    expect(resOver.body.error).toContain('can exceed total moved stock');
+      .send({ targetGrnId: targetId, sourceGrnIds: [sourceId], remarks: 'Negative test', repackedSmallBags: -5, repackedBigBags: 300 });
+    expect(resNegative.status).toBe(400);
+    expect(resNegative.body.error).toContain('Validation failed');
 
-    // 2. Rejects when counts do not sum to total (180 + 150 = 330 !== 300)
-    const resMismatch = await request(app)
-      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ targetGrnId: targetId, sourceGrnIds: [sourceId], remarks: 'Reconcile test', repackedSmallBags: 180, repackedBigBags: 150 });
-    expect(resMismatch.status).toBe(400);
-    expect(resMismatch.body.error).toContain('must reconcile with total moved stock of 300 bags');
-
-    // 3. Accepts reconciled counts (200 + 100 = 300)
+    // 2. Accepts decoupled physical repacking counts (e.g. 200 small + 100 big) without validating against previous counts
     const resOk = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/merge`)
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ targetGrnId: targetId, sourceGrnIds: [sourceId], remarks: 'Reconcile test', repackedSmallBags: 200, repackedBigBags: 100 });
+      .send({ targetGrnId: targetId, sourceGrnIds: [sourceId], remarks: 'Decoupled repack test', repackedSmallBags: 200, repackedBigBags: 100 });
     expect(resOk.status).toBe(200);
-    expect(resOk.body.targetGrn.bags).toBe(400); // 100 initial + 300 moved
+    expect(resOk.body.targetGrn.bags).toBe(400); // 100 initial + 300 repacked moved
 
-    // 4. Retrying the merge must be rejected and not duplicate stock
+    // 3. Retrying the merge must be rejected and not duplicate stock
     const resRetry = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/merge`)
       .set('Authorization', `Bearer ${adminToken}`)
