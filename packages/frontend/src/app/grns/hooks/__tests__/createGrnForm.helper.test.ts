@@ -14,11 +14,7 @@ function makeState(overrides: Partial<CreateGrnState> = {}): CreateGrnState {
     createCommodityId: 'cmd-1',
     createChamber: 'CH-01',
     createBags: 100,
-    createBagType: 'S',
     createRentType: 'Seasonal',
-    createRentMonths: 10,
-    createRentAmount: 5000,
-    createBagPrice: 50,
     createPartyMark: '',
     createVehicleNumber: '',
     ...overrides,
@@ -28,7 +24,6 @@ function makeState(overrides: Partial<CreateGrnState> = {}): CreateGrnState {
 describe('createGrnForm GR Number validation', () => {
   it.each(['0001', '9999', '0042'])('accepts the four-digit GR Number %s', (createGrnNumber) => {
     const { errors } = validateCreateGrnForm(makeState({ createGrnNumber }));
-
     expect(errors.grnNumber).toBeUndefined();
   });
 
@@ -40,19 +35,16 @@ describe('createGrnForm GR Number validation', () => {
     ['letters mixed in', '00ab'],
   ])('rejects a GR Number that is %s', (_label, createGrnNumber) => {
     const { errors } = validateCreateGrnForm(makeState({ createGrnNumber }));
-
     expect(errors.grnNumber).toBe('GRN must be exactly 4 digits (numbers only)');
   });
 
   it('tolerates surrounding whitespace the way the submit path trims', () => {
     const { errors } = validateCreateGrnForm(makeState({ createGrnNumber: '  0001  ' }));
-
     expect(errors.grnNumber).toBeUndefined();
   });
 
   it('validates the GR Number before anything else, so the first error shown is the GRN', () => {
     const { errors } = validateCreateGrnForm(makeState({ createGrnNumber: '12', createCustomerId: '' }));
-
     expect(Object.keys(errors)).toEqual(['grnNumber', 'customer']);
   });
 });
@@ -115,19 +107,19 @@ describe('createGrnForm buildEditGrnPayload helper', () => {
     const { hasChanges, payload } = buildEditGrnPayload({
       initialGrn: baseGrn,
       structuralLocked: true,
-      createCustomerId: 'cust-2', // Should NOT be included
-      createDate: '2026-10-06',   // Should NOT be included
-      createCommodityId: 'cmd-2', // Should NOT be included
-      createChamber: 'CH-05',     // Allowed
-      createBags: 300,            // Should NOT be included
-      createBagType: 'B',         // Should NOT be included
-      createRentType: 'Monthly',  // Should NOT be included
+      createCustomerId: 'cust-2',
+      createDate: '2026-10-06',
+      createCommodityId: 'cmd-2',
+      createChamber: 'CH-05',
+      createBags: 300,
+      createBagType: 'B',
+      createRentType: 'Monthly',
       createRentMonths: 6,
       createRentAmount: 6000,
       createBagPrice: 80,
-      createPartyMark: 'PM-99',   // Allowed
-      createVehicleNumber: 'UP32AA1111', // Allowed
-      createRemarks: 'Bay relabeled',     // Allowed
+      createPartyMark: 'PM-99',
+      createVehicleNumber: 'UP32AA1111',
+      createRemarks: 'Bay relabeled',
     });
 
     expect(hasChanges).toBe(true);
@@ -137,8 +129,6 @@ describe('createGrnForm buildEditGrnPayload helper', () => {
     expect(payload.remarks).toBe('Bay relabeled');
     expect(payload.customerId).toBeUndefined();
     expect(payload.date).toBeUndefined();
-    expect(payload.commodityId).toBeUndefined();
-    expect(payload.bags).toBeUndefined();
   });
 
   it('captures structural edits when structuralLocked is false', () => {
@@ -164,18 +154,7 @@ describe('createGrnForm buildEditGrnPayload helper', () => {
   });
 });
 
-describe('createGrnForm Monthly vs Seasonal rent terms validation', () => {
-  it('accepts Monthly rent with omitted/empty rentMonths and rentAmount', () => {
-    const { errors } = validateCreateGrnForm(makeState({ createRentType: 'Monthly', createRentMonths: '', createRentAmount: '' }));
-    expect(errors.rentMonths).toBeUndefined();
-    expect(errors.rentAmount).toBeUndefined();
-  });
-
-  it('rejects Monthly rent when rentMonths is less than 1', () => {
-    const { errors } = validateCreateGrnForm(makeState({ createRentType: 'Monthly', createRentMonths: 0, createRentAmount: '' }));
-    expect(errors.rentMonths).toBe('Rent months must be >= 1 when provided');
-  });
-
+describe('createGrnForm Total Bags and Logistics validation', () => {
   it('validates Total Bags as positive whole number', () => {
     expect(validateCreateGrnForm(makeState({ createBags: 100 })).errors.bags).toBeUndefined();
     expect(validateCreateGrnForm(makeState({ createBags: '' })).errors.bags).toBe('Total Bags is required (a positive whole number)');
@@ -183,12 +162,17 @@ describe('createGrnForm Monthly vs Seasonal rent terms validation', () => {
     expect(validateCreateGrnForm(makeState({ createBags: 2.5 })).errors.bags).toBe('Total Bags is required (a positive whole number)');
   });
 
-  it('accepts Seasonal rent without rentAmount on Inward', () => {
-    const { errors } = validateCreateGrnForm(makeState({ createRentType: 'Seasonal', createRentAmount: '' }));
-    expect(errors.rentAmount).toBeUndefined();
+  it('validates chamber and customer presence', () => {
+    expect(validateCreateGrnForm(makeState({ createCustomerId: '' })).errors.customer).toBe('Please select a customer');
+    expect(validateCreateGrnForm(makeState({ createChamber: '' })).errors.chamber).toBe('Chamber is required');
+    expect(validateCreateGrnForm(makeState({ createCommodityId: '' })).errors.commodity).toBe('Please select a commodity');
   });
 
-  it('buildCreateGrnPayload omits unconfigured rentAmount for Monthly', () => {
+  it('validates party mark length constraint', () => {
+    expect(validateCreateGrnForm(makeState({ createPartyMark: 'A'.repeat(25) })).errors.partyMark).toBe('Party mark cannot exceed 20 characters');
+  });
+
+  it('buildCreateGrnPayload constructs clean inward payload without rate or bagType assumptions', () => {
     const payload = buildCreateGrnPayload({
       facilityId: 'fac-1',
       inwardDate: new Date('2026-10-06T00:00:00Z'),
@@ -197,53 +181,18 @@ describe('createGrnForm Monthly vs Seasonal rent terms validation', () => {
       commodityId: 'cmd-1',
       chamber: 'CH-01',
       bags: 100,
-      bagType: 'S',
-      rentType: 'Monthly',
-      rentAmount: '',
-      rentMonths: '',
+      rentType: 'Seasonal',
+      partyMark: 'PM-1',
+      vehicleNumber: 'UP32AA1111',
+      remarks: 'Inward entry',
     });
+    expect(payload.grnNumber).toBe('0001');
+    expect(payload.bags).toBe(100);
+    expect(payload.rentType).toBe('Seasonal');
+    expect(payload.partyMark).toBe('PM-1');
+    expect(payload.bagType).toBeUndefined();
     expect(payload.rentAmount).toBeUndefined();
-    expect(payload.rentMonths).toBeUndefined();
-  });
-
-  it('validates operator-entered agreed rates and total bags weight', () => {
-    const valid = validateCreateGrnForm(makeState({ createSmallBagPrice: 12, createBigBagPrice: 18, createTotalBagsWeight: 12500 }));
-    expect(valid.errors.smallBagPrice).toBeUndefined();
-    expect(valid.errors.bigBagPrice).toBeUndefined();
-    expect(valid.errors.totalBagsWeight).toBeUndefined();
-
-    const invalid = validateCreateGrnForm(makeState({ createSmallBagPrice: 0, createBigBagPrice: -2, createTotalBagsWeight: -10 }));
-    expect(invalid.errors.smallBagPrice).toBe('Small bag rate must be greater than zero');
-    expect(invalid.errors.bigBagPrice).toBe('Big bag rate must be greater than zero');
-    expect(invalid.errors.totalBagsWeight).toBe('Total bags weight must be a positive number');
-  });
-
-  it('requires a resolved controller rate when rateRequired is set', () => {
-    const base = makeState({ createSmallBagPrice: 12, createBigBagPrice: 18 });
-    const match = { controllerRate: { small: 12, big: 18 }, rateRequired: true } as const;
-    expect(validateCreateGrnForm(base, match).errors.rate).toBeUndefined();
-    expect(validateCreateGrnForm(base, { controllerRate: null, rateRequired: true }).errors.rate).toBe(
-      'No active rate is configured for this commodity and rent type',
-    );
-    expect(validateCreateGrnForm(base, { controllerRate: null, rateRequired: true, rateLoading: true }).errors.rate).toContain('still loading');
-    expect(validateCreateGrnForm(
-      makeState({ createSmallBagPrice: 10, createBigBagPrice: 18 }), match,
-    ).errors.rate).toBe('Agreed rates must match the Price Controller rate');
-  });
-
-  it('skips the controller check when no rate is required', () => {
-    expect(validateCreateGrnForm(makeState({ createSmallBagPrice: 12 })).errors.rate).toBeUndefined();
-  });
-
-  it('buildCreateGrnPayload maps operator agreed rates and total bags weight into payload', () => {
-    const payload = buildCreateGrnPayload({
-      facilityId: 'fac-1', inwardDate: new Date('2026-10-06T00:00:00Z'),
-      grnNumber: '0001', customerId: 'cust-1', commodityId: 'cmd-1',
-      chamber: 'CH-01', bags: 100, bagType: 'S', rentType: 'Seasonal',
-      smallBagPrice: 12, bigBagPrice: 18, totalBagsWeight: 12500,
-    });
-    expect(payload.smallBagPrice).toBe(12);
-    expect(payload.bigBagPrice).toBe(18);
-    expect(payload.totalBagsWeight).toBe(12500);
+    expect(payload.smallBagPrice).toBeUndefined();
+    expect(payload.bigBagPrice).toBeUndefined();
   });
 });

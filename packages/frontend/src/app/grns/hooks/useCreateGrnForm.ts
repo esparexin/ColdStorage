@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { BagType, Commodity, Customer, Grn, LoanStatus, RentType } from '@cold-storage/contracts';
+import type { Commodity, Customer, Grn, LoanStatus, RentType } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
-import { useCommodityRate } from './useCommodityRate';
 import {
   buildCreateGrnPayload,
   focusField,
@@ -36,15 +35,8 @@ export function useCreateGrnForm(
   const [createCustomerId, setCreateCustomerId] = useState(isEdit ? initialGrn!.customerId : '');
   const [createCommodityId, setCreateCommodityId] = useState(isEdit ? initialGrn!.commodityId : '');
   const [createChamber, setCreateChamber] = useState(isEdit ? initialGrn!.chamber : '');
-  const [createBagType] = useState<BagType>(isEdit ? initialGrn!.bagType : 'S/B');
   const [createBags, setCreateBags] = useState<number | ''>(isEdit ? initialGrn!.bags : '');
   const [createRentType, setCreateRentType] = useState<RentType>(isEdit ? initialGrn!.rentType : 'Seasonal');
-  const [createRentMonths] = useState<number | ''>(isEdit ? (initialGrn!.rentMonths ?? '') : '');
-  const [createBagPrice] = useState<number | ''>(isEdit ? (initialGrn!.bagPrice ?? '') : '');
-  const [createSmallBagPrice, setCreateSmallBagPrice] = useState<number | ''>(isEdit ? (initialGrn?.smallBagPrice ?? '') : '');
-  const [createBigBagPrice, setCreateBigBagPrice] = useState<number | ''>(isEdit ? (initialGrn?.bigBagPrice ?? '') : '');
-  const [createTotalBagsWeight] = useState<number | ''>(isEdit ? (initialGrn?.totalBagsWeight ?? '') : '');
-  const [createRentAmount, setCreateRentAmount] = useState<number | ''>(isEdit ? (initialGrn?.rentAmount ?? '') : '');
   const [createPartyMark, setCreatePartyMark] = useState(isEdit ? (initialGrn!.partyMark ?? '') : '');
   const [suggestedGrnNumber, setSuggestedGrnNumber] = useState('');
   const [lastCreatedGrn, setLastCreatedGrn] = useState<string | null>(null);
@@ -89,28 +81,6 @@ export function useCreateGrnForm(
     setFieldErrors,
   });
 
-  // Price Controller authority: agreed rates come from the active controller
-  // row, never from operator input. Locked edits show stored history instead.
-  const {
-    rate: controllerRate, loading: rateLoading, error: rateError, retry: retryRate,
-  } = useCommodityRate(createCommodityId, createRentType, { disabled: structuralLocked });
-
-  useEffect(() => {
-    if (!structuralLocked && controllerRate) {
-      setCreateSmallBagPrice(controllerRate.small);
-      setCreateBigBagPrice(controllerRate.big);
-      clearFieldError('rate');
-    }
-  }, [controllerRate, structuralLocked]);
-
-  const num = (v: number | ''): number | null => (typeof v === 'number' ? v : null);
-  const sRate = num(createSmallBagPrice) ?? num(createBagPrice);
-  const bRate = num(createBigBagPrice) ?? num(createBagPrice);
-  const displayRate = structuralLocked
-    ? sRate == null && bRate == null ? null : { small: sRate ?? 0, big: bRate ?? 0 }
-    : controllerRate;
-  const isRateUnresolved = !structuralLocked && Boolean(createCommodityId) && (rateLoading || !controllerRate);
-
   const handleBagsChange = (val: number | '') => {
     setCreateBags(val);
     clearFieldError('bags');
@@ -121,9 +91,15 @@ export function useCreateGrnForm(
     if (isEdit && initialGrn) {
       await handleEditGrnSubmit({
         facilityId, initialGrn, guardState, createChamber, createCustomerId,
-        createDate, createCommodityId, createBags, createBagType, createRentType,
-        createRentMonths, createRentAmount, createBagPrice,
-        createSmallBagPrice, createBigBagPrice, createTotalBagsWeight,
+        createDate, createCommodityId, createBags,
+        createBagType: initialGrn.bagType,
+        createRentType,
+        createRentMonths: initialGrn.rentMonths ?? '',
+        createRentAmount: initialGrn.rentAmount ?? '',
+        createBagPrice: initialGrn.bagPrice ?? '',
+        createSmallBagPrice: initialGrn.smallBagPrice ?? '',
+        createBigBagPrice: initialGrn.bigBagPrice ?? '',
+        createTotalBagsWeight: initialGrn.totalBagsWeight ?? '',
         createPartyMark, createVehicleNumber, createRemarks, structuralLocked, onSuccess,
         setFieldErrors, setModalError, setSubmitting,
       });
@@ -140,12 +116,8 @@ export function useCreateGrnForm(
     }
 
     const { errors, parsedChamber, normalizedVehicle } = validateCreateGrnForm({
-      createCustomerId, createCommodityId, createChamber, createBags, createBagType,
-      createGrnNumber, createRentType, createRentMonths, createRentAmount,
-      createBagPrice, createSmallBagPrice, createBigBagPrice, createTotalBagsWeight,
-      createPartyMark, createVehicleNumber,
-    }, {
-      controllerRate, rateRequired: Boolean(createCommodityId), rateError, rateLoading,
+      createCustomerId, createCommodityId, createChamber, createBags,
+      createGrnNumber, createRentType, createPartyMark, createVehicleNumber,
     });
 
     if (Object.keys(errors).length > 0) {
@@ -166,13 +138,8 @@ export function useCreateGrnForm(
       const payload = buildCreateGrnPayload({
         facilityId, inwardDate, grnNumber: createGrnNumber.trim(),
         customerId: createCustomerId, commodityId: createCommodityId,
-        chamber: parsedChamber ?? createChamber, bags: Number(createBags), bagType: createBagType,
+        chamber: parsedChamber ?? createChamber, bags: Number(createBags),
         rentType: createRentType,
-        rentMonths: createRentType === 'Monthly' && typeof createRentMonths === 'number' ? createRentMonths : '',
-        rentAmount: typeof createRentAmount === 'number' && createRentAmount > 0 ? createRentAmount : '',
-        smallBagPrice: createSmallBagPrice,
-        bigBagPrice: createBigBagPrice,
-        totalBagsWeight: createTotalBagsWeight,
         partyMark: createPartyMark,
         vehicleNumber: normalizedVehicle, remarks: createRemarks,
         isBondForLoan, loanStatus,
@@ -202,9 +169,7 @@ export function useCreateGrnForm(
 
   const isDirty = Boolean(
     createGrnNumber.trim() || createCustomerId || createCommodityId || createBags ||
-    createSmallBagPrice !== '' || createBigBagPrice !== '' ||
-    createPartyMark.trim() ||
-    createVehicleNumber.trim() || createRemarks.trim() || isBondForLoan,
+    createPartyMark.trim() || createVehicleNumber.trim() || createRemarks.trim() || isBondForLoan,
   );
 
   return {
@@ -213,24 +178,13 @@ export function useCreateGrnForm(
     createCommodityId, setCreateCommodityId: (id: string) => {
       setCreateCommodityId(id);
       clearFieldError('commodity');
-      clearFieldError('rate');
       const comm = commodities.find((c) => c.id === id);
       if (comm?.seasonDuration === 'Seasonal_3M' && createRentType === 'Seasonal') setCreateRentType('Seasonal_3M');
       if (comm?.seasonDuration === 'Seasonal' && createRentType === 'Seasonal_3M') setCreateRentType('Seasonal');
     },
     createChamber, setCreateChamber: (value: string) => { setCreateChamber(value); clearFieldError('chamber'); },
     createBags, handleBagsChange,
-    createBagType,
-    createRentType, handleRentTypeChange: (val: RentType) => {
-      setCreateRentType(val);
-      clearFieldError('rate');
-    },
-    createRentMonths,
-    createBagPrice,
-    createSmallBagPrice, createBigBagPrice,
-    displayRate, rateLoading, rateError, retryRate, isRateUnresolved,
-    createTotalBagsWeight,
-    createRentAmount, setCreateRentAmount: (val: number | '') => { setCreateRentAmount(val); },
+    createRentType, handleRentTypeChange: (val: RentType) => { setCreateRentType(val); },
     createGrnNumber, setCreateGrnNumber: (val: string) => {
       const digitsOnly = val.replace(/\D/g, '').slice(0, 4);
       setCreateGrnNumber(digitsOnly);

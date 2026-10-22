@@ -1,6 +1,6 @@
 import {
   chamberTextSchema, grnNumberInputSchema, indianVehicleSchema,
-  INDIAN_VEHICLE_ERROR_MESSAGE, normalizeIndianVehicleNumber, rentalAmountSchema,
+  INDIAN_VEHICLE_ERROR_MESSAGE, normalizeIndianVehicleNumber,
   type BagType, type Grn, type LoanStatus, type RentType,
 } from '@cold-storage/contracts';
 
@@ -17,46 +17,17 @@ export interface CreateGrnState {
   createCommodityId: string;
   createChamber: string;
   createBags: number | '';
-  createBagType: BagType;
   createRentType: RentType;
-  createRentMonths?: number | '';
-  createRentAmount?: number | '';
-  createBagPrice?: number | '';
-  createSmallBagPrice?: number | '';
-  createBigBagPrice?: number | '';
-  createTotalBagsWeight?: number | '';
   createPartyMark?: string;
   createVehicleNumber: string;
 }
 
-/** Price Controller requirement for submit: resolved pair, or why it is missing. */
-export interface ControllerRateCheck {
-  controllerRate?: { small: number; big: number } | null;
-  rateRequired?: boolean;
-  rateError?: string | null;
-  rateLoading?: boolean;
-}
-
-export function validateCreateGrnForm(state: CreateGrnState, rateCheck?: ControllerRateCheck): {
+export function validateCreateGrnForm(state: CreateGrnState): {
   errors: Record<string, string>;
   parsedChamber?: string;
   normalizedVehicle?: string;
 } {
   const errors: Record<string, string> = {};
-
-  if (rateCheck?.rateRequired) {
-    if (rateCheck.rateLoading) {
-      errors.rate = 'Controller rates are still loading. Please wait and retry.';
-    } else if (!rateCheck.controllerRate) {
-      errors.rate = rateCheck.rateError
-        ?? 'No active rate is configured for this commodity and rent type';
-    } else if (
-      state.createSmallBagPrice !== rateCheck.controllerRate.small ||
-      state.createBigBagPrice !== rateCheck.controllerRate.big
-    ) {
-      errors.rate = 'Agreed rates must match the Price Controller rate';
-    }
-  }
 
   // Same rule the server enforces, so the form cannot submit a GR Number the contract rejects.
   const parsedGrnNumber = grnNumberInputSchema.safeParse(state.createGrnNumber.trim());
@@ -72,40 +43,9 @@ export function validateCreateGrnForm(state: CreateGrnState, rateCheck?: Control
     errors.chamber = parsedChamber.error.issues[0]?.message ?? 'Chamber is required';
   }
 
-  // Total-only S/B inward; Small/Big composition is confirmed at outward delivery.
+  // Total-only inward; Small/Big/Hybrid composition is confirmed at outward delivery.
   if (typeof state.createBags !== 'number' || !Number.isInteger(state.createBags) || state.createBags < 1) {
     errors.bags = 'Total Bags is required (a positive whole number)';
-  }
-
-  if (state.createRentType === 'Monthly' && typeof state.createRentMonths === 'number' && state.createRentMonths < 1) {
-    errors.rentMonths = 'Rent months must be >= 1 when provided';
-  }
-
-  if (state.createRentAmount !== '' && state.createRentAmount !== undefined) {
-    const parsedAmount = rentalAmountSchema.safeParse(state.createRentAmount);
-    if (!parsedAmount.success) {
-      errors.rentAmount = parsedAmount.error.issues[0]?.message ?? 'Rent amount must be a number';
-    }
-  }
-
-  if (state.createSmallBagPrice !== '' && state.createSmallBagPrice !== undefined) {
-    if (typeof state.createSmallBagPrice !== 'number' || state.createSmallBagPrice <= 0) {
-      errors.smallBagPrice = 'Small bag rate must be greater than zero';
-    } else if (state.createSmallBagPrice > 100000) {
-      errors.smallBagPrice = 'Small bag rate cannot exceed ₹100,000';
-    }
-  }
-  if (state.createBigBagPrice !== '' && state.createBigBagPrice !== undefined) {
-    if (typeof state.createBigBagPrice !== 'number' || state.createBigBagPrice <= 0) {
-      errors.bigBagPrice = 'Big bag rate must be greater than zero';
-    } else if (state.createBigBagPrice > 100000) {
-      errors.bigBagPrice = 'Big bag rate cannot exceed ₹100,000';
-    }
-  }
-  if (state.createTotalBagsWeight !== '' && state.createTotalBagsWeight !== undefined) {
-    if (typeof state.createTotalBagsWeight !== 'number' || state.createTotalBagsWeight <= 0) {
-      errors.totalBagsWeight = 'Total bags weight must be a positive number';
-    }
   }
 
   const normVehicle = normalizeIndianVehicleNumber(state.createVehicleNumber);
@@ -122,23 +62,16 @@ export function validateCreateGrnForm(state: CreateGrnState, rateCheck?: Control
 
 export function buildCreateGrnPayload(params: {
   facilityId: string; inwardDate: Date; grnNumber: string; customerId: string; commodityId: string;
-  chamber: string; bags: number; bagType: BagType; rentType: RentType;
-  rentAmount?: number | ''; bagPrice?: number | ''; smallBagPrice?: number | ''; bigBagPrice?: number | '';
-  totalBagsWeight?: number | ''; rentMonths?: number | ''; partyMark?: string;
-  vehicleNumber?: string; remarks?: string; isBondForLoan?: boolean; loanStatus?: LoanStatus;
+  chamber: string; bags: number; rentType: RentType;
+  partyMark?: string; vehicleNumber?: string; remarks?: string;
+  isBondForLoan?: boolean; loanStatus?: LoanStatus;
 }): Record<string, unknown> {
   const p: Record<string, unknown> = {
     facilityId: params.facilityId, date: params.inwardDate,
     grnNumber: params.grnNumber, customerId: params.customerId,
     commodityId: params.commodityId, chamber: params.chamber, bags: params.bags,
-    bagType: params.bagType, rentType: params.rentType,
+    rentType: params.rentType,
   };
-  if (typeof params.rentAmount === 'number') p.rentAmount = params.rentAmount;
-  if (typeof params.bagPrice === 'number' && params.bagPrice > 0) p.bagPrice = params.bagPrice;
-  if (typeof params.smallBagPrice === 'number' && params.smallBagPrice > 0) p.smallBagPrice = params.smallBagPrice;
-  if (typeof params.bigBagPrice === 'number' && params.bigBagPrice > 0) p.bigBagPrice = params.bigBagPrice;
-  if (typeof params.totalBagsWeight === 'number' && params.totalBagsWeight > 0) p.totalBagsWeight = params.totalBagsWeight;
-  if (params.rentType === 'Monthly' && typeof params.rentMonths === 'number') p.rentMonths = params.rentMonths;
   if (params.partyMark?.trim()) p.partyMark = params.partyMark.trim();
   if (params.vehicleNumber) p.vehicleNumber = params.vehicleNumber;
   if (params.remarks?.trim()) p.remarks = params.remarks.trim();
@@ -233,10 +166,8 @@ export function buildEditGrnPayload(params: {
 
 export const GRN_FIELD_ID_MAP: Record<string, string> = {
   customer: 'create-customer-search', commodity: 'create-commodity', chamber: 'create-chamber',
-  partyMark: 'create-party-mark', bags: 'create-bags', totalBagsWeight: 'create-total-bags-weight',
-  grnNumber: 'create-gr-number', rentMonths: 'create-rent-months', rentAmount: 'create-rent-amount',
-  rate: 'create-rate-section',
-  smallBagPrice: 'create-small-bag-price', bigBagPrice: 'create-big-bag-price', vehicleNumber: 'create-vehicle',
+  partyMark: 'create-party-mark', bags: 'create-bags',
+  grnNumber: 'create-gr-number', vehicleNumber: 'create-vehicle',
 };
 
 export function focusField(fieldId: string): void {

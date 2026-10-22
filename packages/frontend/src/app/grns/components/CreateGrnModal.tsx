@@ -7,13 +7,11 @@ import { Banner } from '@/components/ui/Banner';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { BondLoanSection } from './BondLoanSection';
 import { CustomerCombobox } from './CustomerCombobox';
-import { CustomerAgreedRateSection } from './CustomerAgreedRateSection';
 import { TransportLogisticsSection } from './TransportLogisticsSection';
 import { useCustomerCombobox } from '../hooks/useCustomerCombobox';
 import { parseNumericInput, useCreateGrnForm } from '../hooks/useCreateGrnForm';
 import { CustomerFormModal } from '../../customers/components/CustomerFormModal';
 import { CommodityFormModal } from '../../commodities/components/CommodityFormModal';
-import { CommodityRatesModal } from '../../commodities/components/CommodityRatesModal';
 import styles from '../page.module.css';
 
 export interface CreateGrnModalProps {
@@ -51,7 +49,6 @@ export function CreateGrnModal({
   );
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [isAddingCommodity, setIsAddingCommodity] = useState(false);
-  const [isConfiguringRates, setIsConfiguringRates] = useState(false);
 
   const selectedCommodity: Commodity | null =
     commodities.find((c) => c.id === form.createCommodityId) ??
@@ -76,7 +73,7 @@ export function CreateGrnModal({
           <Button variant="outline" size="sm" onClick={handleAttemptClose} disabled={form.submitting}>Cancel</Button>
           <Button
             id="submit-create-grn-btn" form="create-grn-form" type="submit" variant="primary" size="sm"
-            disabled={form.submitting || isClosed || (!isEdit && (form.isGrnInvalid || form.isRateUnresolved))} isLoading={form.submitting}
+            disabled={form.submitting || isClosed || (!isEdit && form.isGrnInvalid)} isLoading={form.submitting}
           >
             {isEdit ? 'Save Changes' : 'Create Inward of Goods'}
           </Button>
@@ -173,14 +170,6 @@ export function CreateGrnModal({
                 <option value="Monthly">Monthly</option>
               </Select>
             </div>
-            {form.createCommodityId && form.createRentType && (
-              <CustomerAgreedRateSection
-                rentType={form.createRentType} rentMonths={form.createRentMonths}
-                rate={form.displayRate} loading={form.rateLoading}
-                error={form.fieldErrors.rate ?? form.rateError} onRetry={form.retryRate}
-                onAddRate={selectedCommodity ? () => setIsConfiguringRates(true) : undefined}
-              />
-            )}
           </div>
         </section>
 
@@ -208,13 +197,6 @@ export function CreateGrnModal({
     />
     {isAddingCustomer && <CustomerFormModal customer={null} selectedFacilityId={facilityId} existingCustomers={customers} onClose={() => setIsAddingCustomer(false)} onSuccess={() => { setIsAddingCustomer(false); onCustomerAdded?.(); }} />}
     {isAddingCommodity && <CommodityFormModal onClose={() => setIsAddingCommodity(false)} onSuccess={() => { setIsAddingCommodity(false); onCommodityAdded?.(); }} />}
-    {isConfiguringRates && selectedCommodity && (
-      <CommodityRatesModal
-        commodity={selectedCommodity}
-        onClose={() => { setIsConfiguringRates(false); form.retryRate(); }}
-        onSaved={() => { setIsConfiguringRates(false); form.retryRate(); }}
-      />
-    )}
     </>
   );
 }
