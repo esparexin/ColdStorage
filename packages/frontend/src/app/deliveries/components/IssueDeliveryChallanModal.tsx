@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Plus } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import type { Grn, RentSummaryDto } from '@cold-storage/contracts';
 import { Button, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
@@ -24,6 +24,7 @@ export interface IssueDeliveryChallanModalProps {
   onClearLoan?: (grn: Grn) => void;
   canClearLoan?: boolean;
   onChangeGrn?: () => void;
+  onBackToGrn?: () => void;
 }
 
 export function IssueDeliveryChallanModal({
@@ -35,12 +36,26 @@ export function IssueDeliveryChallanModal({
   onClearLoan,
   canClearLoan = false,
   onChangeGrn,
+  onBackToGrn,
 }: IssueDeliveryChallanModalProps) {
   const modalFooter = (
     <div className={styles.footerContainer}>
-      <Button variant="outline" onClick={onClose} disabled={form.submitting}>
-        Cancel
-      </Button>
+      <div className={styles.footerLeftActions}>
+        {onBackToGrn && (
+          <Button
+            id="issue-modal-back-btn"
+            variant="outline"
+            onClick={onBackToGrn}
+            disabled={form.submitting}
+            leftIcon={<ArrowLeft size={14} aria-hidden="true" />}
+          >
+            Back to Inward
+          </Button>
+        )}
+        <Button id="issue-modal-cancel-btn" variant="outline" onClick={onClose} disabled={form.submitting}>
+          Cancel
+        </Button>
+      </div>
       <div className={styles.footerRightActions}>
         <Button
           id="issue-panel-submit-delivery-btn"

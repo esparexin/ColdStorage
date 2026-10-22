@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   deriveHybridRateVisibility, isHybridBagCategory, type DeliveryChallan, type DeliverySummary, type Grn, type GrnInventorySummary, type OutwardBagCategory,
 } from '@cold-storage/contracts';
@@ -18,8 +18,7 @@ export function useCreateDeliveryForm(
 ) {
   const [availableGrns, setAvailableGrns] = useState<Grn[]>([]);
   const [createGrnId, setCreateGrnId] = useState('');
-  const [grnSummary, setGrnSummary] = useState<GrnInventorySummary | null>(null);
-  const [loadingGrnSummary, setLoadingGrnSummary] = useState(false);
+  const [grnSummary, setGrnSummary] = useState<GrnInventorySummary | null>(null); const [loadingGrnSummary, setLoadingGrnSummary] = useState(false);
   const [createDate, setCreateDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [bagCategory, setBagCategory] = useState<OutwardBagCategory>('S/B');
   const [manualBagPrice, setManualBagPrice] = useState<number | ''>('');
@@ -30,10 +29,8 @@ export function useCreateDeliveryForm(
   const [createVehicleNumber, setCreateVehicleNumber] = useState(''); const [createDriverName, setCreateDriverName] = useState('');
   const [createWeight, setCreateWeight] = useState<number | ''>(''); const [createGpNumber, setCreateGpNumber] = useState('');
   const [createRemarks, setCreateRemarks] = useState(''); const [idempotencyKey, setIdempotencyKey] = useState(() => `del-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
-  const [modalError, setModalError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
-  const [hamaliRate, setHamaliRate] = useState<number>(0);
+  const [modalError, setModalError] = useState<string | null>(null); const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false); const [hamaliRate, setHamaliRate] = useState<number>(0);
   const [seasonalCommodityRates, setSeasonalCommodityRates] = useState<{ small: number; big: number } | null>(null); const [monthlyCommodityRates, setMonthlyCommodityRates] = useState<{ small: number; big: number } | null>(null);
   const rentGate = useRentGate();
 
@@ -119,10 +116,14 @@ export function useCreateDeliveryForm(
     [facilityId, rentGate, availableGrns],
   );
 
+  const autoSelectedGrnRef = useRef<string | null>(null);
   useEffect(() => {
-    if (initialGrnId && availableGrns.length > 0 && !createGrnId) {
+    if (initialGrnId && availableGrns.length > 0 && !createGrnId && autoSelectedGrnRef.current !== initialGrnId) {
       const match = availableGrns.find((g) => g.id === initialGrnId || g.grnNumber === initialGrnId);
-      if (match) void handleSelectGrn(match.id);
+      if (match) {
+        autoSelectedGrnRef.current = initialGrnId;
+        void handleSelectGrn(match.id);
+      }
     }
   }, [initialGrnId, availableGrns, createGrnId, handleSelectGrn]);
 
@@ -234,8 +235,7 @@ export function useCreateDeliveryForm(
     setCreateDate: (v: string) => { setCreateDate(v); clearFieldError('date'); },
     bagCategory, setBagCategory: handleBagCategoryChange, outwardRent, withdrawal,
     manualBagPrice, setManualBagPrice: (v: number | '') => { setManualBagPrice(v); clearFieldError('bagPrice'); },
-    seasonalBagPrice, setSeasonalBagPrice: (v: number | '') => { setSeasonalBagPrice(v); clearFieldError('seasonalBagPrice'); },
-    monthlyBagPrice, setMonthlyBagPrice: (v: number | '') => { setMonthlyBagPrice(v); clearFieldError('monthlyBagPrice'); },
+    seasonalBagPrice, setSeasonalBagPrice: (v: number | '') => { setSeasonalBagPrice(v); clearFieldError('seasonalBagPrice'); }, monthlyBagPrice, setMonthlyBagPrice: (v: number | '') => { setMonthlyBagPrice(v); clearFieldError('monthlyBagPrice'); },
     rateVisibility, setWithdrawalSmallBags, setWithdrawalBigBags, setWithdrawalQuantity: handleQuantityChange,
     createVehicleNumber, setCreateVehicleNumber: (v: string) => { setCreateVehicleNumber(v); clearFieldError('vehicleNumber'); },
     createDriverName, setCreateDriverName: (v: string) => { setCreateDriverName(v); clearFieldError('driverName'); },

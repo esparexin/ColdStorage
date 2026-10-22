@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import type { DeliveryChallan, DeliverySummary, Grn, RentSummaryDto } from '@cold-storage/contracts';
 import { Button } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
@@ -20,6 +21,8 @@ export interface IssueDeliveryChallanPanelProps {
   loanClearedTick?: number;
   canClearLoan?: boolean;
   initialGrnId?: string;
+  onBackToGrn?: () => void;
+  onClearInitialGrn?: () => void;
 }
 
 export function IssueDeliveryChallanPanel({
@@ -33,6 +36,8 @@ export function IssueDeliveryChallanPanel({
   loanClearedTick = 0,
   canClearLoan = false,
   initialGrnId,
+  onBackToGrn,
+  onClearInitialGrn,
 }: IssueDeliveryChallanPanelProps) {
   const form = useCreateDeliveryForm(facilityId, onSuccess, initialGrnId);
   const { createGrnId, refreshRentGate } = form;
@@ -49,6 +54,11 @@ export function IssueDeliveryChallanPanel({
     if (rentPaidTick > 0 && createGrnId) void refreshRentGate(facilityId, createGrnId);
   }, [rentPaidTick, createGrnId, facilityId, refreshRentGate]);
 
+  const handleCloseModal = () => {
+    onClearInitialGrn?.();
+    void form.handleSelectGrn('');
+  };
+
   return (
     <div className={styles.issuePanel}>
       {form.modalError && <Banner message={form.modalError} />}
@@ -58,6 +68,16 @@ export function IssueDeliveryChallanPanel({
         onSelectGrn={(id) => void form.handleSelectGrn(id)}
       />
       <div className={styles.stockFooter}>
+        {onBackToGrn && (
+          <Button
+            id="issue-panel-back-btn"
+            variant="outline"
+            onClick={onBackToGrn}
+            leftIcon={<ArrowLeft size={14} aria-hidden="true" />}
+          >
+            Back to Inward
+          </Button>
+        )}
         <Button variant="outline" onClick={onCancel}>
           Cancel
         </Button>
@@ -68,12 +88,13 @@ export function IssueDeliveryChallanPanel({
           form={form}
           facilityId={facilityId}
           isOpen={Boolean(form.selectedGrn)}
-          onClose={() => void form.handleSelectGrn('')}
-          onChangeGrn={() => void form.handleSelectGrn('')}
+          onClose={handleCloseModal}
+          onChangeGrn={handleCloseModal}
           onPayRent={onPayRent}
           canPayRent={canPayRent}
           onClearLoan={onClearLoan}
           canClearLoan={canClearLoan}
+          onBackToGrn={onBackToGrn}
         />
       )}
     </div>
