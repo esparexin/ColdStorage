@@ -1,4 +1,4 @@
-import type { RentReceiptDocumentDto, RentReceiptPreviewDto } from '@cold-storage/contracts';
+import { formatDisplayBagType, type RentReceiptDocumentDto, type RentReceiptPreviewDto } from '@cold-storage/contracts';
 import { escapeHtml, renderBaseLayout } from './base.layout.js';
 
 export function renderRentReceiptTemplate(
@@ -25,7 +25,7 @@ export function renderRentReceiptTemplate(
         <th>Inward Receipt / GRN</th>
         <td>${dto.inwardReceiptNumber ? `${escapeHtml(dto.inwardReceiptNumber)} / ` : ''}<strong>${escapeHtml(dto.grnNumber)}</strong></td>
         <th>Commodity &amp; Bag Type</th>
-        <td>${escapeHtml(dto.commodityName)} (${escapeHtml(dto.bagType || 'S')})</td>
+        <td>${escapeHtml(dto.commodityName)} (${escapeHtml(formatDisplayBagType({ bagType: dto.bagType }))})</td>
       </tr>
       <tr>
         <th>Inward Bags</th>

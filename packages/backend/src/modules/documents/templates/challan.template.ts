@@ -1,8 +1,8 @@
-import { isHybridBagCategory, type ChallanDocumentDto } from '@cold-storage/contracts';
+import { formatDisplayBagType, isHybridBagCategory, type ChallanDocumentDto } from '@cold-storage/contracts';
 import { escapeHtml, renderBaseLayout } from './base.layout.js';
 
 export function renderChallanTemplate(dto: ChallanDocumentDto): string {
-  const isHybrid = isHybridBagCategory(dto.bagCategory);
+  const isHybrid = dto.bagType === 'Hybrid' || isHybridBagCategory(dto.bagCategory);
   const bagsTable = isHybrid
     ? `
     <table class="data-table">

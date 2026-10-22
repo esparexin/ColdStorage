@@ -65,7 +65,7 @@ export function TransferOwnershipConfirmation(p: Props) {
         onChange={(e) => p.onCategoryChange(e.target.value as OutwardBagCategory)}
         disabled={p.disabled}
       >
-        <option value="S/B">S/B</option>
+        <option value="S/B">Small &amp; Big</option>
         <option value="Hybrid">Hybrid</option>
       </Select>
 

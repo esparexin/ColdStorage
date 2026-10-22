@@ -44,6 +44,7 @@ export function buildDeliveryPayload(input: DeliveryPayloadInput): Record<string
 
   if (input.bagCategory) {
     payload.bagCategory = input.bagCategory;
+    payload.bagType = isHybrid ? 'Hybrid' : 'S/B';
   }
   if (isHybrid) {
     if (typeof input.seasonalBagPrice === 'number' && input.seasonalBagPrice > 0) {

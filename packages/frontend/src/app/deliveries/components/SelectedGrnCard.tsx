@@ -87,7 +87,7 @@ export function SelectedGrnCard({
               value={isHybridBagCategory(bagCategory) ? 'Hybrid' : 'S/B'}
               onChange={(e) => onBagCategoryChange(e.target.value as OutwardBagCategory)}
             >
-              <option value="S/B">S/B</option>
+              <option value="S/B">Small &amp; Big</option>
               <option value="Hybrid">Hybrid</option>
             </Select>
           </div>
