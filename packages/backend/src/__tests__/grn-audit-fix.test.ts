@@ -5,7 +5,6 @@ import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { CommodityModel } from '../database/models/commodity.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
-import { RentPaymentModel } from '../database/models/rent-payment.model.js';
 import { RentExtensionModel } from '../database/models/rent-extension.model.js';
 import { InternalMovementModel } from '../database/models/internal-movement.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';

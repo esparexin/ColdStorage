@@ -12,10 +12,10 @@
 }
 
 /* Scoped to .statusTabs so these rules carry (0,0,2,0) and deterministically
-   outrank the Button primitive's single-class .button / .sm rules. Previously
+   outrank the Button primitive's single-class button / sm rules. Previously
    they used !important because both sides were (0,0,1,0), which made the
    winner depend on stylesheet emission order. The :not(:disabled) on the hover
-   rule raises it to (0,0,4,0) so it also outranks .ghost:hover:not(:disabled).
+   rule raises it to (0,0,4,0) so it also outranks ghost:hover:not(:disabled).
    Only genuinely additive declarations belong here: font-size, font-weight,
    border and color are owned by Button's size and variant properties. */
 .statusTabs .statusTab {

@@ -60,8 +60,10 @@ dynamic_modules = {css for css in fe.rglob("*.module.css") if dynamically_access
 
 # CSS-module local names that are never referenced.
 declared = {}
-for css in fe.rglob("*.module.css"):
+for css in sorted(fe.rglob("*.module.css")):
     text = safe_read(css)
+    # drop comments: comments do not define selectors
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
     # drop @keyframes bodies: those names are not style lookups
     text = re.sub(r"@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}", "", text, flags=re.S)
     for m in re.finditer(r"\.([A-Za-z_][A-Za-z0-9_-]*)", text):
