@@ -45,7 +45,6 @@ describe('Outward Delivery Monthly Rent - Hybrid & S/B Cycles', () => {
       chamber: 'CH-01',
       bags: 100,
       bagType: 'S+B',
-      bagCategory: 'Hybrid',
       smallBags: 60,
       bigBags: 40,
       rentType: 'Monthly',
