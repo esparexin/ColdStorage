@@ -10,10 +10,12 @@ import {
   disconnectTestDatabase,
   resetStockCollections,
 } from './helpers/stock-reset.js';
+import { useHistoricalTestingDates } from './helpers/historical-dates-env.js';
 
 const USER_ID = 'usr-reporter';
 
 describe('Phase 6: Storage Occupancy Audit & Reporting (storage-audit-report.test.ts)', () => {
+  useHistoricalTestingDates();
   let facilityId: string;
   let customerId: string;
   let grnId: string;
