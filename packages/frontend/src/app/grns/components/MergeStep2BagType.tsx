@@ -63,6 +63,11 @@ export function MergeStep2BagType({
 
         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
           Confirm the incoming bag type and composition FIRST. Storage rent balances and multi-year obligations are derived directly from this confirmation.
+          {selectedSources.length > 1 && (
+            <div style={{ marginTop: 'var(--space-1)', fontStyle: 'italic' }}>
+              Note: Batch-specific contract rates apply per source GRN in the breakdown below.
+            </div>
+          )}
         </div>
 
         <MergeBagCategoryFields

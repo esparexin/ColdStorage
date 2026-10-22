@@ -17,16 +17,13 @@ export interface BagConfirmationValue {
   monthlyBagPrice: number | '';
   smallBags?: number | '';
   bigBags?: number | '';
+  confirmedSmallBags?: number | '';
+  confirmedBigBags?: number | '';
 }
 
 export const DEFAULT_BAG_CONFIRMATION: BagConfirmationValue = {
-  category: 'Hybrid',
-  quantity: '',
-  bagPrice: '',
-  seasonalBagPrice: '',
-  monthlyBagPrice: '',
-  smallBags: '',
-  bigBags: '',
+  category: 'Hybrid', quantity: '', bagPrice: '', seasonalBagPrice: '',
+  monthlyBagPrice: '', smallBags: '', bigBags: '',
 };
 
 interface MergeBagCategoryFieldsProps {
