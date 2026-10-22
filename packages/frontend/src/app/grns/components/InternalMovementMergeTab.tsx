@@ -141,6 +141,10 @@ export function InternalMovementMergeTab({
     if (isTargetLoanHold) return setValidationError(`Target GRN '${targetGrn.grnNumber}' has an active loan hold.`);
     if (targetCurrentRemaining <= 0) return setValidationError(`Target GRN '${targetGrn.grnNumber}' has zero remaining stock.`);
     if (selectedSourceIds.length === 0) return setValidationError('Please select at least one source GRN to merge.');
+    const first = selectedSources[0];
+    if (first && isHybridBagCategory(first.bagType) && confirmation.category === 'S/B') {
+      setConfirmation((p) => ({ ...p, category: 'Hybrid', quantity: totalSourceBags, bagPrice: first.bagPrice ?? '' }));
+    }
     setStep(2);
   };
 

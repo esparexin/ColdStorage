@@ -29,55 +29,53 @@ interface MergeBagCategoryFieldsProps {
   value: BagConfirmationValue;
   onChange: (patch: Partial<BagConfirmationValue>) => void;
   totalMovedBags: number;
-  // Source-driven rate visibility (outward semantics for the confirmed lot),
-  // falling back to the target context when no source is selected yet.
   rentType: RentType;
   inwardDate: Date | string;
   movementDate: string;
-  repackMode: boolean;
-  onRepackModeChange: (v: boolean) => void;
-  repackSmall: number | '';
-  onRepackSmallChange: (v: number | '') => void;
-  repackBig: number | '';
-  onRepackBigChange: (v: number | '') => void;
-  referenceWeight: number | '';
-  onReferenceWeightChange: (v: number | '') => void;
-  hasUnconfirmedMix: boolean;
   submitting: boolean;
 }
 
 /**
- * Source bag-category confirmation for Internal Move, modeled 1:1 on the
- * outward bag-type experience (SelectedGrnCard selector +
- * DeliveryBagCompositionFields branches). Rates shown and captured here are
- * informational: rent is recomputed from source GRN rules at execution.
+ * Source bag-type confirmation for Internal Move, aligned with Outward Delivery
+ * and Transfer Ownership SSOT. Rates shown and captured here are informational:
+ * rent is recomputed from source GRN rules at execution.
  */
 export function MergeBagCategoryFields({
-  value, onChange, totalMovedBags, rentType, inwardDate, movementDate,
-  repackMode, onRepackModeChange, repackSmall, onRepackSmallChange,
-  repackBig, onRepackBigChange, referenceWeight, onReferenceWeightChange,
-  hasUnconfirmedMix, submitting,
+  value,
+  onChange,
+  totalMovedBags,
+  rentType,
+  inwardDate,
+  movementDate,
+  submitting,
 }: MergeBagCategoryFieldsProps) {
   const isHybrid = isHybridBagCategory(value.category);
   const visibility = deriveHybridRateVisibility({
-    rentType, inwardDate, deliveryDate: movementDate,
+    rentType,
+    inwardDate,
+    deliveryDate: movementDate,
   });
-  const repackedSum = (typeof repackSmall === 'number' ? repackSmall : 0) + (typeof repackBig === 'number' ? repackBig : 0);
-  const isRepackFilled = typeof repackSmall === 'number' && typeof repackBig === 'number';
 
-  const setNum = (key: 'quantity' | 'bagPrice' | 'seasonalBagPrice' | 'monthlyBagPrice', int: boolean) =>
+  const setNum =
+    (key: 'quantity' | 'bagPrice' | 'seasonalBagPrice' | 'monthlyBagPrice', int: boolean) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
-      if (raw === '') { onChange({ [key]: '' } as Partial<BagConfirmationValue>); return; }
+      if (raw === '') {
+        onChange({ [key]: '' } as Partial<BagConfirmationValue>);
+        return;
+      }
       const parsed = int ? parseInt(raw, 10) : parseFloat(raw);
-      if (!Number.isNaN(parsed) && parsed >= 0) onChange({ [key]: parsed } as Partial<BagConfirmationValue>);
+      if (!Number.isNaN(parsed) && parsed >= 0) {
+        onChange({ [key]: parsed } as Partial<BagConfirmationValue>);
+      }
     };
 
   return (
     <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
       <Select
-        id="merge-bag-category" label="Bag Type"
-        value={value.category}
+        id="merge-bag-type-select"
+        label="Bag Type"
+        value={isHybrid ? 'Hybrid' : 'S/B'}
         onChange={(e) => {
           const cat = e.target.value as OutwardBagCategory;
           onChange({
@@ -91,70 +89,62 @@ export function MergeBagCategoryFields({
         <option value="Hybrid">Hybrid</option>
       </Select>
 
-      {(value.category === 'S/B' || value.category === 'Small & Big') && (
-        <>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-xs)', cursor: 'pointer', marginTop: '4px' }}>
-            <input
-              type="checkbox"
-              id="repack-mode-checkbox"
-              checked={repackMode}
-              onChange={(e) => {
-                onRepackModeChange(e.target.checked);
-                if (!e.target.checked && !hasUnconfirmedMix) {
-                  onRepackSmallChange('');
-                  onRepackBigChange('');
-                  onReferenceWeightChange('');
-                }
-              }}
-              disabled={submitting}
-            />
-            <span>Physical Repacking / Rebagging (Applies Hamali handling charge)</span>
-          </label>
-
-          {totalMovedBags > 0 && (hasUnconfirmedMix || repackMode) && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
-              <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
-                <Input id="repack-small" type="number" min={0} max={totalMovedBags} placeholder={repackMode ? "Repacked Small Bags" : "Small Bags"} aria-label={repackMode ? "Repacked small bags" : "Small bags"} value={repackSmall} onChange={(e) => onRepackSmallChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
-                <Input id="repack-big" type="number" min={0} max={totalMovedBags} placeholder={repackMode ? "Repacked Big Bags" : "Big Bags"} aria-label={repackMode ? "Repacked big bags" : "Big bags"} value={repackBig} onChange={(e) => onRepackBigChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', padding: '2px 0' }}>
-                <span>{repackMode ? 'Repacked Total:' : 'Final Total:'} <strong>{repackedSum}</strong> / {totalMovedBags} bags</span>
-                {isRepackFilled && repackedSum === totalMovedBags ? (
-                  <span style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}>✓ Counts Reconciled</span>
-                ) : (
-                  <span style={{ color: 'var(--color-danger-text)', fontWeight: 'var(--font-semibold)' }}>
-                    {repackedSum > totalMovedBags ? `Exceeds by ${repackedSum - totalMovedBags}` : `Pending ${totalMovedBags - repackedSum}`}
-                  </span>
-                )}
-              </div>
-              <Input id="reference-weight" type="number" min={0} placeholder="Total Reference Weight (kg) — Optional reference" aria-label="Total reference weight in kilograms (optional)" value={referenceWeight} onChange={(e) => onReferenceWeightChange(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
-            </div>
-          )}
-        </>
-      )}
-
-      {isHybrid && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+      {!isHybrid ? (
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+          Source bags move with their standard composition. Any physical re-bagging/repacking can be configured in Step 4.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', marginTop: '4px' }}>
           <Input
-            id="merge-hybrid-quantity"
+            id="merge-total-bags"
+            label="Total Bags"
             type="number"
             readOnly
-            placeholder="Total Bags"
             aria-label="Total Bags (read-only)"
             title="Total bags automatically calculated from selected source GRNs"
             value={totalMovedBags > 0 ? totalMovedBags : ''}
             disabled={submitting}
           />
-          <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--space-2)' }}>
             {visibility.showSeasonalRate && (
-              <Input id="merge-seasonal-rate" type="number" min={0} placeholder="Seasonal Rate (₹/bag)" aria-label="Seasonal per-bag rate" value={value.seasonalBagPrice} onChange={setNum('seasonalBagPrice', false)} disabled={submitting} />
+              <Input
+                id="merge-seasonal-rate"
+                label="Seasonal Rate (₹/bag)"
+                type="number"
+                min={0}
+                placeholder="0.00"
+                value={value.seasonalBagPrice}
+                onChange={setNum('seasonalBagPrice', false)}
+                disabled={submitting}
+              />
             )}
             {visibility.showMonthlyRate && (
-              <Input id="merge-monthly-rate" type="number" min={0} placeholder="Monthly Rate (₹/bag)" aria-label="Monthly per-bag rate" value={value.monthlyBagPrice} onChange={setNum('monthlyBagPrice', false)} disabled={submitting} />
+              <Input
+                id="merge-monthly-rate"
+                label="Monthly Rate (₹/bag)"
+                type="number"
+                min={0}
+                placeholder="0.00"
+                value={value.monthlyBagPrice}
+                onChange={setNum('monthlyBagPrice', false)}
+                disabled={submitting}
+              />
             )}
             {!visibility.showSeasonalRate && !visibility.showMonthlyRate && (
-              <Input id="merge-bag-price" type="number" min={0} placeholder="Each Bag Price (₹)" aria-label="Manual per-bag price" value={value.bagPrice} onChange={setNum('bagPrice', false)} disabled={submitting} />
+              <Input
+                id="merge-bag-price"
+                label="Each Bag Price (₹)"
+                type="number"
+                min={0}
+                placeholder="0.00"
+                value={value.bagPrice}
+                onChange={setNum('bagPrice', false)}
+                disabled={submitting}
+              />
             )}
+          </div>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+            Rates are informational — rent follows source GRN rules and is recomputed at execution.
           </div>
         </div>
       )}

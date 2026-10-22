@@ -64,15 +64,6 @@ export function MergeStep2BagType({
           rentType={confirmSource.rentType}
           inwardDate={confirmSource.date}
           movementDate={movementDate}
-          repackMode={false}
-          onRepackModeChange={() => {}}
-          repackSmall=""
-          onRepackSmallChange={() => {}}
-          repackBig=""
-          onRepackBigChange={() => {}}
-          referenceWeight=""
-          onReferenceWeightChange={() => {}}
-          hasUnconfirmedMix={false}
           submitting={submitting}
         />
       </div>
