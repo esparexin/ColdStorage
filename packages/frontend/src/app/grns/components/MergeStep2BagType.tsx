@@ -56,19 +56,16 @@ export function MergeStep2BagType({
         <div className={styles.cardHeader}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Package size={14} aria-hidden="true" />
-            <span>Step 2: Confirm Bag Type & Storage History</span>
+            <span>Step 2: Bag Type</span>
           </span>
-          <Badge variant="primary">Bag Confirmation First</Badge>
+          <Badge variant="primary">Bag Confirmation</Badge>
         </div>
 
-        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
-          Confirm the incoming bag type and composition FIRST. Storage rent balances and multi-year obligations are derived directly from this confirmation.
-          {selectedSources.length > 1 && (
-            <div style={{ marginTop: 'var(--space-1)', fontStyle: 'italic' }}>
-              Note: Batch-specific contract rates apply per source GRN in the breakdown below.
-            </div>
-          )}
-        </div>
+        {selectedSources.length > 1 && (
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
+            Note: Batch-specific contract rates apply per source GRN in the breakdown below.
+          </div>
+        )}
 
         <MergeBagCategoryFields
           value={confirmation}

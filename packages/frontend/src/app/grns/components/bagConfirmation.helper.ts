@@ -30,6 +30,10 @@ export interface BagConfirmationInput {
 export function validateBagConfirmation(input: BagConfirmationInput): string | null {
   const { category, totalMovedBags } = input;
 
+  if (typeof input.quantity === 'number' && input.quantity > totalMovedBags) {
+    return `Outward confirmed quantity (${input.quantity}) cannot exceed Total Bags of ${totalMovedBags}.`;
+  }
+
   if (isHybridBagCategory(category)) {
     const qtyErr = validateHybridQuantityInput(input.quantity, totalMovedBags, 'total moved stock');
     if (qtyErr) return qtyErr;
@@ -46,6 +50,9 @@ export function validateBagConfirmation(input: BagConfirmationInput): string | n
     const b = typeof input.bigBags === 'number' ? input.bigBags : 0;
     if (s < 0 || b < 0) return 'Bag counts cannot be negative.';
     if (!Number.isInteger(s) || !Number.isInteger(b)) return 'Bag counts must be whole numbers.';
+    if (s + b > totalMovedBags) {
+      return `Outward confirmed quantity (${s + b}) cannot exceed Total Bags of ${totalMovedBags}.`;
+    }
     if (s + b !== totalMovedBags) {
       return `Confirmed Small (${s}) and Big (${b}) bags must equal total moved bags (${totalMovedBags}).`;
     }

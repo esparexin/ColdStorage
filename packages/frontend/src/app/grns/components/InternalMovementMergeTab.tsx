@@ -138,16 +138,14 @@ export function InternalMovementMergeTab({
     if (targetCurrentRemaining <= 0) return setValidationError(`Target GRN '${targetGrn.grnNumber}' has zero remaining stock.`);
     if (selectedSourceIds.length === 0) return setValidationError('Please select at least one source GRN to merge.');
     const first = selectedSources[0];
-    const isSeg = first ? (first.smallBags ?? 0) > 0 && (first.bigBags ?? 0) > 0 : false;
-    const hasDiff = first ? (first.smallBagPrice != null || first.bigBagPrice != null) && first.smallBagPrice !== first.bigBagPrice : false;
-    const isUniform = first ? isHybridBagCategory(first.bagType) || !isSeg || !hasDiff : true;
-    if (first && isUniform) {
-      const sRate = first.rentType === 'Seasonal' || first.rentType === 'Seasonal_3M' ? (first.bagPrice ?? first.smallBagPrice ?? '') : '';
-      const mRate = first.rentType === 'Monthly' ? (first.bagPrice ?? first.smallBagPrice ?? '') : '';
-      setConfirmation((p) => ({ ...p, category: 'Hybrid', quantity: totalSourceBags, bagPrice: first.bagPrice ?? '', seasonalBagPrice: sRate, monthlyBagPrice: mRate, smallBags: defSmall, bigBags: totalSourceBags - defSmall }));
-    } else if (first && isSeg && hasDiff) {
-      setConfirmation((p) => ({ ...p, category: 'S/B', smallBags: defSmall, bigBags: totalSourceBags - defSmall }));
-    }
+    const isBig = first ? first.bagType === 'B' || (first.bigBags ?? 0) === totalSourceBags : false;
+    const sRate = isBig ? (first?.bigBagPrice ?? 185) : (first?.smallBagPrice ?? first?.bagPrice ?? 110);
+    setConfirmation((p) => ({
+      ...p, category: 'S/B', quantity: totalSourceBags,
+      smallBags: isBig ? 0 : totalSourceBags, bigBags: isBig ? totalSourceBags : 0,
+      confirmedSmallBags: isBig ? 0 : totalSourceBags, confirmedBigBags: isBig ? totalSourceBags : 0,
+      seasonalBagPrice: sRate, bagPrice: sRate,
+    }));
     setStep(2);
   };
 

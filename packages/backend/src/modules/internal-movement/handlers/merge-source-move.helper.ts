@@ -39,7 +39,7 @@ export async function validateProspectiveMergeMove(params: {
     sourceBagPrice: input.sourceBagPrice ?? null, sourceSeasonalBagPrice: input.sourceSeasonalBagPrice ?? null,
     sourceMonthlyBagPrice: input.sourceMonthlyBagPrice ?? null,
     totalMovedBags: prospectiveBags, defaultSmallMoved: prospectiveSmall, defaultBigMoved: prospectiveBig,
-    movementDate: moveDate,
+    movementDate: moveDate, isRepackSelected: input.isRepackSelected,
   });
   return { totalMovedBags: prospectiveBags, ...confirmed };
 }

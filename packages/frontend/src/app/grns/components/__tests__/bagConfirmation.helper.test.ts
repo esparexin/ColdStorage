@@ -76,5 +76,21 @@ describe('bagConfirmation.helper (outward SSOT reuse)', () => {
     });
     expect(preview).toEqual({ small: 35, big: 15 });
   });
+
+  it('prevents outward confirmed quantity from exceeding Total Bags', () => {
+    const base = {
+      category: 'S/B' as const, quantity: '' as const, bagPrice: '' as const,
+      seasonalBagPrice: '' as const, monthlyBagPrice: '' as const,
+      repackSmall: '' as const, repackBig: '' as const, totalMovedBags: 10, isRepackRequired: false,
+    };
+    // Boundary: exact configured total (10 bags)
+    expect(validateBagConfirmation({ ...base, smallBags: 10, bigBags: 0 })).toBeNull();
+    expect(validateBagConfirmation({ ...base, smallBags: 0, bigBags: 10 })).toBeNull();
+
+    // Boundary: attempted outward quantity above total (e.g. 11 or 20)
+    expect(validateBagConfirmation({ ...base, smallBags: 11, bigBags: 0 })).toContain('cannot exceed Total Bags');
+    expect(validateBagConfirmation({ ...base, smallBags: 10, bigBags: 5 })).toContain('cannot exceed Total Bags');
+    expect(validateBagConfirmation({ ...base, quantity: 15 })).toContain('cannot exceed Total Bags');
+  });
 });
 

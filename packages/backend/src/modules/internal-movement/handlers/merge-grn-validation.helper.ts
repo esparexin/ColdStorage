@@ -37,6 +37,7 @@ export interface ValidateMergeRepackedParams {
   defaultSmallMoved?: number;
   defaultBigMoved?: number;
   movementDate: Date;
+  isRepackSelected?: boolean;
 }
 
 export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams): {
@@ -128,6 +129,12 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
     }
     if (!Number.isInteger(repackedSmallBags) || !Number.isInteger(repackedBigBags)) {
       throw new Error('Repacked bag counts must be whole numbers');
+    }
+    if (!params.isRepackSelected && repackedSmallBags + repackedBigBags > totalMovedBags) {
+      throw new Error(`Confirmed outward bag quantity (${repackedSmallBags + repackedBigBags}) cannot exceed Total Bags (${totalMovedBags})`);
+    }
+    if (!params.isRepackSelected && repackedSmallBags + repackedBigBags !== totalMovedBags) {
+      throw new Error(`Confirmed Small (${repackedSmallBags}) and Big (${repackedBigBags}) bags must equal Total Bags (${totalMovedBags})`);
     }
     // Decoupled from previous counts: operator confirms physical resulting counts
     smallMoved = repackedSmallBags;

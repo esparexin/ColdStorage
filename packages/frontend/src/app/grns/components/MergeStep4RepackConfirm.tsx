@@ -60,9 +60,8 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
           <div className={styles.cardHeader}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Layers size={14} aria-hidden="true" />
-              <span>Physical Repacking (No Old Count Constraints)</span>
+              <span>Physical Repacking — Re-Bagging</span>
             </span>
-            <Badge variant={repackMode ? 'primary' : 'neutral'}>{repackMode ? 'Repacking Active' : 'Direct Merge'}</Badge>
           </div>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', cursor: 'pointer', padding: '4px 0' }}>
@@ -72,9 +71,6 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
 
           {repackMode && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1-5)', marginTop: '4px' }}>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
-                Enter physical bag counts resulting from re-bagging. <em>No validation against previous bag counts</em>: old source batches are permanently closed.
-              </div>
               <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                 <div style={{ flex: 1 }}>
                   <label htmlFor="repack-small-step4" className={styles.inputLabel}>Repacked Small Bags *</label>
@@ -91,11 +87,37 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
                 <strong style={{ color: 'var(--color-primary-text)' }}>{typeof repackSmall === 'number' && typeof repackBig === 'number' ? repackSmall + repackBig : 0} Bags</strong>
               </div>
 
-              {repackMode && !isRepackFilled && (
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
-                  Enter repacked bag counts above to calculate physical repacking Hamali.
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--space-1)',
+                  background: 'var(--color-surface-1)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: 'var(--space-2)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-text-primary)' }}>
+                    Confirm Resulting Bag Type & Rate
+                  </span>
+                  <Badge variant="primary">
+                    {Number(repackSmall) > 0 && Number(repackBig) > 0 ? 'Mixed (Small & Big)' : Number(repackSmall) > 0 ? 'Small Bags' : Number(repackBig) > 0 ? 'Big Bags' : 'Pending counts'}
+                  </Badge>
                 </div>
-              )}
+                {isRepackFilled && (Number(repackSmall) > 0 || Number(repackBig) > 0) ? (
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    {Number(repackSmall) > 0 && <div>• Small Bags: <strong>{Number(repackSmall)} bags</strong> @ ₹110/bag</div>}
+                    {Number(repackBig) > 0 && <div>• Big Bags: <strong>{Number(repackBig)} bags</strong> @ ₹185/bag</div>}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                    Enter repacked bag counts above to confirm resulting bag type and rate.
+                  </div>
+                )}
+              </div>
+
               {repackHamaliCharge > 0 && (
                 <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
                   Repacking Hamali Labor: <strong>₹{repackHamaliCharge}</strong> ({actualRepackedBags} bags @ ₹{commodityHamaliRate}/bag)
@@ -136,11 +158,15 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
               {repackMode && !isRepackFilled ? (
                 <span style={{ color: 'var(--color-text-secondary)', fontWeight: 'normal' }}>Pending repacked counts</span>
               ) : repackMode && isRepackFilled ? (
-                `+${addedBagsToTarget} Bags (${repackSmall} Small · ${repackBig} Big)`
+                `+${addedBagsToTarget} Bags (${repackSmall}S @ ₹110 · ${repackBig}B @ ₹185)`
               ) : isHybrid ? (
                 `+${addedBagsToTarget} Bags (Hybrid)`
               ) : movedSmall > 0 && movedBig > 0 ? (
-                `+${addedBagsToTarget} Bags (${movedSmall} Small · ${movedBig} Big)`
+                `+${addedBagsToTarget} Bags (${movedSmall}S @ ₹110 · ${movedBig}B @ ₹185)`
+              ) : movedSmall > 0 ? (
+                `+${addedBagsToTarget} Bags (${movedSmall} Small @ ₹110)`
+              ) : movedBig > 0 ? (
+                `+${addedBagsToTarget} Bags (${movedBig} Big @ ₹185)`
               ) : (
                 `+${addedBagsToTarget} Bags`
               )}
@@ -154,7 +180,7 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
             <span className={styles.detailLabel}>Resulting Bag Type:</span>
             <span className={styles.detailValue}>
               <Badge variant="primary">
-                {isHybrid ? 'Hybrid' : resultingBagType === 'S/B' || resultingBagType === 'S+B' ? 'Small & Big' : resultingBagType === 'S' ? 'Small' : resultingBagType === 'B' ? 'Big' : resultingBagType}
+                {isHybrid ? 'Hybrid' : resultingBagType === 'S/B' || resultingBagType === 'S+B' ? 'Small & Big (₹110 / ₹185)' : resultingBagType === 'S' ? 'Small Bags (₹110/bag)' : resultingBagType === 'B' ? 'Big Bags (₹185/bag)' : resultingBagType}
               </Badge>
             </span>
           </div>
