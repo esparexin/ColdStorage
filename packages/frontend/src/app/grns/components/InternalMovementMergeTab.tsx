@@ -98,13 +98,8 @@ export function InternalMovementMergeTab({
   }, [totalSourcePendingRent, settleAmount]);
 
   const isTargetDiff = (targetGrn.smallBagPrice != null || targetGrn.bigBagPrice != null) && targetGrn.smallBagPrice !== targetGrn.bigBagPrice;
-  const isTargetVerified = resolveStoredCompositionVerified({
-    isCompositionVerified: targetGrn.isCompositionVerified,
-    bagType: targetGrn.bagType, bags: targetGrn.bags, smallBags: targetGrn.smallBags, bigBags: targetGrn.bigBags,
-  });
-  const allSourcesVerified = selectedSources.every((s) => resolveStoredCompositionVerified({
-    isCompositionVerified: s.isCompositionVerified, bagType: s.bagType, bags: s.bags, smallBags: s.smallBags, bigBags: s.bigBags,
-  }));
+  const isTargetVerified = resolveStoredCompositionVerified({ isCompositionVerified: targetGrn.isCompositionVerified, bagType: targetGrn.bagType, bags: targetGrn.bags, smallBags: targetGrn.smallBags, bigBags: targetGrn.bigBags });
+  const allSourcesVerified = selectedSources.every((s) => resolveStoredCompositionVerified({ isCompositionVerified: s.isCompositionVerified, bagType: s.bagType, bags: s.bags, smallBags: s.smallBags, bigBags: s.bigBags }));
   const isRepackRequired = repackMode || (selectedSources.length > 0 && (isTargetDiff || selectedSources.some((s) => (s.smallBagPrice != null || s.bigBagPrice != null) && s.smallBagPrice !== s.bigBagPrice)) && (!isTargetVerified || !allSourcesVerified));
   const isRepackFilled = typeof repackSmall === 'number' && typeof repackBig === 'number' && Number.isInteger(repackSmall) && Number.isInteger(repackBig);
 
@@ -114,7 +109,7 @@ export function InternalMovementMergeTab({
     return (targetCommodity.isHamaliApplicable ?? (targetCommodity.hamaliRate ?? 0) > 0) ? (targetCommodity.hamaliRate ?? 0) : 0;
   }, [targetCommodity]);
 
-  const actualRepackedBags = repackMode && isRepackFilled ? Number(repackSmall) + Number(repackBig) : (repackMode ? totalSourceBags : 0);
+  const actualRepackedBags = repackMode && isRepackFilled ? Number(repackSmall) + Number(repackBig) : 0;
   const repackHamaliCharge = useMemo(() => (repackMode && actualRepackedBags > 0 && commodityHamaliRate > 0 ? calculateHamaliAmount(actualRepackedBags, commodityHamaliRate) : 0), [repackMode, actualRepackedBags, commodityHamaliRate]);
 
   const rawSmall = selectedSources.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
@@ -127,7 +122,7 @@ export function InternalMovementMergeTab({
   });
   const movedSmall = repackMode && isRepackFilled ? Number(repackSmall) : previewSplit.small;
   const movedBig = repackMode && isRepackFilled ? Number(repackBig) : previewSplit.big;
-  const addedBagsToTarget = repackMode && isRepackFilled ? (Number(repackSmall) + Number(repackBig)) : totalSourceBags;
+  const addedBagsToTarget = repackMode ? (isRepackFilled ? (Number(repackSmall) + Number(repackBig)) : 0) : totalSourceBags;
   const targetNewRemaining = targetCurrentRemaining + addedBagsToTarget;
 
   const resultingBagType = useMemo(() => resolveMergedBagType({
@@ -142,8 +137,15 @@ export function InternalMovementMergeTab({
     if (targetCurrentRemaining <= 0) return setValidationError(`Target GRN '${targetGrn.grnNumber}' has zero remaining stock.`);
     if (selectedSourceIds.length === 0) return setValidationError('Please select at least one source GRN to merge.');
     const first = selectedSources[0];
-    if (first && isHybridBagCategory(first.bagType) && confirmation.category === 'S/B') {
-      setConfirmation((p) => ({ ...p, category: 'Hybrid', quantity: totalSourceBags, bagPrice: first.bagPrice ?? '' }));
+    const isSeg = first ? (first.smallBags ?? 0) > 0 && (first.bigBags ?? 0) > 0 : false;
+    const hasDiff = first ? (first.smallBagPrice != null || first.bigBagPrice != null) && first.smallBagPrice !== first.bigBagPrice : false;
+    const isUniform = first ? isHybridBagCategory(first.bagType) || !isSeg || !hasDiff : true;
+    if (first && isUniform) {
+      const sRate = first.rentType === 'Seasonal' || first.rentType === 'Seasonal_3M' ? (first.bagPrice ?? first.smallBagPrice ?? '') : '';
+      const mRate = first.rentType === 'Monthly' ? (first.bagPrice ?? first.smallBagPrice ?? '') : '';
+      setConfirmation((p) => ({ ...p, category: 'Hybrid', quantity: totalSourceBags, bagPrice: first.bagPrice ?? '', seasonalBagPrice: sRate, monthlyBagPrice: mRate }));
+    } else if (first && isSeg && hasDiff) {
+      setConfirmation((p) => ({ ...p, category: 'S/B' }));
     }
     setStep(2);
   };
@@ -176,10 +178,8 @@ export function InternalMovementMergeTab({
     if (selectedSourceIds.length === 0) return setValidationError('Select at least one source GRN to merge.');
     if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
     if (isTargetLoanHold) return setValidationError(`Target GRN '${targetGrn.grnNumber}' has an active loan hold.`);
-    if (repackMode) {
-      if (!isRepackFilled) return setValidationError('Both Repacked Small and Big bag counts are required.');
-      if (Number(repackSmall) < 0 || Number(repackBig) < 0) return setValidationError('Repacked bag counts cannot be negative.');
-    }
+    if (repackMode && !isRepackFilled) return setValidationError('Both Repacked Small and Big bag counts are required.');
+    if (repackMode && (Number(repackSmall) < 0 || Number(repackBig) < 0)) return setValidationError('Repacked bag counts cannot be negative.');
     const isSb = confirmation.category === 'S/B' || confirmation.category === 'Small & Big';
     await onExecuteMerge(
       targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0,

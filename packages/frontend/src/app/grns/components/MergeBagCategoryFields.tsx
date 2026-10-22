@@ -18,7 +18,7 @@ export interface BagConfirmationValue {
 }
 
 export const DEFAULT_BAG_CONFIRMATION: BagConfirmationValue = {
-  category: 'S/B',
+  category: 'Hybrid',
   quantity: '',
   bagPrice: '',
   seasonalBagPrice: '',

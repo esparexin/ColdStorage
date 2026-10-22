@@ -91,6 +91,11 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
                 <strong style={{ color: 'var(--color-primary-text)' }}>{typeof repackSmall === 'number' && typeof repackBig === 'number' ? repackSmall + repackBig : 0} Bags</strong>
               </div>
 
+              {repackMode && !isRepackFilled && (
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
+                  Enter repacked bag counts above to calculate physical repacking Hamali.
+                </div>
+              )}
               {repackHamaliCharge > 0 && (
                 <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
                   Repacking Hamali Labor: <strong>₹{repackHamaliCharge}</strong> ({actualRepackedBags} bags @ ₹{commodityHamaliRate}/bag)
@@ -128,7 +133,17 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>+ Added from Merge:</span>
             <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-bold)' }}>
-              +{addedBagsToTarget} bags {repackMode && isRepackFilled ? `(${repackSmall}S · ${repackBig}B)` : `(${movedSmall}S · ${movedBig}B)`}
+              {repackMode && !isRepackFilled ? (
+                <span style={{ color: 'var(--color-text-secondary)', fontWeight: 'normal' }}>Pending repacked counts</span>
+              ) : repackMode && isRepackFilled ? (
+                `+${addedBagsToTarget} Bags (${repackSmall} Small · ${repackBig} Big)`
+              ) : isHybrid ? (
+                `+${addedBagsToTarget} Bags (Hybrid)`
+              ) : movedSmall > 0 && movedBig > 0 ? (
+                `+${addedBagsToTarget} Bags (${movedSmall} Small · ${movedBig} Big)`
+              ) : (
+                `+${addedBagsToTarget} Bags`
+              )}
             </span>
           </div>
           <div className={styles.detailRow} style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
@@ -137,7 +152,11 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
           </div>
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Resulting Bag Type:</span>
-            <span className={styles.detailValue}><Badge variant="primary">{isHybrid ? 'Hybrid' : resultingBagType}</Badge></span>
+            <span className={styles.detailValue}>
+              <Badge variant="primary">
+                {isHybrid ? 'Hybrid' : resultingBagType === 'S/B' || resultingBagType === 'S+B' ? 'Small & Big' : resultingBagType === 'S' ? 'Small' : resultingBagType === 'B' ? 'Big' : resultingBagType}
+              </Badge>
+            </span>
           </div>
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Rent Settlement:</span>

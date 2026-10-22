@@ -83,10 +83,12 @@ export function MergeRentAssessment({
           }
         }
 
-        const isHybrid = isHybridBagCategory(confirmation?.category);
-        const smallBags = isHybrid ? sourceBags : (source.smallBags ?? sourceBags);
+        const isSegregated = (source.smallBags ?? 0) > 0 && (source.bigBags ?? 0) > 0;
+        const hasDiff = (source.smallBagPrice != null || source.bigBagPrice != null) && source.smallBagPrice !== source.bigBagPrice;
+        const isHybrid = isHybridBagCategory(confirmation?.category) || (!isSegregated && !hasDiff);
+        const smallBags = isHybrid ? sourceBags : (source.smallBags ?? 0);
         const bigBags = isHybrid ? 0 : (source.bigBags ?? 0);
-        const bagCategory = (confirmation?.category || source.bagType || 'S/B') as OutwardBagCategory;
+        const bagCategory = (isHybrid ? 'Hybrid' : (confirmation?.category || 'S/B')) as OutwardBagCategory;
 
         const seasonalRates = {
           small: source.smallBagPrice ?? source.bagPrice ?? 10,
