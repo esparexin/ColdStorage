@@ -3,6 +3,7 @@ import { asyncRouter } from '../utils/async-handler.js';
 import {
   correctGrnSchema,
   createGrnSchema,
+  deleteGrnInputSchema,
   grnQuerySchema,
   updateGrnLoanStatusSchema,
 } from '@cold-storage/contracts';
@@ -10,8 +11,9 @@ import { authenticate, requirePasswordChanged } from '../middleware/auth.middlew
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
 import { grnService } from '../modules/grn/grn.service.js';
-import { sendInternalError, sendServiceError } from '../utils/http-error.js';
+import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
+import { handleGrnCreateError, handleGrnDeleteError } from './grn-route-errors.helper.js';
 
 export const grnRouter = asyncRouter();
 
@@ -44,30 +46,7 @@ grnRouter.post(
       const { grn, acknowledgement } = await grnService.createGrn(facilityId, parseResult.data, req.user!.userId);
       res.status(201).json({ grn, acknowledgement });
     } catch (err: unknown) {
-      const isMongoDuplicate =
-        typeof err === 'object' && err !== null && 'code' in err && (err as { code: number }).code === 11000;
-      const isAlreadyExists = err instanceof Error && err.message.includes('already exists');
-      if (isMongoDuplicate || isAlreadyExists) {
-        const errorMsg = isMongoDuplicate
-          ? `GRN '${parseResult.data.grnNumber}' already exists for this facility.`
-          : (err as Error).message;
-        res.status(409).json({ error: errorMsg });
-        return;
-      }
-      const message = err instanceof Error ? err.message : 'GRN creation failed';
-      const isKnownClientError =
-        message.includes('not found') ||
-        message.includes('inactive') ||
-        message.includes('not registered') ||
-        message.includes('does not belong') || message.includes('do not match') ||
-        message.includes('controller rate') || message.includes('future') ||
-        message.includes('exceeds permitted') ||
-        message.includes('Financial Year');
-      if (isKnownClientError) {
-        res.status(400).json({ error: message });
-        return;
-      }
-      sendInternalError(res, err, 'createGrn');
+      handleGrnCreateError(res, err, parseResult.data.grnNumber);
     }
   },
 );
@@ -234,6 +213,36 @@ grnRouter.patch(
       res.status(200).json({ grn });
     } catch (err: unknown) {
       sendServiceError(res, err, 'Updating GRN loan status failed');
+    }
+  },
+);
+
+// Delete GRN (testing only — disabled in production)
+grnRouter.delete(
+  '/facilities/:facilityId/grns/:grnId',
+  requirePermission('grn:delete'),
+  requireFacilityScope(async (req) => grnService.resolveFacilityIdForGrn(getParamId(req.params.grnId))),
+  async (req: Request, res: Response): Promise<void> => {
+    const facilityId = getParamId(req.params.facilityId);
+    const grnId = getParamId(req.params.grnId);
+
+    const grnFacilityId = await grnService.resolveFacilityIdForGrn(grnId);
+    if (!grnFacilityId || grnFacilityId !== facilityId) {
+      res.status(404).json({ error: `GRN '${grnId}' not found in facility '${facilityId}'` });
+      return;
+    }
+
+    const parseResult = deleteGrnInputSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({ error: 'Validation failed', details: parseResult.error.flatten() });
+      return;
+    }
+
+    try {
+      const result = await grnService.deleteGrn(facilityId, parseResult.data, req.user!.userId);
+      res.status(200).json(result);
+    } catch (err: unknown) {
+      handleGrnDeleteError(res, err);
     }
   },
 );

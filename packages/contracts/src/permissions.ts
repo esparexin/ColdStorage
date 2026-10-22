@@ -51,6 +51,8 @@ export const PERMISSIONS = {
   'group:view': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR', 'READ_ONLY'],
   'group:manage': ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'],
   'group:delete': ['SUPER_ADMIN', 'ADMIN'],
+  /** Testing-only deletion of GRN records and their dependent data. Never enabled in production. */
+  'grn:delete': ['SUPER_ADMIN', 'ADMIN'],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type PermissionKey = keyof typeof PERMISSIONS;

@@ -88,7 +88,7 @@ export function toGrnEntity(doc: {
     smallBags: doc.smallBags,
     bigBags: doc.bigBags,
     isCompositionVerified:
-      ((doc as unknown as Record<string, unknown>).isCompositionVerified as boolean | undefined) ?? true,
+      (((doc as unknown as Record<string, unknown>).isCompositionVerified as boolean | null | undefined) ?? null) as boolean | undefined,
     gpNumber: doc.gpNumber ?? null,
     storageMark: doc.storageMark ?? null,
     partyMark: doc.partyMark ?? null,

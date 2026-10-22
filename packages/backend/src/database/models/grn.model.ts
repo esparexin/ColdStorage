@@ -100,7 +100,7 @@ const grnSchema = new Schema<GrnDoc>(
     hamaliAmount: { type: Number, min: 0 },
     smallBags: { type: Number, required: true, min: 0 },
     bigBags: { type: Number, required: true, min: 0 },
-    isCompositionVerified: { type: Boolean, default: true },
+    isCompositionVerified: { type: Boolean, default: null },
     gpNumber: { type: String, trim: true, default: null },
     storageMark: { type: String, trim: true, maxlength: 20, default: null },
     partyMark: { type: String, trim: true, maxlength: 20, default: null },

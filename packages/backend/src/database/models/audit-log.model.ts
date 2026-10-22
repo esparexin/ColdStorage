@@ -54,6 +54,7 @@ const auditLogSchema = new Schema<AuditLogDoc>(
         'FACILITY_UPDATED',
         'FACILITY_DELETED',
         'GRN_LOAN_STATUS_UPDATED',
+        'GRN_DELETED',
         'INTERNAL_MOVEMENT_MERGE',
         'INTERNAL_MOVEMENT_TRANSFER',
         'GROUP_CREATED',

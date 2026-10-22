@@ -210,4 +210,35 @@ export const grnSchema = z.object({
 
 export type Grn = z.infer<typeof grnSchema>;
 
+/**
+ * Testing-only GRN deletion input. Never exposed in production.
+ * Requires explicit confirmation token equal to the GRN number to prevent
+ * accidental deletion.
+ */
+export const deleteGrnInputSchema = z.object({
+  grnId: z.string().trim().min(1, 'GRN ID is required'),
+  confirmationToken: z.string().trim().min(1, 'Confirmation token is required'),
+  /** Reason for deletion (testing only). */
+  reason: z.string().trim().min(5, 'Deletion reason must be at least 5 characters').max(500),
+});
+export type DeleteGrnInput = z.infer<typeof deleteGrnInputSchema>;
+
+/**
+ * Result of a GRN deletion, enumerating every dependent record removed.
+ */
+export interface DeleteGrnResult {
+  deleted: boolean;
+  id: string;
+  grnNumber: string;
+  dependentRecords: {
+    rentPayments: number;
+    rentExtensions: number;
+    inventoryTransactions: number;
+    deliveryChallans: number;
+    deliveryReversals: number;
+    internalMovements: number;
+  };
+  auditLogged: boolean;
+}
+
 
