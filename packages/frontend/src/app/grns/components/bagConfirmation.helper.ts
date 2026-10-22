@@ -19,6 +19,8 @@ export interface BagConfirmationInput {
   bagPrice: number | '';
   seasonalBagPrice: number | '';
   monthlyBagPrice: number | '';
+  smallBags?: number | '';
+  bigBags?: number | '';
   repackSmall: number | '';
   repackBig: number | '';
   totalMovedBags: number;
@@ -36,9 +38,17 @@ export function validateBagConfirmation(input: BagConfirmationInput): string | n
   }
 
   if (category === 'Small' || category === 'Big') {
-    // No separate single-type options: Small-only and Big-only are expressed
-    // through the Small & Big split with 0 on the unused side (outward parity).
     return 'Small-only and Big-only confirmation uses the Small & Big split (enter 0 for the unused side).';
+  }
+
+  if (typeof input.smallBags === 'number' || typeof input.bigBags === 'number') {
+    const s = typeof input.smallBags === 'number' ? input.smallBags : 0;
+    const b = typeof input.bigBags === 'number' ? input.bigBags : 0;
+    if (s < 0 || b < 0) return 'Bag counts cannot be negative.';
+    if (!Number.isInteger(s) || !Number.isInteger(b)) return 'Bag counts must be whole numbers.';
+    if (s + b !== totalMovedBags) {
+      return `Confirmed Small (${s}) and Big (${b}) bags must equal total moved bags (${totalMovedBags}).`;
+    }
   }
 
   if (!input.isRepackRequired) {
@@ -74,8 +84,12 @@ export function allocateHybridPreview(ledgerSmall: number, ledgerBig: number, to
 export function previewConfirmedSplit(input: {
   category: OutwardBagCategory; rawSmall: number; rawBig: number; total: number;
   defaultSmall: number; defaultBig: number; repackSmall: number | ''; repackBig: number | ''; isRepackFilled: boolean;
+  confirmedSmall?: number | ''; confirmedBig?: number | '';
 }): { small: number; big: number } {
   if (isHybridBagCategory(input.category)) return allocateHybridPreview(input.rawSmall, input.rawBig, input.total);
   if (input.isRepackFilled) return { small: Number(input.repackSmall), big: Number(input.repackBig) };
+  if (typeof input.confirmedSmall === 'number' && typeof input.confirmedBig === 'number') {
+    return { small: input.confirmedSmall, big: input.confirmedBig };
+  }
   return { small: input.defaultSmall, big: input.defaultBig };
 }

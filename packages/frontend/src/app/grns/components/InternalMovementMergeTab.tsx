@@ -119,6 +119,7 @@ export function InternalMovementMergeTab({
   const previewSplit = previewConfirmedSplit({
     category: confirmation.category, rawSmall, rawBig, total: totalSourceBags,
     defaultSmall: defSmall, defaultBig: totalSourceBags - defSmall, repackSmall, repackBig, isRepackFilled,
+    confirmedSmall: confirmation.smallBags, confirmedBig: confirmation.bigBags,
   });
   const movedSmall = repackMode && isRepackFilled ? Number(repackSmall) : previewSplit.small;
   const movedBig = repackMode && isRepackFilled ? Number(repackBig) : previewSplit.big;
@@ -143,9 +144,9 @@ export function InternalMovementMergeTab({
     if (first && isUniform) {
       const sRate = first.rentType === 'Seasonal' || first.rentType === 'Seasonal_3M' ? (first.bagPrice ?? first.smallBagPrice ?? '') : '';
       const mRate = first.rentType === 'Monthly' ? (first.bagPrice ?? first.smallBagPrice ?? '') : '';
-      setConfirmation((p) => ({ ...p, category: 'Hybrid', quantity: totalSourceBags, bagPrice: first.bagPrice ?? '', seasonalBagPrice: sRate, monthlyBagPrice: mRate }));
+      setConfirmation((p) => ({ ...p, category: 'Hybrid', quantity: totalSourceBags, bagPrice: first.bagPrice ?? '', seasonalBagPrice: sRate, monthlyBagPrice: mRate, smallBags: defSmall, bigBags: totalSourceBags - defSmall }));
     } else if (first && isSeg && hasDiff) {
-      setConfirmation((p) => ({ ...p, category: 'S/B' }));
+      setConfirmation((p) => ({ ...p, category: 'S/B', smallBags: defSmall, bigBags: totalSourceBags - defSmall }));
     }
     setStep(2);
   };
@@ -156,6 +157,7 @@ export function InternalMovementMergeTab({
     const confirmError = validateBagConfirmation({
       category: confirmation.category, quantity: confirmedQty, bagPrice: confirmation.bagPrice,
       seasonalBagPrice: confirmation.seasonalBagPrice, monthlyBagPrice: confirmation.monthlyBagPrice,
+      smallBags: confirmation.smallBags, bigBags: confirmation.bigBags,
       repackSmall: '', repackBig: '', totalMovedBags: totalSourceBags, isRepackRequired: false,
     });
     if (confirmError) return setValidationError(confirmError);

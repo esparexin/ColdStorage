@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Package } from 'lucide-react';
-import type { Grn } from '@cold-storage/contracts';
+import { resolveOutwardRates, type Grn } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import { MergeBagCategoryFields, type BagConfirmationValue } from './MergeBagCategoryFields';
 import { MergeRentAssessment } from './MergeRentAssessment';
@@ -42,6 +42,14 @@ export function MergeStep2BagType({
   onBack,
   onNext,
 }: MergeStep2BagTypeProps) {
+  const rates = resolveOutwardRates(confirmSource.rentType, {
+    smallBagPrice: confirmSource.smallBagPrice,
+    bigBagPrice: confirmSource.bigBagPrice,
+    bagPrice: confirmSource.bagPrice,
+  });
+  const rawSmall = selectedSources.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
+  const rawBig = selectedSources.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
       <div className={styles.compactCard}>
@@ -65,6 +73,9 @@ export function MergeStep2BagType({
           inwardDate={confirmSource.date}
           movementDate={movementDate}
           submitting={submitting}
+          rates={rates}
+          rawSmall={rawSmall}
+          rawBig={rawBig}
         />
       </div>
 

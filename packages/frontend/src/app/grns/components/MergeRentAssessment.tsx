@@ -33,6 +33,8 @@ export function MergeRentAssessment({
   selectedSources,
   confirmation,
   totalSourceBags,
+  movedSmall,
+  movedBig = 0,
   movementDate,
   repackMode,
   commodityHamaliRate = 0,
@@ -83,11 +85,15 @@ export function MergeRentAssessment({
           }
         }
 
-        const isSegregated = (source.smallBags ?? 0) > 0 && (source.bigBags ?? 0) > 0;
-        const hasDiff = (source.smallBagPrice != null || source.bigBagPrice != null) && source.smallBagPrice !== source.bigBagPrice;
-        const isHybrid = isHybridBagCategory(confirmation?.category) || (!isSegregated && !hasDiff);
-        const smallBags = isHybrid ? sourceBags : (source.smallBags ?? 0);
-        const bigBags = isHybrid ? 0 : (source.bigBags ?? 0);
+        const isHybrid = isHybridBagCategory(confirmation?.category);
+        const confirmedSmall = typeof confirmation?.smallBags === 'number'
+          ? confirmation.smallBags
+          : (typeof movedSmall === 'number' ? movedSmall : (source.smallBags ?? sourceBags));
+        const confirmedBig = typeof confirmation?.bigBags === 'number'
+          ? confirmation.bigBags
+          : (typeof movedBig === 'number' ? movedBig : (source.bigBags ?? 0));
+        const smallBags = isHybrid ? sourceBags : confirmedSmall;
+        const bigBags = isHybrid ? 0 : confirmedBig;
         const bagCategory = (isHybrid ? 'Hybrid' : (confirmation?.category || 'S/B')) as OutwardBagCategory;
 
         const seasonalRates = {

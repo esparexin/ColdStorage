@@ -15,6 +15,8 @@ export interface BagConfirmationValue {
   bagPrice: number | '';
   seasonalBagPrice: number | '';
   monthlyBagPrice: number | '';
+  smallBags?: number | '';
+  bigBags?: number | '';
 }
 
 export const DEFAULT_BAG_CONFIRMATION: BagConfirmationValue = {
@@ -23,6 +25,8 @@ export const DEFAULT_BAG_CONFIRMATION: BagConfirmationValue = {
   bagPrice: '',
   seasonalBagPrice: '',
   monthlyBagPrice: '',
+  smallBags: '',
+  bigBags: '',
 };
 
 interface MergeBagCategoryFieldsProps {
@@ -33,12 +37,15 @@ interface MergeBagCategoryFieldsProps {
   inwardDate: Date | string;
   movementDate: string;
   submitting: boolean;
+  rates?: { small: number; big: number };
+  rawSmall?: number;
+  rawBig?: number;
 }
 
 /**
  * Source bag-type confirmation for Internal Move, aligned with Outward Delivery
- * and Transfer Ownership SSOT. Rates shown and captured here are informational:
- * rent is recomputed from source GRN rules at execution.
+ * and Transfer Ownership SSOT. Rates and bag counts confirm stored lot composition
+ * and drive the Outward Rent Calculation breakdown.
  */
 export function MergeBagCategoryFields({
   value,
@@ -48,6 +55,9 @@ export function MergeBagCategoryFields({
   inwardDate,
   movementDate,
   submitting,
+  rates,
+  rawSmall,
+  rawBig,
 }: MergeBagCategoryFieldsProps) {
   const isHybrid = isHybridBagCategory(value.category);
   const visibility = deriveHybridRateVisibility({
@@ -56,8 +66,13 @@ export function MergeBagCategoryFields({
     deliveryDate: movementDate,
   });
 
+  const confirmedSmall = typeof value.smallBags === 'number' ? value.smallBags : (rawSmall ?? 0);
+  const confirmedBig = typeof value.bigBags === 'number' ? value.bigBags : (rawBig ?? 0);
+  const confirmedTotal = confirmedSmall + confirmedBig;
+  const isMatched = confirmedTotal === totalMovedBags;
+
   const setNum =
-    (key: 'quantity' | 'bagPrice' | 'seasonalBagPrice' | 'monthlyBagPrice', int: boolean) =>
+    (key: keyof BagConfirmationValue, int: boolean) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
       if (raw === '') {
@@ -78,10 +93,15 @@ export function MergeBagCategoryFields({
         value={isHybrid ? 'Hybrid' : 'S/B'}
         onChange={(e) => {
           const cat = e.target.value as OutwardBagCategory;
-          onChange({
-            category: cat,
-            ...(isHybridBagCategory(cat) ? { quantity: totalMovedBags } : {}),
-          });
+          if (isHybridBagCategory(cat)) {
+            onChange({ category: cat, quantity: totalMovedBags });
+          } else {
+            onChange({
+              category: cat,
+              smallBags: typeof value.smallBags === 'number' ? value.smallBags : (rawSmall ?? totalMovedBags),
+              bigBags: typeof value.bigBags === 'number' ? value.bigBags : (rawBig ?? 0),
+            });
+          }
         }}
         disabled={submitting}
       >
@@ -90,8 +110,73 @@ export function MergeBagCategoryFields({
       </Select>
 
       {!isHybrid ? (
-        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
-          Source bags move with their standard composition. Any physical re-bagging/repacking can be configured in Step 4.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', marginTop: '4px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--space-2)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <label htmlFor="merge-small-bags" style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)', color: 'var(--color-text-secondary)' }}>
+                  Small Bags
+                </label>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                  {rentType === 'Monthly' ? 'Monthly: ' : 'Rate: '}₹{rates?.small ?? 10}/bag
+                </span>
+              </div>
+              <Input
+                id="merge-small-bags"
+                type="number"
+                min={0}
+                max={totalMovedBags}
+                placeholder="0"
+                value={value.smallBags !== undefined ? value.smallBags : (rawSmall ?? 0)}
+                onChange={setNum('smallBags', true)}
+                disabled={submitting}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <label htmlFor="merge-big-bags" style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)', color: 'var(--color-text-secondary)' }}>
+                  Big Bags
+                </label>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                  {rentType === 'Monthly' ? 'Monthly: ' : 'Rate: '}₹{rates?.big ?? 15}/bag
+                </span>
+              </div>
+              <Input
+                id="merge-big-bags"
+                type="number"
+                min={0}
+                max={totalMovedBags}
+                placeholder="0"
+                value={value.bigBags !== undefined ? value.bigBags : (rawBig ?? 0)}
+                onChange={setNum('bigBags', true)}
+                disabled={submitting}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+              <label style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-medium)', color: 'var(--color-text-secondary)' }}>
+                Total Confirmed
+              </label>
+              <div
+                style={{
+                  height: '38px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '0 var(--space-3)',
+                  backgroundColor: 'var(--color-surface-2)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 'var(--font-medium)',
+                  color: isMatched ? 'var(--color-text-primary)' : 'var(--color-warning-text)',
+                }}
+              >
+                {confirmedTotal} / {totalMovedBags} bags
+              </div>
+            </div>
+          </div>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+            Confirmed Small and Big counts and rates are applied directly to outward rent calculation.
+          </div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', marginTop: '4px' }}>
