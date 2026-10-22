@@ -46,8 +46,11 @@ export function calculateRentAmount(input: RentalCalculationInput): number {
   const isSeasonal = input.rentType === 'Seasonal' || input.rentType === 'Seasonal_3M';
   const months = isSeasonal ? 1 : Math.max(1, input.rentMonths ?? 1);
 
-  if (isHybridBagCategory(input.bagCategory) && typeof input.bagPrice === 'number' && input.bagPrice > 0) {
-    return Number((input.bags * input.bagPrice * months).toFixed(2));
+  if (isHybridBagCategory(input.bagCategory)) {
+    const hybridRate = input.bagPrice ?? input.smallBagPrice ?? input.bigBagPrice ?? 0;
+    if (typeof hybridRate === 'number' && hybridRate > 0) {
+      return Number((input.bags * hybridRate * months).toFixed(2));
+    }
   }
 
   const sRate = input.smallBagPrice ?? input.bagPrice ?? 0;
@@ -111,6 +114,8 @@ export function deriveBagPrice(input: {
   rentType: RentType;
   bags: number;
   bagPrice?: number | null;
+  smallBagPrice?: number | null;
+  bigBagPrice?: number | null;
   rentMonths?: number | null;
   rentAmount?: number | null;
 }): number | null {
@@ -120,7 +125,8 @@ export function deriveBagPrice(input: {
     const months = Math.max(1, input.rentMonths ?? 1);
     return Number((input.rentAmount / (input.bags * months)).toFixed(2));
   }
-  return null;
+  if (typeof input.smallBagPrice === 'number' && input.smallBagPrice > 0 && typeof input.bigBagPrice === 'number' && input.bigBagPrice > 0 && input.smallBagPrice === input.bigBagPrice) return input.smallBagPrice;
+  return (typeof input.smallBagPrice === 'number' && input.smallBagPrice > 0) ? input.smallBagPrice : (typeof input.bigBagPrice === 'number' && input.bigBagPrice > 0 ? input.bigBagPrice : null);
 }
 
 /** Billing cycle label: Seasonal is fixed; Monthly is the day-of-month cycle. */
@@ -173,14 +179,8 @@ export function calculate3MAdditionalMonths(inwardDate: Date | string, deliveryD
 export interface MovementSnapshot { date: Date; type: string; deliveredBags: number; closingBags: number; }
 
 export interface OccupancyCalculationInput {
-  grnId: string;
-  grnNumber: string;
-  inwardDate: Date;
-  totalBags: number;
-  bagRate: number;
-  movements: MovementSnapshot[];
-  asOfDate?: Date;
-  prorationMode?: 'full_month' | 'daily_prorate';
+  grnId: string; grnNumber: string; inwardDate: Date; totalBags: number;
+  bagRate: number; movements: MovementSnapshot[]; asOfDate?: Date; prorationMode?: 'full_month' | 'daily_prorate';
 }
 
 /** Monthly occupancy: per-cycle opening bags × rate, stops at 0 remaining. */

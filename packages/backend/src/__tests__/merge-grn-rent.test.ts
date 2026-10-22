@@ -166,7 +166,7 @@ describe('Merge GRN: Rent Carry-Forward & Obligation Preservation (Phase 4)', ()
     expect(res.body.movement.financialSnapshot.remainingBalance).toBe(2200);
   });
 
-  it('merges source lot with confirmed repacked small and big bag counts and rejects mismatches', async () => {
+  it('merges source lot with repacked small and big bag counts without previous count validation', async () => {
     const targetGrnId = await seedGrn({
       facilityId, customerId: customerA, customerName: 'Farmer Ramesh', commodityId, commodityName: 'Wheat',
       chamber: 'CH-01', bags: 100, bagType: 'S+B', smallBags: 40, bigBags: 60, rentType: 'Seasonal', rentAmount: 2000, grnNumber: 'GRN-26-27-0108',
@@ -177,23 +177,22 @@ describe('Merge GRN: Rent Carry-Forward & Obligation Preservation (Phase 4)', ()
       chamber: 'CH-01', bags: 50, bagType: 'S+B', smallBags: 20, bigBags: 30, rentType: 'Seasonal', rentAmount: 1000, grnNumber: 'GRN-26-27-0109',
     });
 
-    // 1. Mismatch rejection: 35 + 20 = 55 !== 50
-    const mismatchRes = await request(app)
+    // 1. Negative count rejection
+    const negativeRes = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/merge`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         targetGrnId,
         sourceGrnIds: [sourceGrnId],
         movementDate: new Date(),
-        repackedSmallBags: 35,
+        repackedSmallBags: -5,
         repackedBigBags: 20,
-        remarks: 'Mismatched repacking counts',
+        remarks: 'Negative repacking counts',
       });
 
-    expect(mismatchRes.status).toBe(400);
-    expect(mismatchRes.body.error).toContain('must reconcile with total moved stock');
+    expect(negativeRes.status).toBe(400);
 
-    // 2. Valid repacking: 35 + 15 = 50
+    // 2. Physical repacking: 35 + 20 = 55 bags (source was 50 bags; zero validation against previous counts)
     const validRes = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/merge`)
       .set('Authorization', `Bearer ${adminToken}`)
@@ -202,15 +201,16 @@ describe('Merge GRN: Rent Carry-Forward & Obligation Preservation (Phase 4)', ()
         sourceGrnIds: [sourceGrnId],
         movementDate: new Date(),
         repackedSmallBags: 35,
-        repackedBigBags: 15,
-        remarks: 'Re-bagged into 35 small and 15 big',
+        repackedBigBags: 20,
+        remarks: 'Physical re-bagging into 35 small and 20 big',
       });
 
     expect(validRes.status).toBe(200);
     expect(validRes.body.success).toBe(true);
-    expect(validRes.body.targetGrn.bags).toBe(150);
+    expect(validRes.body.targetGrn.bags).toBe(155); // 100 + 55
     expect(validRes.body.targetGrn.smallBags).toBe(75); // 40 + 35
+    expect(validRes.body.targetGrn.bigBags).toBe(80); // 60 + 20
     expect(validRes.body.movement.smallBagsMoved).toBe(35);
-    expect(validRes.body.movement.bigBagsMoved).toBe(15);
+    expect(validRes.body.movement.bigBagsMoved).toBe(20);
   });
 });

@@ -145,29 +145,6 @@ export function InternalMovementModal({
           <Button variant="outline" size="sm" onClick={handleRequestClose} disabled={submitting}>
             Cancel
           </Button>
-          {activeTab === 'merge' ? (
-            <Button
-              type="submit"
-              form="merge-grn-form"
-              variant="primary"
-              size="sm"
-              isLoading={submitting}
-              disabled={submitting}
-            >
-              Execute Merge
-            </Button>
-          ) : (
-            <Button
-              type="submit"
-              form="transfer-ownership-form"
-              variant="primary"
-              size="sm"
-              isLoading={submitting}
-              disabled={submitting}
-            >
-              Transfer Ownership
-            </Button>
-          )}
         </div>
       }
     >

@@ -11,15 +11,16 @@ describe('bagConfirmation.helper (outward SSOT reuse)', () => {
     }
   });
 
-  it('requires a reconciling split for S/B and Small & Big when required', () => {
+  it('requires confirmed Small and Big counts for S/B when required, allowing repacked count changes', () => {
     for (const cat of ['S/B', 'Small & Big'] as const) {
       const base = {
         category: cat, quantity: '' as const, bagPrice: '' as const,
         seasonalBagPrice: '' as const, monthlyBagPrice: '' as const, totalMovedBags: 50, isRepackRequired: true,
       };
       expect(validateBagConfirmation({ ...base, repackSmall: '', repackBig: '' })).toContain('must be confirmed');
-      expect(validateBagConfirmation({ ...base, repackSmall: 30, repackBig: 10 })).toContain('must match total available');
-      expect(validateBagConfirmation({ ...base, repackSmall: 30, repackBig: 20 })).toBeNull();
+      expect(validateBagConfirmation({ ...base, repackSmall: -5, repackBig: 10 })).toContain('cannot be negative');
+      expect(validateBagConfirmation({ ...base, repackSmall: 30, repackBig: 10 })).toBeNull(); // 40 bags is allowed!
+      expect(validateBagConfirmation({ ...base, repackSmall: 35, repackBig: 25 })).toBeNull(); // 60 bags is allowed!
     }
   });
 

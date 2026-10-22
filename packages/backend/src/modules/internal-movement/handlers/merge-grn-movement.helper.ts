@@ -78,6 +78,7 @@ export interface CreateMergeMovementRecordParams {
   input: MergeGrnInput;
   userId: string;
   session: mongoose.ClientSession;
+  idempotencyKey?: string | null;
 }
 
 export async function createMergeMovementRecord(
@@ -101,6 +102,7 @@ export async function createMergeMovementRecord(
     input,
     userId,
     session,
+    idempotencyKey = null,
   } = params;
 
   const movementDocs = await InternalMovementModel.create(
@@ -130,6 +132,7 @@ export async function createMergeMovementRecord(
             }
           : {}),
         referenceWeight: input.referenceWeight ?? null,
+        idempotencyKey,
         financialSnapshot: {
           rentAmount: newRentAmount,
           totalPaid: targetPaid,

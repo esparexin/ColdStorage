@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import { appendGrnRemarks, isHybridBagCategory, resolveMergedBagType, resolveStoredCompositionVerified, type Grn, type InternalMovementRecord, type MergeGrnInput } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
+import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { resolveMovementObligation } from './resolve-movement-obligation.js';
 import { computeRentBalance } from '../../common/rent-balance.js';
@@ -34,10 +35,27 @@ export async function mergeGrn(
   let resultMovementDoc!: unknown;
   let finalCarriedRent = 0;
   let repackHamaliCharge = 0;
+  let idempotentHit = false;
 
   try {
     await withMongoRetry(() =>
       session.withTransaction(async () => {
+      // Idempotency: if a movement with this key already exists, return the cached result.
+      if (input.idempotencyKey) {
+        const existing = await InternalMovementModel.findOne({
+          facilityId, idempotencyKey: input.idempotencyKey,
+        }, null, { session }).lean().exec();
+        if (existing) {
+          const existingTarget = await GrnModel.findOne({ id: existing.targetGrnId, facilityId }, null, { session }).lean().exec();
+          if (existingTarget) {
+            resultTargetDoc = existingTarget;
+            resultMovementDoc = existing as unknown as InternalMovementRecord;
+            idempotentHit = true;
+            return; // exit transaction early
+          }
+        }
+      }
+
       const targetGrn = await GrnModel.findOne({ id: input.targetGrnId, facilityId }, null, { session }).lean().exec();
       if (!targetGrn) throw new Error(`Target GRN '${input.targetGrnId}' not found in facility '${facilityId}'`);
       if (targetGrn.status === 'CLOSED') throw new Error(`Cannot merge into CLOSED GRN '${targetGrn.grnNumber}'`);
@@ -104,7 +122,10 @@ export async function mergeGrn(
       });
       repackHamaliCharge = repackHamali.repackHamaliCharge;
 
-      const newBags = targetGrn.bags + totalMovedBags;
+      const isRepacked = input.repackedSmallBags != null && input.repackedBigBags != null;
+      const actualMovedBags = isRepacked ? (totalMovedSmall + totalMovedBig) : totalMovedBags;
+
+      const newBags = targetGrn.bags + actualMovedBags;
       const newSmall = targetGrn.smallBags + totalMovedSmall;
       const newBig = targetGrn.bigBags + totalMovedBig;
       const newRentAmount = Number((targetGrn.rentAmount + finalCarriedRent + repackHamali.repackHamaliCharge).toFixed(2));
@@ -130,14 +151,14 @@ export async function mergeGrn(
       });
 
       const moveDateStr = moveDate.toISOString().split('T')[0];
-      const repackedNote = input.repackedSmallBags != null ? ` (Repacked: ${totalMovedSmall} S + ${totalMovedBig} B)` : '';
+      const repackedNote = input.repackedSmallBags != null ? ` (Repacked: ${totalMovedSmall} S + ${totalMovedBig} B = ${actualMovedBags} bags)` : '';
       const repackHamaliNote = repackHamali.repackHamaliCharge > 0 ? `. Repacking Hamali: ₹${repackHamali.repackHamaliCharge} (${repackHamali.repackHamaliBags} bags @ ₹${repackHamali.repackHamaliRate}/bag)` : '';
       const categoryNote =
         input.sourceBagCategory != null && isHybridBagCategory(input.sourceBagCategory)
           ? ` (Confirmed Hybrid: ${totalMovedBags} bags)`
           : '';
       const carriedRentNote = finalCarriedRent > 0 ? `. Carried pending rent: ₹${finalCarriedRent}` : '';
-      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${totalMovedBags} bags${repackedNote}${repackHamaliNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}. Reason: ${input.remarks.trim()}]`;
+      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${actualMovedBags} bags${repackedNote}${repackHamaliNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}. Reason: ${input.remarks.trim()}]`;
       const updatedTargetRemarks = appendGrnRemarks(targetGrn.remarks, targetNote);
 
       const updatedTarget = await GrnModel.findOneAndUpdate(
@@ -169,12 +190,13 @@ export async function mergeGrn(
 
       resultMovementDoc = await createMergeMovementRecord({
         facilityId, movementId, moveDate, targetGrn, sourceGrns,
-        totalMovedBags, totalMovedSmall, totalMovedBig, newRentAmount,
+        totalMovedBags: actualMovedBags, totalMovedSmall, totalMovedBig, newRentAmount,
         targetPaid, targetRentBal,
         hamaliBags: repackHamali.repackHamaliBags,
         hamaliRate: repackHamali.repackHamaliRate,
         hamaliCharge: repackHamali.repackHamaliCharge,
         input, userId, session,
+        idempotencyKey: input.idempotencyKey ?? null,
       });
     }),
     );
@@ -185,25 +207,27 @@ export async function mergeGrn(
   const movementRecord = resultMovementDoc as InternalMovementRecord;
   const targetEntity = toGrnEntity(resultTargetDoc as import('../../../database/models/grn.model.js').GrnDoc);
 
-  await auditService.log({
-    eventType: 'INTERNAL_MOVEMENT_MERGE',
-    severity: 'INFO',
-    userId,
-    facilityId,
-    resource: 'grn',
-    resourceId: targetEntity.id,
-    details: {
-      targetGrnNumber: targetEntity.grnNumber,
-      sourceGrnNumbers: movementRecord.sourceGrnNumbers,
-      totalBagsMoved: movementRecord.totalBagsMoved,
-      carriedRent: finalCarriedRent,
-      repackHamaliCharge,
-      newRentAmount: movementRecord.financialSnapshot.rentAmount,
-      sourceBagCategory: movementRecord.sourceBagCategory ?? null,
-      referenceWeight: input.referenceWeight ?? null,
-      remarks: input.remarks,
-    },
-  });
+  if (!idempotentHit) {
+    await auditService.log({
+      eventType: 'INTERNAL_MOVEMENT_MERGE',
+      severity: 'INFO',
+      userId,
+      facilityId,
+      resource: 'grn',
+      resourceId: targetEntity.id,
+      details: {
+        targetGrnNumber: targetEntity.grnNumber,
+        sourceGrnNumbers: movementRecord.sourceGrnNumbers,
+        totalBagsMoved: movementRecord.totalBagsMoved,
+        carriedRent: finalCarriedRent,
+        repackHamaliCharge,
+        newRentAmount: movementRecord.financialSnapshot.rentAmount,
+        sourceBagCategory: movementRecord.sourceBagCategory ?? null,
+        referenceWeight: input.referenceWeight ?? null,
+        remarks: input.remarks,
+      },
+    });
+  }
 
   return { targetGrn: targetEntity, movement: movementRecord };
 }

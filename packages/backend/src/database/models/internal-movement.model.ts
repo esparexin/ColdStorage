@@ -30,6 +30,7 @@ export interface InternalMovementDoc extends Document {
   /** @deprecated Legacy column: retained for historical document reads; never written. */
   hamaliCarried: number;
   referenceWeight?: number | null;
+  idempotencyKey?: string | null;
   grnId: string | null;
   grnNumber: string | null;
   fromCustomerId: string | null;
@@ -75,6 +76,7 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
     // @deprecated Legacy column: retained for historical rows; never written.
     hamaliCarried: { type: Number, min: 0 },
     referenceWeight: { type: Number, default: null },
+    idempotencyKey: { type: String, trim: true, default: null, index: true },
     grnId: { type: String, default: null, index: true },
     grnNumber: { type: String, default: null },
     fromCustomerId: { type: String, default: null },
