@@ -65,9 +65,9 @@ export function TransferOwnershipConfirmation(p: Props) {
         onChange={(e) => p.onCategoryChange(e.target.value as OutwardBagCategory | '')}
         disabled={p.disabled}
       >
-        <option value="">-- Auto (ledger) --</option>
-        <option value="S/B">S/B (ledger split)</option>
-        <option value="Hybrid">Hybrid (manual rate)</option>
+        <option value="">-- Default (As Inwarded) --</option>
+        <option value="S/B">Small & Big Split</option>
+        <option value="Hybrid">Flat Rate (Single Price)</option>
       </Select>
 
       {isHybrid ? (
@@ -123,7 +123,7 @@ export function TransferOwnershipConfirmation(p: Props) {
 
       {p.isUnverified && !p.sourceBagCategory ? (
         <div className={styles.noticeBox} style={{ color: 'var(--color-warning-text)' }}>
-          Ledger composition is unverified. Select S/B (ledger split) to confirm composition or Hybrid (manual rate).
+          Bag composition is unsegregated. Confirm Small &amp; Big counts or specify rate to settle dues.
         </div>
       ) : null}
     </>

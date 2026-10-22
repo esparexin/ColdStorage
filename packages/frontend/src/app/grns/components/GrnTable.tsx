@@ -102,7 +102,11 @@ export function createGrnTableColumns({
       render: (row) => (
         <div className={styles.bagsCell}>
           <span className={styles.inwardLink}>{row.bags.toLocaleString('en-IN')} bags</span>
-          {row.bagType && <span className={styles.bagTypeSub}>S/B: {row.bagType}</span>}
+          {row.isCompositionVerified && row.smallBags != null && row.bigBags != null && (row.smallBags > 0 || row.bigBags > 0) && (
+            <span className={styles.bagTypeSub}>
+              S: {row.smallBags.toLocaleString('en-IN')} • B: {row.bigBags.toLocaleString('en-IN')}
+            </span>
+          )}
           {row.netDeliveredBags != null && row.netDeliveredBags > 0 && (
             <span className={styles.deliveredSub}>
               Out: {row.netDeliveredBags.toLocaleString('en-IN')}

@@ -151,7 +151,7 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
 
           <div className={styles.formSection}>
             <label htmlFor="merge-remarks" className={styles.inputLabel}>Additional Remarks (Optional)</label>
-            <textarea id="merge-remarks" aria-label="Additional Remarks" rows={2} className={styles.textarea} placeholder="Notes for ledger history..." value={remarks} onChange={(e) => onRemarksChange(e.target.value)} disabled={submitting} />
+            <textarea id="merge-remarks" aria-label="Additional Remarks" rows={2} className={styles.textarea} placeholder="Notes or remarks..." value={remarks} onChange={(e) => onRemarksChange(e.target.value)} disabled={submitting} />
           </div>
 
           <div className={styles.noticeBox}>

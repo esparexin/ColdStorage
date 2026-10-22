@@ -90,15 +90,17 @@ export function createGrnStockColumns({
           <span style={{ fontWeight: 'var(--font-semibold)', fontVariantNumeric: 'tabular-nums' }}>
             {row.bags.toLocaleString('en-IN')}
           </span>
-          <span
-            style={{
-              display: 'block',
-              fontSize: 'var(--text-xs)',
-              color: 'var(--color-text-muted)',
-            }}
-          >
-            S/B: {row.bagType ?? 'S/B'}
-          </span>
+          {row.isCompositionVerified && row.smallBags != null && row.bigBags != null && (row.smallBags > 0 || row.bigBags > 0) ? (
+            <span
+              style={{
+                display: 'block',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-muted)',
+              }}
+            >
+              S: {row.smallBags.toLocaleString('en-IN')} • B: {row.bigBags.toLocaleString('en-IN')}
+            </span>
+          ) : null}
         </div>
       ),
     },
