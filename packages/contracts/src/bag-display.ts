@@ -14,7 +14,7 @@ export interface FormatDisplayBagTypeInput {
  * clean user-facing labels ('Small & Big', 'Small', 'Big', 'Hybrid').
  */
 export function formatDisplayBagType(input: FormatDisplayBagTypeInput): string {
-  if (input.isHybrid || isHybridBagCategory(input.category) || isHybridBagCategory(input.bagType)) {
+  if (input.isHybrid || input.bagType === 'Hybrid' || isHybridBagCategory(input.category) || isHybridBagCategory(input.bagType)) {
     return 'Hybrid';
   }
   const s = input.smallBags ?? 0;

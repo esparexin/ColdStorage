@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-/** Canonical bag model: bagType S/B/S+B/S/B, per-bag weights, total `bags`. */
-export const bagTypeSchema = z.enum(['S', 'B', 'S+B', 'S/B']).default('S/B');
+/** Canonical bag model: bagType S/B/S+B/S/B/Hybrid, per-bag weights, total `bags`. */
+export const bagTypeSchema = z.enum(['S', 'B', 'S+B', 'S/B', 'Hybrid']).default('S/B');
 export type BagType = z.infer<typeof bagTypeSchema>;
 
 /** Per-bag weight in kg for one individual bag of the respective type. */
@@ -134,6 +134,7 @@ export function isBagCompositionVerified(input: {
 }): boolean {
   const { bagType, bags, smallBags, bigBags } = input;
   if (bags <= 0) return true;
+  if (bagType === 'Hybrid') return true;
   const s = smallBags ?? 0;
   const b = bigBags ?? 0;
   if (s < 0 || b < 0 || !Number.isInteger(s) || !Number.isInteger(b)) return false;
@@ -208,6 +209,7 @@ export function resolveMergedBagType(input: {
   newBigBags: number;
 }): BagType {
   const { targetBagType, sourceBagTypes = [], newSmallBags, newBigBags } = input;
+  if (targetBagType === 'Hybrid' && sourceBagTypes.every((t) => t === 'Hybrid')) return 'Hybrid';
   if (newSmallBags > 0 && newBigBags === 0) return targetBagType === 'B' ? 'S' : targetBagType;
   if (newBigBags > 0 && newSmallBags === 0) return targetBagType === 'S' ? 'B' : targetBagType;
   if (targetBagType === 'S+B' || targetBagType === 'S/B') return targetBagType;

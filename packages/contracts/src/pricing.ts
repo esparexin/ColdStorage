@@ -46,7 +46,7 @@ export function calculateRentAmount(input: RentalCalculationInput): number {
   const isSeasonal = input.rentType === 'Seasonal' || input.rentType === 'Seasonal_3M';
   const months = isSeasonal ? 1 : Math.max(1, input.rentMonths ?? 1);
 
-  if (isHybridBagCategory(input.bagCategory)) {
+  if (input.bagType === 'Hybrid' || isHybridBagCategory(input.bagCategory)) {
     const hybridRate = input.bagPrice ?? input.smallBagPrice ?? input.bigBagPrice ?? 0;
     if (typeof hybridRate === 'number' && hybridRate > 0) {
       return Number((input.bags * hybridRate * months).toFixed(2));
