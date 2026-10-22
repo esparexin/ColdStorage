@@ -20,8 +20,8 @@ interface TransferStep2DuesProps {
   onSmallChange: (val: number | '') => void;
   confirmedBigBags: number | '';
   onBigChange: (val: number | '') => void;
-  sourceBagCategory: OutwardBagCategory | '';
-  onCategoryChange: (cat: OutwardBagCategory | '') => void;
+  sourceBagCategory: OutwardBagCategory;
+  onCategoryChange: (cat: OutwardBagCategory) => void;
   sourceBagPrice: number | '';
   onPriceChange: (p: number | '') => void;
   sourceSeasonalBagPrice: number | '';

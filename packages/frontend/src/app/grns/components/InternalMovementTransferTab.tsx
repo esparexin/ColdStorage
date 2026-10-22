@@ -52,7 +52,9 @@ export function InternalMovementTransferTab({
 
   const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>('');
   const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>('');
-  const [sourceBagCategory, setSourceBagCategory] = useState<OutwardBagCategory | ''>('');
+  const [sourceBagCategory, setSourceBagCategory] = useState<OutwardBagCategory>(
+    isHybridBagCategory(currentGrn.bagType) ? 'Hybrid' : 'S/B',
+  );
   const [sourceBagPrice, setSourceBagPrice] = useState<number | ''>('');
   const [sourceSeasonalBagPrice, setSourceSeasonalBagPrice] = useState<number | ''>('');
   const [sourceMonthlyBagPrice, setSourceMonthlyBagPrice] = useState<number | ''>('');

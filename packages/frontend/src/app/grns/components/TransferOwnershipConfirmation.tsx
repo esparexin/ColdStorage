@@ -18,8 +18,8 @@ interface Props {
   confirmedBigBags: number | '';
   onSmallChange: (v: number | '') => void;
   onBigChange: (v: number | '') => void;
-  sourceBagCategory: OutwardBagCategory | '';
-  onCategoryChange: (v: OutwardBagCategory | '') => void;
+  sourceBagCategory: OutwardBagCategory;
+  onCategoryChange: (v: OutwardBagCategory) => void;
   sourceBagPrice: number | '';
   onPriceChange: (v: number | '') => void;
   sourceSeasonalBagPrice?: number | '';
@@ -59,27 +59,26 @@ export function TransferOwnershipConfirmation(p: Props) {
       </div>
 
       <Select
-        id="transfer-bag-category"
-        label="Bag Category"
-        value={p.sourceBagCategory}
-        onChange={(e) => p.onCategoryChange(e.target.value as OutwardBagCategory | '')}
+        id="transfer-bag-type-select"
+        label="Bag Type"
+        value={isHybrid ? 'Hybrid' : 'S/B'}
+        onChange={(e) => p.onCategoryChange(e.target.value as OutwardBagCategory)}
         disabled={p.disabled}
       >
-        <option value="">-- Default (As Inwarded) --</option>
-        <option value="S/B">Small & Big Split</option>
-        <option value="Hybrid">Flat Rate (Single Price)</option>
+        <option value="S/B">S/B</option>
+        <option value="Hybrid">Hybrid</option>
       </Select>
 
       {isHybrid ? (
         <div className={styles.formSection}>
-          <div style={{ display: 'flex', gap: 'var(--space-1)', marginTop: '4px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--space-2)' }}>
             {visibility.showSeasonalRate && (
               <Input
                 id="transfer-seasonal-rate"
+                label="Seasonal Rate (₹/bag)"
                 type="number"
                 min={0}
-                placeholder="Seasonal Rate (₹/bag)"
-                aria-label="Seasonal per-bag rate"
+                placeholder="0.00"
                 value={p.sourceSeasonalBagPrice ?? ''}
                 onChange={(e) => p.onSeasonalPriceChange?.(e.target.value === '' ? '' : Number(e.target.value))}
                 disabled={p.disabled}
@@ -88,10 +87,10 @@ export function TransferOwnershipConfirmation(p: Props) {
             {visibility.showMonthlyRate && (
               <Input
                 id="transfer-monthly-rate"
+                label="Monthly Rate (₹/bag)"
                 type="number"
                 min={0}
-                placeholder="Monthly Rate (₹/bag)"
-                aria-label="Monthly per-bag rate"
+                placeholder="0.00"
                 value={p.sourceMonthlyBagPrice ?? ''}
                 onChange={(e) => p.onMonthlyPriceChange?.(e.target.value === '' ? '' : Number(e.target.value))}
                 disabled={p.disabled}
@@ -99,11 +98,11 @@ export function TransferOwnershipConfirmation(p: Props) {
             )}
             {!visibility.showSeasonalRate && !visibility.showMonthlyRate && (
               <Input
-                id="transfer-hybrid-rate"
+                id="transfer-bag-price"
+                label="Each Bag Price (₹)"
                 type="number"
                 min={0}
-                placeholder="Per-Bag Rate (₹)"
-                aria-label="Per-bag rate"
+                placeholder="0.00"
                 value={p.sourceBagPrice}
                 onChange={(e) => p.onPriceChange(e.target.value === '' ? '' : Number(e.target.value))}
                 disabled={p.disabled}
@@ -114,17 +113,15 @@ export function TransferOwnershipConfirmation(p: Props) {
         </div>
       ) : null}
 
-      {p.isUnverified && p.sourceBagCategory === 'S/B' ? (
+      {!isHybrid && p.isUnverified ? (
         <TransferBagConfirmationFields
-          remainingBags={p.remainingBags} confirmedSmallBags={p.confirmedSmallBags}
-          confirmedBigBags={p.confirmedBigBags} onSmallChange={p.onSmallChange}
-          onBigChange={p.onBigChange} disabled={p.disabled} />
-      ) : null}
-
-      {p.isUnverified && !p.sourceBagCategory ? (
-        <div className={styles.noticeBox} style={{ color: 'var(--color-warning-text)' }}>
-          Bag composition is unsegregated. Confirm Small &amp; Big counts or specify rate to settle dues.
-        </div>
+          remainingBags={p.remainingBags}
+          confirmedSmallBags={p.confirmedSmallBags}
+          confirmedBigBags={p.confirmedBigBags}
+          onSmallChange={p.onSmallChange}
+          onBigChange={p.onBigChange}
+          disabled={p.disabled}
+        />
       ) : null}
     </>
   );

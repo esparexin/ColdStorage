@@ -18,6 +18,19 @@ export interface TransferConfirmationParams {
   sourceMonthlyBagPrice?: number | '';
 }
 
+function validateBagReconciliation(s: number, b: number, remaining: number): string | null {
+  if (!Number.isInteger(s) || !Number.isInteger(b) || s < 0 || b < 0) {
+    return 'Confirmed bag counts must be whole non-negative numbers.';
+  }
+  if (s + b > remaining) {
+    return `Confirmed counts (${s} + ${b}) cannot exceed remaining stock of ${remaining} bags.`;
+  }
+  if (s + b !== remaining) {
+    return `Confirmed counts (${s} + ${b}) must equal stock of ${remaining} bags.`;
+  }
+  return null;
+}
+
 export function validateTransferConfirmation(
   paramsOrIsUnverified: TransferConfirmationParams | boolean,
   legacyRemainingBags?: number,
@@ -66,15 +79,7 @@ export function validateTransferConfirmation(
     if (typeof confirmedSmallBags === 'number' || typeof confirmedBigBags === 'number') {
       const s = typeof confirmedSmallBags === 'number' ? confirmedSmallBags : 0;
       const b = typeof confirmedBigBags === 'number' ? confirmedBigBags : 0;
-      if (!Number.isInteger(s) || !Number.isInteger(b) || s < 0 || b < 0) {
-        return 'Confirmed bag counts must be whole non-negative numbers.';
-      }
-      if (s + b > remainingBags) {
-        return `Confirmed counts (${s} + ${b}) cannot exceed remaining stock of ${remainingBags} bags.`;
-      }
-      if (s + b !== remainingBags) {
-        return `Confirmed counts (${s} + ${b}) must equal stock of ${remainingBags} bags.`;
-      }
+      return validateBagReconciliation(s, b, remainingBags);
     }
     return null;
   }
@@ -82,20 +87,6 @@ export function validateTransferConfirmation(
   if (typeof confirmedSmallBags !== 'number' || typeof confirmedBigBags !== 'number') {
     return `Confirmed composition required for unverified GRN (${remainingBags} bags). Confirm Small + Big counts.`;
   }
-  if (
-    !Number.isInteger(confirmedSmallBags) ||
-    !Number.isInteger(confirmedBigBags) ||
-    confirmedSmallBags < 0 ||
-    confirmedBigBags < 0
-  ) {
-    return 'Confirmed bag counts must be whole non-negative numbers.';
-  }
-  if (confirmedSmallBags + confirmedBigBags > remainingBags) {
-    return `Confirmed counts (${confirmedSmallBags} + ${confirmedBigBags}) cannot exceed remaining stock of ${remainingBags} bags.`;
-  }
-  if (confirmedSmallBags + confirmedBigBags !== remainingBags) {
-    return `Confirmed counts (${confirmedSmallBags} + ${confirmedBigBags}) must equal stock of ${remainingBags} bags.`;
-  }
-  return null;
+  return validateBagReconciliation(confirmedSmallBags, confirmedBigBags, remainingBags);
 }
 
