@@ -4,12 +4,6 @@
   gap: var(--space-2);
 }
 
-.tabNav {
-  display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-1);
-}
-
 /* Compact Summary Strip */
 .summaryStrip {
   display: flex;
