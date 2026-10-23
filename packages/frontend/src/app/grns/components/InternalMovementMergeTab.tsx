@@ -136,8 +136,9 @@ export function InternalMovementMergeTab({
     const isBig = !isFirstHybrid && isFirstVer && (first?.bagType === 'B' || (first?.bigBags ?? 0) === totalSourceBags);
     const isSmall = !isFirstHybrid && isFirstVer && (first?.bagType === 'S' || (first?.smallBags ?? 0) === totalSourceBags);
     const sRate = isBig ? (first?.bigBagPrice ?? 15) : (isSmall ? (first?.smallBagPrice ?? 10) : (first?.bagPrice ?? ''));
-    const initSmall = isFirstHybrid ? totalSourceBags : (isSmall ? totalSourceBags : (isBig ? 0 : ''));
-    const initBig = isFirstHybrid ? 0 : (isBig ? totalSourceBags : (isSmall ? 0 : ''));
+    const defSmall = typeof first?.smallBags === 'number' && first.smallBags > 0 ? Math.min(totalSourceBags, first.smallBags) : (isBig ? 0 : totalSourceBags);
+    const initSmall = isFirstHybrid || isSmall ? totalSourceBags : (isBig ? 0 : defSmall);
+    const initBig = isFirstHybrid || isSmall ? 0 : (isBig ? totalSourceBags : totalSourceBags - defSmall);
     setConfirmation((p) => ({
       ...p, category: isFirstHybrid ? 'Hybrid' : 'S/B', quantity: totalSourceBags,
       smallBags: initSmall, bigBags: initBig, confirmedSmallBags: initSmall, confirmedBigBags: initBig,
