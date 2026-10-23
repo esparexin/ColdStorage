@@ -132,13 +132,15 @@ export function InternalMovementMergeTab({
     if (selectedSourceIds.length === 0) return setValidationError('Please select at least one source GRN to merge.');
     const first = selectedSources[0];
     const isFirstVer = first ? resolveStoredCompositionVerified(first) : false;
-    const isBig = isFirstVer && (first?.bagType === 'B' || (first?.bigBags ?? 0) === totalSourceBags);
-    const isSmall = isFirstVer && (first?.bagType === 'S' || (first?.smallBags ?? 0) === totalSourceBags);
-    const sRate = isBig ? (first?.bigBagPrice ?? 15) : (isSmall ? (first?.smallBagPrice ?? 10) : '');
+    const isFirstHybrid = first ? (first.bagType === 'Hybrid' || isHybridBagCategory(first.bagType)) : false;
+    const isBig = !isFirstHybrid && isFirstVer && (first?.bagType === 'B' || (first?.bigBags ?? 0) === totalSourceBags);
+    const isSmall = !isFirstHybrid && isFirstVer && (first?.bagType === 'S' || (first?.smallBags ?? 0) === totalSourceBags);
+    const sRate = isBig ? (first?.bigBagPrice ?? 15) : (isSmall ? (first?.smallBagPrice ?? 10) : (first?.bagPrice ?? ''));
+    const initSmall = isFirstHybrid ? totalSourceBags : (isSmall ? totalSourceBags : (isBig ? 0 : ''));
+    const initBig = isFirstHybrid ? 0 : (isBig ? totalSourceBags : (isSmall ? 0 : ''));
     setConfirmation((p) => ({
-      ...p, category: 'S/B', quantity: totalSourceBags,
-      smallBags: isSmall ? totalSourceBags : (isBig ? 0 : ''), bigBags: isBig ? totalSourceBags : (isSmall ? 0 : ''),
-      confirmedSmallBags: isSmall ? totalSourceBags : (isBig ? 0 : ''), confirmedBigBags: isBig ? totalSourceBags : (isSmall ? 0 : ''),
+      ...p, category: isFirstHybrid ? 'Hybrid' : 'S/B', quantity: totalSourceBags,
+      smallBags: initSmall, bigBags: initBig, confirmedSmallBags: initSmall, confirmedBigBags: initBig,
       seasonalBagPrice: sRate, bagPrice: sRate,
     }));
     if (selectedSourceIds.length > 1) setSettlementDecision('AGREED_PENDING');
@@ -154,8 +156,7 @@ export function InternalMovementMergeTab({
     const confirmError = validateBagConfirmation({
       category: confirmation.category, quantity: confirmedQty, bagPrice: confirmation.bagPrice,
       seasonalBagPrice: confirmation.seasonalBagPrice, monthlyBagPrice: confirmation.monthlyBagPrice,
-      smallBags: confirmation.smallBags, bigBags: confirmation.bigBags,
-      repackSmall: '', repackBig: '', totalMovedBags: totalSourceBags, isRepackRequired: false,
+      smallBags: confirmation.smallBags, bigBags: confirmation.bigBags, repackSmall: '', repackBig: '', totalMovedBags: totalSourceBags, isRepackRequired: false,
     });
     if (confirmError) return setValidationError(confirmError);
     setStep(3);
@@ -201,11 +202,7 @@ export function InternalMovementMergeTab({
 
   return (
     <form id="merge-grn-form" onSubmit={handleMergeSubmit} className={styles.modalContent}>
-      {validationError && (
-        <div role="alert" className={styles.noticeBox} style={{ color: 'var(--color-danger-text)', borderColor: 'var(--color-danger)' }}>
-          {validationError}
-        </div>
-      )}
+      {validationError && <div role="alert" className={styles.noticeBox} style={{ color: 'var(--color-danger-text)', borderColor: 'var(--color-danger)' }}>{validationError}</div>}
       <WizardStepper steps={MERGE_STEPS} currentStep={step} onStepClick={(s) => setStep(s as 1 | 2 | 3 | 4)} canNavigateToStep={(s) => (s === 1 || selectedSourceIds.length > 0)} disabled={submitting} />
       {step === 1 && (
         <MergeStep1Batches

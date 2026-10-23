@@ -76,6 +76,8 @@ export function MergeStep2BagType({
           movementDate={movementDate}
           submitting={submitting}
           rates={rates}
+          sourceBagType={confirmSource.bagType}
+          isCompositionVerified={confirmSource.isCompositionVerified}
           rawSmall={rawSmall}
           rawBig={rawBig}
         />

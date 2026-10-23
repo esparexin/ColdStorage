@@ -90,7 +90,7 @@ export function MergeRentAssessment({
         if (!isHybrid && !hasChoice && !source.isCompositionVerified) {
           return (
             <div key={source.id} style={{ padding: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', textAlign: 'center', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)' }}>
-              Please select Small or Big bag type above to view the storage rent calculation breakdown.
+              Please select Bag Type above to view the storage rent calculation breakdown.
             </div>
           );
         }

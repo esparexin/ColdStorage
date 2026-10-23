@@ -110,5 +110,30 @@ describe('bagConfirmation.helper (outward SSOT reuse)', () => {
     });
     expect(preview).toEqual({ small: 20, big: 30 });
   });
+
+  it('confirms 100% Big bags (matching screenshot with 12 Big bags)', () => {
+    expect(validateBagConfirmation({
+      category: 'S/B', quantity: 12, smallBags: 0, bigBags: 12,
+      bagPrice: 15, seasonalBagPrice: 15, monthlyBagPrice: '',
+      repackSmall: '', repackBig: '', totalMovedBags: 12, isRepackRequired: false,
+    })).toBeNull();
+  });
+
+  it('confirms 100% Small bags with 12 Small bags', () => {
+    expect(validateBagConfirmation({
+      category: 'S/B', quantity: 12, smallBags: 12, bigBags: 0,
+      bagPrice: 10, seasonalBagPrice: 10, monthlyBagPrice: '',
+      repackSmall: '', repackBig: '', totalMovedBags: 12, isRepackRequired: false,
+    })).toBeNull();
+  });
+
+  it('confirms mixed composition with 7 Small and 5 Big bags', () => {
+    expect(validateBagConfirmation({
+      category: 'S/B', quantity: 12, smallBags: 7, bigBags: 5,
+      bagPrice: 10, seasonalBagPrice: 10, monthlyBagPrice: '',
+      repackSmall: '', repackBig: '', totalMovedBags: 12, isRepackRequired: false,
+    })).toBeNull();
+  });
 });
+
 
