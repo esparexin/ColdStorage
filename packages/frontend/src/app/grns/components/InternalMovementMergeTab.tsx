@@ -11,6 +11,7 @@ import { requestWithAuth } from '@/lib/api-client';
 import { DEFAULT_BAG_CONFIRMATION, type BagConfirmationValue } from './MergeBagCategoryFields';
 import { partitionMergeSources } from './mergeEligibility.helper';
 import { previewConfirmedSplit, validateBagConfirmation } from './bagConfirmation.helper';
+import { validateMergePaymentDecision } from './internalMovementPayload.helper';
 import { WizardStepper } from './WizardStepper';
 import { MergeStep1Batches } from './MergeStep1Batches';
 import { MergeStep2BagType } from './MergeStep2BagType';
@@ -46,15 +47,12 @@ export function InternalMovementMergeTab({
   const [targetGrnId, setTargetGrnId] = useState<string>(currentGrn.id);
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
   const [movementDate] = useState(new Date().toISOString().slice(0, 10));
-  const [reason, setReason] = useState('');
-  const [remarks, setRemarks] = useState('');
+  const [reason, setReason] = useState(''); const [remarks, setRemarks] = useState('');
   const [confirmation, setConfirmation] = useState<BagConfirmationValue>(DEFAULT_BAG_CONFIRMATION);
   const [settlementDecision, setSettlementDecision] = useState<TransferPaymentDecision>('AGREED_PENDING');
-  const [settleAmount, setSettleAmount] = useState<number>(0);
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>('Cash');
+  const [settleAmount, setSettleAmount] = useState<number>(0); const [paymentMode, setPaymentMode] = useState<PaymentMode>('Cash');
   const [repackMode, setRepackMode] = useState(false);
-  const [repackSmall, setRepackSmall] = useState<number | ''>('');
-  const [repackBig, setRepackBig] = useState<number | ''>('');
+  const [repackSmall, setRepackSmall] = useState<number | ''>(''); const [repackBig, setRepackBig] = useState<number | ''>('');
   const [referenceWeight, setReferenceWeight] = useState<number | ''>('');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [sourceRentSummaries, setSourceRentSummaries] = useState<Record<string, RentSummaryDto>>({});
@@ -110,8 +108,7 @@ export function InternalMovementMergeTab({
   const actualRepackedBags = repackMode && isRepackFilled ? Number(repackSmall) + Number(repackBig) : 0;
   const repackHamaliCharge = useMemo(() => (repackMode && actualRepackedBags > 0 && commodityHamaliRate > 0 ? calculateHamaliAmount(actualRepackedBags, commodityHamaliRate) : 0), [repackMode, actualRepackedBags, commodityHamaliRate]);
 
-  const rawSmall = selectedSources.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
-  const rawBig = selectedSources.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
+  const rawSmall = selectedSources.reduce((acc, s) => acc + (s.smallBags ?? 0), 0); const rawBig = selectedSources.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
   const scale = totalSourceBags > 0 && rawSmall + rawBig > 0 && rawSmall + rawBig !== totalSourceBags ? totalSourceBags / (rawSmall + rawBig) : 1;
   const defSmall = scale === 1 ? rawSmall : Math.round(rawSmall * scale);
   const previewSplit = previewConfirmedSplit({
@@ -119,10 +116,8 @@ export function InternalMovementMergeTab({
     defaultSmall: defSmall, defaultBig: totalSourceBags - defSmall, repackSmall, repackBig, isRepackFilled,
     confirmedSmall: confirmation.smallBags, confirmedBig: confirmation.bigBags,
   });
-  const movedSmall = repackMode && isRepackFilled ? Number(repackSmall) : previewSplit.small;
-  const movedBig = repackMode && isRepackFilled ? Number(repackBig) : previewSplit.big;
-  const addedBagsToTarget = repackMode ? (isRepackFilled ? (Number(repackSmall) + Number(repackBig)) : 0) : totalSourceBags;
-  const targetNewRemaining = targetCurrentRemaining + addedBagsToTarget;
+  const movedSmall = repackMode && isRepackFilled ? Number(repackSmall) : previewSplit.small; const movedBig = repackMode && isRepackFilled ? Number(repackBig) : previewSplit.big;
+  const addedBagsToTarget = repackMode ? (isRepackFilled ? (Number(repackSmall) + Number(repackBig)) : 0) : totalSourceBags; const targetNewRemaining = targetCurrentRemaining + addedBagsToTarget;
 
   const resultingBagType = useMemo(() => resolveMergedBagType({
     targetBagType: targetGrn.bagType, sourceBagTypes: selectedSources.map((s) => s.bagType),
@@ -146,6 +141,7 @@ export function InternalMovementMergeTab({
       confirmedSmallBags: isSmall ? totalSourceBags : (isBig ? 0 : ''), confirmedBigBags: isBig ? totalSourceBags : (isSmall ? 0 : ''),
       seasonalBagPrice: sRate, bagPrice: sRate,
     }));
+    if (selectedSourceIds.length > 1) setSettlementDecision('AGREED_PENDING');
     setStep(2);
   };
 
@@ -167,11 +163,11 @@ export function InternalMovementMergeTab({
 
   const handleProceedToStep4 = () => {
     setValidationError(null);
-    if (settlementDecision === 'SETTLE_NOW') {
-      if (typeof settleAmount !== 'number' || settleAmount <= 0) return setValidationError('Enter a settlement amount greater than zero.');
-      if (settleAmount > totalSourcePendingRent) return setValidationError(`Settlement amount cannot exceed outstanding rent of ₹${totalSourcePendingRent}.`);
-      if (!paymentMode) return setValidationError('Please select a payment mode.');
-    }
+    const err = validateMergePaymentDecision({
+      decision: settlementDecision, sourceCount: selectedSources.length,
+      amount: settleAmount, pending: totalSourcePendingRent, paymentMode,
+    });
+    if (err) return setValidationError(err);
     setStep(4);
   };
 
@@ -181,6 +177,9 @@ export function InternalMovementMergeTab({
     if (selectedSourceIds.length === 0) return setValidationError('Select at least one source GRN to merge.');
     if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
     if (isTargetLoanHold) return setValidationError(`Target GRN '${targetGrn.grnNumber}' has an active loan hold.`);
+    if (selectedSources.length > 1 && settlementDecision === 'SETTLE_NOW') {
+      return setValidationError('Inline settlement requires a single source GRN. Choose Option A to carry forward.');
+    }
     if (repackMode && !isRepackFilled) return setValidationError('Both Repacked Small and Big bag counts are required.');
     if (repackMode && (Number(repackSmall) < 0 || Number(repackBig) < 0)) return setValidationError('Repacked bag counts cannot be negative.');
     const isSb = confirmation.category === 'S/B' || confirmation.category === 'Small & Big';
@@ -229,6 +228,7 @@ export function InternalMovementMergeTab({
           totalSourcePendingRent={totalSourcePendingRent} settlementDecision={settlementDecision} onSettlementDecisionChange={setSettlementDecision}
           settleAmount={settleAmount} onSettleAmountChange={setSettleAmount} paymentMode={paymentMode} onPaymentModeChange={setPaymentMode}
           targetGrnNumber={targetGrn.grnNumber} submitting={submitting} onBack={() => setStep(2)} onNext={handleProceedToStep4}
+          isMultiSource={selectedSources.length > 1}
         />
       )}
       {step === 4 && (

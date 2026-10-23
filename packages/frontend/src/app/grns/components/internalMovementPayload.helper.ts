@@ -158,3 +158,29 @@ export function validateTransferPayment(
   }
   return null;
 }
+
+export function validateMergePaymentDecision(params: {
+  decision: string;
+  sourceCount: number;
+  amount: number;
+  pending: number;
+  paymentMode?: string;
+}): string | null {
+  const { decision, sourceCount, amount, pending, paymentMode } = params;
+  if (pending <= 0 || decision === 'AGREED_PENDING') return null;
+  if (decision !== 'SETTLE_NOW') return 'Invalid payment decision.';
+  if (sourceCount > 1) {
+    return 'Inline settlement requires a single source GRN. Choose Option A to carry forward.';
+  }
+  if (typeof amount !== 'number' || amount <= 0) {
+    return 'Enter a settlement amount greater than zero.';
+  }
+  if (amount > pending) {
+    return `Settlement amount cannot exceed outstanding rent of ₹${pending.toLocaleString('en-IN')}.`;
+  }
+  if (!paymentMode) {
+    return 'Please select a payment mode.';
+  }
+  return null;
+}
+

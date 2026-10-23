@@ -17,6 +17,7 @@ export interface MovementSettlementProps {
   disabled?: boolean;
   transfereeOrTargetName?: string;
   isTransfer?: boolean;
+  isMultiSource?: boolean;
 }
 
 export function MovementSettlementDecisionSection({
@@ -30,8 +31,10 @@ export function MovementSettlementDecisionSection({
   disabled = false,
   transfereeOrTargetName,
   isTransfer = false,
+  isMultiSource = false,
 }: MovementSettlementProps) {
   const carryForwardTarget = transfereeOrTargetName ? `(${transfereeOrTargetName})` : '';
+  const isSettleDisabled = disabled || isMultiSource;
 
   return (
     <div className={styles.compactCard}>
@@ -81,11 +84,12 @@ export function MovementSettlementDecisionSection({
             </div>
 
             <div
-              className={`${styles.decisionCard} ${decision === 'SETTLE_NOW' ? styles.decisionCardSelected : ''}`}
-              onClick={() => { if (!disabled) onDecisionChange('SETTLE_NOW'); }}
+              className={`${styles.decisionCard} ${decision === 'SETTLE_NOW' ? styles.decisionCardSelected : ''} ${isSettleDisabled ? styles.decisionCardDisabled : ''}`}
+              onClick={() => { if (!isSettleDisabled) onDecisionChange('SETTLE_NOW'); }}
               role="radio"
               aria-checked={decision === 'SETTLE_NOW'}
-              tabIndex={0}
+              aria-disabled={isSettleDisabled}
+              tabIndex={isSettleDisabled ? -1 : 0}
             >
               <div className={styles.decisionHeader}>
                 <span className={styles.decisionTitle}>
@@ -95,14 +99,18 @@ export function MovementSettlementDecisionSection({
                     aria-label="Option B: Settle Now"
                     checked={decision === 'SETTLE_NOW'}
                     onChange={() => onDecisionChange('SETTLE_NOW')}
-                    disabled={disabled}
+                    disabled={isSettleDisabled}
                   />
                   Option B: Settle Now
                 </span>
-                <Badge variant="primary">SETTLE_NOW</Badge>
+                <Badge variant={isMultiSource ? 'neutral' : 'primary'}>
+                  {isMultiSource ? 'Single lot only' : 'SETTLE_NOW'}
+                </Badge>
               </div>
               <div className={styles.decisionDesc}>
-                Clear the outstanding rent balance now. An official payment receipt is generated immediately.
+                {isMultiSource
+                  ? 'Inline settlement requires a single source lot. Multi-source merges must carry forward dues (Option A).'
+                  : 'Clear the outstanding rent balance now. An official payment receipt is generated immediately.'}
               </div>
             </div>
           </div>
