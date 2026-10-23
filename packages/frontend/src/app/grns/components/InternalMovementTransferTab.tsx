@@ -8,7 +8,7 @@ import {
 } from '@cold-storage/contracts';
 import { useRentGate } from '@/hooks/useRentGate';
 import { WizardStepper } from './WizardStepper';
-import { validateMovementSettlement } from './MovementSettlementDecisionSection';
+import { validateTransferPayment } from './internalMovementPayload.helper';
 import { validateTransferConfirmation } from './transferTabValidation.helper';
 import { TransferStep1Customer } from './TransferStep1Customer';
 import { TransferStep2Dues } from './TransferStep2Dues';
@@ -90,7 +90,7 @@ export function InternalMovementTransferTab({
 
   const handleProceedToStep3 = () => {
     setValidationError(null);
-    const payErr = validateMovementSettlement(decision, settleAmount, effectiveDue);
+    const payErr = validateTransferPayment(decision, settleAmount, effectiveDue);
     if (payErr) return setValidationError(payErr);
     const isHybrid = isHybridBagCategory(sourceBagCategory);
     const confirmErr = validateTransferConfirmation({
@@ -109,7 +109,7 @@ export function InternalMovementTransferTab({
     if (remainingBags <= 0) return setValidationError('Cannot transfer ownership: No stock remaining in this GRN.');
     if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
 
-    const payErr = validateMovementSettlement(decision, settleAmount, effectiveDue);
+    const payErr = validateTransferPayment(decision, settleAmount, effectiveDue);
     if (payErr) return setValidationError(payErr);
     const isHybrid = isHybridBagCategory(sourceBagCategory);
     const confirmErr = validateTransferConfirmation({

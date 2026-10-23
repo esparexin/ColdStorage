@@ -52,6 +52,8 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
     onRemarksChange, selectedSourcesCount, movedSmall, movedBig, submitting, onBack,
   } = props;
   const isHybrid = isHybridBagCategory(confirmationCategory);
+  const targetSmallRate = targetGrn.smallBagPrice ?? targetGrn.bagPrice ?? 10;
+  const targetBigRate = targetGrn.bigBagPrice ?? targetGrn.bagPrice ?? 15;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
@@ -108,8 +110,8 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
                 </div>
                 {isRepackFilled && (Number(repackSmall) > 0 || Number(repackBig) > 0) ? (
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    {Number(repackSmall) > 0 && <div>• Small Bags: <strong>{Number(repackSmall)} bags</strong> @ ₹110/bag</div>}
-                    {Number(repackBig) > 0 && <div>• Big Bags: <strong>{Number(repackBig)} bags</strong> @ ₹185/bag</div>}
+                    {Number(repackSmall) > 0 && <div>• Small Bags: <strong>{Number(repackSmall)} bags</strong> @ ₹{targetSmallRate}/bag</div>}
+                    {Number(repackBig) > 0 && <div>• Big Bags: <strong>{Number(repackBig)} bags</strong> @ ₹{targetBigRate}/bag</div>}
                   </div>
                 ) : (
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
@@ -158,15 +160,15 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
               {repackMode && !isRepackFilled ? (
                 <span style={{ color: 'var(--color-text-secondary)', fontWeight: 'normal' }}>Pending repacked counts</span>
               ) : repackMode && isRepackFilled ? (
-                `+${addedBagsToTarget} Bags (${repackSmall}S @ ₹110 · ${repackBig}B @ ₹185)`
+                `+${addedBagsToTarget} Bags (${repackSmall}S @ ₹${targetSmallRate} · ${repackBig}B @ ₹${targetBigRate})`
               ) : isHybrid ? (
                 `+${addedBagsToTarget} Bags (Hybrid)`
               ) : movedSmall > 0 && movedBig > 0 ? (
-                `+${addedBagsToTarget} Bags (${movedSmall}S @ ₹110 · ${movedBig}B @ ₹185)`
+                `+${addedBagsToTarget} Bags (${movedSmall}S @ ₹${targetSmallRate} · ${movedBig}B @ ₹${targetBigRate})`
               ) : movedSmall > 0 ? (
-                `+${addedBagsToTarget} Bags (${movedSmall} Small @ ₹110)`
+                `+${addedBagsToTarget} Bags (${movedSmall} Small @ ₹${targetSmallRate})`
               ) : movedBig > 0 ? (
-                `+${addedBagsToTarget} Bags (${movedBig} Big @ ₹185)`
+                `+${addedBagsToTarget} Bags (${movedBig} Big @ ₹${targetBigRate})`
               ) : (
                 `+${addedBagsToTarget} Bags`
               )}
@@ -180,7 +182,7 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
             <span className={styles.detailLabel}>Resulting Bag Type:</span>
             <span className={styles.detailValue}>
               <Badge variant="primary">
-                {isHybrid ? 'Hybrid' : resultingBagType === 'S/B' || resultingBagType === 'S+B' ? 'Small & Big (₹110 / ₹185)' : resultingBagType === 'S' ? 'Small Bags (₹110/bag)' : resultingBagType === 'B' ? 'Big Bags (₹185/bag)' : resultingBagType}
+                {isHybrid ? 'Hybrid' : resultingBagType === 'S/B' || resultingBagType === 'S+B' ? `Small & Big (₹${targetSmallRate} / ₹${targetBigRate})` : resultingBagType === 'S' ? `Small Bags (₹${targetSmallRate}/bag)` : resultingBagType === 'B' ? `Big Bags (₹${targetBigRate}/bag)` : resultingBagType}
               </Badge>
             </span>
           </div>

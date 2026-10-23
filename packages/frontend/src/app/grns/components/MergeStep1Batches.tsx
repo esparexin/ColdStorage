@@ -74,16 +74,25 @@ export function MergeStep1Batches({
           <span className={styles.metaLabel}>Current Stock & Type</span>
           <span className={styles.metaValue} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
             <span>{targetCurrentRemaining} Bags</span>
-            <Badge variant="neutral">
+            <Badge variant={targetGrn.isCompositionVerified === false ? 'warning' : 'neutral'}>
               {formatDisplayBagType({
                 bagType: targetGrn.bagType,
                 smallBags: targetGrn.smallBags,
                 bigBags: targetGrn.bigBags,
                 isHybrid: isTargetHybrid,
+                isCompositionVerified: targetGrn.isCompositionVerified,
               })}
             </Badge>
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-              {isTargetHybrid ? '(Uniform Rate)' : isTargetSbSplit ? `(${targetGrn.smallBags ?? 0}S · ${targetGrn.bigBags ?? 0}B)` : ''}
+              {isTargetHybrid
+                ? '(Uniform Rate)'
+                : targetGrn.isCompositionVerified && targetCurrentRemaining === (targetGrn.smallBags ?? 0) + (targetGrn.bigBags ?? 0) && isTargetSbSplit
+                  ? `(${targetGrn.smallBags ?? 0}S · ${targetGrn.bigBags ?? 0}B)`
+                  : targetGrn.isCompositionVerified && (targetGrn.bigBags ?? 0) === 0 && (targetGrn.smallBags ?? 0) > 0
+                    ? `(${targetCurrentRemaining}S · 0B)`
+                    : targetGrn.isCompositionVerified && (targetGrn.smallBags ?? 0) === 0 && (targetGrn.bigBags ?? 0) > 0
+                      ? `(0S · ${targetCurrentRemaining}B)`
+                      : ''}
             </span>
           </span>
         </div>

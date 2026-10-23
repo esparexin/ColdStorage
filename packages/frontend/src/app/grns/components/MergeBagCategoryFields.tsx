@@ -53,8 +53,8 @@ export function MergeBagCategoryFields({
   submitting,
   rates,
 }: MergeBagCategoryFieldsProps) {
-  const smallRate = typeof rates?.small === 'number' && rates.small > 0 ? rates.small : 110;
-  const bigRate = typeof rates?.big === 'number' && rates.big > 0 ? rates.big : 185;
+  const smallRate = typeof rates?.small === 'number' && rates.small > 0 ? rates.small : 10;
+  const bigRate = typeof rates?.big === 'number' && rates.big > 0 ? rates.big : 15;
 
   const hasConfirmedSmall =
     (typeof value.smallBags === 'number' && value.smallBags > 0 && (value.bigBags === 0 || value.bigBags === '')) ||

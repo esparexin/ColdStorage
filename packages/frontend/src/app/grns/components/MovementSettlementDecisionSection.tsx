@@ -19,22 +19,6 @@ export interface MovementSettlementProps {
   isTransfer?: boolean;
 }
 
-export function validateMovementSettlement(
-  decision: TransferPaymentDecision,
-  settleAmount: number,
-  pendingAmount: number,
-): string | null {
-  if (decision === 'SETTLE_NOW') {
-    if (typeof settleAmount !== 'number' || settleAmount <= 0) {
-      return 'Please enter a valid settlement payment amount greater than zero.';
-    }
-    if (settleAmount > pendingAmount) {
-      return `Settlement amount cannot exceed outstanding rent balance of ₹${pendingAmount.toLocaleString('en-IN')}.`;
-    }
-  }
-  return null;
-}
-
 export function MovementSettlementDecisionSection({
   pendingAmount,
   decision,

@@ -139,7 +139,7 @@ export function InternalMovementMergeTab({
     const isFirstVer = first ? resolveStoredCompositionVerified(first) : false;
     const isBig = isFirstVer && (first?.bagType === 'B' || (first?.bigBags ?? 0) === totalSourceBags);
     const isSmall = isFirstVer && (first?.bagType === 'S' || (first?.smallBags ?? 0) === totalSourceBags);
-    const sRate = isBig ? (first?.bigBagPrice ?? 185) : (isSmall ? (first?.smallBagPrice ?? 110) : '');
+    const sRate = isBig ? (first?.bigBagPrice ?? 15) : (isSmall ? (first?.smallBagPrice ?? 10) : '');
     setConfirmation((p) => ({
       ...p, category: 'S/B', quantity: totalSourceBags,
       smallBags: isSmall ? totalSourceBags : (isBig ? 0 : ''), bigBags: isBig ? totalSourceBags : (isSmall ? 0 : ''),

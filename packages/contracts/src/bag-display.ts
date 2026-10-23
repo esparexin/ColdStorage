@@ -6,6 +6,7 @@ export interface FormatDisplayBagTypeInput {
   smallBags?: number | null;
   bigBags?: number | null;
   isHybrid?: boolean;
+  isCompositionVerified?: boolean | null;
 }
 
 /**
@@ -17,12 +18,18 @@ export function formatDisplayBagType(input: FormatDisplayBagTypeInput): string {
   if (input.isHybrid || input.bagType === 'Hybrid' || isHybridBagCategory(input.category) || isHybridBagCategory(input.bagType)) {
     return 'Hybrid';
   }
+  const type = input.bagType ?? input.category;
+  if (type === 'S' || type === 'Small') return 'Small';
+  if (type === 'B' || type === 'Big') return 'Big';
+
+  // An unverified lot cannot be resolved to a single bag type purely from DB fallback placeholders.
+  if (input.isCompositionVerified === false) {
+    return 'Unconfirmed';
+  }
+
   const s = input.smallBags ?? 0;
   const b = input.bigBags ?? 0;
   if (s > 0 && b === 0) return 'Small';
   if (b > 0 && s === 0) return 'Big';
-  const type = input.bagType ?? input.category;
-  if (type === 'S' || type === 'Small') return 'Small';
-  if (type === 'B' || type === 'Big') return 'Big';
   return 'Small & Big';
 }

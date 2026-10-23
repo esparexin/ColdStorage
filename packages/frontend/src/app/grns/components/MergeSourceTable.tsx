@@ -106,6 +106,7 @@ export function MergeSourceTable({
                   smallBags: sg.smallBags,
                   bigBags: sg.bigBags,
                   isHybrid,
+                  isCompositionVerified: sg.isCompositionVerified,
                 })}
               </Badge>
             );
@@ -126,12 +127,25 @@ export function MergeSourceTable({
               (sg.smallBagPrice != null || sg.bigBagPrice != null) &&
               sg.smallBagPrice !== sg.bigBagPrice;
             const isHybrid = (sg.bagPrice != null && !hasDiff) || isHybridBagCategory(sg.bagType);
+            const isVerified = sg.isCompositionVerified === true;
+            const isReconciled = tot === s + b;
+            const splitText = isHybrid
+              ? 'Uniform Rate'
+              : !isVerified
+                ? ''
+                : isReconciled && (s > 0 || b > 0)
+                  ? `${s}S · ${b}B`
+                  : b === 0 && s > 0
+                    ? `${tot}S · 0B`
+                    : s === 0 && b > 0
+                      ? `0S · ${tot}B`
+                      : '';
             return (
               <div>
                 <span style={{ fontWeight: 'var(--font-semibold)' }}>{tot}</span>
-                {(s > 0 || b > 0 || isHybrid) && (
+                {splitText && (
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                    {isHybrid ? 'Uniform Rate' : `${s}S · ${b}B`}
+                    {splitText}
                   </div>
                 )}
               </div>
