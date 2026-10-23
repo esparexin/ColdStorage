@@ -129,9 +129,13 @@ export async function mergeGrn(
       const newSmall = targetGrn.smallBags + totalMovedSmall;
       const newBig = targetGrn.bigBags + totalMovedBig;
       const newRentAmount = Number((targetGrn.rentAmount + finalCarriedRent + repackHamali.repackHamaliCharge).toFixed(2));
+      const effectiveSourceBagTypes =
+        input.sourceBagCategory === 'Hybrid' || input.sourceBagType === 'Hybrid'
+          ? ['Hybrid' as const]
+          : sourceGrns.map((s) => s.bagType);
       const resultingBagType = resolveMergedBagType({
         targetBagType: targetGrn.bagType,
-        sourceBagTypes: sourceGrns.map((s) => s.bagType),
+        sourceBagTypes: effectiveSourceBagTypes,
         newSmallBags: newSmall,
         newBigBags: newBig,
       });

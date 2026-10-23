@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus } from 'lucide-react';
+import { GitMerge, Plus } from 'lucide-react';
 import { type Grn } from '@cold-storage/contracts';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { Banner } from '@/components/ui/Banner';
@@ -112,6 +112,16 @@ export default function GrnsPage() {
         </div>
 
         <div className={styles.headerActions}>
+          {canCorrect && selectedFacilityId && (
+            <Button
+              id="merge-grns-header-btn"
+              variant="outline"
+              onClick={() => router.push('/grns/merge')}
+              leftIcon={<GitMerge size={16} aria-hidden="true" />}
+            >
+              Merge GRNs
+            </Button>
+          )}
           {canCreate && selectedFacilityId && (
             <Button
               id="create-grn-header-btn"
@@ -222,21 +232,15 @@ export default function GrnsPage() {
         customers={grnData.customers}
         commodities={grnData.commodities}
         allGrns={grnData.grns}
-        onCloseDetail={() => setSelectedGrn(null)}
-        onCloseLoanModal={() => setLoanModalGrn(null)}
-        onCloseCorrectModal={() => setCorrectModalGrn(null)}
-        onCloseInternalMovementModal={() => setInternalMovementGrn(null)}
-        onCloseCreateModal={() => setIsCreateOpen(false)}
-        onPrint={handlePrint}
+        onCloseDetail={() => setSelectedGrn(null)} onCloseLoanModal={() => setLoanModalGrn(null)}
+        onCloseCorrectModal={() => setCorrectModalGrn(null)} onCloseInternalMovementModal={() => setInternalMovementGrn(null)}
+        onCloseCreateModal={() => setIsCreateOpen(false)} onPrint={handlePrint}
         onManageLoan={(grn) => { setSelectedGrn(null); setLoanModalGrn(grn); }}
-        onCorrect={handleCorrectGrn}
-        onCreateChallan={handleCreateChallan}
-        onInternalMove={handleInternalMove}
+        onCorrect={handleCorrectGrn} onCreateChallan={handleCreateChallan} onInternalMove={handleInternalMove}
         onLoanStatusUpdated={(updatedGrn) => { void grnData.fetchGrns(); setSelectedGrn(updatedGrn); }}
         onGrnCorrected={(updatedGrn) => { setCorrectModalGrn(null); void grnData.fetchGrns(); setSelectedGrn(updatedGrn); }}
         onInternalMovementSuccess={(updatedGrn) => { setInternalMovementGrn(null); void grnData.fetchGrns(); setSelectedGrn(updatedGrn); }}
-        onCustomerAdded={() => void grnData.fetchLookups()}
-        onCommodityAdded={() => void grnData.fetchLookups()}
+        onCustomerAdded={() => void grnData.fetchLookups()} onCommodityAdded={() => void grnData.fetchLookups()}
         onCreateSuccess={(newGrn) => { setIsCreateOpen(false); void grnData.fetchGrns(); setSelectedGrn(newGrn); }}
       />
     </div>

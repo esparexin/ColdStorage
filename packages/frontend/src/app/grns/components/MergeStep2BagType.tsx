@@ -4,8 +4,9 @@ import React from 'react';
 import { Package } from 'lucide-react';
 import { resolveOutwardRates, type Grn } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
-import { MergeBagCategoryFields, type BagConfirmationValue } from './MergeBagCategoryFields';
+import { MergeBagTypeFields } from './MergeBagTypeFields';
 import { MergeRentAssessment } from './MergeRentAssessment';
+import type { BagConfirmationValue } from './bagConfirmation.helper';
 import { WizardStepActions } from './WizardStepActions';
 import styles from './InternalMovementModal.module.css';
 
@@ -47,9 +48,6 @@ export function MergeStep2BagType({
     bigBagPrice: confirmSource.bigBagPrice,
     bagPrice: confirmSource.bagPrice,
   });
-  const rawSmall = selectedSources.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
-  const rawBig = selectedSources.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
       <div className={styles.compactCard}>
@@ -67,7 +65,7 @@ export function MergeStep2BagType({
           </div>
         )}
 
-        <MergeBagCategoryFields
+        <MergeBagTypeFields
           value={confirmation}
           onChange={onConfirmationChange}
           totalMovedBags={totalSourceBags}
@@ -77,9 +75,6 @@ export function MergeStep2BagType({
           submitting={submitting}
           rates={rates}
           sourceBagType={confirmSource.bagType}
-          isCompositionVerified={confirmSource.isCompositionVerified}
-          rawSmall={rawSmall}
-          rawBig={rawBig}
         />
       </div>
 

@@ -6,6 +6,7 @@ import {
   formatGrnDate,
   getAvailableStockBags,
   getEligibleGrnMarks,
+  parseMergedSourceGrns,
 } from '../hooks/eligibleGrn.helper';
 import styles from './EligibleGrnSection.module.css';
 
@@ -25,16 +26,26 @@ export function createEligibleGrnColumns({
       sortable: true,
       sortType: 'text',
       sortAccessor: (row) => row.grnNumber,
-      render: (row) => (
-        <div className={styles.grnCell}>
-          <span className={styles.grnNumber}>{row.grnNumber}</span>
-          {row.loanStatus === 'TAKEN' && (
-            <Badge variant="danger" icon={<span aria-hidden="true">🔒</span>}>
-              Loan Hold
-            </Badge>
-          )}
-        </div>
-      ),
+      render: (row) => {
+        const mergedFrom = parseMergedSourceGrns(row.remarks);
+        return (
+          <div className={styles.grnCell}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
+              <span className={styles.grnNumber}>{row.grnNumber}</span>
+              {mergedFrom && (
+                <Badge variant="primary">
+                  Merged (from {mergedFrom})
+                </Badge>
+              )}
+            </div>
+            {row.loanStatus === 'TAKEN' && (
+              <Badge variant="danger" icon={<span aria-hidden="true">🔒</span>}>
+                Loan Hold
+              </Badge>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'date',

@@ -2,7 +2,8 @@
 
 import type { BagType, Grn, GrnInventorySummary, OutwardBagCategory } from '@cold-storage/contracts';
 import { isHybridBagCategory } from '@cold-storage/contracts';
-import { Badge, Button, Select } from '@/components/ui';
+import { Badge, Button } from '@/components/ui';
+import { parseMergedSourceGrns } from '../hooks/eligibleGrn.helper';
 import { formatGrnDate } from './EligibleGrnColumns';
 import styles from './SelectedGrnCard.module.css';
 
@@ -22,12 +23,12 @@ export function SelectedGrnCard({
   onChangeGrn,
   bagType,
   bagCategory,
-  onBagTypeChange,
-  onBagCategoryChange,
 }: SelectedGrnCardProps) {
   const availableBags = summary
     ? summary.availableSmallBags + summary.availableBigBags
     : (grn.closingBags ?? grn.bags);
+  const isHybrid = bagType === 'Hybrid' || isHybridBagCategory(bagCategory) || isHybridBagCategory(grn.bagType);
+  const mergedFrom = parseMergedSourceGrns(grn.remarks);
 
   return (
     <div className={styles.card} id="selected-grn-summary-card">
@@ -38,6 +39,11 @@ export function SelectedGrnCard({
             Inward: {formatGrnDate(grn.date)}
           </span>
           <Badge variant="neutral">{grn.rentType}</Badge>
+          {mergedFrom && (
+            <Badge variant="primary">
+              Merged (incl. {mergedFrom})
+            </Badge>
+          )}
         </div>
         <Button
           id="change-selected-grn-btn"
@@ -83,21 +89,18 @@ export function SelectedGrnCard({
             {availableBags.toLocaleString('en-IN')} bags
           </strong>
         </div>
-        {(onBagTypeChange || onBagCategoryChange) && (
+        <div className={styles.detailItem}>
+          <span className={styles.detailLabel}>Bag Type</span>
+          <span className={styles.detailValue}>
+            <Badge variant="neutral">{isHybrid ? 'Hybrid' : 'Small & Big'}</Badge>
+          </span>
+        </div>
+        {mergedFrom && (
           <div className={styles.detailItem}>
-            <Select
-              id="delivery-bag-type-select"
-              label="Bag Type"
-              value={bagType === 'Hybrid' || isHybridBagCategory(bagCategory) ? 'Hybrid' : 'S/B'}
-              onChange={(e) => {
-                const val = e.target.value as BagType;
-                if (onBagTypeChange) onBagTypeChange(val);
-                if (onBagCategoryChange) onBagCategoryChange(val as OutwardBagCategory);
-              }}
-            >
-              <option value="S/B">Small &amp; Big</option>
-              <option value="Hybrid">Hybrid</option>
-            </Select>
+            <span className={styles.detailLabel}>Merged Consignment</span>
+            <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}>
+              Includes GRN {mergedFrom}
+            </span>
           </div>
         )}
       </div>

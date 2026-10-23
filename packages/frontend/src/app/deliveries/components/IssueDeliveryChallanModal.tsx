@@ -101,7 +101,6 @@ export function IssueDeliveryChallanModal({
             summary={form.grnSummary}
             onChangeGrn={onChangeGrn ? onChangeGrn : () => void form.handleSelectGrn('')}
             bagCategory={form.bagCategory}
-            onBagCategoryChange={form.setBagCategory}
           />
         )}
 

@@ -12,7 +12,7 @@ import {
 import { requestWithAuth } from '@/lib/api-client';
 import { OutwardRentBreakdown } from '@/app/deliveries/components/OutwardRentBreakdown';
 import { computeOutwardRentCharge } from '@/app/deliveries/hooks/deliveryRent.helper';
-import type { BagConfirmationValue } from './MergeBagCategoryFields';
+import type { BagConfirmationValue } from './bagConfirmation.helper';
 import { deriveMergeRentAssessment } from './mergeRentAssessment.helper';
 
 export interface MergeRentAssessmentProps {
@@ -90,7 +90,7 @@ export function MergeRentAssessment({
         if (!isHybrid && !hasChoice && !source.isCompositionVerified) {
           return (
             <div key={source.id} style={{ padding: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', textAlign: 'center', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)' }}>
-              Please enter Small and Big bag counts above to view the storage rent calculation breakdown.
+              Storage rent calculation breakdown is unavailable for unconfirmed bag counts.
             </div>
           );
         }
