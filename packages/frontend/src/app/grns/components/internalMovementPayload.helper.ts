@@ -24,7 +24,6 @@ export interface MergePayload {
   repackedBigBags?: number;
   repackedBagCount?: number;
   // Source bag-type confirmation (outward vocabulary, informational for rent).
-  sourceBagType?: BagType;
   sourceBagCategory?: OutwardBagCategory | BagType;
   sourceQuantity?: number;
   sourceBagPrice?: number;

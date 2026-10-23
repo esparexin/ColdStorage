@@ -91,7 +91,7 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
       remainingBalance: { type: Number, required: true, min: 0 },
       paymentStatus: { type: String, required: true },
       rentState: { type: String, default: null },
-      // @deprecated Legacy snapshot hamali: never written; old values stay readable.
+      // Labor charges for physical repacking during merge (written when hamaliCharge > 0).
       hamaliAmount: { type: Number, min: 0 },
     },
     remarks: { type: String, trim: true, maxlength: 500, default: null },
