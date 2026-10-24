@@ -1,1 +1,13 @@
-{}
+{
+  "packages/frontend/src/app/grns/components/internalMovementNotes.helper.ts": 260,
+  "packages/frontend/src/app/grns/components/useInternalMovementMergeTab.ts": 252,
+  "packages/frontend/src/app/grns/components/mergeRentAssessment.helper.ts": 264,
+  "packages/frontend/src/app/grns/components/GrnTable.tsx": 277,
+  "packages/frontend/src/app/grns/components/__tests__/mergeRentAssessment.helper.test.ts": 530,
+  "packages/frontend/src/app/rent/components/RentCashMemosTab.tsx": 274,
+  "packages/frontend/src/app/rent/hooks/__tests__/rentFilter.helper.test.ts": 310,
+  "packages/backend/src/__tests__/e2e-rent-visibility-lifecycle.test.ts": 351,
+  "packages/backend/src/__tests__/rent-generated-date-and-carryforward.test.ts": 255,
+  "packages/contracts/src/rent.ts": 350,
+  "packages/contracts/src/__tests__/rent.contracts.test.ts": 323
+}
