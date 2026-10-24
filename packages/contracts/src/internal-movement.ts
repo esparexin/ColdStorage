@@ -92,6 +92,7 @@ export const internalMovementRecordSchema = z.object({
   hamaliBags: z.number().min(0).optional(),
   hamaliRate: z.number().min(0).nullish(),
   hamaliCharge: z.number().min(0).optional(),
+  /** @deprecated Legacy column: retained for historical document reads; never written. */
   hamaliCarried: z.number().min(0).optional(),
   referenceWeight: z.number().positive().max(1000000).nullish(),
   idempotencyKey: z.string().trim().min(1).max(100).nullish(),

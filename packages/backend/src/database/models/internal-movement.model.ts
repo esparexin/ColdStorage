@@ -29,7 +29,7 @@ export interface InternalMovementDoc extends Document {
   hamaliRate?: number | null;
   hamaliCharge: number;
   /** @deprecated Legacy column: retained for historical document reads; never written. */
-  hamaliCarried: number;
+  hamaliCarried?: number;
   referenceWeight?: number | null;
   idempotencyKey?: string | null;
   grnId: string | null;
