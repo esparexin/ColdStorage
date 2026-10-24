@@ -84,40 +84,87 @@ export function parseMergedConsignmentBreakdown(
     ? parseFloat(separateSourceRentMatch[1])
     : 0;
 
-  const sourceBlockRegex = /GRN\s+([A-Za-z0-9-]+)\s*\(([^)]+)\)/gi;
-
   const sources: MergedSourceBillingItem[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = sourceBlockRegex.exec(remarks)) !== null) {
-    const grnNumber = m[1];
-    const details = m[2];
+  let pos = 0;
+  const upperRemarks = remarks.toUpperCase();
+  while (pos < remarks.length) {
+    const grnIdx = upperRemarks.indexOf('GRN', pos);
+    if (grnIdx === -1) break;
 
-    const bagsMatch = details.match(/\bBags:\s*(\d+)/i);
-    if (!bagsMatch) continue;
+    const openParen = remarks.indexOf('(', grnIdx);
+    if (openParen === -1) break;
 
-    const receiptMatch = details.match(/\bReceipt\s*#\s*([^,]+)/i);
-    const dateMatch = details.match(/\bDate:\s*([0-9-]+)/i);
-    const customerMatch = details.match(/\bCustomer:\s*([^,]+)/i);
-    const rentMatch = details.match(/\bRent:\s*₹?(\d+(?:\.\d+)?)/i);
-    const paidMatch = details.match(/\bPaid:\s*₹?(\d+(?:\.\d+)?)/i);
-    const balanceMatch = details.match(/\bBalance:\s*₹?(\d+(?:\.\d+)?)/i);
-    const statusMatch = details.match(/\bStatus:\s*([^,]+)/i);
+    const grnCandidate = remarks.slice(grnIdx + 3, openParen).trim();
+    if (!grnCandidate || !/^[A-Za-z0-9-]+$/.test(grnCandidate)) {
+      pos = grnIdx + 3;
+      continue;
+    }
 
-    const dateStr = dateMatch ? dateMatch[1].trim() : undefined;
-    const seasonYear = dateStr ? parseInt(dateStr.split('-')[0], 10) : undefined;
+    const closeParen = remarks.indexOf(')', openParen);
+    if (closeParen === -1) break;
 
-    sources.push({
-      grnNumber,
-      receiptNumber: receiptMatch ? receiptMatch[1].trim() : undefined,
-      dateStr,
-      seasonYear,
-      customerName: customerMatch ? customerMatch[1].trim() : undefined,
-      bags: parseInt(bagsMatch[1], 10),
-      rentAmount: rentMatch ? parseFloat(rentMatch[1]) : 0,
-      amountPaid: paidMatch ? parseFloat(paidMatch[1]) : 0,
-      remainingBalance: balanceMatch ? parseFloat(balanceMatch[1]) : 0,
-      status: statusMatch ? statusMatch[1].trim() : undefined,
-    });
+    const details = remarks.slice(openParen + 1, closeParen);
+    const parts = details.split(',');
+
+    let receiptNumber: string | undefined;
+    let dateStr: string | undefined;
+    let seasonYear: number | undefined;
+    let customerName: string | undefined;
+    let status: string | undefined;
+    let bags = 0;
+    let rentAmount = 0;
+    let amountPaid = 0;
+    let remainingBalance = 0;
+    let hasBags = false;
+
+    for (const rawPart of parts) {
+      const part = rawPart.trim();
+      const colonIdx = part.indexOf(':');
+      const hashIdx = part.indexOf('#');
+
+      if (part.toLowerCase().startsWith('receipt') && hashIdx !== -1) {
+        receiptNumber = part.slice(hashIdx + 1).trim() || undefined;
+      } else if (colonIdx !== -1) {
+        const key = part.slice(0, colonIdx).trim().toLowerCase();
+        const rawVal = part.slice(colonIdx + 1).trim();
+        const numVal = parseFloat(rawVal.replace(/^[₹\s]+/, '')) || 0;
+
+        if (key === 'date') {
+          dateStr = rawVal || undefined;
+          seasonYear = dateStr ? parseInt(dateStr.split('-')[0], 10) || undefined : undefined;
+        } else if (key === 'customer') {
+          customerName = rawVal || undefined;
+        } else if (key === 'bags') {
+          bags = parseInt(rawVal, 10) || 0;
+          hasBags = true;
+        } else if (key === 'rent') {
+          rentAmount = numVal;
+        } else if (key === 'paid') {
+          amountPaid = numVal;
+        } else if (key === 'balance') {
+          remainingBalance = numVal;
+        } else if (key === 'status') {
+          status = rawVal || undefined;
+        }
+      }
+    }
+
+    if (hasBags) {
+      sources.push({
+        grnNumber: grnCandidate,
+        receiptNumber,
+        dateStr,
+        seasonYear,
+        customerName,
+        bags,
+        rentAmount,
+        amountPaid,
+        remainingBalance,
+        status,
+      });
+    }
+
+    pos = closeParen + 1;
   }
 
   const genesisBags = Math.max(0, totalAccountBags - totalMergedAddedBags);
