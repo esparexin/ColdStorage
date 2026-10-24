@@ -84,25 +84,39 @@ export function parseMergedConsignmentBreakdown(
     ? parseFloat(separateSourceRentMatch[1])
     : 0;
 
-  const sourceRegex =
-    /GRN\s+([A-Za-z0-9-]+)\s*\((?:Receipt\s*#([^,]+),\s*)?(?:Date:\s*([^,]+),\s*)?(?:Customer:\s*([^,]+),\s*)?Bags:\s*(\d+),\s*Rent:\s*₹(\d+(?:\.\d+)?),\s*Paid:\s*₹(\d+(?:\.\d+)?),\s*Balance:\s*₹(\d+(?:\.\d+)?),\s*Status:\s*([^)]+)\)/gi;
+  const sourceBlockRegex = /GRN\s+([A-Za-z0-9-]+)\s*\(([^)]+)\)/gi;
 
   const sources: MergedSourceBillingItem[] = [];
   let m: RegExpExecArray | null;
-  while ((m = sourceRegex.exec(remarks)) !== null) {
-    const dateStr = m[3]?.trim();
+  while ((m = sourceBlockRegex.exec(remarks)) !== null) {
+    const grnNumber = m[1];
+    const details = m[2];
+
+    const bagsMatch = details.match(/\bBags:\s*(\d+)/i);
+    if (!bagsMatch) continue;
+
+    const receiptMatch = details.match(/\bReceipt\s*#\s*([^,]+)/i);
+    const dateMatch = details.match(/\bDate:\s*([0-9-]+)/i);
+    const customerMatch = details.match(/\bCustomer:\s*([^,]+)/i);
+    const rentMatch = details.match(/\bRent:\s*₹?(\d+(?:\.\d+)?)/i);
+    const paidMatch = details.match(/\bPaid:\s*₹?(\d+(?:\.\d+)?)/i);
+    const balanceMatch = details.match(/\bBalance:\s*₹?(\d+(?:\.\d+)?)/i);
+    const statusMatch = details.match(/\bStatus:\s*([^,]+)/i);
+
+    const dateStr = dateMatch ? dateMatch[1].trim() : undefined;
     const seasonYear = dateStr ? parseInt(dateStr.split('-')[0], 10) : undefined;
+
     sources.push({
-      grnNumber: m[1],
-      receiptNumber: m[2]?.trim(),
+      grnNumber,
+      receiptNumber: receiptMatch ? receiptMatch[1].trim() : undefined,
       dateStr,
       seasonYear,
-      customerName: m[4]?.trim(),
-      bags: parseInt(m[5], 10),
-      rentAmount: parseFloat(m[6]),
-      amountPaid: parseFloat(m[7]),
-      remainingBalance: parseFloat(m[8]),
-      status: m[9]?.trim(),
+      customerName: customerMatch ? customerMatch[1].trim() : undefined,
+      bags: parseInt(bagsMatch[1], 10),
+      rentAmount: rentMatch ? parseFloat(rentMatch[1]) : 0,
+      amountPaid: paidMatch ? parseFloat(paidMatch[1]) : 0,
+      remainingBalance: balanceMatch ? parseFloat(balanceMatch[1]) : 0,
+      status: statusMatch ? statusMatch[1].trim() : undefined,
     });
   }
 

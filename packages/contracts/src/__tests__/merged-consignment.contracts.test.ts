@@ -136,4 +136,20 @@ describe('merged-consignment.contracts', () => {
     expect(parsed.data.unclassifiedDispatch?.smallBags).toBe(10);
     expect(parsed.data.confirmedDispatch?.smallBags).toBe(15);
   });
+
+  it('safely parses pathological inputs with extensive whitespace without polynomial backtracking (ReDoS defense)', () => {
+    const maliciousRemark1 = '[MERGE RECEIVED on 2026-10-23: +60 bags from GRN -(Date: ' + ' '.repeat(50000);
+    const maliciousRemark2 = '[MERGE RECEIVED on 2026-10-23: +60 bags from GRN -(Customer: ' + ' '.repeat(50000);
+    const maliciousRemark3 =
+      '[MERGE RECEIVED on 2026-10-23: +60 bags from GRN -(Bags:0,Rent:₹0,Paid:₹0,Balance:₹0,Status: ' +
+      ' '.repeat(50000);
+
+    const t0 = performance.now();
+    expect(parseMergedConsignmentBreakdown(maliciousRemark1, 60, 'Balaji')?.sources).toEqual([]);
+    expect(parseMergedConsignmentBreakdown(maliciousRemark2, 60, 'Balaji')?.sources).toEqual([]);
+    expect(parseMergedConsignmentBreakdown(maliciousRemark3, 60, 'Balaji')?.sources).toEqual([]);
+    const duration = performance.now() - t0;
+
+    expect(duration).toBeLessThan(100);
+  });
 });
