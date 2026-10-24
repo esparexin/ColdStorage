@@ -3,6 +3,8 @@ import type { Grn } from '@cold-storage/contracts';
 import {
   filterEligibleGrns,
   getAvailableStockBags,
+  parseMergedAddedBags,
+  parseMergedRepackedDetail,
   parseMergedSourceGrns,
 } from '../eligibleGrn.helper';
 
@@ -92,6 +94,36 @@ describe('Outward Workflow Scenarios: Inward & Internal Movement to Outward', ()
       const searchResults = filterEligibleGrns([survivingTargetGrn], '0001');
       expect(searchResults).toHaveLength(1);
       expect(searchResults[0].grnNumber).toBe('0002');
+    });
+
+    it('extracts multi-source merged GRNs and added bag count for complex repacked merges', () => {
+      const complexTargetGrn = createMockGrn({
+        id: 'target-grn-0013',
+        grnNumber: '0013',
+        status: 'OPEN',
+        bags: 74,
+        closingBags: 74,
+        remarks:
+          '[MERGE RECEIVED on 2026-10-22: +60 bags (Repacked: 30 S + 30 B = 60 bags). Repacking Hamali: ₹1500 (60 bags @ ₹25/bag) from GRN 0010 (Receipt #BILL-10, Date: 2024-06-11, Customer: Kalyan, Bags: 10, Rent: ₹26100, Paid: ₹0, Balance: ₹26350, Status: Not Settled); GRN 0012 (Receipt #BILL-12, Date: 2025-07-17, Customer: Kalyan, Bags: 12, Rent: ₹13050, Paid: ₹0, Balance: ₹13350, Status: Not Settled). Carried pending rent: ₹39700. Reason: Internal Consolidation]',
+      });
+
+      const parsedSources = parseMergedSourceGrns(complexTargetGrn.remarks);
+      expect(parsedSources).toBe('0010, 0012');
+
+      const parsedAddedBags = parseMergedAddedBags(complexTargetGrn.remarks);
+      expect(parsedAddedBags).toBe(60);
+
+      const repackedDetail = parseMergedRepackedDetail(complexTargetGrn.remarks);
+      expect(repackedDetail).toBe('30 Small, 30 Big');
+
+      // Verify stock differentiation calculations
+      const genesisInwardBags = complexTargetGrn.bags - parsedAddedBags!;
+      expect(genesisInwardBags).toBe(14);
+      expect(complexTargetGrn.bags).toBe(74);
+
+      // Searching for either source GRN returns the surviving GRN
+      expect(filterEligibleGrns([complexTargetGrn], '0010')).toHaveLength(1);
+      expect(filterEligibleGrns([complexTargetGrn], '0012')).toHaveLength(1);
     });
 
     it('provides ownership-transferred customer details and inherits resulting GRN bag type and rates', () => {

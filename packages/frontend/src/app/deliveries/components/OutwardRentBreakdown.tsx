@@ -37,6 +37,7 @@ export interface OutwardRentBreakdownProps {
   totalStock?: number;
   hamaliRate?: number | null;
   excludePeriodKeys?: string[];
+  grnNumber?: string;
 }
 
 export function OutwardRentBreakdown({
@@ -56,6 +57,7 @@ export function OutwardRentBreakdown({
   totalRent,
   hamaliRate,
   excludePeriodKeys,
+  grnNumber,
 }: OutwardRentBreakdownProps) {
   const isSeasonal = rentType === 'Seasonal';
   const isSeasonal3M = rentType === 'Seasonal_3M';
@@ -193,6 +195,7 @@ export function OutwardRentBreakdown({
         <div className={styles.titleGroup}>
           <span className={styles.title}>Outward Rent Calculation</span>
           <Badge variant="neutral">{rentType}</Badge>
+          {grnNumber && <Badge variant="primary">GRN #{grnNumber}</Badge>}
         </div>
       </div>
 

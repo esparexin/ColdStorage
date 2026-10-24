@@ -1,15 +1,22 @@
 'use client';
 
-import type { BagType, Grn, GrnInventorySummary, OutwardBagCategory } from '@cold-storage/contracts';
-import { isHybridBagCategory } from '@cold-storage/contracts';
+import React from 'react';
+import { GitMerge } from 'lucide-react';
+import type { BagType, Grn, GrnInventorySummary, OutwardBagCategory, RentSummaryDto } from '@cold-storage/contracts';
+import { isHybridBagCategory, parseMergedConsignmentBreakdown } from '@cold-storage/contracts';
 import { Badge, Button } from '@/components/ui';
-import { parseMergedSourceGrns } from '../hooks/eligibleGrn.helper';
+import {
+  parseMergedAddedBags,
+  parseMergedRepackedDetail,
+  parseMergedSourceGrns,
+} from '../hooks/eligibleGrn.helper';
 import { formatGrnDate } from './EligibleGrnColumns';
 import styles from './SelectedGrnCard.module.css';
 
 interface SelectedGrnCardProps {
   grn: Grn;
   summary?: GrnInventorySummary | null;
+  rentSummary?: RentSummaryDto | null;
   onChangeGrn: () => void;
   bagType?: BagType;
   bagCategory?: OutwardBagCategory;
@@ -20,6 +27,7 @@ interface SelectedGrnCardProps {
 export function SelectedGrnCard({
   grn,
   summary,
+  rentSummary,
   onChangeGrn,
   bagType,
   bagCategory,
@@ -28,7 +36,25 @@ export function SelectedGrnCard({
     ? summary.availableSmallBags + summary.availableBigBags
     : (grn.closingBags ?? grn.bags);
   const isHybrid = bagType === 'Hybrid' || isHybridBagCategory(bagCategory) || isHybridBagCategory(grn.bagType);
-  const mergedFrom = parseMergedSourceGrns(grn.remarks);
+  const breakdown =
+    rentSummary?.mergedConsignment ??
+    parseMergedConsignmentBreakdown(grn.remarks, grn.bags, grn.customerName);
+  const mergedFrom = breakdown && breakdown.sources.length > 0
+    ? Array.from(new Set(breakdown.sources.map((s) => s.grnNumber))).join(', ')
+    : parseMergedSourceGrns(grn.remarks);
+  const safeAddedBags = breakdown ? breakdown.totalMergedAddedBags : (parseMergedAddedBags(grn.remarks) ?? 0);
+  const isMergedConsignment = safeAddedBags > 0;
+  const repackedDetail = parseMergedRepackedDetail(grn.remarks);
+  const genesisInwardBags = breakdown
+    ? breakdown.genesisBags
+    : (isMergedConsignment && grn.bags > safeAddedBags ? grn.bags - safeAddedBags : grn.bags);
+  const displayBagType = isHybrid
+    ? 'Hybrid'
+    : grn.bagType === 'S'
+      ? 'Small'
+      : grn.bagType === 'B'
+        ? 'Big'
+        : 'Small & Big';
 
   return (
     <div className={styles.card} id="selected-grn-summary-card">
@@ -40,8 +66,8 @@ export function SelectedGrnCard({
           </span>
           <Badge variant="neutral">{grn.rentType}</Badge>
           {mergedFrom && (
-            <Badge variant="primary">
-              Merged (incl. {mergedFrom})
+            <Badge variant="primary" icon={<GitMerge size={12} aria-hidden="true" />}>
+              Includes GRN{mergedFrom.includes(',') ? 's' : ''} {mergedFrom}
             </Badge>
           )}
         </div>
@@ -77,29 +103,74 @@ export function SelectedGrnCard({
           <span className={styles.detailLabel}>Party Mark</span>
           <span className={styles.detailValue}>{grn.partyMark || '—'}</span>
         </div>
-        <div className={styles.detailItem}>
-          <span className={styles.detailLabel}>Received</span>
-          <span className={styles.detailValue}>
-            {grn.bags.toLocaleString('en-IN')} bags
-          </span>
-        </div>
-        <div className={styles.detailItem}>
-          <span className={styles.detailLabel}>Available Stock</span>
-          <strong className={styles.detailValue}>
-            {availableBags.toLocaleString('en-IN')} bags
-          </strong>
-        </div>
+
+        {isMergedConsignment ? (
+          <>
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Genesis Inward Bags</span>
+              <span className={styles.detailValue}>
+                {genesisInwardBags.toLocaleString('en-IN')} bags
+              </span>
+            </div>
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>New Bags Added</span>
+              <span
+                className={styles.detailValue}
+                style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}
+              >
+                +{safeAddedBags.toLocaleString('en-IN')} repacked bags
+                {repackedDetail ? ` (${repackedDetail})` : ''}
+              </span>
+            </div>
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Total Stock</span>
+              <strong
+                className={styles.detailValue}
+                style={{ color: 'var(--color-success-text)', fontSize: 'var(--text-sm)' }}
+              >
+                {grn.bags.toLocaleString('en-IN')} bags
+              </strong>
+            </div>
+            {availableBags !== grn.bags && (
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>Available Stock</span>
+                <strong className={styles.detailValue}>
+                  {availableBags.toLocaleString('en-IN')} bags
+                </strong>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Received</span>
+              <span className={styles.detailValue}>
+                {grn.bags.toLocaleString('en-IN')} bags
+              </span>
+            </div>
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Available Stock</span>
+              <strong className={styles.detailValue}>
+                {availableBags.toLocaleString('en-IN')} bags
+              </strong>
+            </div>
+          </>
+        )}
+
         <div className={styles.detailItem}>
           <span className={styles.detailLabel}>Bag Type</span>
           <span className={styles.detailValue}>
-            <Badge variant="neutral">{isHybrid ? 'Hybrid' : 'Small & Big'}</Badge>
+            <Badge variant="neutral">{displayBagType}</Badge>
           </span>
         </div>
         {mergedFrom && (
           <div className={styles.detailItem}>
-            <span className={styles.detailLabel}>Merged Consignment</span>
-            <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}>
-              Includes GRN {mergedFrom}
+            <span className={styles.detailLabel}>Source Traceability</span>
+            <span
+              className={styles.detailValue}
+              style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}
+            >
+              Includes GRN{mergedFrom.includes(',') ? 's' : ''} {mergedFrom}
             </span>
           </div>
         )}

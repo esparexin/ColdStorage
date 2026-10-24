@@ -107,39 +107,52 @@ describe('rentDisplay.helper', () => {
       ).toBe('Rent obligation is derived from 40 outward delivered bags.');
     });
 
-    it('returns carried-forward notice when merged into another GRN', () => {
+    it('returns separate-bill notice when merged into another GRN', () => {
       expect(
         getRentCollectionNotice({
           rentType: 'Seasonal',
           rentAmount: 2000,
-          remainingBalance: 0,
+          remainingBalance: 2000,
           mergedIntoGrnNumber: '0020',
         }),
-      ).toContain('This GRN was merged into GRN 0020. Outstanding dues were carried forward');
+      ).toContain('This GRN was merged into GRN 0020. This is an independent bill');
     });
   });
 
   describe('mergedIntoGrnNumber handling', () => {
-    it('formats remaining due as "Carried Forward" for merged GRN', () => {
+    it('formats remaining due with actual amount as separate bill for merged GRN', () => {
       expect(
         formatRemainingDue({
           rentType: 'Seasonal',
           rentAmount: 2000,
-          remainingBalance: 0,
+          remainingBalance: 2000,
           mergedIntoGrnNumber: '0020',
         }),
-      ).toBe('Carried Forward');
+      ).toBe('₹2,000');
     });
 
-    it('formats payment status as "Merged → {grnNumber}" with neutral variant', () => {
+    it('formats payment status as "Pending" when merged GRN has outstanding balance', () => {
       const res = formatPaymentStatus({
         rentType: 'Seasonal',
         rentAmount: 2000,
+        remainingBalance: 2000,
+        paymentStatus: 'Not Settled',
+        mergedIntoGrnNumber: '0020',
+      });
+      expect(res.label).toBe('Pending');
+      expect(res.variant).toBe('warning');
+    });
+
+    it('formats payment status as "Settled" when merged GRN is fully settled', () => {
+      const res = formatPaymentStatus({
+        rentType: 'Seasonal',
+        rentAmount: 2000,
+        remainingBalance: 0,
         paymentStatus: 'Settled',
         mergedIntoGrnNumber: '0020',
       });
-      expect(res.label).toBe('Merged → 0020');
-      expect(res.variant).toBe('neutral');
+      expect(res.label).toBe('Settled');
+      expect(res.variant).toBe('success');
     });
   });
 

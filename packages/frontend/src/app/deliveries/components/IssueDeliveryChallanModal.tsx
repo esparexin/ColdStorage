@@ -99,6 +99,7 @@ export function IssueDeliveryChallanModal({
           <SelectedGrnCard
             grn={form.selectedGrn}
             summary={form.grnSummary}
+            rentSummary={form.rentSummary}
             onChangeGrn={onChangeGrn ? onChangeGrn : () => void form.handleSelectGrn('')}
             bagCategory={form.bagCategory}
           />
