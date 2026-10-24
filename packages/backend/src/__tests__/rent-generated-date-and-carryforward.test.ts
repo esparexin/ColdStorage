@@ -113,7 +113,7 @@ describe('Rent Generated Date and Carry-Forward Obligations', () => {
       expect(summary.mergedIntoGrnNumber).toBeNull();
     });
 
-    it('6. eliminates double-counting on merged source GRN by transferring balance to target', () => {
+    it('6. preserves merged source GRN as a separate pending bill without carry-forward to target', () => {
       const mergedSourceGrn = {
         ...baseGrn,
         id: 'grn-0034',
@@ -135,18 +135,17 @@ describe('Rent Generated Date and Carry-Forward Obligations', () => {
         0,
       );
 
-      // Historical obligation is preserved
+      // Historical obligation is preserved as a separate pending bill (no carry forward)
       expect(summary.rentAmount).toBe(2000);
       expect(summary.totalPaid).toBe(0);
-      // But remaining balance on source is 0 because liability was carried forward to 0020
-      expect(summary.remainingBalance).toBe(0);
-      expect(summary.paymentStatus).toBe('Settled');
-      expect(summary.rentState).toBe('SETTLED');
+      expect(summary.remainingBalance).toBe(2000);
+      expect(summary.paymentStatus).toBe('Not Settled');
+      expect(summary.rentState).toBe('PENDING');
       expect(summary.mergedIntoGrnNumber).toBe('0020');
       expect(summary.mergedIntoGrnId).toBe('grn-0020');
     });
 
-    it('7. preserves partial payments and historical audit trail for source GRN', () => {
+    it('7. preserves partial payments and separate pending bill for source GRN', () => {
       const partiallyPaidSourceGrn = {
         ...baseGrn,
         id: 'grn-0035',
@@ -183,8 +182,9 @@ describe('Rent Generated Date and Carry-Forward Obligations', () => {
       expect(summary.totalPaid).toBe(1000);
       expect(summary.payments).toHaveLength(1);
       expect(summary.payments[0].receiptNumber).toBe('RCPT-001');
-      expect(summary.remainingBalance).toBe(0); // Remaining 2,000 was carried forward to target
-      expect(summary.paymentStatus).toBe('Settled');
+      expect(summary.remainingBalance).toBe(2000); // Remaining 2,000 stays as separate pending bill
+      expect(summary.paymentStatus).toBe('Not Settled');
+      expect(summary.rentState).toBe('PENDING');
     });
 
     it('8. preserves original rent generation date across ownership transfer', () => {
@@ -216,6 +216,40 @@ describe('Rent Generated Date and Carry-Forward Obligations', () => {
       expect(summary.paymentStatus).toBe('Not Settled');
       // Original bill generation date is preserved, does not invent new bill date on transfer
       expect(summary.rentGeneratedDate).toEqual(originalCreatedAt);
+    });
+
+    it('9. populates structured mergedConsignment on destination GRN when merge remarks are present', () => {
+      const mergedTargetGrn = {
+        ...baseGrn,
+        id: 'grn-dest-1',
+        grnNumber: '0099',
+        bags: 150,
+        remarks:
+          '[MERGE RECEIVED on 2026-07-15: +50 bags (Repacked: 30 S + 20 B = 50 bags). Repacking Hamali: ₹300 (50 bags @ ₹6/bag) from GRN 0042 (Receipt #RCPT-26-27-0042, Date: 2026-06-01, Customer: Suresh Kumar, Bags: 50, Rent: ₹1500, Paid: ₹500, Balance: ₹1000, Status: Not Settled). Additional rent: ₹1000. Reason: Consolidation]',
+      } as unknown as GrnDoc;
+
+      const summary = buildRentSummary(
+        mergedTargetGrn,
+        [],
+        [],
+        0,
+        150,
+        0,
+        0,
+      );
+
+      expect(summary.mergedConsignment).not.toBeNull();
+      expect(summary.mergedConsignment?.isMergedTarget).toBe(true);
+      expect(summary.mergedConsignment?.totalMergedAddedBags).toBe(50);
+      expect(summary.mergedConsignment?.genesisBags).toBe(100);
+      expect(summary.mergedConsignment?.repackHamali).toEqual({
+        amount: 300,
+        repackBags: 50,
+        ratePerBag: 6,
+      });
+      expect(summary.mergedConsignment?.sources).toHaveLength(1);
+      expect(summary.mergedConsignment?.sources[0].grnNumber).toBe('0042');
+      expect(summary.mergedConsignment?.sources[0].customerName).toBe('Suresh Kumar');
     });
   });
 });

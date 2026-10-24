@@ -1,3 +1,4 @@
+import dns from 'node:dns';
 import mongoose from 'mongoose';
 import type { DatabaseState } from '@cold-storage/contracts';
 import { config } from '../config.js';
@@ -146,7 +147,7 @@ export async function connectToDatabase(uri?: string): Promise<boolean> {
   // traded a guarded edge for broken queries.
   mongoose.set('strictQuery', true);
 
-  await mongoose.connect(mongoUri, {
+  const connectionOptions = {
     serverSelectionTimeoutMS: MONGO_SERVER_SELECTION_TIMEOUT_MS,
     connectTimeoutMS: MONGO_CONNECT_TIMEOUT_MS,
     socketTimeoutMS: MONGO_SOCKET_TIMEOUT_MS,
@@ -156,7 +157,29 @@ export async function connectToDatabase(uri?: string): Promise<boolean> {
     // ops then reject with a MongooseError rather than hanging the Express
     // handler indefinitely.
     bufferCommands: false,
-  });
+  };
+
+  try {
+    await mongoose.connect(mongoUri, connectionOptions);
+  } catch (err) {
+    const isSrvDnsError =
+      mongoUri.startsWith('mongodb+srv://') &&
+      err instanceof Error &&
+      (err.message.includes('EBADRESP') ||
+        (err as { code?: string }).code === 'EBADRESP' ||
+        (err as { syscall?: string }).syscall === 'querySrv');
+
+    if (isSrvDnsError) {
+      logger.warn(
+        'MongoDB SRV DNS resolution failed with local system DNS resolver. Retrying with public DNS resolvers (8.8.8.8, 1.1.1.1)...',
+        { error: (err as Error).message },
+      );
+      dns.setServers(['8.8.8.8', '1.1.1.1']);
+      await mongoose.connect(mongoUri, connectionOptions);
+    } else {
+      throw err;
+    }
+  }
   const connectMs = Date.now() - connectStart;
   if (connectMs > 1000) {
     logger.warn('MongoDB connect slow', { connectMs });
