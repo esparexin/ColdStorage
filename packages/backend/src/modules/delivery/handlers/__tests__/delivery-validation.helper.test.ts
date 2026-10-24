@@ -221,5 +221,17 @@ describe('resolveSafeLedgerDrawdown', () => {
     const res = resolveSafeLedgerDrawdown(true, 'HYBRID', 25, 35, { smallBags: 40, bigBags: 60 });
     expect(res).toEqual({ smallQuantity: 25, bigQuantity: 35 });
   });
+
+  it('balances ledger pools when unclassified genesis stock is present', () => {
+    // Ledger has 19 small and 11 big (total 30). Challan requests 15 small and 15 big (total 30).
+    const res = resolveSafeLedgerDrawdown(false, 'S/B', 15, 15, { smallBags: 19, bigBags: 11 }, true);
+    expect(res).toEqual({ smallQuantity: 19, bigQuantity: 11 });
+  });
+
+  it('rejects when requested total exceeds available stock even with unclassified genesis stock', () => {
+    expect(() =>
+      resolveSafeLedgerDrawdown(false, 'S/B', 20, 15, { smallBags: 19, bigBags: 11 }, true),
+    ).toThrow(/Requested 35 bags exceeds available stock of 30 bags/);
+  });
 });
 

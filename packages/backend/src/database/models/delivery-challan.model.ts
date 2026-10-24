@@ -1,5 +1,9 @@
 import mongoose, { Schema, type Document, type Model } from 'mongoose';
-import type { DeliveryStatus } from '@cold-storage/contracts';
+import type {
+  DeliveryStatus,
+  ConfirmedDispatchAllocation,
+  UnclassifiedDispatchAllocation,
+} from '@cold-storage/contracts';
 
 export interface DeliveryChallanDoc extends Document {
   id: string;
@@ -40,6 +44,8 @@ export interface DeliveryChallanDoc extends Document {
   issuedBy: string;
   /** Stable client retry key: same key + same payload returns original; different payload rejected. */
   idempotencyKey?: string | null;
+  unclassifiedDispatch?: UnclassifiedDispatchAllocation | null;
+  confirmedDispatch?: ConfirmedDispatchAllocation | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -78,6 +84,8 @@ const deliveryChallanSchema = new Schema<DeliveryChallanDoc>(
     status: { type: String, required: true, enum: ['ISSUED', 'REVERSED'], default: 'ISSUED', index: true },
     issuedBy: { type: String, required: true },
     idempotencyKey: { type: String, trim: true, default: null },
+    unclassifiedDispatch: { type: Schema.Types.Mixed, default: null },
+    confirmedDispatch: { type: Schema.Types.Mixed, default: null },
   },
   {
     timestamps: true,
