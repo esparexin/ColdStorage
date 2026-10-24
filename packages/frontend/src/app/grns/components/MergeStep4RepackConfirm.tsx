@@ -144,7 +144,13 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
           </div>
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Rent Settlement:</span>
-            <span className={styles.detailValue}>{settlementDecision === 'SETTLE_NOW' ? `Settled ₹${settleAmount} now` : `Carried ₹${totalSourcePendingRent} forward`}</span>
+            <span className={styles.detailValue}>
+              {settlementDecision === 'SETTLE_NOW'
+                ? settleAmount < totalSourcePendingRent
+                  ? `Settled ₹${settleAmount.toLocaleString('en-IN')} now (₹${(totalSourcePendingRent - settleAmount).toLocaleString('en-IN')} carried forward)`
+                  : `Settled ₹${settleAmount.toLocaleString('en-IN')} now (Pay Now)`
+                : `Carried ₹${totalSourcePendingRent.toLocaleString('en-IN')} forward (Pay Later)`}
+            </span>
           </div>
 
           <div className={styles.formSection} style={{ marginTop: 'var(--space-1)' }}>

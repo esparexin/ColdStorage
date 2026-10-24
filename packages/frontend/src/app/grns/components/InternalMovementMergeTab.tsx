@@ -11,7 +11,7 @@ import { useInternalMovementMergeTab } from './useInternalMovementMergeTab';
 import styles from './InternalMovementModal.module.css';
 
 const MERGE_STEPS = [
-  { number: 1, label: '1. Batches & Surviving GRN' },
+  { number: 1, label: '1. Batches & Target GRN' },
   { number: 2, label: '2. Bag Type & History' },
   { number: 3, label: '3. Rent Settlement' },
   { number: 4, label: '4. Repack & Confirm' },
@@ -39,6 +39,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
   const {
     step, setStep, targetGrnId, selectedSourceIds,
     movementDate, reason, setReason, remarks, setRemarks, confirmation, setConfirmation,
+    sourceConfirmations, updateSourceConfirmation, sourceRentSummaries,
     settlementDecision, setSettlementDecision, settleAmount, setSettleAmount,
     paymentMode, setPaymentMode, repackMode, setRepackMode, repackBagType, setRepackBagType,
     repackSmall, setRepackSmall, repackBig, setRepackBig, repackQuantity, setRepackQuantity,
@@ -72,14 +73,18 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
       )}
       {step === 2 && (
         <MergeStep2BagType
-          confirmation={confirmation} onConfirmationChange={(patch) => setConfirmation((p) => {
-            const next = { ...p, ...patch };
-            if (patch.category) setRepackBagType(isHybridBagCategory(patch.category) ? 'Hybrid' : 'S/B');
-            return next;
-          })}
-          totalSourceBags={totalSourceBags} confirmSource={selectedSources[0] ?? targetGrn} movementDate={movementDate}
-          facilityId={facilityId ?? currentGrn.facilityId} selectedSources={selectedSources} movedSmall={movedSmall} movedBig={movedBig}
-          commodityHamaliRate={commodityHamaliRate} targetGrnDate={targetGrn.date} submitting={submitting} onBack={() => setStep(1)} onNext={handleProceedToStep3}
+          sourceConfirmations={sourceConfirmations}
+          onSourceConfirmationChange={updateSourceConfirmation}
+          totalSourceBags={totalSourceBags}
+          movementDate={movementDate}
+          facilityId={facilityId ?? currentGrn.facilityId}
+          selectedSources={selectedSources}
+          commodityHamaliRate={commodityHamaliRate}
+          targetGrnDate={targetGrn.date}
+          submitting={submitting}
+          onBack={() => setStep(1)}
+          onNext={handleProceedToStep3}
+          sourceRentSummaries={sourceRentSummaries}
         />
       )}
       {step === 3 && (

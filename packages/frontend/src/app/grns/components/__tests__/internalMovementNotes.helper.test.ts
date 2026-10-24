@@ -34,6 +34,18 @@ describe('internalMovementNotes.helper', () => {
       expect(notes[0].carriedRent).toBe(1200);
       expect(notes[0].repackedDetail).toBe('Repacked: 35 S + 15 B');
     });
+
+    it('parses merge note where source rent is kept as separate pending bills without carry-forward', () => {
+      const remarks =
+        '[MERGE RECEIVED on 2026-10-23: +60 bags (Repacked: 30 S + 30 B = 60 bags). Repacking Hamali: ₹1500 (60 bags @ ₹25/bag) from GRN 0010 (Receipt #RCPT-24-25-0010, Date: 2024-06-10, Customer: Kalyan, Bags: 10, Rent: ₹26100, Paid: ₹0, Balance: ₹26350, Status: Not Settled); GRN 0012 (Receipt #RCPT-25-26-0012, Date: 2025-07-16, Customer: Kalyan, Bags: 12, Rent: ₹13050, Paid: ₹0, Balance: ₹13350, Status: Not Settled). Source pending rent: ₹39700 kept as separate pending bills. Reason: Rebagging as per customer request 2024]';
+      const notes = parseMergedGrnNotes(remarks);
+      expect(notes).toHaveLength(1);
+      expect(notes[0].bags).toBe(60);
+      expect(notes[0].carriedRent).toBe(0);
+      expect(notes[0].separateSourceRent).toBe(39700);
+      expect(notes[0].source).toContain('GRN 0010');
+      expect(notes[0].source).toContain('GRN 0012');
+    });
   });
 
   describe('parseRemarksToTableRows (legacy fallback)', () => {

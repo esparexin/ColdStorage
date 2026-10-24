@@ -2,68 +2,34 @@
 
 import React, { useMemo, useState } from 'react';
 import { formatDisplayBagType, seasonYearForInwardDate, type Grn } from '@cold-storage/contracts';
-import { Badge, Button, Input, Select } from '@/components/ui';
+import { Badge, Button, Input } from '@/components/ui';
+import { DestinationGrnCombobox } from './DestinationGrnCombobox';
 import { MergeSourceTable } from './MergeSourceTable';
+import { SelectedSourcesPanel } from './SelectedSourcesPanel';
 import { WizardStepActions } from './WizardStepActions';
-import styles from './InternalMovementModal.module.css';
+import modalStyles from './InternalMovementModal.module.css';
+import stepStyles from './MergeStep1Batches.module.css';
 
 interface MergeStep1BatchesProps {
-  openGrns: Grn[];
-  targetOptions?: Grn[];
-  targetGrnId: string;
-  onTargetGrnChange: (id: string) => void;
-  targetGrn: Grn;
-  targetSeason: number;
-  targetCurrentRemaining: number;
-  isTargetHybrid: boolean;
-  eligibleSources: Grn[];
-  selectedSourceIds: string[];
-  selectedSources: Grn[];
-  totalSourceBags: number;
-  futureSeasonCount: number;
-  submitting: boolean;
-  recommendedSwitchGrn?: Grn | null;
-  onSwitchTarget?: (targetId: string) => void;
-  onToggleSource: (id: string) => void;
-  onNext: () => void;
+  openGrns: Grn[]; targetOptions?: Grn[]; targetGrnId: string; onTargetGrnChange: (id: string) => void;
+  targetGrn: Grn; targetSeason: number; targetCurrentRemaining: number; isTargetHybrid: boolean;
+  eligibleSources: Grn[]; selectedSourceIds: string[]; selectedSources: Grn[]; totalSourceBags: number;
+  futureSeasonCount: number; submitting: boolean; recommendedSwitchGrn?: Grn | null;
+  onSwitchTarget?: (targetId: string) => void; onToggleSource: (id: string) => void; onNext: () => void;
   initiatingGrnId?: string;
 }
 
 export function MergeStep1Batches({
-  openGrns,
-  targetOptions,
-  targetGrnId,
-  onTargetGrnChange,
-  targetGrn,
-  targetSeason,
-  targetCurrentRemaining,
-  isTargetHybrid,
-  eligibleSources,
-  selectedSourceIds,
-  selectedSources,
-  totalSourceBags,
-  futureSeasonCount,
-  submitting,
-  recommendedSwitchGrn,
-  onSwitchTarget,
-  onToggleSource,
-  onNext,
-  initiatingGrnId,
+  openGrns, targetOptions, targetGrnId, onTargetGrnChange, targetGrn, targetSeason,
+  targetCurrentRemaining, isTargetHybrid, eligibleSources, selectedSourceIds, selectedSources,
+  totalSourceBags, futureSeasonCount, submitting, recommendedSwitchGrn, onSwitchTarget,
+  onToggleSource, onNext, initiatingGrnId,
 }: MergeStep1BatchesProps) {
-  const [targetSearch, setTargetSearch] = useState('');
   const [sourceSearch, setSourceSearch] = useState('');
 
-  const filteredTargetOptions = useMemo(() => {
-    const list = targetOptions ?? openGrns;
-    if (!targetSearch.trim()) return list;
-    const q = targetSearch.trim().toLowerCase();
-    return list.filter((g) =>
-      g.grnNumber.toLowerCase().includes(q) ||
-      g.customerName.toLowerCase().includes(q) ||
-      g.commodityName.toLowerCase().includes(q) ||
-      g.id === targetGrnId,
-    );
-  }, [targetOptions, openGrns, targetSearch, targetGrnId]);
+  const targetOptionsList = useMemo(() => {
+    return targetOptions ?? openGrns;
+  }, [targetOptions, openGrns]);
 
   const filteredSourceList = useMemo(() => {
     if (!sourceSearch.trim()) return eligibleSources;
@@ -85,81 +51,110 @@ export function MergeStep1Batches({
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-      <div className={styles.summaryStrip}>
-        <div style={{ flex: '1 1 260px', minWidth: '200px', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <Input
-            id="target-grn-search"
-            type="search"
-            placeholder="Search destination GRN / Customer..."
-            value={targetSearch}
-            onChange={(e) => setTargetSearch(e.target.value)}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+      {/* 1. Target GRN (Destination) Card */}
+      <div
+        className={modalStyles.compactCard}
+        style={{
+          background: 'var(--color-surface-2)',
+          padding: 'var(--space-3)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--color-border)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-2)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-1)' }}>
+          <div>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>
+              1. Target GRN (Merge Destination)
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+              This GRN remains open and receives all stock from the merged source lots.
+            </div>
+          </div>
+          <Badge variant="primary">Receiving Lot</Badge>
+        </div>
+
+        <div>
+          <DestinationGrnCombobox
+            targetOptions={targetOptionsList}
+            targetGrnId={targetGrnId}
+            onSelectTarget={onTargetGrnChange}
             disabled={submitting}
-            aria-label="Filter Surviving Destination GRNs"
           />
-          <Select
-            id="target-grn-selector"
-            label="1. Surviving Target GRN"
-            value={targetGrnId}
-            onChange={(e) => onTargetGrnChange(e.target.value)}
-            disabled={submitting}
-          >
-            {filteredTargetOptions.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.grnNumber} — {g.customerName} ({g.closingBags ?? g.bags} bags, Season {seasonYearForInwardDate(g.date)})
-              </option>
-            ))}
-          </Select>
         </div>
-        <div className={styles.metaItem}>
-          <span className={styles.metaLabel}>Customer</span>
-          <span className={styles.metaValue}>{targetGrn.customerName}</span>
-        </div>
-        <div className={styles.metaItem}>
-          <span className={styles.metaLabel}>Commodity / Chamber</span>
-          <span className={styles.metaValue}>{targetGrn.commodityName} (Ch. {targetGrn.chamber})</span>
-        </div>
-        <div className={styles.metaItem}>
-          <span className={styles.metaLabel}>Current Stock & Type</span>
-          <span className={styles.metaValue} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            <span>{targetCurrentRemaining} Bags</span>
-            {targetDisplayType !== 'Unconfirmed' && (
-              <Badge variant="neutral">{targetDisplayType}</Badge>
-            )}
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-              {isTargetHybrid
-                ? '(Uniform Rate)'
-                : targetGrn.isCompositionVerified && targetCurrentRemaining === (targetGrn.smallBags ?? 0) + (targetGrn.bigBags ?? 0) && isTargetSbSplit
-                  ? `(${targetGrn.smallBags ?? 0}S · ${targetGrn.bigBags ?? 0}B)`
-                  : targetGrn.isCompositionVerified && (targetGrn.bigBags ?? 0) === 0 && (targetGrn.smallBags ?? 0) > 0
-                    ? `(${targetCurrentRemaining}S · 0B)`
-                    : targetGrn.isCompositionVerified && (targetGrn.smallBags ?? 0) === 0 && (targetGrn.bigBags ?? 0) > 0
-                      ? `(0S · ${targetCurrentRemaining}B)`
-                      : ''}
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: 'var(--space-2)',
+            paddingTop: 'var(--space-2)',
+            borderTop: '1px solid var(--color-border)',
+          }}
+        >
+          <div className={modalStyles.metaItem}>
+            <span className={modalStyles.metaLabel}>Customer</span>
+            <span className={modalStyles.metaValue}>{targetGrn.customerName}</span>
+          </div>
+          <div className={modalStyles.metaItem}>
+            <span className={modalStyles.metaLabel}>Commodity / Chamber</span>
+            <span className={modalStyles.metaValue}>{targetGrn.commodityName} (Ch. {targetGrn.chamber})</span>
+          </div>
+          <div className={modalStyles.metaItem}>
+            <span className={modalStyles.metaLabel}>Current Stock</span>
+            <span className={modalStyles.metaValue} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <span>{targetCurrentRemaining} Bags</span>
+              {targetDisplayType !== 'Unconfirmed' && (
+                <Badge variant="neutral">{targetDisplayType}</Badge>
+              )}
             </span>
-          </span>
-        </div>
-        <div className={styles.metaItem}>
-          <span className={styles.metaLabel}>Applicable Season</span>
-          <span className={styles.metaValue}>Season {targetSeason}</span>
+          </div>
+          <div className={modalStyles.metaItem}>
+            <span className={modalStyles.metaLabel}>Applicable Season</span>
+            <span className={modalStyles.metaValue}>Season {targetSeason}</span>
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-xs)' }}>
-          <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>
-            2. Source GRNs to Merge ({selectedSources.length} of {eligibleSources.length} selected)
-          </span>
-          <span style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}>
-            +{totalSourceBags} Bags Selected
-          </span>
+      {/* 2. Source GRNs to Merge Card */}
+      <div
+        className={modalStyles.compactCard}
+        style={{
+          background: 'var(--color-surface-2)',
+          padding: 'var(--space-3)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--color-border)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-2)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+          <div>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>
+              2. Select Source GRN(s) to Merge
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+              Choose one or more source GRNs to consolidate into GRN #{targetGrn.grnNumber}. These GRNs will be closed upon merge.
+            </div>
+          </div>
         </div>
+
+        <SelectedSourcesPanel
+          selectedSources={selectedSources}
+          totalSourceBags={totalSourceBags}
+          onDeselectSource={onToggleSource}
+        />
+
         <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
           <div style={{ flex: 1 }}>
             <Input
               id="source-grn-search"
               type="search"
-              placeholder="Search source GRNs by number, customer, commodity..."
+              placeholder="Search source lots by GRN #, Customer, or Commodity..."
               value={sourceSearch}
               onChange={(e) => setSourceSearch(e.target.value)}
               disabled={submitting}
@@ -172,8 +167,9 @@ export function MergeStep1Batches({
             </span>
           )}
         </div>
+
         {futureSeasonCount > 0 && (
-          <div className={styles.noticeBox} style={{ color: 'var(--color-warning-text)', borderColor: 'var(--color-warning)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+          <div className={modalStyles.noticeBox} style={{ color: 'var(--color-warning-text)', borderColor: 'var(--color-warning)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
             <div>
               Notice: {futureSeasonCount} future-season batch{futureSeasonCount === 1 ? '' : 'es'} in this facility {futureSeasonCount === 1 ? 'is' : 'are'} hidden — only batches received in Season {targetSeason} or earlier can merge into this GRN.
             </div>
@@ -189,25 +185,28 @@ export function MergeStep1Batches({
                   onClick={() => onSwitchTarget(recommendedSwitchGrn.id)}
                   disabled={submitting}
                 >
-                  Set {recommendedSwitchGrn.grnNumber} (Season {seasonYearForInwardDate(recommendedSwitchGrn.date)}) as Surviving Target
+                  Set {recommendedSwitchGrn.grnNumber} (Season {seasonYearForInwardDate(recommendedSwitchGrn.date)}) as Target
                 </Button>
               </div>
             )}
           </div>
         )}
-        <MergeSourceTable
-          eligibleSources={filteredSourceList}
-          selectedSourceIds={selectedSourceIds}
-          targetGrnDate={targetGrn.date}
-          submitting={submitting}
-          onToggleSource={onToggleSource}
-          initiatingGrnId={initiatingGrnId}
-          targetGrnId={targetGrnId}
-        />
+
+        <div className={stepStyles.sourceTableScrollContainer}>
+          <MergeSourceTable
+            eligibleSources={filteredSourceList}
+            selectedSourceIds={selectedSourceIds}
+            targetGrnDate={targetGrn.date}
+            submitting={submitting}
+            onToggleSource={onToggleSource}
+            initiatingGrnId={initiatingGrnId}
+            targetGrnId={targetGrnId}
+          />
+        </div>
       </div>
 
       <WizardStepActions
-        stepInfoText="Step 1 of 4 • Select surviving batch and source batches"
+        stepInfoText="Step 1 of 4 • Select target GRN and source lot(s) to merge"
         onNext={onNext}
         nextLabel="Next: Confirm Bag Type & History"
         disabled={selectedSourceIds.length === 0}

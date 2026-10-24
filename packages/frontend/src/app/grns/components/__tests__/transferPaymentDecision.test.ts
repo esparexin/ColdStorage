@@ -41,16 +41,15 @@ describe('validateMergePaymentDecision', () => {
     })).toBeNull();
   });
 
-  it('rejects SETTLE_NOW when more than one source lot is selected', () => {
-    const error = validateMergePaymentDecision({
-      decision: 'SETTLE_NOW', sourceCount: 2, amount: 500, pending: 500, paymentMode: 'Cash',
-    });
-    expect(error).toBe('Inline settlement requires a single source GRN. Choose Option A to carry forward.');
-  });
-
-  it('permits SETTLE_NOW when a single source lot is selected and valid', () => {
+  it('permits SETTLE_NOW for both single and multi-source merges when valid', () => {
     expect(validateMergePaymentDecision({
       decision: 'SETTLE_NOW', sourceCount: 1, amount: 500, pending: 500, paymentMode: 'Cash',
+    })).toBeNull();
+    expect(validateMergePaymentDecision({
+      decision: 'SETTLE_NOW', sourceCount: 6, amount: 12750, pending: 12750, paymentMode: 'Cash',
+    })).toBeNull();
+    expect(validateMergePaymentDecision({
+      decision: 'SETTLE_NOW', sourceCount: 6, amount: 5000, pending: 12750, paymentMode: 'UPI',
     })).toBeNull();
   });
 

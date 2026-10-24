@@ -1,100 +1,98 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Package } from 'lucide-react';
-import { resolveOutwardRates, type Grn } from '@cold-storage/contracts';
+import type { Grn, RentSummaryDto } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
-import { MergeBagTypeFields } from './MergeBagTypeFields';
-import { MergeRentAssessment } from './MergeRentAssessment';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
+import { calculateMergeGrandTotal } from './mergeRentAssessment.helper';
+import { MergeSourceGrnCard } from './MergeSourceGrnCard';
 import { WizardStepActions } from './WizardStepActions';
 import styles from './InternalMovementModal.module.css';
 
 interface MergeStep2BagTypeProps {
-  confirmation: BagConfirmationValue;
-  onConfirmationChange: (patch: Partial<BagConfirmationValue>) => void;
+  sourceConfirmations: Record<string, BagConfirmationValue>;
+  onSourceConfirmationChange: (grnId: string, patch: Partial<BagConfirmationValue>) => void;
   totalSourceBags: number;
-  confirmSource: Grn;
   movementDate: string;
   facilityId: string;
   selectedSources: Grn[];
-  movedSmall: number;
-  movedBig: number;
   commodityHamaliRate: number;
   targetGrnDate?: Date | string | null;
   submitting: boolean;
   onBack: () => void;
   onNext: () => void;
+  sourceRentSummaries?: Record<string, RentSummaryDto>;
 }
 
 export function MergeStep2BagType({
-  confirmation,
-  onConfirmationChange,
+  sourceConfirmations,
+  onSourceConfirmationChange,
   totalSourceBags,
-  confirmSource,
   movementDate,
   facilityId,
   selectedSources,
-  movedSmall,
-  movedBig,
   commodityHamaliRate,
   targetGrnDate,
   submitting,
   onBack,
   onNext,
+  sourceRentSummaries,
 }: MergeStep2BagTypeProps) {
-  const rates = resolveOutwardRates(confirmSource.rentType, {
-    smallBagPrice: confirmSource.smallBagPrice,
-    bigBagPrice: confirmSource.bigBagPrice,
-    bagPrice: confirmSource.bagPrice,
-  });
+  const grandTotalRent = useMemo(
+    () =>
+      calculateMergeGrandTotal({
+        selectedSources,
+        sourceConfirmations,
+        movementDate,
+        commodityHamaliRate,
+        targetGrnDate,
+        sourceRentSummaries,
+      }),
+    [selectedSources, sourceConfirmations, movementDate, commodityHamaliRate, targetGrnDate, sourceRentSummaries],
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
       <div className={styles.compactCard}>
-        <div className={styles.cardHeader}>
+        <div className={styles.cardHeader} style={{ flexWrap: 'wrap', gap: '8px' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Package size={14} aria-hidden="true" />
-            <span>Step 2: Bag Type</span>
+            <span>Step 2: Bag Type & History</span>
           </span>
-          <Badge variant="primary">Bag Confirmation</Badge>
-        </div>
-
-        {selectedSources.length > 1 && (
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
-            Note: Batch-specific contract rates apply per source GRN in the breakdown below.
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Badge variant="neutral">
+              {selectedSources.length} Source GRN{selectedSources.length > 1 ? 's' : ''} ({totalSourceBags} Bags)
+            </Badge>
+            {grandTotalRent > 0 ? (
+              <Badge variant="warning">
+                Pending Source Dues: ₹{grandTotalRent.toLocaleString('en-IN')}
+              </Badge>
+            ) : (
+              <Badge variant="success">All Source Dues Settled</Badge>
+            )}
           </div>
-        )}
-
-        <MergeBagTypeFields
-          value={confirmation}
-          onChange={onConfirmationChange}
-          totalMovedBags={totalSourceBags}
-          rentType={confirmSource.rentType}
-          inwardDate={confirmSource.date}
-          movementDate={movementDate}
-          submitting={submitting}
-          rates={rates}
-          sourceBagType={confirmSource.bagType}
-        />
+        </div>
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
+          Note: Configure bag type and confirmed counts for each source GRN being merged.
+        </div>
       </div>
 
-      <div className={styles.compactCard}>
-        <div className={styles.cardHeader}>
-          <span>Previous-Year GRN Balances & Storage Obligation</span>
-          <Badge variant="neutral">Multi-Year Audit</Badge>
-        </div>
-        <MergeRentAssessment
-          facilityId={facilityId}
-          selectedSources={selectedSources}
-          confirmation={confirmation}
-          totalSourceBags={totalSourceBags}
-          movedSmall={movedSmall}
-          movedBig={movedBig}
-          movementDate={movementDate}
-          repackMode={false}
-          commodityHamaliRate={commodityHamaliRate}
-          targetGrnDate={targetGrnDate}
-        />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+        {selectedSources.map((source) => (
+          <MergeSourceGrnCard
+            key={source.id}
+            source={source}
+            confirmation={sourceConfirmations[source.id]}
+            onConfirmationChange={(patch) => onSourceConfirmationChange(source.id, patch)}
+            movementDate={movementDate}
+            facilityId={facilityId}
+            submitting={submitting}
+            commodityHamaliRate={commodityHamaliRate}
+            targetGrnDate={targetGrnDate}
+            summary={sourceRentSummaries?.[source.id]}
+          />
+        ))}
       </div>
 
       <WizardStepActions

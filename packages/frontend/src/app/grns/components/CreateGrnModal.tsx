@@ -97,22 +97,22 @@ export function CreateGrnModal({
             <div className={styles.fieldGroup}>
               <label htmlFor="create-date" className={styles.fieldLabel}>Inward Date *</label>
               <input
-                id="create-date" type="date" required disabled={structuralLocked}
+                id="create-date" type="date" required disabled={isEdit || structuralLocked}
                 value={form.createDate} onChange={(e) => form.setCreateDate(e.target.value)}
-                className={`${styles.fieldInput} ${structuralLocked ? styles.calculatedField : ''}`}
+                className={`${styles.fieldInput} ${isEdit || structuralLocked ? styles.calculatedField : ''}`}
               />
             </div>
             <CustomerCombobox
               customerBox={customerBox} customerId={form.createCustomerId} customers={customers}
-              error={form.fieldErrors.customer} disabled={structuralLocked}
+              error={form.fieldErrors.customer} disabled={isEdit || structuralLocked}
               onAddCustomer={() => setIsAddingCustomer(true)}
             />
             <div className={styles.fieldGroup}>
               <Select
-                id="create-commodity" label="Commodity" required disabled={structuralLocked}
+                id="create-commodity" label="Commodity" required disabled={isEdit || structuralLocked}
                 value={form.createCommodityId} onChange={(e) => form.setCreateCommodityId(e.target.value)}
                 error={form.fieldErrors.commodity}
-                rightAction={!structuralLocked ? (
+                rightAction={!isEdit && !structuralLocked ? (
                   <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingCommodity(true)}>+ Add</Button>
                 ) : undefined}
               >

@@ -186,7 +186,8 @@ describe('P9 Document Templates Pure Rendering & Print Styling', () => {
     expect(html).toContain('PREVIEW-RRCPT-901');
     expect(html).toContain('₹20000.00');
     expect(html).toContain('₹25000.00');
-    expect(html).toContain('Phase 12 (Rent Collection &amp; Payment Management)');
+    expect(html).toContain('This is an uncommitted draft preview');
+    expect(html).not.toContain('Phase 12');
     expect(
       rentReceiptPreviewDtoSchema.safeParse(makeRentReceiptDto({ isPreview: true })).success,
     ).toBe(true);

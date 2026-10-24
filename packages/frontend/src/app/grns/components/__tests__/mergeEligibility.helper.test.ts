@@ -92,13 +92,13 @@ describe('findForwardMergeTarget', () => {
 });
 
 describe('filterEligibleTargetGrns', () => {
-  it('filters out loan-hold, zero-stock, mismatched commodity/rent, and selected sources', () => {
-    const current = grn({ id: 'g-0004', date: new Date('2024-06-15'), commodityId: 'cmd-1', rentType: 'Seasonal' });
-    const validTarget = grn({ id: 'g-3524', date: new Date('2026-06-15'), commodityId: 'cmd-1', rentType: 'Seasonal', bags: 50 });
+  it('filters out loan-hold, zero-stock, mismatched commodity/rent, and selected sources while allowing older destination lots', () => {
+    const current = grn({ id: 'g-3524', date: new Date('2026-06-15'), commodityId: 'cmd-1', rentType: 'Seasonal' });
+    const validTarget = grn({ id: 'g-3525', date: new Date('2026-06-15'), commodityId: 'cmd-1', rentType: 'Seasonal', bags: 50 });
     const loanTarget = grn({ id: 'g-loan', date: new Date('2026-06-15'), commodityId: 'cmd-1', rentType: 'Seasonal', loanStatus: 'TAKEN' });
     const zeroTarget = grn({ id: 'g-zero', date: new Date('2026-06-15'), commodityId: 'cmd-1', rentType: 'Seasonal', bags: 0, closingBags: 0 });
     const selectedSource = grn({ id: 'g-3496', date: new Date('2026-06-15'), commodityId: 'cmd-1', rentType: 'Seasonal', bags: 20 });
-    const olderTarget = grn({ id: 'g-2023', date: new Date('2023-06-15'), commodityId: 'cmd-1', rentType: 'Seasonal', bags: 30 });
+    const olderTarget = grn({ id: 'g-0003', date: new Date('2024-07-11'), commodityId: 'cmd-1', rentType: 'Seasonal', bags: 10 });
 
     const targets = filterEligibleTargetGrns(
       [current, validTarget, loanTarget, zeroTarget, selectedSource, olderTarget],
@@ -107,11 +107,29 @@ describe('filterEligibleTargetGrns', () => {
       validTarget.id,
     );
 
-    expect(targets.map((g) => g.id)).toContain('g-3524');
+    expect(targets.map((g) => g.id)).toContain('g-3525');
+    expect(targets.map((g) => g.id)).toContain('g-0003');
     expect(targets.map((g) => g.id)).not.toContain('g-loan');
     expect(targets.map((g) => g.id)).not.toContain('g-zero');
     expect(targets.map((g) => g.id)).not.toContain('g-3496');
-    expect(targets.map((g) => g.id)).not.toContain('g-2023');
+  });
+
+  it('restricts candidate targets to seasons >= initiating source when initiatingGrnId is specified', () => {
+    const initiatingSource = grn({ id: 'g-0003', date: new Date('2024-07-11'), commodityId: 'cmd-1', rentType: 'Seasonal' });
+    const older2023 = grn({ id: 'g-0006', date: new Date('2024-02-28'), commodityId: 'cmd-1', rentType: 'Seasonal', bags: 100 });
+    const newer2026 = grn({ id: 'g-3438', date: new Date('2026-04-18'), commodityId: 'cmd-1', rentType: 'Seasonal', bags: 10 });
+
+    const targets = filterEligibleTargetGrns(
+      [initiatingSource, older2023, newer2026],
+      newer2026,
+      [initiatingSource.id],
+      newer2026.id,
+      initiatingSource.id,
+    );
+
+    expect(targets.map((g) => g.id)).toContain('g-3438');
+    expect(targets.map((g) => g.id)).not.toContain('g-0006');
+    expect(targets.map((g) => g.id)).not.toContain('g-0003');
   });
 });
 
@@ -150,16 +168,16 @@ describe('resolveNextSelectedSources', () => {
 });
 
 describe('resolveInitialMergeState', () => {
-  it('selects forward target and sets initiating GRN as initial source when initiating from earlier season', () => {
+  it('seeds initiating source lot when initiatingGrnId is provided without overriding target', () => {
     const older = grn({ id: 'g-0004', date: new Date('2024-06-15'), customerId: 'c1' });
     const newer = grn({ id: 'g-3524', date: new Date('2026-06-15'), customerId: 'c1' });
 
-    const state = resolveInitialMergeState(older, [older, newer]);
+    const state = resolveInitialMergeState(newer, [older, newer], older.id);
     expect(state.initialTargetId).toBe('g-3524');
     expect(state.initialSourceIds).toEqual(['g-0004']);
   });
 
-  it('selects self as target with empty source list when initiating from current latest season', () => {
+  it('selects self as target with empty source list in standalone mode without silent switching', () => {
     const current = grn({ id: 'g-3524', date: new Date('2026-06-15') });
     const older = grn({ id: 'g-0004', date: new Date('2024-06-15') });
 
@@ -168,3 +186,4 @@ describe('resolveInitialMergeState', () => {
     expect(state.initialSourceIds).toEqual([]);
   });
 });
+

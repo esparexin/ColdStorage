@@ -98,35 +98,45 @@ describe('Merge GRN input guards', () => {
     expect((await GrnModel.findOne({ id: sourceId }).lean().exec())?.status).toBe('OPEN');
   });
 
-  it('rejects multi-source merges carrying an inline settlement payment', async () => {
+  it('supports multi-source merges carrying an inline settlement payment (Pay Now)', async () => {
     const extraId = await seedGrn({
-      facilityId,
-      customerId: customerA,
-      customerName: 'Guard Farmer',
-      commodityId,
-      commodityName: 'Tamarind',
-      chamber: 'CH-01',
-      bags: 20,
-      rentAmount: 500,
-      grnNumber: 'GRN-MGD-EXTRA',
+      facilityId, customerId: customerA, customerName: 'Guard Farmer', commodityId,
+      commodityName: 'Tamarind', chamber: 'CH-01', bags: 20, rentAmount: 500, grnNumber: 'GRN-MGD-EXTRA',
     });
 
     const res = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/merge`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        targetGrnId: targetId,
-        sourceGrnIds: [sourceId, extraId],
-        movementDate: new Date(),
-        remarks: 'Multi-source settlement attempt',
-        sourcePaymentAmount: 500,
-        sourcePaymentMode: 'Cash',
+        targetGrnId: targetId, sourceGrnIds: [sourceId, extraId],
+        movementDate: new Date(), remarks: 'Multi-source settlement attempt',
+        sourcePaymentAmount: 500, sourcePaymentMode: 'Cash',
+      });
+
+    expect(res.status).toBe(200);
+    expect((await GrnModel.findOne({ id: targetId }).lean().exec())?.bags).toBe(170);
+    expect(await RentPaymentModel.countDocuments({ facilityId }).exec()).toBe(1);
+    const pay = await RentPaymentModel.findOne({ facilityId, grnId: sourceId }).lean().exec();
+    expect(pay?.amountPaid).toBe(500);
+  });
+
+  it('rejects multi-source merge when payment exceeds total pending rent across sources', async () => {
+    const extraId = await seedGrn({
+      facilityId, customerId: customerA, customerName: 'Guard Farmer', commodityId,
+      commodityName: 'Tamarind', chamber: 'CH-01', bags: 20, rentAmount: 500, grnNumber: 'GRN-MGD-EXTRA-2',
+    });
+
+    const res = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        targetGrnId: targetId, sourceGrnIds: [sourceId, extraId],
+        movementDate: new Date(), remarks: 'Multi-source overpayment attempt',
+        sourcePaymentAmount: 2500, sourcePaymentMode: 'Cash',
       });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toContain('single source GRN');
-    expect((await GrnModel.findOne({ id: targetId }).lean().exec())?.bags).toBe(100);
-    expect(await RentPaymentModel.countDocuments({ facilityId }).exec()).toBe(0);
+    expect(res.body.error).toContain('exceeds total remaining rent balance across source GRNs');
   });
 
   it('preserves the reference weight in the merge audit trail', async () => {

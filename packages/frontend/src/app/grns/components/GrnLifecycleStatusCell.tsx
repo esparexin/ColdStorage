@@ -11,16 +11,20 @@ interface GrnLifecycleStatusCellProps {
 }
 
 export function GrnLifecycleStatusCell({ row }: GrnLifecycleStatusCellProps) {
-  if (row.mergedIntoGrnNumber) {
+  if (row.mergedIntoGrnNumber || row.mergedIntoGrnId) {
     return (
       <div className={styles.statusGroup}>
         <Badge variant="neutral" icon={<GitMerge size={11} aria-hidden="true" />}>
           Merged
         </Badge>
-        <span className={styles.mergedReference}>Merged → {row.mergedIntoGrnNumber}</span>
+        {row.mergedIntoGrnNumber && (
+          <span className={styles.mergedReference}>Merged → {row.mergedIntoGrnNumber}</span>
+        )}
       </div>
     );
   }
+
+  const isMergedTarget = Boolean(row.remarks && row.remarks.includes('[MERGE RECEIVED'));
 
   if (row.status === 'CLOSED') {
     return (
@@ -28,6 +32,7 @@ export function GrnLifecycleStatusCell({ row }: GrnLifecycleStatusCellProps) {
         <Badge variant="neutral" icon={<Check size={11} aria-hidden="true" />}>
           Closed
         </Badge>
+        {isMergedTarget && <span className={styles.mergedReference}>Merged Lot</span>}
       </div>
     );
   }
@@ -41,6 +46,7 @@ export function GrnLifecycleStatusCell({ row }: GrnLifecycleStatusCellProps) {
         <Badge variant="success" icon={<CheckCircle2 size={11} aria-hidden="true" />}>
           Active
         </Badge>
+        {isMergedTarget && <span className={styles.mergedReference}>Merged Lot</span>}
       </div>
     );
   }
@@ -51,6 +57,7 @@ export function GrnLifecycleStatusCell({ row }: GrnLifecycleStatusCellProps) {
         <Badge variant="warning" icon={<Clock size={11} aria-hidden="true" />}>
           Partial
         </Badge>
+        {isMergedTarget && <span className={styles.mergedReference}>Merged Lot</span>}
       </div>
     );
   }
@@ -60,6 +67,7 @@ export function GrnLifecycleStatusCell({ row }: GrnLifecycleStatusCellProps) {
       <Badge variant="danger" icon={<AlertCircle size={11} aria-hidden="true" />}>
         Pending Payment
       </Badge>
+      {isMergedTarget && <span className={styles.mergedReference}>Merged Lot</span>}
     </div>
   );
 }

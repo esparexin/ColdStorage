@@ -76,7 +76,7 @@ export default function GrnStockPage() {
   };
 
   const handleOpenMerge = (grn: Grn) => {
-    router.push(`/grns/merge?targetId=${encodeURIComponent(grn.id)}`);
+    router.push(`/grns/merge?sourceId=${encodeURIComponent(grn.id)}`);
   };
 
   const handleOpenDelete = (grn: Grn) => {

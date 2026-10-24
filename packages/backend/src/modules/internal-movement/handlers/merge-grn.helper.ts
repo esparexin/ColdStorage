@@ -30,15 +30,15 @@ export interface MergeSourceGrn {
 export interface SourceRentResolution {
   effectiveRentAmount: number; totalPaid: number; sourceTotalDue: number; rentBal: RentBalance;
   isSameSeason: boolean; isPendingVerification: boolean; verificationReason?: string | null;
+  paidAmount: number;
 }
 
 export interface ResolveSourceRentParams {
   facilityId: string; sourceGrn: MergeSourceGrn; targetGrnDate: Date; movementDate: Date;
-  sourcePaymentAmount?: number | null; sourcePaymentMode?: PaymentMode | null;
-  userId: string; session: mongoose.ClientSession;
+  sourcePaymentAmount?: number | null; sourcePaymentMode?: PaymentMode | null; userId: string; session: mongoose.ClientSession;
   sourceBagType?: BagType | null; sourceBagCategory?: string | null; sourceQuantity?: number | null;
   sourceBagPrice?: number | null; sourceSeasonalBagPrice?: number | null; sourceMonthlyBagPrice?: number | null;
-  confirmedSmallBags?: number | null; confirmedBigBags?: number | null;
+  confirmedSmallBags?: number | null; confirmedBigBags?: number | null; isSingleSource?: boolean;
 }
 
 export async function resolveSourceRentObligation(
@@ -157,20 +157,25 @@ export async function resolveSourceRentObligation(
 
   const remainingSourceBalance = Math.max(0, Number((sourceTotalDue - totalPaid).toFixed(2)));
 
+  let paidAmount = 0;
   // If source inline payment was provided (Scenario B: Previous season merge settlement)
   if (sourcePaymentAmount != null && sourcePaymentAmount > 0) {
-    if (sourcePaymentAmount > remainingSourceBalance) {
+    if (params.isSingleSource && sourcePaymentAmount > remainingSourceBalance) {
       throw new Error(
         `Requested payment ₹${sourcePaymentAmount} exceeds remaining rent balance of ₹${remainingSourceBalance} for source GRN '${sourceGrn.grnNumber}'`,
       );
     }
-    const receiptNumber = await counterService.generateRentReceiptNumber(facilityId, movementDate, session);
-    await rentRepository.createPayment({
-      id: `rent-pay-${randomUUID()}`, facilityId, grnId: sourceGrn.id, grnNumber: sourceGrn.grnNumber,
-      receiptNumber, amountPaid: sourcePaymentAmount, paymentMode: (sourcePaymentMode ?? 'Cash') as 'Cash' | 'UPI',
-      paymentDate: movementDate, notes: `Pre-merge settlement: GRN ${sourceGrn.grnNumber}`, createdBy: userId,
-    }, session);
-    totalPaid += sourcePaymentAmount;
+    const payThisSource = Math.min(sourcePaymentAmount, remainingSourceBalance);
+    if (payThisSource > 0) {
+      const receiptNumber = await counterService.generateRentReceiptNumber(facilityId, movementDate, session);
+      await rentRepository.createPayment({
+        id: `rent-pay-${randomUUID()}`, facilityId, grnId: sourceGrn.id, grnNumber: sourceGrn.grnNumber,
+        receiptNumber, amountPaid: payThisSource, paymentMode: (sourcePaymentMode ?? 'Cash') as 'Cash' | 'UPI',
+        paymentDate: movementDate, notes: `Pre-merge settlement: GRN ${sourceGrn.grnNumber}`, createdBy: userId,
+      }, session);
+      totalPaid += payThisSource;
+      paidAmount = payThisSource;
+    }
   }
 
   const rentBal = computeRentBalance(sourceTotalDue, totalPaid, { isPendingVerification });
@@ -189,6 +194,7 @@ export async function resolveSourceRentObligation(
     isSameSeason,
     isPendingVerification,
     verificationReason,
+    paidAmount,
   };
 }
 

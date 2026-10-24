@@ -5,12 +5,6 @@ import type { Grn, LoanStatus } from '@cold-storage/contracts';
 import { Badge, Button, Modal, Select } from '@/components/ui';
 import { getLoanStatusDisplay } from '@/lib/loanStatusFormat';
 import { requestWithAuth } from '@/lib/api-client';
-import { LoanSettlementFields } from './LoanSettlementFields';
-import {
-  initSettlementState,
-  validateLoanSettlement,
-  buildSettlementPayload,
-} from '../hooks/loanSettlement.helper';
 import styles from '../page.module.css';
 
 interface UpdateLoanStatusModalProps {
@@ -31,28 +25,13 @@ export function UpdateLoanStatusModal({
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [settlement, setSettlement] = useState(() => initSettlementState(grn));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (targetStatus === 'CLEARED') {
-      const validationError = validateLoanSettlement(settlement);
-      if (validationError) {
-        setError(validationError);
-        return;
-      }
-    }
-
     setSubmitting(true);
     try {
-      // Settlement is the only place loan payment details and notes are captured.
       const payload: Record<string, unknown> = { loanStatus: targetStatus };
-
-      if (targetStatus === 'CLEARED') {
-        payload.settlement = buildSettlementPayload(settlement);
-      }
 
       const res = await requestWithAuth(
         `/api/facilities/${encodeURIComponent(facilityId)}/grns/${encodeURIComponent(grn.id)}/loan-status`,
@@ -84,7 +63,7 @@ export function UpdateLoanStatusModal({
       onClose={onClose}
       title={`Bond Loan Control: ${grn.grnNumber}`}
       subtitle={`${grn.customerName} — ${grn.commodityName} (${grn.bags.toLocaleString('en-IN')} Bags)`}
-      size={targetStatus === 'CLEARED' ? 'lg' : 'md'}
+      size="md"
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={submitting}>
@@ -134,13 +113,6 @@ export function UpdateLoanStatusModal({
             )}
           </Select>
         </div>
-
-        {targetStatus === 'CLEARED' && (
-          <LoanSettlementFields
-            value={settlement}
-            onChange={(u) => setSettlement((prev) => ({ ...prev, ...u }))}
-          />
-        )}
       </form>
     </Modal>
   );

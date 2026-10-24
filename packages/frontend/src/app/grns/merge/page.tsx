@@ -9,9 +9,11 @@ import { ACCESS_MESSAGES, EMPTY_MESSAGES, ERROR_TITLES, LOADING_LABELS } from '@
 import { useFacility } from '@/context/FacilityContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { requestWithAuth } from '@/lib/api-client';
+import { cachedRequestWithAuth } from '@/lib/api-cache';
 import { formatApiErrorMessage, parseApiResponse } from '@/lib/api-response';
 import { InternalMovementMergeTab } from '../components/InternalMovementMergeTab';
 import { buildMergePayload } from '../components/internalMovementPayload.helper';
+import { findForwardMergeTarget } from '../components/mergeEligibility.helper';
 import styles from './page.module.css';
 
 function MergeScreenContent() {
@@ -35,15 +37,18 @@ function MergeScreenContent() {
     try {
       const [grnRes, commRes] = await Promise.all([
         requestWithAuth(`/api/facilities/${encodeURIComponent(selectedFacilityId)}/grns?status=OPEN&limit=100`),
-        requestWithAuth(`/api/facilities/${encodeURIComponent(selectedFacilityId)}/commodities`),
+        cachedRequestWithAuth('/api/commodities'),
       ]);
       const [grnData, commData] = await Promise.all([
-        parseApiResponse<{ grns: Grn[] }>(grnRes),
-        parseApiResponse<{ commodities: Commodity[] }>(commRes),
+        parseApiResponse<{ items?: Grn[]; grns?: Grn[] }>(grnRes),
+        parseApiResponse<{ items?: Commodity[]; commodities?: Commodity[] }>(commRes),
       ]);
       if (!grnData.ok) throw new Error(formatApiErrorMessage(grnData));
-      setGrns(grnData.data.grns ?? []);
-      if (commData.ok) setCommodities(commData.data.commodities ?? []);
+      const loadedGrns = grnData.data.items ?? grnData.data.grns ?? [];
+      setGrns(loadedGrns);
+      if (commData.ok) {
+        setCommodities(commData.data.items ?? commData.data.commodities ?? []);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load GRNs for merge');
     } finally {
@@ -61,8 +66,15 @@ function MergeScreenContent() {
       const found = grns.find((g) => g.id === targetIdParam);
       if (found) return found;
     }
+    if (sourceIdParam) {
+      const sourceGrn = grns.find((g) => g.id === sourceIdParam);
+      if (sourceGrn) {
+        const forwardTarget = findForwardMergeTarget(sourceGrn, grns);
+        if (forwardTarget) return forwardTarget;
+      }
+    }
     return grns[0] ?? null;
-  }, [grns, targetIdParam]);
+  }, [grns, targetIdParam, sourceIdParam]);
 
   const handleExecuteMerge = async (
     targetGrnId: string, sourceGrnIds: string[], reason: string, remarks?: string,

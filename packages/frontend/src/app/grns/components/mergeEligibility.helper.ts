@@ -58,22 +58,27 @@ export function findForwardMergeTarget(
 
 /**
  * Filters open GRNs to eligible surviving target candidates.
- * Candidates must match commodity, rent type, have positive stock, no loan hold,
- * not be in the selected sources list, and be from the same or later season as the initiating source.
+ * Candidates must have positive stock, no loan hold, and not be among currently selected sources.
+ * When an initiating source lot is present, target candidates must match its commodity and rent type
+ * and be from the same or later season.
  */
 export function filterEligibleTargetGrns(
   openGrns: Grn[],
   currentGrn: Grn,
   selectedSourceIds: string[] = [],
   currentTargetId?: string,
+  initiatingGrnId?: string,
 ): Grn[] {
-  const currentSeason = seasonYearForInwardDate(currentGrn.date);
+  const initiatingGrn = initiatingGrnId ? openGrns.find((g) => g.id === initiatingGrnId) : undefined;
+  const matchGrn = initiatingGrn ?? currentGrn;
+  const minSeason = initiatingGrn ? seasonYearForInwardDate(initiatingGrn.date) : undefined;
+
   return openGrns.filter((g) => {
     if ((g.closingBags ?? g.bags) <= 0 || g.loanStatus === 'TAKEN') return false;
-    if (currentGrn.commodityId && g.commodityId !== currentGrn.commodityId) return false;
-    if (currentGrn.rentType && g.rentType !== currentGrn.rentType) return false;
     if (selectedSourceIds.includes(g.id) && g.id !== currentTargetId) return false;
-    if (g.id !== currentGrn.id && seasonYearForInwardDate(g.date) < currentSeason) return false;
+    if (matchGrn.commodityId && g.commodityId !== matchGrn.commodityId) return false;
+    if (matchGrn.rentType && g.rentType !== matchGrn.rentType) return false;
+    if (minSeason != null && seasonYearForInwardDate(g.date) < minSeason) return false;
     return true;
   });
 }
@@ -103,18 +108,18 @@ export function resolveNextSelectedSources(
 }
 
 /**
- * Resolves initial merge state: prefers forward target if initiating GRN is from an earlier season,
- * preserving the initiating GRN as the active source context.
+ * Resolves initial merge state: preserves operator's selected target without silent switching,
+ * while seeding the initiating source lot when one is provided.
  */
 export function resolveInitialMergeState(
   currentGrn: Grn,
   openGrns: Grn[],
+  initiatingGrnId?: string,
 ): { initialTargetId: string; initialSourceIds: string[] } {
-  const forwardTarget = findForwardMergeTarget(currentGrn, openGrns);
-  if (forwardTarget) {
+  if (initiatingGrnId && initiatingGrnId !== currentGrn.id) {
     return {
-      initialTargetId: forwardTarget.id,
-      initialSourceIds: [currentGrn.id],
+      initialTargetId: currentGrn.id,
+      initialSourceIds: [initiatingGrnId],
     };
   }
   return {
@@ -122,4 +127,5 @@ export function resolveInitialMergeState(
     initialSourceIds: [],
   };
 }
+
 

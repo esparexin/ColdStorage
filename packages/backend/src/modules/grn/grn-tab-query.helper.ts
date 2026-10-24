@@ -46,7 +46,7 @@ export async function resolveGrnFacilityTabSummaries(
       { $group: { _id: '$grnId', totalPaid: { $sum: '$amountPaid' } } },
     ]),
     GrnModel.find({ facilityId })
-      .select('id bags status mergedIntoGrnId rentAmount rentType')
+      .select('id bags status mergedIntoGrnId rentAmount rentType remarks')
       .lean()
       .exec(),
   ]);
@@ -63,10 +63,15 @@ export async function resolveGrnFacilityTabSummaries(
   const mergedIds: string[] = [];
 
   for (const grn of facilityGrns) {
-    const isMerged = Boolean(grn.mergedIntoGrnId);
-    if (isMerged) {
+    const isMergedSource = Boolean(grn.mergedIntoGrnId);
+    const isMergedTarget = Boolean(grn.remarks && grn.remarks.includes('[MERGE RECEIVED'));
+
+    if (isMergedSource) {
       mergedIds.push(grn.id);
       continue;
+    }
+    if (isMergedTarget) {
+      mergedIds.push(grn.id);
     }
 
     const delivered = deliveredMap.get(grn.id) ?? 0;
