@@ -10,6 +10,8 @@ export interface RentTabCounts {
   unpaid: number;
   partiallyPaid: number;
   settled: number;
+  noDues?: number;
+  merged?: number;
 }
 
 interface RentStatusTabsProps {
@@ -82,6 +84,36 @@ export function RentStatusTabs({
         Settled{' '}
         <span className={`${styles.tabBadge} ${statusFilter === 'SETTLED' ? styles.tabBadgeActive : ''}`}>
           {counts.settled}
+        </span>
+      </Button>
+
+      <Button
+        id="rent-status-tab-no-dues"
+        role="tab"
+        aria-selected={statusFilter === 'NO_DUES'}
+        variant={statusFilter === 'NO_DUES' ? 'secondary' : 'ghost'}
+        size="sm"
+        className={`${styles.statusTab} ${statusFilter === 'NO_DUES' ? styles.statusTabActive : ''}`}
+        onClick={() => onStatusChange('NO_DUES')}
+      >
+        No Dues{' '}
+        <span className={`${styles.tabBadge} ${statusFilter === 'NO_DUES' ? styles.tabBadgeActive : ''}`}>
+          {counts.noDues ?? 0}
+        </span>
+      </Button>
+
+      <Button
+        id="rent-status-tab-merged"
+        role="tab"
+        aria-selected={statusFilter === 'MERGED'}
+        variant={statusFilter === 'MERGED' ? 'secondary' : 'ghost'}
+        size="sm"
+        className={`${styles.statusTab} ${statusFilter === 'MERGED' ? styles.statusTabActive : ''}`}
+        onClick={() => onStatusChange('MERGED')}
+      >
+        Merged{' '}
+        <span className={`${styles.tabBadge} ${statusFilter === 'MERGED' ? styles.tabBadgeActive : ''}`}>
+          {counts.merged ?? 0}
         </span>
       </Button>
     </div>

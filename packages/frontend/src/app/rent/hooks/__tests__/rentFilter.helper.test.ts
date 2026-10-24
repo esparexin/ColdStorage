@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RentSummaryDto } from '@cold-storage/contracts';
-import { filterRentAccounts } from '../rentFilter.helper';
+import { filterRentAccounts, isMergedRentAccount } from '../rentFilter.helper';
 
 function createMockAccount(overrides: Partial<RentSummaryDto> = {}): RentSummaryDto {
   return {
@@ -160,22 +160,33 @@ describe('rentFilter.helper', () => {
     expect(result[0].grnNumber).toBe('GRN-104');
   });
 
-  it('filters by SETTLED status (zero remaining balance or settled state)', () => {
+  it('filters by SETTLED status (payments made with zero remaining balance)', () => {
     const result = filterRentAccounts(accounts, {
       searchTerm: '',
       statusFilter: 'SETTLED',
       typeFilter: '',
     });
-    expect(result).toHaveLength(2);
-    expect(result.map((a) => a.grnNumber)).toEqual(['GRN-102', 'GRN-103']);
+    expect(result).toHaveLength(1);
+    expect(result[0].grnNumber).toBe('GRN-102');
+  });
+
+  it('filters by NO_DUES status (unbilled stock in storage with zero dues)', () => {
+    const result = filterRentAccounts(accounts, {
+      searchTerm: '',
+      statusFilter: 'NO_DUES',
+      typeFilter: '',
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].grnNumber).toBe('GRN-103');
   });
 
   it('ensures status tabs are mutually exclusive and partition the accounts exactly', () => {
     const unpaid = filterRentAccounts(accounts, { searchTerm: '', statusFilter: 'UNPAID', typeFilter: '' });
     const partiallyPaid = filterRentAccounts(accounts, { searchTerm: '', statusFilter: 'PARTIALLY_PAID', typeFilter: '' });
     const settled = filterRentAccounts(accounts, { searchTerm: '', statusFilter: 'SETTLED', typeFilter: '' });
+    const noDues = filterRentAccounts(accounts, { searchTerm: '', statusFilter: 'NO_DUES', typeFilter: '' });
 
-    expect(unpaid.length + partiallyPaid.length + settled.length).toBe(accounts.length);
+    expect(unpaid.length + partiallyPaid.length + settled.length + noDues.length).toBe(accounts.length);
   });
 
   it('filters by PENDING_DUES status', () => {
@@ -238,5 +249,62 @@ describe('rentFilter.helper', () => {
       typeFilter: 'Seasonal',
     });
     expect(noMatch).toHaveLength(0);
+  });
+
+  describe('MERGED filter and helper', () => {
+    it('isMergedRentAccount returns true for source merged account and target merged consignment', () => {
+      const normalAcc = createMockAccount({ grnNumber: 'GRN-001' });
+      const sourceMergedAcc = createMockAccount({
+        grnNumber: 'GRN-0010',
+        mergedIntoGrnNumber: '0013',
+      });
+      const targetMergedAcc = createMockAccount({
+        grnNumber: 'GRN-0013',
+        remarks: '[MERGE RECEIVED 2026-10-22] Merged +60 bags. Carried pending rent: ₹39700',
+      });
+      const structuredMergedAcc = createMockAccount({
+        grnNumber: 'GRN-0014',
+        remarks: null,
+        mergedConsignment: {
+          isMergedTarget: true,
+          totalMergedAddedBags: 60,
+          genesisBags: 14,
+          genesisCustomerName: 'Balaji',
+          totalCarriedRent: 0,
+          totalSeparateSourceRent: 0,
+          repackHamali: null,
+          sources: [],
+        },
+      });
+
+      expect(isMergedRentAccount(normalAcc)).toBe(false);
+      expect(isMergedRentAccount(sourceMergedAcc)).toBe(true);
+      expect(isMergedRentAccount(targetMergedAcc)).toBe(true);
+      expect(isMergedRentAccount(structuredMergedAcc)).toBe(true);
+    });
+
+    it('filters exclusively merged accounts when statusFilter is MERGED', () => {
+      const sourceMerged = createMockAccount({
+        grnId: 'grn-10',
+        grnNumber: '0010',
+        mergedIntoGrnNumber: '0013',
+      });
+      const targetMerged = createMockAccount({
+        grnId: 'grn-13',
+        grnNumber: '0013',
+        remarks: '[MERGE RECEIVED 2026-10-22] Merged +60 bags',
+      });
+
+      const mixedAccounts = [...accounts, sourceMerged, targetMerged];
+
+      const mergedResults = filterRentAccounts(mixedAccounts, {
+        searchTerm: '',
+        statusFilter: 'MERGED',
+        typeFilter: '',
+      });
+
+      expect(mergedResults).toHaveLength(2);
+      expect(mergedResults.map((a) => a.grnNumber)).toEqual(['0010', '0013']);
+    });
   });
 });
