@@ -35,6 +35,30 @@ export const outwardBagCategorySchema = z.enum([
 ]);
 export type OutwardBagCategory = z.infer<typeof outwardBagCategorySchema>;
 
+export const unclassifiedDispatchAllocationSchema = z.object({
+  bagType: z.enum(['S/B', 'Hybrid']),
+  quantity: z.number().int().min(0).nullish(),
+  smallBags: z.number().int().min(0).nullish(),
+  bigBags: z.number().int().min(0).nullish(),
+  bagPrice: bagPriceSchema.nullish(),
+  seasonalBagPrice: bagPriceSchema.nullish(),
+  monthlyBagPrice: bagPriceSchema.nullish(),
+  rentCharge: z.number().min(0).nullish(),
+});
+export type UnclassifiedDispatchAllocation = z.infer<typeof unclassifiedDispatchAllocationSchema>;
+
+export const confirmedDispatchAllocationSchema = z.object({
+  bagType: z.enum(['S/B', 'Hybrid']),
+  quantity: z.number().int().min(0).nullish(),
+  smallBags: z.number().int().min(0).nullish(),
+  bigBags: z.number().int().min(0).nullish(),
+  bagPrice: bagPriceSchema.nullish(),
+  seasonalBagPrice: bagPriceSchema.nullish(),
+  monthlyBagPrice: bagPriceSchema.nullish(),
+  rentCharge: z.number().min(0).nullish(),
+});
+export type ConfirmedDispatchAllocation = z.infer<typeof confirmedDispatchAllocationSchema>;
+
 /**
  * A GRN is one commodity in one chamber, so an outward movement withdraws bags from that GRN's
  * available balance.
@@ -76,11 +100,28 @@ export const createDeliverySchema = z
     paymentMode: paymentModeSchema.nullish(),
     paymentReference: z.string().trim().max(100).nullish(),
     idempotencyKey: z.string().trim().min(1).max(100).nullish(),
+    unclassifiedDispatch: unclassifiedDispatchAllocationSchema.nullish(),
+    confirmedDispatch: confirmedDispatchAllocationSchema.nullish(),
   })
-  .refine((data) => (data.quantity && data.quantity > 0) || data.smallBags + data.bigBags > 0, {
-    message: 'Delivery must move at least one bag',
-    path: ['smallBags'],
-  })
+  .refine(
+    (data) => {
+      const uCount = data.unclassifiedDispatch
+        ? (data.unclassifiedDispatch.quantity ?? ((data.unclassifiedDispatch.smallBags ?? 0) + (data.unclassifiedDispatch.bigBags ?? 0)))
+        : 0;
+      const cCount = data.confirmedDispatch
+        ? (data.confirmedDispatch.quantity ?? ((data.confirmedDispatch.smallBags ?? 0) + (data.confirmedDispatch.bigBags ?? 0)))
+        : 0;
+      return (
+        uCount + cCount > 0 ||
+        (data.quantity != null && data.quantity > 0) ||
+        data.smallBags + data.bigBags > 0
+      );
+    },
+    {
+      message: 'Delivery must move at least one bag',
+      path: ['smallBags'],
+    },
+  )
   .refine(
     (data) => {
       const maxFutureAllowed = new Date(Date.now() + 5 * 60 * 1000);
@@ -140,6 +181,8 @@ export const deliveryChallanSchema = z.object({
   rentTotalPaid: z.number().min(0).optional(),
   rentCharge: z.number().min(0).optional(),
   idempotencyKey: z.string().min(1).nullable().optional(),
+  unclassifiedDispatch: unclassifiedDispatchAllocationSchema.nullable().optional(),
+  confirmedDispatch: confirmedDispatchAllocationSchema.nullable().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
