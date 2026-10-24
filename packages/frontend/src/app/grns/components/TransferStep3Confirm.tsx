@@ -87,10 +87,10 @@ export function TransferStep3Confirm({
             </span>
           </div>
 
-          <div className={styles.formSection} style={{ marginTop: 'var(--space-1)' }}>
-            <label htmlFor="transfer-movement-date" className={styles.inputLabel}>Movement Date *</label>
+          <div style={{ marginTop: 'var(--space-1)' }}>
             <Input
               id="transfer-movement-date"
+              label="Movement Date"
               type="date"
               value={movementDate}
               readOnly
@@ -108,17 +108,15 @@ export function TransferStep3Confirm({
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger-text)' }}>*Required</span>
           </div>
 
-          <div className={styles.formSection}>
-            <label htmlFor="transfer-reason" className={styles.inputLabel}>Audit Reason (min 5 chars) *</label>
-            <Input
-              id="transfer-reason"
-              placeholder="e.g. Sale of lot / Farmer transfer"
-              value={reason}
-              onChange={(e) => onReasonChange(e.target.value)}
-              disabled={submitting}
-              required
-            />
-          </div>
+          <Input
+            id="transfer-reason"
+            label="Audit Reason (min 5 chars)"
+            placeholder="e.g. Sale of lot / Farmer transfer"
+            value={reason}
+            onChange={(e) => onReasonChange(e.target.value)}
+            disabled={submitting}
+            required
+          />
 
           <div className={styles.formSection}>
             <label htmlFor="transfer-remarks" className={styles.inputLabel}>Additional Remarks (Optional)</label>

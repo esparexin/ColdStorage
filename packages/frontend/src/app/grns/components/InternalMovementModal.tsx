@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { UserCheck } from 'lucide-react';
-import type { Commodity, Customer, Grn, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
+import type { Customer, Grn, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
 import { Banner, Button, Modal } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
 import { formatApiErrorMessage, parseApiResponse } from '@/lib/api-response';
@@ -13,9 +13,7 @@ import styles from './InternalMovementModal.module.css';
 interface InternalMovementModalProps {
   grn: Grn;
   facilityId: string;
-  allGrns?: Grn[];
   customers: Customer[];
-  commodities?: Commodity[];
   onClose: () => void;
   onSuccess: (updatedGrn: Grn) => void;
 }

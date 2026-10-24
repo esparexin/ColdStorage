@@ -1,7 +1,12 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { isHybridBagCategory, type Grn, type OutwardBagCategory } from '@cold-storage/contracts';
+import {
+  isHybridBagCategory,
+  resolveOutwardRates,
+  type Grn,
+  type OutwardBagCategory,
+} from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import { OutwardRentBreakdown } from '@/app/deliveries/components/OutwardRentBreakdown';
 import { computeOutwardRentCharge } from '@/app/deliveries/hooks/deliveryRent.helper';
@@ -21,7 +26,7 @@ export interface TransferRentAssessmentProps {
   newCustomerName?: string;
   totalPaid?: number;
   outstandingBalance?: number;
-  onAssessedRentChange?: (rent: number) => void;
+  assessedRent?: number;
 }
 
 export function TransferRentAssessment({
@@ -38,7 +43,7 @@ export function TransferRentAssessment({
   newCustomerName,
   totalPaid = 0,
   outstandingBalance,
-  onAssessedRentChange,
+  assessedRent: propAssessedRent,
 }: TransferRentAssessmentProps) {
   const isHybrid = isHybridBagCategory(sourceBagCategory);
   const smallBags = isHybrid
@@ -46,18 +51,14 @@ export function TransferRentAssessment({
     : (typeof confirmedSmallBags === 'number' ? confirmedSmallBags : currentGrn.smallBags ?? 0);
   const bigBags = isHybrid ? 0 : (typeof confirmedBigBags === 'number' ? confirmedBigBags : currentGrn.bigBags ?? 0);
 
-  const seasonalRates = useMemo(() => ({
-    small: currentGrn.smallBagPrice ?? currentGrn.bagPrice ?? 10,
-    big: currentGrn.bigBagPrice ?? currentGrn.bagPrice ?? 15,
-  }), [currentGrn.smallBagPrice, currentGrn.bigBagPrice, currentGrn.bagPrice]);
+  const effectiveRates = useMemo(
+    () => resolveOutwardRates(currentGrn.rentType, currentGrn),
+    [currentGrn],
+  );
 
-  const monthlyRates = useMemo(() => ({
-    small: currentGrn.smallBagPrice ?? currentGrn.bagPrice ?? 10,
-    big: currentGrn.bigBagPrice ?? currentGrn.bagPrice ?? 15,
-  }), [currentGrn.smallBagPrice, currentGrn.bigBagPrice, currentGrn.bagPrice]);
-
-  const totalRent = useMemo(() => {
-    const rent = computeOutwardRentCharge({
+  const calculatedRent = useMemo(() => {
+    if (propAssessedRent !== undefined) return propAssessedRent;
+    return computeOutwardRentCharge({
       rentType: currentGrn.rentType,
       bagCategory: (sourceBagCategory || 'S/B') as OutwardBagCategory,
       smallBags,
@@ -72,13 +73,12 @@ export function TransferRentAssessment({
       bigBagPrice: currentGrn.bigBagPrice,
       bagPrice: currentGrn.bagPrice,
     });
-    onAssessedRentChange?.(rent);
-    return rent;
   }, [
-    currentGrn, sourceBagCategory, smallBags, bigBags, isHybrid,
-    sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice, movementDate, onAssessedRentChange,
+    propAssessedRent, currentGrn, sourceBagCategory, smallBags, bigBags, isHybrid,
+    sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice, movementDate,
   ]);
 
+  const totalRent = propAssessedRent ?? calculatedRent;
   const balance = outstandingBalance !== undefined ? outstandingBalance : Math.max(0, totalRent - totalPaid);
   const inwardDateStr = currentGrn.date ? new Date(currentGrn.date).toISOString().slice(0, 10) : '—';
 
@@ -139,8 +139,8 @@ export function TransferRentAssessment({
         bagPrice={typeof sourceBagPrice === 'number' ? sourceBagPrice : currentGrn.bagPrice}
         seasonalBagPrice={typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined}
         monthlyBagPrice={typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined}
-        seasonalRates={seasonalRates}
-        monthlyRates={monthlyRates}
+        seasonalRates={effectiveRates}
+        monthlyRates={effectiveRates}
         totalRent={totalRent}
       />
     </div>

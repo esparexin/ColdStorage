@@ -30,36 +30,28 @@ export function TransferBagConfirmationFields({
           gap: 'var(--space-2)',
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <label htmlFor="transfer-confirmed-small" className={styles.inputLabel}>
-            Small Bags
-          </label>
-          <Input
-            id="transfer-confirmed-small"
-            type="number"
-            min={0}
-            max={remainingBags}
-            value={confirmedSmallBags}
-            onChange={(e) => onSmallChange(e.target.value === '' ? '' : Number(e.target.value))}
-            disabled={disabled}
-            required
-          />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <label htmlFor="transfer-confirmed-big" className={styles.inputLabel}>
-            Big Bags
-          </label>
-          <Input
-            id="transfer-confirmed-big"
-            type="number"
-            min={0}
-            max={remainingBags}
-            value={confirmedBigBags}
-            onChange={(e) => onBigChange(e.target.value === '' ? '' : Number(e.target.value))}
-            disabled={disabled}
-            required
-          />
-        </div>
+        <Input
+          id="transfer-confirmed-small"
+          label="Small Bags"
+          type="number"
+          min={0}
+          max={remainingBags}
+          value={confirmedSmallBags}
+          onChange={(e) => onSmallChange(e.target.value === '' ? '' : Number(e.target.value))}
+          disabled={disabled}
+          required
+        />
+        <Input
+          id="transfer-confirmed-big"
+          label="Big Bags"
+          type="number"
+          min={0}
+          max={remainingBags}
+          value={confirmedBigBags}
+          onChange={(e) => onBigChange(e.target.value === '' ? '' : Number(e.target.value))}
+          disabled={disabled}
+          required
+        />
       </div>
     </div>
   );

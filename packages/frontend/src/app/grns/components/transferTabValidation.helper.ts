@@ -33,22 +33,7 @@ function validateBagReconciliation(s: number, b: number, remaining: number): str
   return null;
 }
 
-export function validateTransferConfirmation(
-  paramsOrIsUnverified: TransferConfirmationParams | boolean,
-  legacyRemainingBags?: number,
-  legacyConfirmedSmall?: number | '',
-  legacyConfirmedBig?: number | '',
-): string | null {
-  const params: TransferConfirmationParams =
-    typeof paramsOrIsUnverified === 'boolean'
-      ? {
-          isUnverified: paramsOrIsUnverified,
-          remainingBags: legacyRemainingBags ?? 0,
-          confirmedSmallBags: legacyConfirmedSmall ?? '',
-          confirmedBigBags: legacyConfirmedBig ?? '',
-        }
-      : paramsOrIsUnverified;
-
+export function validateTransferConfirmation(params: TransferConfirmationParams): string | null {
   const {
     isUnverified,
     remainingBags,

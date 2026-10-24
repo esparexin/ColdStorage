@@ -151,10 +151,10 @@ describe('validateTransferConfirmation', () => {
     ).toContain('cannot exceed remaining stock of 1 bags');
   });
 
-  it('supports legacy positional arguments', () => {
-    expect(validateTransferConfirmation(false, 100, '', '')).toBeNull();
-    expect(validateTransferConfirmation(true, 100, '', '')).toContain('Confirmed composition required');
-    expect(validateTransferConfirmation(true, 100, 60, 40)).toBeNull();
+  it('validates composition requirements cleanly', () => {
+    expect(validateTransferConfirmation({ isUnverified: false, remainingBags: 100, confirmedSmallBags: '', confirmedBigBags: '' })).toBeNull();
+    expect(validateTransferConfirmation({ isUnverified: true, remainingBags: 100, confirmedSmallBags: '', confirmedBigBags: '' })).toContain('Confirmed composition required');
+    expect(validateTransferConfirmation({ isUnverified: true, remainingBags: 100, confirmedSmallBags: 60, confirmedBigBags: 40 })).toBeNull();
   });
 
   it('rejects zero or negative remaining stock', () => {

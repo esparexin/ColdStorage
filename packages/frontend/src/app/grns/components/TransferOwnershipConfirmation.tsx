@@ -20,9 +20,7 @@ interface Props {
   onSmallChange: (v: number | '') => void;
   onBigChange: (v: number | '') => void;
   sourceBagCategory?: OutwardBagCategory | BagType;
-  sourceBagType?: BagType;
   onCategoryChange?: (v: OutwardBagCategory) => void;
-  onBagTypeChange?: (v: BagType) => void;
   sourceBagPrice: number | '';
   onPriceChange: (v: number | '') => void;
   sourceSeasonalBagPrice?: number | '';
@@ -37,7 +35,7 @@ interface Props {
 
 /** Ownership confirmation: Total Bags (read-only), Bag Category (Auto / S/B / Hybrid rates) */
 export function TransferOwnershipConfirmation(p: Props) {
-  const currentBagType = p.sourceBagType ?? p.sourceBagCategory;
+  const currentBagType = p.sourceBagCategory;
   const isHybrid = currentBagType === 'Hybrid' || isHybridBagCategory(currentBagType);
   const visibility = deriveHybridRateVisibility({
     rentType: p.rentType,
@@ -47,29 +45,24 @@ export function TransferOwnershipConfirmation(p: Props) {
 
   return (
     <>
-      <div className={styles.formSection}>
-        <label htmlFor="transfer-total-bags" className={styles.inputLabel}>
-          Total Bags
-        </label>
-        <Input
-          id="transfer-total-bags"
-          type="number"
-          value={p.remainingBags}
-          readOnly
-          disabled={p.disabled}
-          aria-label="Total Bags (read-only)"
-          title="Authoritative remaining stock"
-        />
-      </div>
+      <Input
+        id="transfer-total-bags"
+        label="Total Bags"
+        type="number"
+        value={p.remainingBags}
+        readOnly
+        disabled={p.disabled}
+        aria-label="Total Bags (read-only)"
+        title="Authoritative remaining stock"
+      />
 
       <Select
         id="transfer-bag-type-select"
         label="Bag Type"
         value={isHybrid ? 'Hybrid' : 'S/B'}
         onChange={(e) => {
-          const val = e.target.value as BagType;
-          if (p.onBagTypeChange) p.onBagTypeChange(val);
-          if (p.onCategoryChange) p.onCategoryChange(val as OutwardBagCategory);
+          const val = e.target.value as OutwardBagCategory;
+          p.onCategoryChange?.(val);
         }}
         disabled={p.disabled}
       >
