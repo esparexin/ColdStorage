@@ -72,11 +72,11 @@ describe('Merge GRN: Rent Carry-Forward & Obligation Preservation (Phase 4)', ()
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    // 2000 initial + 1000 pending = 3000
-    expect(res.body.targetGrn.rentAmount).toBe(3000);
+    // Target GRN retains strictly its own obligation (2000) — no carry-forward absorption
+    expect(res.body.targetGrn.rentAmount).toBe(2000);
     expect(res.body.targetGrn.bags).toBe(150);
-    expect(res.body.movement.financialSnapshot.rentAmount).toBe(3000);
-    expect(res.body.movement.financialSnapshot.remainingBalance).toBe(3000);
+    expect(res.body.movement.financialSnapshot.rentAmount).toBe(2000);
+    expect(res.body.movement.financialSnapshot.remainingBalance).toBe(2000);
     expect(res.body.movement.financialSnapshot.rentState).toBe('PENDING');
 
     const updatedSource = await GrnModel.findOne({ id: sourceGrnId }).lean().exec();
@@ -87,8 +87,8 @@ describe('Merge GRN: Rent Carry-Forward & Obligation Preservation (Phase 4)', ()
     expect(sourcePayments[0].amountPaid).toBe(500);
 
     const updatedTarget = await GrnModel.findOne({ id: targetGrnId }).lean().exec();
-    expect(updatedTarget?.rentAmount).toBe(3000);
-    expect(updatedTarget?.remarks).toContain('Carried pending rent: ₹1000');
+    expect(updatedTarget?.rentAmount).toBe(2000);
+    expect(updatedTarget?.remarks).toContain('Source pending rent: ₹1000 kept as separate pending bills');
   });
 
   it('monthly unbilled source lot accrues occupancy rent and carries it forward to target', async () => {
@@ -117,10 +117,10 @@ describe('Merge GRN: Rent Carry-Forward & Obligation Preservation (Phase 4)', ()
       });
 
     expect(res.status).toBe(200);
-    // 3 billing cycles elapsed = 100 * 10 * 3 = 3000 accrued on source
-    // Target rentAmount = 1000 + 3000 = 4000
-    expect(res.body.targetGrn.rentAmount).toBe(4000);
-    expect(res.body.movement.financialSnapshot.rentAmount).toBe(4000);
+    // 3 billing cycles elapsed = 100 * 10 * 3 = 3000 accrued on source (kept as separate bill)
+    // Target rentAmount remains strictly 1000
+    expect(res.body.targetGrn.rentAmount).toBe(1000);
+    expect(res.body.movement.financialSnapshot.rentAmount).toBe(1000);
 
     const updatedSource = await GrnModel.findOne({ id: sourceGrnId }).lean().exec();
     expect(updatedSource?.rentAmount).toBe(3000);
@@ -160,10 +160,10 @@ describe('Merge GRN: Rent Carry-Forward & Obligation Preservation (Phase 4)', ()
       });
 
     expect(res.status).toBe(200);
-    // Target 1000 + 0 + 1200 = 2200
-    expect(res.body.targetGrn.rentAmount).toBe(2200);
+    // Target retains 1000 — source pending dues remain on source bills
+    expect(res.body.targetGrn.rentAmount).toBe(1000);
     expect(res.body.targetGrn.bags).toBe(120);
-    expect(res.body.movement.financialSnapshot.remainingBalance).toBe(2200);
+    expect(res.body.movement.financialSnapshot.remainingBalance).toBe(1000);
   });
 
   it('merges source lot with repacked small and big bag counts without previous count validation', async () => {
@@ -202,6 +202,7 @@ describe('Merge GRN: Rent Carry-Forward & Obligation Preservation (Phase 4)', ()
         movementDate: new Date(),
         repackedSmallBags: 35,
         repackedBigBags: 20,
+        isRepackSelected: true,
         remarks: 'Physical re-bagging into 35 small and 20 big',
       });
 

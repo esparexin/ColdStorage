@@ -14,6 +14,8 @@ interface MergeSourceTableProps {
   targetGrnDate: Date | string;
   submitting: boolean;
   onToggleSource: (id: string) => void;
+  initiatingGrnId?: string;
+  targetGrnId?: string;
 }
 
 export function MergeSourceTable({
@@ -22,6 +24,8 @@ export function MergeSourceTable({
   targetGrnDate,
   submitting,
   onToggleSource,
+  initiatingGrnId,
+  targetGrnId,
 }: MergeSourceTableProps) {
   const targetSeason = seasonYearForInwardDate(targetGrnDate);
 
@@ -31,17 +35,20 @@ export function MergeSourceTable({
         {
           key: 'select',
           header: 'Sel',
-          render: (sg) => (
-            <input
-              id={`select-source-${sg.id}`}
-              aria-label={`Select GRN ${sg.grnNumber}`}
-              type="checkbox"
-              checked={selectedSourceIds.includes(sg.id)}
-              onChange={() => onToggleSource(sg.id)}
-              onClick={(e) => e.stopPropagation()}
-              disabled={submitting}
-            />
-          ),
+          render: (sg) => {
+            const isInitiatingSource = sg.id === initiatingGrnId && targetGrnId !== initiatingGrnId;
+            return (
+              <input
+                id={`select-source-${sg.id}`}
+                aria-label={`Select GRN ${sg.grnNumber}`}
+                type="checkbox"
+                checked={selectedSourceIds.includes(sg.id)}
+                onChange={() => !isInitiatingSource && onToggleSource(sg.id)}
+                onClick={(e) => e.stopPropagation()}
+                disabled={submitting || isInitiatingSource}
+              />
+            );
+          },
         },
         {
           key: 'grnNumber',
@@ -65,9 +72,11 @@ export function MergeSourceTable({
                   <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
                     {formatDisplayDate(sg.date)}
                   </span>
-                  <Badge variant={isSame ? 'neutral' : 'warning'}>
-                    {isSame ? `Season ${srcSeason}` : `Prev ${srcSeason}`}
-                  </Badge>
+                  {!isSame && (
+                    <Badge variant="warning">
+                      {`Prev ${srcSeason}`}
+                    </Badge>
+                  )}
                 </div>
               </div>
             );
@@ -83,23 +92,11 @@ export function MergeSourceTable({
         },
         {
           key: 'commodity',
-          header: 'Commodity & Chamber',
+          header: 'Commodity',
           sortable: true,
           sortType: 'text',
           sortAccessor: (sg) => sg.commodityName,
-          render: (sg) => `${sg.commodityName} (Ch. ${sg.chamber})`,
-        },
-        {
-          key: 'bagType',
-          header: 'Bag Type',
-          align: 'center',
-          render: (sg) => {
-            const hasDiff =
-              (sg.smallBagPrice != null || sg.bigBagPrice != null) &&
-              sg.smallBagPrice !== sg.bigBagPrice;
-            const isHybrid = (sg.bagPrice != null && !hasDiff) || isHybridBagCategory(sg.bagType);
-            return <Badge variant="neutral">{isHybrid ? 'Hybrid' : sg.bagType}</Badge>;
-          },
+          render: (sg) => sg.commodityName,
         },
         {
           key: 'availableBags',
@@ -116,12 +113,25 @@ export function MergeSourceTable({
               (sg.smallBagPrice != null || sg.bigBagPrice != null) &&
               sg.smallBagPrice !== sg.bigBagPrice;
             const isHybrid = (sg.bagPrice != null && !hasDiff) || isHybridBagCategory(sg.bagType);
+            const isVerified = sg.isCompositionVerified === true;
+            const isReconciled = tot === s + b;
+            const splitText = isHybrid
+              ? 'Uniform Rate'
+              : !isVerified
+                ? ''
+                : isReconciled && (s > 0 || b > 0)
+                  ? `${s}S · ${b}B`
+                  : b === 0 && s > 0
+                    ? `${tot}S · 0B`
+                    : s === 0 && b > 0
+                      ? `0S · ${tot}B`
+                      : '';
             return (
               <div>
                 <span style={{ fontWeight: 'var(--font-semibold)' }}>{tot}</span>
-                {(s > 0 || b > 0 || isHybrid) && (
+                {splitText && (
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                    {isHybrid ? 'Uniform Rate' : `${s}S · ${b}B`}
+                    {splitText}
                   </div>
                 )}
               </div>
@@ -149,8 +159,10 @@ export function MergeSourceTable({
       rows={eligibleSources}
       rowKey={(sg) => sg.id}
       caption="Source GRNs to Merge"
-      emptyMessage="No other open eligible GRNs found in this facility."
-      onRowClick={!submitting ? (sg) => onToggleSource(sg.id) : undefined}
+      onRowClick={!submitting ? (sg) => {
+        if (sg.id === initiatingGrnId && targetGrnId !== initiatingGrnId) return;
+        onToggleSource(sg.id);
+      } : undefined}
     />
   );
 }

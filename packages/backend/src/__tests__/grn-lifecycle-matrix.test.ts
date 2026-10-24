@@ -196,10 +196,9 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
       remarks: 'merge with january extension billed once',
     });
     expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
-    // Carried covers SEASON_2024 + FEB_2025 (JAN_2025 finalized): 1000 + 1200 + 1200 = 3400.
-    // SEASON_2025 is excluded from carried debt because surviving target GRN bills Season 2025.
-    // target = 1000 + 3400 = 4400 (not 5400 duplicate).
-    expect(res.body.targetGrn.rentAmount).toBe(4400);
+    // Under independent billing, target GRN retains strictly its own obligation (1000)
+    // Source pending bills remain separate on the source GRN account
+    expect(res.body.targetGrn.rentAmount).toBe(1000);
     const src = await GrnModel.findOne({ id: source }).lean().exec();
     expect(src?.status).toBe('CLOSED');
   });

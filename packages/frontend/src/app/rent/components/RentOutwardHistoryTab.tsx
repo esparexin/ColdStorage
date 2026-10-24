@@ -71,11 +71,14 @@ export function RentOutwardHistoryTab({ facilityId, account }: RentOutwardHistor
                     <span>•</span>
                     <span>From: {note.source}</span>
                     {note.carriedRent > 0 && (
-                      <span>• Carried Rent: ₹{note.carriedRent.toLocaleString('en-IN')}</span>
+                      <span>• Additional Rent: ₹{note.carriedRent.toLocaleString('en-IN')}</span>
+                    )}
+                    {note.separateSourceRent > 0 && (
+                      <span>• Source Rent: ₹{note.separateSourceRent.toLocaleString('en-IN')} (Separate Pending Bills)</span>
                     )}
                   </span>
                   <span className={styles.cardNotes}>
-                    Reason: {note.reason} · Absorbed into existing season without duplicate rent billing.
+                    Reason: {note.reason} · Merged into surviving lot without carry-forward debt.
                   </span>
                 </div>
                 <div className={styles.cardRight}>
@@ -83,7 +86,7 @@ export function RentOutwardHistoryTab({ facilityId, account }: RentOutwardHistor
                     {note.carriedRent > 0 ? `+₹${note.carriedRent.toLocaleString('en-IN')}` : '₹0'}
                   </strong>
                   <span className={styles.rentFormula}>
-                    {note.carriedRent > 0 ? 'Carried Pending Rent' : 'Continuous Season'}
+                    {note.carriedRent > 0 ? 'Additional Rent' : 'Continuous Season (Separate Bills)'}
                   </span>
                 </div>
               </div>

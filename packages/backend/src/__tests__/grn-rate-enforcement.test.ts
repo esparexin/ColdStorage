@@ -172,27 +172,29 @@ describe('GRN rate enforcement — grn-rate-enforcement.test.ts', () => {
       expect(good.body.grn.rentAmount).toBe(1200);
     });
 
-    it('rejects omitted rates when a controller row exists (B4)', async () => {
+    it('accepts inward entry with omitted rates (rent deferred to outward)', async () => {
       const res = await postInbound({});
-      expect(res.status).toBe(400);
-      expect(res.body.error).toContain('controller rate');
+      expect(res.status).toBe(201);
+      expect(res.body.grn.smallBagPrice).toBeNull();
+      expect(res.body.grn.bigBagPrice).toBeNull();
+      expect(res.body.grn.rentAmount).toBe(0);
+    });
+
+    it('rejects omitted rates when requireRates option is explicitly enabled', async () => {
+      await expect(
+        grnService.createGrn(
+          FACILITY_ID,
+          { grnNumber: nextTestGrnNumber(), date: new Date(), customerId, commodityId, chamber: 'CH-01', bags: 100, bagType: 'S/B', rentType: 'Seasonal' },
+          'usr-rate-enforce',
+          { requireRates: true },
+        ),
+      ).rejects.toThrow('controller rate');
     });
 
     it('preserves CSV-style rentAmount-only rows via explicit legacy opt-out', async () => {
       const { grn } = await grnService.createGrn(
         FACILITY_ID,
-        {
-          grnNumber: nextTestGrnNumber(),
-          date: new Date(),
-          customerId,
-          commodityId,
-          chamber: 'CH-01',
-          bags: 100,
-          bagType: 'S',
-          smallBagWeight: 50,
-          rentType: 'Seasonal',
-          rentAmount: 5000,
-        },
+        { grnNumber: nextTestGrnNumber(), date: new Date(), customerId, commodityId, chamber: 'CH-01', bags: 100, bagType: 'S', smallBagWeight: 50, rentType: 'Seasonal', rentAmount: 5000 },
         'usr-rate-enforce',
         { requireRates: false },
       );

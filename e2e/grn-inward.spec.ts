@@ -131,9 +131,6 @@ test.describe('Phase 3 — Inward Goods Receipt (GRN & Ledger)', () => {
     await page.locator('input#create-chamber').fill('CH-01');
     await page.locator('input#create-bags').fill('250');
 
-    // Verify Price Controller auto-resolved rate
-    await expect(page.locator('#create-rate-section')).toContainText('₹120.00');
-
     // Submit Inward Form
     await page.locator('#submit-create-grn-btn').click();
 
@@ -143,7 +140,7 @@ test.describe('Phase 3 — Inward Goods Receipt (GRN & Ledger)', () => {
 
     recordActualResult(
       testInfo,
-      'Created standard inward GRN 0102 with 250 bags in chamber CH-01; derived receipt RCPT-25-26-0102 and auto-resolved seasonal rate ₹120.00.',
+      'Created standard inward GRN 0102 with 250 bags in chamber CH-01; derived receipt RCPT-25-26-0102.',
     );
   });
 

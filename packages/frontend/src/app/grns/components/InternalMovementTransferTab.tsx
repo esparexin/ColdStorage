@@ -8,7 +8,8 @@ import {
 } from '@cold-storage/contracts';
 import { useRentGate } from '@/hooks/useRentGate';
 import { WizardStepper } from './WizardStepper';
-import { validateMovementSettlement } from './MovementSettlementDecisionSection';
+import { computeOutwardRentCharge } from '@/app/deliveries/hooks/deliveryRent.helper';
+import { validateTransferPayment } from './internalMovementPayload.helper';
 import { validateTransferConfirmation } from './transferTabValidation.helper';
 import { TransferStep1Customer } from './TransferStep1Customer';
 import { TransferStep2Dues } from './TransferStep2Dues';
@@ -52,11 +53,12 @@ export function InternalMovementTransferTab({
 
   const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>('');
   const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>('');
-  const [sourceBagCategory, setSourceBagCategory] = useState<OutwardBagCategory | ''>('');
+  const [sourceBagCategory, setSourceBagCategory] = useState<OutwardBagCategory>(
+    isHybridBagCategory(currentGrn.bagType) ? 'Hybrid' : 'S/B',
+  );
   const [sourceBagPrice, setSourceBagPrice] = useState<number | ''>('');
   const [sourceSeasonalBagPrice, setSourceSeasonalBagPrice] = useState<number | ''>('');
   const [sourceMonthlyBagPrice, setSourceMonthlyBagPrice] = useState<number | ''>('');
-  const [assessedRent, setAssessedRent] = useState<number>(0);
 
   const { rentSummary, rentLoading, refreshRentGate } = useRentGate();
   useEffect(() => { void refreshRentGate(facilityId, currentGrn.id); }, [facilityId, currentGrn.id, refreshRentGate]);
@@ -65,7 +67,34 @@ export function InternalMovementTransferTab({
   const selectedNewCustomer = useMemo(() => candidateCustomers.find((c) => c.id === newCustomerId), [candidateCustomers, newCustomerId]);
 
   const remainingBags = currentGrn.closingBags ?? currentGrn.bags;
-  const isUnverified = (currentGrn as Record<string, unknown>).isCompositionVerified === false;
+  const isUnverified = currentGrn.isCompositionVerified === false;
+  const isHybrid = isHybridBagCategory(sourceBagCategory);
+  const smallBags = isHybrid
+    ? remainingBags
+    : (typeof confirmedSmallBags === 'number' ? confirmedSmallBags : currentGrn.smallBags ?? 0);
+  const bigBags = isHybrid ? 0 : (typeof confirmedBigBags === 'number' ? confirmedBigBags : currentGrn.bigBags ?? 0);
+
+  const assessedRent = useMemo(() => {
+    return computeOutwardRentCharge({
+      rentType: currentGrn.rentType,
+      bagCategory: (sourceBagCategory || 'S/B') as OutwardBagCategory,
+      smallBags,
+      bigBags,
+      quantity: isHybrid ? smallBags : undefined,
+      manualBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
+      seasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
+      monthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
+      inwardDate: currentGrn.date,
+      deliveryDate: movementDate,
+      smallBagPrice: currentGrn.smallBagPrice,
+      bigBagPrice: currentGrn.bigBagPrice,
+      bagPrice: currentGrn.bagPrice,
+    });
+  }, [
+    currentGrn, sourceBagCategory, smallBags, bigBags, isHybrid,
+    sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice, movementDate,
+  ]);
+
   const totalPaid = rentSummary?.totalPaid ?? 0;
   const pendingAmount = rentSummary?.remainingBalance ?? 0;
   const isUnbilled = totalPaid === 0 && pendingAmount === 0 && (rentSummary?.rentAmount ?? 0) === 0;
@@ -88,7 +117,7 @@ export function InternalMovementTransferTab({
 
   const handleProceedToStep3 = () => {
     setValidationError(null);
-    const payErr = validateMovementSettlement(decision, settleAmount, effectiveDue);
+    const payErr = validateTransferPayment(decision, settleAmount, effectiveDue);
     if (payErr) return setValidationError(payErr);
     const isHybrid = isHybridBagCategory(sourceBagCategory);
     const confirmErr = validateTransferConfirmation({
@@ -107,7 +136,7 @@ export function InternalMovementTransferTab({
     if (remainingBags <= 0) return setValidationError('Cannot transfer ownership: No stock remaining in this GRN.');
     if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
 
-    const payErr = validateMovementSettlement(decision, settleAmount, effectiveDue);
+    const payErr = validateTransferPayment(decision, settleAmount, effectiveDue);
     if (payErr) return setValidationError(payErr);
     const isHybrid = isHybridBagCategory(sourceBagCategory);
     const confirmErr = validateTransferConfirmation({
@@ -157,7 +186,7 @@ export function InternalMovementTransferTab({
           onPriceChange={setSourceBagPrice} sourceSeasonalBagPrice={sourceSeasonalBagPrice} onSeasonalPriceChange={setSourceSeasonalBagPrice}
           sourceMonthlyBagPrice={sourceMonthlyBagPrice} onMonthlyPriceChange={setSourceMonthlyBagPrice} movementDate={movementDate}
           selectedNewCustomer={selectedNewCustomer} totalPaid={totalPaid} outstandingBalance={effectiveDue}
-          onAssessedRentChange={setAssessedRent} effectiveDue={effectiveDue} decision={decision} onDecisionChange={setDecision}
+          assessedRent={assessedRent} effectiveDue={effectiveDue} decision={decision} onDecisionChange={setDecision}
           settleAmount={settleAmount} onSettleAmountChange={setSettleAmount} paymentMode={paymentMode} onPaymentModeChange={setPaymentMode}
           submitting={submitting} onBack={() => setStep(1)} onNext={handleProceedToStep3}
         />

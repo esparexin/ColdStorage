@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { bagTypeSchema } from './bags.js';
 import { paymentModeSchema } from './rent.js';
 import { outwardBagCategorySchema } from './delivery.js';
 import { bagPriceSchema } from './pricing.js';
@@ -10,15 +11,19 @@ export const mergeGrnInputSchema = z.object({
   targetGrnId: z.string().trim().min(1, 'Target GRN ID is required'),
   sourceGrnIds: z.array(z.string().trim().min(1)).min(1, 'At least one source GRN is required'),
   movementDate: z.coerce.date().default(() => new Date()),
+  /**
+   * Optional manual override for carried rent obligation. When omitted or 0,
+   * the cumulative source pending rent is automatically calculated and carried forward.
+   */
   additionalRentAmount: z.number().min(0).default(0),
   remarks: z.string().trim().min(3, 'Remarks must be at least 3 characters').max(500),
   isRepackSelected: z.boolean().optional(),
   repackedSmallBags: z.number().int().min(0).nullish(),
   repackedBigBags: z.number().int().min(0).nullish(),
   repackedBagCount: z.number().int().min(0).max(100000).nullish(),
-  // Source bag-category confirmation: reuses the outward vocabulary
-  // (Small, Big, Small & Big, Hybrid/Mixed). Informational for rent — the
-  // backend recomputes obligations from source rules and never bills these.
+  // Source bag type / category confirmation: canonical bagType ('S', 'B', 'S+B', 'S/B', 'Hybrid')
+  // or legacy category. Informational for rent — backend recomputes obligations.
+  sourceBagType: bagTypeSchema.nullish(),
   sourceBagCategory: outwardBagCategorySchema.nullish(),
   sourceQuantity: z.number().int().min(0).max(100000).nullish(),
   sourceBagPrice: bagPriceSchema.nullish(),
@@ -52,6 +57,7 @@ export const transferOwnershipInputSchema = z.object({
   /** Explicit confirmation required when stored composition is unverified. */
   confirmedSmallBags: z.number().int().min(0).max(100000).nullish(),
   confirmedBigBags: z.number().int().min(0).max(100000).nullish(),
+  sourceBagType: bagTypeSchema.nullish(),
   sourceBagCategory: outwardBagCategorySchema.nullish(),
   sourceQuantity: z.number().int().min(0).max(100000).nullish(),
   sourceBagPrice: bagPriceSchema.nullish(),
@@ -74,18 +80,19 @@ export const internalMovementRecordSchema = z.object({
   bigBagsMoved: z.number().min(0).default(0),
   // Informational confirmation echo (challan-column mirror): never billed,
   // read-optional so pre-change documents still parse.
+  sourceBagType: bagTypeSchema.nullish(),
   sourceBagCategory: outwardBagCategorySchema.nullish(),
   sourceQuantity: z.number().int().min(0).nullish(),
   sourceBagPrice: bagPriceSchema.nullish(),
   sourceSeasonalBagPrice: bagPriceSchema.nullish(),
   sourceMonthlyBagPrice: bagPriceSchema.nullish(),
-  // Legacy internal-movement hamali keys: repack hamali (repackHamaliBags/Rate/Charge
-  // on the movement record) is written only when an explicit repacking occurs;
-  // the carried-forward `hamaliCarried` and snapshot `hamaliAmount` are never
-  // written and never returned. Retained as read-optional so old docs parse.
+  // Internal-movement hamali: repacking labor (repackHamaliBags/Rate/Charge on movement
+  // record, mirrored into financialSnapshot.hamaliAmount) is written when repacking
+  // hamali applies (hamaliCharge > 0); legacy hamaliCarried is unwritten.
   hamaliBags: z.number().min(0).optional(),
   hamaliRate: z.number().min(0).nullish(),
   hamaliCharge: z.number().min(0).optional(),
+  /** @deprecated Legacy column: retained for historical document reads; never written. */
   hamaliCarried: z.number().min(0).optional(),
   referenceWeight: z.number().positive().max(1000000).nullish(),
   idempotencyKey: z.string().trim().min(1).max(100).nullish(),
@@ -101,7 +108,7 @@ export const internalMovementRecordSchema = z.object({
     remainingBalance: z.number().min(0),
     paymentStatus: z.string(),
     rentState: z.string().optional(),
-    // Legacy snapshot hamali: never written, never returned; read-optional for old docs.
+    // Repacking hamali labor charge snapshot (written when hamaliCharge > 0).
     hamaliAmount: z.number().min(0).optional(),
   }),
   remarks: z.string().nullable().optional(),

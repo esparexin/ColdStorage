@@ -62,7 +62,7 @@ describe('Bag lifecycle: total-only inward, verified outward, guarded movement/t
     expect((stored as Record<string, unknown>).isCompositionVerified).toBe(false);
   });
 
-  it('inward explicit S/B split derives rent and marks verified', async () => {
+  it('inward explicit S/B split defers rent (0) and marks verified', async () => {
     const { grn } = await grnService.createGrn(
       FACILITY_ID,
       {
@@ -72,7 +72,7 @@ describe('Bag lifecycle: total-only inward, verified outward, guarded movement/t
       } as never,
       USER_ID,
     );
-    expect(grn.rentAmount).toBe(1440);
+    expect(grn.rentAmount).toBe(0);
     expect(grn.isCompositionVerified).toBe(true);
   });
 

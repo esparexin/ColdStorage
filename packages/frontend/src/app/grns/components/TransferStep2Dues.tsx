@@ -20,8 +20,8 @@ interface TransferStep2DuesProps {
   onSmallChange: (val: number | '') => void;
   confirmedBigBags: number | '';
   onBigChange: (val: number | '') => void;
-  sourceBagCategory: OutwardBagCategory | '';
-  onCategoryChange: (cat: OutwardBagCategory | '') => void;
+  sourceBagCategory: OutwardBagCategory;
+  onCategoryChange: (cat: OutwardBagCategory) => void;
   sourceBagPrice: number | '';
   onPriceChange: (p: number | '') => void;
   sourceSeasonalBagPrice: number | '';
@@ -32,7 +32,7 @@ interface TransferStep2DuesProps {
   selectedNewCustomer?: Customer;
   totalPaid: number;
   outstandingBalance: number;
-  onAssessedRentChange: (rent: number) => void;
+  assessedRent?: number;
   effectiveDue: number;
   decision: TransferPaymentDecision;
   onDecisionChange: (d: TransferPaymentDecision) => void;
@@ -51,7 +51,7 @@ export function TransferStep2Dues(props: TransferStep2DuesProps) {
     confirmedBigBags, onBigChange, sourceBagCategory, onCategoryChange,
     sourceBagPrice, onPriceChange, sourceSeasonalBagPrice, onSeasonalPriceChange,
     sourceMonthlyBagPrice, onMonthlyPriceChange, movementDate, selectedNewCustomer,
-    totalPaid, outstandingBalance, onAssessedRentChange, effectiveDue,
+    totalPaid, outstandingBalance, assessedRent, effectiveDue,
     decision, onDecisionChange, settleAmount, onSettleAmountChange,
     paymentMode, onPaymentModeChange, submitting, onBack, onNext,
   } = props;
@@ -92,24 +92,24 @@ export function TransferStep2Dues(props: TransferStep2DuesProps) {
           movementDate={movementDate}
           disabled={submitting}
         />
-
-        <TransferRentAssessment
-          currentGrn={currentGrn}
-          remainingBags={remainingBags}
-          movementDate={movementDate}
-          sourceBagCategory={sourceBagCategory}
-          sourceQuantity={remainingBags}
-          sourceBagPrice={sourceBagPrice}
-          sourceSeasonalBagPrice={sourceSeasonalBagPrice}
-          sourceMonthlyBagPrice={sourceMonthlyBagPrice}
-          confirmedSmallBags={confirmedSmallBags}
-          confirmedBigBags={confirmedBigBags}
-          newCustomerName={selectedNewCustomer?.name}
-          totalPaid={totalPaid}
-          outstandingBalance={outstandingBalance}
-          onAssessedRentChange={onAssessedRentChange}
-        />
       </div>
+
+      <TransferRentAssessment
+        currentGrn={currentGrn}
+        remainingBags={remainingBags}
+        movementDate={movementDate}
+        sourceBagCategory={sourceBagCategory}
+        sourceQuantity={remainingBags}
+        sourceBagPrice={sourceBagPrice}
+        sourceSeasonalBagPrice={sourceSeasonalBagPrice}
+        sourceMonthlyBagPrice={sourceMonthlyBagPrice}
+        confirmedSmallBags={confirmedSmallBags}
+        confirmedBigBags={confirmedBigBags}
+        newCustomerName={selectedNewCustomer?.name}
+        totalPaid={totalPaid}
+        outstandingBalance={outstandingBalance}
+        assessedRent={assessedRent}
+      />
 
       {/* Rent Settlement Decision Card */}
       <MovementSettlementDecisionSection

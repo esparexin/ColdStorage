@@ -2,7 +2,7 @@ import { isHybridBagCategory, type ChallanDocumentDto } from '@cold-storage/cont
 import { escapeHtml, renderBaseLayout } from './base.layout.js';
 
 export function renderChallanTemplate(dto: ChallanDocumentDto): string {
-  const isHybrid = isHybridBagCategory(dto.bagCategory);
+  const isHybrid = dto.bagType === 'Hybrid' || isHybridBagCategory(dto.bagCategory);
   const bagsTable = isHybrid
     ? `
     <table class="data-table">

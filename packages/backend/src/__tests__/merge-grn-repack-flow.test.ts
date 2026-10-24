@@ -89,7 +89,8 @@ describe('Integration: Internal Merge with Repacking Flow (GRN 23 = 150 bags, GR
     expect(updatedTarget?.smallBags).toBe(125);
     expect(updatedTarget?.bigBags).toBe(75);
     expect(updatedTarget?.isCompositionVerified).toBe(true);
-    expect(updatedTarget?.rentAmount).toBe(4425);
+    // Target retains 3000 initial + 150 repacking hamali = 3150 under independent billing
+    expect(updatedTarget?.rentAmount).toBe(3150);
 
     const updatedSource = await GrnModel.findOne({ id: sourceGrnId }).lean();
     expect(updatedSource?.status).toBe('CLOSED');

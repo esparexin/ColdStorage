@@ -66,13 +66,16 @@ export async function transferOwnership(
 
       // Unverified lots must not transfer silently; verified lots stay compatible.
       const isVerified = resolveStoredCompositionVerified({
-        isCompositionVerified: (grn as unknown as Record<string, unknown>).isCompositionVerified as boolean | null ?? null,
-        bagType: grn.bagType as never, bags: grn.bags, smallBags: grn.smallBags, bigBags: grn.bigBags,
+        isCompositionVerified: grn.isCompositionVerified ?? null,
+        bagType: grn.bagType,
+        bags: grn.bags,
+        smallBags: grn.smallBags,
+        bigBags: grn.bigBags,
       });
       validateTransferBagConfirmation(input, bal.total, grn.grnNumber, isVerified);
 
       const movementDate = new Date(input.movementDate);
-      const isHybrid = isHybridBagCategory(input.sourceBagCategory);
+      const isHybrid = input.sourceBagType === 'Hybrid' || grn.bagType === 'Hybrid' || isHybridBagCategory(input.sourceBagCategory);
       const transferExtensions = await rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session);
       // 1. Authoritative outward-style rent assessment for all remaining bags being transferred
       const { expectedRentCharge } = await computeExpectedDeliveryRent({
@@ -184,11 +187,12 @@ export async function transferOwnership(
             totalBagsMoved: bal.total,
             smallBagsMoved: bal.smallBags,
             bigBagsMoved: bal.bigBags,
-            sourceBagCategory: (input as unknown as Record<string, unknown>).sourceBagCategory as never ?? null,
-            sourceQuantity: (input as unknown as Record<string, unknown>).sourceQuantity as number | null ?? null,
-            sourceBagPrice: (input as unknown as Record<string, unknown>).sourceBagPrice as number | null ?? null,
-            sourceSeasonalBagPrice: (input as unknown as Record<string, unknown>).sourceSeasonalBagPrice as number | null ?? null,
-            sourceMonthlyBagPrice: (input as unknown as Record<string, unknown>).sourceMonthlyBagPrice as number | null ?? null,
+            sourceBagType: input.sourceBagType ?? (isHybrid ? 'Hybrid' : (grn.bagType ?? null)),
+            sourceBagCategory: input.sourceBagCategory ?? null,
+            sourceQuantity: input.sourceQuantity ?? null,
+            sourceBagPrice: input.sourceBagPrice ?? null,
+            sourceSeasonalBagPrice: input.sourceSeasonalBagPrice ?? null,
+            sourceMonthlyBagPrice: input.sourceMonthlyBagPrice ?? null,
             financialSnapshot: {
               rentAmount: effectiveRentBal.rentAmount,
               totalPaid: effectiveRentBal.totalPaid,

@@ -53,6 +53,10 @@ export const rentPaymentSchema = z.object({
 
 export type RentPayment = z.infer<typeof rentPaymentSchema>;
 
+export * from './merged-consignment.js';
+import { mergedConsignmentBreakdownSchema } from './merged-consignment.js';
+
+
 export const rentSummaryDtoSchema = z.object({
   grnId: z.string().min(1),
   grnNumber: z.string().min(1),
@@ -92,6 +96,7 @@ export const rentSummaryDtoSchema = z.object({
   rentGeneratedDate: z.coerce.date().nullable().optional(),
   mergedIntoGrnId: z.string().nullable().optional(),
   mergedIntoGrnNumber: z.string().nullable().optional(),
+  mergedConsignment: mergedConsignmentBreakdownSchema.nullable().optional(),
 });
 
 export type RentSummaryDto = z.infer<typeof rentSummaryDtoSchema>;

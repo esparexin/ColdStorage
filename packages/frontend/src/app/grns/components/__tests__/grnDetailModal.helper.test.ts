@@ -58,6 +58,26 @@ describe('grnDetailModal.helper', () => {
     });
   });
 
+  it('extracts multi-source merged lots with repacking and carried rent remarks', () => {
+    const multiMergedGrn: Grn = {
+      ...baseGrn,
+      grnNumber: '0013',
+      bags: 74,
+      remarks:
+        '[MERGE RECEIVED on 2026-10-22: +60 bags (Repacked: 30 S + 30 B = 60 bags). Repacking Hamali: ₹1500 (60 bags @ ₹25/bag) from GRN 0010 (Receipt #BILL-10, Date: 2024-06-11, Customer: Kalyan, Bags: 10, Rent: ₹26100, Paid: ₹0, Balance: ₹26350, Status: Not Settled); GRN 0012 (Receipt #BILL-12, Date: 2025-07-17, Customer: Kalyan, Bags: 12, Rent: ₹13050, Paid: ₹0, Balance: ₹13350, Status: Not Settled). Carried pending rent: ₹39700. Reason: Internal Consolidation]',
+    };
+
+    const details = extractMergedDetails(multiMergedGrn, []);
+    expect(details).toHaveLength(2);
+    expect(details[0].grnNumber).toBe('0010');
+    expect(details[0].bags).toBe(10);
+    expect(details[1].grnNumber).toBe('0012');
+    expect(details[1].bags).toBe(12);
+
+    const derived = deriveMergedAttributes(multiMergedGrn, details);
+    expect(derived.bagsBreakdown).toBe('52 + 22');
+  });
+
   it('derives merged attributes (chambers, storage marks, party marks, bags breakdown)', () => {
     const mergedDetails = [
       {

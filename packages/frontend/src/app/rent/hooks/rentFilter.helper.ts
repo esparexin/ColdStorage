@@ -6,7 +6,8 @@ export type RentStatusFilter =
   | 'PARTIALLY_PAID'
   | 'SETTLED'
   | 'PENDING_DUES'
-  | 'NO_DUES';
+  | 'NO_DUES'
+  | 'MERGED';
 export type RentTypeFilter = '' | 'Seasonal' | 'Monthly' | 'Seasonal_3M';
 
 export interface RentFilterOptions {
@@ -15,22 +16,51 @@ export interface RentFilterOptions {
   typeFilter: RentTypeFilter;
 }
 
+export type RentAccountCategory = 'UNPAID' | 'PARTIALLY_PAID' | 'SETTLED' | 'NO_DUES';
+
 /**
  * Determines the mutually exclusive rent status category for an account.
- * - 'SETTLED': Zero remaining balance or explicit 'Settled' status.
+ * - 'NO_DUES': Unbilled / zero-dues account (totalPaid === 0 with 0 rent or 0 due).
+ * - 'SETTLED': Settled account (payments made with remainingBalance === 0, or settled obligation).
  * - 'PARTIALLY_PAID': Payments have been made (totalPaid > 0) with an outstanding balance (remainingBalance > 0).
  * - 'UNPAID': No payment collected (totalPaid === 0) with an outstanding balance.
  */
 export function getRentStatusCategory(
-  acc: Pick<RentSummaryDto, 'totalPaid' | 'remainingBalance' | 'paymentStatus'>,
-): 'UNPAID' | 'PARTIALLY_PAID' | 'SETTLED' {
-  if (acc.remainingBalance === 0 || acc.paymentStatus === 'Settled') {
+  acc: Pick<RentSummaryDto, 'totalPaid' | 'remainingBalance' | 'paymentStatus'> & {
+    rentAmount?: number | null;
+    totalDue?: number | null;
+    rentState?: string | null;
+  },
+): RentAccountCategory {
+  const isSettledOrZero = acc.remainingBalance === 0 || acc.paymentStatus === 'Settled';
+  const isNoDues =
+    acc.totalPaid === 0 &&
+    isSettledOrZero &&
+    ((acc.rentAmount ?? 0) === 0 || (acc.totalDue ?? 0) === 0 || acc.rentState === 'UNBILLED');
+
+  if (isNoDues) {
+    return 'NO_DUES';
+  }
+  if (isSettledOrZero) {
     return 'SETTLED';
   }
   if (acc.totalPaid > 0 && acc.remainingBalance > 0) {
     return 'PARTIALLY_PAID';
   }
   return 'UNPAID';
+}
+
+export function isMergedRentAccount(
+  acc: Pick<RentSummaryDto, 'mergedIntoGrnNumber' | 'mergedIntoGrnId' | 'remarks'> & {
+    mergedConsignment?: { isMergedTarget?: boolean } | null;
+  },
+): boolean {
+  return Boolean(
+    acc.mergedIntoGrnNumber ||
+      acc.mergedIntoGrnId ||
+      acc.mergedConsignment?.isMergedTarget ||
+      (acc.remarks && acc.remarks.includes('[MERGE')),
+  );
 }
 
 /**
@@ -65,18 +95,18 @@ export function filterRentAccounts(
     }
 
     if (statusFilter) {
-      if (
+      if (statusFilter === 'MERGED') {
+        if (!isMergedRentAccount(acc)) return false;
+      } else if (
         statusFilter === 'UNPAID' ||
         statusFilter === 'PARTIALLY_PAID' ||
-        statusFilter === 'SETTLED'
+        statusFilter === 'SETTLED' ||
+        statusFilter === 'NO_DUES'
       ) {
         if (getRentStatusCategory(acc) !== statusFilter) return false;
       } else if (statusFilter === 'PENDING_DUES') {
         const hasDues = acc.paymentStatus === 'Not Settled' || acc.remainingBalance > 0;
         if (!hasDues) return false;
-      } else if (statusFilter === 'NO_DUES') {
-        const isNoDues = acc.paymentStatus === 'Settled' && acc.totalPaid === 0 && acc.rentAmount === 0;
-        if (!isNoDues) return false;
       }
     }
 

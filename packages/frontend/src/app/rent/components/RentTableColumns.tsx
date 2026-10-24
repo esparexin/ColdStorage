@@ -42,12 +42,26 @@ export function createRentColumns({
       sortable: true,
       sortType: 'text',
       sortAccessor: (row) => row.grnNumber,
-      render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span className={styles.tableMono}>{row.grnNumber}</span>
-          <span className={styles.tableSubtext}>{formatDisplayDate(row.inwardDate)}</span>
-        </div>
-      ),
+      render: (row) => {
+        const isMergedSource = Boolean(row.mergedIntoGrnNumber || row.mergedIntoGrnId);
+        const isMergedTarget = Boolean(row.mergedConsignment?.isMergedTarget ?? (row.remarks && row.remarks.includes('[MERGE RECEIVED')));
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span className={styles.tableMono}>{row.grnNumber}</span>
+            <span className={styles.tableSubtext}>{formatDisplayDate(row.inwardDate)}</span>
+            {isMergedSource && row.mergedIntoGrnNumber && (
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary-text)', fontWeight: 'var(--font-medium)' }}>
+                Merged into #{row.mergedIntoGrnNumber}
+              </span>
+            )}
+            {isMergedTarget && (
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 'var(--font-medium)' }}>
+                Merged Consignment
+              </span>
+            )}
+          </div>
+        );
+      },
     },
 
     {
@@ -130,10 +144,9 @@ export function createRentColumns({
       header: 'Actions',
       align: 'right',
       render: (row) => {
-        const isMergedSource = Boolean(row.mergedIntoGrnNumber || row.mergedIntoGrnId);
         return (
           <div className={styles.actionGroup}>
-            {!isMergedSource && row.paymentStatus !== 'Settled' && canCollect && (
+            {row.paymentStatus !== 'Settled' && canCollect && (
               <Button
                 variant="primary"
                 size="sm"

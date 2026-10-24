@@ -4,12 +4,6 @@
   gap: var(--space-2);
 }
 
-.tabNav {
-  display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-1);
-}
-
 /* Compact Summary Strip */
 .summaryStrip {
   display: flex;
@@ -196,6 +190,14 @@
 .decisionCardSelected {
   border-color: var(--color-primary);
   background: var(--color-primary-subtle);
+}
+
+.decisionCardDisabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.decisionCardDisabled:hover {
+  border-color: var(--color-border);
 }
 
 .decisionHeader {

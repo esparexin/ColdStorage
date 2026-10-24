@@ -21,7 +21,7 @@ export interface ComputeDeliveryRentParams {
   quantity?: number | null;
   deliveryDate: Date;
   session: mongoose.ClientSession;
-  bagCategory?: string | null;
+  bagType?: string | null; bagCategory?: string | null;
   bagPrice?: number | null;
   seasonalBagPrice?: number | null;
   monthlyBagPrice?: number | null;
@@ -45,7 +45,7 @@ export async function computeExpectedDeliveryRent(
   params: ComputeDeliveryRentParams,
 ): Promise<{ expectedRentCharge: number; effectiveRates: { small: number; big: number } }> {
   const { grn, withdrawal, deliveryDate, session } = params;
-  const isHybrid = isHybridBagCategory(params.bagCategory);
+  const isHybrid = params.bagType === 'Hybrid' || isHybridBagCategory(params.bagCategory);
   const withdrawnTotal =
     isHybrid && typeof params.quantity === 'number' && params.quantity > 0
       ? params.quantity

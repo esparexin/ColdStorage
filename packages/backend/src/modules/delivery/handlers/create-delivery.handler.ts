@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
-  isHybridBagCategory, type BagComposition, type CreateDeliveryInput,
-  type DeliveryChallan, type DeliverySummary, toExcludedPeriodKeys,
+  type CreateDeliveryInput,
+  type DeliveryChallan,
+  type DeliverySummary,
+  toExcludedPeriodKeys,
 } from '@cold-storage/contracts';
 import { ConcurrencyConflictError } from '../../inventory/inventory.service.js';
 import { counterService } from '../../common/counter.service.js';
@@ -14,10 +16,10 @@ import { assertRentAllowedForOutward } from '../../common/rent-gate.service.js';
 import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { isTransientError, toChallanEntity } from '../delivery.mappers.js';
 import { getDeliverySummary } from '../queries/delivery.queries.js';
-import { computeExpectedDeliveryRent } from './delivery-rent.helper.js';
 import { resolveFirstSeasonOutwardShare } from './delivery-hamali.helper.js';
 import { recordDeliveryInlinePayment, resolveEffectiveDeliveryObligation } from './delivery-payment.helper.js';
-import { resolveSafeLedgerDrawdown, validateDeliveryDate, validateStockAndBalances } from './delivery-validation.helper.js';
+import { resolveSafeLedgerDrawdown, validateDeliveryDate } from './delivery-validation.helper.js';
+import { resolveDeliveryPlan } from './delivery-plan.helper.js';
 import { resolveDeliveryConflict, checkPreTransactionReplay, resolveIdempotentDeliveryTx } from './delivery-idempotency.helper.js';
 import { resolveDeliveryGpNumber } from './delivery-gp.helper.js';
 
@@ -88,53 +90,12 @@ async function executeDeliveryTransaction(
         throw new Error(`Outward blocked — Active loan hold against ${bondRef}`);
       }
 
-      const isHybrid = isHybridBagCategory(input.bagCategory);
-      const hasSpecificBags = (input.smallBags ?? 0) > 0 || (input.bigBags ?? 0) > 0;
-      const sRate = grn.smallBagPrice ?? grn.bagPrice ?? 0;
-      const bRate = grn.bigBagPrice ?? grn.bagPrice ?? 0;
-      const hasDiffRates = (grn.smallBagPrice != null || grn.bigBagPrice != null) && sRate !== bRate;
-      if (!isHybrid && (grn.bagType === 'S/B' || grn.bagType === 'S+B') && hasDiffRates && !hasSpecificBags) {
-        throw new Error('Small and big bag composition required for delivery when storage rates differ');
-      }
-
-      const reqQty = input.quantity ?? 0;
-      const resSmall = hasSpecificBags ? (input.smallBags ?? 0) : grn.bagType === 'B' ? 0 : reqQty;
-      const resBig = hasSpecificBags ? (input.bigBags ?? 0) : grn.bagType === 'B' ? reqQty : 0;
-      const withdrawal: BagComposition = {
-        smallBags: isHybrid && !hasSpecificBags ? 0 : resSmall,
-        bigBags: isHybrid && !hasSpecificBags ? 0 : resBig,
-      };
-
-      const available = await validateStockAndBalances(
-        facilityId,
-        grn,
-        withdrawal,
-        session,
-        isHybrid,
-        reqQty,
-        hasSpecificBags,
-      );
-      const finalSmall = withdrawal.smallBags;
-      const finalBig = withdrawal.bigBags;
-      const withdrawnTotal = isHybrid && !hasSpecificBags ? reqQty : finalSmall + finalBig;
       const deliveryDate = validateDeliveryDate(input.date, grn.date);
-
-      // Actual rent/charge calculation happens at Outward delivery using the single
-      // effective-rate source of truth. Client rentCharge is reconciled, never trusted blindly.
-      // Periods already billed via finalized extensions are excluded (no double-count).
       const billedPeriods = toExcludedPeriodKeys(await rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session));
-      const { expectedRentCharge } = await computeExpectedDeliveryRent({
-        grn: {
-          id: grn.id, grnNumber: grn.grnNumber, date: grn.date, rentType: grn.rentType, commodityId: grn.commodityId,
-          smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, bagPrice: grn.bagPrice,
-        },
-        withdrawal, deliveryDate, session, excludePeriodKeys: billedPeriods,
-        quantity: isHybrid && !hasSpecificBags ? reqQty : undefined,
-        bagCategory: input.bagCategory,
-        bagPrice: input.bagPrice,
-        seasonalBagPrice: input.seasonalBagPrice,
-        monthlyBagPrice: input.monthlyBagPrice,
+      const plan = await resolveDeliveryPlan({
+        facilityId, grn: grn as never, input, deliveryDate, session, billedPeriods,
       });
+      const { isHybrid, finalSmall, finalBig, withdrawnTotal, expectedRentCharge, available, hasUnclassifiedGenesis } = plan;
 
       if (input.rentCharge != null && input.rentCharge >= 0) {
         if (Math.abs(input.rentCharge - expectedRentCharge) > 0.01) {
@@ -165,13 +126,15 @@ async function executeDeliveryTransaction(
             id: deliveryId, facilityId, challanNumber, date: deliveryDate,
             grnId: grn.id, grnNumber: grn.grnNumber, customerId: grn.customerId, customerName: grn.customerName,
             commodityId: grn.commodityId, commodityName: grn.commodityName, chamber: grn.chamber,
-            bagType: grn.bagType ?? 'S/B', bagCategory: input.bagCategory || null, bagPrice: input.bagPrice ?? null,
+            bagType: isHybrid ? 'Hybrid' : (input.bagType ?? grn.bagType ?? 'S/B'), bagCategory: input.bagCategory || null, bagPrice: input.bagPrice ?? null,
             seasonalBagPrice: input.seasonalBagPrice ?? null, monthlyBagPrice: input.monthlyBagPrice ?? null,
             smallBags: finalSmall, bigBags: finalBig, marks, gpNumber,
             vehicleNumber: input.vehicleNumber?.trim().toUpperCase() || null, driverName: input.driverName?.trim() || null,
             weight: input.weight ?? null, remarks: input.remarks?.trim() || null,
             rentCharge: deliveryRentCharge, status: 'ISSUED', issuedBy: userId,
             idempotencyKey: idemKey ?? null,
+            unclassifiedDispatch: input.unclassifiedDispatch ?? null,
+            confirmedDispatch: input.confirmedDispatch ?? null,
           },
         ],
         { session, ordered: true },
@@ -179,7 +142,7 @@ async function executeDeliveryTransaction(
       createdChallanDoc = challanDocs[0];
 
       const { smallQuantity: txSmall, bigQuantity: txBig } = resolveSafeLedgerDrawdown(
-        isHybrid, grn.bagType, finalSmall, finalBig, available,
+        isHybrid, grn.bagType, finalSmall, finalBig, available, hasUnclassifiedGenesis,
       );
 
       await InventoryTransactionModel.create(
@@ -191,7 +154,7 @@ async function executeDeliveryTransaction(
             grnNumber: grn.grnNumber,
             chamber: grn.chamber,
             commodityId: grn.commodityId,
-            bagType: grn.bagType ?? 'S/B',
+            bagType: isHybrid ? 'Hybrid' : (input.bagType ?? grn.bagType ?? 'S/B'),
             transactionType: 'OUTWARD_DELIVERY' as const,
             smallQuantity: txSmall,
             bigQuantity: txBig,

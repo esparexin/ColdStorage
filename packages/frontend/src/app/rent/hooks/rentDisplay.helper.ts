@@ -48,15 +48,15 @@ export function formatAgreedRates(input: RentAccountDisplayInput): string | null
  * Returns formatted remaining due amount or status string.
  */
 export function formatRemainingDue(input: RentAccountDisplayInput): string {
-  if (input.mergedIntoGrnNumber) {
-    return 'Carried Forward';
-  }
   const balance = input.remainingBalance ?? 0;
   if (input.rentType === 'Monthly' && input.rentAmount === 0 && balance === 0) {
     return 'Dynamic (Per Cycle)';
   }
   if (input.rentAmount === 0 && balance === 0) {
     return '₹0 (No Dues)';
+  }
+  if (balance === 0) {
+    return '₹0 (Settled)';
   }
   return `₹${balance.toLocaleString('en-IN')}`;
 }
@@ -68,10 +68,10 @@ export function formatPaymentStatus(input: RentAccountDisplayInput): {
   label: string;
   variant: 'success' | 'warning' | 'neutral';
 } {
-  if (input.mergedIntoGrnNumber) {
-    return { label: `Merged → ${input.mergedIntoGrnNumber}`, variant: 'neutral' };
-  }
-  const isSettled = input.paymentStatus === 'Settled';
+  const isSettled =
+    input.remainingBalance != null
+      ? input.remainingBalance === 0
+      : input.paymentStatus === 'Settled';
   const totalPaid = input.totalPaid ?? 0;
 
   if (isSettled) {
@@ -89,7 +89,7 @@ export function formatPaymentStatus(input: RentAccountDisplayInput): {
  */
 export function getRentCollectionNotice(input: RentAccountDisplayInput): string | null {
   if (input.mergedIntoGrnNumber) {
-    return `This GRN was merged into GRN ${input.mergedIntoGrnNumber}. Outstanding dues were carried forward to the target GRN.`;
+    return `This GRN was merged into GRN ${input.mergedIntoGrnNumber}. This is an independent bill for this GRN's unpaid balance and is not carried forward to the target GRN.`;
   }
   const balance = input.remainingBalance ?? 0;
   const delivered = input.deliveredBags ?? 0;

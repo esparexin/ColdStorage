@@ -4,8 +4,6 @@ import { useMemo, useState } from 'react';
 import type { PaymentMode, RentSummaryDto } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { formatApiErrorMessage, parseApiResponse } from '@/lib/api-response';
-import { printHtmlDocument } from '@/lib/print-document';
-import { PRINT_MESSAGES } from '@/components/ui/stateCopy';
 
 interface UseCollectPaymentFormProps {
   account: RentSummaryDto;
@@ -41,7 +39,6 @@ export function useCollectPaymentForm({
   const [collectNotes, setCollectNotes] = useState('');
   const [upiReference, setUpiReference] = useState('');
   const [collectError, setCollectError] = useState<string | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
   const [collectSubmitting, setCollectSubmitting] = useState(false);
 
   const pendingAfterPayment = useMemo(
@@ -129,25 +126,6 @@ export function useCollectPaymentForm({
     }
   };
 
-  const handlePreviewReceipt = async () => {
-    if (!selectedFacilityId || typeof collectAmount !== 'number') return;
-    try {
-      const params = new URLSearchParams({
-        customerName: account.customerName,
-        amount: String(collectAmount),
-        paymentMode: collectMode,
-      });
-      await printHtmlDocument({
-        url: `/api/facilities/${encodeURIComponent(selectedFacilityId)}/documents/rent-receipt/preview?${params.toString()}`,
-        popupBlockedMessage: PRINT_MESSAGES.popupBlocked,
-        failureMessage: 'Failed to preview cash memo',
-        autoPrint: false,
-      });
-    } catch (err: unknown) {
-      setPreviewError(err instanceof Error ? err.message : 'Failed to preview cash memo');
-    }
-  };
-
   return {
     pendingAfterPayment,
     collectAmount,
@@ -161,10 +139,8 @@ export function useCollectPaymentForm({
     upiReference,
     setUpiReference,
     collectError,
-    previewError,
     collectSubmitting,
     isDirty,
     handleSubmit,
-    handlePreviewReceipt,
   };
 }

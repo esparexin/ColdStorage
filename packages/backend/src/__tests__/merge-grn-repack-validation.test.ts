@@ -49,11 +49,13 @@ describe('Integration: Internal Merge Repacking Validations', () => {
       facilityId, customerId, customerName: 'Farmer Ramesh', commodityId, commodityName: 'Potato',
       chamber: 'CH-01', bags: 100, bagType: 'S+B', smallBags: 60, bigBags: 40,
       rentType: 'Seasonal', rentAmount: 2000, grnNumber: 'GRN-TGT',
+      smallBagPrice: 20, bigBagPrice: 20,
     });
     const sourceGrnId = await seedGrn({
       facilityId, customerId, customerName: 'Farmer Ramesh', commodityId, commodityName: 'Potato',
       chamber: 'CH-02', bags: 50, bagType: 'S+B', smallBags: 25, bigBags: 25,
       rentType: 'Seasonal', rentAmount: 1000, grnNumber: 'GRN-SRC',
+      smallBagPrice: 20, bigBagPrice: 20,
     });
     return { targetGrnId, sourceGrnId };
   }
@@ -94,5 +96,32 @@ describe('Integration: Internal Merge Repacking Validations', () => {
       });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/must match total moved stock of 50 bags/);
+  });
+
+  it('rejects outward confirmed quantity exceeding Total Bags when not repacking', async () => {
+    const { targetGrnId, sourceGrnId } = await seedTestGrnPair();
+    const res = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        targetGrnId, sourceGrnIds: [sourceGrnId], movementDate: new Date(),
+        repackedSmallBags: 35, repackedBigBags: 20, isRepackSelected: false, remarks: 'Exceeding total',
+      });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/cannot exceed Total Bags \(50\)/);
+  });
+
+  it('accepts exact Total Bags when not repacking', async () => {
+    const { targetGrnId, sourceGrnId } = await seedTestGrnPair();
+    const res = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        targetGrnId, sourceGrnIds: [sourceGrnId], movementDate: new Date(),
+        repackedSmallBags: 50, repackedBigBags: 0, isRepackSelected: false, remarks: 'Exact total',
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.movement.smallBagsMoved).toBe(50);
+    expect(res.body.movement.bigBagsMoved).toBe(0);
   });
 });

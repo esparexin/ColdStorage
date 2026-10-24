@@ -11,25 +11,24 @@ export function validateTransferBagConfirmation(
   grnNumber: string,
   isVerified: boolean,
 ): void {
-  const raw = input as unknown as Record<string, unknown>;
-  const category = (raw.sourceBagCategory as string | null) ?? null;
-  const quantity = (raw.sourceQuantity as number | null) ?? null;
-  const cSmall = (raw.confirmedSmallBags as number | null) ?? null;
-  const cBig = (raw.confirmedBigBags as number | null) ?? null;
+  const category = input.sourceBagType ?? input.sourceBagCategory ?? null;
+  const quantity = input.sourceQuantity ?? null;
+  const cSmall = input.confirmedSmallBags ?? null;
+  const cBig = input.confirmedBigBags ?? null;
 
-  if (category === 'Small' || category === 'Big') {
+  if (category === 'Small' || category === 'Big' || category === 'S' || category === 'B') {
     throw new Error('Small-only and Big-only confirmation uses the Small & Big split (enter 0 for the unused side)');
   }
-  const hasHybrid = category != null && isHybridBagCategory(category);
+  const hasHybrid = category != null && (category === 'Hybrid' || isHybridBagCategory(category));
   const hasSplit = cSmall != null || cBig != null;
 
   if (!isVerified) {
     if (hasHybrid) {
       assertQty(quantity, ledgerTotal, grnNumber);
       if (!hasPositiveHybridRate({
-        bagPrice: raw.sourceBagPrice as number,
-        seasonalBagPrice: raw.sourceSeasonalBagPrice as number,
-        monthlyBagPrice: raw.sourceMonthlyBagPrice as number,
+        bagPrice: input.sourceBagPrice,
+        seasonalBagPrice: input.sourceSeasonalBagPrice,
+        monthlyBagPrice: input.sourceMonthlyBagPrice,
       })) {
         throw new Error('Confirmed Hybrid lots require a per-bag rate (Each Bag Price, or Seasonal/Monthly rates)');
       }

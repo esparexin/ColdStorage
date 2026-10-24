@@ -6,6 +6,7 @@ import {
   assertSafeDatabaseTarget,
 } from '../../database/connection.js';
 import { CommodityModel } from '../../database/models/commodity.model.js';
+import { CommodityRateModel } from '../../database/models/commodity-rate.model.js';
 import { CounterModel } from '../../database/models/counter.model.js';
 import { CustomerModel } from '../../database/models/customer.model.js';
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
@@ -25,11 +26,17 @@ export async function resetStockCollections(): Promise<void> {
   await FacilityModel.deleteMany({});
   await CustomerModel.deleteMany({});
   await CommodityModel.deleteMany({});
+  await CommodityRateModel.deleteMany({});
   await GrnModel.deleteMany({});
   await InventoryTransactionModel.deleteMany({});
   await DeliveryChallanModel.deleteMany({});
   await DeliveryReversalModel.deleteMany({});
   await CounterModel.deleteMany({});
+  if (mongoose.connection.readyState === ConnectionStates.connected) {
+    await mongoose.connection.collection('internalmovements').deleteMany({});
+    await mongoose.connection.collection('rentpayments').deleteMany({});
+    await mongoose.connection.collection('rentextensions').deleteMany({});
+  }
 }
 
 /**

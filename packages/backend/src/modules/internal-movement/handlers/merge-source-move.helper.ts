@@ -39,7 +39,7 @@ export async function validateProspectiveMergeMove(params: {
     sourceBagPrice: input.sourceBagPrice ?? null, sourceSeasonalBagPrice: input.sourceSeasonalBagPrice ?? null,
     sourceMonthlyBagPrice: input.sourceMonthlyBagPrice ?? null,
     totalMovedBags: prospectiveBags, defaultSmallMoved: prospectiveSmall, defaultBigMoved: prospectiveBig,
-    movementDate: moveDate,
+    movementDate: moveDate, isRepackSelected: input.isRepackSelected,
   });
   return { totalMovedBags: prospectiveBags, ...confirmed };
 }
@@ -59,21 +59,24 @@ export function assertSourceMergeable(sourceGrn: MergeSourceGrn, targetGrn: Merg
 export async function processMergeSource(params: {
   facilityId: string; sourceGrn: MergeSourceGrn; targetGrn: MergeSourceGrn & { date: Date };
   input: MergeGrnInput; movementId: string; moveDate: Date; userId: string;
-  session: mongoose.ClientSession;
-}): Promise<{ movedTotal: number; movedSmall: number; movedBig: number; summary: string; pendingRent: number }> {
-  const { facilityId, sourceGrn: s, targetGrn, input, movementId, moveDate, userId, session } = params;
+  session: mongoose.ClientSession; allocatedPayment?: number;
+}): Promise<{ movedTotal: number; movedSmall: number; movedBig: number; summary: string; pendingRent: number; paidAmount: number }> {
+  const { facilityId, sourceGrn: s, targetGrn, input, movementId, moveDate, userId, session, allocatedPayment } = params;
   assertSourceMergeable(s, targetGrn);
   const bal = await readLedgerBalance(facilityId, s.id, session);
   if (bal.total <= 0) throw new Error(`Source GRN '${s.grnNumber}' has zero remaining bags to merge`);
+  const effectivePayment = allocatedPayment !== undefined ? allocatedPayment : input.sourcePaymentAmount;
   const rentResolution = await resolveSourceRentObligation({
     facilityId, sourceGrn: s, targetGrnDate: targetGrn.date, movementDate: moveDate,
-    sourcePaymentAmount: input.sourcePaymentAmount, sourcePaymentMode: input.sourcePaymentMode, userId, session,
+    sourcePaymentAmount: effectivePayment, sourcePaymentMode: input.sourcePaymentMode, userId, session,
     sourceBagCategory: input.sourceBagCategory, sourceQuantity: bal.total, sourceBagPrice: input.sourceBagPrice,
     sourceSeasonalBagPrice: input.sourceSeasonalBagPrice, sourceMonthlyBagPrice: input.sourceMonthlyBagPrice,
+    confirmedSmallBags: input.repackedSmallBags, confirmedBigBags: input.repackedBigBags,
+    isSingleSource: input.sourceGrnIds.length === 1,
   });
   const summary = await closeSourceGrnOnMerge({
     facilityId, sourceGrn: s, targetGrnNumber: targetGrn.grnNumber, targetGrnId: targetGrn.id,
     movementId, movementDate: moveDate, ledgerBalance: bal, rentResolution, remarks: input.remarks, userId, session,
   });
-  return { movedTotal: bal.total, movedSmall: bal.smallBags, movedBig: bal.bigBags, summary, pendingRent: rentResolution.rentBal.remainingBalance };
+  return { movedTotal: bal.total, movedSmall: bal.smallBags, movedBig: bal.bigBags, summary, pendingRent: rentResolution.rentBal.remainingBalance, paidAmount: rentResolution.paidAmount };
 }

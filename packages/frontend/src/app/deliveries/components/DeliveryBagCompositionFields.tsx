@@ -78,7 +78,7 @@ export function DeliveryBagCompositionFields({
   const { bags: bagsError, smallBags: smallError, bigBags: bigError } = fieldErrors;
   const availableTotal = summary.availableSmallBags + summary.availableBigBags;
   const isSegregated = summary.availableSmallBags > 0 && summary.availableBigBags > 0;
-  const isHybrid = isHybridBagCategory(bagCategory);
+  const isHybrid = bagCategory ? isHybridBagCategory(bagCategory) : (bagType === 'Hybrid' || isHybridBagCategory(bagType));
   const isUnsegregatedSb = bagType === 'S/B' && !isSegregated;
   const isCombinedPool = isUnsegregatedSb;
 
@@ -205,6 +205,7 @@ export function DeliveryBagCompositionFields({
         deliveryDate={deliveryDate || new Date().toISOString().split('T')[0]}
         smallBags={isHybrid ? hybridQty : smallQty}
         bigBags={isHybrid ? 0 : bigQty}
+        bagType={isHybrid ? 'Hybrid' : bagType}
         bagCategory={bagCategory}
         bagPrice={typeof manualBagPrice === 'number' ? manualBagPrice : bagPrice}
         seasonalBagPrice={typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined}

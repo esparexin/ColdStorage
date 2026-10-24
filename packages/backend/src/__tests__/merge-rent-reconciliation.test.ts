@@ -124,15 +124,20 @@ describe('Source GRN Financial Settlement & Carry-Forward Reconciliation', () =>
       });
 
     expect(res.status).toBe(200);
-    // 3000 target + 8000 carried pending = 11000
-    expect(res.body.targetGrn.rentAmount).toBe(11000);
+    // Target GRN rent is strictly its own (3000) — no carry-forward of source pending rent
+    expect(res.body.targetGrn.rentAmount).toBe(3000);
     expect(res.body.targetGrn.bags).toBe(25);
 
     const closedSource = await GrnModel.findOne({ id: sourceGrnId }).lean().exec();
     expect(closedSource?.remarks).toContain('Rent Obligation ₹12000, Paid ₹4000, Pending ₹8000 (Status: Not Settled)');
+
+    // Verify source GRN remains as a separate pending bill on the rent ledger
+    const sourceSummaryAfter = await rentService.getRentSummary(facilityId, sourceGrnId);
+    expect(sourceSummaryAfter.remainingBalance).toBe(8000);
+    expect(sourceSummaryAfter.paymentStatus).toBe('Not Settled');
   });
 
-  it('3. Unpaid source GRN: obligation ₹12,000, paid ₹0, balance ₹12,000, carried ₹12,000', async () => {
+  it('3. Unpaid source GRN: obligation ₹12,000, paid ₹0, balance ₹12,000 kept as separate pending bill', async () => {
     const targetGrnId = await seedGrn({
       facilityId, customerId: customerA, customerName: 'Penchaliah', commodityId, commodityName: 'Paddy',
       chamber: 'CH-01', bags: 15, rentType: 'Seasonal', rentAmount: 3000, grnNumber: 'GRN-26-27-0034',
@@ -160,11 +165,16 @@ describe('Source GRN Financial Settlement & Carry-Forward Reconciliation', () =>
       });
 
     expect(res.status).toBe(200);
-    // 3000 target + 12000 carried = 15000
-    expect(res.body.targetGrn.rentAmount).toBe(15000);
+    // Target GRN rent is strictly its own (3000) — no carry-forward of source pending rent
+    expect(res.body.targetGrn.rentAmount).toBe(3000);
 
     const closedSource = await GrnModel.findOne({ id: sourceGrnId }).lean().exec();
     expect(closedSource?.remarks).toContain('Rent Obligation ₹12000, Paid ₹0, Pending ₹12000 (Status: Not Settled)');
+
+    // Verify source GRN remains as a separate pending bill on the rent ledger
+    const sourceSummaryAfter = await rentService.getRentSummary(facilityId, sourceGrnId);
+    expect(sourceSummaryAfter.remainingBalance).toBe(12000);
+    expect(sourceSummaryAfter.paymentStatus).toBe('Not Settled');
   });
 
   it('4. Source GRN with initial rentAmount = 0 reconciles obligation with recorded payments', async () => {

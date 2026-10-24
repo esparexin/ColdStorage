@@ -1,5 +1,5 @@
 import mongoose, { Schema, type Document, type Model } from 'mongoose';
-import type { InternalMovementType, OutwardBagCategory } from '@cold-storage/contracts';
+import type { BagType, InternalMovementType, OutwardBagCategory } from '@cold-storage/contracts';
 
 export interface InternalMovementDoc extends Document {
   id: string;
@@ -13,7 +13,8 @@ export interface InternalMovementDoc extends Document {
   totalBagsMoved: number;
   smallBagsMoved: number;
   bigBagsMoved: number;
-  // Informational bag-category confirmation echo (challan-column mirror).
+  // Informational bag-type / bag-category confirmation echo (challan-column mirror).
+  sourceBagType?: BagType | null;
   sourceBagCategory?: OutwardBagCategory | null;
   sourceQuantity?: number | null;
   sourceBagPrice?: number | null;
@@ -28,7 +29,7 @@ export interface InternalMovementDoc extends Document {
   hamaliRate?: number | null;
   hamaliCharge: number;
   /** @deprecated Legacy column: retained for historical document reads; never written. */
-  hamaliCarried: number;
+  hamaliCarried?: number;
   referenceWeight?: number | null;
   idempotencyKey?: string | null;
   grnId: string | null;
@@ -64,6 +65,7 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
     smallBagsMoved: { type: Number, default: 0, min: 0 },
     bigBagsMoved: { type: Number, default: 0, min: 0 },
     // Informational confirmation echo: no defaults, never billed.
+    sourceBagType: { type: String, enum: ['S', 'B', 'S+B', 'S/B', 'Hybrid'], default: null },
     sourceBagCategory: { type: String },
     sourceQuantity: { type: Number, min: 0 },
     sourceBagPrice: { type: Number, min: 0 },
@@ -89,7 +91,7 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
       remainingBalance: { type: Number, required: true, min: 0 },
       paymentStatus: { type: String, required: true },
       rentState: { type: String, default: null },
-      // @deprecated Legacy snapshot hamali: never written; old values stay readable.
+      // Labor charges for physical repacking during merge (written when hamaliCharge > 0).
       hamaliAmount: { type: Number, min: 0 },
     },
     remarks: { type: String, trim: true, maxlength: 500, default: null },

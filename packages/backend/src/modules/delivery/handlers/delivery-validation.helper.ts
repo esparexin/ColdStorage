@@ -107,12 +107,38 @@ export function resolveSafeLedgerDrawdown(
   finalSmall: number,
   finalBig: number,
   available: { smallBags: number; bigBags: number },
+  hasUnclassifiedGenesis = false,
 ): { smallQuantity: number; bigQuantity: number } {
   if (isHybrid || (bagType !== 'S/B' && bagType !== 'S+B')) {
     return { smallQuantity: finalSmall, bigQuantity: finalBig };
   }
   const availSmall = Math.max(0, available.smallBags);
   const availBig = Math.max(0, available.bigBags);
+  const requestedTotal = finalSmall + finalBig;
+  const availableTotal = availSmall + availBig;
+
+  if (requestedTotal > availableTotal) {
+    throw new Error(
+      `Requested ${requestedTotal} bags exceeds available stock of ${availableTotal} bags`,
+    );
+  }
+
+  if (hasUnclassifiedGenesis) {
+    if (finalSmall <= availSmall && finalBig <= availBig) {
+      return { smallQuantity: finalSmall, bigQuantity: finalBig };
+    }
+    let drawSmall = Math.min(availSmall, finalSmall);
+    let drawBig = Math.min(availBig, finalBig);
+    const deficit = requestedTotal - (drawSmall + drawBig);
+    if (deficit > 0) {
+      const extraSmall = Math.min(availSmall - drawSmall, deficit);
+      drawSmall += extraSmall;
+      const remainingDeficit = deficit - extraSmall;
+      drawBig += Math.min(availBig - drawBig, remainingDeficit);
+    }
+    return { smallQuantity: drawSmall, bigQuantity: drawBig };
+  }
+
   const isSegregated = availSmall > 0 && availBig > 0;
 
   if (isSegregated) {
@@ -123,14 +149,6 @@ export function resolveSafeLedgerDrawdown(
       );
     }
     return { smallQuantity: finalSmall, bigQuantity: finalBig };
-  }
-
-  const requestedTotal = finalSmall + finalBig;
-  const availableTotal = availSmall + availBig;
-  if (requestedTotal > availableTotal) {
-    throw new Error(
-      `Requested ${requestedTotal} bags exceeds available stock of ${availableTotal} bags`,
-    );
   }
 
   const drawSmall = Math.min(availSmall, requestedTotal);

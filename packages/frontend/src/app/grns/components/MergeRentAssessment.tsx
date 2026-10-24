@@ -12,146 +12,135 @@ import {
 import { requestWithAuth } from '@/lib/api-client';
 import { OutwardRentBreakdown } from '@/app/deliveries/components/OutwardRentBreakdown';
 import { computeOutwardRentCharge } from '@/app/deliveries/hooks/deliveryRent.helper';
-import type { BagConfirmationValue } from './MergeBagCategoryFields';
-import { deriveMergeRentAssessment } from './mergeRentAssessment.helper';
+import type { BagConfirmationValue } from './bagConfirmation.helper';
 
 export interface MergeRentAssessmentProps {
-  facilityId?: string;
-  selectedSources: Grn[];
+  source: Grn;
   confirmation: BagConfirmationValue;
-  totalSourceBags: number;
-  movedSmall: number;
-  movedBig?: number;
   movementDate: string;
-  repackMode: boolean;
+  facilityId?: string;
+  summary?: RentSummaryDto | null;
   commodityHamaliRate?: number;
   targetGrnDate?: Date | string | null;
 }
 
 export function MergeRentAssessment({
-  facilityId,
-  selectedSources,
+  source,
   confirmation,
-  totalSourceBags,
   movementDate,
-  repackMode,
+  facilityId,
+  summary: propSummary,
   commodityHamaliRate = 0,
   targetGrnDate,
 }: MergeRentAssessmentProps) {
-  const [summaries, setSummaries] = useState<Record<string, RentSummaryDto>>({});
+  const [fetchedSummary, setFetchedSummary] = useState<RentSummaryDto | null>(null);
 
   useEffect(() => {
-    if (!facilityId || selectedSources.length === 0) return;
+    if (propSummary || !facilityId || !source.id) return;
     let isMounted = true;
-    const missingSources = selectedSources.filter((s) => !summaries[s.id]);
-    if (missingSources.length === 0) return;
-
-    for (const source of missingSources) {
-      requestWithAuth(
-        `/api/facilities/${encodeURIComponent(facilityId)}/rent/grn/${encodeURIComponent(source.id)}`,
-      )
-        .then((res) => (res.ok ? res.json() : null))
-        .then((dto: RentSummaryDto | null) => {
-          if (isMounted && dto) {
-            setSummaries((prev) => (prev[source.id] ? prev : { ...prev, [source.id]: dto }));
-          }
-        })
-        .catch(() => {});
-    }
+    requestWithAuth(`/api/facilities/${encodeURIComponent(facilityId)}/rent/grn/${encodeURIComponent(source.id)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((dto: RentSummaryDto | null) => {
+        if (isMounted && dto) setFetchedSummary(dto);
+      })
+      .catch(() => {});
     return () => {
       isMounted = false;
     };
-  }, [facilityId, selectedSources, summaries]);
+  }, [facilityId, source.id, propSummary]);
 
-  if (selectedSources.length === 0 || totalSourceBags <= 0) return null;
+  const summary = propSummary ?? fetchedSummary;
+  const sourceBags = source.closingBags ?? source.bags;
+
+  const targetSeason = targetGrnDate ? seasonYearForInwardDate(targetGrnDate) : null;
+  const sourceSeason = source.date ? seasonYearForInwardDate(source.date) : null;
+  const excludePeriodKeys: string[] = [];
+  if (targetSeason !== null && sourceSeason !== null && targetSeason > sourceSeason && source.date) {
+    const elapsed = resolveSeasonalElapsedPeriods(source.date, movementDate);
+    for (const p of elapsed) {
+      if (p.period === 'SEASON' && p.seasonYear >= targetSeason) {
+        excludePeriodKeys.push(p.key);
+      }
+    }
+  }
+
+  const isHybrid = isHybridBagCategory(confirmation?.category);
+  const hasChoice = typeof confirmation?.smallBags === 'number' && typeof confirmation?.bigBags === 'number';
+  if (!isHybrid && !hasChoice && !source.isCompositionVerified) {
+    return (
+      <div style={{ padding: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', textAlign: 'center', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)' }}>
+        Storage rent calculation breakdown is unavailable for unconfirmed bag counts.
+      </div>
+    );
+  }
+
+  const confirmedSmall = typeof confirmation?.smallBags === 'number'
+    ? confirmation.smallBags
+    : (source.smallBags ?? sourceBags);
+  const confirmedBig = typeof confirmation?.bigBags === 'number'
+    ? confirmation.bigBags
+    : (source.bigBags ?? 0);
+  const smallBags = isHybrid ? sourceBags : confirmedSmall;
+  const bigBags = isHybrid ? 0 : confirmedBig;
+  const bagCategory = (isHybrid ? 'Hybrid' : (confirmation?.category || 'S/B')) as OutwardBagCategory;
+
+  const seasonalRates = {
+    small: source.smallBagPrice ?? source.bagPrice ?? 10,
+    big: source.bigBagPrice ?? source.bagPrice ?? 15,
+  };
+  const monthlyRates = {
+    small: source.smallBagPrice ?? source.bagPrice ?? 10,
+    big: source.bigBagPrice ?? source.bagPrice ?? 15,
+  };
+
+  const manualBagPrice = typeof confirmation?.bagPrice === 'number' && confirmation.bagPrice > 0
+    ? confirmation.bagPrice
+    : source.bagPrice;
+  const seasonalBagPrice = typeof confirmation?.seasonalBagPrice === 'number' && confirmation.seasonalBagPrice > 0
+    ? confirmation.seasonalBagPrice
+    : undefined;
+  const monthlyBagPrice = typeof confirmation?.monthlyBagPrice === 'number' && confirmation.monthlyBagPrice > 0
+    ? confirmation.monthlyBagPrice
+    : undefined;
+
+  const calculatedRent = computeOutwardRentCharge({
+    rentType: source.rentType,
+    bagCategory,
+    smallBags,
+    bigBags,
+    quantity: isHybrid ? sourceBags : undefined,
+    manualBagPrice: typeof manualBagPrice === 'number' ? manualBagPrice : undefined,
+    seasonalBagPrice,
+    monthlyBagPrice,
+    inwardDate: source.date,
+    deliveryDate: movementDate,
+    smallBagPrice: source.smallBagPrice,
+    bigBagPrice: source.bigBagPrice,
+    bagPrice: source.bagPrice,
+    excludePeriodKeys,
+  });
+
+  const storedRent = summary?.rentAmount ?? source.rentAmount ?? 0;
+  const totalRent = Math.max(storedRent, calculatedRent);
+  const effectiveHamaliRate = commodityHamaliRate > 0 ? commodityHamaliRate : undefined;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
-      {selectedSources.map((source) => {
-        const summary = summaries[source.id];
-        const sourceBags = source.closingBags ?? source.bags;
-
-        const targetSeason = targetGrnDate ? seasonYearForInwardDate(targetGrnDate) : null;
-        const sourceSeason = source.date ? seasonYearForInwardDate(source.date) : null;
-        const excludePeriodKeys: string[] = [];
-        if (targetSeason !== null && sourceSeason !== null && targetSeason > sourceSeason && source.date) {
-          const elapsed = resolveSeasonalElapsedPeriods(source.date, movementDate);
-          for (const p of elapsed) {
-            if (p.period === 'SEASON' && p.seasonYear >= targetSeason) {
-              excludePeriodKeys.push(p.key);
-            }
-          }
-        }
-
-        const isHybrid = isHybridBagCategory(confirmation?.category);
-        const smallBags = isHybrid ? sourceBags : (source.smallBags ?? sourceBags);
-        const bigBags = isHybrid ? 0 : (source.bigBags ?? 0);
-        const bagCategory = (confirmation?.category || source.bagType || 'S/B') as OutwardBagCategory;
-
-        const seasonalRates = {
-          small: source.smallBagPrice ?? source.bagPrice ?? 10,
-          big: source.bigBagPrice ?? source.bagPrice ?? 15,
-        };
-        const monthlyRates = {
-          small: source.smallBagPrice ?? source.bagPrice ?? 10,
-          big: source.bigBagPrice ?? source.bagPrice ?? 15,
-        };
-
-        const manualBagPrice = typeof confirmation?.bagPrice === 'number' && confirmation.bagPrice > 0
-          ? confirmation.bagPrice
-          : source.bagPrice;
-        const seasonalBagPrice = typeof confirmation?.seasonalBagPrice === 'number' && confirmation.seasonalBagPrice > 0
-          ? confirmation.seasonalBagPrice
-          : undefined;
-        const monthlyBagPrice = typeof confirmation?.monthlyBagPrice === 'number' && confirmation.monthlyBagPrice > 0
-          ? confirmation.monthlyBagPrice
-          : undefined;
-
-        const calculatedRent = computeOutwardRentCharge({
-          rentType: source.rentType,
-          bagCategory,
-          smallBags,
-          bigBags,
-          quantity: isHybrid ? sourceBags : undefined,
-          manualBagPrice: typeof manualBagPrice === 'number' ? manualBagPrice : undefined,
-          seasonalBagPrice,
-          monthlyBagPrice,
-          inwardDate: source.date,
-          deliveryDate: movementDate,
-          smallBagPrice: source.smallBagPrice,
-          bigBagPrice: source.bigBagPrice,
-          bagPrice: source.bagPrice,
-          excludePeriodKeys,
-        });
-
-        const { historicalObligation } = deriveMergeRentAssessment({
-          source, summary, repackMode, commodityHamaliRate, calculatedRent,
-        });
-
-        const totalRent = calculatedRent > 0 ? calculatedRent : (historicalObligation > 0 ? historicalObligation : 0);
-        const effectiveHamaliRate = commodityHamaliRate > 0 ? commodityHamaliRate : undefined;
-
-        return (
-          <div key={source.id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-            <OutwardRentBreakdown
-              rentType={source.rentType}
-              inwardDate={source.date}
-              deliveryDate={movementDate}
-              smallBags={smallBags}
-              bigBags={bigBags}
-              bagCategory={bagCategory}
-              bagPrice={typeof manualBagPrice === 'number' ? manualBagPrice : source.bagPrice}
-              seasonalBagPrice={seasonalBagPrice}
-              monthlyBagPrice={monthlyBagPrice}
-              seasonalRates={seasonalRates}
-              monthlyRates={monthlyRates}
-              totalRent={totalRent}
-              hamaliRate={effectiveHamaliRate}
-              excludePeriodKeys={excludePeriodKeys}
-            />
-          </div>
-        );
-      })}
-    </div>
+    <OutwardRentBreakdown
+      rentType={source.rentType}
+      inwardDate={source.date}
+      deliveryDate={movementDate}
+      smallBags={smallBags}
+      bigBags={bigBags}
+      bagCategory={bagCategory}
+      bagPrice={typeof manualBagPrice === 'number' ? manualBagPrice : source.bagPrice}
+      seasonalBagPrice={seasonalBagPrice}
+      monthlyBagPrice={monthlyBagPrice}
+      seasonalRates={seasonalRates}
+      monthlyRates={monthlyRates}
+      totalRent={totalRent}
+      hamaliRate={effectiveHamaliRate}
+      excludePeriodKeys={excludePeriodKeys}
+      grnNumber={source.grnNumber}
+    />
   );
 }

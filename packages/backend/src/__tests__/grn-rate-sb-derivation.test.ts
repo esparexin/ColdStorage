@@ -81,7 +81,7 @@ describe('Canonical S/B rate validation & auto-derivation of inward obligation',
     expect(res.body.error).toContain('both Small and Big');
   });
 
-  it('derives and persists authoritative seasonal rentAmount when omitted in creation payload', async () => {
+  it('defers rent calculation (rentAmount 0) when omitted in creation payload', async () => {
     const res = await postInbound({
       bags: 100,
       smallBags: 60,
@@ -90,8 +90,23 @@ describe('Canonical S/B rate validation & auto-derivation of inward obligation',
       bigBagPrice: 18,
     });
     expect(res.status).toBe(201);
+    expect(res.body.grn.rentAmount).toBe(0);
+    expect(res.body.grn.isCompositionVerified).toBe(true);
+  });
+
+  it('persists explicit authoritative seasonal rentAmount when provided in creation payload', async () => {
+    const res = await postInbound({
+      bags: 100,
+      smallBags: 60,
+      bigBags: 40,
+      smallBagPrice: 12,
+      bigBagPrice: 18,
+      rentAmount: 1440,
+    });
+    expect(res.status).toBe(201);
     // 60 × 12 + 40 × 18 = 720 + 720 = 1440
     expect(res.body.grn.rentAmount).toBe(1440);
+    expect(res.body.grn.isCompositionVerified).toBe(true);
   });
 
   it('accepts total-only S/B lots with differential rates as pending (rent 0, unverified)', async () => {
@@ -105,7 +120,7 @@ describe('Canonical S/B rate validation & auto-derivation of inward obligation',
     expect(res.body.grn.isCompositionVerified).toBe(false);
   });
 
-  it('accepts unsegregated S/B lots when rates are equal', async () => {
+  it('accepts unsegregated S/B lots when rates are equal with deferred rent', async () => {
     // Configure equal rates
     await CommodityRateModel.updateOne(
       { commodityId, rentType: 'Seasonal' },
@@ -117,6 +132,6 @@ describe('Canonical S/B rate validation & auto-derivation of inward obligation',
       bigBagPrice: 15,
     });
     expect(res.status).toBe(201);
-    expect(res.body.grn.rentAmount).toBe(1500);
+    expect(res.body.grn.rentAmount).toBe(0);
   });
 });

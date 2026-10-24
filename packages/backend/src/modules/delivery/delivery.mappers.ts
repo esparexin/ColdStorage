@@ -36,6 +36,8 @@ export function toChallanEntity(doc: DeliveryChallanDoc | Record<string, unknown
     remarks: d.remarks ? String(d.remarks) : null,
     rentCharge: d.rentCharge !== null && d.rentCharge !== undefined ? Number(d.rentCharge) : undefined,
     idempotencyKey: d.idempotencyKey ? String(d.idempotencyKey) : null,
+    unclassifiedDispatch: (d.unclassifiedDispatch as DeliveryChallan['unclassifiedDispatch']) ?? null,
+    confirmedDispatch: (d.confirmedDispatch as DeliveryChallan['confirmedDispatch']) ?? null,
     status: d.status as DeliveryChallan['status'],
     issuedBy: String(d.issuedBy),
     createdAt: d.createdAt instanceof Date ? d.createdAt : new Date(String(d.createdAt)),

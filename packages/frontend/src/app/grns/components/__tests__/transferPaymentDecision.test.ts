@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateTransferPayment } from '../internalMovementPayload.helper';
+import { validateMergePaymentDecision, validateTransferPayment } from '../internalMovementPayload.helper';
 
 describe('validateTransferPayment', () => {
   it('permits transfer when there is zero pending balance', () => {
@@ -30,3 +30,45 @@ describe('validateTransferPayment', () => {
     expect(validateTransferPayment('SETTLE_NOW', 1500, 1500)).toBeNull();
   });
 });
+
+describe('validateMergePaymentDecision', () => {
+  it('permits AGREED_PENDING for single and multi-source merges', () => {
+    expect(validateMergePaymentDecision({
+      decision: 'AGREED_PENDING', sourceCount: 1, amount: 0, pending: 500,
+    })).toBeNull();
+    expect(validateMergePaymentDecision({
+      decision: 'AGREED_PENDING', sourceCount: 3, amount: 0, pending: 1500,
+    })).toBeNull();
+  });
+
+  it('permits SETTLE_NOW for both single and multi-source merges when valid', () => {
+    expect(validateMergePaymentDecision({
+      decision: 'SETTLE_NOW', sourceCount: 1, amount: 500, pending: 500, paymentMode: 'Cash',
+    })).toBeNull();
+    expect(validateMergePaymentDecision({
+      decision: 'SETTLE_NOW', sourceCount: 6, amount: 12750, pending: 12750, paymentMode: 'Cash',
+    })).toBeNull();
+    expect(validateMergePaymentDecision({
+      decision: 'SETTLE_NOW', sourceCount: 6, amount: 5000, pending: 12750, paymentMode: 'UPI',
+    })).toBeNull();
+  });
+
+  it('rejects non-positive settlement amounts', () => {
+    expect(validateMergePaymentDecision({
+      decision: 'SETTLE_NOW', sourceCount: 1, amount: 0, pending: 500, paymentMode: 'Cash',
+    })).toBe('Enter a settlement amount greater than zero.');
+  });
+
+  it('rejects settlement amount exceeding pending rent', () => {
+    expect(validateMergePaymentDecision({
+      decision: 'SETTLE_NOW', sourceCount: 1, amount: 600, pending: 500, paymentMode: 'Cash',
+    })).toBe('Settlement amount cannot exceed outstanding rent of ₹500.');
+  });
+
+  it('rejects missing payment mode', () => {
+    expect(validateMergePaymentDecision({
+      decision: 'SETTLE_NOW', sourceCount: 1, amount: 500, pending: 500, paymentMode: '',
+    })).toBe('Please select a payment mode.');
+  });
+});
+

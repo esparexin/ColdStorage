@@ -17,6 +17,7 @@ interface MergeStep3SettlementProps {
   submitting: boolean;
   onBack: () => void;
   onNext: () => void;
+  isMultiSource?: boolean;
 }
 
 export function MergeStep3Settlement({
@@ -31,6 +32,7 @@ export function MergeStep3Settlement({
   submitting,
   onBack,
   onNext,
+  isMultiSource = false,
 }: MergeStep3SettlementProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
@@ -45,6 +47,7 @@ export function MergeStep3Settlement({
         disabled={submitting}
         transfereeOrTargetName={targetGrnNumber}
         isTransfer={false}
+        isMultiSource={isMultiSource}
       />
 
       <WizardStepActions

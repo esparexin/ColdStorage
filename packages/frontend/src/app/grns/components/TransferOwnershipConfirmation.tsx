@@ -6,6 +6,7 @@ import { TransferBagConfirmationFields } from './TransferBagConfirmationFields';
 import {
   deriveHybridRateVisibility,
   isHybridBagCategory,
+  type BagType,
   type OutwardBagCategory,
   type RentType,
 } from '@cold-storage/contracts';
@@ -18,8 +19,8 @@ interface Props {
   confirmedBigBags: number | '';
   onSmallChange: (v: number | '') => void;
   onBigChange: (v: number | '') => void;
-  sourceBagCategory: OutwardBagCategory | '';
-  onCategoryChange: (v: OutwardBagCategory | '') => void;
+  sourceBagCategory?: OutwardBagCategory | BagType;
+  onCategoryChange?: (v: OutwardBagCategory) => void;
   sourceBagPrice: number | '';
   onPriceChange: (v: number | '') => void;
   sourceSeasonalBagPrice?: number | '';
@@ -34,7 +35,8 @@ interface Props {
 
 /** Ownership confirmation: Total Bags (read-only), Bag Category (Auto / S/B / Hybrid rates) */
 export function TransferOwnershipConfirmation(p: Props) {
-  const isHybrid = isHybridBagCategory(p.sourceBagCategory);
+  const currentBagType = p.sourceBagCategory;
+  const isHybrid = currentBagType === 'Hybrid' || isHybridBagCategory(currentBagType);
   const visibility = deriveHybridRateVisibility({
     rentType: p.rentType,
     inwardDate: p.inwardDate,
@@ -43,43 +45,41 @@ export function TransferOwnershipConfirmation(p: Props) {
 
   return (
     <>
-      <div className={styles.formSection}>
-        <label htmlFor="transfer-total-bags" className={styles.inputLabel}>
-          Total Bags
-        </label>
-        <Input
-          id="transfer-total-bags"
-          type="number"
-          value={p.remainingBags}
-          readOnly
-          disabled={p.disabled}
-          aria-label="Total Bags (read-only)"
-          title="Authoritative remaining stock"
-        />
-      </div>
+      <Input
+        id="transfer-total-bags"
+        label="Total Bags"
+        type="number"
+        value={p.remainingBags}
+        readOnly
+        disabled={p.disabled}
+        aria-label="Total Bags (read-only)"
+        title="Authoritative remaining stock"
+      />
 
       <Select
-        id="transfer-bag-category"
-        label="Bag Category"
-        value={p.sourceBagCategory}
-        onChange={(e) => p.onCategoryChange(e.target.value as OutwardBagCategory | '')}
+        id="transfer-bag-type-select"
+        label="Bag Type"
+        value={isHybrid ? 'Hybrid' : 'S/B'}
+        onChange={(e) => {
+          const val = e.target.value as OutwardBagCategory;
+          p.onCategoryChange?.(val);
+        }}
         disabled={p.disabled}
       >
-        <option value="">-- Default (As Inwarded) --</option>
-        <option value="S/B">Small & Big Split</option>
-        <option value="Hybrid">Flat Rate (Single Price)</option>
+        <option value="S/B">Small &amp; Big</option>
+        <option value="Hybrid">Hybrid</option>
       </Select>
 
       {isHybrid ? (
         <div className={styles.formSection}>
-          <div style={{ display: 'flex', gap: 'var(--space-1)', marginTop: '4px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--space-2)' }}>
             {visibility.showSeasonalRate && (
               <Input
                 id="transfer-seasonal-rate"
+                label="Seasonal Rate (₹/bag)"
                 type="number"
                 min={0}
-                placeholder="Seasonal Rate (₹/bag)"
-                aria-label="Seasonal per-bag rate"
+                placeholder="0.00"
                 value={p.sourceSeasonalBagPrice ?? ''}
                 onChange={(e) => p.onSeasonalPriceChange?.(e.target.value === '' ? '' : Number(e.target.value))}
                 disabled={p.disabled}
@@ -88,10 +88,10 @@ export function TransferOwnershipConfirmation(p: Props) {
             {visibility.showMonthlyRate && (
               <Input
                 id="transfer-monthly-rate"
+                label="Monthly Rate (₹/bag)"
                 type="number"
                 min={0}
-                placeholder="Monthly Rate (₹/bag)"
-                aria-label="Monthly per-bag rate"
+                placeholder="0.00"
                 value={p.sourceMonthlyBagPrice ?? ''}
                 onChange={(e) => p.onMonthlyPriceChange?.(e.target.value === '' ? '' : Number(e.target.value))}
                 disabled={p.disabled}
@@ -99,11 +99,11 @@ export function TransferOwnershipConfirmation(p: Props) {
             )}
             {!visibility.showSeasonalRate && !visibility.showMonthlyRate && (
               <Input
-                id="transfer-hybrid-rate"
+                id="transfer-bag-price"
+                label="Each Bag Price (₹)"
                 type="number"
                 min={0}
-                placeholder="Per-Bag Rate (₹)"
-                aria-label="Per-bag rate"
+                placeholder="0.00"
                 value={p.sourceBagPrice}
                 onChange={(e) => p.onPriceChange(e.target.value === '' ? '' : Number(e.target.value))}
                 disabled={p.disabled}
@@ -114,17 +114,15 @@ export function TransferOwnershipConfirmation(p: Props) {
         </div>
       ) : null}
 
-      {p.isUnverified && p.sourceBagCategory === 'S/B' ? (
+      {!isHybrid && p.isUnverified ? (
         <TransferBagConfirmationFields
-          remainingBags={p.remainingBags} confirmedSmallBags={p.confirmedSmallBags}
-          confirmedBigBags={p.confirmedBigBags} onSmallChange={p.onSmallChange}
-          onBigChange={p.onBigChange} disabled={p.disabled} />
-      ) : null}
-
-      {p.isUnverified && !p.sourceBagCategory ? (
-        <div className={styles.noticeBox} style={{ color: 'var(--color-warning-text)' }}>
-          Bag composition is unsegregated. Confirm Small &amp; Big counts or specify rate to settle dues.
-        </div>
+          remainingBags={p.remainingBags}
+          confirmedSmallBags={p.confirmedSmallBags}
+          confirmedBigBags={p.confirmedBigBags}
+          onSmallChange={p.onSmallChange}
+          onBigChange={p.onBigChange}
+          disabled={p.disabled}
+        />
       ) : null}
     </>
   );

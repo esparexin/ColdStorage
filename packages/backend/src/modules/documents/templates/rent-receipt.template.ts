@@ -1,4 +1,4 @@
-import type { RentReceiptDocumentDto, RentReceiptPreviewDto } from '@cold-storage/contracts';
+import { formatDisplayBagType, type RentReceiptDocumentDto, type RentReceiptPreviewDto } from '@cold-storage/contracts';
 import { escapeHtml, renderBaseLayout } from './base.layout.js';
 
 export function renderRentReceiptTemplate(
@@ -25,7 +25,7 @@ export function renderRentReceiptTemplate(
         <th>Inward Receipt / GRN</th>
         <td>${dto.inwardReceiptNumber ? `${escapeHtml(dto.inwardReceiptNumber)} / ` : ''}<strong>${escapeHtml(dto.grnNumber)}</strong></td>
         <th>Commodity &amp; Bag Type</th>
-        <td>${escapeHtml(dto.commodityName)} (${escapeHtml(dto.bagType || 'S')})</td>
+        <td>${escapeHtml(dto.commodityName)} (${escapeHtml(formatDisplayBagType({ bagType: dto.bagType }))})</td>
       </tr>
       <tr>
         <th>Inward Bags</th>
@@ -68,7 +68,7 @@ export function renderRentReceiptTemplate(
     ${
       isPreview
         ? `<div style="margin-top: 6px; font-size: 7.5px; line-height: 1.25; color: #856404; background: #fff3cd; border: 1px dashed #e0c878; padding: 4px 6px; border-radius: 3px;">
-      <strong>Notice:</strong> This is a print template preview from Phase 9. Formal rent payment collection, balance mutation, and receipt numbering are executed exclusively in Phase 12 (Rent Collection &amp; Payment Management).
+      <strong>Notice:</strong> This is an uncommitted draft preview. Formal receipt numbering and balance mutation occur upon payment confirmation.
     </div>`
         : ''
     }
@@ -92,7 +92,7 @@ export function renderRentReceiptTemplate(
     generatedBy: dto.generatedBy,
     bodyContent,
     watermarkNotice: isPreview
-      ? 'PREVIEW ONLY — UNCOMMITTED (PHASE 12 RENT MODULE INTEGRATION)'
+      ? 'PREVIEW ONLY — UNCOMMITTED'
       : undefined,
   });
 }

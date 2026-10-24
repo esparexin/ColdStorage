@@ -8,15 +8,9 @@ import { computeRentBalance, type RentBalance } from '../../common/rent-balance.
 import { calculateGrnMonthlyOccupancyRent } from '../../common/occupancy-rent.js';
 import { counterService } from '../../common/counter.service.js';
 import {
-  canCalculateAuthoritativeRent,
-  isHybridBagCategory,
-  resolveSeasonalElapsedPeriods,
-  resolveStoredCompositionVerified,
-  seasonYearForInwardDate,
-  toExcludedPeriodKeys,
-  type BagType,
-  type PaymentMode,
-  type RentType,
+  canCalculateAuthoritativeRent, isHybridBagCategory, resolveSeasonalElapsedPeriods,
+  resolveStoredCompositionVerified, seasonYearForInwardDate, toExcludedPeriodKeys,
+  type BagType, type PaymentMode, type RentType,
 } from '@cold-storage/contracts';
 import type { LedgerBalance } from '../../inventory/ledger-balance.js';
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
@@ -36,28 +30,27 @@ export interface MergeSourceGrn {
 export interface SourceRentResolution {
   effectiveRentAmount: number; totalPaid: number; sourceTotalDue: number; rentBal: RentBalance;
   isSameSeason: boolean; isPendingVerification: boolean; verificationReason?: string | null;
+  paidAmount: number;
 }
 
 export interface ResolveSourceRentParams {
   facilityId: string; sourceGrn: MergeSourceGrn; targetGrnDate: Date; movementDate: Date;
-  sourcePaymentAmount?: number | null; sourcePaymentMode?: PaymentMode | null;
-  userId: string; session: mongoose.ClientSession;
-  sourceBagCategory?: string | null; sourceQuantity?: number | null;
+  sourcePaymentAmount?: number | null; sourcePaymentMode?: PaymentMode | null; userId: string; session: mongoose.ClientSession;
+  sourceBagType?: BagType | null; sourceBagCategory?: string | null; sourceQuantity?: number | null;
   sourceBagPrice?: number | null; sourceSeasonalBagPrice?: number | null; sourceMonthlyBagPrice?: number | null;
+  confirmedSmallBags?: number | null; confirmedBigBags?: number | null; isSingleSource?: boolean;
 }
 
 export async function resolveSourceRentObligation(
   params: ResolveSourceRentParams,
 ): Promise<SourceRentResolution> {
-  const {
-    facilityId, sourceGrn, targetGrnDate, movementDate,
-    sourcePaymentAmount, sourcePaymentMode, userId, session,
-  } = params;
+  const { facilityId, sourceGrn, targetGrnDate, movementDate,
+    sourcePaymentAmount, sourcePaymentMode, userId, session } = params;
 
   const targetSeason = seasonYearForInwardDate(targetGrnDate);
   const sourceSeason = seasonYearForInwardDate(sourceGrn.date);
   const isSameSeason = sourceSeason === targetSeason;
-  const isHybrid = isHybridBagCategory(params.sourceBagCategory);
+  const isHybrid = params.sourceBagType === 'Hybrid' || isHybridBagCategory(params.sourceBagCategory);
 
   let effectiveRentAmount = sourceGrn.rentAmount ?? 0;
   const [commodity, extensions] = await Promise.all([
@@ -91,18 +84,18 @@ export async function resolveSourceRentObligation(
     // Never bill an unverified placeholder split at differential rates.
     const diffSmall = sourceGrn.smallBagPrice ?? sourceGrn.bagPrice ?? 0;
     const diffBig = sourceGrn.bigBagPrice ?? sourceGrn.bagPrice ?? 0;
-    const unverifiedDifferential =
-      !isHybrid &&
-      (sourceGrn.smallBagPrice != null || sourceGrn.bigBagPrice != null) &&
-      diffSmall !== diffBig &&
-      sourceGrn.bagType !== 'S' && sourceGrn.bagType !== 'B' &&
-      !resolveStoredCompositionVerified({
-        isCompositionVerified: sourceGrn.isCompositionVerified ?? null, bagType: sourceGrn.bagType,
-        bags: sourceGrn.bags, smallBags: sourceGrn.smallBags, bigBags: sourceGrn.bigBags,
-      });
-    if (!unverifiedDifferential) {
-      const effectiveSmall = sourceGrn.smallBags > 0 ? sourceGrn.smallBags : sourceGrn.bagType === 'S' ? sourceGrn.bags : 0;
-      const effectiveBig = sourceGrn.bigBags > 0 ? sourceGrn.bigBags : (sourceGrn.bagType === 'B' || sourceGrn.bagType === 'S/B' || sourceGrn.bagType === 'S+B') ? sourceGrn.bags - effectiveSmall : 0;
+    const isSourceVerified = resolveStoredCompositionVerified({
+      isCompositionVerified: sourceGrn.isCompositionVerified ?? null, bagType: sourceGrn.bagType,
+      bags: sourceGrn.bags, smallBags: sourceGrn.smallBags, bigBags: sourceGrn.bigBags,
+    });
+    const unverifiedDifferential = !isHybrid && (sourceGrn.smallBagPrice != null || sourceGrn.bigBagPrice != null) &&
+      diffSmall !== diffBig && sourceGrn.bagType !== 'S' && sourceGrn.bagType !== 'B' && !isSourceVerified;
+    const hasConfirmedCounts = !isSourceVerified && params.confirmedSmallBags != null && params.confirmedBigBags != null;
+    if (!unverifiedDifferential || hasConfirmedCounts) {
+      const effectiveSmall = hasConfirmedCounts ? (params.confirmedSmallBags as number)
+        : (sourceGrn.smallBags > 0 ? sourceGrn.smallBags : sourceGrn.bagType === 'S' ? sourceGrn.bags : 0);
+      const effectiveBig = hasConfirmedCounts ? (params.confirmedBigBags as number)
+        : (sourceGrn.bigBags > 0 ? sourceGrn.bigBags : (sourceGrn.bagType === 'B' || sourceGrn.bagType === 'S/B' || sourceGrn.bagType === 'S+B') ? sourceGrn.bags - effectiveSmall : 0);
 
       const { expectedRentCharge } = await computeExpectedDeliveryRent({
         grn: {
@@ -164,20 +157,25 @@ export async function resolveSourceRentObligation(
 
   const remainingSourceBalance = Math.max(0, Number((sourceTotalDue - totalPaid).toFixed(2)));
 
+  let paidAmount = 0;
   // If source inline payment was provided (Scenario B: Previous season merge settlement)
   if (sourcePaymentAmount != null && sourcePaymentAmount > 0) {
-    if (sourcePaymentAmount > remainingSourceBalance) {
+    if (params.isSingleSource && sourcePaymentAmount > remainingSourceBalance) {
       throw new Error(
         `Requested payment ₹${sourcePaymentAmount} exceeds remaining rent balance of ₹${remainingSourceBalance} for source GRN '${sourceGrn.grnNumber}'`,
       );
     }
-    const receiptNumber = await counterService.generateRentReceiptNumber(facilityId, movementDate, session);
-    await rentRepository.createPayment({
-      id: `rent-pay-${randomUUID()}`, facilityId, grnId: sourceGrn.id, grnNumber: sourceGrn.grnNumber,
-      receiptNumber, amountPaid: sourcePaymentAmount, paymentMode: (sourcePaymentMode ?? 'Cash') as 'Cash' | 'UPI',
-      paymentDate: movementDate, notes: `Pre-merge settlement: GRN ${sourceGrn.grnNumber}`, createdBy: userId,
-    }, session);
-    totalPaid += sourcePaymentAmount;
+    const payThisSource = Math.min(sourcePaymentAmount, remainingSourceBalance);
+    if (payThisSource > 0) {
+      const receiptNumber = await counterService.generateRentReceiptNumber(facilityId, movementDate, session);
+      await rentRepository.createPayment({
+        id: `rent-pay-${randomUUID()}`, facilityId, grnId: sourceGrn.id, grnNumber: sourceGrn.grnNumber,
+        receiptNumber, amountPaid: payThisSource, paymentMode: (sourcePaymentMode ?? 'Cash') as 'Cash' | 'UPI',
+        paymentDate: movementDate, notes: `Pre-merge settlement: GRN ${sourceGrn.grnNumber}`, createdBy: userId,
+      }, session);
+      totalPaid += payThisSource;
+      paidAmount = payThisSource;
+    }
   }
 
   const rentBal = computeRentBalance(sourceTotalDue, totalPaid, { isPendingVerification });
@@ -196,6 +194,7 @@ export async function resolveSourceRentObligation(
     isSameSeason,
     isPendingVerification,
     verificationReason,
+    paidAmount,
   };
 }
 

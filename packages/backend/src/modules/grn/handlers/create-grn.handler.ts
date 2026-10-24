@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
   buildInwardReceiptNumber,
-  calculateRentAmount,
   getFinancialYearKey,
   isBagCompositionVerified,
   normalizeBagComposition,
@@ -65,14 +64,17 @@ export async function createGrn(
 
   // 4. Chamber is free text supplied by the operator, already length-validated by the contract.
 
-  // 4b. Price Controller authority: agreed rates and lump sums must match the
-  // active controller row when one exists; otherwise the legacy path applies.
+  // 4b. Price Controller authority: validate rates when submitted or explicitly required;
+  // otherwise Inward records stock without upfront rate/rent calculations.
   const { bagType, smallBagPrice, bigBagPrice, bagPrice, rentAmount, bags, smallBags, bigBags } = input;
-  await commodityRateService.validateSubmittedRates(
-    input.commodityId, input.rentType,
-    { bagType, smallBagPrice, bigBagPrice, bagPrice, rentAmount, bags, smallBags, bigBags, rentMonths: input.rentMonths },
-    { requireRates: opts?.requireRates ?? true },
-  );
+  const hasSubmittedRates = smallBagPrice != null || bigBagPrice != null || bagPrice != null || (rentAmount != null && rentAmount > 0);
+  if (opts?.requireRates || hasSubmittedRates) {
+    await commodityRateService.validateSubmittedRates(
+      input.commodityId, input.rentType,
+      { bagType, smallBagPrice, bigBagPrice, bagPrice, rentAmount, bags, smallBags, bigBags, rentMonths: input.rentMonths },
+      { requireRates: opts?.requireRates ?? false },
+    );
+  }
 
   // 5. Inward Date and FY validation
   const inwardDate = validateOperationalDate(input.date, { label: 'Inward' });
@@ -100,19 +102,10 @@ export async function createGrn(
   const smallBagWeight = input.smallBagWeight ?? null, bigBagWeight = input.bigBagWeight ?? null;
 
   const rentMonths = rentMonthsForType(input.rentType) ?? (input.rentMonths ?? null);
-  const isSeasonal = input.rentType === 'Seasonal' || input.rentType === 'Seasonal_3M';
-  const hasFixedMonthlyDuration = input.rentType === 'Monthly' && typeof rentMonths === 'number' && rentMonths >= 1;
 
-  let finalRentAmount = input.rentAmount ?? null;
-  if (finalRentAmount == null && (isSeasonal || hasFixedMonthlyDuration)) {
-    finalRentAmount = calculateRentAmount({
-      rentType: input.rentType, bags: input.bags, bagType: input.bagType,
-      smallBags: input.smallBags ?? null, bigBags: input.bigBags ?? null,
-      smallBagPrice: input.smallBagPrice ?? null, bigBagPrice: input.bigBagPrice ?? null,
-      bagPrice: input.bagPrice ?? null, rentMonths, rentAmount: null,
-    });
-  }
-  finalRentAmount = finalRentAmount != null && finalRentAmount > 0 ? finalRentAmount : 0;
+  // Inward GRN does not calculate rent upfront: bag composition is unconfirmed at entry,
+  // and rent derivation occurs at Outward delivery / billing settlement time.
+  const finalRentAmount = input.rentAmount != null && input.rentAmount > 0 ? input.rentAmount : 0;
   const isHamaliApp = commodity.isHamaliApplicable ?? ((commodity.hamaliRate ?? 0) > 0);
   const hamaliRate = isHamaliApp ? (commodity.hamaliRate ?? 0) : 0;
   const hamaliAmount = Number((input.bags * hamaliRate).toFixed(2));

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { allocateHybridPreview, previewConfirmedSplit, validateBagConfirmation } from '../bagConfirmation.helper';
+import type { Grn } from '@cold-storage/contracts';
+import {
+  allocateHybridPreview,
+  deriveAutoInheritedBagComposition,
+  previewConfirmedSplit,
+  validateBagConfirmation,
+} from '../bagConfirmation.helper';
 
 describe('bagConfirmation.helper (outward SSOT reuse)', () => {
   it('redirects Small and Big to the Small & Big split (no separate options)', () => {
@@ -56,4 +62,145 @@ describe('bagConfirmation.helper (outward SSOT reuse)', () => {
       defaultSmall: 0, defaultBig: 50, repackSmall: 50, repackBig: 0, isRepackFilled: true,
     })).toEqual({ small: 50, big: 0 });
   });
+
+  it('validates Step 2 confirmed Small and Big counts for S/B', () => {
+    const base = {
+      category: 'S/B' as const, quantity: '' as const, bagPrice: '' as const,
+      seasonalBagPrice: '' as const, monthlyBagPrice: '' as const,
+      repackSmall: '' as const, repackBig: '' as const, totalMovedBags: 50, isRepackRequired: false,
+    };
+    expect(validateBagConfirmation({ ...base, smallBags: 30, bigBags: 20 })).toBeNull();
+    expect(validateBagConfirmation({ ...base, smallBags: 30, bigBags: 15 })).toContain('must equal total moved bags');
+    expect(validateBagConfirmation({ ...base, smallBags: -5, bigBags: 55 })).toContain('cannot be negative');
+  });
+
+  it('populates previewConfirmedSplit from Step 2 confirmed counts', () => {
+    const preview = previewConfirmedSplit({
+      category: 'S/B', rawSmall: 0, rawBig: 50, total: 50,
+      defaultSmall: 0, defaultBig: 50, repackSmall: '', repackBig: '', isRepackFilled: false,
+      confirmedSmall: 35, confirmedBig: 15,
+    });
+    expect(preview).toEqual({ small: 35, big: 15 });
+  });
+
+  it('prevents outward confirmed quantity from exceeding Total Bags', () => {
+    const base = {
+      category: 'S/B' as const, quantity: '' as const, bagPrice: '' as const,
+      seasonalBagPrice: '' as const, monthlyBagPrice: '' as const,
+      repackSmall: '' as const, repackBig: '' as const, totalMovedBags: 10, isRepackRequired: false,
+    };
+    // Boundary: exact configured total (10 bags)
+    expect(validateBagConfirmation({ ...base, smallBags: 10, bigBags: 0 })).toBeNull();
+    expect(validateBagConfirmation({ ...base, smallBags: 0, bigBags: 10 })).toBeNull();
+
+    // Boundary: attempted outward quantity above total (e.g. 11 or 20)
+    expect(validateBagConfirmation({ ...base, smallBags: 11, bigBags: 0 })).toContain('cannot exceed Total Bags');
+    expect(validateBagConfirmation({ ...base, smallBags: 10, bigBags: 5 })).toContain('cannot exceed Total Bags');
+    expect(validateBagConfirmation({ ...base, quantity: 15 })).toContain('cannot exceed Total Bags');
+  });
+
+  it('supports canonical bagType: "Hybrid" and "S/B" directly without requiring bagCategory', () => {
+    expect(validateBagConfirmation({
+      bagType: 'Hybrid', quantity: 50, bagPrice: 10, seasonalBagPrice: '', monthlyBagPrice: '',
+      repackSmall: '', repackBig: '', totalMovedBags: 50, isRepackRequired: false,
+    })).toBeNull();
+
+    expect(validateBagConfirmation({
+      bagType: 'S', quantity: '', bagPrice: '', seasonalBagPrice: '', monthlyBagPrice: '',
+      repackSmall: '', repackBig: '', totalMovedBags: 50, isRepackRequired: false,
+    })).toContain('Small & Big split');
+
+    const preview = previewConfirmedSplit({
+      bagType: 'Hybrid', rawSmall: 20, rawBig: 30, total: 50,
+      defaultSmall: 20, defaultBig: 30, repackSmall: '', repackBig: '', isRepackFilled: false,
+    });
+    expect(preview).toEqual({ small: 20, big: 30 });
+  });
+
+  it('confirms 100% Big bags (matching screenshot with 12 Big bags)', () => {
+    expect(validateBagConfirmation({
+      category: 'S/B', quantity: 12, smallBags: 0, bigBags: 12,
+      bagPrice: 15, seasonalBagPrice: 15, monthlyBagPrice: '',
+      repackSmall: '', repackBig: '', totalMovedBags: 12, isRepackRequired: false,
+    })).toBeNull();
+  });
+
+  it('confirms 100% Small bags with 12 Small bags', () => {
+    expect(validateBagConfirmation({
+      category: 'S/B', quantity: 12, smallBags: 12, bigBags: 0,
+      bagPrice: 10, seasonalBagPrice: 10, monthlyBagPrice: '',
+      repackSmall: '', repackBig: '', totalMovedBags: 12, isRepackRequired: false,
+    })).toBeNull();
+  });
+
+  it('confirms mixed composition with 7 Small and 5 Big bags', () => {
+    expect(validateBagConfirmation({
+      category: 'S/B', quantity: 12, smallBags: 7, bigBags: 5,
+      bagPrice: 10, seasonalBagPrice: 10, monthlyBagPrice: '',
+      repackSmall: '', repackBig: '', totalMovedBags: 12, isRepackRequired: false,
+    })).toBeNull();
+  });
 });
+
+describe('deriveAutoInheritedBagComposition', () => {
+  const buildTestGrn = (patch: Partial<Grn>): Grn => ({
+    id: 'g-1',
+    grnNumber: '3194',
+    customerName: 'B SEENAIAH SDP',
+    commodityId: 'c-1',
+    commodityName: 'Mirchi',
+    chamber: 'A4',
+    bags: 10,
+    closingBags: 10,
+    bagType: 'S',
+    smallBags: 10,
+    bigBags: 0,
+    isCompositionVerified: true,
+    rentType: 'Seasonal',
+    smallBagPrice: 10,
+    bigBagPrice: 15,
+    bagPrice: 10,
+    date: new Date('2024-03-01'),
+    ...patch,
+  } as Grn);
+
+  it('inherits 100% Small bags from source lot (matching user screenshot)', () => {
+    const source = buildTestGrn({ bags: 10, closingBags: 10, smallBags: 10, bigBags: 0, bagType: 'S' });
+    const res = deriveAutoInheritedBagComposition([source], 10);
+    expect(res.category).toBe('S/B');
+    expect(res.quantity).toBe(10);
+    expect(res.smallBags).toBe(10);
+    expect(res.bigBags).toBe(0);
+    expect(res.seasonalBagPrice).toBe(10);
+  });
+
+  it('inherits 100% Big bags when source lot is all Big', () => {
+    const source = buildTestGrn({ bags: 10, closingBags: 10, smallBags: 0, bigBags: 10, bagType: 'B' });
+    const res = deriveAutoInheritedBagComposition([source], 10);
+    expect(res.category).toBe('S/B');
+    expect(res.quantity).toBe(10);
+    expect(res.smallBags).toBe(0);
+    expect(res.bigBags).toBe(10);
+    expect(res.seasonalBagPrice).toBe(15);
+  });
+
+  it('inherits mixed Small/Big counts across multiple source lots', () => {
+    const s1 = buildTestGrn({ id: 'g-1', bags: 6, closingBags: 6, smallBags: 6, bigBags: 0, bagType: 'S' });
+    const s2 = buildTestGrn({ id: 'g-2', bags: 4, closingBags: 4, smallBags: 0, bigBags: 4, bagType: 'B' });
+    const res = deriveAutoInheritedBagComposition([s1, s2], 10);
+    expect(res.category).toBe('S/B');
+    expect(res.smallBags).toBe(6);
+    expect(res.bigBags).toBe(4);
+  });
+
+  it('inherits Hybrid category from Hybrid source lot', () => {
+    const source = buildTestGrn({ bags: 10, closingBags: 10, bagType: 'Hybrid', bagPrice: 12 });
+    const res = deriveAutoInheritedBagComposition([source], 10);
+    expect(res.category).toBe('Hybrid');
+    expect(res.quantity).toBe(10);
+    expect(res.bagPrice).toBe(12);
+  });
+});
+
+
+

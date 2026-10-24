@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui';
 import { formatDisplayDate } from '@/lib/date-format';
 import { getLoanStatusDisplay } from '@/lib/loanStatusFormat';
 import { extractMergedDate } from './grnMergedDate.helper';
+import { parseMergedSourceGrns, parseMergedAddedBags } from '@/app/deliveries/hooks/eligibleGrn.helper';
 import { GrnLifecycleStatusCell } from './GrnLifecycleStatusCell';
 import { GrnRowActions } from './GrnRowActions';
 import { RentTermsCell } from './RentTermsCell';
@@ -74,7 +75,26 @@ export function createGrnTableColumns({
       sortable: true,
       sortType: 'text',
       sortAccessor: (row) => row.grnNumber,
-      render: (row) => <span className={styles.grnLink}>{row.grnNumber}</span>,
+      render: (row) => {
+        const isMergedSource = Boolean(row.mergedIntoGrnNumber || row.mergedIntoGrnId);
+        const isMergedTarget = Boolean(row.remarks && row.remarks.includes('[MERGE RECEIVED'));
+        const mergedSources = isMergedTarget ? parseMergedSourceGrns(row.remarks) : null;
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span className={styles.grnLink}>{row.grnNumber}</span>
+            {isMergedSource && row.mergedIntoGrnNumber && (
+              <span className={styles.mergedReference} style={{ color: 'var(--color-primary-text)' }}>
+                Merged into #{row.mergedIntoGrnNumber}
+              </span>
+            )}
+            {isMergedTarget && (
+              <span className={styles.mergedReference}>
+                Merged Consignment{mergedSources ? ` (${mergedSources})` : ''}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'customerName',
@@ -99,21 +119,32 @@ export function createGrnTableColumns({
       sortable: true,
       sortType: 'number',
       sortAccessor: (row) => row.bags,
-      render: (row) => (
-        <div className={styles.bagsCell}>
-          <span className={styles.inwardLink}>{row.bags.toLocaleString('en-IN')} bags</span>
-          {row.isCompositionVerified && row.smallBags != null && row.bigBags != null && (row.smallBags > 0 || row.bigBags > 0) && (
-            <span className={styles.bagTypeSub}>
-              S: {row.smallBags.toLocaleString('en-IN')} • B: {row.bigBags.toLocaleString('en-IN')}
-            </span>
-          )}
-          {row.netDeliveredBags != null && row.netDeliveredBags > 0 && (
-            <span className={styles.deliveredSub}>
-              Out: {row.netDeliveredBags.toLocaleString('en-IN')}
-            </span>
-          )}
-        </div>
-      ),
+      render: (row) => {
+        const addedBags = parseMergedAddedBags(row.remarks);
+        const hasMergedBreakdown = addedBags != null && addedBags > 0;
+        const genesisBags = hasMergedBreakdown ? Math.max(0, row.bags - addedBags) : null;
+
+        return (
+          <div className={styles.bagsCell}>
+            <span className={styles.inwardLink}>{row.bags.toLocaleString('en-IN')} bags</span>
+            {hasMergedBreakdown && genesisBags != null && (
+              <span className={styles.bagTypeSub} style={{ fontWeight: 'var(--font-medium)' }}>
+                {genesisBags} Genesis + {addedBags} Merged
+              </span>
+            )}
+            {row.isCompositionVerified && row.smallBags != null && row.bigBags != null && (row.smallBags > 0 || row.bigBags > 0) && (
+              <span className={styles.bagTypeSub}>
+                S: {row.smallBags.toLocaleString('en-IN')} • B: {row.bigBags.toLocaleString('en-IN')}
+              </span>
+            )}
+            {row.netDeliveredBags != null && row.netDeliveredBags > 0 && (
+              <span className={styles.deliveredSub}>
+                Out: {row.netDeliveredBags.toLocaleString('en-IN')}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'balance',

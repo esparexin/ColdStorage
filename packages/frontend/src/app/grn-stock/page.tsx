@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Grn, GrnMovementHistory } from '@cold-storage/contracts';
 import { FilterToolbar } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
@@ -11,7 +12,6 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { requestWithAuth } from '@/lib/api-client';
 import { useFacility } from '@/context/FacilityContext';
 import { GrnStockMovementModal } from './components/GrnStockMovementModal';
-import { InternalMovementModal } from '@/app/grns/components/InternalMovementModal';
 import { GrnDeleteConfirmDialog } from './components/GrnDeleteConfirmDialog';
 import { createGrnStockColumns } from './components/GrnStockColumns';
 import { GrnStockStatusTabs } from './components/GrnStockStatusTabs';
@@ -19,14 +19,12 @@ import { useGrnStock } from './hooks/useGrnStock';
 import styles from './page.module.css';
 
 export default function GrnStockPage() {
+  const router = useRouter();
   const { selectedFacilityId, availableFacilities } = useFacility();
   const { hasPermission } = usePermissions();
   const canViewGrnStock = hasPermission('grn:view');
 
   const {
-    grns,
-    customers,
-    commodities,
     loading,
     error,
     searchTerm,
@@ -48,9 +46,6 @@ export default function GrnStockPage() {
   const [history, setHistory] = useState<GrnMovementHistory | null>(null);
   const [loadingLedger, setLoadingLedger] = useState(false);
   const [ledgerError, setLedgerError] = useState<string | null>(null);
-
-  const [mergeTargetGrn, setMergeTargetGrn] = useState<Grn | null>(null);
-  const [mergeOpen, setMergeOpen] = useState(false);
 
   const [deleteTargetGrn, setDeleteTargetGrn] = useState<Grn | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -78,8 +73,7 @@ export default function GrnStockPage() {
   };
 
   const handleOpenMerge = (grn: Grn) => {
-    setMergeTargetGrn(grn);
-    setMergeOpen(true);
+    router.push(`/grns/merge?sourceId=${encodeURIComponent(grn.id)}`);
   };
 
   const handleOpenDelete = (grn: Grn) => {
@@ -215,22 +209,6 @@ export default function GrnStockPage() {
           ledgerError={ledgerError}
           onClose={() => setSelectedGrn(null)}
           onRetry={() => void handleOpenMovement(selectedGrn)}
-        />
-      )}
-
-      {mergeOpen && mergeTargetGrn && selectedFacilityId && (
-        <InternalMovementModal
-          grn={mergeTargetGrn}
-          facilityId={selectedFacilityId}
-          allGrns={grns}
-          customers={customers}
-          commodities={commodities}
-          onClose={() => { setMergeOpen(false); setMergeTargetGrn(null); }}
-          onSuccess={() => {
-            setMergeOpen(false);
-            setMergeTargetGrn(null);
-            void fetchGrns();
-          }}
         />
       )}
 

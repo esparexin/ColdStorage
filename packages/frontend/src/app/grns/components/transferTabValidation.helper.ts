@@ -3,6 +3,7 @@ import {
   HYBRID_RATE_REQUIRED_MESSAGE,
   isHybridBagCategory,
   validateHybridQuantityInput,
+  type BagType,
   type OutwardBagCategory,
 } from '@cold-storage/contracts';
 
@@ -11,29 +12,28 @@ export interface TransferConfirmationParams {
   remainingBags: number;
   confirmedSmallBags: number | '';
   confirmedBigBags: number | '';
-  sourceBagCategory?: OutwardBagCategory | '';
+  sourceBagType?: BagType;
+  sourceBagCategory?: OutwardBagCategory | BagType | '';
   sourceQuantity?: number | '';
   sourceBagPrice?: number | '';
   sourceSeasonalBagPrice?: number | '';
   sourceMonthlyBagPrice?: number | '';
 }
 
-export function validateTransferConfirmation(
-  paramsOrIsUnverified: TransferConfirmationParams | boolean,
-  legacyRemainingBags?: number,
-  legacyConfirmedSmall?: number | '',
-  legacyConfirmedBig?: number | '',
-): string | null {
-  const params: TransferConfirmationParams =
-    typeof paramsOrIsUnverified === 'boolean'
-      ? {
-          isUnverified: paramsOrIsUnverified,
-          remainingBags: legacyRemainingBags ?? 0,
-          confirmedSmallBags: legacyConfirmedSmall ?? '',
-          confirmedBigBags: legacyConfirmedBig ?? '',
-        }
-      : paramsOrIsUnverified;
+function validateBagReconciliation(s: number, b: number, remaining: number): string | null {
+  if (!Number.isInteger(s) || !Number.isInteger(b) || s < 0 || b < 0) {
+    return 'Confirmed bag counts must be whole non-negative numbers.';
+  }
+  if (s + b > remaining) {
+    return `Confirmed counts (${s} + ${b}) cannot exceed remaining stock of ${remaining} bags.`;
+  }
+  if (s + b !== remaining) {
+    return `Confirmed counts (${s} + ${b}) must equal stock of ${remaining} bags.`;
+  }
+  return null;
+}
 
+export function validateTransferConfirmation(params: TransferConfirmationParams): string | null {
   const {
     isUnverified,
     remainingBags,
@@ -50,7 +50,8 @@ export function validateTransferConfirmation(
     return 'Cannot transfer ownership: No stock remaining in this GRN.';
   }
 
-  const isHybrid = sourceBagCategory ? isHybridBagCategory(sourceBagCategory) : false;
+  const effectiveBagType = params.sourceBagType || sourceBagCategory;
+  const isHybrid = effectiveBagType ? (effectiveBagType === 'Hybrid' || isHybridBagCategory(effectiveBagType)) : false;
 
   if (isHybrid) {
     const qty = sourceQuantity !== undefined && sourceQuantity !== null ? sourceQuantity : remainingBags;
@@ -66,15 +67,7 @@ export function validateTransferConfirmation(
     if (typeof confirmedSmallBags === 'number' || typeof confirmedBigBags === 'number') {
       const s = typeof confirmedSmallBags === 'number' ? confirmedSmallBags : 0;
       const b = typeof confirmedBigBags === 'number' ? confirmedBigBags : 0;
-      if (!Number.isInteger(s) || !Number.isInteger(b) || s < 0 || b < 0) {
-        return 'Confirmed bag counts must be whole non-negative numbers.';
-      }
-      if (s + b > remainingBags) {
-        return `Confirmed counts (${s} + ${b}) cannot exceed remaining stock of ${remainingBags} bags.`;
-      }
-      if (s + b !== remainingBags) {
-        return `Confirmed counts (${s} + ${b}) must equal stock of ${remainingBags} bags.`;
-      }
+      return validateBagReconciliation(s, b, remainingBags);
     }
     return null;
   }
@@ -82,20 +75,6 @@ export function validateTransferConfirmation(
   if (typeof confirmedSmallBags !== 'number' || typeof confirmedBigBags !== 'number') {
     return `Confirmed composition required for unverified GRN (${remainingBags} bags). Confirm Small + Big counts.`;
   }
-  if (
-    !Number.isInteger(confirmedSmallBags) ||
-    !Number.isInteger(confirmedBigBags) ||
-    confirmedSmallBags < 0 ||
-    confirmedBigBags < 0
-  ) {
-    return 'Confirmed bag counts must be whole non-negative numbers.';
-  }
-  if (confirmedSmallBags + confirmedBigBags > remainingBags) {
-    return `Confirmed counts (${confirmedSmallBags} + ${confirmedBigBags}) cannot exceed remaining stock of ${remainingBags} bags.`;
-  }
-  if (confirmedSmallBags + confirmedBigBags !== remainingBags) {
-    return `Confirmed counts (${confirmedSmallBags} + ${confirmedBigBags}) must equal stock of ${remainingBags} bags.`;
-  }
-  return null;
+  return validateBagReconciliation(confirmedSmallBags, confirmedBigBags, remainingBags);
 }
 

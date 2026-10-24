@@ -26,9 +26,6 @@ export async function mergeGrn(
   if (new Set(input.sourceGrnIds).size !== input.sourceGrnIds.length) {
     throw new Error('Duplicate source GRN IDs are not allowed');
   }
-  if (input.sourceGrnIds.length > 1 && (input.sourcePaymentAmount ?? 0) > 0) {
-    throw new Error('Settlement payment requires a single source GRN');
-  }
 
   const session = await mongoose.startSession();
   let resultTargetDoc!: unknown;
@@ -78,15 +75,23 @@ export async function mergeGrn(
       const confirmed = await validateProspectiveMergeMove({
         facilityId, targetGrn, sourceGrns, input, moveDate, session,
       });
+      let remainingPaymentPool = input.sourcePaymentAmount ?? 0;
       for (const s of sourceGrns) {
         const step = await processMergeSource({
           facilityId, sourceGrn: s, targetGrn, input, movementId, moveDate, userId, session,
+          allocatedPayment: remainingPaymentPool,
         });
+        remainingPaymentPool = Math.max(0, Number((remainingPaymentPool - step.paidAmount).toFixed(2)));
         totalSourcePendingRent += step.pendingRent;
         totalMovedBags += step.movedTotal;
         totalMovedSmall += step.movedSmall;
         totalMovedBig += step.movedBig;
         sourceSummaries.push(step.summary);
+      }
+      if (remainingPaymentPool > 0.01) {
+        throw new Error(
+          `Requested payment ₹${input.sourcePaymentAmount} exceeds total remaining rent balance across source GRNs`,
+        );
       }
       const { smallMoved, bigMoved, explicitConfirmation } = confirmed;
       totalMovedSmall = smallMoved;
@@ -104,12 +109,12 @@ export async function mergeGrn(
       );
       const newIsCompositionVerified = explicitConfirmation ? true : targetWasVerified && allSourcesVerified;
 
-      // When additionalRentAmount > 0 is supplied, it overrides the carried rent obligation;
-      // otherwise (when omitted or 0), the cumulative source pending rent is automatically carried forward.
+      // Source GRN pending rent remains as separate pending bills and does not reflect on target GRN.
+      // Only explicit manual additionalRentAmount overrides add to the target GRN obligation.
       finalCarriedRent =
         input.additionalRentAmount != null && input.additionalRentAmount > 0
           ? input.additionalRentAmount
-          : totalSourcePendingRent;
+          : 0;
 
       const repackHamali = await resolveMergeRepackHamali({
         commodityId: targetGrn.commodityId,
@@ -129,9 +134,13 @@ export async function mergeGrn(
       const newSmall = targetGrn.smallBags + totalMovedSmall;
       const newBig = targetGrn.bigBags + totalMovedBig;
       const newRentAmount = Number((targetGrn.rentAmount + finalCarriedRent + repackHamali.repackHamaliCharge).toFixed(2));
+      const effectiveSourceBagTypes =
+        input.sourceBagCategory === 'Hybrid' || input.sourceBagType === 'Hybrid'
+          ? ['Hybrid' as const]
+          : sourceGrns.map((s) => s.bagType);
       const resultingBagType = resolveMergedBagType({
         targetBagType: targetGrn.bagType,
-        sourceBagTypes: sourceGrns.map((s) => s.bagType),
+        sourceBagTypes: effectiveSourceBagTypes,
         newSmallBags: newSmall,
         newBigBags: newBig,
       });
@@ -157,8 +166,9 @@ export async function mergeGrn(
         input.sourceBagCategory != null && isHybridBagCategory(input.sourceBagCategory)
           ? ` (Confirmed Hybrid: ${totalMovedBags} bags)`
           : '';
-      const carriedRentNote = finalCarriedRent > 0 ? `. Carried pending rent: ₹${finalCarriedRent}` : '';
-      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${actualMovedBags} bags${repackedNote}${repackHamaliNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}. Reason: ${input.remarks.trim()}]`;
+      const carriedRentNote = finalCarriedRent > 0 ? `. Additional rent: ₹${finalCarriedRent}` : '';
+      const sourceBillsNote = totalSourcePendingRent > 0 ? `. Source pending rent: ₹${totalSourcePendingRent} kept as separate pending bills` : '';
+      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${actualMovedBags} bags${repackedNote}${repackHamaliNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}${sourceBillsNote}. Reason: ${input.remarks.trim()}]`;
       const updatedTargetRemarks = appendGrnRemarks(targetGrn.remarks, targetNote);
 
       const updatedTarget = await GrnModel.findOneAndUpdate(

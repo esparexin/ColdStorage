@@ -13,10 +13,11 @@ export function formatGrnDate(dateVal?: string | Date | null): string {
 
 /**
  * Filters eligible inward GRNs with available stock based on search query matching
- * GRN #, Customer, Commodity, Marks, or Chamber. Exhausted stock consignments are excluded.
+ * GRN #, Customer, Commodity, Marks, Chamber, or merged remarks.
+ * Closed consignments and exhausted stock are excluded.
  */
 export function filterEligibleGrns(grns: Grn[], query: string): Grn[] {
-  const withStock = grns.filter((g) => getAvailableStockBags(g) > 0);
+  const withStock = grns.filter((g) => getAvailableStockBags(g) > 0 && g.status !== 'CLOSED' && !g.mergedIntoGrnId);
   if (!query.trim()) return withStock;
   const q = query.trim().toLowerCase();
   return withStock.filter(
@@ -26,8 +27,53 @@ export function filterEligibleGrns(grns: Grn[], query: string): Grn[] {
       g.commodityName.toLowerCase().includes(q) ||
       (Boolean(g.storageMark) && g.storageMark!.toLowerCase().includes(q)) ||
       (Boolean(g.partyMark) && g.partyMark!.toLowerCase().includes(q)) ||
-      (Boolean(g.chamber) && g.chamber.toLowerCase().includes(q)),
+      (Boolean(g.chamber) && g.chamber.toLowerCase().includes(q)) ||
+      (Boolean(g.remarks) && g.remarks!.toLowerCase().includes(q)),
   );
+}
+
+/**
+ * Extracts merged source GRN references from surviving GRN remarks (e.g. from GRN 0001 or multi-source 0010, 0012).
+ */
+export function parseMergedSourceGrns(remarks?: string | null): string | null {
+  if (!remarks) return null;
+  // Match "from <sources>" up to "into", ". Carried", ". Reason", "]" or end of string
+  const fromPartMatch = remarks.match(/from\s+([^\]]+?)(?:\s+into|\.\s+Carried|\.\s+Reason|\]|$)/i);
+  if (!fromPartMatch) {
+    const fallbackMatch = remarks.match(/from (?:GRN\s+)?([A-Za-z0-9-]+)/i);
+    return fallbackMatch ? fallbackMatch[1] : null;
+  }
+  const fromSection = fromPartMatch[1];
+  // Extract all GRN numbers (e.g. "GRN 0010", "GRN 0012" or comma-separated tokens)
+  const grnMatches = Array.from(fromSection.matchAll(/GRN\s+([A-Za-z0-9-]+)/gi)).map((m) => m[1]);
+  if (grnMatches.length > 0) {
+    const unique = Array.from(new Set(grnMatches));
+    return unique.join(', ');
+  }
+  // If no explicit "GRN ####" was found, extract standalone identifier after "from"
+  const single = fromSection.match(/(?:GRNs?\s+)?([A-Za-z0-9-]+)/i);
+  return single ? single[1] : null;
+}
+
+/**
+ * Extracts merged added bag count from remarks (e.g. "+60 bags" in "[MERGE RECEIVED: +60 bags...]").
+ */
+export function parseMergedAddedBags(remarks?: string | null): number | null {
+  if (!remarks) return null;
+  const match = remarks.match(/\+(\d+)\s+bags/i);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+/**
+ * Extracts repacked bag composition from remarks (e.g. "Repacked: 30 S + 30 B = 60 bags" -> "30 Small, 30 Big").
+ */
+export function parseMergedRepackedDetail(remarks?: string | null): string | null {
+  if (!remarks) return null;
+  const match = remarks.match(/Repacked:\s*(\d+)\s*S\s*\+\s*(\d+)\s*B/i);
+  if (match) {
+    return `${match[1]} Small, ${match[2]} Big`;
+  }
+  return null;
 }
 
 /**
@@ -75,6 +121,7 @@ export function getEligibleGrnMarks(grn: Grn): {
  * Returns available stock bags with fallback to inward bags, clamped at 0.
  */
 export function getAvailableStockBags(grn: Grn): number {
+  if (grn.status === 'CLOSED' || Boolean(grn.mergedIntoGrnId)) return 0;
   return Math.max(0, grn.closingBags ?? grn.bags ?? 0);
 }
 

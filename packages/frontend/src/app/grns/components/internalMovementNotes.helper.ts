@@ -7,7 +7,7 @@ import { isHybridBagCategory, type Grn, type InternalMovementRecord } from '@col
 
 export interface MergedGrnNote {
   id: string; title: string; date: string; bags: number; repackedDetail?: string; source: string;
-  carriedRent: number; reason: string;
+  carriedRent: number; separateSourceRent: number; reason: string;
 }
 
 export interface MergeTableRow {
@@ -20,20 +20,30 @@ export interface MergeTableRow {
 export function parseMergedGrnNotes(remarks?: string | null): MergedGrnNote[] {
   if (!remarks) return [];
   const mergeRx =
-    /\[MERGE RECEIVED on ([^:]+):\s*\+?(\d+)\s*bags(.*?)\s+from\s+([^.]+)\.(?:[^.]*Carried pending rent:\s*₹?(\d+)\.)?\s*Reason:\s*([^\]]+)\]/gi;
+    /\[MERGE RECEIVED on ([^:]+):\s*\+?(\d+)\s*bags(.*?)\s+from\s+([\s\S]*?)(?:\.\s*Reason:|\s*Reason:)\s*([^\]]+)\]/gi;
   const notes: MergedGrnNote[] = [];
   let match: RegExpExecArray | null;
   while ((match = mergeRx.exec(remarks)) !== null) {
-    const [, date, bagsStr, qualifiers, source, carriedRentStr, reason] = match;
+    const [, date, bagsStr, qualifiers, sourceAndNotes, reason] = match;
     const repackedMatch = qualifiers ? qualifiers.match(/Repacked:[^)]+/i) : null;
+    const carriedMatch = sourceAndNotes.match(/(?:Carried pending rent|Additional rent):\s*₹?(\d+)/i);
+    const separateMatch = sourceAndNotes.match(
+      /Source pending rent:\s*₹?(\d+)\s*kept as separate pending bills/i,
+    );
+    const cleanSource = sourceAndNotes
+      .replace(/\.?\s*(?:Carried pending rent|Additional rent):\s*₹?\d+/i, '')
+      .replace(/\.?\s*Source pending rent:\s*₹?\d+\s*kept as separate pending bills/i, '')
+      .trim();
+
     notes.push({
-      id: `merge-${date.trim()}-${source.trim().replace(/\s+/g, '-')}`,
+      id: `merge-${date.trim()}-${cleanSource.slice(0, 30).replace(/\s+/g, '-')}`,
       title: 'Merged Stock Inward',
       date: date.trim(),
       bags: Number(bagsStr),
       repackedDetail: repackedMatch ? repackedMatch[0].trim() : undefined,
-      source: source.trim(),
-      carriedRent: carriedRentStr ? Number(carriedRentStr) : 0,
+      source: cleanSource,
+      carriedRent: carriedMatch ? Number(carriedMatch[1]) : 0,
+      separateSourceRent: separateMatch ? Number(separateMatch[1]) : 0,
       reason: reason?.trim() || 'Internal Move / Merge',
     });
   }

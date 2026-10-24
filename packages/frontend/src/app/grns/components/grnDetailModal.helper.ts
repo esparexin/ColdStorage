@@ -38,6 +38,28 @@ export function extractMergedDetails(grn: Grn, allGrns: Grn[] = []): MergedDetai
     }
   }
 
+  // 1b. Also parse multi-source structured remark written by merge-grn.handler:
+  // e.g. [MERGE RECEIVED on 2026-10-22: +60 bags (Repacked: 30 S + 30 B = 60 bags)... from GRN 0010 (... Bags: 10 ...); GRN 0012 (... Bags: 12 ...)]
+  if (remarks.includes('[MERGE RECEIVED')) {
+    const sourceRx = /GRN\s+([A-Za-z0-9-]+)\s*\([^)]*?Bags:\s*(\d+)/gi;
+    let sm: RegExpExecArray | null;
+    while ((sm = sourceRx.exec(remarks)) !== null) {
+      const sourceGrnNum = sm[1];
+      const sourceBags = Number(sm[2]) || 0;
+      if (!seenGrnNumbers.has(sourceGrnNum)) {
+        seenGrnNumbers.add(sourceGrnNum);
+        const sourceGrn = allGrns.find((g) => g.grnNumber === sourceGrnNum);
+        list.push({
+          grnNumber: sourceGrnNum,
+          bags: sourceBags,
+          chamber: sourceGrn?.chamber || null,
+          storageMark: sourceGrn?.storageMark || sourceGrnNum,
+          partyMark: sourceGrn?.partyMark || null,
+        });
+      }
+    }
+  }
+
   // 2. Also check allGrns for any merged source lots not captured in remarks
   for (const g of allGrns) {
     if (

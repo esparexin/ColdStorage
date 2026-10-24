@@ -11,7 +11,7 @@
  * without importing React/CSS.
  */
 
-import type { OutwardBagCategory, PaymentMode, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
+import type { BagType, OutwardBagCategory, PaymentMode, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
 
 export interface MergePayload {
   targetGrnId: string;
@@ -23,8 +23,8 @@ export interface MergePayload {
   repackedSmallBags?: number;
   repackedBigBags?: number;
   repackedBagCount?: number;
-  // Source bag-category confirmation (outward vocabulary, informational for rent).
-  sourceBagCategory?: OutwardBagCategory;
+  // Source bag-type confirmation (outward vocabulary, informational for rent).
+  sourceBagCategory?: OutwardBagCategory | BagType;
   sourceQuantity?: number;
   sourceBagPrice?: number;
   sourceSeasonalBagPrice?: number;
@@ -43,7 +43,8 @@ export interface TransferPayload {
   settlementDetails?: TransferSettlementDetails;
   confirmedSmallBags?: number;
   confirmedBigBags?: number;
-  sourceBagCategory?: OutwardBagCategory;
+  sourceBagType?: BagType;
+  sourceBagCategory?: OutwardBagCategory | BagType;
   sourceQuantity?: number;
   sourceBagPrice?: number;
   sourceSeasonalBagPrice?: number;
@@ -67,7 +68,7 @@ export function buildMergePayload(
   referenceWeight?: number,
   sourcePaymentAmount?: number,
   sourcePaymentMode?: PaymentMode,
-  sourceBagCategory?: OutwardBagCategory,
+  sourceBagCategory?: OutwardBagCategory | BagType,
   sourceQuantity?: number,
   sourceBagPrice?: number,
   sourceSeasonalBagPrice?: number,
@@ -107,7 +108,7 @@ export function buildTransferPayload(
   confirmation?: {
     confirmedSmallBags?: number;
     confirmedBigBags?: number;
-    sourceBagCategory?: OutwardBagCategory;
+    sourceBagCategory?: OutwardBagCategory | BagType;
     sourceQuantity?: number;
     sourceBagPrice?: number;
     sourceSeasonalBagPrice?: number;
@@ -156,3 +157,26 @@ export function validateTransferPayment(
   }
   return null;
 }
+
+export function validateMergePaymentDecision(params: {
+  decision: string;
+  sourceCount?: number;
+  amount: number;
+  pending: number;
+  paymentMode?: string;
+}): string | null {
+  const { decision, amount, pending, paymentMode } = params;
+  if (pending <= 0 || decision === 'AGREED_PENDING') return null;
+  if (decision !== 'SETTLE_NOW') return 'Invalid payment decision.';
+  if (typeof amount !== 'number' || amount <= 0) {
+    return 'Enter a settlement amount greater than zero.';
+  }
+  if (amount > pending) {
+    return `Settlement amount cannot exceed outstanding rent of ₹${pending.toLocaleString('en-IN')}.`;
+  }
+  if (!paymentMode) {
+    return 'Please select a payment mode.';
+  }
+  return null;
+}
+

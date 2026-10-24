@@ -17,22 +17,7 @@ export interface MovementSettlementProps {
   disabled?: boolean;
   transfereeOrTargetName?: string;
   isTransfer?: boolean;
-}
-
-export function validateMovementSettlement(
-  decision: TransferPaymentDecision,
-  settleAmount: number,
-  pendingAmount: number,
-): string | null {
-  if (decision === 'SETTLE_NOW') {
-    if (typeof settleAmount !== 'number' || settleAmount <= 0) {
-      return 'Please enter a valid settlement payment amount greater than zero.';
-    }
-    if (settleAmount > pendingAmount) {
-      return `Settlement amount cannot exceed outstanding rent balance of ₹${pendingAmount.toLocaleString('en-IN')}.`;
-    }
-  }
-  return null;
+  isMultiSource?: boolean;
 }
 
 export function MovementSettlementDecisionSection({
@@ -46,8 +31,10 @@ export function MovementSettlementDecisionSection({
   disabled = false,
   transfereeOrTargetName,
   isTransfer = false,
+  isMultiSource: _isMultiSource = false,
 }: MovementSettlementProps) {
   const carryForwardTarget = transfereeOrTargetName ? `(${transfereeOrTargetName})` : '';
+  const isSettleDisabled = disabled;
 
   return (
     <div className={styles.compactCard}>
@@ -57,14 +44,14 @@ export function MovementSettlementDecisionSection({
           <span>Rent Settlement Decision</span>
         </span>
         <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary-text)', fontWeight: 'var(--font-bold)' }}>
-          {pendingAmount > 0 ? `Outstanding Rent: ₹${pendingAmount.toLocaleString('en-IN')}` : 'Fully Settled (₹0 due)'}
+          {pendingAmount > 0 ? `Outstanding Balance: ₹${pendingAmount.toLocaleString('en-IN')}` : 'Fully Settled (₹0 due)'}
         </span>
       </div>
 
       {pendingAmount > 0 ? (
         <>
           <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
-            Choose how to resolve the unpaid rent liability of ₹{pendingAmount.toLocaleString('en-IN')}:
+            Choose how to resolve the unpaid liability of ₹{pendingAmount.toLocaleString('en-IN')}:
           </div>
 
           <div className={styles.decisionGrid}>
@@ -80,45 +67,46 @@ export function MovementSettlementDecisionSection({
                   <input
                     type="radio"
                     name="settlement-decision"
-                    aria-label="Option A: Carry Forward"
+                    aria-label={isTransfer ? 'Pay Later' : 'Separate Pending Bills'}
                     checked={decision === 'AGREED_PENDING'}
                     onChange={() => onDecisionChange('AGREED_PENDING')}
                     disabled={disabled}
                   />
-                  Option A: Carry Forward
+                  {isTransfer ? 'Pay Later' : 'Separate Pending Bills'}
                 </span>
-                <Badge variant="neutral">AGREED_PENDING</Badge>
+                <Badge variant="neutral">{isTransfer ? 'Carry Forward' : 'Separate Bills'}</Badge>
               </div>
               <div className={styles.decisionDesc}>
                 {isTransfer
                   ? `Transferee ${carryForwardTarget} assumes the unpaid balance. Dues carry forward and must be cleared prior to delivery.`
-                  : `Surviving destination GRN ${carryForwardTarget} assumes the unpaid balance. Dues carry forward without payment today.`}
+                  : `Source GRN unpaid balance remains as a separate pending bill under Pending Dues. It will not reflect on target GRN ${carryForwardTarget}.`}
               </div>
             </div>
 
             <div
-              className={`${styles.decisionCard} ${decision === 'SETTLE_NOW' ? styles.decisionCardSelected : ''}`}
-              onClick={() => { if (!disabled) onDecisionChange('SETTLE_NOW'); }}
+              className={`${styles.decisionCard} ${decision === 'SETTLE_NOW' ? styles.decisionCardSelected : ''} ${isSettleDisabled ? styles.decisionCardDisabled : ''}`}
+              onClick={() => { if (!isSettleDisabled) onDecisionChange('SETTLE_NOW'); }}
               role="radio"
               aria-checked={decision === 'SETTLE_NOW'}
-              tabIndex={0}
+              aria-disabled={isSettleDisabled}
+              tabIndex={isSettleDisabled ? -1 : 0}
             >
               <div className={styles.decisionHeader}>
                 <span className={styles.decisionTitle}>
                   <input
                     type="radio"
                     name="settlement-decision"
-                    aria-label="Option B: Settle Now"
+                    aria-label="Pay Now"
                     checked={decision === 'SETTLE_NOW'}
                     onChange={() => onDecisionChange('SETTLE_NOW')}
-                    disabled={disabled}
+                    disabled={isSettleDisabled}
                   />
-                  Option B: Settle Now
+                  Pay Now
                 </span>
-                <Badge variant="primary">SETTLE_NOW</Badge>
+                <Badge variant="primary">Settle Now</Badge>
               </div>
               <div className={styles.decisionDesc}>
-                Clear the outstanding rent balance now. An official payment receipt is generated immediately.
+                Clear the outstanding rent balance now. Official payment receipt(s) will be generated immediately.
               </div>
             </div>
           </div>
