@@ -78,7 +78,7 @@ export function DeliveryBagCompositionFields({
   const { bags: bagsError, smallBags: smallError, bigBags: bigError } = fieldErrors;
   const availableTotal = summary.availableSmallBags + summary.availableBigBags;
   const isSegregated = summary.availableSmallBags > 0 && summary.availableBigBags > 0;
-  const isHybrid = bagType === 'Hybrid' || isHybridBagCategory(bagCategory);
+  const isHybrid = bagCategory ? isHybridBagCategory(bagCategory) : (bagType === 'Hybrid' || isHybridBagCategory(bagType));
   const isUnsegregatedSb = bagType === 'S/B' && !isSegregated;
   const isCombinedPool = isUnsegregatedSb;
 

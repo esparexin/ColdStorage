@@ -4,7 +4,7 @@ import React from 'react';
 import { GitMerge } from 'lucide-react';
 import type { BagType, Grn, GrnInventorySummary, OutwardBagCategory, RentSummaryDto } from '@cold-storage/contracts';
 import { isHybridBagCategory, parseMergedConsignmentBreakdown } from '@cold-storage/contracts';
-import { Badge, Button } from '@/components/ui';
+import { Badge, Button, Select } from '@/components/ui';
 import {
   parseMergedAddedBags,
   parseMergedRepackedDetail,
@@ -31,30 +31,44 @@ export function SelectedGrnCard({
   onChangeGrn,
   bagType,
   bagCategory,
+  onBagTypeChange,
+  onBagCategoryChange,
 }: SelectedGrnCardProps) {
   const availableBags = summary
     ? summary.availableSmallBags + summary.availableBigBags
     : (grn.closingBags ?? grn.bags);
-  const isHybrid = bagType === 'Hybrid' || isHybridBagCategory(bagCategory) || isHybridBagCategory(grn.bagType);
   const breakdown =
     rentSummary?.mergedConsignment ??
     parseMergedConsignmentBreakdown(grn.remarks, grn.bags, grn.customerName);
+  const safeAddedBags = breakdown ? breakdown.totalMergedAddedBags : (parseMergedAddedBags(grn.remarks) ?? 0);
+  const isMergedConsignment = safeAddedBags > 0;
+  const isDualSectionMerged = Boolean(
+    breakdown &&
+    breakdown.isMergedTarget &&
+    breakdown.genesisBags > 0 &&
+    breakdown.totalMergedAddedBags > 0,
+  );
+  const hasTypeSelection = !isDualSectionMerged && Boolean(onBagTypeChange || onBagCategoryChange);
+  const selectedBagCategory = bagCategory ?? (bagType ? (bagType === 'Hybrid' ? 'Hybrid' : 'S/B') : undefined);
+  const isHybrid = selectedBagCategory
+    ? isHybridBagCategory(selectedBagCategory)
+    : (bagType === 'Hybrid' || isHybridBagCategory(grn.bagType));
   const mergedFrom = breakdown && breakdown.sources.length > 0
     ? Array.from(new Set(breakdown.sources.map((s) => s.grnNumber))).join(', ')
     : parseMergedSourceGrns(grn.remarks);
-  const safeAddedBags = breakdown ? breakdown.totalMergedAddedBags : (parseMergedAddedBags(grn.remarks) ?? 0);
-  const isMergedConsignment = safeAddedBags > 0;
   const repackedDetail = parseMergedRepackedDetail(grn.remarks);
   const genesisInwardBags = breakdown
     ? breakdown.genesisBags
     : (isMergedConsignment && grn.bags > safeAddedBags ? grn.bags - safeAddedBags : grn.bags);
-  const displayBagType = isHybrid
-    ? 'Hybrid'
-    : grn.bagType === 'S'
-      ? 'Small'
-      : grn.bagType === 'B'
-        ? 'Big'
-        : 'Small & Big';
+  const displayBagType = isDualSectionMerged
+    ? `${genesisInwardBags} Unclassified + ${safeAddedBags} Confirmed`
+    : isHybrid
+      ? 'Hybrid'
+      : grn.bagType === 'S'
+        ? 'Small'
+        : grn.bagType === 'B'
+          ? 'Big'
+          : 'Small & Big';
 
   return (
     <div className={styles.card} id="selected-grn-summary-card">
@@ -157,12 +171,30 @@ export function SelectedGrnCard({
           </>
         )}
 
-        <div className={styles.detailItem}>
-          <span className={styles.detailLabel}>Bag Type</span>
-          <span className={styles.detailValue}>
-            <Badge variant="neutral">{displayBagType}</Badge>
-          </span>
-        </div>
+        {hasTypeSelection ? (
+          <div className={styles.detailItem}>
+            <Select
+              id="delivery-bag-type-select"
+              label="Bag Type"
+              value={isHybrid ? 'Hybrid' : 'S/B'}
+              onChange={(e) => {
+                const val = e.target.value as BagType;
+                if (onBagTypeChange) onBagTypeChange(val);
+                if (onBagCategoryChange) onBagCategoryChange(val as OutwardBagCategory);
+              }}
+            >
+              <option value="S/B">Small &amp; Big (S/B)</option>
+              <option value="Hybrid">Hybrid</option>
+            </Select>
+          </div>
+        ) : (
+          <div className={styles.detailItem}>
+            <span className={styles.detailLabel}>Bag Type</span>
+            <span className={styles.detailValue}>
+              <Badge variant="neutral">{displayBagType}</Badge>
+            </span>
+          </div>
+        )}
         {mergedFrom && (
           <div className={styles.detailItem}>
             <span className={styles.detailLabel}>Source Traceability</span>

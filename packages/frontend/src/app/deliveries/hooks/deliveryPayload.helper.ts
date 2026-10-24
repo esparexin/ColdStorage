@@ -1,4 +1,11 @@
-import { isHybridBagCategory, normalizeIndianVehicleNumber, type BagType, type OutwardBagCategory } from '@cold-storage/contracts';
+import {
+  isHybridBagCategory,
+  normalizeIndianVehicleNumber,
+  type BagType,
+  type ConfirmedDispatchAllocation,
+  type OutwardBagCategory,
+  type UnclassifiedDispatchAllocation,
+} from '@cold-storage/contracts';
 
 export interface DeliveryPayloadInput {
   grnId: string;
@@ -21,6 +28,8 @@ export interface DeliveryPayloadInput {
   createGpNumber: string;
   createRemarks: string;
   idempotencyKey?: string;
+  unclassifiedDispatch?: UnclassifiedDispatchAllocation;
+  confirmedDispatch?: ConfirmedDispatchAllocation;
 }
 
 /**
@@ -83,6 +92,12 @@ export function buildDeliveryPayload(input: DeliveryPayloadInput): Record<string
   }
   if (input.idempotencyKey?.trim()) {
     payload.idempotencyKey = input.idempotencyKey.trim();
+  }
+  if (input.unclassifiedDispatch) {
+    payload.unclassifiedDispatch = input.unclassifiedDispatch;
+  }
+  if (input.confirmedDispatch) {
+    payload.confirmedDispatch = input.confirmedDispatch;
   }
 
   return payload;

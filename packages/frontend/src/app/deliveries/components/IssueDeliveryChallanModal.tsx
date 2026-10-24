@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ArrowLeft, Plus } from 'lucide-react';
-import type { Grn, RentSummaryDto } from '@cold-storage/contracts';
+import type { Grn, OutwardBagCategory, RentSummaryDto } from '@cold-storage/contracts';
 import { Button, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
@@ -10,6 +10,7 @@ import { LOADING_LABELS } from '@/components/ui/stateCopy';
 import type { useCreateDeliveryForm } from '../hooks/useCreateDeliveryForm';
 import { SelectedGrnCard } from './SelectedGrnCard';
 import { DeliveryBagCompositionFields } from './DeliveryBagCompositionFields';
+import { MergedDualSectionDelivery } from './MergedDualSectionDelivery';
 import { DeliveryTransportFields } from './DeliveryTransportFields';
 import pageStyles from '../page.module.css';
 import styles from './IssueDeliveryChallanModal.module.css';
@@ -101,7 +102,10 @@ export function IssueDeliveryChallanModal({
             summary={form.grnSummary}
             rentSummary={form.rentSummary}
             onChangeGrn={onChangeGrn ? onChangeGrn : () => void form.handleSelectGrn('')}
+            bagType={form.bagCategory === 'Hybrid' ? 'Hybrid' : 'S/B'}
             bagCategory={form.bagCategory}
+            onBagTypeChange={(bt) => form.setBagCategory(bt as OutwardBagCategory)}
+            onBagCategoryChange={form.setBagCategory}
           />
         )}
 
@@ -130,35 +134,42 @@ export function IssueDeliveryChallanModal({
         ) : (
           form.grnSummary && form.selectedGrn && !form.isLoanHoldActive && (
             <>
-              <DeliveryBagCompositionFields
-                summary={form.grnSummary}
-                bagType={form.selectedGrn.bagType}
-                rentType={form.selectedGrn.rentType}
-                rentMonths={form.billableRentMonths}
-                smallBagPrice={form.selectedGrn.smallBagPrice ?? (form.selectedGrn.rentType === 'Monthly' ? form.monthlyCommodityRates?.small : form.seasonalCommodityRates?.small)}
-                bigBagPrice={form.selectedGrn.bigBagPrice ?? (form.selectedGrn.rentType === 'Monthly' ? form.monthlyCommodityRates?.big : form.seasonalCommodityRates?.big)}
-                bagPrice={form.selectedGrn.bagPrice}
-                inwardDate={form.selectedGrn.date}
-                deliveryDate={form.createDate}
-                monthlyRates={form.monthlyCommodityRates}
-                bagCategory={form.bagCategory}
-                manualBagPrice={form.manualBagPrice}
-                onManualBagPriceChange={form.setManualBagPrice}
-                seasonalBagPrice={form.seasonalBagPrice}
-                monthlyBagPrice={form.monthlyBagPrice}
-                onSeasonalBagPriceChange={form.setSeasonalBagPrice}
-                onMonthlyBagPriceChange={form.setMonthlyBagPrice}
-                showSeasonalRate={form.rateVisibility.showSeasonalRate}
-                showMonthlyRate={form.rateVisibility.showMonthlyRate}
-                outwardRent={form.outwardRent}
-                withdrawal={form.withdrawal}
-                onQuantityChange={form.setWithdrawalQuantity}
-                onSmallBagsChange={form.setWithdrawalSmallBags}
-                onBigBagsChange={form.setWithdrawalBigBags}
-                fieldErrors={form.fieldErrors}
-                rentSummary={form.rentSummary}
-                hamaliRate={form.hamaliRate}
-              />
+              {form.dualSection.isDualSection ? (
+                <MergedDualSectionDelivery
+                  grn={form.selectedGrn}
+                  dualSection={form.dualSection}
+                />
+              ) : (
+                <DeliveryBagCompositionFields
+                  summary={form.grnSummary}
+                  bagType={form.bagCategory === 'Hybrid' ? 'Hybrid' : (form.selectedGrn.bagType === 'Hybrid' ? 'S/B' : form.selectedGrn.bagType)}
+                  rentType={form.selectedGrn.rentType}
+                  rentMonths={form.billableRentMonths}
+                  smallBagPrice={form.selectedGrn.smallBagPrice ?? (form.selectedGrn.rentType === 'Monthly' ? form.monthlyCommodityRates?.small : form.seasonalCommodityRates?.small)}
+                  bigBagPrice={form.selectedGrn.bigBagPrice ?? (form.selectedGrn.rentType === 'Monthly' ? form.monthlyCommodityRates?.big : form.seasonalCommodityRates?.big)}
+                  bagPrice={form.selectedGrn.bagPrice}
+                  inwardDate={form.selectedGrn.date}
+                  deliveryDate={form.createDate}
+                  monthlyRates={form.monthlyCommodityRates}
+                  bagCategory={form.bagCategory}
+                  manualBagPrice={form.manualBagPrice}
+                  onManualBagPriceChange={form.setManualBagPrice}
+                  seasonalBagPrice={form.seasonalBagPrice}
+                  monthlyBagPrice={form.monthlyBagPrice}
+                  onSeasonalBagPriceChange={form.setSeasonalBagPrice}
+                  onMonthlyBagPriceChange={form.setMonthlyBagPrice}
+                  showSeasonalRate={form.rateVisibility.showSeasonalRate}
+                  showMonthlyRate={form.rateVisibility.showMonthlyRate}
+                  outwardRent={form.outwardRent}
+                  withdrawal={form.withdrawal}
+                  onQuantityChange={form.setWithdrawalQuantity}
+                  onSmallBagsChange={form.setWithdrawalSmallBags}
+                  onBigBagsChange={form.setWithdrawalBigBags}
+                  fieldErrors={form.fieldErrors}
+                  rentSummary={form.rentSummary}
+                  hamaliRate={form.hamaliRate}
+                />
+              )}
               <DeliveryTransportFields
                 createDate={form.createDate}
                 setCreateDate={form.setCreateDate}
