@@ -13,7 +13,6 @@ import { requestWithAuth } from '@/lib/api-client';
 import { OutwardRentBreakdown } from '@/app/deliveries/components/OutwardRentBreakdown';
 import { computeOutwardRentCharge } from '@/app/deliveries/hooks/deliveryRent.helper';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
-import { deriveMergeRentAssessment } from './mergeRentAssessment.helper';
 
 export interface MergeRentAssessmentProps {
   source: Grn;
@@ -119,14 +118,6 @@ export function MergeRentAssessment({
     bigBagPrice: source.bigBagPrice,
     bagPrice: source.bagPrice,
     excludePeriodKeys,
-  });
-
-  const { historicalObligation } = deriveMergeRentAssessment({
-    source,
-    summary,
-    repackMode: false,
-    commodityHamaliRate,
-    calculatedRent,
   });
 
   const storedRent = summary?.rentAmount ?? source.rentAmount ?? 0;

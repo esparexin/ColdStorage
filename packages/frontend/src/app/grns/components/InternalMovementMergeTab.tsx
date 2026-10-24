@@ -38,7 +38,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
   const { currentGrn, facilityId, submitting, initiatingGrnId } = props;
   const {
     step, setStep, targetGrnId, selectedSourceIds,
-    movementDate, reason, setReason, remarks, setRemarks, confirmation, setConfirmation,
+    movementDate, reason, setReason, remarks, setRemarks, confirmation,
     sourceConfirmations, updateSourceConfirmation, sourceRentSummaries,
     settlementDecision, setSettlementDecision, settleAmount, setSettleAmount,
     paymentMode, setPaymentMode, repackMode, setRepackMode, repackBagType, setRepackBagType,

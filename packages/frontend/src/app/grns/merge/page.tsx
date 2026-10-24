@@ -2,7 +2,7 @@
 
 import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, CheckCircle, GitMerge } from 'lucide-react';
+import { ArrowLeft, CheckCircle } from 'lucide-react';
 import type { Commodity, Grn, OutwardBagCategory, PaymentMode } from '@cold-storage/contracts';
 import { Banner, Button, FeedbackStates } from '@/components/ui';
 import { ACCESS_MESSAGES, EMPTY_MESSAGES, ERROR_TITLES, LOADING_LABELS } from '@/components/ui/stateCopy';

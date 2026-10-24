@@ -63,6 +63,9 @@ describe('calculateRemainingMergedStockPools', () => {
         bigBags: 19,
         totalBags: 44,
         status: 'ISSUED',
+        issuedBy: 'usr-1',
+        createdAt: new Date('2026-10-24'),
+        updatedAt: new Date('2026-10-24'),
         unclassifiedDispatch: {
           bagType: 'S/B',
           smallBags: 10,
@@ -105,6 +108,9 @@ describe('calculateRemainingMergedStockPools', () => {
         bigBags: 19,
         totalBags: 44,
         status: 'REVERSED',
+        issuedBy: 'usr-1',
+        createdAt: new Date('2026-10-24'),
+        updatedAt: new Date('2026-10-24'),
         unclassifiedDispatch: {
           bagType: 'S/B',
           smallBags: 10,

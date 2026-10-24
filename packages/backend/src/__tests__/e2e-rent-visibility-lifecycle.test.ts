@@ -1,11 +1,9 @@
-import mongoose from 'mongoose';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CommodityModel } from '../database/models/commodity.model.js';
 import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { CustomerModel } from '../database/models/customer.model.js';
 import { FacilityModel } from '../database/models/facility.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
-import { InternalMovementModel } from '../database/models/internal-movement.model.js';
 import { createGrn } from '../modules/grn/handlers/create-grn.handler.js';
 import { createDeliveryWithRetry } from '../modules/delivery/handlers/create-delivery.handler.js';
 import { rentService } from '../modules/rent/rent.service.js';
@@ -97,7 +95,6 @@ describe('End-to-End Rent Billing & Visibility Lifecycle (PR 6)', { timeout: 350
         bigBagPrice: 35,
         bagPrice: 30,
         rentAmount: opts.rentAmount ?? 0,
-        isCompositionVerified: opts.isCompositionVerified ?? true,
       },
       userId,
       { requireRates: false },
@@ -227,7 +224,7 @@ describe('End-to-End Rent Billing & Visibility Lifecycle (PR 6)', { timeout: 350
         amountPaid: summaryBeforePayment.remainingBalance,
         paymentMode: 'UPI',
         paymentDate: new Date('2026-08-11'),
-        upiReference: 'UPI-SETTLE-001',
+        notes: 'UPI-SETTLE-001',
       },
       userId,
     );
@@ -249,6 +246,7 @@ describe('End-to-End Rent Billing & Visibility Lifecycle (PR 6)', { timeout: 350
           grnId: grn.id,
           amountPaid: 1,
           paymentMode: 'Cash',
+          paymentDate: new Date(),
         },
         userId,
       ),
@@ -271,6 +269,7 @@ describe('End-to-End Rent Billing & Visibility Lifecycle (PR 6)', { timeout: 350
         targetGrnId: target.id,
         sourceGrnIds: [source.id],
         movementDate: new Date('2026-07-01'),
+        additionalRentAmount: 0,
         remarks: 'Lot consolidation per customer request',
       },
       userId,
@@ -321,8 +320,7 @@ describe('End-to-End Rent Billing & Visibility Lifecycle (PR 6)', { timeout: 350
         settlementDetails: {
           amountPaid: 1800,
           paymentMode: 'Cash',
-          paymentDate: new Date('2026-07-15'),
-          notes: 'Settled by Customer A at ownership handover',
+          paymentNotes: 'Settled by Customer A at ownership handover',
         },
       },
       userId,

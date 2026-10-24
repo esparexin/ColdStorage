@@ -31,7 +31,7 @@ export function MovementSettlementDecisionSection({
   disabled = false,
   transfereeOrTargetName,
   isTransfer = false,
-  isMultiSource = false,
+  isMultiSource: _isMultiSource = false,
 }: MovementSettlementProps) {
   const carryForwardTarget = transfereeOrTargetName ? `(${transfereeOrTargetName})` : '';
   const isSettleDisabled = disabled;

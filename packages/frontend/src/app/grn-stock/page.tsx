@@ -25,9 +25,6 @@ export default function GrnStockPage() {
   const canViewGrnStock = hasPermission('grn:view');
 
   const {
-    grns,
-    customers,
-    commodities,
     loading,
     error,
     searchTerm,

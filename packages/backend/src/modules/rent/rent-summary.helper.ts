@@ -114,7 +114,6 @@ export function buildRentSummary(
   const isLegacyUnverifiedHamali =
     grn.hamaliRate == null && grn.hamaliAmount == null && hamaliShare > 0 && payments.length === 0;
   const isPendingVerification = isCompositionUnverified || isLegacyUnverifiedHamali;
-  const isMergedSource = Boolean(grn.mergedIntoGrnId);
   const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
   const effectiveTotalDue = totalPaid > totalDue ? totalPaid : totalDue;
   const effectiveBaseRent = totalPaid > baseRent && baseRent === totalDue ? totalPaid : baseRent;

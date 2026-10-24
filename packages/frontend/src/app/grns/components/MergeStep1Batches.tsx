@@ -41,7 +41,6 @@ export function MergeStep1Batches({
     );
   }, [eligibleSources, sourceSearch]);
 
-  const isTargetSbSplit = targetGrn.smallBags > 0 || targetGrn.bigBags > 0;
   const targetDisplayType = formatDisplayBagType({
     bagType: targetGrn.bagType,
     smallBags: targetGrn.smallBags,
