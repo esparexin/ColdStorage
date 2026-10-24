@@ -132,10 +132,11 @@ describe('Internal Move bag-category confirmation (outward SSOT)', () => {
     expect(hybrid.status).toBe(200);
     expect(hybrid.body.movement.smallBagsMoved + hybrid.body.movement.bigBagsMoved).toBe(50);
     expect(hybrid.body.movement.sourceBagCategory).toBe('Hybrid');
-    expect(hybrid.body.movement.sourceBagPrice).toBe(99.99);
-    // Hybrid rate (50 * 99.99 = 4999.50) updates source rent and carries forward into target (2000 + 4999.5 = 6999.5)
-    expect(hybrid.body.movement.financialSnapshot.rentAmount).toBe(6999.5);
-    expect(hybrid.body.targetGrn.rentAmount).toBe(6999.5);
+    // Hybrid rate (50 * 99.99 = 4999.50) updates source rent as separate bill; target keeps strictly its own (2000)
+    expect(hybrid.body.movement.financialSnapshot.rentAmount).toBe(2000);
+    expect(hybrid.body.targetGrn.rentAmount).toBe(2000);
+    const closedSource = await GrnModel.findOne({ id: source2 }).lean().exec();
+    expect(closedSource?.rentAmount).toBe(4999.5);
   });
 
   it('rejects retired Small-only category with guidance toward the split', async () => {

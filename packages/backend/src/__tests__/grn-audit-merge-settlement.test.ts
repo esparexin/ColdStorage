@@ -104,7 +104,7 @@ describe('GRN Audit: Bag Types, Payment Settlement, Hamali & Verification', () =
         });
 
       expect(res.status).toBe(200);
-      expect(res.body.targetGrn.rentAmount).toBeGreaterThan(500);
+      expect(res.body.targetGrn.rentAmount).toBe(500);
       expect(res.body.targetGrn.bags).toBe(80);
 
       const closedSource = await GrnModel.findOne({ id: sourceGrnId }).lean().exec();

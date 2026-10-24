@@ -159,8 +159,8 @@ describe('GRN Audit & Fix: Year-wise Rent, Merge, Payments, Bag-Type', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      // Rent is recomputed for all historical seasons (not just stored rentAmount)
-      expect(res.body.targetGrn.rentAmount).toBeGreaterThan(500);
+      // Under independent billing, target GRN retains strictly its own obligation (500)
+      expect(res.body.targetGrn.rentAmount).toBe(500);
       expect(res.body.targetGrn.bags).toBe(150);
 
       // Source closed with preserved financial record
@@ -233,8 +233,8 @@ describe('GRN Audit & Fix: Year-wise Rent, Merge, Payments, Bag-Type', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.targetGrn.bags).toBe(80); // 50 + 30
-      // Rent recomputed for all historical seasons (not just stored rentAmount)
-      expect(res.body.targetGrn.rentAmount).toBeGreaterThan(500);
+      // Under independent billing, target GRN retains strictly its own obligation (500)
+      expect(res.body.targetGrn.rentAmount).toBe(500);
 
       const closedSource = await GrnModel.findOne({ id: sourceGrnId }).lean().exec();
       expect(closedSource?.status).toBe('CLOSED');

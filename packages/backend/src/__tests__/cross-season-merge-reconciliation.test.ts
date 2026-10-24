@@ -87,8 +87,8 @@ describe('Cross-Season Merge — Seasonal Rent Reconciliation (GRN 0032 to 0033)
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    // Target base 200 + 660 carried pending rent = 860
-    expect(res.body.targetGrn.rentAmount).toBe(860);
+    // Under independent billing, target GRN retains strictly its own obligation (200)
+    expect(res.body.targetGrn.rentAmount).toBe(200);
     expect(res.body.targetGrn.bags).toBe(2);
 
     const closedSource = await GrnModel.findOne({ id: sourceGrnId }).lean().exec();
@@ -190,8 +190,8 @@ describe('Cross-Season Merge — Seasonal Rent Reconciliation (GRN 0032 to 0033)
       });
 
     expect(res.status).toBe(200);
-    // Target base 1800 + 904 carried = 2704
-    expect(res.body.targetGrn.rentAmount).toBe(2704);
+    // Under independent billing, target GRN retains strictly its own obligation (1800)
+    expect(res.body.targetGrn.rentAmount).toBe(1800);
     expect(res.body.targetGrn.bags).toBe(12);
     expect(res.body.targetGrn.smallBags).toBe(6);
     expect(res.body.targetGrn.bigBags).toBe(6);
