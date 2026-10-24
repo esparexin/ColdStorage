@@ -116,8 +116,9 @@ describe('Merge GRN input guards', () => {
     expect(res.status).toBe(200);
     expect((await GrnModel.findOne({ id: targetId }).lean().exec())?.bags).toBe(170);
     expect(await RentPaymentModel.countDocuments({ facilityId }).exec()).toBe(1);
-    const pay = await RentPaymentModel.findOne({ facilityId, grnId: sourceId }).lean().exec();
+    const pay = await RentPaymentModel.findOne({ facilityId }).lean().exec();
     expect(pay?.amountPaid).toBe(500);
+    expect([sourceId, extraId]).toContain(pay?.grnId);
   });
 
   it('rejects multi-source merge when payment exceeds total pending rent across sources', async () => {

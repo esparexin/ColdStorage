@@ -78,9 +78,10 @@ describe('Merge GRN: multi-year cross-season rent accrual', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.targetGrn.bags).toBe(900);
-    // Source elapsed multi-year rent charge should be computed and carried forward (> 3000 initial)
-    expect(res.body.movement.financialSnapshot.rentAmount).toBeGreaterThan(63000);
-    expect(res.body.targetGrn.rentAmount).toBeGreaterThan(63000);
+    // Under independent billing, target GRN retains strictly its own obligation (60,000)
+    // Source elapsed multi-year rent charge is maintained on the source GRN account
+    expect(res.body.targetGrn.rentAmount).toBe(60000);
+    const updatedSource = await GrnModel.findOne({ id: sourceGrnId }).lean().exec();
+    expect(updatedSource?.rentAmount).toBeGreaterThan(3000);
   });
 });

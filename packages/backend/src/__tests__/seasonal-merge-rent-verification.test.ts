@@ -125,7 +125,7 @@ describe('Seasonal Merge, Rent Verification & Inline Settlement Tests', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.targetGrn.bags).toBe(300);
-    expect(res.body.targetGrn.rentAmount).toBe(25000); // Target's own bill + carried pending rent = 25000
+    expect(res.body.targetGrn.rentAmount).toBe(20000); // Target retains its own bill (20000) under independent billing
 
     const sourcePayments = await RentPaymentModel.find({ grnId: sourceGrnId }).sort({ createdAt: 1 });
     expect(sourcePayments.length).toBe(2);
