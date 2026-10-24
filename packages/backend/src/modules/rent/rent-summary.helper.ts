@@ -1,5 +1,6 @@
 import {
   canCalculateAuthoritativeRent,
+  parseMergedConsignmentBreakdown,
   resolveStoredCompositionVerified,
   splitRentObligation,
   type RentExtension,
@@ -123,12 +124,11 @@ export function buildRentSummary(
     { isPendingVerification },
   );
 
-  // When a GRN was merged into another GRN, its unpaid obligation was carried forward to
-  // the target GRN. To prevent duplicate billing, double-counting in facility metrics,
-  // and duplicate collection, its remainingBalance on the source GRN is 0 and status is Settled.
-  const remainingBalance = isMergedSource ? 0 : balance.remainingBalance;
-  const paymentStatus = isMergedSource ? 'Settled' : balance.paymentStatus;
-  const rentState = isMergedSource ? 'SETTLED' : balance.rentState;
+  // A merged source GRN maintains its own separate pending bill for its unpaid obligations.
+  // Obligations are NOT carried forward or absorbed into the target GRN.
+  const remainingBalance = balance.remainingBalance;
+  const paymentStatus = balance.paymentStatus;
+  const rentState = balance.rentState;
 
   const rentGeneratedDate = resolveRentGeneratedDate({
     grnRentAmount: grn.rentAmount,
@@ -137,6 +137,12 @@ export function buildRentSummary(
     earliestOutwardCreatedAt,
     extensions,
   });
+
+  const mergedConsignment = parseMergedConsignmentBreakdown(
+    grn.remarks,
+    grn.bags,
+    grn.customerName,
+  );
 
   return {
     grnId: grn.id,
@@ -173,5 +179,6 @@ export function buildRentSummary(
     rentGeneratedDate,
     mergedIntoGrnId: grn.mergedIntoGrnId ?? null,
     mergedIntoGrnNumber: grn.mergedIntoGrnNumber ?? null,
+    mergedConsignment: mergedConsignment ?? null,
   };
 }

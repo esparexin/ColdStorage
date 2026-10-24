@@ -7,6 +7,8 @@ import {
   recordRentPaymentInputSchema,
   rentPaymentSchema,
   rentSummaryDtoSchema,
+  mergedConsignmentBreakdownSchema,
+  parseMergedConsignmentBreakdown,
   calculateSeasonalOccupancy,
   seasonalOccupancySummarySchema,
 } from '../rent.js';
@@ -225,6 +227,97 @@ describe('Phase 12: Rent Collection & Billing Contracts', () => {
     expect(summary.seasonEnd.getDate()).toBe(31);
     expect(summary.calculatedCharge).toBe(2000);
     expect(seasonalOccupancySummarySchema.safeParse(summary).success).toBe(true);
+  });
+
+  it('9. parses authoritative merge remarks into MergedConsignmentBreakdown using parseMergedConsignmentBreakdown', () => {
+    const mergeRemarks =
+      '[MERGE RECEIVED on 2026-07-15: +50 bags (Repacked: 30 S + 20 B = 50 bags). Repacking Hamali: ₹300 (50 bags @ ₹6/bag) from GRN 0042 (Receipt #RCPT-26-27-0042, Date: 2026-06-01, Customer: Suresh Kumar, Bags: 50, Rent: ₹1500, Paid: ₹500, Balance: ₹1000, Status: Not Settled). Additional rent: ₹1000. Source pending rent: ₹1000 kept as separate pending bills. Reason: Seasonal Consolidation]';
+
+    const parsed = parseMergedConsignmentBreakdown(mergeRemarks, 150, 'Ramesh Patel');
+    expect(parsed).not.toBeNull();
+    expect(parsed?.isMergedTarget).toBe(true);
+    expect(parsed?.totalMergedAddedBags).toBe(50);
+    expect(parsed?.genesisBags).toBe(100);
+    expect(parsed?.genesisCustomerName).toBe('Ramesh Patel');
+    expect(parsed?.repackHamali).toEqual({
+      amount: 300,
+      repackBags: 50,
+      ratePerBag: 6,
+    });
+    expect(parsed?.totalCarriedRent).toBe(1000);
+    expect(parsed?.totalSeparateSourceRent).toBe(1000);
+    expect(parsed?.sources).toHaveLength(1);
+    expect(parsed?.sources[0]).toEqual({
+      grnNumber: '0042',
+      receiptNumber: 'RCPT-26-27-0042',
+      dateStr: '2026-06-01',
+      seasonYear: 2026,
+      customerName: 'Suresh Kumar',
+      bags: 50,
+      rentAmount: 1500,
+      amountPaid: 500,
+      remainingBalance: 1000,
+      status: 'Not Settled',
+    });
+
+    expect(mergedConsignmentBreakdownSchema.safeParse(parsed).success).toBe(true);
+  });
+
+  it('10. validates RentSummaryDto schema with structured mergedConsignment breakdown', () => {
+    const summaryWithMerge = {
+      grnId: 'grn-target-1',
+      grnNumber: 'GRN-26-27-0010',
+      facilityId: 'fac-alpha',
+      customerId: 'cust-1',
+      customerName: 'Ramesh Patel',
+      commodityName: 'Potatoes',
+      chamber: 'CH-1',
+      inwardDate: new Date('2026-05-10'),
+      totalBags: 150,
+      rentType: 'Seasonal',
+      rentAmount: 4500,
+      totalPaid: 1500,
+      remainingBalance: 3000,
+      paymentStatus: 'Not Settled',
+      rentState: 'PENDING',
+      payments: [],
+      extensions: [],
+      totalDue: 4500,
+      mergedConsignment: {
+        isMergedTarget: true,
+        totalMergedAddedBags: 50,
+        repackHamali: {
+          repackBags: 50,
+          ratePerBag: 6,
+          amount: 300,
+        },
+        totalCarriedRent: 1000,
+        totalSeparateSourceRent: 1000,
+        sources: [
+          {
+            grnNumber: '0042',
+            receiptNumber: 'RCPT-26-27-0042',
+            dateStr: '2026-06-01',
+            seasonYear: 2026,
+            customerName: 'Suresh Kumar',
+            bags: 50,
+            rentAmount: 1500,
+            amountPaid: 500,
+            remainingBalance: 1000,
+            status: 'Not Settled',
+          },
+        ],
+        genesisBags: 100,
+        genesisCustomerName: 'Ramesh Patel',
+      },
+    };
+
+    const res = rentSummaryDtoSchema.safeParse(summaryWithMerge);
+    expect(res.success).toBe(true);
+    if (res.success) {
+      expect(res.data.mergedConsignment?.isMergedTarget).toBe(true);
+      expect(res.data.mergedConsignment?.sources[0].grnNumber).toBe('0042');
+    }
   });
 });
 
