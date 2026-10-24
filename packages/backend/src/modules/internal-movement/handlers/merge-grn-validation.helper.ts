@@ -129,17 +129,7 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
     if (!Number.isInteger(repackedSmallBags) || !Number.isInteger(repackedBigBags)) {
       throw new Error('Repacked bag counts must be whole numbers');
     }
-    if (repackedSmallBags > totalMovedBags || repackedBigBags > totalMovedBags) {
-      throw new Error(
-        `Neither small nor big bag count can exceed total moved stock of ${totalMovedBags} bags`,
-      );
-    }
-    const sum = repackedSmallBags + repackedBigBags;
-    if (sum !== totalMovedBags) {
-      throw new Error(
-        `Confirmed repacked counts (${repackedSmallBags} small + ${repackedBigBags} big = ${sum}) must reconcile with total moved stock of ${totalMovedBags} bags`,
-      );
-    }
+    // Decoupled from previous counts: operator confirms physical resulting counts
     smallMoved = repackedSmallBags;
     bigMoved = repackedBigBags;
   } else {
@@ -148,9 +138,11 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
   }
 
   // 4. Final bag totals reconciliation check
+  const isRepacked = repackedSmallBags != null && repackedBigBags != null;
+  const addedBags = isRepacked ? (smallMoved + bigMoved) : totalMovedBags;
   const finalSmall = targetGrn.smallBags + smallMoved;
   const finalBig = targetGrn.bigBags + bigMoved;
-  const finalTotal = targetGrn.bags + totalMovedBags;
+  const finalTotal = targetGrn.bags + addedBags;
 
   if (finalSmall < 0 || finalBig < 0 || finalSmall + finalBig !== finalTotal) {
     throw new Error(

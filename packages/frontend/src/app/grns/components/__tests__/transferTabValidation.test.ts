@@ -190,7 +190,7 @@ describe('validateTransferConfirmation', () => {
     ).toBeNull();
   });
 
-  it('accepts Auto (ledger) and S/B with verified stock without confirmed split counts', () => {
+  it('accepts default and S/B with verified stock without confirmed split counts', () => {
     expect(
       validateTransferConfirmation({
         isUnverified: false,

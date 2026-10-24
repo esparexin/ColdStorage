@@ -34,6 +34,8 @@ export async function calculateGrnMonthlyOccupancyRent(
       rentType: grn.rentType,
       bags: grn.bags,
       bagPrice: grn.bagPrice,
+      smallBagPrice: grn.smallBagPrice,
+      bigBagPrice: grn.bigBagPrice,
       rentMonths: grn.rentMonths,
       rentAmount: grn.rentAmount,
     }) ??
@@ -96,6 +98,8 @@ export async function calculateGrnSeasonalOccupancyRent(
       rentType: grn.rentType,
       bags: grn.bags,
       bagPrice: grn.bagPrice,
+      smallBagPrice: grn.smallBagPrice,
+      bigBagPrice: grn.bigBagPrice,
       rentMonths: grn.rentMonths,
       rentAmount: grn.rentAmount,
     }) ??

@@ -16,15 +16,8 @@ import { isTransientError, toChallanEntity } from '../delivery.mappers.js';
 import { getDeliverySummary } from '../queries/delivery.queries.js';
 import { computeExpectedDeliveryRent } from './delivery-rent.helper.js';
 import { resolveFirstSeasonOutwardShare } from './delivery-hamali.helper.js';
-import {
-  recordDeliveryInlinePayment,
-  resolveEffectiveDeliveryObligation,
-} from './delivery-payment.helper.js';
-import {
-  resolveSafeLedgerDrawdown,
-  validateDeliveryDate,
-  validateStockAndBalances,
-} from './delivery-validation.helper.js';
+import { recordDeliveryInlinePayment, resolveEffectiveDeliveryObligation } from './delivery-payment.helper.js';
+import { resolveSafeLedgerDrawdown, validateDeliveryDate, validateStockAndBalances } from './delivery-validation.helper.js';
 import { resolveDeliveryConflict, checkPreTransactionReplay, resolveIdempotentDeliveryTx } from './delivery-idempotency.helper.js';
 import { resolveDeliveryGpNumber } from './delivery-gp.helper.js';
 
@@ -119,10 +112,11 @@ async function executeDeliveryTransaction(
         session,
         isHybrid,
         reqQty,
+        hasSpecificBags,
       );
       const finalSmall = withdrawal.smallBags;
       const finalBig = withdrawal.bigBags;
-      const withdrawnTotal = isHybrid ? reqQty : finalSmall + finalBig;
+      const withdrawnTotal = isHybrid && !hasSpecificBags ? reqQty : finalSmall + finalBig;
       const deliveryDate = validateDeliveryDate(input.date, grn.date);
 
       // Actual rent/charge calculation happens at Outward delivery using the single
@@ -135,7 +129,7 @@ async function executeDeliveryTransaction(
           smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, bagPrice: grn.bagPrice,
         },
         withdrawal, deliveryDate, session, excludePeriodKeys: billedPeriods,
-        quantity: isHybrid ? reqQty : undefined,
+        quantity: isHybrid && !hasSpecificBags ? reqQty : undefined,
         bagCategory: input.bagCategory,
         bagPrice: input.bagPrice,
         seasonalBagPrice: input.seasonalBagPrice,

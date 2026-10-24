@@ -45,13 +45,13 @@ export function validateBagConfirmation(input: BagConfirmationInput): string | n
     return null;
   }
   if (typeof input.repackSmall !== 'number' || typeof input.repackBig !== 'number') {
-    return 'Both Small and Big bag counts must be confirmed. Combined total must match available bags.';
+    return 'Both Small and Big bag counts must be confirmed.';
   }
-  if (input.repackSmall > totalMovedBags || input.repackBig > totalMovedBags) {
-    return `Neither Small nor Big bag counts can exceed available total (${totalMovedBags} bags).`;
+  if (input.repackSmall < 0 || input.repackBig < 0) {
+    return 'Bag counts cannot be negative.';
   }
-  if (input.repackSmall + input.repackBig !== totalMovedBags) {
-    return `Counts (${input.repackSmall}S + ${input.repackBig}B = ${input.repackSmall + input.repackBig}) must match total available (${totalMovedBags} bags).`;
+  if (!Number.isInteger(input.repackSmall) || !Number.isInteger(input.repackBig)) {
+    return 'Repacked bag counts must be whole numbers.';
   }
   return null;
 }

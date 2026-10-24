@@ -1,6 +1,8 @@
 import type {
   CorrectGrnInput,
   CreateGrnInput,
+  DeleteGrnInput,
+  DeleteGrnResult,
   Grn,
   GrnAcknowledgement,
   GrnMovementHistory,
@@ -13,6 +15,7 @@ import { getGrnMovementHistory } from '../common/grn-movement-history.js';
 import { toGrnAcknowledgement, toGrnEntity } from './grn.mappers.js';
 import { createGrn, type CreateGrnOptions } from './handlers/create-grn.handler.js';
 import { correctGrn } from './handlers/update-grn.handler.js';
+import { deleteGrn } from './handlers/delete-grn.handler.js';
 import { updateGrnLoanStatus } from './handlers/update-grn-loan-status.handler.js';
 import { resolveGrnFacilityTabSummaries } from './grn-tab-query.helper.js';
 
@@ -48,6 +51,15 @@ export class GrnService {
     userId: string,
   ): Promise<Grn> {
     return updateGrnLoanStatus(facilityId, grnId, input, userId);
+  }
+
+  /** Testing-only GRN deletion. Disabled in production. */
+  public async deleteGrn(
+    facilityId: string,
+    input: DeleteGrnInput,
+    userId: string,
+  ): Promise<DeleteGrnResult> {
+    return deleteGrn(facilityId, input, userId);
   }
 
   public async getGrnById(id: string): Promise<Grn | null> {

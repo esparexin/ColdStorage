@@ -2,28 +2,37 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  isHybridBagCategory,
-  resolveTotalRentObligation,
-  type Customer, type Grn, type TransferPaymentDecision, type TransferSettlementDetails,
+  isHybridBagCategory, resolveTotalRentObligation,
+  type Customer, type Grn, type OutwardBagCategory, type PaymentMode,
+  type TransferPaymentDecision, type TransferSettlementDetails,
 } from '@cold-storage/contracts';
-import { Badge, Input, Select } from '@/components/ui';
 import { useRentGate } from '@/hooks/useRentGate';
-import { TransferPaymentDecisionSection, validateTransferPayment } from './TransferPaymentDecisionSection';
-import { TransferOwnershipConfirmation } from './TransferOwnershipConfirmation';
-import { TransferSummaryStrip } from './TransferSummaryStrip';
-import { TransferRentAssessment } from './TransferRentAssessment';
+import { WizardStepper } from './WizardStepper';
+import { validateMovementSettlement } from './MovementSettlementDecisionSection';
 import { validateTransferConfirmation } from './transferTabValidation.helper';
+import { TransferStep1Customer } from './TransferStep1Customer';
+import { TransferStep2Dues } from './TransferStep2Dues';
+import { TransferStep3Confirm } from './TransferStep3Confirm';
 import styles from './InternalMovementModal.module.css';
+
+const TRANSFER_STEPS = [
+  { number: 1, label: '1. Select Transferee' },
+  { number: 2, label: '2. Confirm Bag Type & Dues' },
+  { number: 3, label: '3. Confirm Transfer' },
+];
+
 interface InternalMovementTransferTabProps {
-  currentGrn: Grn; facilityId: string; customers: Customer[]; submitting: boolean;
+  currentGrn: Grn;
+  facilityId: string;
+  customers: Customer[];
+  submitting: boolean;
   onExecuteTransfer: (
     newCustomerId: string, movementDate: string, reason: string, remarks?: string,
     paymentDecision?: TransferPaymentDecision, settlementDetails?: TransferSettlementDetails,
     confirmation?: {
       confirmedSmallBags?: number; confirmedBigBags?: number;
-      sourceBagCategory?: import('@cold-storage/contracts').OutwardBagCategory;
-      sourceQuantity?: number; sourceBagPrice?: number;
-      sourceSeasonalBagPrice?: number; sourceMonthlyBagPrice?: number;
+      sourceBagCategory?: OutwardBagCategory; sourceQuantity?: number;
+      sourceBagPrice?: number; sourceSeasonalBagPrice?: number; sourceMonthlyBagPrice?: number;
     },
   ) => Promise<void>;
 }
@@ -31,16 +40,19 @@ interface InternalMovementTransferTabProps {
 export function InternalMovementTransferTab({
   currentGrn, facilityId, customers, submitting, onExecuteTransfer,
 }: InternalMovementTransferTabProps) {
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [newCustomerId, setNewCustomerId] = useState('');
   const [movementDate] = useState(new Date().toISOString().slice(0, 10));
-  const [reason, setReason] = useState(''), [remarks, setRemarks] = useState('');
-  const [decision, setDecision] = useState<'AGREED_PENDING' | 'SETTLE_NOW'>('AGREED_PENDING');
+  const [reason, setReason] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [decision, setDecision] = useState<TransferPaymentDecision>('AGREED_PENDING');
   const [settleAmount, setSettleAmount] = useState<number>(0);
-  const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI'>('Cash');
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('Cash');
   const [validationError, setValidationError] = useState<string | null>(null);
+
   const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>('');
   const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>('');
-  const [sourceBagCategory, setSourceBagCategory] = useState<import('@cold-storage/contracts').OutwardBagCategory | ''>('');
+  const [sourceBagCategory, setSourceBagCategory] = useState<OutwardBagCategory | ''>('');
   const [sourceBagPrice, setSourceBagPrice] = useState<number | ''>('');
   const [sourceSeasonalBagPrice, setSourceSeasonalBagPrice] = useState<number | ''>('');
   const [sourceMonthlyBagPrice, setSourceMonthlyBagPrice] = useState<number | ''>('');
@@ -54,26 +66,29 @@ export function InternalMovementTransferTab({
 
   const remainingBags = currentGrn.closingBags ?? currentGrn.bags;
   const isUnverified = (currentGrn as Record<string, unknown>).isCompositionVerified === false;
-  const totalPaid = rentSummary?.totalPaid ?? 0, pendingAmount = rentSummary?.remainingBalance ?? 0;
+  const totalPaid = rentSummary?.totalPaid ?? 0;
+  const pendingAmount = rentSummary?.remainingBalance ?? 0;
   const isUnbilled = totalPaid === 0 && pendingAmount === 0 && (rentSummary?.rentAmount ?? 0) === 0;
   const effectiveObligation = resolveTotalRentObligation({
     rentType: currentGrn.rentType, rentAmount: rentSummary?.rentAmount ?? 0,
     outwardRentCharges: assessedRent, extensionAmounts: rentSummary?.extensions?.map((e) => e.finalAmount),
   });
-  const outstandingBalance = isUnbilled ? assessedRent : Math.max(0, effectiveObligation - totalPaid);
-  const effectiveDue = outstandingBalance;
+  const effectiveDue = isUnbilled ? assessedRent : Math.max(0, effectiveObligation - totalPaid);
 
   useEffect(() => {
     if (effectiveDue > 0 && settleAmount === 0) setSettleAmount(effectiveDue);
   }, [effectiveDue, settleAmount]);
 
-  const handleTransferSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleProceedToStep2 = () => {
     setValidationError(null);
-    if (!newCustomerId) return setValidationError('Select the new customer to transfer ownership to.');
+    if (!newCustomerId) return setValidationError('Please select the new customer to transfer ownership to.');
     if (remainingBags <= 0) return setValidationError('Cannot transfer ownership: No stock remaining in this GRN.');
-    if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
-    const payErr = validateTransferPayment(decision, settleAmount, effectiveDue);
+    setStep(2);
+  };
+
+  const handleProceedToStep3 = () => {
+    setValidationError(null);
+    const payErr = validateMovementSettlement(decision, settleAmount, effectiveDue);
     if (payErr) return setValidationError(payErr);
     const isHybrid = isHybridBagCategory(sourceBagCategory);
     const confirmErr = validateTransferConfirmation({
@@ -82,165 +97,79 @@ export function InternalMovementTransferTab({
       sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice,
     });
     if (confirmErr) return setValidationError(confirmErr);
-    const confirmation = isHybrid
-      ? {
-          sourceBagCategory: sourceBagCategory || undefined,
-          sourceQuantity: remainingBags,
-          sourceBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
-          sourceSeasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
-          sourceMonthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
-        }
-      : isUnverified && typeof confirmedSmallBags === 'number' && typeof confirmedBigBags === 'number'
-        ? { confirmedSmallBags, confirmedBigBags } : undefined;
+    setStep(3);
+  };
+
+  const handleTransferSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setValidationError(null);
+    if (!newCustomerId) return setValidationError('Select the new customer to transfer ownership to.');
+    if (remainingBags <= 0) return setValidationError('Cannot transfer ownership: No stock remaining in this GRN.');
+    if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
+
+    const payErr = validateMovementSettlement(decision, settleAmount, effectiveDue);
+    if (payErr) return setValidationError(payErr);
+    const isHybrid = isHybridBagCategory(sourceBagCategory);
+    const confirmErr = validateTransferConfirmation({
+      isUnverified, remainingBags, confirmedSmallBags, confirmedBigBags,
+      sourceBagCategory, sourceQuantity: isHybrid ? remainingBags : undefined,
+      sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice,
+    });
+    if (confirmErr) return setValidationError(confirmErr);
+
+    const conf = isHybrid ? {
+      sourceBagCategory: sourceBagCategory || undefined,
+      sourceQuantity: remainingBags,
+      sourceBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
+      sourceSeasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
+      sourceMonthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
+    } : isUnverified && typeof confirmedSmallBags === 'number' && typeof confirmedBigBags === 'number'
+      ? { confirmedSmallBags, confirmedBigBags } : undefined;
 
     await onExecuteTransfer(
       newCustomerId, movementDate, reason.trim(), remarks.trim() || undefined,
       effectiveDue > 0 ? decision : undefined,
       effectiveDue > 0 && decision === 'SETTLE_NOW' ? { amountPaid: settleAmount, paymentMode } : undefined,
-      confirmation,
+      conf,
     );
   };
 
   return (
     <form id="transfer-ownership-form" onSubmit={handleTransferSubmit} className={styles.modalContent}>
       {validationError && (
-        <div className={styles.noticeBox} style={{ color: 'var(--color-danger-text)', borderColor: 'var(--color-danger)' }}>{validationError}</div>
+        <div role="alert" className={styles.noticeBox} style={{ color: 'var(--color-danger-text)', borderColor: 'var(--color-danger)' }}>
+          {validationError}
+        </div>
       )}
-
-      {/* Current Owner & GRN Compact Summary Strip */}
-      <TransferSummaryStrip
-        currentGrn={currentGrn}
-        remainingBags={remainingBags}
-        totalPaid={totalPaid}
-        pendingAmount={pendingAmount}
-        isUnbilled={isUnbilled}
-        rentLoading={rentLoading}
-      />
-
-      <TransferPaymentDecisionSection
-        pendingAmount={effectiveDue} decision={decision} onDecisionChange={setDecision}
-        settleAmount={settleAmount} onSettleAmountChange={setSettleAmount}
-        paymentMode={paymentMode} onPaymentModeChange={setPaymentMode} disabled={submitting}
-      />
-
-      {/* Transfer Specification & Governance Grid */}
-      <div className={styles.reviewGrid}>
-        <div className={styles.compactCard}>
-          <div className={styles.cardHeader}>
-            <span>1. New Owner Assignment</span>
-            <Badge variant="primary">Transfer</Badge>
-          </div>
-          <Select
-            id="new-customer-selector"
-            label="Select New Customer *"
-            value={newCustomerId}
-            onChange={(e) => setNewCustomerId(e.target.value)}
-            disabled={submitting}
-            required
-          >
-            <option value="">-- Choose New Owner --</option>
-            {candidateCustomers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </Select>
-
-          <div className={styles.formSection}>
-            <label htmlFor="transfer-movement-date" className={styles.inputLabel}>
-              Movement Date *
-            </label>
-            <Input
-              id="transfer-movement-date"
-              type="date"
-              value={movementDate}
-              readOnly
-              disabled={submitting}
-              aria-label="Movement Date (read-only)"
-              title="Authoritative operational date"
-              required
-            />
-          </div>
-
-          <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Assigned Transferee:</span>
-            <span className={styles.detailValue}>{selectedNewCustomer ? selectedNewCustomer.name : '—'}</span>
-          </div>
-
-          <TransferOwnershipConfirmation
-            remainingBags={remainingBags} isUnverified={isUnverified}
-            confirmedSmallBags={confirmedSmallBags} confirmedBigBags={confirmedBigBags}
-            onSmallChange={setConfirmedSmallBags} onBigChange={setConfirmedBigBags}
-            sourceBagCategory={sourceBagCategory} onCategoryChange={setSourceBagCategory}
-            sourceBagPrice={sourceBagPrice} onPriceChange={setSourceBagPrice}
-            sourceSeasonalBagPrice={sourceSeasonalBagPrice} onSeasonalPriceChange={setSourceSeasonalBagPrice}
-            sourceMonthlyBagPrice={sourceMonthlyBagPrice} onMonthlyPriceChange={setSourceMonthlyBagPrice}
-            rentType={currentGrn.rentType} inwardDate={currentGrn.date} movementDate={movementDate}
-            disabled={submitting}
-          />
-
-          <div className={styles.noticeBox}>
-            {effectiveDue > 0
-              ? decision === 'SETTLE_NOW'
-                ? `Rent (₹${settleAmount}) will be settled now with receipt generated.`
-                : `Transferee agreed to assume pending rent: ₹${effectiveDue.toLocaleString('en-IN')}.`
-              : 'Rent obligation is fully settled for this lot.'}
-          </div>
-        </div>
-
-        <div className={styles.compactCard}>
-          <div className={styles.cardHeader}>
-            <span>2. Governance & Audit</span>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger-text)' }}>*Required</span>
-          </div>
-
-          <div className={styles.formSection}>
-            <label htmlFor="transfer-reason" className={styles.inputLabel}>
-              Audit Reason (min 5 chars) *
-            </label>
-            <Input
-              id="transfer-reason"
-              placeholder="e.g. Sale of lot / Farmer transfer"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              disabled={submitting}
-              required
-            />
-          </div>
-
-          <div className={styles.formSection}>
-            <label htmlFor="transfer-remarks" className={styles.inputLabel}>
-              Additional Remarks (Optional)
-            </label>
-            <textarea
-              id="transfer-remarks"
-              aria-label="Additional Remarks"
-              rows={2}
-              className={styles.textarea}
-              placeholder="Internal notes..."
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-              disabled={submitting}
-            />
-          </div>
-
-          <div className={styles.noticeBox}>
-            New owner must clear all outstanding GRN obligations prior to dispatch/delivery.
-          </div>
-        </div>
-      </div>
-
-      <TransferRentAssessment
-        currentGrn={currentGrn}
-        remainingBags={remainingBags}
-        movementDate={movementDate}
-        sourceBagCategory={sourceBagCategory}
-        sourceQuantity={remainingBags} sourceBagPrice={sourceBagPrice}
-        sourceSeasonalBagPrice={sourceSeasonalBagPrice} sourceMonthlyBagPrice={sourceMonthlyBagPrice}
-        confirmedSmallBags={confirmedSmallBags} confirmedBigBags={confirmedBigBags}
-        newCustomerName={selectedNewCustomer?.name} totalPaid={totalPaid}
-        outstandingBalance={outstandingBalance} onAssessedRentChange={setAssessedRent}
-      />
+      <WizardStepper steps={TRANSFER_STEPS} currentStep={step} onStepClick={(s) => setStep(s as 1 | 2 | 3)} canNavigateToStep={(s) => (s === 1 || Boolean(newCustomerId))} disabled={submitting} />
+      {step === 1 && (
+        <TransferStep1Customer
+          currentGrn={currentGrn} remainingBags={remainingBags} totalPaid={totalPaid} pendingAmount={pendingAmount}
+          isUnbilled={isUnbilled} rentLoading={rentLoading} newCustomerId={newCustomerId} onNewCustomerIdChange={setNewCustomerId}
+          candidateCustomers={candidateCustomers} selectedNewCustomer={selectedNewCustomer} submitting={submitting} onNext={handleProceedToStep2}
+        />
+      )}
+      {step === 2 && (
+        <TransferStep2Dues
+          currentGrn={currentGrn} remainingBags={remainingBags} isUnverified={isUnverified} confirmedSmallBags={confirmedSmallBags}
+          onSmallChange={setConfirmedSmallBags} confirmedBigBags={confirmedBigBags} onBigChange={setConfirmedBigBags}
+          sourceBagCategory={sourceBagCategory} onCategoryChange={setSourceBagCategory} sourceBagPrice={sourceBagPrice}
+          onPriceChange={setSourceBagPrice} sourceSeasonalBagPrice={sourceSeasonalBagPrice} onSeasonalPriceChange={setSourceSeasonalBagPrice}
+          sourceMonthlyBagPrice={sourceMonthlyBagPrice} onMonthlyPriceChange={setSourceMonthlyBagPrice} movementDate={movementDate}
+          selectedNewCustomer={selectedNewCustomer} totalPaid={totalPaid} outstandingBalance={effectiveDue}
+          onAssessedRentChange={setAssessedRent} effectiveDue={effectiveDue} decision={decision} onDecisionChange={setDecision}
+          settleAmount={settleAmount} onSettleAmountChange={setSettleAmount} paymentMode={paymentMode} onPaymentModeChange={setPaymentMode}
+          submitting={submitting} onBack={() => setStep(1)} onNext={handleProceedToStep3}
+        />
+      )}
+      {step === 3 && (
+        <TransferStep3Confirm
+          currentGrn={currentGrn} selectedNewCustomer={selectedNewCustomer} remainingBags={remainingBags}
+          sourceBagCategory={sourceBagCategory} effectiveDue={effectiveDue} decision={decision} settleAmount={settleAmount}
+          movementDate={movementDate} reason={reason} onReasonChange={setReason} remarks={remarks} onRemarksChange={setRemarks}
+          submitting={submitting} onBack={() => setStep(2)}
+        />
+      )}
     </form>
   );
 }

@@ -200,28 +200,36 @@ describe('deliveryRent.helper', () => {
     });
 
     it('defaults to 1 when rentMonths is null or undefined and not Monthly with dates', () => {
-      expect(
-        resolveOutwardBillableMonths({
-          rentType: 'Seasonal',
-        }),
-      ).toBe(1);
+      expect(resolveOutwardBillableMonths({ rentType: 'Seasonal' })).toBe(1);
     });
 
     it('calculates multi-period seasonal outward rent with monthly rates', () => {
       const rent = computeOutwardRentCharge({
-        rentType: 'Seasonal',
-        bagCategory: 'Small & Big',
-        smallBags: 50,
-        bigBags: 50,
-        smallBagPrice: 150,
-        bigBagPrice: 210,
-        monthlySmallBagPrice: 15,
-        monthlyBigBagPrice: 21,
-        inwardDate: '2024-07-10',
-        deliveryDate: '2026-10-11',
+        rentType: 'Seasonal', bagCategory: 'Small & Big', smallBags: 50, bigBags: 50,
+        smallBagPrice: 150, bigBagPrice: 210, monthlySmallBagPrice: 15, monthlyBigBagPrice: 21,
+        inwardDate: '2024-07-10', deliveryDate: '2026-10-11',
       });
-      // 3 seasons @ 18,000 + 4 monthly @ 1,800 = 61,200
       expect(rent).toBe(61200);
+    });
+
+    it('calculates Monthly rent for Hybrid with explicit monthly rate and months', () => {
+      const rent = computeOutwardRentCharge({
+        rentType: 'Monthly', bagCategory: 'Hybrid', quantity: 50, monthlyBagPrice: 15, rentMonths: 2,
+      });
+      expect(rent).toBe(1500);
+    });
+
+    it('calculates Monthly rent for Hybrid falling back to monthlySmallBagPrice when unconfigured', () => {
+      const rent = computeOutwardRentCharge({
+        rentType: 'Monthly', bagCategory: 'Hybrid', smallBags: 30, bigBags: 20, monthlySmallBagPrice: 12, rentMonths: 3,
+      });
+      expect(rent).toBe(1800);
+    });
+
+    it('formats Monthly formula for Hybrid correctly', () => {
+      const text = formatOutwardRentFormula('Monthly', 'Hybrid', 25, 25, 12, 12, 3);
+      expect(text).toBe('50 Hybrid bags × ₹12/bag × 3 mo');
     });
   });
 });
+

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   deriveHybridRateVisibility, isHybridBagCategory, type DeliveryChallan, type DeliverySummary, type Grn, type GrnInventorySummary, type OutwardBagCategory,
 } from '@cold-storage/contracts';
@@ -18,8 +18,7 @@ export function useCreateDeliveryForm(
 ) {
   const [availableGrns, setAvailableGrns] = useState<Grn[]>([]);
   const [createGrnId, setCreateGrnId] = useState('');
-  const [grnSummary, setGrnSummary] = useState<GrnInventorySummary | null>(null);
-  const [loadingGrnSummary, setLoadingGrnSummary] = useState(false);
+  const [grnSummary, setGrnSummary] = useState<GrnInventorySummary | null>(null); const [loadingGrnSummary, setLoadingGrnSummary] = useState(false);
   const [createDate, setCreateDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [bagCategory, setBagCategory] = useState<OutwardBagCategory>('S/B');
   const [manualBagPrice, setManualBagPrice] = useState<number | ''>('');
@@ -30,10 +29,8 @@ export function useCreateDeliveryForm(
   const [createVehicleNumber, setCreateVehicleNumber] = useState(''); const [createDriverName, setCreateDriverName] = useState('');
   const [createWeight, setCreateWeight] = useState<number | ''>(''); const [createGpNumber, setCreateGpNumber] = useState('');
   const [createRemarks, setCreateRemarks] = useState(''); const [idempotencyKey, setIdempotencyKey] = useState(() => `del-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
-  const [modalError, setModalError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
-  const [hamaliRate, setHamaliRate] = useState<number>(0);
+  const [modalError, setModalError] = useState<string | null>(null); const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false); const [hamaliRate, setHamaliRate] = useState<number>(0);
   const [seasonalCommodityRates, setSeasonalCommodityRates] = useState<{ small: number; big: number } | null>(null); const [monthlyCommodityRates, setMonthlyCommodityRates] = useState<{ small: number; big: number } | null>(null);
   const rentGate = useRentGate();
 
@@ -96,9 +93,9 @@ export function useCreateDeliveryForm(
           const data = (await invRes.json()) as { summary: GrnInventorySummary };
           setGrnSummary(data.summary);
           const { availableSmallBags: s, availableBigBags: b } = data.summary;
-          const totalStock = s + b;
+          const isSb = matched?.bagType === 'S/B' && !matched?.isCompositionVerified;
           setBagCategory('S/B');
-          setWithdrawal({ availableSmall: totalStock, availableBig: totalStock, smallBags: '', bigBags: '', quantity: '' });
+          setWithdrawal({ availableSmall: isSb ? s + b : s, availableBig: isSb ? s + b : b, smallBags: '', bigBags: '', quantity: '' });
         }
         if (rateRes?.ok) {
           const rData = (await rateRes.json()) as { items?: Array<{ rentType: string; smallRate: number; bigRate: number; isActive?: boolean }>; rate?: { smallRate: number; bigRate: number }; hamaliRate?: number };
@@ -119,10 +116,14 @@ export function useCreateDeliveryForm(
     [facilityId, rentGate, availableGrns],
   );
 
+  const autoSelectedGrnRef = useRef<string | null>(null);
   useEffect(() => {
-    if (initialGrnId && availableGrns.length > 0 && !createGrnId) {
+    if (initialGrnId && availableGrns.length > 0 && !createGrnId && autoSelectedGrnRef.current !== initialGrnId) {
       const match = availableGrns.find((g) => g.id === initialGrnId || g.grnNumber === initialGrnId);
-      if (match) void handleSelectGrn(match.id);
+      if (match) {
+        autoSelectedGrnRef.current = initialGrnId;
+        void handleSelectGrn(match.id);
+      }
     }
   }, [initialGrnId, availableGrns, createGrnId, handleSelectGrn]);
 
@@ -130,7 +131,7 @@ export function useCreateDeliveryForm(
   const smallBags = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0;
   const bigBags = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
   const hybridQty = typeof withdrawal.quantity === 'number' ? withdrawal.quantity : 0;
-  const totalWithdrawingBags = isHybrid && hybridQty > 0 && smallBags === 0 && bigBags === 0 ? hybridQty : smallBags + bigBags;
+  const totalWithdrawingBags = isHybrid ? hybridQty : smallBags + bigBags;
   const selectedGrn = availableGrns.find((g) => g.id === createGrnId) || null;
   const isLoanHoldActive = Boolean(selectedGrn?.loanStatus === 'TAKEN');
   const deliveryDateVal = createDate || new Date().toISOString().split('T')[0];
@@ -144,14 +145,14 @@ export function useCreateDeliveryForm(
   });
 
   const outwardRent = computeOutwardRentCharge({
-    rentType: selectedGrn?.rentType ?? 'Seasonal', bagCategory, smallBags, bigBags,
-    quantity: isHybrid && hybridQty > 0 && smallBags === 0 && bigBags === 0 ? hybridQty : undefined,
+    rentType: selectedGrn?.rentType ?? 'Seasonal', bagCategory,
+    smallBags: isHybrid ? 0 : smallBags, bigBags: isHybrid ? 0 : bigBags, quantity: isHybrid ? hybridQty : undefined,
     manualBagPrice: isHybrid && typeof manualBagPrice === 'number' ? manualBagPrice : undefined,
     seasonalBagPrice: isHybrid && typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
     monthlyBagPrice: isHybrid && typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,
     rentMonths: billableRentMonths, inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal,
-    smallBagPrice: selectedGrn?.smallBagPrice ?? seasonalCommodityRates?.small,
-    bigBagPrice: selectedGrn?.bigBagPrice ?? seasonalCommodityRates?.big,
+    smallBagPrice: selectedGrn?.smallBagPrice ?? (selectedGrn?.rentType === 'Monthly' ? monthlyCommodityRates?.small : seasonalCommodityRates?.small),
+    bigBagPrice: selectedGrn?.bigBagPrice ?? (selectedGrn?.rentType === 'Monthly' ? monthlyCommodityRates?.big : seasonalCommodityRates?.big),
     bagPrice: selectedGrn?.bagPrice,
     monthlySmallBagPrice: monthlyCommodityRates?.small, monthlyBigBagPrice: monthlyCommodityRates?.big,
   });
@@ -173,11 +174,15 @@ export function useCreateDeliveryForm(
 
     const isSeg = (grnSummary?.availableSmallBags ?? 0) > 0 && (grnSummary?.availableBigBags ?? 0) > 0;
     const totalAvail = (grnSummary?.availableSmallBags ?? 0) + (grnSummary?.availableBigBags ?? 0);
+    const isUnsegregatedSb = selectedGrn?.bagType === 'S/B' && !selectedGrn?.isCompositionVerified;
+    const isCombinedPool = Boolean(isUnsegregatedSb && !isSeg);
     const validationStock = resolveValidationStock(grnSummary, withdrawal);
     const validation = validateDeliveryForm({
-      createGrnId, createDate, smallBags, bigBags, totalWithdrawingBags,
-      availableSmall: validationStock.availableSmall, availableBig: validationStock.availableBig,
-      availableTotal: totalAvail, isCombinedPool: !isSeg, isHybrid, bagPrice: manualBagPrice,
+      createGrnId, createDate, totalWithdrawingBags,
+      smallBags: isHybrid ? 0 : smallBags, bigBags: isHybrid ? 0 : bigBags,
+      availableSmall: isCombinedPool ? totalAvail : (grnSummary?.availableSmallBags ?? validationStock.availableSmall),
+      availableBig: isCombinedPool ? totalAvail : (grnSummary?.availableBigBags ?? validationStock.availableBig),
+      availableTotal: totalAvail, isCombinedPool, isHybrid, bagPrice: manualBagPrice,
       seasonalBagPrice: typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
       monthlyBagPrice: typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,
       showSeasonalRate: isHybrid && rateVisibility.showSeasonalRate,
@@ -193,8 +198,8 @@ export function useCreateDeliveryForm(
 
     try {
       const payload = buildDeliveryPayload({
-        grnId: createGrnId, createDate, smallBags, bigBags,
-        quantity: isHybrid && hybridQty > 0 && smallBags === 0 && bigBags === 0 ? hybridQty : undefined,
+        grnId: createGrnId, createDate,
+        smallBags: isHybrid ? 0 : smallBags, bigBags: isHybrid ? 0 : bigBags, quantity: isHybrid ? hybridQty : undefined,
         bagCategory, bagPrice: isHybrid && typeof manualBagPrice === 'number' ? manualBagPrice : undefined,
         seasonalBagPrice: isHybrid && typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
         monthlyBagPrice: isHybrid && typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,
@@ -211,9 +216,10 @@ export function useCreateDeliveryForm(
     }
   };
 
-  const availableStock = grnSummary
-    ? grnSummary.availableSmallBags + grnSummary.availableBigBags
-    : (selectedGrn?.closingBags ?? selectedGrn?.bags ?? 0);
+  const availableStock = grnSummary ? grnSummary.availableSmallBags + grnSummary.availableBigBags : (selectedGrn?.closingBags ?? selectedGrn?.bags ?? 0);
+  const isSegregatedLot = (grnSummary?.availableSmallBags ?? 0) > 0 && (grnSummary?.availableBigBags ?? 0) > 0;
+  const isUnsegregatedLot = selectedGrn?.bagType === 'S/B' && !selectedGrn?.isCompositionVerified && !isSegregatedLot;
+  const perSideValid = isUnsegregatedLot || (smallBags <= (grnSummary?.availableSmallBags ?? withdrawal.availableSmall) && bigBags <= (grnSummary?.availableBigBags ?? withdrawal.availableBig));
   const hasValidPrice = !isHybrid || (
     (!rateVisibility.showSeasonalRate || (typeof seasonalBagPrice === 'number' && seasonalBagPrice > 0)) &&
     (!rateVisibility.showMonthlyRate || (typeof monthlyBagPrice === 'number' && monthlyBagPrice > 0)) &&
@@ -221,7 +227,7 @@ export function useCreateDeliveryForm(
   );
   const isFormValid = Boolean(
     selectedGrn && totalWithdrawingBags > 0 && totalWithdrawingBags <= availableStock &&
-    hasValidPrice && createDate.trim() && createVehicleNumber.trim() && createGpNumber.trim() &&
+    perSideValid && hasValidPrice && createDate.trim() && createVehicleNumber.trim() && createGpNumber.trim() &&
     createDriverName.trim() && !isLoanHoldActive && !submitting,
   );
 
@@ -230,8 +236,7 @@ export function useCreateDeliveryForm(
     setCreateDate: (v: string) => { setCreateDate(v); clearFieldError('date'); },
     bagCategory, setBagCategory: handleBagCategoryChange, outwardRent, withdrawal,
     manualBagPrice, setManualBagPrice: (v: number | '') => { setManualBagPrice(v); clearFieldError('bagPrice'); },
-    seasonalBagPrice, setSeasonalBagPrice: (v: number | '') => { setSeasonalBagPrice(v); clearFieldError('seasonalBagPrice'); },
-    monthlyBagPrice, setMonthlyBagPrice: (v: number | '') => { setMonthlyBagPrice(v); clearFieldError('monthlyBagPrice'); },
+    seasonalBagPrice, setSeasonalBagPrice: (v: number | '') => { setSeasonalBagPrice(v); clearFieldError('seasonalBagPrice'); }, monthlyBagPrice, setMonthlyBagPrice: (v: number | '') => { setMonthlyBagPrice(v); clearFieldError('monthlyBagPrice'); },
     rateVisibility, setWithdrawalSmallBags, setWithdrawalBigBags, setWithdrawalQuantity: handleQuantityChange,
     createVehicleNumber, setCreateVehicleNumber: (v: string) => { setCreateVehicleNumber(v); clearFieldError('vehicleNumber'); },
     createDriverName, setCreateDriverName: (v: string) => { setCreateDriverName(v); clearFieldError('driverName'); },

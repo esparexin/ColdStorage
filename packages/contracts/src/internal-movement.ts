@@ -27,6 +27,8 @@ export const mergeGrnInputSchema = z.object({
   referenceWeight: z.number().positive('Reference weight must be greater than zero').max(1000000).nullish(),
   sourcePaymentAmount: z.number().min(0, 'Payment amount cannot be negative').nullish(),
   sourcePaymentMode: paymentModeSchema.nullish(),
+  /** Idempotency key for safe retries. Same key returns the existing movement result. */
+  idempotencyKey: z.string().trim().min(1).max(100).nullish(),
 });
 export type MergeGrnInput = z.infer<typeof mergeGrnInputSchema>;
 
@@ -86,6 +88,7 @@ export const internalMovementRecordSchema = z.object({
   hamaliCharge: z.number().min(0).optional(),
   hamaliCarried: z.number().min(0).optional(),
   referenceWeight: z.number().positive().max(1000000).nullish(),
+  idempotencyKey: z.string().trim().min(1).max(100).nullish(),
   grnId: z.string().nullable().optional(),
   grnNumber: z.string().nullable().optional(),
   fromCustomerId: z.string().nullable().optional(),

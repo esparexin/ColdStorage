@@ -192,4 +192,31 @@ describe('validateDeliveryForm', () => {
       expect(res.errors.bigBags).toBeUndefined();
     }
   });
+
+  it('rejects negative and non-integer quantities for small and big bags', () => {
+    const resNegativeSmall = validateDeliveryForm(
+      makeInput({ smallBags: -5, totalWithdrawingBags: 5 }),
+    );
+    expect(resNegativeSmall.isValid).toBe(false);
+    expect(resNegativeSmall.errors.smallBags).toBe('Small bags must be a non-negative whole number');
+
+    const resDecimalBig = validateDeliveryForm(
+      makeInput({ bigBags: 10.5, totalWithdrawingBags: 10.5 }),
+    );
+    expect(resDecimalBig.isValid).toBe(false);
+    expect(resDecimalBig.errors.bigBags).toBe('Big bags must be a non-negative whole number');
+  });
+
+  it('validates hybrid mode total withdrawing bags against available stock', () => {
+    const hybridBase = { isHybrid: true, bagPrice: 15, availableSmall: 40, availableBig: 60, availableTotal: 100 };
+
+    const resOverTotal = validateDeliveryForm(makeInput({ ...hybridBase, totalWithdrawingBags: 105 }));
+    expect(resOverTotal.isValid).toBe(false);
+    expect(resOverTotal.errors.bags).toBe('Cannot deliver 105 bags (only 100 available)');
+
+    const resValid = validateDeliveryForm(makeInput({ ...hybridBase, totalWithdrawingBags: 80 }));
+    expect(resValid.isValid).toBe(true);
+    expect(resValid.errors.bags).toBeUndefined();
+  });
 });
+

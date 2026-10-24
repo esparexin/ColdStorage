@@ -15,7 +15,7 @@
 }
 
 /* Scoped to .tabs so these carry (0,0,2,0) and deterministically outrank the
-   Button primitive's single-class .button / .sm rules, matching the treatment
+   Button primitive's single-class button / sm rules, matching the treatment
    used by GrnStatusTabs and DeliveryStatusTabs. Typography (font-size,
    font-weight, color) comes from Button size="sm" and the variant, so this
    block previously forced a 14px font-size onto a 12px primitive. Only

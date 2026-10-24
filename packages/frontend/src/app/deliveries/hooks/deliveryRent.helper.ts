@@ -55,8 +55,8 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
 
   if (isHybrid) {
     const qty = params.quantity ?? (smallBags + bigBags);
-    const sRate = params.seasonalBagPrice ?? params.manualBagPrice ?? params.bagPrice ?? 0;
-    const mRate = params.monthlyBagPrice ?? params.manualBagPrice ?? params.bagPrice ?? 0;
+    const sRate = params.seasonalBagPrice ?? params.manualBagPrice ?? params.bagPrice ?? (rentType === 'Seasonal' || rentType === 'Seasonal_3M' ? (params.smallBagPrice ?? 0) : 0);
+    const mRate = params.monthlyBagPrice ?? params.manualBagPrice ?? params.bagPrice ?? (rentType === 'Monthly' || rentType === 'Seasonal_3M' ? (params.monthlySmallBagPrice ?? 0) : 0);
     if (qty <= 0) return 0;
 
     if (rentType === 'Seasonal_3M' && params.inwardDate && params.deliveryDate) {
