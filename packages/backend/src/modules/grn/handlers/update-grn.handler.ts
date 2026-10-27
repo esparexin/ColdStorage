@@ -7,6 +7,7 @@ import { DeliveryReversalModel } from '../../../database/models/delivery-reversa
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
+import { resolveEffectiveHamaliRate } from '../../common/hamali-resolution.js';
 import { toGrnEntity } from '../grn.mappers.js';
 import { resolveBagEdit, wantsBagsChange } from './grn-edit-bags.js';
 import { resolveRentEdit, wantsRentChange } from './grn-edit-rent.js';
@@ -161,8 +162,8 @@ export async function correctGrn(
       if (input.commodityId !== undefined || bagEdit.wantsBagsChange) {
         const commId = input.commodityId ?? grn.commodityId;
         const comm = await CommodityModel.findOne({ id: commId }).lean().exec();
-        const isApplicable = comm?.isHamaliApplicable ?? true;
-        const rate = isApplicable ? (comm?.hamaliRate ?? 0) : 0;
+        const commodityChanged = input.commodityId !== undefined && input.commodityId !== grn.commodityId;
+        const rate = resolveEffectiveHamaliRate(commodityChanged ? null : grn.hamaliRate, comm);
         update.hamaliRate = rate;
         update.hamaliAmount = calculateHamaliAmount(bagEdit.finalBags, rate);
       }
