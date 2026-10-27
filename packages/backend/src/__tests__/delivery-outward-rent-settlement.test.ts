@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CommodityModel } from '../database/models/commodity.model.js';
 import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
+import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
@@ -200,12 +201,10 @@ describe('Outward Rent Settlement Flow (delivery-outward-rent-settlement.test.ts
     const summaryBeforeReversal = await rentService.getRentSummary(facilityId, grn.id);
     expect(summaryBeforeReversal.remainingBalance).toBe(200);
 
-    // Reverse the delivery
-    await deliveryService.reverseDelivery(
-      facilityId,
-      del.delivery.id,
-      { reason: 'Operator error in bag count' },
-      USER_ID,
+    // Historical reversed delivery: status REVERSED excludes it from outward dues
+    await DeliveryChallanModel.updateOne(
+      { id: del.delivery.id },
+      { $set: { status: 'REVERSED' } },
     );
 
     // Outward dues reset to 0

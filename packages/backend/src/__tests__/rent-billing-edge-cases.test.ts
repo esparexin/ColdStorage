@@ -23,66 +23,6 @@ async function resetAll(facilityIds: string[]): Promise<void> {
   await mongoose.connection.collection('auditlogs').deleteMany({ facilityId: { $in: facilityIds } });
 }
 
-describe('E2E Suite 2: Delivery Reversal — bags restored and rent stays unchanged', () => {
-  let facilityId: string;
-  let customerId: string;
-  let grnId: string;
-
-  beforeAll(connectToTestDatabase);
-  afterAll(disconnectTestDatabase);
-
-  beforeEach(async () => {
-    facilityId = 'fac-e2e-reversal-1';
-    await resetAll([facilityId]);
-    facilityId = await seedFacility({ id: facilityId, name: 'Reversal Test Facility' });
-    customerId = await seedCustomer({ facilityId, name: 'Ramesh Cold Chain' });
-    grnId = await seedGrn({
-      commodityId: 'cmd-edge',
-      facilityId, customerId, chamber: 'CH-R1', bags: 200,
-      commodityName: 'Onion', grnNumber: 'GRN-26-27-0200', rentAmount: 6_000,
-    });
-  });
-
-  it('reversal restores bag count in ledger and delivery summary reflects correct net outward', async () => {
-    const del1 = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 80, bigBags: 0 }, USER_ID);
-    expect(del1.summary.remainingDeliveryBalance).toBe(120);
-
-    const rev = await deliveryService.reverseDelivery(
-      facilityId, del1.delivery.id, { reason: 'Customer returned goods — test reversal' }, USER_ID,
-    );
-    expect(rev.summary.remainingDeliveryBalance).toBe(200);
-    expect(rev.summary.physicallyStoredBags).toBe(200);
-    expect(rev.summary.grnStatus).toBe('OPEN');
-
-    const netDelivered = await readLedgerNetDelivered(facilityId, grnId);
-    const ledgerBalance = await readLedgerBalance(facilityId, grnId);
-    expect(netDelivered.total).toBe(0);
-    expect(ledgerBalance.total).toBe(200);
-
-    const rent = await rentService.getRentSummary(facilityId, grnId);
-    expect(rent.deliveredBags).toBe(0);
-    expect(rent.remainingBags).toBe(200);
-    expect(rent.remainingBalance).toBe(6_000);
-    expect(rent.paymentStatus).toBe('Not Settled');
-  });
-
-  it('reversal after partial payment: bags restored, rent balance unaffected', async () => {
-    await rentService.recordPayment(
-      facilityId, { grnId, amountPaid: 2_000, paymentMode: 'UPI', paymentDate: new Date() }, USER_ID,
-    );
-    const del1 = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 80, bigBags: 0 }, USER_ID);
-    await deliveryService.reverseDelivery(
-      facilityId, del1.delivery.id, { reason: 'Test reversal after partial payment' }, USER_ID,
-    );
-
-    const rent = await rentService.getRentSummary(facilityId, grnId);
-    expect(rent.deliveredBags).toBe(0);
-    expect(rent.remainingBags).toBe(200);
-    expect(rent.totalPaid).toBe(2_000);
-    expect(rent.remainingBalance).toBe(4_000);
-    expect(rent.paymentStatus).toBe('Not Settled');
-  });
-});
 
 describe('E2E Suite 3: Batch summary matches per-GRN summary', () => {
   let facilityId: string;

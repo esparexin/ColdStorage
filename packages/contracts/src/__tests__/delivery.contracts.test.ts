@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   createDeliverySchema,
-  reverseDeliverySchema,
   deliveryStatusSchema,
   deliveryQuerySchema,
   deliveryChallanSchema,
@@ -96,15 +95,6 @@ describe('P6 Delivery Contracts', () => {
         items: [{ positionId: 'pos-1', bags: -10 }],
       }).success,
     ).toBe(false);
-  });
-
-  it('validates reverseDelivery input with minimum 5 characters reason', () => {
-    expect(reverseDeliverySchema.safeParse({ reason: 'Good' }).success).toBe(false);
-    expect(
-      reverseDeliverySchema.safeParse({
-        reason: 'Customer cancelled truck dispatch after weighing',
-      }).success,
-    ).toBe(true);
   });
 
   it('validates deliveryStatusSchema vocabulary', () => {

@@ -179,15 +179,6 @@ describe('Delivery stored agreement — delivery-stored-agreement.test.ts', () =
     // Rent = 50 * 150 + 20 * 210 = 7,500 + 4,200 = 11,700
     expect(del.delivery.rentCharge).toBe(11700);
 
-    // Reversal restores exact 200 bags without fragmenting single pool
-    const rev = await deliveryService.reverseDelivery(
-      FACILITY_ID,
-      del.delivery.id,
-      { reason: 'Customer changed delivery request' },
-      USER_ID,
-    );
-    expect(rev.summary.remainingDeliveryBalance).toBe(200);
-    expect(rev.summary.physicallyStoredBags).toBe(200);
   });
 
   it('supports all valid outward compositions (200S+0B, 0S+200B, 10S+190B) for 200-bag lots', async () => {

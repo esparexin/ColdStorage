@@ -33,7 +33,7 @@ export default function DeliveriesPage() {
   const [rentPayAccount, setRentPayAccount] = useState<RentSummaryDto | null>(null); const [rentPaidTick, setRentPaidTick] = useState(0);
   const [loanClearGrn, setLoanClearGrn] = useState<Grn | null>(null); const [loanClearedTick, setLoanClearedTick] = useState(0);
   const [initialGrnId, setInitialGrnId] = useState<string | undefined>(undefined);
-  const [rentPromptDelivery, setRentPromptDelivery] = useState<DeliveryChallan | null>(null); const [reverseDeliveryTarget, setReverseDeliveryTarget] = useState<DeliveryChallan | null>(null);
+  const [rentPromptDelivery, setRentPromptDelivery] = useState<DeliveryChallan | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -57,7 +57,6 @@ export default function DeliveriesPage() {
   const canPrint = hasPermission('document:print');
   const canCollectRent = hasPermission('rent:collect');
   const canUpdateLoan = hasPermission('grn:create');
-  const canReverse = hasPermission('delivery:reversal');
 
   const clearInitialGrn = () => {
     setInitialGrnId(undefined);
@@ -194,10 +193,10 @@ export default function DeliveriesPage() {
               ) : (
                 <DeliveryTable
                   deliveries={deliveryData.filteredDeliveries} caption={`Delivery Challans for ${deliveryData.currentFacilityName}`}
-                  canPrint={canPrint} canCollectRent={canCollectRent} canReverse={canReverse} printingId={printingId}
+                  canPrint={canPrint} canCollectRent={canCollectRent} printingId={printingId}
                   page={deliveryData.page} pageSize={deliveryData.pageSize} totalPages={deliveryData.totalPages} totalDeliveries={deliveryData.totalDeliveries}
                   onPageChange={deliveryData.setPage} onSelectDelivery={setSelectedDelivery}
-                  onPrintChallan={handlePrintChallan} onCollectRent={handleCollectRent} onReverseDelivery={setReverseDeliveryTarget}
+                  onPrintChallan={handlePrintChallan} onCollectRent={handleCollectRent}
                 />
               )}
             </>
@@ -211,9 +210,7 @@ export default function DeliveriesPage() {
         onCloseDetail={() => setSelectedDelivery(null)} onCloseLoanClear={() => setLoanClearGrn(null)}
         onLoanCleared={handleLoanClearedFromDelivery} onCloseRentPay={() => setRentPayAccount(null)}
         onRentPaid={handleRentPaidFromDelivery} onPrintChallan={handlePrintChallan}
-        rentPromptDelivery={rentPromptDelivery} reverseDeliveryTarget={reverseDeliveryTarget}
-        onCloseReverse={() => setReverseDeliveryTarget(null)}
-        onReversalSuccess={() => { setReverseDeliveryTarget(null); void deliveryData.fetchDeliveries(); }}
+        rentPromptDelivery={rentPromptDelivery}
         onConfirmRentPrompt={(del) => { setRentPromptDelivery(null); void handleCollectRent(del); }}
         onCancelRentPrompt={() => { const del = rentPromptDelivery; setRentPromptDelivery(null); if (del) setSelectedDelivery(del); }}
       />

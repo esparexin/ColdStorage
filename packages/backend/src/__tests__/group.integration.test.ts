@@ -82,19 +82,6 @@ describe('Groups Full Integration & Stock Ledger Integrity', () => {
     expect(res?.stockSummary?.smallBags).toBe(30);
     expect(res?.stockSummary?.bigBags).toBe(100);
 
-    // Reverse the delivery
-    await deliveryService.reverseDelivery(
-      facilityA,
-      delRes.delivery.id,
-      { reason: 'Customer returned delivery lot' },
-      USER_ID,
-    );
-
-    // Group stock summary is restored to 150 bags
-    res = await groupService.getGroupById(facilityA, group.id);
-    expect(res?.stockSummary?.totalBags).toBe(150);
-    expect(res?.stockSummary?.smallBags).toBe(50);
-    expect(res?.stockSummary?.bigBags).toBe(100);
   });
 
   it('prevents concurrent creation race condition with identical normalized names', async () => {

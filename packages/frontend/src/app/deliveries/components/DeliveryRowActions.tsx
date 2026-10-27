@@ -10,12 +10,10 @@ interface DeliveryRowActionsProps {
   row: DeliveryChallan;
   canPrint: boolean;
   canCollectRent?: boolean;
-  canReverse?: boolean;
   printingId: string | null;
   onSelectDelivery: (delivery: DeliveryChallan) => void;
   onPrintChallan: (challanId: string) => void;
   onCollectRent?: (delivery: DeliveryChallan) => void;
-  onReverseDelivery?: (delivery: DeliveryChallan) => void;
 }
 
 export function DeliveryRowActions({

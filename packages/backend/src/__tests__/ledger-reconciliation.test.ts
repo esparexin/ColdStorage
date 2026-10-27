@@ -67,12 +67,24 @@ describe('Phase 7: ledger reconciliation invariants (ledger-reconciliation.test.
       { grnId: mixedGrnId, smallBags: 20, bigBags: 30 },
       USER_ID,
     );
-    await deliveryService.reverseDelivery(
+    // Historical reversal
+    await DeliveryChallanModel.updateOne({ id: del.delivery.id }, { $set: { status: 'REVERSED' } });
+    await DeliveryReversalModel.create({
+      id: 'rev-rec-test-1',
       facilityId,
-      del.delivery.id,
-      { reason: 'Buyer rejected the lot at the gate' },
-      USER_ID,
-    );
+      deliveryId: del.delivery.id,
+      challanNumber: del.delivery.challanNumber,
+      grnId: mixedGrnId,
+      reason: 'Buyer rejected the lot at the gate',
+      reversedBy: USER_ID,
+      reversedAt: new Date(),
+    });
+    const inwardTx = await InventoryTransactionModel.findOne({ grnId: mixedGrnId, transactionType: 'INWARD_PUTAWAY' }).lean();
+    await InventoryTransactionModel.create({
+      ...inwardTx, _id: undefined, id: 'tx-rev-rec-1', transactionType: 'DELIVERY_REVERSAL',
+      smallQuantity: 20, bigQuantity: 30, referenceId: 'rev-rec-test-1',
+      referenceType: 'DELIVERY_REVERSAL', createdBy: USER_ID, createdAt: new Date(),
+    });
     await deliveryService.createDelivery(
       facilityId,
       { grnId: mixedGrnId, smallBags: 10, bigBags: 10 },

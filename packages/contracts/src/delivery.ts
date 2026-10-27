@@ -136,12 +136,6 @@ export const createDeliverySchema = z
 export type CreateDeliveryInput = z.input<typeof createDeliverySchema>;
 export type CreateDeliveryDTO = z.infer<typeof createDeliverySchema>;
 
-export const reverseDeliverySchema = z.object({
-  reason: z.string().trim().min(5, 'Reversal reason must be at least 5 characters').max(500),
-});
-
-export type ReverseDeliveryInput = z.infer<typeof reverseDeliverySchema>;
-
 export const deliveryChallanSchema = z.object({
   id: z.string().min(1),
   facilityId: z.string().min(1),

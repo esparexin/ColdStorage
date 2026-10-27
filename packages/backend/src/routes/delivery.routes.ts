@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { asyncRouter } from '../utils/async-handler.js';
-import { createDeliverySchema, deliveryQuerySchema, reverseDeliverySchema } from '@cold-storage/contracts';
+import { createDeliverySchema, deliveryQuerySchema } from '@cold-storage/contracts';
 import { authenticate, requirePasswordChanged } from '../middleware/auth.middleware.js';
 import { requireFacilityScope } from '../middleware/facility.middleware.js';
 import { requirePermission } from '../middleware/rbac.middleware.js';
@@ -150,53 +150,6 @@ deliveryRouter.get(
   },
 );
 
-// 4. Reverse a Confirmed Delivery Challan (Full Reversal Only)
-deliveryRouter.post(
-  '/facilities/:facilityId/deliveries/:deliveryId/reverse',
-  requirePermission('delivery:reversal'),
-  requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
-    const facilityId = getParamId(req.params.facilityId);
-    const deliveryId = getParamId(req.params.deliveryId);
-
-    const deliveryFacilityId = await deliveryService.resolveFacilityIdForDelivery(deliveryId);
-    if (!deliveryFacilityId || deliveryFacilityId !== facilityId) {
-      res.status(404).json({ error: `Delivery '${deliveryId}' not found in facility '${facilityId}'` });
-      return;
-    }
-
-    const parseResult = reverseDeliverySchema.safeParse(req.body);
-    if (!parseResult.success) {
-      res.status(400).json({ error: 'Validation failed', details: parseResult.error.flatten() });
-      return;
-    }
-
-    try {
-      const { reversal, challan, summary } = await deliveryService.reverseDelivery(
-        facilityId,
-        deliveryId,
-        parseResult.data,
-        req.user!.userId,
-      );
-      res.status(200).json({ reversal, challan, summary });
-    } catch (err: unknown) {
-      if (err instanceof ConcurrencyConflictError) {
-        res.status(409).json({ error: err.message, code: err.code });
-        return;
-      }
-      const message = err instanceof Error ? err.message : 'Delivery reversal failed';
-      const status =
-        message.includes('not found')
-          ? 404
-          : message.includes('already REVERSED') ||
-              message.includes('exceeds available capacity') ||
-              message.includes('inactive')
-            ? 400
-            : 500;
-      res.status(status).json({ error: message });
-    }
-  },
-);
 
 // 5. List Deliveries for specific GRN
 deliveryRouter.get(

@@ -187,13 +187,5 @@ describe('Delivery Merged Dual-Section Outward Dispatches', () => {
     const ledgerFinal = await readLedgerBalance(facilityId, grnId);
     expect(ledgerFinal.total).toBe(0);
 
-    // 5. Delivery Reversal: Reverse d2 and verify stock pools are restored
-    await deliveryService.reverseDelivery(facilityId, d2.id, { reason: 'Customer requested cancellation' }, USER_ID);
-    const poolsAfterReversal = await resolveMergedStockPools(facilityId, grn!);
-    expect(poolsAfterReversal?.availableConfirmedSmall).toBe(15);
-    expect(poolsAfterReversal?.availableConfirmedBig).toBe(15);
-    expect(poolsAfterReversal?.availableConfirmedTotal).toBe(30);
-    const ledgerAfterReversal = await readLedgerBalance(facilityId, grnId);
-    expect(ledgerAfterReversal.total).toBe(30);
   });
 });

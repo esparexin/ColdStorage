@@ -170,28 +170,6 @@ export function validateDeliveryDate(
   return deliveryDate;
 }
 
-/**
- * A reversal is whole-challan only: the P0 lock parks partial reversal rules as unapproved, and
- * the reversal ledger row restores exactly the composition the challan dispatched. This is a
- * status check, not a quantity negotiation.
- */
-export async function assertChallanIsReversible(
-  facilityId: string,
-  deliveryId: string,
-  session: mongoose.ClientSession,
-): Promise<void> {
-  const challan = await DeliveryChallanModel.findOne({ id: deliveryId, facilityId })
-    .session(session)
-    .lean()
-    .exec();
-
-  if (!challan) {
-    throw new Error(`Delivery challan '${deliveryId}' not found in facility '${facilityId}'`);
-  }
-  if (challan.status !== 'ISSUED') {
-    throw new Error(`Delivery challan '${challan.challanNumber}' is already REVERSED`);
-  }
-}
 
 /** Stock currently on hand for a GRN inside a transaction, read from the ledger. */
 export async function readAvailableBags(
