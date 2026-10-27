@@ -195,13 +195,13 @@ describe('mergeRentAssessment.helper', () => {
       calculatedRent: 640,
     });
 
-    // 640 historical rent + 20 inward hamali = 660
-    expect(result.historicalObligation).toBe(660);
+    // 640 historical rent; repacking Hamali is not prematurely added
+    expect(result.historicalObligation).toBe(640);
     expect(result.amountPaid).toBe(0);
-    expect(result.outstandingBalance).toBe(660);
+    expect(result.outstandingBalance).toBe(640);
     expect(result.isSettled).toBe(false);
-    expect(result.carriedRent).toBe(660);
-    expect(result.totalCarried).toBe(660);
+    expect(result.carriedRent).toBe(640);
+    expect(result.totalCarried).toBe(640);
   });
 
   describe('calculateMergeSourceRentSummary', () => {
@@ -236,10 +236,10 @@ describe('mergeRentAssessment.helper', () => {
       expect(result.bagTypeLabel).toBe('Hybrid');
       expect(result.totalBags).toBe(100);
       expect(result.bagCountLabel).toBe('100 Bags');
-      expect(result.hamaliAmount).toBe(2500); // 100 * 25
+      expect(result.hamaliAmount).toBe(0); // Repacking Hamali deferred to Step 4
       // 100 * 120 (2025 season) + 100 * 60 * 2 (Jan-Feb 2026) = 24,000
       expect(result.totalRent).toBe(24000);
-      expect(result.totalAmountToPay).toBe(26500);
+      expect(result.totalAmountToPay).toBe(24000);
     });
 
     it('computes S/B source GRN with split counts and formats breakdown label', () => {
@@ -277,10 +277,10 @@ describe('mergeRentAssessment.helper', () => {
       expect(result.smallBags).toBe(60);
       expect(result.bigBags).toBe(40);
       expect(result.bagCountLabel).toBe('100 Bags (60 Small, 40 Big)');
-      expect(result.hamaliAmount).toBe(2000); // 100 * 20
+      expect(result.hamaliAmount).toBe(0); // Repacking Hamali deferred to Step 4
       // 60 * 100 + 40 * 150 = 6,000 + 6,000 = 12,000
       expect(result.totalRent).toBe(12000);
-      expect(result.totalAmountToPay).toBe(14000);
+      expect(result.totalAmountToPay).toBe(12000);
     });
 
     it('handles unconfirmed S/B composition by labeling Pending Split', () => {
@@ -378,19 +378,19 @@ describe('mergeRentAssessment.helper', () => {
       // GRN 0012:
       // (2025) Mar - Dec: 8*15 + 4*15 = 180
       // Jan - Feb 2026: 8*20 + 4*30 = 280
-      // Hamali: 12 * 25 = 300
-      // Storage Rent: 420, Total to Pay: 720
+      // Hamali: 0 (deferred to Step 4 repacking confirmation)
+      // Storage Rent: 420, Total to Pay: 420
 
       // GRN 0010:
       // 2024 Mar - Dec: 10 * 110 = 1,100
       // 2025 Jan - Feb: 10 * 140 = 1,400
       // 2025 Mar - Dec: 10 * 110 = 1,100
       // 2026 Jan - Feb: 10 * 140 = 1,400
-      // Hamali: 10 * 25 = 250
-      // Storage Rent: 5,000, Total to Pay: 5,250
+      // Hamali: 0 (deferred to Step 4 repacking confirmation)
+      // Storage Rent: 5,000, Total to Pay: 5,000
 
-      // Grand Total: 720 + 5,250 = 5,970
-      expect(grandTotal).toBe(5970);
+      // Grand Total: 420 + 5,000 = 5,420
+      expect(grandTotal).toBe(5420);
     });
 
     it('updates dynamically when a source confirmation rate or split changes', () => {
@@ -422,7 +422,7 @@ describe('mergeRentAssessment.helper', () => {
         commodityHamaliRate: 25,
       });
 
-      expect(initialTotal).toBe(5250);
+      expect(initialTotal).toBe(5000);
 
       // Increase seasonal rate from 110 to 120
       const updatedTotal = calculateMergeGrandTotal({
@@ -443,8 +443,8 @@ describe('mergeRentAssessment.helper', () => {
         commodityHamaliRate: 25,
       });
 
-      // 2 seasonal cycles (2024 and 2025) each increase by 10 * 10 = 100 -> +200 total
-      expect(updatedTotal).toBe(5450);
+      // 2 seasonal cycles (2024 and 2025) each increase by 10 * 10 = 100 -> +200 total (5,000 + 200 = 5,200)
+      expect(updatedTotal).toBe(5200);
     });
 
     it('preserves authoritative stored seasonal obligations for GRN 0010 and GRN 0012 totaling ₹39,700 without manual rate overrides', () => {
@@ -500,8 +500,8 @@ describe('mergeRentAssessment.helper', () => {
       });
 
       expect(calc0010.totalRent).toBe(26100);
-      expect(calc0010.hamaliAmount).toBe(250);
-      expect(calc0010.totalAmountToPay).toBe(26350);
+      expect(calc0010.hamaliAmount).toBe(0);
+      expect(calc0010.totalAmountToPay).toBe(26100);
 
       const calc0012 = calculateMergeSourceRentSummary({
         source: liveGrn0012,
@@ -512,8 +512,8 @@ describe('mergeRentAssessment.helper', () => {
       });
 
       expect(calc0012.totalRent).toBe(13050);
-      expect(calc0012.hamaliAmount).toBe(300);
-      expect(calc0012.totalAmountToPay).toBe(13350);
+      expect(calc0012.hamaliAmount).toBe(0);
+      expect(calc0012.totalAmountToPay).toBe(13050);
 
       const grandTotal = calculateMergeGrandTotal({
         selectedSources: [liveGrn0010, liveGrn0012],
@@ -523,8 +523,8 @@ describe('mergeRentAssessment.helper', () => {
         commodityHamaliRate: 25,
       });
 
-      // Exactly matches backend carried rent: 26,350 + 13,350 = 39,700
-      expect(grandTotal).toBe(39700);
+      // Pure storage rent: 26,100 + 13,050 = 39,150 (Hamali deferred to Step 4)
+      expect(grandTotal).toBe(39150);
     });
   });
 });

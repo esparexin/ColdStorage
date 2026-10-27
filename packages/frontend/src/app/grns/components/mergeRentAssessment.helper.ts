@@ -38,10 +38,9 @@ export function deriveMergeRentAssessment(params: {
     ? summary.totalPaid
     : (source.rentPaymentStatus === 'Settled' && source.rentRemainingBalance === 0 ? (source.rentAmount ?? 0) : 0);
 
-  const sourceHamali = commodityHamaliRate > 0 ? sourceBags * commodityHamaliRate : 0;
   const unbilledCalculatedObligation =
     typeof calculatedRent === 'number' && calculatedRent > 0
-      ? calculatedRent + (sourceHamali > 0 ? sourceHamali : 0)
+      ? calculatedRent
       : 0;
 
   const historicalObligation =
@@ -196,13 +195,10 @@ export function calculateMergeSourceRentSummary(params: {
     totalRent = calculatedRent > 0 ? calculatedRent : (historicalObligation > 0 ? historicalObligation : 0);
   }
 
-  const totalWithdrawing = smallBags + bigBags;
-  const hamaliAmount =
-    commodityHamaliRate > 0 && totalWithdrawing > 0
-      ? Number((totalWithdrawing * commodityHamaliRate).toFixed(2))
-      : 0;
-
-  const totalAmountToPay = totalRent + hamaliAmount;
+  // Repacking Hamali is never calculated or applied in Step 2; it applies exclusively
+  // in Step 4 once physical repacking and bag counts are explicitly confirmed.
+  const hamaliAmount = 0;
+  const totalAmountToPay = totalRent;
 
   let bagCountLabel = `${sourceBags} Bags`;
   if (!isHybrid) {

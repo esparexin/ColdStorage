@@ -89,8 +89,8 @@ describe('Integration: Internal Merge with Repacking Flow (GRN 23 = 150 bags, GR
     expect(updatedTarget?.smallBags).toBe(125);
     expect(updatedTarget?.bigBags).toBe(75);
     expect(updatedTarget?.isCompositionVerified).toBe(true);
-    // Target retains 3000 initial + 150 repacking hamali = 3150 under independent billing
-    expect(updatedTarget?.rentAmount).toBe(3150);
+    // Target retains 3000 initial storage rent (repacking Hamali decoupled from rentAmount per SSOT)
+    expect(updatedTarget?.rentAmount).toBe(3000);
 
     const updatedSource = await GrnModel.findOne({ id: sourceGrnId }).lean();
     expect(updatedSource?.status).toBe('CLOSED');
@@ -103,6 +103,7 @@ describe('Integration: Internal Merge with Repacking Flow (GRN 23 = 150 bags, GR
     const movement = await InternalMovementModel.findOne({ targetGrnId }).lean();
     expect(movement?.movementType).toBe('MERGE');
     expect(movement?.totalBagsMoved).toBe(50);
+    expect(movement?.hamaliCharge).toBe(150);
   });
 
   it('2. Merges GRN 26 (50 bags) into GRN 23 (150 bags) with Hybrid Confirmation and rate validation', async () => {
