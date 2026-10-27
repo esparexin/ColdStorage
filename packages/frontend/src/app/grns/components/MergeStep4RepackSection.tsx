@@ -189,13 +189,21 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
           )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
-            <span>Physical Repacked Total:</span>
-            <strong style={{ color: 'var(--color-primary-text)' }}>
-              {repackBagType === 'Hybrid'
-                ? (typeof repackQuantity === 'number' ? repackQuantity : 0)
-                : (typeof repackSmall === 'number' && typeof repackBig === 'number' ? repackSmall + repackBig : 0)} Bags
-            </strong>
+            <span>Source Consolidated Pool:</span>
+            <strong>{totalSourceBags} Bags</strong>
           </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
+            <span>Physical Repacked Total:</span>
+            <strong style={{ color: 'var(--color-primary-text)' }}>{actualRepackedBags} Bags</strong>
+          </div>
+          {actualRepackedBags > 0 && actualRepackedBags !== totalSourceBags && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
+              <span>Repacking Net Variance:</span>
+              <strong style={{ color: actualRepackedBags < totalSourceBags ? 'var(--color-warning-text)' : 'var(--color-primary-text)' }}>
+                {actualRepackedBags > totalSourceBags ? `+${actualRepackedBags - totalSourceBags}` : actualRepackedBags - totalSourceBags} Bags {actualRepackedBags < totalSourceBags ? '(Shrinkage / Loss)' : '(Smaller Packaging)'}
+              </strong>
+            </div>
+          )}
 
           {repackHamaliCharge > 0 && (
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>

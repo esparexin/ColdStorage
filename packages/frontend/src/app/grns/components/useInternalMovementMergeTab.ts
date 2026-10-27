@@ -205,7 +205,6 @@ export function useInternalMovementMergeTab({
         if (!isRepackFilled || Number(repackSmall) < 0 || Number(repackBig) < 0) return setValidationError('Both Repacked Small and Big bag counts are required.');
       } else {
         if (!isRepackFilled || Number(repackQuantity) <= 0) return setValidationError('Repacked Hybrid bag count is required and must be greater than zero.');
-        if (Number(repackQuantity) !== totalSourceBags) return setValidationError(`Confirmed Hybrid quantity (${repackQuantity}) must match total moved stock of ${totalSourceBags} bags.`);
         const hasRate = hasPositiveHybridRate({
           bagPrice: typeof repackBagPrice === 'number' ? repackBagPrice : undefined,
           seasonalBagPrice: typeof repackSeasonalBagPrice === 'number' ? repackSeasonalBagPrice : undefined,
