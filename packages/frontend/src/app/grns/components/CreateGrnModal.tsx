@@ -159,6 +159,44 @@ export function CreateGrnModal({
             </div>
             <div className={styles.fieldGroup}>
               <Select
+                id="create-bag-type" label="Bag Type" required disabled={structuralLocked}
+                value={form.createBagType} onChange={(e) => form.handleBagTypeChange(e.target.value as import('@cold-storage/contracts').BagType)}
+                error={form.fieldErrors.bagType}
+              >
+                <option value="" disabled>Select Bag Type (S/B or Hybrid) *</option>
+                <option value="S/B">S/B (Standard Bags - Unsegregated)</option>
+                <option value="Hybrid">Hybrid (Uniform Modern)</option>
+                {isEdit && form.createBagType === 'S' && <option value="S">Small Only (S)</option>}
+                {isEdit && form.createBagType === 'B' && <option value="B">Big Only (B)</option>}
+                {isEdit && form.createBagType === 'S+B' && <option value="S+B">Small &amp; Big (S+B - Confirmed)</option>}
+              </Select>
+            </div>
+            {isEdit && form.createBagType === 'S+B' && (
+              <>
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="create-small-bags" className={styles.fieldLabel}>Small Bags *</label>
+                  <input
+                    id="create-small-bags" type="text" inputMode="numeric" required disabled={structuralLocked}
+                    value={form.createSmallBags} onChange={(e) => form.handleSmallBagsChange(parseNumericInput(e.target.value))}
+                    placeholder="e.g. 150"
+                    className={`${styles.fieldInput} ${form.fieldErrors.smallBags ? styles.inputError : ''}`}
+                  />
+                  {form.fieldErrors.smallBags && <span id="create-small-bags-error" className={styles.fieldErrorText} role="alert">{form.fieldErrors.smallBags}</span>}
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="create-big-bags" className={styles.fieldLabel}>Big Bags *</label>
+                  <input
+                    id="create-big-bags" type="text" inputMode="numeric" required disabled={structuralLocked}
+                    value={form.createBigBags} onChange={(e) => form.handleBigBagsChange(parseNumericInput(e.target.value))}
+                    placeholder="e.g. 100"
+                    className={`${styles.fieldInput} ${form.fieldErrors.bigBags ? styles.inputError : ''}`}
+                  />
+                  {form.fieldErrors.bigBags && <span id="create-big-bags-error" className={styles.fieldErrorText} role="alert">{form.fieldErrors.bigBags}</span>}
+                </div>
+              </>
+            )}
+            <div className={styles.fieldGroup}>
+              <Select
                 id="create-rent-type" label="Rent Type" required disabled={structuralLocked}
                 value={form.createRentType} onChange={(e) => form.createRentType !== e.target.value && form.handleRentTypeChange(e.target.value as RentType)}
               >

@@ -17,6 +17,9 @@ export interface CreateGrnState {
   createCommodityId: string;
   createChamber: string;
   createBags: number | '';
+  createBagType?: BagType | '';
+  createSmallBags?: number | '';
+  createBigBags?: number | '';
   createRentType: RentType;
   createPartyMark?: string;
   createVehicleNumber: string;
@@ -43,9 +46,26 @@ export function validateCreateGrnForm(state: CreateGrnState): {
     errors.chamber = parsedChamber.error.issues[0]?.message ?? 'Chamber is required';
   }
 
-  // Total-only inward; Small/Big/Hybrid composition is confirmed at outward delivery.
   if (typeof state.createBags !== 'number' || !Number.isInteger(state.createBags) || state.createBags < 1) {
     errors.bags = 'Total Bags is required (a positive whole number)';
+  }
+
+  if (!state.createBagType) {
+    errors.bagType = 'Please select a Bag Type (S/B or Hybrid)';
+  }
+
+  if (state.createBagType === 'S+B') {
+    const s = typeof state.createSmallBags === 'number' ? state.createSmallBags : null;
+    const b = typeof state.createBigBags === 'number' ? state.createBigBags : null;
+    if (s === null || !Number.isInteger(s) || s < 0) {
+      errors.smallBags = 'Small bags must be a non-negative whole number';
+    }
+    if (b === null || !Number.isInteger(b) || b < 0) {
+      errors.bigBags = 'Big bags must be a non-negative whole number';
+    }
+    if (s !== null && b !== null && typeof state.createBags === 'number' && s + b !== state.createBags) {
+      errors.smallBags = `Small (${s}) + Big (${b}) must equal Total (${state.createBags})`;
+    }
   }
 
   const normVehicle = normalizeIndianVehicleNumber(state.createVehicleNumber);
@@ -63,6 +83,7 @@ export function validateCreateGrnForm(state: CreateGrnState): {
 export function buildCreateGrnPayload(params: {
   facilityId: string; inwardDate: Date; grnNumber: string; customerId: string; commodityId: string;
   chamber: string; bags: number; rentType: RentType;
+  bagType?: BagType | ''; smallBags?: number; bigBags?: number;
   partyMark?: string; vehicleNumber?: string; remarks?: string;
   isBondForLoan?: boolean; loanStatus?: LoanStatus;
 }): Record<string, unknown> {
@@ -72,6 +93,22 @@ export function buildCreateGrnPayload(params: {
     commodityId: params.commodityId, chamber: params.chamber, bags: params.bags,
     rentType: params.rentType,
   };
+  if (params.bagType) {
+    p.bagType = params.bagType;
+    if (params.bagType === 'S') {
+      p.smallBags = params.bags;
+      p.bigBags = 0;
+    } else if (params.bagType === 'B') {
+      p.smallBags = 0;
+      p.bigBags = params.bags;
+    } else if (params.bagType === 'S+B') {
+      if (params.smallBags != null) p.smallBags = params.smallBags;
+      if (params.bigBags != null) p.bigBags = params.bigBags;
+    } else if (params.bagType === 'Hybrid') {
+      p.smallBags = params.bags;
+      p.bigBags = 0;
+    }
+  }
   if (params.partyMark?.trim()) p.partyMark = params.partyMark.trim();
   if (params.vehicleNumber) p.vehicleNumber = params.vehicleNumber;
   if (params.remarks?.trim()) p.remarks = params.remarks.trim();
@@ -166,7 +203,8 @@ export function buildEditGrnPayload(params: {
 
 export const GRN_FIELD_ID_MAP: Record<string, string> = {
   customer: 'create-customer-search', commodity: 'create-commodity', chamber: 'create-chamber',
-  partyMark: 'create-party-mark', bags: 'create-bags',
+  partyMark: 'create-party-mark', bags: 'create-bags', bagType: 'create-bag-type',
+  smallBags: 'create-small-bags', bigBags: 'create-big-bags',
   grnNumber: 'create-gr-number', vehicleNumber: 'create-vehicle',
 };
 
