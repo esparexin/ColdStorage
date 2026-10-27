@@ -30,7 +30,7 @@ export function GrnLifecycleStatusCell({ row }: GrnLifecycleStatusCellProps) {
     return (
       <div className={styles.statusGroup}>
         <Badge variant="neutral" icon={<Check size={11} aria-hidden="true" />}>
-          Closed
+          Outward
         </Badge>
         {isMergedTarget && <span className={styles.mergedReference}>Merged Lot</span>}
       </div>
