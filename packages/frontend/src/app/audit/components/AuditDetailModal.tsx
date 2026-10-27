@@ -29,6 +29,10 @@ export function AuditDetailModal({ log, onClose }: AuditDetailModalProps) {
             <strong>Timestamp:</strong> {new Date(log.timestamp).toISOString()}
           </div>
           <div>
+            <strong>Activity Date:</strong>{' '}
+            {typeof log.details?.activityDate === 'string' ? String(log.details.activityDate) : 'N/A (Recorded at Timestamp)'}
+          </div>
+          <div>
             <strong>Severity:</strong> {log.severity}
           </div>
           <div>
@@ -43,6 +47,11 @@ export function AuditDetailModal({ log, onClose }: AuditDetailModalProps) {
           <div>
             <strong>Facility:</strong> {log.facilityId || 'Global'}
           </div>
+          {typeof log.details?.customerName === 'string' && (
+            <div>
+              <strong>Customer:</strong> {String(log.details.customerName)}
+            </div>
+          )}
         </div>
 
         <div>

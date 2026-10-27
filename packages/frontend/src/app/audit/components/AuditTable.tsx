@@ -29,15 +29,23 @@ export function AuditTable({
   const columns: DataTableColumn<AuditLogRecord>[] = [
     {
       key: 'timestamp',
-      header: 'Timestamp',
+      header: 'Date & Time',
       sortable: true,
       sortType: 'date',
       sortAccessor: (r) => r.timestamp,
-      render: (r) => (
-        <span style={{ fontSize: 'var(--text-xs)' }}>
-          {formatDisplayDate(r.timestamp, { includeTime: true })}
-        </span>
-      ),
+      render: (r) => {
+        const activityDate = typeof r.details?.activityDate === 'string' ? r.details.activityDate : null;
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)' }}>
+              {activityDate ? `Act: ${formatDisplayDate(activityDate)}` : formatDisplayDate(r.timestamp)}
+            </span>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+              {formatDisplayDate(r.timestamp, { includeTime: true })}
+            </span>
+          </div>
+        );
+      },
     },
     {
       key: 'severity',
