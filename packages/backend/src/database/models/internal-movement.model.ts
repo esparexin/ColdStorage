@@ -28,6 +28,10 @@ export interface InternalMovementDoc extends Document {
   hamaliBags: number;
   hamaliRate?: number | null;
   hamaliCharge: number;
+  /** Net variance between repacked bag quantity and original consolidated source bag quantity. */
+  repackVariance?: number;
+  /** Total consolidated source bags prior to repacking. */
+  repackSourceBags?: number;
   /** @deprecated Legacy column: retained for historical document reads; never written. */
   hamaliCarried?: number;
   referenceWeight?: number | null;
@@ -75,6 +79,8 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
     hamaliBags: { type: Number, min: 0 },
     hamaliRate: { type: Number, min: 0, default: 0 },
     hamaliCharge: { type: Number, min: 0 },
+    repackVariance: { type: Number, default: 0 },
+    repackSourceBags: { type: Number, min: 0 },
     // @deprecated Legacy column: retained for historical rows; never written.
     hamaliCarried: { type: Number, min: 0 },
     referenceWeight: { type: Number, default: null },

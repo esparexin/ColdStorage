@@ -32,6 +32,8 @@ export const mergeGrnInputSchema = z.object({
   referenceWeight: z.number().positive('Reference weight must be greater than zero').max(1000000).nullish(),
   sourcePaymentAmount: z.number().min(0, 'Payment amount cannot be negative').nullish(),
   sourcePaymentMode: paymentModeSchema.nullish(),
+  /** Optional explanation when physical repacked count diverges from consolidated source bags. */
+  repackVarianceReason: z.string().trim().max(500).nullish(),
   /** Idempotency key for safe retries. Same key returns the existing movement result. */
   idempotencyKey: z.string().trim().min(1).max(100).nullish(),
 });
@@ -92,6 +94,10 @@ export const internalMovementRecordSchema = z.object({
   hamaliBags: z.number().min(0).optional(),
   hamaliRate: z.number().min(0).nullish(),
   hamaliCharge: z.number().min(0).optional(),
+  /** Net variance between repacked bag quantity and original consolidated source bag quantity. */
+  repackVariance: z.number().int().optional(),
+  /** Total consolidated source bags prior to repacking. */
+  repackSourceBags: z.number().int().min(0).optional(),
   /** @deprecated Legacy column: retained for historical document reads; never written. */
   hamaliCarried: z.number().min(0).optional(),
   referenceWeight: z.number().positive().max(1000000).nullish(),

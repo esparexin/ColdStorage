@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import type { MergeGrnInput } from '@cold-storage/contracts';
+import { isHybridBagCategory, type MergeGrnInput } from '@cold-storage/contracts';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { resolveSourceRentObligation, closeSourceGrnOnMerge, type MergeSourceGrn } from './merge-grn.helper.js';
 import { validateMergeRepackedCounts } from './merge-grn-validation.helper.js';
@@ -13,7 +13,15 @@ import { validateMergeRepackedCounts } from './merge-grn-validation.helper.js';
 export async function validateProspectiveMergeMove(params: {
   facilityId: string; targetGrn: MergeSourceGrn & { date: Date }; sourceGrns: MergeSourceGrn[];
   input: MergeGrnInput; moveDate: Date; session: mongoose.ClientSession;
-}): Promise<{ totalMovedBags: number; smallMoved: number; bigMoved: number; explicitConfirmation: boolean }> {
+}): Promise<{
+  totalMovedBags: number;
+  smallMoved: number;
+  bigMoved: number;
+  actualMovedBags: number;
+  repackVariance: number;
+  repackSourceBags: number;
+  explicitConfirmation: boolean;
+}> {
   const { facilityId, targetGrn, sourceGrns, input, moveDate, session } = params;
   let prospectiveBags = 0;
   let prospectiveSmall = 0;
@@ -35,6 +43,8 @@ export async function validateProspectiveMergeMove(params: {
     },
     sourceGrns,
     repackedSmallBags: input.repackedSmallBags, repackedBigBags: input.repackedBigBags,
+    repackedBagCount: input.repackedBagCount,
+    sourceBagType: input.sourceBagType ?? null,
     sourceBagCategory: input.sourceBagCategory ?? null, sourceQuantity: input.sourceQuantity ?? null,
     sourceBagPrice: input.sourceBagPrice ?? null, sourceSeasonalBagPrice: input.sourceSeasonalBagPrice ?? null,
     sourceMonthlyBagPrice: input.sourceMonthlyBagPrice ?? null,
@@ -66,12 +76,16 @@ export async function processMergeSource(params: {
   const bal = await readLedgerBalance(facilityId, s.id, session);
   if (bal.total <= 0) throw new Error(`Source GRN '${s.grnNumber}' has zero remaining bags to merge`);
   const effectivePayment = allocatedPayment !== undefined ? allocatedPayment : input.sourcePaymentAmount;
+  const isSourceHybrid = s.bagType === 'Hybrid' || isHybridBagCategory(s.bagType);
+  const effectiveCategory = input.sourceGrnIds.length === 1 ? (input.sourceBagCategory ?? (isSourceHybrid ? 'Hybrid' : undefined)) : (isSourceHybrid ? 'Hybrid' : undefined);
   const rentResolution = await resolveSourceRentObligation({
     facilityId, sourceGrn: s, targetGrnDate: targetGrn.date, movementDate: moveDate,
     sourcePaymentAmount: effectivePayment, sourcePaymentMode: input.sourcePaymentMode, userId, session,
-    sourceBagCategory: input.sourceBagCategory, sourceQuantity: bal.total, sourceBagPrice: input.sourceBagPrice,
-    sourceSeasonalBagPrice: input.sourceSeasonalBagPrice, sourceMonthlyBagPrice: input.sourceMonthlyBagPrice,
-    confirmedSmallBags: input.repackedSmallBags, confirmedBigBags: input.repackedBigBags,
+    sourceBagCategory: effectiveCategory, sourceQuantity: bal.total,
+    sourceBagPrice: input.sourceGrnIds.length === 1 ? input.sourceBagPrice : s.bagPrice,
+    sourceSeasonalBagPrice: input.sourceGrnIds.length === 1 ? input.sourceSeasonalBagPrice : (s.smallBagPrice ?? s.bagPrice),
+    sourceMonthlyBagPrice: input.sourceGrnIds.length === 1 ? input.sourceMonthlyBagPrice : (s.bigBagPrice ?? s.bagPrice),
+    confirmedSmallBags: bal.smallBags, confirmedBigBags: bal.bigBags,
     isSingleSource: input.sourceGrnIds.length === 1,
   });
   const summary = await closeSourceGrnOnMerge({
