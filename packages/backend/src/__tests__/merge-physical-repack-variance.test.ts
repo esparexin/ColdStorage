@@ -79,6 +79,7 @@ describe('Merge Physical Repack Variance & Consolidation', { timeout: 30000 }, (
       repackVarianceReason: 'Damaged and rotted tubers discarded during sorting and grading',
       remarks: 'Sorting and repacking 4 source consignments into consolidated bags',
       movementDate: new Date('2026-04-10'),
+      additionalRentAmount: 0,
     }, userId);
 
     // Target stock must increase by exactly 350 bags: 200 original + 350 repacked = 550
@@ -144,6 +145,7 @@ describe('Merge Physical Repack Variance & Consolidation', { timeout: 30000 }, (
       repackedBigBags: 200,
       remarks: 'Repacked from 50kg bags into 40kg smaller retail bags',
       movementDate: new Date('2026-04-10'),
+      additionalRentAmount: 0,
     }, userId);
 
     expect(res.targetGrn.bags).toBe(550); // 100 + 450
@@ -167,6 +169,7 @@ describe('Merge Physical Repack Variance & Consolidation', { timeout: 30000 }, (
         repackedBigBags: 20, // 80 != 100
         remarks: 'Attempted unequal split without repacking',
         movementDate: new Date('2026-04-10'),
+        additionalRentAmount: 0,
       }, userId),
     ).rejects.toThrow('Confirmed Small (60) and Big (20) bags must equal Total Bags (100)');
   });

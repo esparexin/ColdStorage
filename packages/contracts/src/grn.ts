@@ -164,8 +164,12 @@ export const grnSchema = z.object({
   rentMonths: z.number().int().nullable().optional(),
   rentAmount: rentalAmountSchema,
   bagPrice: z.number().nullable().optional(),
-  smallBagPrice: z.number().nullable().optional(),
-  bigBagPrice: z.number().nullable().optional(),
+  smallBagPrice: bagPriceSchema.nullish(),
+  bigBagPrice: bagPriceSchema.nullish(),
+  /** Inward Hamali rate snapshot (₹/bag) captured at intake; null/omitted for legacy unsnapshotted GRNs. */
+  hamaliRate: z.number().min(0).nullable().optional(),
+  /** Inward Hamali amount snapshot (bags × rate) captured at intake; null/omitted for legacy unsnapshotted GRNs. */
+  hamaliAmount: z.number().min(0).nullable().optional(),
   /** Always present: a single-type receipt stores zero on the unused side rather than null. */
   smallBags: z.number().int().min(0),
   bigBags: z.number().int().min(0),
