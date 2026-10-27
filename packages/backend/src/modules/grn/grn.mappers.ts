@@ -22,6 +22,8 @@ export function toGrnEntity(doc: {
   bagPrice?: number | null;
   smallBagPrice?: number | null;
   bigBagPrice?: number | null;
+  hamaliRate?: number | null;
+  hamaliAmount?: number | null;
   smallBags: number;
   bigBags: number;
   isCompositionVerified?: boolean | null;
@@ -85,6 +87,8 @@ export function toGrnEntity(doc: {
     bagPrice: doc.bagPrice ?? null,
     smallBagPrice: doc.smallBagPrice ?? null,
     bigBagPrice: doc.bigBagPrice ?? null,
+    hamaliRate: doc.hamaliRate ?? null,
+    hamaliAmount: doc.hamaliAmount ?? null,
     smallBags: doc.smallBags,
     bigBags: doc.bigBags,
     isCompositionVerified:

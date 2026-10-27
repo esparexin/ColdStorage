@@ -26,7 +26,7 @@ export function SelectedSourcesPanel({
           {selectedSources.length === 1 ? 'Selected Source GRN' : `Selected Source GRNs (${selectedSources.length})`}
         </span>
         <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}>
-          +{totalSourceBags} Bags to Merge
+          {selectedSources.length > 1 ? `Consolidated Pool: ${totalSourceBags} Bags` : `+${totalSourceBags} Bags to Merge`}
         </span>
       </div>
       <div className={stepStyles.selectedSourcesList}>

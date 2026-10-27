@@ -120,9 +120,9 @@ export async function resolveSourceRentObligation(
     }
   }
 
-  const sourceHamaliShare = effectiveRentAmount > 0
-    ? computeFirstSeasonHamali(sourceGrn.bags, commodity, extensions, sourceGrn.hamaliRate, sourceGrn.hamaliAmount)
-    : 0;
+  const sourceHamaliShare = computeFirstSeasonHamali(
+    sourceGrn.bags, commodity, extensions, sourceGrn.hamaliRate, sourceGrn.hamaliAmount,
+  );
 
   const existingPayments = await rentRepository.findPaymentsByGrnId(facilityId, sourceGrn.id, session);
   let totalPaid = existingPayments.reduce((sum, p) => sum + p.amountPaid, 0);

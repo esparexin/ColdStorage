@@ -92,8 +92,8 @@ describe('Merge Repacking Hamali Charge Accounting', () => {
     expect(res.body.success).toBe(true);
     // Repacking hamali = 50 moved bags * 4/bag = 200.
     // Under independent billing, source pending obligation (1200) remains separate on source bill.
-    // Target rent = 2000 initial + 200 repacking hamali = 2200.
-    expect(res.body.targetGrn.rentAmount).toBe(2200);
+    // Target storage rent = 2000 initial (repacking hamali decoupled per SSOT).
+    expect(res.body.targetGrn.rentAmount).toBe(2000);
     expect(res.body.movement.hamaliCharge).toBe(200);
     expect(res.body.movement.hamaliBags).toBe(50);
     expect(res.body.movement.hamaliRate).toBe(4);
@@ -163,8 +163,8 @@ describe('Merge Repacking Hamali Charge Accounting', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    // 20 bags * 4 = 80 hamali. Target = 2000 initial + 80 repacking hamali = 2080.
-    expect(res.body.targetGrn.rentAmount).toBe(2080);
+    // 20 bags * 4 = 80 hamali. Target storage rent = 2000 (repacking hamali decoupled per SSOT).
+    expect(res.body.targetGrn.rentAmount).toBe(2000);
     expect(res.body.movement.hamaliCharge).toBe(80);
     expect(res.body.movement.hamaliBags).toBe(20);
   });

@@ -38,7 +38,15 @@ export function GrnDetailAttributesGrid({ grn, allGrns = [] }: GrnDetailAttribut
       <div className={styles.detailItem}>
         <span className={styles.detailLabel}>Physical Status</span>
         <span className={styles.detailValue}>
-          <Badge variant={grn.status === 'OPEN' ? 'warning' : 'neutral'}>{grn.status}</Badge>
+          {grn.status === 'CLOSED' ? (
+            grn.mergedIntoGrnNumber || grn.mergedIntoGrnId ? (
+              <Badge variant="neutral">Merged → {grn.mergedIntoGrnNumber || 'Destination'}</Badge>
+            ) : (
+              <Badge variant="neutral">Outward (Fully Delivered)</Badge>
+            )
+          ) : (
+            <Badge variant={grn.status === 'OPEN' ? 'warning' : 'neutral'}>{grn.status}</Badge>
+          )}
         </span>
       </div>
 

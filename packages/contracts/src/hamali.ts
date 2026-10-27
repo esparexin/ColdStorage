@@ -12,11 +12,12 @@ export type HamaliRate = z.infer<typeof hamaliRateSchema>;
  * Total Bags × Hamali Rate per bag.
  * Bag-category agnostic: Small, Big, S+B, Hybrid, Mixed all calculate uniformly.
  *
- * Internal-only input to first-season rent (feat/hamali-first-season-internal):
- * - Commodity-level `isHamaliApplicable` + `hamaliRate` is the master config,
- *   read live at calculation time.
- * - Hamali is never stored on GRN, challan, or movement records and never
- *   returned in API responses or shown in transaction UI.
+ * Inward intake Hamali accounting:
+ * - Commodity-level `isHamaliApplicable` + `hamaliRate` is the master config.
+ * - At inward intake, `hamaliRate` and `hamaliAmount` are snapshotted onto the GRN
+ *   record to freeze the labor obligation against future master rate edits.
+ * - Outward delivery allocates a pro-rata share of this inward obligation.
+ * - Internal movement merge records repacking labor on the movement record.
  * - One-time charge: never multiplied by rent months or season duration.
  */
 export function calculateHamaliAmount(bags: number, hamaliRate?: number | null): number {

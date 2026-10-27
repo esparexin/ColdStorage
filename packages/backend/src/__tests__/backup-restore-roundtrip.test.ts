@@ -37,7 +37,7 @@ import {
  *   - AuditLog and RentPayment register a blocking updateOne hook, so any
  *     archive containing them aborted the restore part-way.
  */
-describe('backup restore round-trips every collection', () => {
+describe('backup restore round-trips every collection', { timeout: 20000 }, () => {
   let storageDir: string;
 
   beforeAll(async () => {

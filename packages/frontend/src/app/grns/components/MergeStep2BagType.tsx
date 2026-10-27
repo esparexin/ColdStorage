@@ -62,7 +62,7 @@ export function MergeStep2BagType({
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Badge variant="neutral">
-              {selectedSources.length} Source GRN{selectedSources.length > 1 ? 's' : ''} ({totalSourceBags} Bags)
+              {selectedSources.length > 1 ? `Consolidated Pool: ${totalSourceBags} Bags (${selectedSources.length} GRNs)` : `${totalSourceBags} Bags`}
             </Badge>
             {grandTotalRent > 0 ? (
               <Badge variant="warning">

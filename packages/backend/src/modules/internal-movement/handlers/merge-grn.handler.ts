@@ -93,7 +93,7 @@ export async function mergeGrn(
           `Requested payment ₹${input.sourcePaymentAmount} exceeds total remaining rent balance across source GRNs`,
         );
       }
-      const { smallMoved, bigMoved, explicitConfirmation } = confirmed;
+      const { smallMoved, bigMoved, actualMovedBags, repackVariance, explicitConfirmation } = confirmed;
       totalMovedSmall = smallMoved;
       totalMovedBig = bigMoved;
       const targetWasVerified = resolveStoredCompositionVerified({
@@ -122,18 +122,15 @@ export async function mergeGrn(
         repackedSmallBags: input.repackedSmallBags,
         repackedBigBags: input.repackedBigBags,
         repackedBagCount: input.repackedBagCount,
-        totalMovedBags,
+        totalMovedBags: actualMovedBags,
         session,
       });
       repackHamaliCharge = repackHamali.repackHamaliCharge;
 
-      const isRepacked = input.repackedSmallBags != null && input.repackedBigBags != null;
-      const actualMovedBags = isRepacked ? (totalMovedSmall + totalMovedBig) : totalMovedBags;
-
       const newBags = targetGrn.bags + actualMovedBags;
       const newSmall = targetGrn.smallBags + totalMovedSmall;
       const newBig = targetGrn.bigBags + totalMovedBig;
-      const newRentAmount = Number((targetGrn.rentAmount + finalCarriedRent + repackHamali.repackHamaliCharge).toFixed(2));
+      const newRentAmount = Number((targetGrn.rentAmount + finalCarriedRent).toFixed(2));
       const effectiveSourceBagTypes =
         input.sourceBagCategory === 'Hybrid' || input.sourceBagType === 'Hybrid'
           ? ['Hybrid' as const]
@@ -160,11 +157,12 @@ export async function mergeGrn(
       });
 
       const moveDateStr = moveDate.toISOString().split('T')[0];
-      const repackedNote = input.repackedSmallBags != null ? ` (Repacked: ${totalMovedSmall} S + ${totalMovedBig} B = ${actualMovedBags} bags)` : '';
+      const varianceNote = repackVariance !== 0 ? `; Variance from ${totalMovedBags} source bags: ${repackVariance > 0 ? `+${repackVariance}` : repackVariance} bags` : '';
+      const repackedNote = input.repackedSmallBags != null ? ` (Repacked: ${totalMovedSmall} S + ${totalMovedBig} B = ${actualMovedBags} bags${varianceNote})` : '';
       const repackHamaliNote = repackHamali.repackHamaliCharge > 0 ? `. Repacking Hamali: ₹${repackHamali.repackHamaliCharge} (${repackHamali.repackHamaliBags} bags @ ₹${repackHamali.repackHamaliRate}/bag)` : '';
       const categoryNote =
         input.sourceBagCategory != null && isHybridBagCategory(input.sourceBagCategory)
-          ? ` (Confirmed Hybrid: ${totalMovedBags} bags)`
+          ? ` (Confirmed Hybrid: ${actualMovedBags} bags${varianceNote})`
           : '';
       const carriedRentNote = finalCarriedRent > 0 ? `. Additional rent: ₹${finalCarriedRent}` : '';
       const sourceBillsNote = totalSourcePendingRent > 0 ? `. Source pending rent: ₹${totalSourcePendingRent} kept as separate pending bills` : '';
@@ -205,6 +203,7 @@ export async function mergeGrn(
         hamaliBags: repackHamali.repackHamaliBags,
         hamaliRate: repackHamali.repackHamaliRate,
         hamaliCharge: repackHamali.repackHamaliCharge,
+        repackVariance, repackSourceBags: totalMovedBags,
         input, userId, session,
         idempotencyKey: input.idempotencyKey ?? null,
       });

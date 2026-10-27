@@ -25,6 +25,7 @@ export interface ValidateMergeRepackedParams {
   sourceGrns: MergeSourceGrn[];
   repackedSmallBags?: number | null;
   repackedBigBags?: number | null;
+  repackedBagCount?: number | null;
   // Source bag type / category confirmation (outward vocabulary). Small/Big/Small & Big
   // resolve through the same composition rules as inward receipts; Hybrid-family
   // values (Hybrid, Mixed, Modern…) take a quantity plus informational rates.
@@ -41,11 +42,16 @@ export interface ValidateMergeRepackedParams {
   isRepackSelected?: boolean;
 }
 
-export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams): {
+export interface ValidatedMergeRepackedResult {
   smallMoved: number;
   bigMoved: number;
+  actualMovedBags: number;
+  repackVariance: number;
+  repackSourceBags: number;
   explicitConfirmation: boolean;
-} {
+}
+
+export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams): ValidatedMergeRepackedResult {
   const { targetGrn, sourceGrns, repackedSmallBags, repackedBigBags, totalMovedBags, movementDate } = params;
   const { sourceBagType, sourceBagCategory, sourceQuantity, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice } = params;
   const effectiveCategory = sourceBagType ?? sourceBagCategory;
@@ -94,6 +100,7 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
 
   let smallMoved = 0;
   let bigMoved = 0;
+  let actualMovedBags: number;
 
   if (effectiveCategory === 'Small' || effectiveCategory === 'Big' || effectiveCategory === 'S' || effectiveCategory === 'B') {
     // No separate single-type options: Small-only and Big-only are expressed
@@ -105,12 +112,21 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
     // Hybrid-family confirmation (Hybrid, Mixed, Modern…): quantity plus
     // informational rates, mirroring outward Hybrid validation. Rates never
     // feed rent; the split below serves ledger accounting only.
-    const qtyErr = validateHybridQuantityInput(sourceQuantity, totalMovedBags, 'total moved stock');
-    if (qtyErr) {
-      if (qtyErr.includes('must match')) {
-        throw new Error(`Confirmed Hybrid quantity (${sourceQuantity}) must match total moved stock of ${totalMovedBags} bags`);
+    if (!params.isRepackSelected) {
+      const qtyErr = validateHybridQuantityInput(sourceQuantity, totalMovedBags, 'total moved stock');
+      if (qtyErr) {
+        if (qtyErr.includes('must match')) {
+          throw new Error(`Confirmed Hybrid quantity (${sourceQuantity}) must match total moved stock of ${totalMovedBags} bags`);
+        }
+        throw new Error('Confirmed Hybrid quantity must be a positive whole number');
       }
-      throw new Error('Confirmed Hybrid quantity must be a positive whole number');
+      actualMovedBags = totalMovedBags;
+    } else {
+      const hybridQty = sourceQuantity ?? params.repackedBagCount;
+      if (typeof hybridQty !== 'number' || !Number.isInteger(hybridQty) || hybridQty <= 0) {
+        throw new Error('Repacked Hybrid bag count must be a positive whole number');
+      }
+      actualMovedBags = hybridQty;
     }
     if (!hasPositiveHybridRate({
       bagPrice: sourceBagPrice,
@@ -122,7 +138,7 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
     const ledSmall = params.defaultSmallMoved ?? sourceGrns.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
     const ledBig = params.defaultBigMoved ?? sourceGrns.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
     // Shared outward allocator: fill Small first, remainder to Big.
-    const split = allocateHybridSplit(ledSmall, ledBig, totalMovedBags);
+    const split = allocateHybridSplit(ledSmall, ledBig, actualMovedBags);
     smallMoved = split.smallBags;
     bigMoved = split.bigBags;
   } else if (repackedSmallBags != null && repackedBigBags != null) {
@@ -132,10 +148,14 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
     if (!Number.isInteger(repackedSmallBags) || !Number.isInteger(repackedBigBags)) {
       throw new Error('Repacked bag counts must be whole numbers');
     }
-    if (!params.isRepackSelected && repackedSmallBags + repackedBigBags > totalMovedBags) {
-      throw new Error(`Confirmed outward bag quantity (${repackedSmallBags + repackedBigBags}) cannot exceed Total Bags (${totalMovedBags})`);
+    actualMovedBags = repackedSmallBags + repackedBigBags;
+    if (actualMovedBags <= 0) {
+      throw new Error('Confirmed repacked bag counts must be greater than zero');
     }
-    if (!params.isRepackSelected && repackedSmallBags + repackedBigBags !== totalMovedBags) {
+    if (!params.isRepackSelected && actualMovedBags > totalMovedBags) {
+      throw new Error(`Confirmed outward bag quantity (${actualMovedBags}) cannot exceed Total Bags (${totalMovedBags})`);
+    }
+    if (!params.isRepackSelected && actualMovedBags !== totalMovedBags) {
       throw new Error(`Confirmed Small (${repackedSmallBags}) and Big (${repackedBigBags}) bags must equal Total Bags (${totalMovedBags})`);
     }
     // Decoupled from previous counts: operator confirms physical resulting counts
@@ -144,14 +164,15 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
   } else {
     smallMoved = params.defaultSmallMoved ?? sourceGrns.reduce((acc, s) => acc + (s.smallBags ?? 0), 0);
     bigMoved = params.defaultBigMoved ?? sourceGrns.reduce((acc, s) => acc + (s.bigBags ?? 0), 0);
+    actualMovedBags = totalMovedBags;
   }
 
+  const repackVariance = actualMovedBags - totalMovedBags;
+
   // 4. Final bag totals reconciliation check
-  const isRepacked = repackedSmallBags != null && repackedBigBags != null;
-  const addedBags = isRepacked ? (smallMoved + bigMoved) : totalMovedBags;
   const finalSmall = targetGrn.smallBags + smallMoved;
   const finalBig = targetGrn.bigBags + bigMoved;
-  const finalTotal = targetGrn.bags + addedBags;
+  const finalTotal = targetGrn.bags + actualMovedBags;
 
   if (finalSmall < 0 || finalBig < 0 || finalSmall + finalBig !== finalTotal) {
     throw new Error(
@@ -162,6 +183,13 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
   const explicitConfirmation =
     (effectiveCategory != null && (effectiveCategory === 'Hybrid' || isHybridBagCategory(effectiveCategory))) ||
     (repackedSmallBags != null && repackedBigBags != null);
-  return { smallMoved, bigMoved, explicitConfirmation };
+  return {
+    smallMoved,
+    bigMoved,
+    actualMovedBags,
+    repackVariance,
+    repackSourceBags: totalMovedBags,
+    explicitConfirmation,
+  };
 }
 

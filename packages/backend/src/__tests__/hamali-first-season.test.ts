@@ -98,8 +98,8 @@ describe('First-season internal hamali', () => {
 
   it('includes the full one-time hamali in first-season total due with internal rate snapshotting', async () => {
     const grn = await makeGrn(100);
-    expect('hamaliRate' in grn).toBe(false);
-    expect('hamaliAmount' in grn).toBe(false);
+    expect(grn.hamaliRate).toBe(4);
+    expect(grn.hamaliAmount).toBe(400);
     const summary = await rentService.getRentSummary(facilityId, grn.id);
     expect(summary.totalDue).toBe(3400); // 3000 rent + 400 hamali
     expect(summary.remainingBalance).toBe(3400);
@@ -165,7 +165,7 @@ describe('First-season internal hamali', () => {
       { targetGrnId: target.id, sourceGrnIds: [source.id], movementDate: new Date('2025-07-10'), additionalRentAmount: 0, remarks: 'Merge carry test' },
       userId,
     );
-    expect('hamaliAmount' in merged.targetGrn).toBe(false);
+    expect(merged.targetGrn.hamaliAmount).toBe(400);
     expect('hamaliCharge' in merged.movement).toBe(false);
     expect('hamaliCarried' in merged.movement).toBe(false);
     expect(merged.targetGrn.bags).toBe(150);
@@ -193,7 +193,7 @@ describe('First-season internal hamali', () => {
       }
       throw err;
     });
-    expect('hamaliAmount' in transferred.grn).toBe(false);
+    expect(transferred.grn.hamaliAmount).toBe(400);
     expect('hamaliCarried' in transferred.movement).toBe(false);
     expect(transferred.grn.customerId).toBe(customerB);
   });

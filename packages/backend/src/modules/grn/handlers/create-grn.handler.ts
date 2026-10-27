@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
   buildInwardReceiptNumber,
+  calculateHamaliAmount,
   getFinancialYearKey,
   isBagCompositionVerified,
   normalizeBagComposition,
@@ -17,6 +18,7 @@ import { GrnModel, type GrnDoc } from '../../../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
+import { resolveEffectiveHamaliRate } from '../../common/hamali-resolution.js';
 import { commodityRateService } from '../../commodities/commodity-rate.service.js';
 import { toGrnAcknowledgement, toGrnEntity } from '../grn.mappers.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
@@ -106,9 +108,8 @@ export async function createGrn(
   // Inward GRN does not calculate rent upfront: bag composition is unconfirmed at entry,
   // and rent derivation occurs at Outward delivery / billing settlement time.
   const finalRentAmount = input.rentAmount != null && input.rentAmount > 0 ? input.rentAmount : 0;
-  const isHamaliApp = commodity.isHamaliApplicable ?? ((commodity.hamaliRate ?? 0) > 0);
-  const hamaliRate = isHamaliApp ? (commodity.hamaliRate ?? 0) : 0;
-  const hamaliAmount = Number((input.bags * hamaliRate).toFixed(2));
+  const hamaliRate = resolveEffectiveHamaliRate(null, commodity);
+  const hamaliAmount = calculateHamaliAmount(input.bags, hamaliRate);
 
   const id = `grn-${randomUUID()}`;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateRentAmount, calculateMonthlyElapsedCycles, resolveControllerRentType, upsertCommodityRateBatchSchema, mergeGrnInputSchema, transferOwnershipInputSchema } from '../index.js';
+import { calculateRentAmount, calculateMonthlyElapsedCycles, resolveControllerRentType, upsertCommodityRateBatchSchema, mergeGrnInputSchema, transferOwnershipInputSchema, grnSchema } from '../index.js';
 import { GRN_LIFECYCLE_FIXTURES } from './grn-lifecycle-scenarios.fixtures.js';
 
 describe('GRN lifecycle baseline scenarios (Phase 0)', () => {
@@ -62,5 +62,77 @@ describe('GRN lifecycle baseline scenarios (Phase 0)', () => {
       grnId: 'g-1', newCustomerId: 'c-2', remarks: 'full transfer test',
     });
     expect(transfer.success).toBe(true);
+  });
+
+  it('validates grnSchema with hamaliRate and hamaliAmount snapshots (positive, zero, null, omitted)', () => {
+    const baseGrn = {
+      id: 'grn-1',
+      facilityId: 'fac-1',
+      grnNumber: '1001',
+      inwardReceiptNumber: 'RCPT-26-27-1001',
+      date: new Date('2026-04-10'),
+      customerId: 'cust-1',
+      customerName: 'Kalyan',
+      commodityId: 'cmd-1',
+      commodityName: 'Potato',
+      chamber: 'CH-1',
+      bags: 100,
+      bagType: 'S' as const,
+      rentType: 'Seasonal' as const,
+      rentAmount: 3000,
+      smallBags: 100,
+      bigBags: 0,
+      status: 'OPEN' as const,
+      createdBy: 'usr-1',
+    };
+
+    // 1. Positive snapshots
+    const parsedWithHamali = grnSchema.safeParse({
+      ...baseGrn,
+      hamaliRate: 4,
+      hamaliAmount: 400,
+    });
+    expect(parsedWithHamali.success).toBe(true);
+    if (parsedWithHamali.success) {
+      expect(parsedWithHamali.data.hamaliRate).toBe(4);
+      expect(parsedWithHamali.data.hamaliAmount).toBe(400);
+    }
+
+    // 2. Zero snapshots (hamali disabled / free handling)
+    const parsedZero = grnSchema.safeParse({
+      ...baseGrn,
+      hamaliRate: 0,
+      hamaliAmount: 0,
+    });
+    expect(parsedZero.success).toBe(true);
+    if (parsedZero.success) {
+      expect(parsedZero.data.hamaliRate).toBe(0);
+      expect(parsedZero.data.hamaliAmount).toBe(0);
+    }
+
+    // 3. Null snapshots
+    const parsedNull = grnSchema.safeParse({
+      ...baseGrn,
+      hamaliRate: null,
+      hamaliAmount: null,
+    });
+    expect(parsedNull.success).toBe(true);
+
+    // 4. Omitted snapshots (legacy GRNs)
+    const parsedOmitted = grnSchema.safeParse(baseGrn);
+    expect(parsedOmitted.success).toBe(true);
+
+    // 5. Negative values rejected
+    const parsedNegativeRate = grnSchema.safeParse({
+      ...baseGrn,
+      hamaliRate: -1,
+    });
+    expect(parsedNegativeRate.success).toBe(false);
+
+    const parsedNegativeAmount = grnSchema.safeParse({
+      ...baseGrn,
+      hamaliAmount: -50,
+    });
+    expect(parsedNegativeAmount.success).toBe(false);
   });
 });

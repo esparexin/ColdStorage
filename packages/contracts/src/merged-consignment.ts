@@ -44,6 +44,8 @@ export const mergedConsignmentBreakdownSchema = z.object({
   repackedBigBags: z.number().int().min(0).nullable().optional(),
   repackedHybridBags: z.number().int().min(0).nullable().optional(),
   repackedBagType: z.enum(['S/B', 'Hybrid']).nullable().optional(),
+  repackVariance: z.number().int().optional(),
+  repackSourceBags: z.number().int().min(0).optional(),
 });
 export type MergedConsignmentBreakdown = z.infer<typeof mergedConsignmentBreakdownSchema>;
 
@@ -197,6 +199,10 @@ export function parseMergedConsignmentBreakdown(
     };
   }
 
+  const varianceMatch = remarks.match(/Variance from (\d+)\s+source bags:\s*([+-]?\d+)\s*bags/i);
+  const repackSourceBags = varianceMatch ? parseInt(varianceMatch[1], 10) : undefined;
+  const repackVariance = varianceMatch ? parseInt(varianceMatch[2], 10) : undefined;
+
   return {
     isMergedTarget: true,
     totalMergedAddedBags,
@@ -211,5 +217,7 @@ export function parseMergedConsignmentBreakdown(
     repackedBigBags,
     repackedHybridBags,
     repackedBagType,
+    repackVariance,
+    repackSourceBags,
   };
 }

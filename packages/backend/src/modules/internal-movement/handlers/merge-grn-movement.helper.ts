@@ -75,6 +75,8 @@ export interface CreateMergeMovementRecordParams {
   hamaliBags?: number;
   hamaliRate?: number;
   hamaliCharge?: number;
+  repackVariance?: number;
+  repackSourceBags?: number;
   input: MergeGrnInput;
   userId: string;
   session: mongoose.ClientSession;
@@ -99,6 +101,8 @@ export async function createMergeMovementRecord(
     hamaliBags = 0,
     hamaliRate = 0,
     hamaliCharge = 0,
+    repackVariance = 0,
+    repackSourceBags,
     input,
     userId,
     session,
@@ -125,6 +129,8 @@ export async function createMergeMovementRecord(
         sourceBagPrice: input.sourceBagPrice ?? null,
         sourceSeasonalBagPrice: input.sourceSeasonalBagPrice ?? null,
         sourceMonthlyBagPrice: input.sourceMonthlyBagPrice ?? null,
+        repackVariance,
+        repackSourceBags,
         ...(hamaliCharge > 0
           ? {
               hamaliBags,
