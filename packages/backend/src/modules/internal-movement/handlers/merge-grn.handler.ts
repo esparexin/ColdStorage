@@ -225,15 +225,17 @@ export async function mergeGrn(
       resource: 'grn',
       resourceId: targetEntity.id,
       details: {
-        targetGrnNumber: targetEntity.grnNumber,
-        sourceGrnNumbers: movementRecord.sourceGrnNumbers,
-        totalBagsMoved: movementRecord.totalBagsMoved,
-        carriedRent: finalCarriedRent,
-        repackHamaliCharge,
+        activityDate: movementRecord.movementDate instanceof Date
+          ? movementRecord.movementDate.toISOString().split('T')[0]
+          : String(movementRecord.movementDate).split('T')[0],
+        targetGrnNumber: targetEntity.grnNumber, customerId: targetEntity.customerId, customerName: targetEntity.customerName,
+        sourceGrnNumbers: movementRecord.sourceGrnNumbers, totalBagsMoved: movementRecord.totalBagsMoved,
+        smallBagsMoved: movementRecord.smallBagsMoved, bigBagsMoved: movementRecord.bigBagsMoved,
+        isCompositionVerified: targetEntity.isCompositionVerified, repackVariance: movementRecord.repackVariance ?? 0,
+        carriedRent: finalCarriedRent, repackHamaliCharge,
         newRentAmount: movementRecord.financialSnapshot.rentAmount,
         sourceBagCategory: movementRecord.sourceBagCategory ?? null,
-        referenceWeight: input.referenceWeight ?? null,
-        remarks: input.remarks,
+        referenceWeight: input.referenceWeight ?? null, remarks: input.remarks,
       },
     });
   }

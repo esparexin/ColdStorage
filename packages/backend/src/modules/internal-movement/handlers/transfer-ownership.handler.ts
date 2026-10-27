@@ -226,13 +226,16 @@ export async function transferOwnership(
     resource: 'grn',
     resourceId: grnEntity.id,
     details: {
+      activityDate: movementRecord.movementDate instanceof Date
+        ? movementRecord.movementDate.toISOString().split('T')[0]
+        : String(movementRecord.movementDate).split('T')[0],
       grnNumber: grnEntity.grnNumber,
-      fromCustomer: movementRecord.fromCustomerName,
-      toCustomer: movementRecord.toCustomerName,
-      pendingRent: movementRecord.financialSnapshot.remainingBalance,
-      paymentDecision: input.paymentDecision,
-      receiptNumber: resultPayment?.receiptNumber ?? null,
-      amountPaidAtTransfer: resultPayment?.amountPaid ?? 0,
+      fromCustomerId: movementRecord.fromCustomerId ?? null, fromCustomer: movementRecord.fromCustomerName,
+      toCustomerId: movementRecord.toCustomerId ?? input.newCustomerId, toCustomer: movementRecord.toCustomerName,
+      confirmedSmallBags: input.confirmedSmallBags ?? null, confirmedBigBags: input.confirmedBigBags ?? null,
+      sourceBagCategory: input.sourceBagCategory ?? null, sourceQuantity: input.sourceQuantity ?? null,
+      pendingRent: movementRecord.financialSnapshot.remainingBalance, paymentDecision: input.paymentDecision,
+      receiptNumber: resultPayment?.receiptNumber ?? null, amountPaidAtTransfer: resultPayment?.amountPaid ?? 0,
       remarks: input.remarks,
     },
   });
