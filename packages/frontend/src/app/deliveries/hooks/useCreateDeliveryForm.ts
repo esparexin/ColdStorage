@@ -78,6 +78,7 @@ export function useCreateDeliveryForm(
       const grnPrice = matched?.bagPrice ?? '';
       setBagCategory(isHybridGrn ? 'Hybrid' : 'S/B');
       setManualBagPrice(grnPrice); setSeasonalBagPrice(grnPrice); setMonthlyBagPrice(grnPrice);
+      if (typeof matched?.hamaliRate === 'number') setHamaliRate(matched.hamaliRate);
 
       const commodityId = matched?.commodityId;
       try {
@@ -95,7 +96,7 @@ export function useCreateDeliveryForm(
         }
         if (rateRes?.ok) {
           const rData = (await rateRes.json()) as { items?: Array<{ rentType: string; smallRate: number; bigRate: number; isActive?: boolean }>; rate?: { smallRate: number; bigRate: number }; hamaliRate?: number };
-          if (typeof rData.hamaliRate === 'number') setHamaliRate(rData.hamaliRate);
+          if (matched?.hamaliRate == null && typeof rData.hamaliRate === 'number') setHamaliRate(rData.hamaliRate);
           const s = Array.isArray(rData.items) ? rData.items.find((r) => r.rentType === 'Seasonal' && r.isActive !== false) : null;
           const m = Array.isArray(rData.items) ? rData.items.find((r) => r.rentType === 'Monthly' && r.isActive !== false) : null;
           if (s) { setSeasonalCommodityRates({ small: s.smallRate, big: s.bigRate }); if (grnPrice === '') setSeasonalBagPrice(s.smallRate); }
