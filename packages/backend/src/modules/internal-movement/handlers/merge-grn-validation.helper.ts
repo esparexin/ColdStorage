@@ -100,7 +100,7 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
 
   let smallMoved = 0;
   let bigMoved = 0;
-  let actualMovedBags = totalMovedBags;
+  let actualMovedBags: number;
 
   if (effectiveCategory === 'Small' || effectiveCategory === 'Big' || effectiveCategory === 'S' || effectiveCategory === 'B') {
     // No separate single-type options: Small-only and Big-only are expressed
