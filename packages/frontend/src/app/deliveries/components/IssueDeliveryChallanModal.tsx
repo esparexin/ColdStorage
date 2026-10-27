@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, Plus } from 'lucide-react';
 import type { Grn, OutwardBagCategory, RentSummaryDto } from '@cold-storage/contracts';
-import { Button, Modal } from '@/components/ui';
+import { Button, ConfirmDialog, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import { LOADING_LABELS } from '@/components/ui/stateCopy';
@@ -39,6 +39,8 @@ export function IssueDeliveryChallanModal({
   onChangeGrn,
   onBackToGrn,
 }: IssueDeliveryChallanModalProps) {
+  const [showConfirm, setShowConfirm] = useState(false);
+
   const modalFooter = (
     <div className={styles.footerContainer}>
       <div className={styles.footerLeftActions}>
@@ -60,12 +62,12 @@ export function IssueDeliveryChallanModal({
       <div className={styles.footerRightActions}>
         <Button
           id="issue-panel-submit-delivery-btn"
-          type="submit"
+          type="button"
           variant={form.isLoanHoldActive ? 'danger' : 'primary'}
           disabled={!form.isFormValid || form.submitting || form.isLoanHoldActive}
           isLoading={form.submitting}
           leftIcon={!form.submitting ? <Plus size={15} aria-hidden="true" /> : undefined}
-          onClick={(e) => void form.handleSubmit(e as unknown as React.FormEvent)}
+          onClick={() => setShowConfirm(true)}
         >
           {form.isLoanHoldActive ? 'Outward Blocked (Loan Active)' : '+ Delivery Challan'}
         </Button>
@@ -81,7 +83,7 @@ export function IssueDeliveryChallanModal({
       size="xl"
       footer={modalFooter}
     >
-      <form onSubmit={form.handleSubmit} className={styles.modalForm}>
+      <form onSubmit={(e) => { e.preventDefault(); setShowConfirm(true); }} className={styles.modalForm}>
         {form.modalError && (
           <Banner
             message={form.modalError}
@@ -189,6 +191,32 @@ export function IssueDeliveryChallanModal({
           )
         )}
       </form>
+      {showConfirm && (
+        <ConfirmDialog
+          isOpen={showConfirm}
+          title="Confirm Outward Delivery"
+          message={
+            <div>
+              <p>
+                Are you sure you want to issue this outward delivery of{' '}
+                <strong>{form.dualSection.isDualSection ? form.dualSection.totalWithdrawingBags : form.totalWithdrawingBags} bags</strong> for{' '}
+                <strong>{form.selectedGrn?.customerName}</strong>?
+              </p>
+              <p style={{ marginTop: 'var(--space-2)', color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
+                Once finalized, stock will be permanently deducted and this operation cannot be reversed.
+              </p>
+            </div>
+          }
+          confirmLabel="Yes, Issue Delivery"
+          confirmVariant="primary"
+          isBusy={form.submitting}
+          onCancel={() => setShowConfirm(false)}
+          onConfirm={async () => {
+            setShowConfirm(false);
+            await form.handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+          }}
+        />
+      )}
     </Modal>
   );
 }
