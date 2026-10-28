@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { type RentSummaryDto } from '@cold-storage/contracts';
+import { Button } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import {
   EMPTY_MESSAGES,
@@ -10,6 +11,7 @@ import {
   emptyForFacility,
 } from '@/components/ui/stateCopy';
 import { usePermissions } from '@/hooks/usePermissions';
+import { BatchCollectPaymentModal } from './components/BatchCollectPaymentModal';
 import { CollectPaymentModal } from './components/CollectPaymentModal';
 import { RentFilterToolbar } from './components/RentFilterToolbar';
 import { RentHistoryModal } from './components/RentHistoryModal';
@@ -46,6 +48,7 @@ export default function RentPage() {
 
   const [collectAccount, setCollectAccount] = useState<RentSummaryDto | null>(null);
   const [historyAccount, setHistoryAccount] = useState<RentSummaryDto | null>(null);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const canCollect = hasPermission('rent:collect');
   const canPrint = hasPermission('rent:print');
 
@@ -91,6 +94,13 @@ export default function RentPage() {
         <div className={styles.titleArea}>
           <h1 className={styles.pageTitle}>Rent Billing & Payment Collection</h1>
         </div>
+        {canCollect && selectedFacilityId && (
+          <div className={styles.actionGroup}>
+            <Button variant="secondary" onClick={() => setIsBatchModalOpen(true)}>
+              Batch Settlement
+            </Button>
+          </div>
+        )}
       </div>
 
       {!selectedFacilityId ? (
@@ -173,6 +183,17 @@ export default function RentPage() {
           selectedFacilityId={selectedFacilityId}
           canPrint={canPrint}
           onClose={() => setHistoryAccount(null)}
+        />
+      )}
+
+      {isBatchModalOpen && selectedFacilityId && (
+        <BatchCollectPaymentModal
+          accounts={rentSummaries}
+          selectedFacilityId={selectedFacilityId}
+          onClose={() => setIsBatchModalOpen(false)}
+          onPaymentSuccess={() => {
+            void fetchRentAccounts();
+          }}
         />
       )}
     </div>
