@@ -13,6 +13,7 @@ import { InventoryTransactionModel } from '../../../database/models/inventory-tr
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
+import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 
 export async function executeRepackGrn(
@@ -47,6 +48,11 @@ export async function executeRepackGrn(
           );
         }
 
+        const bal = await readLedgerBalance(facilityId, grn.id, session);
+        if (bal.total <= 0) {
+          throw new Error(`Cannot repack GRN '${grn.grnNumber}': No stock remaining`);
+        }
+
         const isHybrid = input.resultingBagType === 'Hybrid';
         const actualRepackedBags = isHybrid
           ? (input.repackedQuantity ?? 0)
@@ -56,8 +62,7 @@ export async function executeRepackGrn(
           throw new Error('Repacked bag count must be greater than zero');
         }
 
-        const originalBags = grn.bags;
-        repackVariance = actualRepackedBags - originalBags;
+        repackVariance = actualRepackedBags - bal.total;
 
         if (repackVariance !== 0 && !input.repackVarianceReason?.trim()) {
           throw new Error(
@@ -80,8 +85,8 @@ export async function executeRepackGrn(
             (input.repackedBigBags ?? 0) * grn.bigBagWeight;
         }
 
-        const outSmall = grn.smallBags > 0 || grn.bigBags > 0 ? grn.smallBags : originalBags;
-        const outBig = grn.smallBags > 0 || grn.bigBags > 0 ? grn.bigBags : 0;
+        const outSmall = bal.smallBags;
+        const outBig = bal.bigBags;
 
         const inSmall = isHybrid
           ? actualRepackedBags
@@ -144,7 +149,7 @@ export async function executeRepackGrn(
 
         // Update GRN document
         grn.bagType = input.resultingBagType;
-        grn.bags = actualRepackedBags;
+        grn.bags = grn.bags + repackVariance;
         grn.smallBags = inSmall;
         grn.bigBags = inBig;
         grn.isCompositionVerified = true;
@@ -174,7 +179,7 @@ export async function executeRepackGrn(
               hamaliRate,
               hamaliCharge: repackHamaliCharge,
               repackVariance,
-              repackSourceBags: originalBags,
+              repackSourceBags: bal.total,
               referenceWeight: grn.totalBagsWeight,
               financialSnapshot: {
                 rentAmount: grn.rentAmount,
