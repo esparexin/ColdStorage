@@ -173,6 +173,11 @@ test.describe('Phase 4 — Delivery Challans, Stock Balances & Rent Gates', () =
     await expect(submitBtn).toBeEnabled();
     await submitBtn.click();
 
+    // Confirm mandatory outward delivery dialog
+    const confirmBtn = page.getByRole('button', { name: 'Yes, Issue Delivery' });
+    await expect(confirmBtn).toBeVisible();
+    await confirmBtn.click();
+
     // Verify modal dismissed and new challan listed
     await expect(modalDialog).not.toBeVisible();
     await expect(page.getByText('CHL-25-26-0002').first()).toBeVisible();

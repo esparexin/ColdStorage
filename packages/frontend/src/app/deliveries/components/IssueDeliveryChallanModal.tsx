@@ -41,6 +41,13 @@ export function IssueDeliveryChallanModal({
 }: IssueDeliveryChallanModalProps) {
   const [showConfirm, setShowConfirm] = useState(false);
 
+  const handleAttemptSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (form.validateForm()) {
+      setShowConfirm(true);
+    }
+  };
+
   const modalFooter = (
     <div className={styles.footerContainer}>
       <div className={styles.footerLeftActions}>
@@ -67,7 +74,7 @@ export function IssueDeliveryChallanModal({
           disabled={!form.isFormValid || form.submitting || form.isLoanHoldActive}
           isLoading={form.submitting}
           leftIcon={!form.submitting ? <Plus size={15} aria-hidden="true" /> : undefined}
-          onClick={() => setShowConfirm(true)}
+          onClick={() => handleAttemptSubmit()}
         >
           {form.isLoanHoldActive ? 'Outward Blocked (Loan Active)' : '+ Delivery Challan'}
         </Button>
@@ -83,7 +90,7 @@ export function IssueDeliveryChallanModal({
       size="xl"
       footer={modalFooter}
     >
-      <form onSubmit={(e) => { e.preventDefault(); setShowConfirm(true); }} className={styles.modalForm}>
+      <form onSubmit={handleAttemptSubmit} className={styles.modalForm}>
         {form.modalError && (
           <Banner
             message={form.modalError}
@@ -212,8 +219,11 @@ export function IssueDeliveryChallanModal({
           isBusy={form.submitting}
           onCancel={() => setShowConfirm(false)}
           onConfirm={async () => {
-            setShowConfirm(false);
-            await form.handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+            try {
+              await form.handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+            } finally {
+              setShowConfirm(false);
+            }
           }}
         />
       )}
