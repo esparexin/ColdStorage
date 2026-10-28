@@ -175,6 +175,137 @@ test.describe('Phase 6 — Internal Movement & Groups of Goods', () => {
     );
   });
 
+  test('TC-MOVE-003: GRN Sorting Confirmation & Repacking Workflow', async ({ page }, testInfo) => {
+    annotateTest(testInfo, {
+      testId: 'TC-MOVE-003',
+      module: 'Internal Movement',
+      testCase: 'GRN Sorting Confirmation & Repacking Workflow',
+      testType: 'UI Browser',
+      priority: 'P1',
+      preconditions: 'Active open GRN with stock',
+      expectedResult: 'Step 1 confirms composition & generates rent bill; Step 2 repacks with variance & hamali',
+    });
+
+    const initialGrn = {
+      ...MOCK_GRN_OPEN,
+      id: 'grn-sort-01',
+      grnNumber: '0201',
+      bags: 100,
+      closingBags: 100,
+      bagType: 'S/B' as const,
+      smallBags: 60,
+      bigBags: 40,
+    };
+
+    // Route for Step 1: Sort confirmation & rent settlement
+    await page.route(/\/api\/facilities\/[^/]+\/internal-movements\/sort/, async (route) => {
+      const payload = JSON.parse(route.request().postData() || '{}');
+      if (payload.confirmedBags !== 100) {
+        await route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: false, error: 'CONFIRMATION_MISMATCH' }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          isSortingComplete: true,
+          billedAmount: 3400,
+          receiptNumber: 'RRCPT-26-27-0055',
+          grn: { ...initialGrn, isSorted: true },
+        }),
+      });
+    });
+
+    // Route for Step 2: Repacking
+    await page.route(/\/api\/facilities\/[^/]+\/internal-movements\/repack/, async (route) => {
+      const payload = JSON.parse(route.request().postData() || '{}');
+      const repackedTotal = (payload.repackedSmallBags || 0) + (payload.repackedBigBags || 0);
+      const variance = repackedTotal - 100;
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          repackVariance: variance,
+          hamaliCharge: 380,
+          grn: {
+            ...initialGrn,
+            bagType: payload.resultingBagType,
+            bags: repackedTotal,
+            smallBags: payload.repackedSmallBags,
+            bigBags: payload.repackedBigBags,
+            isSorted: false,
+          },
+          movement: {
+            id: 'mov-repack-01',
+            movementType: 'REPACK',
+            totalBagsMoved: repackedTotal,
+            repackVariance: variance,
+            hamaliCharge: 380,
+          },
+        }),
+      });
+    });
+
+    await page.goto('/grn-stock');
+
+    // Execute Step 1: Sorting
+    const sortRes = await page.evaluate(async () => {
+      const res = await fetch('/api/facilities/fac-solapur-01/internal-movements/sort', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          grnId: 'grn-sort-01',
+          confirmedBagType: 'S/B',
+          confirmedBags: 100,
+          totalBagsWeight: 5000,
+          paymentMode: 'Cash',
+        }),
+      });
+      return { status: res.status, body: await res.json() };
+    });
+
+    expect(sortRes.status).toBe(200);
+    expect(sortRes.body.success).toBe(true);
+    expect(sortRes.body.isSortingComplete).toBe(true);
+    expect(sortRes.body.receiptNumber).toBe('RRCPT-26-27-0055');
+
+    // Execute Step 2: Repacking
+    const repackRes = await page.evaluate(async () => {
+      const res = await fetch('/api/facilities/fac-solapur-01/internal-movements/repack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          grnId: 'grn-sort-01',
+          resultingBagType: 'S/B',
+          repackedSmallBags: 60,
+          repackedBigBags: 35,
+          repackVarianceReason: 'Culls and damaged produce removed during sorting',
+          remarks: 'Sorted and repacked lot',
+        }),
+      });
+      return { status: res.status, body: await res.json() };
+    });
+
+    expect(repackRes.status).toBe(200);
+    expect(repackRes.body.success).toBe(true);
+    expect(repackRes.body.repackVariance).toBe(-5);
+    expect(repackRes.body.hamaliCharge).toBe(380);
+    expect(repackRes.body.grn.bags).toBe(95);
+
+    recordActualResult(
+      testInfo,
+      'Executed full sorting and repacking workflow: confirmed 100 bags with rent settlement receipt RRCPT-26-27-0055 (₹3,400), repacked into 95 bags (-5 cull variance), and assessed ₹380 hamali labor charge.',
+    );
+  });
+
   test('TC-GRP-001: Group Lifecycle (Create, Assign GRNs, Move, Delete)', async ({ page }, testInfo) => {
     annotateTest(testInfo, {
       testId: 'TC-GRP-001',
