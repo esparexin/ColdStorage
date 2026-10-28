@@ -8,6 +8,7 @@ import {
   outwardBagCategorySchema,
   isHybridBagCategory,
 } from '../delivery.js';
+import { operationalBagTypeSchema } from '../bags.js';
 
 describe('P6 Delivery Contracts', () => {
   it('validates a valid createDelivery input', () => {
@@ -198,6 +199,11 @@ describe('P6 Delivery Contracts', () => {
     expect(isHybridBagCategory('Mixed')).toBe(true);
     expect(isHybridBagCategory('S/B')).toBe(false);
     expect(isHybridBagCategory(null)).toBe(false);
+
+    expect(operationalBagTypeSchema.safeParse('S/B').success).toBe(true);
+    expect(operationalBagTypeSchema.safeParse('Hybrid').success).toBe(true);
+    expect(operationalBagTypeSchema.safeParse('Modern').success).toBe(false);
+    expect(operationalBagTypeSchema.safeParse('S').success).toBe(false);
   });
 
   it('validates canonical Hybrid createDelivery input and challan with single count', () => {

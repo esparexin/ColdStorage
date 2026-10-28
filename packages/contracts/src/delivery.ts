@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { bagTypeSchema, isHybridBagCategory } from './bags.js';
+import { bagTypeSchema, isHybridBagCategory, operationalBagTypeSchema } from './bags.js';
 import { chamberTextSchema, indianVehicleSchema } from './common.js';
 import { challanNumberSchema } from './identifiers.js';
 import { grnStatusSchema } from './grn.js';
@@ -36,7 +36,7 @@ export const outwardBagCategorySchema = z.enum([
 export type OutwardBagCategory = z.infer<typeof outwardBagCategorySchema>;
 
 export const unclassifiedDispatchAllocationSchema = z.object({
-  bagType: z.enum(['S/B', 'Hybrid']),
+  bagType: operationalBagTypeSchema,
   quantity: z.number().int().min(0).nullish(),
   smallBags: z.number().int().min(0).nullish(),
   bigBags: z.number().int().min(0).nullish(),
@@ -48,7 +48,7 @@ export const unclassifiedDispatchAllocationSchema = z.object({
 export type UnclassifiedDispatchAllocation = z.infer<typeof unclassifiedDispatchAllocationSchema>;
 
 export const confirmedDispatchAllocationSchema = z.object({
-  bagType: z.enum(['S/B', 'Hybrid']),
+  bagType: operationalBagTypeSchema,
   quantity: z.number().int().min(0).nullish(),
   smallBags: z.number().int().min(0).nullish(),
   bigBags: z.number().int().min(0).nullish(),

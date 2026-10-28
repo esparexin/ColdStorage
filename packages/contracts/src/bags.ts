@@ -4,6 +4,10 @@ import { z } from 'zod';
 export const bagTypeSchema = z.enum(['S', 'B', 'S+B', 'S/B', 'Hybrid']).default('S/B');
 export type BagType = z.infer<typeof bagTypeSchema>;
 
+/** Operational bag types permitted in dropdowns and confirmations: S/B or Hybrid. */
+export const operationalBagTypeSchema = z.enum(['S/B', 'Hybrid']);
+export type OperationalBagType = z.infer<typeof operationalBagTypeSchema>;
+
 /** Per-bag weight in kg for one individual bag of the respective type. */
 export const perBagWeightSchema = z
   .number({ invalid_type_error: 'Bag weight must be a number' })
@@ -237,5 +241,3 @@ export function allocateHybridSplit(remainingSmall: number, remainingBig: number
   const allocSmall = Math.min(Math.max(0, requestedTotal), Math.max(0, remainingSmall));
   return { smallBags: allocSmall, bigBags: Math.max(0, requestedTotal) - allocSmall };
 }
-
-
