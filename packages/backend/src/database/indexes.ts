@@ -89,13 +89,20 @@ export function verifyIndexDeclarations(): ModelIndexReport[] {
  * Read-only database index inspector.
  * Inspects actual existing indexes on active MongoDB collections via read-only collection.indexes().
  * Strictly NEVER executes createIndex, dropIndex, or syncIndexes.
+ * Pass `modelNames` to inspect a subset (e.g. per-endpoint checks); defaults to all monitored models.
  */
+type LiveIndexEntry = { name: string; key: Record<string, unknown> };
+
 export async function inspectDatabaseIndexesReadOnly(
   connection: mongoose.Connection,
-): Promise<Record<string, Array<{ name: string; key: Record<string, unknown> }>>> {
-  const result: Record<string, Array<{ name: string; key: Record<string, unknown> }>> = {};
+  modelNames?: string[],
+): Promise<Record<string, LiveIndexEntry[]>> {
+  const result: Record<string, LiveIndexEntry[]> = {};
+  const targets = modelNames && modelNames.length > 0
+    ? MONITORED_MODELS.filter(({ name }) => modelNames.includes(name))
+    : MONITORED_MODELS;
 
-  for (const { name, model } of MONITORED_MODELS) {
+  for (const { name, model } of targets) {
     const collectionName = model.collection.name;
     try {
       const collection = connection.collection(collectionName);
@@ -111,3 +118,42 @@ export async function inspectDatabaseIndexesReadOnly(
 
   return result;
 }
+
+/**
+ * Required uniqueness enforcement for duplicate-GRN prevention, mirroring the
+ * unique indexes declared on the Grn schema. Compared against live index
+ * metadata only — this function never touches the database.
+ */
+export const REQUIRED_GRN_UNIQUE_INDEX_KEYS: Array<Record<string, number>> = [
+  { facilityId: 1, grnNumber: 1 },
+  { facilityId: 1, inwardReceiptNumber: 1 },
+];
+
+function indexKeySignature(key: Record<string, unknown>): string {
+  return JSON.stringify(Object.entries(key));
+}
+
+function requiredIndexLabel(key: Record<string, number>): string {
+  return Object.entries(key)
+    .map(([field, order]) => `${field}_${order}`)
+    .join('_');
+}
+
+/**
+ * Returns the readable names (e.g. `facilityId_1_grnNumber_1`) of required GRN
+ * uniqueness indexes absent from live metadata. Empty means enforcement is present.
+ * Unknown/extra indexes are ignored; a failed inspection reports all-missing so
+ * absence of evidence is never reported as compliance.
+ */
+export function findMissingGrnUniqueIndexes(
+  liveGrnIndexes: Array<{ name: string; key: Record<string, unknown> }> | null | undefined,
+): string[] {
+  if (!liveGrnIndexes) {
+    return REQUIRED_GRN_UNIQUE_INDEX_KEYS.map(requiredIndexLabel);
+  }
+  const live = new Set(liveGrnIndexes.map((idx) => indexKeySignature(idx.key)));
+  return REQUIRED_GRN_UNIQUE_INDEX_KEYS.filter((key) => !live.has(indexKeySignature(key))).map(
+    requiredIndexLabel,
+  );
+}
+

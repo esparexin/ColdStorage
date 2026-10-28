@@ -32,6 +32,19 @@ export const healthResponseSchema = z.object({
   }),
   /** ISO-8601 timestamp of the response. */
   checkedAt: z.string(),
+  /**
+   * Read-only duplicate-prevention report. Present when the backend inspects
+   * live index metadata; absent on older payloads. Never implies enforcement —
+   * a non-empty `missing` list means required uniqueness indexes are absent.
+   */
+  indexes: z
+    .object({
+      grnUniqueness: z.object({
+        checked: z.boolean(),
+        missing: z.array(z.string()),
+      }),
+    })
+    .optional(),
 });
 
 export type HealthResponse = z.infer<typeof healthResponseSchema>;
