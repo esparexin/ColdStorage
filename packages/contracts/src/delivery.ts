@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { bagTypeSchema, isHybridBagCategory } from './bags.js';
+import { bagTypeSchema, isHybridBagCategory, operationalBagTypeSchema } from './bags.js';
 import { chamberTextSchema, indianVehicleSchema } from './common.js';
 import { challanNumberSchema } from './identifiers.js';
 import { grnStatusSchema } from './grn.js';
@@ -36,7 +36,7 @@ export const outwardBagCategorySchema = z.enum([
 export type OutwardBagCategory = z.infer<typeof outwardBagCategorySchema>;
 
 export const unclassifiedDispatchAllocationSchema = z.object({
-  bagType: z.enum(['S/B', 'Hybrid']),
+  bagType: operationalBagTypeSchema,
   quantity: z.number().int().min(0).nullish(),
   smallBags: z.number().int().min(0).nullish(),
   bigBags: z.number().int().min(0).nullish(),
@@ -48,7 +48,7 @@ export const unclassifiedDispatchAllocationSchema = z.object({
 export type UnclassifiedDispatchAllocation = z.infer<typeof unclassifiedDispatchAllocationSchema>;
 
 export const confirmedDispatchAllocationSchema = z.object({
-  bagType: z.enum(['S/B', 'Hybrid']),
+  bagType: operationalBagTypeSchema,
   quantity: z.number().int().min(0).nullish(),
   smallBags: z.number().int().min(0).nullish(),
   bigBags: z.number().int().min(0).nullish(),
@@ -135,12 +135,6 @@ export const createDeliverySchema = z
 
 export type CreateDeliveryInput = z.input<typeof createDeliverySchema>;
 export type CreateDeliveryDTO = z.infer<typeof createDeliverySchema>;
-
-export const reverseDeliverySchema = z.object({
-  reason: z.string().trim().min(5, 'Reversal reason must be at least 5 characters').max(500),
-});
-
-export type ReverseDeliveryInput = z.infer<typeof reverseDeliverySchema>;
 
 export const deliveryChallanSchema = z.object({
   id: z.string().min(1),

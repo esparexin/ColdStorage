@@ -4,6 +4,10 @@ import { z } from 'zod';
 export const bagTypeSchema = z.enum(['S', 'B', 'S+B', 'S/B', 'Hybrid']).default('S/B');
 export type BagType = z.infer<typeof bagTypeSchema>;
 
+/** Operational bag types permitted in dropdowns and confirmations: S/B or Hybrid. */
+export const operationalBagTypeSchema = z.enum(['S/B', 'Hybrid']);
+export type OperationalBagType = z.infer<typeof operationalBagTypeSchema>;
+
 /** Per-bag weight in kg for one individual bag of the respective type. */
 export const perBagWeightSchema = z
   .number({ invalid_type_error: 'Bag weight must be a number' })
@@ -92,14 +96,14 @@ export function normalizeBagComposition(input: NormalizeCompositionInput): BagCo
     return { smallBags: 0, bigBags: bags };
   }
   // When an explicit split is provided and matches total, preserve it.
-  // Otherwise, default unsegregated lots to single-side composition.
+  // Otherwise, unverified lots default to { smallBags: 0, bigBags: 0 } placeholder.
   const small = smallBags ?? 0;
   const big = bigBags ?? 0;
   const hasSplit = (smallBags != null || bigBags != null) && small + big === bags;
   if (hasSplit) {
     return { smallBags: small, bigBags: big };
   }
-  return { smallBags: bags, bigBags: 0 };
+  return { smallBags: 0, bigBags: 0 };
 }
 
 /** Narrows an unknown value to a composition, returning null when it is not one. */
@@ -131,17 +135,20 @@ export function isBagCompositionVerified(input: {
   bags: number;
   smallBags?: number | null;
   bigBags?: number | null;
+  isCompositionVerified?: boolean | null;
 }): boolean {
+  if (typeof input.isCompositionVerified === 'boolean') return input.isCompositionVerified;
   const { bagType, bags, smallBags, bigBags } = input;
   if (bags <= 0) return true;
-  if (bagType === 'Hybrid') return true;
   const s = smallBags ?? 0;
   const b = bigBags ?? 0;
   if (s < 0 || b < 0 || !Number.isInteger(s) || !Number.isInteger(b)) return false;
+  if (s === 0 && b === 0) return false;
   if (s + b !== bags) return false;
 
   if (bagType === 'S') return s === bags && b === 0;
   if (bagType === 'B') return b === bags && s === 0;
+  if (bagType === 'Hybrid') return true;
   if (smallBags == null || bigBags == null) return false;
   return s + b === bags;
 }
@@ -234,5 +241,3 @@ export function allocateHybridSplit(remainingSmall: number, remainingBig: number
   const allocSmall = Math.min(Math.max(0, requestedTotal), Math.max(0, remainingSmall));
   return { smallBags: allocSmall, bigBags: Math.max(0, requestedTotal) - allocSmall };
 }
-
-

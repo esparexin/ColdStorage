@@ -115,7 +115,7 @@ describe('Phase 2: ledger authority (ledger-balance.test.ts)', () => {
       total: 200,
     });
 
-    const del = await deliveryService.createDelivery(
+    await deliveryService.createDelivery(
       facilityId,
       { grnId, smallBags: 20, bigBags: 30 },
       USER_ID,
@@ -130,24 +130,6 @@ describe('Phase 2: ledger authority (ledger-balance.test.ts)', () => {
       smallBags: 20,
       bigBags: 30,
       total: 50,
-    });
-
-    await deliveryService.reverseDelivery(
-      facilityId,
-      del.delivery.id,
-      { reason: 'Whole lot returned by the buyer' },
-      USER_ID,
-    );
-
-    await expect(readLedgerBalance(facilityId, grnId)).resolves.toEqual({
-      smallBags: 100,
-      bigBags: 100,
-      total: 200,
-    });
-    await expect(readLedgerNetDelivered(facilityId, grnId)).resolves.toEqual({
-      smallBags: 0,
-      bigBags: 0,
-      total: 0,
     });
   });
 
@@ -222,15 +204,9 @@ describe('Phase 2: ledger authority (ledger-balance.test.ts)', () => {
       USER_ID,
     );
 
-    const del = await deliveryService.createDelivery(
+    await deliveryService.createDelivery(
       facilityId,
       { grnId, smallBags: 20, bigBags: 30 },
-      USER_ID,
-    );
-    await deliveryService.reverseDelivery(
-      facilityId,
-      del.delivery.id,
-      { reason: 'Buyer rejected the lot at the gate' },
       USER_ID,
     );
 

@@ -171,27 +171,7 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
     expect(res.body.summary.remainingDeliveryBalance).toBe(35);
   });
 
-  it('allows SUPER_ADMIN to perform full delivery reversal', async () => {
-    const delRes = await request(app)
-      .post(`/api/facilities/${facilityId}/deliveries`)
-      .set('Authorization', `Bearer ${operatorToken}`)
-      .send({ grnId, smallBags: 25, bigBags: 0 });
-    const deliveryId = delRes.body.delivery.id;
-
-    const revRes = await request(app)
-      .post(`/api/facilities/${facilityId}/deliveries/${deliveryId}/reverse`)
-      .set('Authorization', `Bearer ${superAdminToken}`)
-      .send({ reason: 'Customer rejected quality after dispatch' });
-
-    expect(revRes.status).toBe(200);
-    expect(revRes.body.reversal.deliveryId).toBe(deliveryId);
-    expect(revRes.body.challan.status).toBe('REVERSED');
-    expect(revRes.body.summary.netDeliveredBags).toBe(0);
-    expect(revRes.body.summary.remainingDeliveryBalance).toBe(80);
-    expect(revRes.body.summary.physicallyStoredBags).toBe(80);
-  });
-
-  it('rejects OPERATOR from performing delivery reversal (403 Forbidden)', async () => {
+  it('confirms delivery reversal endpoint is permanently decommissioned (404 Not Found)', async () => {
     const delRes = await request(app)
       .post(`/api/facilities/${facilityId}/deliveries`)
       .set('Authorization', `Bearer ${operatorToken}`)
@@ -200,11 +180,10 @@ describe('P6 Delivery Routes & RBAC Integration Tests', () => {
 
     const revRes = await request(app)
       .post(`/api/facilities/${facilityId}/deliveries/${deliveryId}/reverse`)
-      .set('Authorization', `Bearer ${operatorToken}`)
-      .send({ reason: 'Operator attempt to reverse' });
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .send({ reason: 'Attempt to call decommissioned reversal endpoint' });
 
-    expect(revRes.status).toBe(403);
-    expect(revRes.body.error).toContain("lacks permission 'delivery:reversal'");
+    expect(revRes.status).toBe(404);
   });
 
   it('allows querying delivery list, single delivery, and GRN delivery history', async () => {

@@ -214,8 +214,9 @@ describe('Manual GR Number Entry Rules', () => {
       expect(res.status).toBe(201);
       // The stored composition stays defined so delivery/ledger readers keep working.
       expect(res.body.grn.bags).toBe(100);
-      expect(res.body.grn.smallBags).toBe(100);
+      expect(res.body.grn.smallBags).toBe(0);
       expect(res.body.grn.bigBags).toBe(0);
+      expect(res.body.grn.isCompositionVerified).toBe(false);
     });
 
     it('still rejects an S+B split that contradicts the declared total', async () => {

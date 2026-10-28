@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { isHybridBagCategory, type Commodity, type Grn, type OutwardBagCategory, type PaymentMode } from '@cold-storage/contracts';
+import { ConfirmDialog } from '@/components/ui';
 import { WizardStepper } from './WizardStepper';
 import { MergeStep1Batches } from './MergeStep1Batches';
 import { MergeStep2BagType } from './MergeStep2BagType';
@@ -35,6 +36,7 @@ interface InternalMovementMergeTabProps {
 }
 
 export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
+  const [showConfirm, setShowConfirm] = useState(false);
   const { currentGrn, facilityId, submitting, initiatingGrnId } = props;
   const {
     step, setStep, targetGrnId, selectedSourceIds,
@@ -53,8 +55,19 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
     resultingBagType, handleProceedToStep2, handleProceedToStep3, handleProceedToStep4, handleMergeSubmit,
   } = useInternalMovementMergeTab(props);
 
+  const onFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (step === 4) {
+      if (reason.trim().length < 5) {
+        void handleMergeSubmit(e);
+        return;
+      }
+      setShowConfirm(true);
+    }
+  };
+
   return (
-    <form id="merge-grn-form" onSubmit={handleMergeSubmit} className={styles.modalContent}>
+    <form id="merge-grn-form" onSubmit={onFormSubmit} className={styles.modalContent}>
       {validationError && (
         <div role="alert" className={styles.noticeBox} style={{ color: 'var(--color-danger-text)', borderColor: 'var(--color-danger)' }}>
           {validationError}
@@ -146,6 +159,30 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
           movedBig={movedBig}
           submitting={submitting}
           onBack={() => setStep(3)}
+        />
+      )}
+      {showConfirm && (
+        <ConfirmDialog
+          isOpen={showConfirm}
+          title="Confirm GRN Merge & Repacking"
+          message={
+            <div>
+              <p>
+                Are you sure you want to merge <strong>{selectedSources.length} source GRN(s)</strong> into target GRN <strong>{targetGrn.grnNumber}</strong>?
+              </p>
+              <p style={{ marginTop: 'var(--space-2)', color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
+                Source GRNs will be permanently closed, stock combined, and this operation cannot be reversed.
+              </p>
+            </div>
+          }
+          confirmLabel="Yes, Execute Merge"
+          confirmVariant="primary"
+          isBusy={submitting}
+          onCancel={() => setShowConfirm(false)}
+          onConfirm={async () => {
+            setShowConfirm(false);
+            await handleMergeSubmit({ preventDefault: () => {} } as React.FormEvent);
+          }}
         />
       )}
     </form>

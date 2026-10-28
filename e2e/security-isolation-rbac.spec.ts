@@ -183,11 +183,11 @@ test.describe('PR 4 — Multi-Facility Data Isolation & RBAC Boundary Deep Dive'
       }
     });
 
-    await page.route(/\/api\/facilities\/[^/]+\/deliveries\/[^/]+\/reverse/, async (route) => {
+    await page.route(/\/api\/facilities\/[^/]+\/rent\/extensions\/[^/]+\/finalize/, async (route) => {
       await route.fulfill({
         status: 403,
         contentType: 'application/json',
-        body: JSON.stringify({ error: "Forbidden: missing required permission 'delivery:reversal'" }),
+        body: JSON.stringify({ error: "Forbidden: missing required permission 'rent:extend'" }),
       });
     });
 
@@ -210,22 +210,22 @@ test.describe('PR 4 — Multi-Facility Data Isolation & RBAC Boundary Deep Dive'
     expect(patchResult.status).toBe(403);
     expect(patchResult.body.error).toContain('grn:correct');
 
-    // Attempt direct delivery reversal bypassing UI
-    const reverseResult = await page.evaluate(async () => {
-      const res = await fetch('/api/facilities/fac-solapur-01/deliveries/del-001/reverse', {
+    // Attempt direct rent extension finalization bypassing UI
+    const extendResult = await page.evaluate(async () => {
+      const res = await fetch('/api/facilities/fac-solapur-01/rent/extensions/ext-001/finalize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: 'Unauthorized reversal attempt' }),
+        body: JSON.stringify({ reason: 'Unauthorized extend attempt' }),
       });
       return { status: res.status, body: await res.json() };
     });
 
-    expect(reverseResult.status).toBe(403);
-    expect(reverseResult.body.error).toContain('delivery:reversal');
+    expect(extendResult.status).toBe(403);
+    expect(extendResult.body.error).toContain('rent:extend');
 
     recordActualResult(
       testInfo,
-      'Edit button hidden from OPERATOR in UI; direct PATCH and reverse API calls returned HTTP 403 with permission violation errors',
+      'Edit button hidden from OPERATOR in UI; direct PATCH and extend API calls returned HTTP 403 with permission violation errors',
     );
   });
 

@@ -87,24 +87,6 @@ describe('InventoryService GRN Chamber SSOT tests', () => {
     expect(facSummary.byChamber).toEqual([{ chamber: 'Chamber 1', totalBags: 50 }]);
   });
 
-  it('4. Delivery reversal: 30 and 20 delivered, 20 reversed -> Available = 70', async () => {
-    await deliveryService.createDelivery(facilityId, { grnId, smallBags: 30, bigBags: 0 }, userId);
-    const del2 = await deliveryService.createDelivery(facilityId, { grnId, smallBags: 20, bigBags: 0 }, userId);
-    expect((await inventoryService.getAvailableBags(facilityId, grnId)).bags).toBe(50);
-
-    await deliveryService.reverseDelivery(
-      facilityId,
-      del2.delivery.id,
-      { reason: 'Customer returned 20 bags due to truck defect' },
-      userId,
-    );
-
-    expect((await inventoryService.getAvailableBags(facilityId, grnId)).bags).toBe(70);
-
-    const facSummary = await inventoryService.getFacilityInventorySummary(facilityId);
-    expect(facSummary.totalStockBags).toBe(70);
-    expect(facSummary.byChamber).toEqual([{ chamber: 'Chamber 1', totalBags: 70 }]);
-  });
 
   it('5. Multiple chambers: stock remains strictly separated by GRN chamber', async () => {
     await seedGrn({

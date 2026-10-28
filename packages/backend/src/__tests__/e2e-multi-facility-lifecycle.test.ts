@@ -7,8 +7,6 @@ import { config } from '../config.js';
 import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { AuditLogModel } from '../database/models/audit-log.model.js';
 import { BackupLogModel } from '../database/models/backup-log.model.js';
-import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
-import { DeliveryReversalModel } from '../database/models/delivery-reversal.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { SystemSettingsModel } from '../database/models/system-settings.model.js';
@@ -124,35 +122,12 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
     expect(outward.reduce((sum, t) => sum + t.smallQuantity, 0)).toBe(100);
   });
 
-  it('3. Compensating reversal: Admin reverses the first challan and the GRN reopens', async () => {
-    const operatorAttempt = await request(app)
-      .post(`/api/facilities/${scenario.facilityA}/deliveries/${deliveryId}/reverse`)
-      .set('Authorization', `Bearer ${scenario.tokens.operatorA}`)
-      .send({ reason: 'Operator must not reverse a challan' });
-    expect(operatorAttempt.status).toBe(403);
-
+  it('3. Delivery reversal decommissioned: attempt to reverse challan returns 404', async () => {
     const revRes = await request(app)
       .post(`/api/facilities/${scenario.facilityA}/deliveries/${deliveryId}/reverse`)
       .set('Authorization', `Bearer ${scenario.tokens.adminA}`)
-      .send({ reason: 'Customer cancelled partial pickup order' });
-    expect(revRes.status).toBe(200);
-    expect(revRes.body.challan.status).toBe('REVERSED');
-
-    const grnReopened = await GrnModel.findOne({ id: grnId });
-    expect(grnReopened?.status).toBe('OPEN');
-
-    const reversalDoc = await DeliveryReversalModel.findOne({ deliveryId });
-    expect(reversalDoc?.grnId).toBe(grnId);
-
-    const reversalTx = await InventoryTransactionModel.findOne({
-      facilityId: scenario.facilityA,
-      grnId,
-      transactionType: 'DELIVERY_REVERSAL',
-    });
-    expect(reversalTx?.smallQuantity).toBe(40);
-
-    const challans = await DeliveryChallanModel.find({ facilityId: scenario.facilityA, grnId });
-    expect(challans.map((c) => c.status).sort()).toEqual(['ISSUED', 'REVERSED']);
+      .send({ reason: 'Attempt to reverse outward challan' });
+    expect(revRes.status).toBe(404);
   });
 
   it('4. Encrypted backup: Super Admin completes a manual backup; Admin is denied', async () => {
@@ -185,7 +160,6 @@ describe('Phase 11: Multi-Facility End-to-End — outward lifecycle, backup and 
     const eventTypes = superRes.body.logs.map((item: { eventType: string }) => item.eventType);
     expect(eventTypes).toContain('GRN_CREATED');
     expect(eventTypes).toContain('DELIVERY_ISSUED');
-    expect(eventTypes).toContain('DELIVERY_REVERSED');
 
     const adminRes = await request(app)
       .get(`/api/audit-logs?facilityId=${scenario.facilityA}&limit=100`)

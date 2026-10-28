@@ -169,8 +169,8 @@ export async function seedGrn(options: SeedGrnOptions): Promise<string> {
     chamber,
     commodityId,
     bagType,
-    smallBags: composition.smallBags,
-    bigBags: composition.bigBags,
+    smallBags: isCompositionVerified ? composition.smallBags : bags,
+    bigBags: isCompositionVerified ? composition.bigBags : 0,
     createdAt: grnDate,
   });
 

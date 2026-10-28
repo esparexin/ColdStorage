@@ -54,7 +54,7 @@ export const createGrnSchema = z
     commodityId: z.string().trim().min(1),
     chamber: chamberTextSchema,
     bags: z.number().int().positive().max(100000),
-    bagType: bagTypeSchema.default('S/B'),
+    bagType: bagTypeSchema.nullish(),
     /** Per-bag weight only (kg per individual bag); optional. No nominal/weighbridge/total. */
     smallBagWeight: perBagWeightSchema.nullish(),
     bigBagWeight: perBagWeightSchema.nullish(),
@@ -118,7 +118,7 @@ export const createGrnSchema = z
       // from the bag type and the total. Rejecting an inconsistent declaration is what stops
       // `bags` and its parts from drifting apart in the database.
       bagCompositionConsistent({
-        bagType: data.bagType,
+        bagType: data.bagType || 'S/B',
         bags: data.bags,
         smallBags: data.smallBags,
         bigBags: data.bigBags,

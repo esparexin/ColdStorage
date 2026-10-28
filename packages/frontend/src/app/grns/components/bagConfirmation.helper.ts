@@ -61,6 +61,21 @@ export function deriveAutoInheritedBagComposition(
     };
   }
 
+  const anyUnverified = selectedSources.some((s) => !resolveStoredCompositionVerified(s));
+  if (anyUnverified) {
+    return {
+      category: 'S/B',
+      quantity: totalSourceBags,
+      smallBags: '',
+      bigBags: '',
+      confirmedSmallBags: '',
+      confirmedBigBags: '',
+      seasonalBagPrice: selectedSources[0]?.smallBagPrice ?? selectedSources[0]?.bagPrice ?? '',
+      monthlyBagPrice: '',
+      bagPrice: selectedSources[0]?.bagPrice ?? '',
+    };
+  }
+
   let totalDerivedSmall = 0;
   let totalDerivedBig = 0;
 

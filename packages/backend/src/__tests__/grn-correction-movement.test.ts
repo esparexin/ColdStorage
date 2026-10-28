@@ -81,12 +81,14 @@ describe('GRN Correction After Movement (grn-correction-movement.test.ts)', () =
       { grnId, smallBags: 40, bigBags: 0 },
       `usr-correct-move-${tag}`,
     );
-    await deliveryService.reverseDelivery(
-      facilityId,
-      del.delivery.id,
-      { reason: 'Buyer rejected the lot at the gate' },
-      `usr-correct-move-${tag}`,
-    );
+    // Historical reversal
+    await DeliveryChallanModel.updateOne({ id: del.delivery.id }, { $set: { status: 'REVERSED' } });
+    const inwardTx = await InventoryTransactionModel.findOne({ grnId, transactionType: 'INWARD_PUTAWAY' }).lean();
+    await InventoryTransactionModel.create({
+      ...inwardTx, _id: undefined, id: `tx-rev-correct-${tag}`, transactionType: 'DELIVERY_REVERSAL',
+      smallQuantity: 40, bigQuantity: 0, referenceId: del.delivery.id,
+      referenceType: 'DELIVERY_REVERSAL', createdBy: `usr-correct-move-${tag}`, createdAt: new Date(),
+    });
     return { facilityId, grnId, token };
   }
 

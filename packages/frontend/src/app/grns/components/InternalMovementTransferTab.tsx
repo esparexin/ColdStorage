@@ -7,6 +7,7 @@ import {
   type TransferPaymentDecision, type TransferSettlementDetails,
 } from '@cold-storage/contracts';
 import { useRentGate } from '@/hooks/useRentGate';
+import { ConfirmDialog } from '@/components/ui';
 import { WizardStepper } from './WizardStepper';
 import { computeOutwardRentCharge } from '@/app/deliveries/hooks/deliveryRent.helper';
 import { validateTransferPayment } from './internalMovementPayload.helper';
@@ -41,6 +42,7 @@ interface InternalMovementTransferTabProps {
 export function InternalMovementTransferTab({
   currentGrn, facilityId, customers, submitting, onExecuteTransfer,
 }: InternalMovementTransferTabProps) {
+  const [showConfirm, setShowConfirm] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [newCustomerId, setNewCustomerId] = useState('');
   const [movementDate] = useState(new Date().toISOString().slice(0, 10));
@@ -146,6 +148,11 @@ export function InternalMovementTransferTab({
     });
     if (confirmErr) return setValidationError(confirmErr);
 
+    setShowConfirm(true);
+  };
+
+  const doExecuteTransfer = async () => {
+    const isHybrid = isHybridBagCategory(sourceBagCategory);
     const conf = isHybrid ? {
       sourceBagCategory: sourceBagCategory || undefined,
       sourceQuantity: remainingBags,
@@ -197,6 +204,31 @@ export function InternalMovementTransferTab({
           sourceBagCategory={sourceBagCategory} effectiveDue={effectiveDue} decision={decision} settleAmount={settleAmount}
           movementDate={movementDate} reason={reason} onReasonChange={setReason} remarks={remarks} onRemarksChange={setRemarks}
           submitting={submitting} onBack={() => setStep(2)}
+        />
+      )}
+      {showConfirm && (
+        <ConfirmDialog
+          isOpen={showConfirm}
+          title="Confirm Ownership Transfer"
+          message={
+            <div>
+              <p>
+                Are you sure you want to transfer ownership of GRN <strong>{currentGrn.grnNumber}</strong> from{' '}
+                <strong>{currentGrn.customerName}</strong> to <strong>{selectedNewCustomer?.name}</strong>?
+              </p>
+              <p style={{ marginTop: 'var(--space-2)', color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
+                Once confirmed, the transfer will be finalized and this operation cannot be reversed.
+              </p>
+            </div>
+          }
+          confirmLabel="Yes, Transfer Ownership"
+          confirmVariant="primary"
+          isBusy={submitting}
+          onCancel={() => setShowConfirm(false)}
+          onConfirm={async () => {
+            setShowConfirm(false);
+            await doExecuteTransfer();
+          }}
         />
       )}
     </form>

@@ -157,6 +157,17 @@ export function CreateGrnModal({
               />
               {form.fieldErrors.bags && <span id="create-bags-error" className={styles.fieldErrorText} role="alert">{form.fieldErrors.bags}</span>}
             </div>
+            {isEdit && (
+              <div className={styles.fieldGroup}>
+                <Select
+                  id="create-bag-type" label="Bag Type" disabled={structuralLocked}
+                  value={form.createBagType || 'S/B'} onChange={(e) => form.handleBagTypeChange(e.target.value as import('@cold-storage/contracts').BagType)}
+                >
+                  <option value="S/B">S/B (Standard Bags - Unsegregated)</option>
+                  <option value="Hybrid">Hybrid (Uniform Modern)</option>
+                </Select>
+              </div>
+            )}
             <div className={styles.fieldGroup}>
               <Select
                 id="create-rent-type" label="Rent Type" required disabled={structuralLocked}

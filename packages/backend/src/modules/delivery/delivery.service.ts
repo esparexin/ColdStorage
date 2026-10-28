@@ -2,12 +2,9 @@ import type {
   CreateDeliveryInput,
   DeliveryChallan,
   DeliveryQuery,
-  DeliveryReversal,
   DeliverySummary,
-  ReverseDeliveryInput,
 } from '@cold-storage/contracts';
 import { createDeliveryWithRetry } from './handlers/create-delivery.handler.js';
-import { reverseDeliveryWithRetry } from './handlers/reverse-delivery.handler.js';
 import {
   getDeliveryById,
   getDeliverySummary,
@@ -24,15 +21,6 @@ export class DeliveryService {
     userId: string,
   ): Promise<{ delivery: DeliveryChallan; summary: DeliverySummary }> {
     return createDeliveryWithRetry(facilityId, input, userId);
-  }
-
-  public async reverseDelivery(
-    facilityId: string,
-    deliveryId: string,
-    input: ReverseDeliveryInput,
-    userId: string,
-  ): Promise<{ reversal: DeliveryReversal; challan: DeliveryChallan; summary: DeliverySummary }> {
-    return reverseDeliveryWithRetry(facilityId, deliveryId, input, userId);
   }
 
   public async getDeliveryById(

@@ -14,6 +14,7 @@ function makeState(overrides: Partial<CreateGrnState> = {}): CreateGrnState {
     createCommodityId: 'cmd-1',
     createChamber: 'CH-01',
     createBags: 100,
+    createBagType: 'S/B',
     createRentType: 'Seasonal',
     createPartyMark: '',
     createVehicleNumber: '',
@@ -194,5 +195,48 @@ describe('createGrnForm Total Bags and Logistics validation', () => {
     expect(payload.rentAmount).toBeUndefined();
     expect(payload.smallBagPrice).toBeUndefined();
     expect(payload.bigBagPrice).toBeUndefined();
+  });
+
+  it('does not require bagType during inward entry and validates S+B composition if present', () => {
+    expect(validateCreateGrnForm(makeState({ createBagType: '' })).errors.bagType).toBeUndefined();
+    const valid = validateCreateGrnForm(makeState({
+      createBags: 100, createBagType: 'S+B', createSmallBags: 60, createBigBags: 40,
+    }));
+    expect(valid.errors.smallBags).toBeUndefined();
+    expect(valid.errors.bigBags).toBeUndefined();
+
+    const mismatch = validateCreateGrnForm(makeState({
+      createBags: 100, createBagType: 'S+B', createSmallBags: 50, createBigBags: 40,
+    }));
+    expect(mismatch.errors.smallBags).toBe('Small (50) + Big (40) must equal Total (100)');
+
+    const negative = validateCreateGrnForm(makeState({
+      createBags: 100, createBagType: 'S+B', createSmallBags: -5, createBigBags: 105,
+    }));
+    expect(negative.errors.smallBags).toBe('Small bags must be a non-negative whole number');
+  });
+
+  it('buildCreateGrnPayload populates bagType and verified splits for S, B, S+B and Hybrid', () => {
+    const sPayload = buildCreateGrnPayload({
+      facilityId: 'f1', inwardDate: new Date(), grnNumber: '0001', customerId: 'c1',
+      commodityId: 'cmd1', chamber: 'CH-1', bags: 100, rentType: 'Seasonal', bagType: 'S',
+    });
+    expect(sPayload.bagType).toBe('S');
+    expect(sPayload.smallBags).toBe(100);
+
+    const sbPayload = buildCreateGrnPayload({
+      facilityId: 'f1', inwardDate: new Date(), grnNumber: '0002', customerId: 'c1',
+      commodityId: 'cmd1', chamber: 'CH-1', bags: 100, rentType: 'Seasonal',
+      bagType: 'S+B', smallBags: 70, bigBags: 30,
+    });
+    expect(sbPayload.bagType).toBe('S+B');
+    expect(sbPayload.smallBags).toBe(70);
+
+    const hybridPayload = buildCreateGrnPayload({
+      facilityId: 'f1', inwardDate: new Date(), grnNumber: '0003', customerId: 'c1',
+      commodityId: 'cmd1', chamber: 'CH-1', bags: 100, rentType: 'Seasonal', bagType: 'Hybrid',
+    });
+    expect(hybridPayload.bagType).toBe('Hybrid');
+    expect(hybridPayload.smallBags).toBe(100);
   });
 });

@@ -149,12 +149,14 @@ describe('GRN Chamber Relabel Ledger Synchronization', () => {
       { grnId, smallBags: 20, bigBags: 0 },
       'usr-ch-sync-admin',
     );
-    await deliveryService.reverseDelivery(
-      facilityId,
-      del1.delivery.id,
-      { reason: 'Customer requested cancellation at gate' },
-      'usr-ch-sync-admin',
-    );
+    // Historical settled reversal row on CH-ORIGIN
+    await DeliveryChallanModel.updateOne({ id: del1.delivery.id }, { $set: { status: 'REVERSED' } });
+    const inwardTx = await InventoryTransactionModel.findOne({ grnId, transactionType: 'INWARD_PUTAWAY' }).lean();
+    await InventoryTransactionModel.create({
+      ...inwardTx, _id: undefined, id: 'tx-rev-ch-sync', transactionType: 'DELIVERY_REVERSAL',
+      smallQuantity: 20, bigQuantity: 0, chamber: 'CH-ORIGIN', referenceId: del1.delivery.id,
+      referenceType: 'DELIVERY_REVERSAL', createdBy: 'usr-ch-sync-admin', createdAt: new Date(),
+    });
 
     // 3. Delivery 2: 30 bags delivered (active ISSUED delivery)
     const del2 = await deliveryService.createDelivery(

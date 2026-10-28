@@ -198,8 +198,12 @@ async function executeDeliveryTransaction(
   await auditService.log({
     eventType: 'DELIVERY_ISSUED', severity: 'INFO', userId, facilityId, resource: 'delivery', resourceId: delivery.id,
     details: {
-      challanNumber: delivery.challanNumber, smallBags: delivery.smallBags, bigBags: delivery.bigBags,
-      totalBags: delivery.totalBags, grnId: delivery.grnId, customerId: delivery.customerId,
+      activityDate: delivery.date instanceof Date ? delivery.date.toISOString().split('T')[0] : String(delivery.date).split('T')[0],
+      challanNumber: delivery.challanNumber, grnId: delivery.grnId, grnNumber: delivery.grnNumber,
+      customerId: delivery.customerId, customerName: delivery.customerName,
+      bagType: delivery.bagType, bagCategory: delivery.bagCategory,
+      totalBags: delivery.totalBags, smallBags: delivery.smallBags, bigBags: delivery.bigBags,
+      rentCharge: delivery.rentCharge,
     },
   });
 

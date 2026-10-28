@@ -166,10 +166,13 @@ grnSchema.index({ customerId: 1, facilityId: 1 });
 grnSchema.index({ facilityId: 1, loanStatus: 1 });
 grnSchema.index({ facilityId: 1, groupId: 1 });
 
-// `bags` is the sum of the composition, never an independent figure. Enforcing it here means a
-// receipt can never state a total that disagrees with the parts it is made of.
+// `bags` is authoritative; when composition is verified, smallBags + bigBags must match.
+// Unverified lots (isCompositionVerified: false) record 0,0 placeholder until verified downstream.
 grnSchema.pre('validate', function assertCompositionMatchesTotal(next) {
   const doc = this as GrnDoc;
+  if (doc.isCompositionVerified === false && doc.smallBags === 0 && doc.bigBags === 0) {
+    return next();
+  }
   if (doc.smallBags + doc.bigBags !== doc.bags) {
     next(
       new Error(

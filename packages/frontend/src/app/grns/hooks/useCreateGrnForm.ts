@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Commodity, Customer, Grn, LoanStatus, RentType } from '@cold-storage/contracts';
+import type { BagType, Commodity, Customer, Grn, LoanStatus, RentType } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import {
   buildCreateGrnPayload,
@@ -36,6 +36,9 @@ export function useCreateGrnForm(
   const [createCommodityId, setCreateCommodityId] = useState(isEdit ? initialGrn!.commodityId : '');
   const [createChamber, setCreateChamber] = useState(isEdit ? initialGrn!.chamber : '');
   const [createBags, setCreateBags] = useState<number | ''>(isEdit ? initialGrn!.bags : '');
+  const [createBagType, setCreateBagType] = useState<BagType | ''>(isEdit ? initialGrn!.bagType : '');
+  const [createSmallBags, setCreateSmallBags] = useState<number | ''>(isEdit ? (initialGrn!.smallBags ?? '') : '');
+  const [createBigBags, setCreateBigBags] = useState<number | ''>(isEdit ? (initialGrn!.bigBags ?? '') : '');
   const [createRentType, setCreateRentType] = useState<RentType>(isEdit ? initialGrn!.rentType : 'Seasonal');
   const [createPartyMark, setCreatePartyMark] = useState(isEdit ? (initialGrn!.partyMark ?? '') : '');
   const [suggestedGrnNumber, setSuggestedGrnNumber] = useState('');
@@ -86,6 +89,21 @@ export function useCreateGrnForm(
     clearFieldError('bags');
   };
 
+  const handleBagTypeChange = (type: BagType | '') => {
+    setCreateBagType(type);
+    clearFieldError('bagType');
+    clearFieldError('smallBags');
+    clearFieldError('bigBags');
+  };
+  const handleSmallBagsChange = (val: number | '') => {
+    setCreateSmallBags(val);
+    clearFieldError('smallBags');
+  };
+  const handleBigBagsChange = (val: number | '') => {
+    setCreateBigBags(val);
+    clearFieldError('bigBags');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isEdit && initialGrn) {
@@ -117,6 +135,7 @@ export function useCreateGrnForm(
 
     const { errors, parsedChamber, normalizedVehicle } = validateCreateGrnForm({
       createCustomerId, createCommodityId, createChamber, createBags,
+      createBagType, createSmallBags, createBigBags,
       createGrnNumber, createRentType, createPartyMark, createVehicleNumber,
     });
 
@@ -139,6 +158,9 @@ export function useCreateGrnForm(
         facilityId, inwardDate, grnNumber: createGrnNumber.trim(),
         customerId: createCustomerId, commodityId: createCommodityId,
         chamber: parsedChamber ?? createChamber, bags: Number(createBags),
+        bagType: createBagType,
+        smallBags: typeof createSmallBags === 'number' ? createSmallBags : undefined,
+        bigBags: typeof createBigBags === 'number' ? createBigBags : undefined,
         rentType: createRentType,
         partyMark: createPartyMark,
         vehicleNumber: normalizedVehicle, remarks: createRemarks,
@@ -184,6 +206,9 @@ export function useCreateGrnForm(
     },
     createChamber, setCreateChamber: (value: string) => { setCreateChamber(value); clearFieldError('chamber'); },
     createBags, handleBagsChange,
+    createBagType, handleBagTypeChange,
+    createSmallBags, handleSmallBagsChange,
+    createBigBags, handleBigBagsChange,
     createRentType, handleRentTypeChange: (val: RentType) => { setCreateRentType(val); },
     createGrnNumber, setCreateGrnNumber: (val: string) => {
       const digitsOnly = val.replace(/\D/g, '').slice(0, 4);

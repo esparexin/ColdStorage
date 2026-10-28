@@ -1,4 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
+import { DeliveryReversalModel } from '../database/models/delivery-reversal.model.js';
+import { GrnModel } from '../database/models/grn.model.js';
 import { InternalMovementModel } from '../database/models/internal-movement.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { getGrnMovementHistory } from '../modules/common/grn-movement-history.js';
@@ -145,13 +148,19 @@ describe('GRN Movement History SSOT tests', () => {
       userId,
     );
     expect(del.summary.grnStatus).toBe('CLOSED');
-
-    await deliveryService.reverseDelivery(
-      facilityId,
-      del.delivery.id,
-      { reason: 'Customer vehicle broke down outside gate' },
-      userId,
-    );
+    await DeliveryChallanModel.updateOne({ id: del.delivery.id }, { $set: { status: 'REVERSED' } });
+    await GrnModel.updateOne({ id: grnId }, { $set: { status: 'OPEN' } });
+    await DeliveryReversalModel.create({
+      id: 'rev-hist-1', facilityId, deliveryId: del.delivery.id,
+      challanNumber: del.delivery.challanNumber, grnId,
+      reason: 'Customer vehicle broke down outside gate', reversedBy: userId, reversedAt: new Date(),
+    });
+    const inwardTx = await InventoryTransactionModel.findOne({ grnId, transactionType: 'INWARD_PUTAWAY' }).lean();
+    await InventoryTransactionModel.create({
+      ...inwardTx, _id: undefined, id: 'tx-rev-hist-1', transactionType: 'DELIVERY_REVERSAL',
+      smallQuantity: 100, bigQuantity: 0, referenceId: 'rev-hist-1', referenceType: 'DELIVERY_REVERSAL',
+      createdBy: userId, createdAt: new Date(),
+    });
 
     const history = await getGrnMovementHistory(facilityId, grnId);
     expect(history).not.toBeNull();

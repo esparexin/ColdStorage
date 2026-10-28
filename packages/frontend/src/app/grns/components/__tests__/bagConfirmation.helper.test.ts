@@ -60,6 +60,17 @@ describe('deriveAutoInheritedBagComposition', () => {
     expect(res.quantity).toBe(10);
     expect(res.bagPrice).toBe(12);
   });
+
+  it('leaves counts empty when source lot is unverified to force operator confirmation', () => {
+    const source = buildTestGrn({ bags: 50, closingBags: 50, smallBags: 0, bigBags: 0, isCompositionVerified: false, bagType: 'S/B' });
+    const res = deriveAutoInheritedBagComposition([source], 50);
+    expect(res.category).toBe('S/B');
+    expect(res.quantity).toBe(50);
+    expect(res.smallBags).toBe('');
+    expect(res.bigBags).toBe('');
+    expect(res.confirmedSmallBags).toBe('');
+    expect(res.confirmedBigBags).toBe('');
+  });
 });
 
 
