@@ -7,8 +7,6 @@ import { config } from '../config.js';
 import { connectToDatabase, disconnectDatabase } from '../database/connection.js';
 import { AuditLogModel } from '../database/models/audit-log.model.js';
 import { BackupLogModel } from '../database/models/backup-log.model.js';
-import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
-import { DeliveryReversalModel } from '../database/models/delivery-reversal.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { SystemSettingsModel } from '../database/models/system-settings.model.js';

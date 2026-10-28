@@ -115,7 +115,7 @@ describe('Phase 2: ledger authority (ledger-balance.test.ts)', () => {
       total: 200,
     });
 
-    const del = await deliveryService.createDelivery(
+    await deliveryService.createDelivery(
       facilityId,
       { grnId, smallBags: 20, bigBags: 30 },
       USER_ID,
@@ -204,7 +204,7 @@ describe('Phase 2: ledger authority (ledger-balance.test.ts)', () => {
       USER_ID,
     );
 
-    const del = await deliveryService.createDelivery(
+    await deliveryService.createDelivery(
       facilityId,
       { grnId, smallBags: 20, bigBags: 30 },
       USER_ID,

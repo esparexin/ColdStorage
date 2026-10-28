@@ -1,6 +1,5 @@
 import type mongoose from 'mongoose';
 import { allocateHybridSplit, type BagComposition } from '@cold-storage/contracts';
-import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
 
