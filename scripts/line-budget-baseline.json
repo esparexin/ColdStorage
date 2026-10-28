@@ -1,6 +1,5 @@
 {
   "packages/frontend/src/app/grns/components/__tests__/mergeRentAssessment.helper.test.ts": 530,
-  "packages/frontend/src/app/rent/components/RentCashMemosTab.tsx": 274,
   "packages/frontend/src/app/rent/hooks/__tests__/rentFilter.helper.test.ts": 310,
   "packages/backend/src/__tests__/e2e-rent-visibility-lifecycle.test.ts": 351,
   "packages/backend/src/__tests__/rent-generated-date-and-carryforward.test.ts": 255,
