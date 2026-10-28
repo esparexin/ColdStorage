@@ -3,6 +3,7 @@ import { asyncRouter } from '../utils/async-handler.js';
 import {
   finalizeExtensionInputSchema,
   overrideExtensionInputSchema,
+  recordBatchRentPaymentInputSchema,
   recordRentPaymentInputSchema,
   storageOccupancyFilterSchema,
 } from '@cold-storage/contracts';
@@ -12,8 +13,9 @@ import { requirePermission } from '../middleware/rbac.middleware.js';
 import { rentService } from '../modules/rent/rent.service.js';
 import { rentExtensionRepository } from '../modules/rent/rent-extension.repository.js';
 import { rentExtensionService } from '../modules/rent/rent-extension.service.js';
-import { sendInternalError, sendServiceError } from '../utils/http-error.js';
+import { sendServiceError } from '../utils/http-error.js';
 import { getParamId } from '../utils/params.js';
+import { handleRentPaymentError, handleExtensionError } from './rent-route-errors.helper.js';
 
 export const rentRouter = asyncRouter();
 
@@ -49,33 +51,53 @@ rentRouter.post(
       );
       res.status(201).json(result);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Rent payment collection failed';
-      const status = message.includes('not found')
-        ? 404
-        : message.includes('exceeds remaining') ||
-            message.includes('future') ||
-            message.includes('Validation')
-          ? 400
-          : null;
-      if (status) {
-        res.status(status).json({ error: message });
-        return;
-      }
-      sendInternalError(res, err, 'recordRentPayment');
+      handleRentPaymentError(res, err, 'recordRentPayment');
     }
   },
 );
 
-// 2. Batched Rent Summary List — one request for the whole facility
+// 2. Record Batch Rent Payment across multiple GRNs for a single customer
+rentRouter.post(
+  '/facilities/:facilityId/rent/collect-batch',
+  requirePermission('rent:collect'),
+  requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  async (req: Request, res: Response): Promise<void> => {
+    const facilityId = getParamId(req.params.facilityId);
+
+    if (req.body && typeof req.body.facilityId === 'string' && req.body.facilityId !== facilityId) {
+      res.status(400).json({
+        error: `Payload facilityId '${req.body.facilityId}' does not match route facilityId '${facilityId}'`,
+      });
+      return;
+    }
+
+    const parseResult = recordBatchRentPaymentInputSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({ error: 'Validation failed', details: parseResult.error.flatten() });
+      return;
+    }
+
+    try {
+      const result = await rentService.recordBatchPayment(
+        facilityId,
+        parseResult.data,
+        req.user!.userId,
+      );
+      res.status(201).json(result);
+    } catch (err: unknown) {
+      handleRentPaymentError(res, err, 'recordBatchRentPayment');
+    }
+  },
+);
+
+// 3. Batched Rent Summary List — one request for the whole facility
 rentRouter.get(
   '/facilities/:facilityId/rent/summaries',
   requirePermission('rent:view'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
   async (req: Request, res: Response): Promise<void> => {
-    const facilityId = getParamId(req.params.facilityId);
-
     try {
-      const summaries = await rentService.getRentSummariesForFacility(facilityId);
+      const summaries = await rentService.getRentSummariesForFacility(getParamId(req.params.facilityId));
       res.status(200).json({ summaries });
     } catch (err: unknown) {
       sendServiceError(res, err, 'Failed to retrieve rent summaries');
@@ -83,17 +105,17 @@ rentRouter.get(
   },
 );
 
-// 3. Canonical Rent Summary & Payment History Lookup (single GRN)
+// 4. Canonical Rent Summary & Payment History Lookup (single GRN)
 rentRouter.get(
   '/facilities/:facilityId/rent/grn/:identifier',
   requirePermission('rent:view'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
   async (req: Request, res: Response): Promise<void> => {
-    const facilityId = getParamId(req.params.facilityId);
-    const identifier = getParamId(req.params.identifier);
-
     try {
-      const summary = await rentService.getRentSummary(facilityId, identifier);
+      const summary = await rentService.getRentSummary(
+        getParamId(req.params.facilityId),
+        getParamId(req.params.identifier),
+      );
       res.status(200).json(summary);
     } catch (err: unknown) {
       sendServiceError(res, err, 'Failed to retrieve rent summary');
@@ -171,18 +193,7 @@ rentRouter.post(
       );
       res.status(201).json({ extension });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Extension finalization failed';
-      const status = message.includes('not found')
-        ? 404
-        : message.includes('only to Seasonal') ||
-            message.includes('belongs to season') ||
-            message.includes('already covered') ||
-            message.includes('before it begins') ||
-            message.includes('No bags remained') ||
-            message.includes('no bag rate')
-          ? 400
-          : 500;
-      res.status(status).json({ error: message });
+      handleExtensionError(res, err, 'Extension finalization');
     }
   },
 );
@@ -211,9 +222,7 @@ rentRouter.patch(
       );
       res.status(200).json({ extension });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Extension override failed';
-      const status = message.includes('not found') ? 404 : 500;
-      res.status(status).json({ error: message });
+      handleExtensionError(res, err, 'Extension override');
     }
   },
 );

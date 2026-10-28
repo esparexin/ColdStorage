@@ -1,6 +1,8 @@
-import mongoose from 'mongoose';
+import type mongoose from 'mongoose';
 import {
   deriveBillingCycle,
+  type RecordBatchRentPaymentInput,
+  type RecordBatchRentPaymentResult,
   type RecordRentPaymentInput,
   type RecordRentPaymentResult,
   type RentReceiptDocumentDto,
@@ -24,9 +26,8 @@ import {
   getFacilitySubHeader,
   getVerifiedOrganization,
 } from '../documents/document-headers.helper.js';
-import {
-  executeRecordPayment,
-} from './handlers/record-payment.handler.js';
+import { executeRecordPayment } from './handlers/record-payment.handler.js';
+import { executeRecordBatchPayment } from './handlers/record-batch-payment.handler.js';
 import { rentExtensionRepository } from './rent-extension.repository.js';
 import { rentRepository } from './rent.repository.js';
 import { buildRentSummary } from './rent-summary.helper.js';
@@ -141,12 +142,7 @@ export class RentService {
     input: RecordRentPaymentInput,
     userId: string,
   ): Promise<RecordRentPaymentResult> {
-    return executeRecordPayment(
-      facilityId,
-      input,
-      userId,
-      (fId, gId) => this.getRentSummary(fId, gId),
-    );
+    return executeRecordPayment(facilityId, input, userId, (fId, gId) => this.getRentSummary(fId, gId));
   }
 
   /**
@@ -216,11 +212,15 @@ export class RentService {
     return renderRentReceiptTemplate(docDto);
   }
 
-  public async getMonthlyOccupancyRent(
+  public async recordBatchPayment(
     facilityId: string,
-    grnId: string,
-    options?: { asOfDate?: Date },
-  ) {
+    input: RecordBatchRentPaymentInput,
+    userId: string,
+  ): Promise<RecordBatchRentPaymentResult> {
+    return executeRecordBatchPayment(facilityId, input, userId, (fId, gId) => this.getRentSummary(fId, gId));
+  }
+
+  public async getMonthlyOccupancyRent(facilityId: string, grnId: string, options?: { asOfDate?: Date }) {
     return calculateGrnMonthlyOccupancyRent(facilityId, grnId, options);
   }
 
@@ -232,10 +232,7 @@ export class RentService {
     return calculateGrnSeasonalOccupancyRent(facilityId, grnId, options);
   }
 
-  public async getStorageOccupancyAuditReport(
-    facilityId: string,
-    filter?: StorageOccupancyFilter,
-  ) {
+  public async getStorageOccupancyAuditReport(facilityId: string, filter?: StorageOccupancyFilter) {
     return generateStorageOccupancyReport(facilityId, filter);
   }
 }
