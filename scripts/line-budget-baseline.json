@@ -1,5 +1,4 @@
 {
-  "packages/frontend/src/app/grns/components/internalMovementNotes.helper.ts": 260,
   "packages/frontend/src/app/grns/components/mergeRentAssessment.helper.ts": 264,
   "packages/frontend/src/app/grns/components/GrnTable.tsx": 277,
   "packages/frontend/src/app/grns/components/__tests__/mergeRentAssessment.helper.test.ts": 530,
