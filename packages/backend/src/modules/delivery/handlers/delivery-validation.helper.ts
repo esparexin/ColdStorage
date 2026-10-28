@@ -1,6 +1,6 @@
 import type mongoose from 'mongoose';
 import { allocateHybridSplit, type BagComposition } from '@cold-storage/contracts';
-import { readLedgerBalance } from '../../inventory/ledger-balance.js';
+import { readLedgerBalance, type LedgerBalance } from '../../inventory/ledger-balance.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
 
 export interface CompositionBalance extends BagComposition {
@@ -24,8 +24,9 @@ export async function validateStockAndBalances(
   isHybrid?: boolean,
   requestedQuantity?: number | null,
   hasSpecificBags?: boolean,
+  prefetchedBalance?: LedgerBalance,
 ): Promise<CompositionBalance> {
-  const available = await readLedgerBalance(facilityId, grn.id, session);
+  const available = prefetchedBalance ?? (await readLedgerBalance(facilityId, grn.id, session));
   const remainingSmall = available.smallBags;
   const remainingBig = available.bigBags;
   const requestedTotal =

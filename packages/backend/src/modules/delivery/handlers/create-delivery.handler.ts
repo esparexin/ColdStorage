@@ -93,7 +93,7 @@ async function executeDeliveryTransaction(
       const deliveryDate = validateDeliveryDate(input.date, grn.date);
       const billedPeriods = toExcludedPeriodKeys(await rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session));
       const plan = await resolveDeliveryPlan({
-        facilityId, grn: grn as never, input, deliveryDate, session, billedPeriods,
+        facilityId, grn, input, deliveryDate, session, billedPeriods,
       });
       const { isHybrid, finalSmall, finalBig, withdrawnTotal, expectedRentCharge, available, hasUnclassifiedGenesis } = plan;
 
