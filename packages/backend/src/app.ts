@@ -1,8 +1,10 @@
 import cors from 'cors';
 import express, { type Express, type Request, type Response, type NextFunction } from 'express';
+import mongoose from 'mongoose';
 import type { HealthResponse } from '@cold-storage/contracts';
 import { config } from './config.js';
 import { getDatabaseState } from './database/connection.js';
+import { findMissingGrnUniqueIndexes, inspectDatabaseIndexesReadOnly } from './database/indexes.js';
 import { logger } from './utils/logger.js';
 import {
   securityHeadersMiddleware,
@@ -83,17 +85,34 @@ export function createApp(): Express {
   // Connectivity probe for the administration UI. Registered under /api so the frontend
   // rewrite in next.config.mjs (which proxies /api/:path* only) can actually reach it, and
   // reports the observed datastore state rather than assuming it.
-  app.get('/api/health', (_req: Request, res: Response) => {
+  app.get('/api/health', async (_req: Request, res: Response) => {
     // Omit database name from unauthenticated payload (info minimization).
     const database = {
       state: getDatabaseState(),
       configured: Boolean(config.mongoUri),
     };
     const healthy = database.state === 'connected';
+    let grnUniqueness: { checked: boolean; missing: string[] } = { checked: false, missing: [] };
+    if (healthy) {
+      try {
+        const live = await inspectDatabaseIndexesReadOnly(mongoose.connection, ['GRN']);
+        grnUniqueness = { checked: true, missing: findMissingGrnUniqueIndexes(live['GRN']) };
+        if (grnUniqueness.missing.length > 0) {
+          logger.warn('Health check: required GRN uniqueness indexes missing', {
+            missing: grnUniqueness.missing,
+          });
+        }
+      } catch (err: unknown) {
+        logger.warn('Health check: GRN index inspection failed', {
+          error: err instanceof Error ? err.message : 'unknown',
+        });
+      }
+    }
     res.status(healthy ? 200 : 503).json({
       status: healthy ? 'ok' : 'degraded',
       service: 'cold-storage-backend',
       database,
+      indexes: { grnUniqueness },
       checkedAt: new Date().toISOString(),
     } satisfies HealthResponse);
   });

@@ -43,6 +43,14 @@ describe('Connectivity Endpoints', () => {
     expect(typeof res.body.checkedAt).toBe('string');
   });
 
+  it('reports GRN uniqueness index enforcement read-only on /api/health', async () => {
+    const res = await request(app).get('/api/health');
+    expect(res.status).toBe(200);
+    expect(res.body.indexes).toBeDefined();
+    expect(typeof res.body.indexes.grnUniqueness.checked).toBe('boolean');
+    expect(Array.isArray(res.body.indexes.grnUniqueness.missing)).toBe(true);
+  });
+
   it('never leaks a datastore URI through the connectivity payload', async () => {
     const res = await request(app).get('/api/health');
     const serialized = JSON.stringify(res.body);
