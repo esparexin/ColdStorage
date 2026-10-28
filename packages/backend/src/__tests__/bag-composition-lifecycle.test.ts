@@ -57,8 +57,13 @@ describe('Bag lifecycle: total-only inward, verified outward, guarded movement/t
     );
     expect(grn.rentAmount).toBe(0);
     expect(grn.isCompositionVerified).toBe(false);
-    expect(grn.smallBags + grn.bigBags).toBe(100);
+    expect(grn.bags).toBe(100);
+    expect(grn.smallBags).toBe(0);
+    expect(grn.bigBags).toBe(0);
     const stored = await GrnModel.findOne({ id: grn.id }).lean().exec();
+    expect(stored?.bags).toBe(100);
+    expect(stored?.smallBags).toBe(0);
+    expect(stored?.bigBags).toBe(0);
     expect((stored as Record<string, unknown>).isCompositionVerified).toBe(false);
   });
 

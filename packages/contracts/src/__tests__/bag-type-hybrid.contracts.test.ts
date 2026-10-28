@@ -14,8 +14,8 @@ describe('Contracts: BagType Hybrid SSOT Integration', () => {
     expect(parsed).toBe('Hybrid');
   });
 
-  it('marks Hybrid lots as verified by definition', () => {
-    expect(isBagCompositionVerified({ bagType: 'Hybrid', bags: 100 })).toBe(true);
+  it('marks unconfirmed Hybrid lots as unverified and confirmed splits as verified', () => {
+    expect(isBagCompositionVerified({ bagType: 'Hybrid', bags: 100 })).toBe(false);
     expect(isBagCompositionVerified({ bagType: 'Hybrid', bags: 50, smallBags: 30, bigBags: 20 })).toBe(true);
   });
 

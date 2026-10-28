@@ -170,8 +170,10 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
   const repackVariance = actualMovedBags - totalMovedBags;
 
   // 4. Final bag totals reconciliation check
-  const finalSmall = targetGrn.smallBags + smallMoved;
-  const finalBig = targetGrn.bigBags + bigMoved;
+  const baseTargetSmall = targetGrn.isCompositionVerified ? targetGrn.smallBags : targetGrn.bags;
+  const baseTargetBig = targetGrn.isCompositionVerified ? targetGrn.bigBags : 0;
+  const finalSmall = baseTargetSmall + smallMoved;
+  const finalBig = baseTargetBig + bigMoved;
   const finalTotal = targetGrn.bags + actualMovedBags;
 
   if (finalSmall < 0 || finalBig < 0 || finalSmall + finalBig !== finalTotal) {

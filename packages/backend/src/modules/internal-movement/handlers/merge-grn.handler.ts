@@ -128,8 +128,10 @@ export async function mergeGrn(
       repackHamaliCharge = repackHamali.repackHamaliCharge;
 
       const newBags = targetGrn.bags + actualMovedBags;
-      const newSmall = targetGrn.smallBags + totalMovedSmall;
-      const newBig = targetGrn.bigBags + totalMovedBig;
+      const baseTSmall = targetWasVerified ? targetGrn.smallBags : targetGrn.bags;
+      const baseTBig = targetWasVerified ? targetGrn.bigBags : 0;
+      const newSmall = baseTSmall + totalMovedSmall;
+      const newBig = baseTBig + totalMovedBig;
       const newRentAmount = Number((targetGrn.rentAmount + finalCarriedRent).toFixed(2));
       const effectiveSourceBagTypes =
         input.sourceBagCategory === 'Hybrid' || input.sourceBagType === 'Hybrid'

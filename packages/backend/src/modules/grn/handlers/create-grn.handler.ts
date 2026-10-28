@@ -198,10 +198,9 @@ export async function createGrn(
 
         createdDoc = docs[0];
 
-        // The inward leg of the stock ledger, written in the same transaction as the receipt it
-        // describes. Without this row the ledger holds only outward movements and reversal, so any
-        // balance summed from it is one-sided and goes negative the moment a facility records its
-        // first delivery. Same transaction, so a receipt can never exist without its inward stock.
+        // Physical intake tracking: unsegregated inward bags enter available chamber stock
+        const inSmall = isCompositionVerified ? composition.smallBags : input.bags;
+        const inBig = isCompositionVerified ? composition.bigBags : 0;
         await InventoryTransactionModel.create(
           [
             {
@@ -213,8 +212,8 @@ export async function createGrn(
               commodityId: commodity.id,
               bagType: input.bagType,
               transactionType: 'INWARD_PUTAWAY' as const,
-              smallQuantity: composition.smallBags,
-              bigQuantity: composition.bigBags,
+              smallQuantity: inSmall,
+              bigQuantity: inBig,
               referenceType: 'PUT_AWAY' as const,
               referenceId: id,
               notes: null,
