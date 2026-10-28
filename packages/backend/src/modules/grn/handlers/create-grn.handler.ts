@@ -83,17 +83,18 @@ export async function createGrn(
 
   // 6. Inward is total-only: absent split defaults to `{bags, 0}` placeholder;
   // `isCompositionVerified` records explicit confirmation. Unverified lots keep pending (0) rent.
+  const effectiveBagType = input.bagType || 'S/B';
   const composition = normalizeBagComposition({
-    bagType: input.bagType,
+    bagType: effectiveBagType,
     bags: input.bags,
     smallBags: input.smallBags,
     bigBags: input.bigBags,
   });
   const isCompositionVerified =
-    input.bagType === 'S' || input.bagType === 'B'
+    effectiveBagType === 'S' || effectiveBagType === 'B'
       ? true
       : isBagCompositionVerified({
-          bagType: input.bagType,
+          bagType: effectiveBagType,
           bags: input.bags,
           smallBags: input.smallBags,
           bigBags: input.bigBags,
@@ -160,7 +161,7 @@ export async function createGrn(
               commodityName: commodity.name,
               chamber: input.chamber.trim(),
               bags: input.bags,
-              bagType: input.bagType,
+              bagType: effectiveBagType,
               smallBags: composition.smallBags,
               bigBags: composition.bigBags,
               isCompositionVerified,
@@ -210,7 +211,7 @@ export async function createGrn(
               grnNumber,
               chamber: input.chamber.trim(),
               commodityId: commodity.id,
-              bagType: input.bagType,
+              bagType: effectiveBagType,
               transactionType: 'INWARD_PUTAWAY' as const,
               smallQuantity: inSmall,
               bigQuantity: inBig,

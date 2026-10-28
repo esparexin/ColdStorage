@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CommodityModel } from '../database/models/commodity.model.js';
 import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
+import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { grnService } from '../modules/grn/grn.service.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { internalMovementService } from '../modules/internal-movement/internal-movement.service.js';
@@ -170,5 +171,32 @@ describe('Bag lifecycle: total-only inward, verified outward, guarded movement/t
       USER_ID,
     );
     expect(transferred.grn.customerId).toBe(customerB);
+  });
+
+  it('creates inward entry without bagType selection, recording total bags and 0/0 unverified placeholder', async () => {
+    const { grn } = await grnService.createGrn(
+      FACILITY_ID,
+      {
+        grnNumber: '4001', date: new Date(), customerId: customerA, commodityId,
+        chamber: 'CH-01', bags: 250, rentType: 'Seasonal',
+      } as never,
+      USER_ID,
+    );
+    expect(grn.bags).toBe(250);
+    expect(grn.bagType).toBe('S/B');
+    expect(grn.smallBags).toBe(0);
+    expect(grn.bigBags).toBe(0);
+    expect(grn.isCompositionVerified).toBe(false);
+
+    const doc = await GrnModel.findOne({ id: grn.id }).lean().exec();
+    expect(doc?.bags).toBe(250);
+    expect(doc?.bagType).toBe('S/B');
+    expect(doc?.smallBags).toBe(0);
+    expect(doc?.bigBags).toBe(0);
+    expect(doc?.isCompositionVerified).toBe(false);
+
+    const tx = await InventoryTransactionModel.findOne({ grnId: grn.id, transactionType: 'INWARD_PUTAWAY' }).lean().exec();
+    expect(tx?.smallQuantity).toBe(250);
+    expect(tx?.bigQuantity).toBe(0);
   });
 });

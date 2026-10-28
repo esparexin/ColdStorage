@@ -50,10 +50,6 @@ export function validateCreateGrnForm(state: CreateGrnState): {
     errors.bags = 'Total Bags is required (a positive whole number)';
   }
 
-  if (!state.createBagType) {
-    errors.bagType = 'Please select a Bag Type (S/B or Hybrid)';
-  }
-
   if (state.createBagType === 'S+B') {
     const s = typeof state.createSmallBags === 'number' ? state.createSmallBags : null;
     const b = typeof state.createBigBags === 'number' ? state.createBigBags : null;

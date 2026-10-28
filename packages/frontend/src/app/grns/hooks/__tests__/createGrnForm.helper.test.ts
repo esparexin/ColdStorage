@@ -197,10 +197,8 @@ describe('createGrnForm Total Bags and Logistics validation', () => {
     expect(payload.bigBagPrice).toBeUndefined();
   });
 
-  it('validates bagType requirement and S+B bag composition', () => {
-    expect(validateCreateGrnForm(makeState({ createBagType: '' })).errors.bagType).toBe(
-      'Please select a Bag Type (S/B or Hybrid)',
-    );
+  it('does not require bagType during inward entry and validates S+B composition if present', () => {
+    expect(validateCreateGrnForm(makeState({ createBagType: '' })).errors.bagType).toBeUndefined();
     const valid = validateCreateGrnForm(makeState({
       createBags: 100, createBagType: 'S+B', createSmallBags: 60, createBigBags: 40,
     }));
