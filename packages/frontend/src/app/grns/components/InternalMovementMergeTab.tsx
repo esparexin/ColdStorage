@@ -8,6 +8,7 @@ import { MergeStep1Batches } from './MergeStep1Batches';
 import { MergeStep2BagType } from './MergeStep2BagType';
 import { MergeStep3Settlement } from './MergeStep3Settlement';
 import { MergeStep4RepackConfirm } from './MergeStep4RepackConfirm';
+import { MergeConfirmSummary } from './MergeConfirmSummary';
 import { useInternalMovementMergeTab } from './useInternalMovementMergeTab';
 import styles from './InternalMovementModal.module.css';
 
@@ -165,15 +166,25 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
         <ConfirmDialog
           isOpen={showConfirm}
           title="Confirm GRN Merge & Repacking"
+          size="md"
           message={
-            <div>
-              <p>
-                Are you sure you want to merge <strong>{selectedSources.length} source GRN(s)</strong> into target GRN <strong>{targetGrn.grnNumber}</strong>?
-              </p>
-              <p style={{ marginTop: 'var(--space-2)', color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
-                Source GRNs will be permanently closed, stock combined, and this operation cannot be reversed.
-              </p>
-            </div>
+            <MergeConfirmSummary
+              targetGrnNumber={targetGrn.grnNumber}
+              targetCustomerName={targetGrn.customerName}
+              sourceGrnNumbers={selectedSources.map((s) => s.grnNumber)}
+              totalSourceBags={totalSourceBags}
+              resultingBagType={resultingBagType}
+              repackMode={repackMode}
+              actualRepackedBags={actualRepackedBags}
+              repackSmall={repackSmall}
+              repackBig={repackBig}
+              repackBagType={repackBagType}
+              commodityHamaliRate={commodityHamaliRate}
+              repackHamaliCharge={repackHamaliCharge}
+              settlementDecision={settlementDecision}
+              settleAmount={settleAmount}
+              totalSourcePendingRent={totalSourcePendingRent}
+            />
           }
           confirmLabel="Yes, Execute Merge"
           confirmVariant="primary"
