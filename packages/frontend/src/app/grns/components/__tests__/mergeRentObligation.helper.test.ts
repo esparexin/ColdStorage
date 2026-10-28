@@ -33,16 +33,15 @@ describe('mergeRentObligation.helper', () => {
   };
 
   it('derives assessment when summary is provided with partial payment', () => {
-    const summary: RentSummaryDto = {
+    const summary = {
       grnId: 'grn-source-1',
       grnNumber: 'GRN-0010',
       totalDue: 12000,
       totalPaid: 4000,
       remainingBalance: 8000,
-      status: 'PARTIAL',
-      paymentStatus: 'Partial',
+      paymentStatus: 'Not Settled',
       rentAmount: 12000,
-    };
+    } as unknown as RentSummaryDto;
 
     const res = deriveMergeRentAssessment({
       source: sampleGrn,

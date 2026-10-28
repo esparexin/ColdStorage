@@ -72,7 +72,7 @@ describe('structuredMovementsTable.helper', () => {
   it('maps structured MERGE In record for hybrid bag type', () => {
     const hybridGrn: Grn = {
       ...sampleGrn,
-      bagType: 'Special Bag',
+      bagType: 'Hybrid',
       bagPrice: 50,
       smallBagPrice: undefined,
       bigBagPrice: undefined,
@@ -104,7 +104,7 @@ describe('structuredMovementsTable.helper', () => {
 
     const rows = mapStructuredMovementsToTableRows([structuredMergeIn], hybridGrn);
     expect(rows).toHaveLength(1);
-    expect(rows[0].sbDetail).toBe('Hybrid (Special Bag)');
+    expect(rows[0].sbDetail).toBe('Hybrid (Hybrid)');
   });
 
   it('maps structured MERGE Out record when current GRN was merged into a surviving target', () => {
