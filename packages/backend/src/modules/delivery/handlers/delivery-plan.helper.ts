@@ -91,18 +91,25 @@ export async function resolveDeliveryPlan(params: {
   const hasDiffRates =
     (grn.smallBagPrice != null || grn.bigBagPrice != null) && sRate !== bRate;
 
-  if (
-    !isHybrid &&
-    (grn.bagType === 'S/B' || grn.bagType === 'S+B') &&
-    hasDiffRates &&
-    !hasSpecificBags
-  ) {
-    throw new Error(
-      'Small and big bag composition required for delivery when storage rates differ',
-    );
+  if (!isHybrid && (grn.bagType === 'S/B' || grn.bagType === 'S+B' || !grn.isCompositionVerified)) {
+    if (hasDiffRates && !hasSpecificBags) {
+      throw new Error(
+        'Small and big bag composition required for delivery when storage rates differ',
+      );
+    }
+    if (!grn.isCompositionVerified && !hasSpecificBags) {
+      throw new Error(
+        'Confirmed bag composition is required before generating outward delivery challan',
+      );
+    }
   }
 
   const reqQty = input.quantity ?? 0;
+  if (!isHybrid && hasSpecificBags && reqQty > 0 && (input.smallBags ?? 0) + (input.bigBags ?? 0) !== reqQty) {
+    throw new Error(
+      `Small (${input.smallBags ?? 0}) and big (${input.bigBags ?? 0}) bags must equal requested quantity (${reqQty})`,
+    );
+  }
   const resSmall = hasSpecificBags
     ? (input.smallBags ?? 0)
     : grn.bagType === 'B'

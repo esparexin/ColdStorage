@@ -170,4 +170,30 @@ describe('Exact S/B Bag Composition & Non-Negative Inventory (Phase 2)', () => {
       ),
     ).rejects.toThrow('Small and big bag composition required for delivery when storage rates differ');
   });
+
+  it('rejects delivery without confirmed bag composition for unverified lots even with uniform rates', async () => {
+    const { grn } = await grnService.createGrn(
+      facilityId,
+      {
+        grnNumber: '9004',
+        date: new Date(),
+        customerId,
+        commodityId: 'cmd-potato-sb',
+        chamber: 'CH-01',
+        bags: 100,
+        rentType: 'Seasonal',
+        bagPrice: 10,
+      },
+      USER_ID,
+    );
+    expect(grn.isCompositionVerified).toBe(false);
+
+    await expect(
+      deliveryService.createDelivery(
+        facilityId,
+        { grnId: grn.id, quantity: 50 },
+        USER_ID,
+      ),
+    ).rejects.toThrow('Confirmed bag composition is required before generating outward delivery challan');
+  });
 });
