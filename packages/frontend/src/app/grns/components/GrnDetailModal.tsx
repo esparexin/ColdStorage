@@ -24,6 +24,7 @@ interface GrnDetailModalProps {
   onCorrect?: (grn: Grn) => void;
   onCreateChallan?: (grn: Grn) => void;
   onInternalMove?: (grn: Grn) => void;
+  onSortGrn?: (grn: Grn) => void;
 }
 
 export function GrnDetailModal({
@@ -40,6 +41,7 @@ export function GrnDetailModal({
   onCorrect,
   onCreateChallan,
   onInternalMove,
+  onSortGrn,
 }: GrnDetailModalProps) {
   return (
     <Modal
@@ -74,6 +76,7 @@ export function GrnDetailModal({
           onPrint={onPrint}
           onCreateChallan={onCreateChallan}
           onInternalMove={onInternalMove}
+          onSortGrn={canCorrect ? onSortGrn : undefined}
           onManageLoan={onManageLoan}
         />
       }

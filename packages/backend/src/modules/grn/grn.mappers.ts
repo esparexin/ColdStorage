@@ -93,6 +93,10 @@ export function toGrnEntity(doc: {
     bigBags: doc.bigBags,
     isCompositionVerified:
       (((doc as unknown as Record<string, unknown>).isCompositionVerified as boolean | null | undefined) ?? null) as boolean | undefined,
+    isSorted: ((doc as unknown as Record<string, unknown>).isSorted as boolean | undefined) ?? false,
+    sortedAt: (doc as unknown as Record<string, unknown>).sortedAt
+      ? new Date((doc as unknown as Record<string, unknown>).sortedAt as string | Date)
+      : null,
     gpNumber: doc.gpNumber ?? null,
     storageMark: doc.storageMark ?? null,
     partyMark: doc.partyMark ?? null,

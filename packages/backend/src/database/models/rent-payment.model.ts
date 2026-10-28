@@ -6,6 +6,8 @@ export interface RentPaymentDoc extends Document {
   facilityId: string;
   grnId: string;
   grnNumber: string;
+  customerId?: string | null;
+  customerName?: string | null;
   receiptNumber: string;
   amountPaid: number;
   paymentMode: PaymentMode;
@@ -22,6 +24,8 @@ const rentPaymentSchema = new Schema<RentPaymentDoc>(
     facilityId: { type: String, required: true, index: true },
     grnId: { type: String, required: true, index: true },
     grnNumber: { type: String, required: true, index: true },
+    customerId: { type: String, default: null, index: true },
+    customerName: { type: String, trim: true, default: null },
     receiptNumber: { type: String, required: true, index: true },
     amountPaid: { type: Number, required: true, min: 0 },
     paymentMode: { type: String, required: true, enum: ['Cash', 'UPI'], index: true },

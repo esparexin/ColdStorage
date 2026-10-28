@@ -24,6 +24,7 @@ interface GrnRowActionsProps {
   onCorrectGrn?: (grn: Grn) => void;
   onCreateChallan?: (grn: Grn) => void;
   onInternalMove?: (grn: Grn) => void;
+  onSortGrn?: (grn: Grn) => void;
   onPrint: (type: 'grn' | 'receipt', id: string) => void;
 }
 
@@ -38,6 +39,7 @@ export function GrnRowActions({
   onCorrectGrn,
   onCreateChallan,
   onInternalMove,
+  onSortGrn,
   onPrint,
 }: GrnRowActionsProps) {
   const isClosed = row.status === 'CLOSED';
@@ -87,6 +89,20 @@ export function GrnRowActions({
               ? 'Outward blocked — Active loan hold'
               : 'Create Outward Challan',
             onClick: () => onCreateChallan(row),
+          },
+        ]
+      : []),
+    ...(!isClosed && canCorrect && onSortGrn && hasRemainingStock
+      ? [
+          {
+            key: 'sort-repack',
+            label: row.isSorted ? 'Repack / Rebag' : 'Sort & Repack',
+            icon: <ArrowRightLeft size={13} aria-hidden="true" />,
+            disabled: isLoanHold,
+            title: isLoanHold
+              ? 'Sorting blocked — Active loan hold'
+              : 'Sort & Repack Lot',
+            onClick: () => onSortGrn(row),
           },
         ]
       : []),

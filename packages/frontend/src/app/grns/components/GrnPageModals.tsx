@@ -5,6 +5,7 @@ import type { Commodity, Customer, Grn, GrnMovementHistory } from '@cold-storage
 import { requestWithAuth } from '@/lib/api-client';
 import { CreateGrnModal } from './CreateGrnModal';
 import { GrnDetailModal } from './GrnDetailModal';
+import { GrnSortingModal } from './GrnSortingModal';
 import { InternalMovementModal } from './InternalMovementModal';
 import { UpdateLoanStatusModal } from './UpdateLoanStatusModal';
 
@@ -14,6 +15,7 @@ interface GrnPageModalsProps {
   loanModalGrn: Grn | null;
   correctModalGrn: Grn | null;
   internalMovementGrn: Grn | null;
+  sortModalGrn?: Grn | null;
   isCreateOpen: boolean;
   canPrint: boolean;
   canCorrect: boolean;
@@ -28,15 +30,18 @@ interface GrnPageModalsProps {
   onCloseLoanModal: () => void;
   onCloseCorrectModal: () => void;
   onCloseInternalMovementModal: () => void;
+  onCloseSortModal?: () => void;
   onCloseCreateModal: () => void;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
   onManageLoan: (grn: Grn) => void;
   onCorrect: (grn: Grn) => void;
   onCreateChallan: (grn: Grn) => void;
   onInternalMove: (grn: Grn) => void;
+  onSortGrn?: (grn: Grn) => void;
   onLoanStatusUpdated: (updatedGrn: Grn) => void;
   onGrnCorrected: (updatedGrn: Grn) => void;
   onInternalMovementSuccess: (updatedGrn: Grn) => void;
+  onSortSuccess?: (updatedGrn: Grn) => void;
   onCustomerAdded: () => void;
   onCommodityAdded: () => void;
   onCreateSuccess: (newGrn: Grn) => void;
@@ -48,6 +53,7 @@ export function GrnPageModals({
   loanModalGrn,
   correctModalGrn,
   internalMovementGrn,
+  sortModalGrn,
   isCreateOpen,
   canPrint,
   canCorrect,
@@ -62,15 +68,18 @@ export function GrnPageModals({
   onCloseLoanModal,
   onCloseCorrectModal,
   onCloseInternalMovementModal,
+  onCloseSortModal,
   onCloseCreateModal,
   onPrint,
   onManageLoan,
   onCorrect,
   onCreateChallan,
   onInternalMove,
+  onSortGrn,
   onLoanStatusUpdated,
   onGrnCorrected,
   onInternalMovementSuccess,
+  onSortSuccess,
   onCustomerAdded,
   onCommodityAdded,
   onCreateSuccess,
@@ -129,6 +138,7 @@ export function GrnPageModals({
           onCorrect={canCorrect ? onCorrect : undefined}
           onCreateChallan={canCreateChallan ? onCreateChallan : undefined}
           onInternalMove={canInternalMove ? onInternalMove : undefined}
+          onSortGrn={canCorrect ? onSortGrn : undefined}
         />
       )}
 
@@ -139,6 +149,17 @@ export function GrnPageModals({
           customers={customers}
           onClose={onCloseInternalMovementModal}
           onSuccess={onInternalMovementSuccess}
+        />
+      )}
+
+      {sortModalGrn && selectedFacilityId && (
+        <GrnSortingModal
+          facilityId={selectedFacilityId}
+          grn={sortModalGrn}
+          commodities={commodities}
+          isOpen={Boolean(sortModalGrn)}
+          onClose={onCloseSortModal ?? (() => {})}
+          onSuccess={onSortSuccess ?? (() => {})}
         />
       )}
 

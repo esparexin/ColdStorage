@@ -12,6 +12,7 @@ import { SelectedGrnCard } from './SelectedGrnCard';
 import { DeliveryBagCompositionFields } from './DeliveryBagCompositionFields';
 import { MergedDualSectionDelivery } from './MergedDualSectionDelivery';
 import { DeliveryTransportFields } from './DeliveryTransportFields';
+import { DeliveryConfirmSummary } from './DeliveryConfirmSummary';
 import pageStyles from '../page.module.css';
 import styles from './IssueDeliveryChallanModal.module.css';
 
@@ -198,21 +199,26 @@ export function IssueDeliveryChallanModal({
           )
         )}
       </form>
-      {showConfirm && (
+      {showConfirm && form.selectedGrn && (
         <ConfirmDialog
           isOpen={showConfirm}
           title="Confirm Outward Delivery"
+          size="md"
           message={
-            <div>
-              <p>
-                Are you sure you want to issue this outward delivery of{' '}
-                <strong>{form.dualSection.isDualSection ? form.dualSection.totalWithdrawingBags : form.totalWithdrawingBags} bags</strong> for{' '}
-                <strong>{form.selectedGrn?.customerName}</strong>?
-              </p>
-              <p style={{ marginTop: 'var(--space-2)', color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
-                Once finalized, stock will be permanently deducted and this operation cannot be reversed.
-              </p>
-            </div>
+            <DeliveryConfirmSummary
+              customerName={form.selectedGrn.customerName}
+              grnNumber={form.selectedGrn.grnNumber}
+              chamber={form.selectedGrn.chamber}
+              commodityName={form.selectedGrn.commodityName}
+              bagType={form.bagCategory === 'Hybrid' ? 'Hybrid' : form.selectedGrn.bagType}
+              totalBags={form.dualSection.isDualSection ? form.dualSection.totalWithdrawingBags : form.totalWithdrawingBags}
+              smallBags={form.dualSection.isDualSection ? (Number(form.dualSection.unclassifiedSmall) || 0) + (Number(form.dualSection.confirmedSmall) || 0) : Number(form.withdrawal.smallBags || 0)}
+              bigBags={form.dualSection.isDualSection ? (Number(form.dualSection.unclassifiedBig) || 0) + (Number(form.dualSection.confirmedBig) || 0) : Number(form.withdrawal.bigBags || 0)}
+              outwardRent={form.dualSection.isDualSection ? form.dualSection.totalOutwardRent : form.outwardRent}
+              hamaliRate={form.hamaliRate}
+              vehicleNumber={form.createVehicleNumber}
+              gpNumber={form.createGpNumber}
+            />
           }
           confirmLabel="Yes, Issue Delivery"
           confirmVariant="primary"

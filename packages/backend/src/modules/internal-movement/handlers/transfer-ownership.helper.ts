@@ -10,6 +10,8 @@ export interface SettleTransferRentParams {
   facilityId: string;
   grnId: string;
   grnNumber: string;
+  sourceCustomerId: string;
+  sourceCustomerName: string;
   newCustomerName: string;
   movementDate: Date;
   totalDue: number;
@@ -28,6 +30,8 @@ export async function settleTransferRent(params: SettleTransferRentParams): Prom
     facilityId,
     grnId,
     grnNumber,
+    sourceCustomerId,
+    sourceCustomerName,
     newCustomerName,
     movementDate,
     totalDue,
@@ -77,6 +81,8 @@ export async function settleTransferRent(params: SettleTransferRentParams): Prom
         facilityId,
         grnId,
         grnNumber,
+        customerId: sourceCustomerId,
+        customerName: sourceCustomerName,
         receiptNumber,
         amountPaid,
         paymentMode,

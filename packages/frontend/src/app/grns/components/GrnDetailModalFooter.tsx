@@ -16,6 +16,7 @@ interface GrnDetailModalFooterProps {
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
   onCreateChallan?: (grn: Grn) => void;
   onInternalMove?: (grn: Grn) => void;
+  onSortGrn?: (grn: Grn) => void;
   onManageLoan?: (grn: Grn) => void;
 }
 
@@ -29,6 +30,7 @@ export function GrnDetailModalFooter({
   onPrint,
   onCreateChallan,
   onInternalMove,
+  onSortGrn,
   onManageLoan,
 }: GrnDetailModalFooterProps) {
   return (
@@ -97,6 +99,31 @@ export function GrnDetailModalFooter({
       >
         Internal Move
       </Button>
+      {onSortGrn && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            onClose();
+            onSortGrn(grn);
+          }}
+          disabled={
+            grn.status !== 'OPEN' ||
+            grn.loanStatus === 'TAKEN' ||
+            (grn.closingBags ?? grn.bags) <= 0
+          }
+          title={
+            grn.loanStatus === 'TAKEN'
+              ? 'Sorting blocked — Active loan hold'
+              : (grn.closingBags ?? grn.bags) <= 0
+                ? 'Sorting blocked — Stock exhausted'
+                : 'Sort & Repack Lot'
+          }
+          leftIcon={<ArrowRightLeft size={13} aria-hidden="true" />}
+        >
+          {grn.isSorted ? 'Repack' : 'Sort / Repack'}
+        </Button>
+      )}
       <Button
         variant={grn.loanStatus === 'TAKEN' ? 'danger' : 'outline'}
         size="sm"

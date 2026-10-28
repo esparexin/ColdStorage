@@ -1,9 +1,37 @@
-import type { MergeGrnInput, TransferOwnershipInput, Grn, InternalMovementRecord } from '@cold-storage/contracts';
+import type {
+  MergeGrnInput,
+  TransferOwnershipInput,
+  Grn,
+  InternalMovementRecord,
+  RentPayment,
+  SortGrnInput,
+  SortGrnResult,
+  RepackGrnInput,
+  RepackGrnResult,
+} from '@cold-storage/contracts';
 import { InternalMovementModel } from '../../database/models/internal-movement.model.js';
 import { mergeGrn } from './handlers/merge-grn.handler.js';
 import { transferOwnership } from './handlers/transfer-ownership.handler.js';
+import { executeSortGrn } from './handlers/sort-grn.handler.js';
+import { executeRepackGrn } from './handlers/repack-grn.handler.js';
 
 export class InternalMovementService {
+  public async sortGrn(
+    facilityId: string,
+    input: SortGrnInput,
+    userId: string,
+  ): Promise<SortGrnResult> {
+    return executeSortGrn(facilityId, input, userId);
+  }
+
+  public async repackGrn(
+    facilityId: string,
+    input: RepackGrnInput,
+    userId: string,
+  ): Promise<RepackGrnResult> {
+    return executeRepackGrn(facilityId, input, userId);
+  }
+
   public async mergeGrn(
     facilityId: string,
     input: MergeGrnInput,
@@ -16,7 +44,7 @@ export class InternalMovementService {
     facilityId: string,
     input: TransferOwnershipInput,
     userId: string,
-  ): Promise<{ grn: Grn; movement: InternalMovementRecord }> {
+  ): Promise<{ grn: Grn; movement: InternalMovementRecord; payment?: RentPayment }> {
     return transferOwnership(facilityId, input, userId);
   }
 

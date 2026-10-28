@@ -37,3 +37,4 @@ export * from './hamali.js';
 export * from './bag-display.js';
 export * from './merged-consignment.js';
 export * from './batch-rent.js';
+export * from './grn-sorting.js';

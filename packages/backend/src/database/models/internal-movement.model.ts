@@ -59,7 +59,7 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
   {
     id: { type: String, required: true, unique: true, index: true },
     facilityId: { type: String, required: true, index: true },
-    movementType: { type: String, required: true, enum: ['MERGE', 'TRANSFER_OWNERSHIP'], index: true },
+    movementType: { type: String, required: true, enum: ['MERGE', 'TRANSFER_OWNERSHIP', 'REPACK'], index: true },
     movementDate: { type: Date, required: true, index: true },
     targetGrnId: { type: String, default: null, index: true },
     targetGrnNumber: { type: String, default: null },

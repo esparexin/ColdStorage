@@ -132,8 +132,10 @@ export async function transferOwnership(
 
       // 2. Settlement gate: Settles dues under SETTLE_NOW or carries forward under AGREED_PENDING
       const { paymentRecord, effectiveRentBal } = await settleTransferRent({
-        facilityId, grnId: grn.id, grnNumber: grn.grnNumber, newCustomerName: newCustomer.name,
-        movementDate, totalDue, totalPaid, rentBal, input, userId, session,
+        facilityId, grnId: grn.id, grnNumber: grn.grnNumber,
+        sourceCustomerId: grn.customerId, sourceCustomerName: grn.customerName,
+        newCustomerName: newCustomer.name, movementDate, totalDue, totalPaid,
+        rentBal, input, userId, session,
       });
 
       const movementId = `mov-${randomUUID()}`;
