@@ -134,6 +134,7 @@ export async function readLedgerNetDelivered(
           facilityId,
           grnId,
           transactionType: { $in: ['OUTWARD_DELIVERY', 'DELIVERY_REVERSAL'] },
+          referenceId: { $not: /^mov-/ },
         },
       },
       {
@@ -168,6 +169,7 @@ export async function readLedgerNetDeliveredMany(
           facilityId,
           grnId: { $in: grnIds },
           transactionType: { $in: ['OUTWARD_DELIVERY', 'DELIVERY_REVERSAL'] },
+          referenceId: { $not: /^mov-/ },
         },
       },
       {
