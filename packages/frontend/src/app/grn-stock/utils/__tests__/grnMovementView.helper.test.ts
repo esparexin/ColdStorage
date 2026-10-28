@@ -120,4 +120,36 @@ describe('grnMovementView.helper parseMovementRow', () => {
     expect(res.isReceived).toBe(true);
     expect(res.notes).toBe('Truck breakdown');
   });
+
+  it('correctly parses INTERNAL_REPACK in and out entries', () => {
+    const outRes = parseMovementRow({
+      ...baseEntry,
+      type: 'INTERNAL_REPACK',
+      openingBags: 100,
+      receivedBags: 0,
+      deliveredBags: 100,
+      closingBags: 0,
+      remarks: 'Stock adjustment for repacking',
+    });
+    expect(outRes.typeLabel).toBe('REPACK OUT');
+    expect(outRes.badgeType).toBe('mergeOut');
+    expect(outRes.refNumber).toBe('Internal Repack');
+    expect(outRes.totalDisplay).toBe('100');
+    expect(outRes.isReceived).toBe(false);
+
+    const inRes = parseMovementRow({
+      ...baseEntry,
+      type: 'INTERNAL_REPACK',
+      openingBags: 0,
+      receivedBags: 95,
+      deliveredBags: 0,
+      closingBags: 95,
+      remarks: 'Repacked stock putaway',
+    });
+    expect(inRes.typeLabel).toBe('REPACK IN');
+    expect(inRes.badgeType).toBe('mergeIn');
+    expect(inRes.refNumber).toBe('Internal Repack');
+    expect(inRes.totalDisplay).toBe('95');
+    expect(inRes.isReceived).toBe(true);
+  });
 });

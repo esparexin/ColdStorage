@@ -10,6 +10,7 @@ export const grnMovementTypeSchema = z.enum([
   'INTERNAL_MERGE_IN',
   'INTERNAL_MERGE_OUT',
   'OWNERSHIP_TRANSFER',
+  'INTERNAL_REPACK',
 ]);
 export type GrnMovementType = z.infer<typeof grnMovementTypeSchema>;
 

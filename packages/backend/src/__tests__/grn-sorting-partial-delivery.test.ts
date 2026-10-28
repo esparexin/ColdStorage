@@ -8,6 +8,7 @@ import { GrnModel } from '../database/models/grn.model.js';
 import { InternalMovementModel } from '../database/models/internal-movement.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { grnService } from '../modules/grn/grn.service.js';
+import { getGrnMovementHistory } from '../modules/common/grn-movement-history.js';
 import { readLedgerBalance } from '../modules/inventory/ledger-balance.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
@@ -159,5 +160,15 @@ describe('GRN Sorting & Repacking with Partial Deliveries (Phase 2)', () => {
     expect(grnEntity?.bags).toBe(96);
     expect(grnEntity?.netDeliveredBags).toBe(20);
     expect(grnEntity?.closingBags).toBe(76);
+
+    // 6. Verify Truthful Movement History Mapping (INTERNAL_REPACK, not customer dispatches)
+    const history = await getGrnMovementHistory(facilityId, grnId);
+    expect(history?.netDeliveredBags).toBe(20);
+    expect(history?.currentClosingBags).toBe(76);
+    expect(history?.entries).toHaveLength(4);
+    expect(history?.entries[0].type).toBe('INWARD');
+    expect(history?.entries[1].type).toBe('PARTIAL_OUTWARD');
+    expect(history?.entries[2].type).toBe('INTERNAL_REPACK');
+    expect(history?.entries[3].type).toBe('INTERNAL_REPACK');
   });
 });

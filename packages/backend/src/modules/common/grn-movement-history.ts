@@ -22,12 +22,10 @@ export async function getGrnMovementHistory(
   const challanIds = txs.filter((t) => t.referenceType === 'DELIVERY').map((t) => t.referenceId);
   const reversalIds = txs.filter((t) => t.referenceType === 'DELIVERY_REVERSAL').map((t) => t.referenceId);
   const getMovId = (refId: string) => refId.replace(new RegExp(`-${grn.id}$`), '');
-  const mergeOutMovIds = txs
-    .filter((t) => t.notes?.startsWith('Merged into') && t.referenceId.startsWith('mov-'))
-    .map((t) => getMovId(t.referenceId));
+  const internalMovIds = txs.filter((t) => t.referenceId.startsWith('mov-')).map((t) => getMovId(t.referenceId));
   const movRefIds = [
-    ...txs.filter((t) => t.referenceType === 'PUT_AWAY' && t.referenceId !== grn.id).map((t) => t.referenceId),
-    ...mergeOutMovIds,
+    ...txs.filter((t) => t.referenceType === 'PUT_AWAY' && t.referenceId !== grn.id && !t.referenceId.startsWith('mov-')).map((t) => t.referenceId),
+    ...internalMovIds,
   ];
 
   const [challans, reversals, referencedMovs] = await Promise.all([
@@ -126,11 +124,12 @@ export async function getGrnMovementHistory(
       runningBig += t.bigQuantity;
 
       const mov = movRefMap.get(t.referenceId);
+      const isRepack = mov?.movementType === 'REPACK' || t.notes?.includes('repack');
       entries.push({
         date: mov?.movementDate ?? t.createdAt,
         grnId: grn.id,
         grnNumber: grn.grnNumber,
-        type: 'INTERNAL_MERGE_IN',
+        type: isRepack ? 'INTERNAL_REPACK' : 'INTERNAL_MERGE_IN',
         openingBags: opening,
         receivedBags: deltaTotal,
         deliveredBags: 0,
@@ -144,29 +143,32 @@ export async function getGrnMovementHistory(
       });
     } else if (t.transactionType === 'OUTWARD_DELIVERY') {
       const isMergeOut = t.notes?.startsWith('Merged into');
+      const mov = movRefMap.get(getMovId(t.referenceId));
+      const isRepack = mov?.movementType === 'REPACK' || t.notes?.includes('repack');
       const closing = Math.max(0, runningBalance - deltaTotal);
       const closingSmall = Math.max(0, runningSmall - t.smallQuantity);
       const closingBig = Math.max(0, runningBig - t.bigQuantity);
       runningBalance = closing;
       runningSmall = closingSmall;
       runningBig = closingBig;
-      netDelivered += deltaTotal;
+      if (!isRepack && !isMergeOut) {
+        netDelivered += deltaTotal;
+      }
 
-      if (isMergeOut) {
-        const mov = movRefMap.get(getMovId(t.referenceId));
+      if (isMergeOut || isRepack) {
         entries.push({
           date: mov?.movementDate ?? t.createdAt,
           grnId: grn.id,
           grnNumber: grn.grnNumber,
-          type: 'INTERNAL_MERGE_OUT',
+          type: isMergeOut ? 'INTERNAL_MERGE_OUT' : 'INTERNAL_REPACK',
           openingBags: opening,
           receivedBags: 0,
           deliveredBags: deltaTotal,
-          closingBags: 0,
+          closingBags: isMergeOut ? 0 : closing,
           smallBags: t.smallQuantity,
           bigBags: t.bigQuantity,
-          remainingSmallBags: 0,
-          remainingBigBags: 0,
+          remainingSmallBags: isMergeOut ? 0 : closingSmall,
+          remainingBigBags: isMergeOut ? 0 : closingBig,
           remarks: t.notes,
           performedBy: mov?.performedBy ?? t.createdBy,
         });

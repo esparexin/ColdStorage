@@ -72,6 +72,17 @@ export function parseMovementRow(entry: GrnMovementEntry): ParsedMovementRow {
       isReceived = true;
       break;
 
+    case 'INTERNAL_REPACK': {
+      const isRepackIn = (entry.receivedBags ?? 0) > 0;
+      typeLabel = isRepackIn ? 'REPACK IN' : 'REPACK OUT';
+      badgeType = isRepackIn ? 'mergeIn' : 'mergeOut';
+      totalDisplay = (isRepackIn ? (entry.receivedBags ?? 0) : entry.deliveredBags).toLocaleString('en-IN');
+      isReceived = isRepackIn;
+      refNumber = 'Internal Repack';
+      notes = entry.remarks || 'Stock repacking adjustment';
+      break;
+    }
+
     case 'PARTIAL_OUTWARD':
     case 'FINAL_OUTWARD':
     default:
