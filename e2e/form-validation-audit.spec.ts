@@ -179,6 +179,7 @@ test.describe('PR 2 — Field-by-Field Validation Audit & Form Invariants', () =
     await vehicleInput.fill('INVALID');
     await submitBtn.click();
     await expect(page.locator('#delivery-vehicle-error')).toContainText('Vehicle registration must be in standard Indian format');
+    await expect(page.getByRole('dialog', { name: 'Confirm Outward Delivery' })).not.toBeVisible();
 
     // Correct to valid vehicle number
     await vehicleInput.fill('MH12DE8888');

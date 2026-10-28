@@ -17,8 +17,7 @@ export function useCreateDeliveryForm(
   onSuccess: (newDelivery: DeliveryChallan, summary?: DeliverySummary) => void,
   initialGrnId?: string,
 ) {
-  const [availableGrns, setAvailableGrns] = useState<Grn[]>([]);
-  const [createGrnId, setCreateGrnId] = useState('');
+  const [availableGrns, setAvailableGrns] = useState<Grn[]>([]); const [createGrnId, setCreateGrnId] = useState('');
   const [grnSummary, setGrnSummary] = useState<GrnInventorySummary | null>(null); const [loadingGrnSummary, setLoadingGrnSummary] = useState(false);
   const [createDate, setCreateDate] = useState(() => new Date().toISOString().split('T')[0]); const [bagCategory, setBagCategory] = useState<OutwardBagCategory>('S/B');
   const [manualBagPrice, setManualBagPrice] = useState<number | ''>(''); const [seasonalBagPrice, setSeasonalBagPrice] = useState<number | ''>(''); const [monthlyBagPrice, setMonthlyBagPrice] = useState<number | ''>('');
@@ -122,13 +121,10 @@ export function useCreateDeliveryForm(
   const isLoanHoldActive = Boolean(selectedGrn?.loanStatus === 'TAKEN');
   const deliveryDateVal = createDate || new Date().toISOString().split('T')[0];
   const billableRentMonths = resolveOutwardBillableMonths({
-    rentType: selectedGrn?.rentType ?? 'Seasonal', inwardDate: selectedGrn?.date,
-    deliveryDate: deliveryDateVal, rentMonths: selectedGrn?.rentMonths,
+    rentType: selectedGrn?.rentType ?? 'Seasonal', inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal, rentMonths: selectedGrn?.rentMonths,
   });
-
   const dualSection = useDualSectionDelivery({
-    facilityId, selectedGrn, rentSummary: rentGate.rentSummary, createDate: deliveryDateVal,
-    billableRentMonths, seasonalCommodityRates, monthlyCommodityRates,
+    facilityId, selectedGrn, rentSummary: rentGate.rentSummary, createDate: deliveryDateVal, billableRentMonths, seasonalCommodityRates, monthlyCommodityRates,
   });
 
   const isHybrid = isHybridBagCategory(bagCategory);
@@ -161,30 +157,34 @@ export function useCreateDeliveryForm(
   const setWithdrawalSmallBags = (val: number | '') => { setWithdrawal((prev) => ({ ...prev, smallBags: val })); clearFieldError('bags'); clearFieldError('smallBags'); };
   const setWithdrawalBigBags = (val: number | '') => { setWithdrawal((prev) => ({ ...prev, bigBags: val })); clearFieldError('bags'); clearFieldError('bigBags'); };
 
+  const validateForm = (): boolean => {
+    if (dualSection.isDualSection) {
+      if (!dualSection.isDualSectionValid) { setModalError('Please resolve errors in Section A and Section B allocations'); return false; }
+      return true;
+    }
+    const isSeg = (grnSummary?.availableSmallBags ?? 0) > 0 && (grnSummary?.availableBigBags ?? 0) > 0;
+    const totalAvail = (grnSummary?.availableSmallBags ?? 0) + (grnSummary?.availableBigBags ?? 0);
+    const isUnsegregatedSb = selectedGrn?.bagType === 'S/B' && !selectedGrn?.isCompositionVerified;
+    const isCombinedPool = Boolean(isUnsegregatedSb && !isSeg);
+    const validationStock = resolveValidationStock(grnSummary, withdrawal);
+    const validation = validateDeliveryForm({
+      createGrnId, createDate, totalWithdrawingBags, smallBags: isHybrid ? 0 : smallBags, bigBags: isHybrid ? 0 : bigBags,
+      availableSmall: isCombinedPool ? totalAvail : (grnSummary?.availableSmallBags ?? validationStock.availableSmall),
+      availableBig: isCombinedPool ? totalAvail : (grnSummary?.availableBigBags ?? validationStock.availableBig),
+      availableTotal: totalAvail, isCombinedPool, isHybrid, bagPrice: manualBagPrice,
+      seasonalBagPrice: typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
+      monthlyBagPrice: typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,
+      showSeasonalRate: isHybrid && rateVisibility.showSeasonalRate, showMonthlyRate: isHybrid && rateVisibility.showMonthlyRate,
+      createVehicleNumber, createGpNumber, createDriverName, isLoanHoldActive, selectedGrnNumber: selectedGrn?.grnNumber, selectedGrnDate: selectedGrn?.date,
+    });
+    if (!validation.isValid) { setFieldErrors(validation.errors); setModalError(validation.modalError); return false; }
+    setFieldErrors({}); setModalError(null);
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!facilityId) return;
-
-    if (dualSection.isDualSection) {
-      if (!dualSection.isDualSectionValid) { setModalError('Please resolve errors in Section A and Section B allocations'); return; }
-    } else {
-      const isSeg = (grnSummary?.availableSmallBags ?? 0) > 0 && (grnSummary?.availableBigBags ?? 0) > 0;
-      const totalAvail = (grnSummary?.availableSmallBags ?? 0) + (grnSummary?.availableBigBags ?? 0);
-      const isUnsegregatedSb = selectedGrn?.bagType === 'S/B' && !selectedGrn?.isCompositionVerified;
-      const isCombinedPool = Boolean(isUnsegregatedSb && !isSeg);
-      const validationStock = resolveValidationStock(grnSummary, withdrawal);
-      const validation = validateDeliveryForm({
-        createGrnId, createDate, totalWithdrawingBags, smallBags: isHybrid ? 0 : smallBags, bigBags: isHybrid ? 0 : bigBags,
-        availableSmall: isCombinedPool ? totalAvail : (grnSummary?.availableSmallBags ?? validationStock.availableSmall),
-        availableBig: isCombinedPool ? totalAvail : (grnSummary?.availableBigBags ?? validationStock.availableBig),
-        availableTotal: totalAvail, isCombinedPool, isHybrid, bagPrice: manualBagPrice,
-        seasonalBagPrice: typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
-        monthlyBagPrice: typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,
-        showSeasonalRate: isHybrid && rateVisibility.showSeasonalRate, showMonthlyRate: isHybrid && rateVisibility.showMonthlyRate,
-        createVehicleNumber, createGpNumber, createDriverName, isLoanHoldActive, selectedGrnNumber: selectedGrn?.grnNumber, selectedGrnDate: selectedGrn?.date,
-      });
-      if (!validation.isValid) { setFieldErrors(validation.errors); setModalError(validation.modalError); return; }
-    }
+    if (!facilityId || !validateForm()) return;
     setSubmitting(true); setModalError(null); setFieldErrors({});
 
     try {
@@ -226,15 +226,14 @@ export function useCreateDeliveryForm(
     (rateVisibility.showSeasonalRate || rateVisibility.showMonthlyRate || (typeof manualBagPrice === 'number' && manualBagPrice > 0))
   );
   const isFormValid = Boolean(
-    selectedGrn && createDate.trim() && createVehicleNumber.trim() && createGpNumber.trim() &&
-    createDriverName.trim() && !isLoanHoldActive && !submitting &&
-    (dualSection.isDualSection ? dualSection.isDualSectionValid : (totalWithdrawingBags > 0 && totalWithdrawingBags <= availableStock && perSideValid && hasValidPrice)),
+    selectedGrn && createDate.trim() && createVehicleNumber.trim() && createGpNumber.trim() && createDriverName.trim() &&
+    !isLoanHoldActive && !submitting && (dualSection.isDualSection ? dualSection.isDualSectionValid : (totalWithdrawingBags > 0 && totalWithdrawingBags <= availableStock && perSideValid && hasValidPrice)),
   );
 
   return {
     availableGrns, createGrnId, grnSummary, loadingGrnSummary, createDate, bagCategory, outwardRent, withdrawal,
-    setCreateDate: (v: string) => { setCreateDate(v); clearFieldError('date'); },
-    setBagCategory: handleBagCategoryChange, manualBagPrice, seasonalBagPrice, monthlyBagPrice, rateVisibility,
+    setCreateDate: (v: string) => { setCreateDate(v); clearFieldError('date'); }, setBagCategory: handleBagCategoryChange,
+    manualBagPrice, seasonalBagPrice, monthlyBagPrice, rateVisibility,
     setManualBagPrice: (v: number | '') => { setManualBagPrice(v); clearFieldError('bagPrice'); },
     setSeasonalBagPrice: (v: number | '') => { setSeasonalBagPrice(v); clearFieldError('seasonalBagPrice'); },
     setMonthlyBagPrice: (v: number | '') => { setMonthlyBagPrice(v); clearFieldError('monthlyBagPrice'); },
@@ -242,9 +241,9 @@ export function useCreateDeliveryForm(
     createVehicleNumber, setCreateVehicleNumber: (v: string) => { setCreateVehicleNumber(v); clearFieldError('vehicleNumber'); },
     createDriverName, setCreateDriverName: (v: string) => { setCreateDriverName(v); clearFieldError('driverName'); },
     createWeight, setCreateWeight, createGpNumber, setCreateGpNumber: (v: string) => { setCreateGpNumber(v); clearFieldError('gpNumber'); },
-    createRemarks, setCreateRemarks, modalError, fieldErrors, clearFieldError, submitting,
-    hamaliRate, totalWithdrawingBags, fetchAvailableGrns, handleSelectGrn, handleSubmit, selectedGrn, isLoanHoldActive,
-    billableRentMonths, seasonalCommodityRates, monthlyCommodityRates, isFormValid, rentSummary: rentGate.rentSummary,
-    rentLoading: rentGate.rentLoading, refreshRentGate: rentGate.refreshRentGate, dualSection,
+    createRemarks, setCreateRemarks, modalError, fieldErrors, clearFieldError, submitting, hamaliRate, totalWithdrawingBags,
+    fetchAvailableGrns, handleSelectGrn, handleSubmit, validateForm, selectedGrn, isLoanHoldActive, billableRentMonths,
+    seasonalCommodityRates, monthlyCommodityRates, isFormValid, rentSummary: rentGate.rentSummary, rentLoading: rentGate.rentLoading,
+    refreshRentGate: rentGate.refreshRentGate, dualSection,
   };
 }

@@ -130,6 +130,11 @@ test.describe('PR 3 — Concurrent Operations, Race Conditions & State Divergenc
     await expect(submitBtn).toBeEnabled();
     await submitBtn.click();
 
+    // Confirm mandatory outward delivery dialog
+    const confirmBtn = page.getByRole('button', { name: 'Yes, Issue Delivery' });
+    await expect(confirmBtn).toBeVisible();
+    await confirmBtn.click();
+
     const errorBanner = page.locator('#delivery-issue-error');
     await expect(errorBanner).toBeVisible();
     await expect(errorBanner).toContainText('Remaining balance (0 bags) is less than delivery quantity (50 bags)');
@@ -374,14 +379,21 @@ test.describe('PR 3 — Concurrent Operations, Race Conditions & State Divergenc
     const submitBtn = page.locator('#issue-panel-submit-delivery-btn');
     await expect(submitBtn).toBeEnabled();
 
-    // Click submit once
+    // Click submit once to trigger confirmation dialog
     await submitBtn.click();
 
-    // Immediately verify submit button is locked out (disabled attribute active)
-    await expect(submitBtn).toBeDisabled();
+    // Confirm dialog appears
+    const confirmBtn = page.getByRole('button', { name: 'Yes, Issue Delivery' });
+    await expect(confirmBtn).toBeVisible();
+
+    // Click confirm once
+    await confirmBtn.click();
+
+    // Immediately verify confirm button is locked out (disabled attribute active)
+    await expect(confirmBtn).toBeDisabled();
 
     // Attempt rapid second click while request is in-flight
-    await submitBtn.click({ force: true, timeout: 150 }).catch(() => {
+    await confirmBtn.click({ force: true, timeout: 150 }).catch(() => {
       // Expected: disabled element ignores normal clicks
     });
 
@@ -393,7 +405,7 @@ test.describe('PR 3 — Concurrent Operations, Race Conditions & State Divergenc
 
     recordActualResult(
       testInfo,
-      'Submit button engaged immediate in-flight lockout (disabled=true, isLoading=true); rapid successive click attempts suppressed duplicate HTTP dispatch (postCallCount=1)',
+      'Submit confirmation engaged immediate in-flight lockout (disabled=true, isLoading=true); rapid successive click attempts suppressed duplicate HTTP dispatch (postCallCount=1)',
     );
   });
 });

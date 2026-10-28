@@ -18,6 +18,8 @@ export interface ConfirmDialogProps {
   size?: ModalSize;
   isBusy?: boolean;
   confirmVariant?: 'primary' | 'danger';
+  confirmId?: string;
+  cancelId?: string;
 }
 
 /**
@@ -38,6 +40,8 @@ export function ConfirmDialog({
   size = 'sm',
   isBusy = false,
   confirmVariant = 'danger',
+  confirmId = 'confirm-dialog-confirm-btn',
+  cancelId = 'confirm-dialog-cancel-btn',
 }: ConfirmDialogProps) {
   return (
     <Modal
@@ -47,10 +51,10 @@ export function ConfirmDialog({
       size={size}
       footer={
         <>
-          <Button variant="outline" onClick={onCancel} disabled={isBusy}>
+          <Button id={cancelId} variant="outline" onClick={onCancel} disabled={isBusy}>
             {cancelLabel}
           </Button>
-          <Button variant={confirmVariant} onClick={onConfirm} disabled={isBusy} isLoading={isBusy}>
+          <Button id={confirmId} variant={confirmVariant} onClick={onConfirm} disabled={isBusy} isLoading={isBusy}>
             {confirmLabel}
           </Button>
         </>
