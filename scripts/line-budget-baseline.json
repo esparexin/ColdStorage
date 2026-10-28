@@ -1,5 +1,4 @@
 {
-  "packages/frontend/src/app/grns/components/GrnTable.tsx": 277,
   "packages/frontend/src/app/grns/components/__tests__/mergeRentAssessment.helper.test.ts": 530,
   "packages/frontend/src/app/rent/components/RentCashMemosTab.tsx": 274,
   "packages/frontend/src/app/rent/hooks/__tests__/rentFilter.helper.test.ts": 310,
