@@ -4,6 +4,7 @@ import {
   parseMergedConsignmentBreakdown,
   type BagComposition,
   type CreateDeliveryInput,
+  type RentType,
 } from '@cold-storage/contracts';
 import { readLedgerBalance, type LedgerBalance } from '../../inventory/ledger-balance.js';
 import { validateStockAndBalances } from './delivery-validation.helper.js';
@@ -27,7 +28,7 @@ export async function resolveDeliveryPlan(params: {
     id: string;
     grnNumber: string;
     date: Date;
-    rentType: never;
+    rentType: RentType;
     commodityId: string;
     bagType?: string | null;
     isCompositionVerified?: boolean | null;
@@ -51,33 +52,36 @@ export async function resolveDeliveryPlan(params: {
   // Dual-section dispatch for merged consignments (Section A unclassified + Section B confirmed repacked)
   if (input.unclassifiedDispatch || input.confirmedDispatch) {
     const pools = await resolveMergedStockPools(facilityId, grn, session);
-    if (pools) {
-      const dualVal = validateDualSectionDispatch(input, pools);
-      const available = await readLedgerBalance(facilityId, grn.id, session);
-      if (dualVal.totalWithdrawn > available.total) {
-        throw new Error(
-          `Requested ${dualVal.totalWithdrawn} bags exceeds available balance of ${available.total} bags for GRN '${grn.grnNumber}'`,
-        );
-      }
-      const rentRes = await computeDualSectionRent({
-        facilityId,
-        grn,
-        deliveryDate,
-        input,
-        session,
-        excludePeriodKeys: billedPeriods,
-      });
-
-      return {
-        isHybrid: dualVal.isHybridCombined,
-        finalSmall: dualVal.totalSmall,
-        finalBig: dualVal.totalBig,
-        withdrawnTotal: dualVal.totalWithdrawn,
-        expectedRentCharge: rentRes.expectedRentCharge,
-        available,
-        hasUnclassifiedGenesis,
-      };
+    if (!pools) {
+      throw new Error(
+        `GRN '${grn.grnNumber}' is not a merged consignment and does not support dual-section dispatch`,
+      );
     }
+    const dualVal = validateDualSectionDispatch(input, pools);
+    const available = await readLedgerBalance(facilityId, grn.id, session);
+    if (dualVal.totalWithdrawn > available.total) {
+      throw new Error(
+        `Requested ${dualVal.totalWithdrawn} bags exceeds available balance of ${available.total} bags for GRN '${grn.grnNumber}'`,
+      );
+    }
+    const rentRes = await computeDualSectionRent({
+      facilityId,
+      grn,
+      deliveryDate,
+      input,
+      session,
+      excludePeriodKeys: billedPeriods,
+    });
+
+    return {
+      isHybrid: dualVal.isHybridCombined,
+      finalSmall: dualVal.totalSmall,
+      finalBig: dualVal.totalBig,
+      withdrawnTotal: dualVal.totalWithdrawn,
+      expectedRentCharge: rentRes.expectedRentCharge,
+      available,
+      hasUnclassifiedGenesis,
+    };
   }
 
   // Standard single-lot delivery path
@@ -110,22 +114,41 @@ export async function resolveDeliveryPlan(params: {
       `Small (${input.smallBags ?? 0}) and big (${input.bigBags ?? 0}) bags must equal requested quantity (${reqQty})`,
     );
   }
-  const resSmall = hasSpecificBags
-    ? (input.smallBags ?? 0)
-    : grn.bagType === 'B'
-      ? 0
-      : reqQty;
-  const resBig = hasSpecificBags
-    ? (input.bigBags ?? 0)
-    : grn.bagType === 'B'
-      ? reqQty
-      : 0;
+
+  const available = await readLedgerBalance(facilityId, grn.id, session);
+
+  let resSmall = 0;
+  let resBig = 0;
+  if (hasSpecificBags) {
+    resSmall = input.smallBags ?? 0;
+    resBig = input.bigBags ?? 0;
+  } else if (!isHybrid) {
+    if (grn.bagType === 'B' || (available.smallBags === 0 && available.bigBags > 0)) {
+      resSmall = 0;
+      resBig = reqQty;
+    } else if (grn.bagType === 'S' || (available.bigBags === 0 && available.smallBags > 0)) {
+      resSmall = reqQty;
+      resBig = 0;
+    } else if (available.smallBags > 0 && available.bigBags > 0) {
+      if (grn.bagType === 'S/B' || grn.bagType === 'S+B') {
+        throw new Error(
+          'Small and big bag composition required for delivery when both bag types are in stock',
+        );
+      }
+      resSmall = reqQty;
+      resBig = 0;
+    } else {
+      resSmall = reqQty;
+      resBig = 0;
+    }
+  }
+
   const withdrawal: BagComposition = {
     smallBags: isHybrid && !hasSpecificBags ? 0 : resSmall,
     bigBags: isHybrid && !hasSpecificBags ? 0 : resBig,
   };
 
-  const available = await validateStockAndBalances(
+  await validateStockAndBalances(
     facilityId,
     grn,
     withdrawal,
@@ -133,6 +156,7 @@ export async function resolveDeliveryPlan(params: {
     isHybrid,
     reqQty,
     hasSpecificBags,
+    available,
   );
   const finalSmall = withdrawal.smallBags;
   const finalBig = withdrawal.bigBags;
