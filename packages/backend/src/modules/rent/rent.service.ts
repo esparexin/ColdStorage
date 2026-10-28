@@ -184,7 +184,7 @@ export class RentService {
       inwardReceiptNumber: grn.inwardReceiptNumber,
       inwardDate: grn.date,
       date: payment.paymentDate,
-      customerName: grn.customerName,
+      customerName: payment.customerName || grn.customerName,
       commodityName: grn.commodityName,
       chamber: grn.chamber,
       bagType: grn.bagType,

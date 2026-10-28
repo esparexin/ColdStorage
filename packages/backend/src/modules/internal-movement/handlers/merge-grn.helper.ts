@@ -19,7 +19,7 @@ import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
 import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 
 export interface MergeSourceGrn {
-  id: string; grnNumber: string; inwardReceiptNumber: string; date: Date; customerName: string;
+  id: string; grnNumber: string; inwardReceiptNumber: string; date: Date; customerId?: string; customerName: string;
   chamber: string; commodityId: string; bagType: BagType; rentType: RentType; rentAmount: number;
   bags: number; smallBags: number; bigBags: number; bagPrice?: number | null;
   smallBagPrice?: number | null; bigBagPrice?: number | null; remarks?: string | null;
@@ -170,6 +170,7 @@ export async function resolveSourceRentObligation(
       const receiptNumber = await counterService.generateRentReceiptNumber(facilityId, movementDate, session);
       await rentRepository.createPayment({
         id: `rent-pay-${randomUUID()}`, facilityId, grnId: sourceGrn.id, grnNumber: sourceGrn.grnNumber,
+        customerId: sourceGrn.customerId, customerName: sourceGrn.customerName,
         receiptNumber, amountPaid: payThisSource, paymentMode: (sourcePaymentMode ?? 'Cash') as 'Cash' | 'UPI',
         paymentDate: movementDate, notes: `Pre-merge settlement: GRN ${sourceGrn.grnNumber}`, createdBy: userId,
       }, session);
@@ -206,11 +207,7 @@ export interface CloseSourceGrnParams {
 }
 
 export async function closeSourceGrnOnMerge(params: CloseSourceGrnParams): Promise<string> {
-  const {
-    facilityId, sourceGrn, targetGrnNumber, targetGrnId,
-    movementId, movementDate, ledgerBalance, rentResolution,
-    remarks, userId, session,
-  } = params;
+  const { facilityId, sourceGrn, targetGrnNumber, targetGrnId, movementId, movementDate, ledgerBalance, rentResolution, remarks, userId, session } = params;
 
   await InventoryTransactionModel.create(
     [

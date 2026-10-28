@@ -124,6 +124,8 @@ export async function executeRecordBatchPayment(
               facilityId,
               grnId: grn.id,
               grnNumber: grn.grnNumber,
+              customerId: grn.customerId,
+              customerName: grn.customerName,
               receiptNumber,
               amountPaid: alloc.amountPaid,
               paymentMode: input.paymentMode,

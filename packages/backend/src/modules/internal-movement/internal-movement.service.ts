@@ -1,4 +1,4 @@
-import type { MergeGrnInput, TransferOwnershipInput, Grn, InternalMovementRecord } from '@cold-storage/contracts';
+import type { MergeGrnInput, TransferOwnershipInput, Grn, InternalMovementRecord, RentPayment } from '@cold-storage/contracts';
 import { InternalMovementModel } from '../../database/models/internal-movement.model.js';
 import { mergeGrn } from './handlers/merge-grn.handler.js';
 import { transferOwnership } from './handlers/transfer-ownership.handler.js';
@@ -16,7 +16,7 @@ export class InternalMovementService {
     facilityId: string,
     input: TransferOwnershipInput,
     userId: string,
-  ): Promise<{ grn: Grn; movement: InternalMovementRecord }> {
+  ): Promise<{ grn: Grn; movement: InternalMovementRecord; payment?: RentPayment }> {
     return transferOwnership(facilityId, input, userId);
   }
 

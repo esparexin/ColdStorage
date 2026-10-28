@@ -172,7 +172,9 @@ async function executeDeliveryTransaction(
       const remainingLiability = Math.max(0, Number((effectiveObligation - rentBalance.totalPaid).toFixed(2)));
 
       const { paidAmount } = await recordDeliveryInlinePayment({
-        facilityId, grnId: grn.id, grnNumber: grn.grnNumber, deliveryDate,
+        facilityId, grnId: grn.id, grnNumber: grn.grnNumber,
+        customerId: grn.customerId, customerName: grn.customerName,
+        deliveryDate,
         paymentAmount: input.paymentAmount, paymentMode: input.paymentMode, paymentReference: input.paymentReference,
         remainingLiability, userId, session,
       });

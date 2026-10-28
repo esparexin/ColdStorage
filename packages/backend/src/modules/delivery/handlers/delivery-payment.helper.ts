@@ -12,6 +12,8 @@ export interface RecordDeliveryInlinePaymentParams {
   facilityId: string;
   grnId: string;
   grnNumber: string;
+  customerId?: string | null;
+  customerName?: string | null;
   deliveryDate: Date;
   paymentAmount?: number | null;
   paymentMode?: PaymentMode | null;
@@ -28,6 +30,8 @@ export async function recordDeliveryInlinePayment(
     facilityId,
     grnId,
     grnNumber,
+    customerId,
+    customerName,
     deliveryDate,
     paymentAmount,
     paymentMode,
@@ -60,6 +64,8 @@ export async function recordDeliveryInlinePayment(
         facilityId,
         grnId,
         grnNumber,
+        customerId: customerId ?? null,
+        customerName: customerName ?? null,
         receiptNumber,
         amountPaid: paymentAmount,
         paymentMode: paymentMode ?? 'Cash',

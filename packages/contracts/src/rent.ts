@@ -42,6 +42,8 @@ export const rentPaymentSchema = z.object({
   facilityId: z.string().min(1),
   grnId: z.string().min(1),
   grnNumber: z.string().min(1),
+  customerId: z.string().nullable().optional(),
+  customerName: z.string().nullable().optional(),
   receiptNumber: rentReceiptNumberSchema,
   amountPaid: z.number().min(0),
   paymentMode: paymentModeSchema,
@@ -55,7 +57,6 @@ export type RentPayment = z.infer<typeof rentPaymentSchema>;
 
 export * from './merged-consignment.js';
 import { mergedConsignmentBreakdownSchema } from './merged-consignment.js';
-
 
 export const rentSummaryDtoSchema = z.object({
   grnId: z.string().min(1),
