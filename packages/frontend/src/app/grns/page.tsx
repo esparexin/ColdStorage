@@ -33,6 +33,7 @@ export default function GrnsPage() {
   const [loanModalGrn, setLoanModalGrn] = useState<Grn | null>(null);
   const [correctModalGrn, setCorrectModalGrn] = useState<Grn | null>(null);
   const [internalMovementGrn, setInternalMovementGrn] = useState<Grn | null>(null);
+  const [sortModalGrn, setSortModalGrn] = useState<Grn | null>(null);
   const [printingId, setPrintingId] = useState<string | null>(null);
   const [printError, setPrintError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -99,6 +100,7 @@ export default function GrnsPage() {
 
   const handleCorrectGrn = (grn: Grn) => { setSelectedGrn(null); setCorrectModalGrn(grn); };
   const handleInternalMove = (grn: Grn) => { setSelectedGrn(null); setInternalMovementGrn(grn); };
+  const handleSortGrn = (grn: Grn) => { setSelectedGrn(null); setSortModalGrn(grn); };
   const handleCreateChallan = (grn: Grn) => {
     setSelectedGrn(null);
     router.push(`/deliveries?tab=issue&grnId=${encodeURIComponent(grn.id)}`);
@@ -169,28 +171,20 @@ export default function GrnsPage() {
               onRetry={() => void grnData.fetchGrns()}
             />
           ) : grnData.filteredGrns.length === 0 ? (
-            grnData.searchTerm ? (
-              <FeedbackStates.Empty
-                message={`No Inward of Goods matching "${grnData.searchTerm}".`}
-              />
-            ) : grnData.statusFilter || grnData.customerFilter || grnData.commodityFilter ? (
-              <FeedbackStates.Empty
-                message={`No Inward of Goods found matching the selected filters${grnData.statusFilter ? ` (${grnData.statusFilter.replace('_', ' ')})` : ''}.`}
-              />
-            ) : (
-              <FeedbackStates.Empty
-                message={emptyForFacility(grnData.currentFacilityName, 'grns')}
-                action={
-                  canCreate
-                    ? {
-                        label: '+ Create Inward of Goods',
-                        onClick: () => setIsCreateOpen(true),
-                        id: 'create-grn-empty-btn',
-                      }
-                    : undefined
-                }
-              />
-            )
+            <FeedbackStates.Empty
+              message={
+                grnData.searchTerm
+                  ? `No Inward of Goods matching "${grnData.searchTerm}".`
+                  : grnData.statusFilter || grnData.customerFilter || grnData.commodityFilter
+                    ? `No Inward of Goods found matching the selected filters${grnData.statusFilter ? ` (${grnData.statusFilter.replace('_', ' ')})` : ''}.`
+                    : emptyForFacility(grnData.currentFacilityName, 'grns')
+              }
+              action={
+                !grnData.searchTerm && !grnData.statusFilter && !grnData.customerFilter && !grnData.commodityFilter && canCreate
+                  ? { label: '+ Create Inward of Goods', onClick: () => setIsCreateOpen(true), id: 'create-grn-empty-btn' }
+                  : undefined
+              }
+            />
           ) : (
             <GrnTable
               grns={grnData.filteredGrns}
@@ -210,6 +204,7 @@ export default function GrnsPage() {
               onCorrectGrn={handleCorrectGrn}
               onCreateChallan={handleCreateChallan}
               onInternalMove={handleInternalMove}
+              onSortGrn={handleSortGrn}
               onPrint={handlePrint}
             />
           )}
@@ -222,6 +217,7 @@ export default function GrnsPage() {
         loanModalGrn={loanModalGrn}
         correctModalGrn={correctModalGrn}
         internalMovementGrn={internalMovementGrn}
+        sortModalGrn={sortModalGrn}
         isCreateOpen={isCreateOpen}
         canPrint={canPrint}
         canCorrect={canCorrect}
@@ -234,12 +230,15 @@ export default function GrnsPage() {
         allGrns={grnData.grns}
         onCloseDetail={() => setSelectedGrn(null)} onCloseLoanModal={() => setLoanModalGrn(null)}
         onCloseCorrectModal={() => setCorrectModalGrn(null)} onCloseInternalMovementModal={() => setInternalMovementGrn(null)}
+        onCloseSortModal={() => setSortModalGrn(null)}
         onCloseCreateModal={() => setIsCreateOpen(false)} onPrint={handlePrint}
         onManageLoan={(grn) => { setSelectedGrn(null); setLoanModalGrn(grn); }}
         onCorrect={handleCorrectGrn} onCreateChallan={handleCreateChallan} onInternalMove={handleInternalMove}
+        onSortGrn={handleSortGrn}
         onLoanStatusUpdated={(updatedGrn) => { void grnData.fetchGrns(); setSelectedGrn(updatedGrn); }}
         onGrnCorrected={(updatedGrn) => { setCorrectModalGrn(null); void grnData.fetchGrns(); setSelectedGrn(updatedGrn); }}
         onInternalMovementSuccess={(updatedGrn) => { setInternalMovementGrn(null); void grnData.fetchGrns(); setSelectedGrn(updatedGrn); }}
+        onSortSuccess={(updatedGrn) => { setSortModalGrn(null); void grnData.fetchGrns(); setSelectedGrn(updatedGrn); }}
         onCustomerAdded={() => void grnData.fetchLookups()} onCommodityAdded={() => void grnData.fetchLookups()}
         onCreateSuccess={(newGrn) => { setIsCreateOpen(false); void grnData.fetchGrns(); setSelectedGrn(newGrn); }}
       />

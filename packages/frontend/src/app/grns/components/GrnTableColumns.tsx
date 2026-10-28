@@ -21,6 +21,7 @@ export interface CreateGrnTableColumnsParams {
   onCorrectGrn?: (grn: Grn) => void;
   onCreateChallan?: (grn: Grn) => void;
   onInternalMove?: (grn: Grn) => void;
+  onSortGrn?: (grn: Grn) => void;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
 }
 
@@ -35,6 +36,7 @@ export function createGrnTableColumns({
   onCorrectGrn,
   onCreateChallan,
   onInternalMove,
+  onSortGrn,
   onPrint,
 }: CreateGrnTableColumnsParams): DataTableColumn<Grn>[] {
   return [
@@ -200,6 +202,7 @@ export function createGrnTableColumns({
           onCorrectGrn={onCorrectGrn}
           onCreateChallan={onCreateChallan}
           onInternalMove={onInternalMove}
+          onSortGrn={onSortGrn}
           onPrint={onPrint}
         />
       ),

@@ -30,6 +30,7 @@ export interface GrnTableProps {
   onCorrectGrn?: (grn: Grn) => void;
   onCreateChallan?: (grn: Grn) => void;
   onInternalMove?: (grn: Grn) => void;
+  onSortGrn?: (grn: Grn) => void;
   onPrint: (type: 'grn' | 'receipt', grnId: string) => void;
 }
 
@@ -51,6 +52,7 @@ export function GrnTable({
   onCorrectGrn,
   onCreateChallan,
   onInternalMove,
+  onSortGrn,
   onPrint,
 }: GrnTableProps) {
   const columns = createGrnTableColumns({
@@ -64,6 +66,7 @@ export function GrnTable({
     onCorrectGrn,
     onCreateChallan,
     onInternalMove,
+    onSortGrn,
     onPrint,
   });
 
