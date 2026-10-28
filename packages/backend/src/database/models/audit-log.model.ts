@@ -57,6 +57,8 @@ const auditLogSchema = new Schema<AuditLogDoc>(
         'GRN_DELETED',
         'INTERNAL_MOVEMENT_MERGE',
         'INTERNAL_MOVEMENT_TRANSFER',
+        'INTERNAL_MOVEMENT_REPACK',
+        'GRN_SORTED',
         'GROUP_CREATED',
         'GROUP_RENAMED',
         'GROUP_DELETED',

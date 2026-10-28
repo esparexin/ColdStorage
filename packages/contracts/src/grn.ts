@@ -175,6 +175,9 @@ export const grnSchema = z.object({
   bigBags: z.number().int().min(0),
   /** Explicit verification: false = total-only S/B placeholder, not a verified all-small lot. */
   isCompositionVerified: z.boolean().optional(),
+  /** Sorting gate: true when lot confirmation and rent billing have succeeded. */
+  isSorted: z.boolean().optional(),
+  sortedAt: z.coerce.date().nullable().optional(),
   gpNumber: z.string().nullable().optional(),
   storageMark: z.string().nullable().optional(),
   partyMark: z.string().nullable().optional(),
@@ -244,5 +247,3 @@ export interface DeleteGrnResult {
   };
   auditLogged: boolean;
 }
-
-

@@ -4,7 +4,7 @@ import { paymentModeSchema } from './rent.js';
 import { outwardBagCategorySchema } from './delivery.js';
 import { bagPriceSchema } from './pricing.js';
 
-export const internalMovementTypeSchema = z.enum(['MERGE', 'TRANSFER_OWNERSHIP']);
+export const internalMovementTypeSchema = z.enum(['MERGE', 'TRANSFER_OWNERSHIP', 'REPACK']);
 export type InternalMovementType = z.infer<typeof internalMovementTypeSchema>;
 
 export const mergeGrnInputSchema = z.object({

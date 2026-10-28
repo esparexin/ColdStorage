@@ -24,6 +24,9 @@ export interface GrnDoc extends Document {
   bigBags: number;
   /** Explicit flag: false = total-only S/B placeholder, not a verified all-small lot. */
   isCompositionVerified?: boolean;
+  /** Sorting gate: true when lot confirmation and rent billing have succeeded. */
+  isSorted?: boolean;
+  sortedAt?: Date | null;
   /** Per-bag weight (kg per individual bag). S uses smallBagWeight, B uses bigBagWeight, S+B uses both. */
   smallBagWeight: number | null;
   bigBagWeight: number | null;
@@ -101,6 +104,8 @@ const grnSchema = new Schema<GrnDoc>(
     smallBags: { type: Number, required: true, min: 0 },
     bigBags: { type: Number, required: true, min: 0 },
     isCompositionVerified: { type: Boolean, default: null },
+    isSorted: { type: Boolean, default: false },
+    sortedAt: { type: Date, default: null },
     gpNumber: { type: String, trim: true, default: null },
     storageMark: { type: String, trim: true, maxlength: 20, default: null },
     partyMark: { type: String, trim: true, maxlength: 20, default: null },
