@@ -30,6 +30,22 @@ export async function executeRepackGrn(
   try {
     await withMongoRetry(() =>
       session.withTransaction(async () => {
+        if (input.idempotencyKey) {
+          const existing = await InternalMovementModel.findOne(
+            { facilityId, idempotencyKey: input.idempotencyKey }, null, { session },
+          ).lean().exec();
+          if (existing) {
+            const exGrn = await GrnModel.findOne({ id: existing.targetGrnId, facilityId }, null, { session }).lean().exec();
+            if (exGrn) {
+              resultGrn = toGrnEntity(exGrn);
+              resultMovement = { ...existing, movementDate: new Date(existing.movementDate), createdAt: new Date(existing.createdAt) } as InternalMovementRecord;
+              repackVariance = existing.repackVariance ?? 0;
+              repackHamaliCharge = existing.hamaliCharge ?? 0;
+              return;
+            }
+          }
+        }
+
         const grn = await GrnModel.findOne({ id: input.grnId, facilityId }, null, { session });
         if (!grn) {
           throw new Error(`GRN '${input.grnId}' not found in facility '${facilityId}'`);
@@ -110,38 +126,20 @@ export async function executeRepackGrn(
         await InventoryTransactionModel.create(
           [
             {
-              id: `tx-out-${randomUUID()}`,
-              facilityId,
-              grnId: grn.id,
-              grnNumber: grn.grnNumber,
-              chamber: grn.chamber,
-              commodityId: grn.commodityId,
-              bagType: grn.bagType,
-              transactionType: 'OUTWARD_DELIVERY',
-              smallQuantity: outSmall,
-              bigQuantity: outBig,
-              referenceType: 'DELIVERY',
-              referenceId: movementId,
+              id: `tx-out-${randomUUID()}`, facilityId, grnId: grn.id, grnNumber: grn.grnNumber,
+              chamber: grn.chamber, commodityId: grn.commodityId, bagType: grn.bagType,
+              transactionType: 'OUTWARD_DELIVERY', smallQuantity: outSmall, bigQuantity: outBig,
+              referenceType: 'DELIVERY', referenceId: movementId,
               notes: `Stock adjustment for repacking (Lot ${grn.grnNumber})`,
-              createdBy: userId,
-              createdAt: movementDate,
+              createdBy: userId, createdAt: movementDate,
             },
             {
-              id: `tx-in-${randomUUID()}`,
-              facilityId,
-              grnId: grn.id,
-              grnNumber: grn.grnNumber,
-              chamber: grn.chamber,
-              commodityId: grn.commodityId,
-              bagType: input.resultingBagType,
-              transactionType: 'INWARD_PUTAWAY',
-              smallQuantity: inSmall,
-              bigQuantity: inBig,
-              referenceType: 'PUT_AWAY',
-              referenceId: movementId,
+              id: `tx-in-${randomUUID()}`, facilityId, grnId: grn.id, grnNumber: grn.grnNumber,
+              chamber: grn.chamber, commodityId: grn.commodityId, bagType: input.resultingBagType,
+              transactionType: 'INWARD_PUTAWAY', smallQuantity: inSmall, bigQuantity: inBig,
+              referenceType: 'PUT_AWAY', referenceId: movementId,
               notes: `Repacked stock putaway (Lot ${grn.grnNumber})`,
-              createdBy: userId,
-              createdAt: movementDate,
+              createdBy: userId, createdAt: movementDate,
             },
           ],
           { session, ordered: true },
@@ -191,6 +189,7 @@ export async function executeRepackGrn(
               remarks: input.repackVarianceReason
                 ? `${input.remarks} (Variance: ${input.repackVarianceReason})`
                 : input.remarks,
+              idempotencyKey: input.idempotencyKey ?? null,
               performedBy: userId,
             },
           ],

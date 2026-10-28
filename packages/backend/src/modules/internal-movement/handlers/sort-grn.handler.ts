@@ -42,6 +42,10 @@ export async function executeSortGrn(
         if (grn.loanStatus === 'TAKEN') {
           throw new Error(`Cannot perform sorting: Active loan hold against GRN '${grn.grnNumber}'`);
         }
+        if (grn.isSorted) {
+          resultGrn = toGrnEntity(grn.toObject());
+          return;
+        }
 
         // 1. Mandatory Confirmation Check
         const bal = await readLedgerBalance(facilityId, grn.id, session);

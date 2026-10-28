@@ -171,4 +171,53 @@ describe('GRN Sorting & Repacking with Partial Deliveries (Phase 2)', () => {
     expect(history?.entries[2].type).toBe('INTERNAL_REPACK');
     expect(history?.entries[3].type).toBe('INTERNAL_REPACK');
   });
+
+  it('safely replays sorting and repacking requests idempotently', async () => {
+    const grnId = await seedGrn({
+      facilityId, customerId, customerName: 'Farmer Ramesh',
+      commodityId, commodityName: 'Onion', chamber: 'CH-02',
+      bags: 50, bagType: 'S', rentType: 'Seasonal', rentAmount: 2000,
+      grnNumber: 'GRN-26-27-0202',
+    });
+
+    const sort1 = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/sort`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ grnId, confirmedBagType: 'S', confirmedBags: 50 });
+    expect(sort1.status).toBe(200);
+
+    // Replay sort: returns isSortingComplete: true without error
+    const sort2 = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/sort`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ grnId, confirmedBagType: 'S', confirmedBags: 50 });
+    expect(sort2.status).toBe(200);
+    expect(sort2.body.isSortingComplete).toBe(true);
+
+    const idemKey = 'idem-repack-test-01';
+    const repack1 = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/repack`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        grnId, resultingBagType: 'S', repackedSmallBags: 48, repackedBigBags: 0,
+        repackVarianceReason: 'Culls', remarks: 'Repack', idempotencyKey: idemKey,
+      });
+    expect(repack1.status).toBe(200);
+
+    const txCountBefore = await InventoryTransactionModel.countDocuments({ grnId });
+
+    // Replay repack with same idempotencyKey: returns cached result without duplicate ledger entries
+    const repack2 = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/repack`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        grnId, resultingBagType: 'S', repackedSmallBags: 48, repackedBigBags: 0,
+        repackVarianceReason: 'Culls', remarks: 'Repack', idempotencyKey: idemKey,
+      });
+    expect(repack2.status).toBe(200);
+    expect(repack2.body.movement.id).toBe(repack1.body.movement.id);
+
+    const txCountAfter = await InventoryTransactionModel.countDocuments({ grnId });
+    expect(txCountAfter).toBe(txCountBefore);
+  });
 });
