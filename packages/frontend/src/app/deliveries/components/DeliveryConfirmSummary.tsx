@@ -21,6 +21,9 @@ export interface DeliveryConfirmSummaryProps {
   hamaliRate?: number | null;
   vehicleNumber?: string;
   gpNumber?: string;
+  originalBags?: number | null;
+  priorDeliveredBags?: number | null;
+  totalHamaliAmount?: number | null;
 }
 
 export function DeliveryConfirmSummary({
@@ -36,9 +39,16 @@ export function DeliveryConfirmSummary({
   hamaliRate,
   vehicleNumber,
   gpNumber,
+  originalBags,
+  priorDeliveredBags,
+  totalHamaliAmount,
 }: DeliveryConfirmSummaryProps) {
   const compositionText = formatBagCompositionText(bagType, totalBags, smallBags, bigBags);
-  const hamaliText = formatProRataHamaliText(totalBags, hamaliRate);
+  const hamaliText = formatProRataHamaliText(totalBags, hamaliRate, {
+    originalBags,
+    priorDeliveredBags,
+    totalHamaliAmount,
+  });
 
   return (
     <div className={styles.container}>
