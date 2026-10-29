@@ -7,7 +7,8 @@ export type RentStatusFilter =
   | 'SETTLED'
   | 'PENDING_DUES'
   | 'NO_DUES'
-  | 'MERGED';
+  | 'MERGED'
+  | 'CLOSED_WITH_DUES';
 export type RentTypeFilter = '' | 'Seasonal' | 'Monthly' | 'Seasonal_3M';
 
 export interface RentFilterOptions {
@@ -63,6 +64,15 @@ export function isMergedRentAccount(
   );
 }
 
+export function isClosedWithDuesRentAccount(
+  acc: Pick<RentSummaryDto, 'remainingBags' | 'remainingBalance' | 'mergedIntoGrnNumber' | 'mergedIntoGrnId'>,
+): boolean {
+  const hasRemainingBalance = (acc.remainingBalance ?? 0) > 0;
+  const isZeroStock = (acc.remainingBags ?? 0) === 0;
+  const isMergedSource = Boolean(acc.mergedIntoGrnNumber || acc.mergedIntoGrnId);
+  return hasRemainingBalance && (isZeroStock || isMergedSource);
+}
+
 /**
  * Pure filter helper for rent accounts ledger.
  * Matches search terms across GRN #, Customer, Commodity, Chamber, and Receipt numbers.
@@ -97,6 +107,8 @@ export function filterRentAccounts(
     if (statusFilter) {
       if (statusFilter === 'MERGED') {
         if (!isMergedRentAccount(acc)) return false;
+      } else if (statusFilter === 'CLOSED_WITH_DUES') {
+        if (!isClosedWithDuesRentAccount(acc)) return false;
       } else if (
         statusFilter === 'UNPAID' ||
         statusFilter === 'PARTIALLY_PAID' ||
