@@ -13,7 +13,7 @@ import { InventoryTransactionModel } from '../../../database/models/inventory-tr
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
-import { readLedgerBalance } from '../../inventory/ledger-balance.js';
+import { readLedgerBalance, readLedgerNetDelivered } from '../../inventory/ledger-balance.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 
 export async function executeRepackGrn(
@@ -145,11 +145,13 @@ export async function executeRepackGrn(
           { session, ordered: true },
         );
 
+        const delivered = await readLedgerNetDelivered(facilityId, grn.id, session);
+
         // Update GRN document
         grn.bagType = input.resultingBagType;
         grn.bags = grn.bags + repackVariance;
-        grn.smallBags = grn.smallBags + (inSmall - bal.smallBags);
-        grn.bigBags = grn.bigBags + (inBig - bal.bigBags);
+        grn.smallBags = delivered.smallBags + inSmall;
+        grn.bigBags = delivered.bigBags + inBig;
         grn.isCompositionVerified = true;
         grn.isSorted = false;
         if (input.remarks) {
