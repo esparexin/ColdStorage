@@ -9,6 +9,7 @@ import {
   formatRentStructure,
   formatAgreedRates,
   formatRemainingDue,
+  parseOwnershipTransferDisplayInfo,
 } from '../hooks/rentDisplay.helper';
 import styles from '../page.module.css';
 
@@ -30,11 +31,32 @@ export function createRentColumns({
       sortable: true,
       sortType: 'text',
       sortAccessor: (row) => row.customerName,
-      render: (row) => (
-        <div className={styles.tableCustomer}>
-          <span className={styles.tableCustomerName}>{row.customerName}</span>
-        </div>
-      ),
+      render: (row) => {
+        const transferInfo = parseOwnershipTransferDisplayInfo(row.remarks);
+        return (
+          <div className={styles.tableCustomer}>
+            <span className={styles.tableCustomerName}>{row.customerName}</span>
+            {transferInfo?.isTransferred && (
+              <span
+                style={{
+                  fontSize: 'var(--text-xs)',
+                  color: transferInfo.hasCarriedDebt
+                    ? 'var(--color-warning-text)'
+                    : 'var(--color-text-secondary)',
+                  fontWeight: 'var(--font-medium)',
+                }}
+                title={
+                  transferInfo.fromParty
+                    ? `Transferred from ${transferInfo.fromParty}`
+                    : 'Transferred ownership'
+                }
+              >
+                👤 Transferred {transferInfo.fromParty ? `(from ${transferInfo.fromParty})` : ''}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'grnNumber',
