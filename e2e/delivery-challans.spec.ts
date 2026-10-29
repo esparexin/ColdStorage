@@ -248,25 +248,37 @@ test.describe('Phase 4 — Delivery Challans, Stock Balances & Rent Gates', () =
     );
   });
 
-  test('TC-DEL-003: Delivery Rent Gate Hard Block (Zero Rent Paid)', async ({ page }, testInfo) => {
+  test('TC-DEL-003: Delivery Rent Assessment with Uncollected Dues (Decoupled Gate)', async ({ page }, testInfo) => {
     annotateTest(testInfo, {
       testId: 'TC-DEL-003',
       module: 'Delivery & Challans',
-      testCase: 'Delivery Rent Gate Hard Block (Zero Rent Paid)',
+      testCase: 'Delivery Rent Assessment with Uncollected Dues (Decoupled Gate)',
       testType: 'UI Browser',
       priority: 'P0',
-      preconditions: 'GRN has rent obligation > 0 and 0 paid',
-      expectedResult: 'Delivery blocked with 402 Payment Required',
+      preconditions: 'GRN has rent obligation > 0 and 0 rent paid upfront',
+      expectedResult: 'Delivery issued with outward rent liability; GRN remains OPEN with dues',
     });
 
-    await page.route(/\/api\/facilities\/[^/]+\/deliveries/, async (route) => {
+    await page.route(/\/api\/facilities\/[^/]+\/deliveries(\?.*)?$/, async (route) => {
       if (route.request().method() === 'POST') {
+        const createdChallan = {
+          ...MOCK_CHALLAN,
+          id: 'del-0103',
+          rentCharge: 3000,
+          status: 'ISSUED',
+        };
         await route.fulfill({
-          status: 402,
+          status: 201,
           contentType: 'application/json',
           body: JSON.stringify({
-            error: "RENT_PAYMENT_REQUIRED: Outward delivery blocked for GRN '0101': zero rent has been paid on outstanding obligation of ₹30,000",
-            code: 'RENT_PAYMENT_REQUIRED',
+            delivery: createdChallan,
+            summary: {
+              remainingBags: 225,
+              deliveredBags: 25,
+              isFullyDelivered: false,
+              grnStatus: 'OPEN',
+              rentRemainingBalance: 3000,
+            },
           }),
         });
         return;
@@ -295,12 +307,14 @@ test.describe('Phase 4 — Delivery Challans, Stock Balances & Rent Gates', () =
       return { status: res.status, body: await res.json() };
     });
 
-    expect(result.status).toBe(402);
-    expect(result.body.error).toContain('RENT_PAYMENT_REQUIRED');
+    expect(result.status).toBe(201);
+    expect(result.body.delivery.status).toBe('ISSUED');
+    expect(result.body.delivery.rentCharge).toBe(3000);
+    expect(result.body.summary.grnStatus).toBe('OPEN');
 
     recordActualResult(
       testInfo,
-      'Delivery rent gate hard block enforced: delivery blocked with 402 Payment Required for GRN 0101 with zero rent paid.',
+      'Delivery decoupled rent gate verified: delivery issued with rent charge liability of ₹3,000; GRN preserved in OPEN status with pending dues.',
     );
   });
 
