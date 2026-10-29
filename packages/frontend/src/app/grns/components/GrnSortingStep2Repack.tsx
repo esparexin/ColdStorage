@@ -1,7 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { BagType, Commodity, Grn, RepackGrnInput } from '@cold-storage/contracts';
+import {
+  toOperationalBagType,
+  type Commodity,
+  type Grn,
+  type OperationalBagType,
+  type RepackGrnInput,
+} from '@cold-storage/contracts';
 import { Button, Input, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { computeHamaliCharge, validateRepackOperation } from './grnSorting.helper';
@@ -23,7 +29,9 @@ export function GrnSortingStep2Repack({
   onBack,
 }: GrnSortingStep2RepackProps) {
   const originalBags = grn.closingBags ?? grn.bags;
-  const [resultingBagType, setResultingBagType] = useState<BagType>('S/B');
+  const [resultingBagType, setResultingBagType] = useState<OperationalBagType>(
+    toOperationalBagType(grn.bagType),
+  );
   const [repackedSmallBags, setRepackedSmallBags] = useState<string>(String(grn.smallBags || 0));
   const [repackedBigBags, setRepackedBigBags] = useState<string>(String(grn.bigBags || 0));
   const [repackedQuantity, setRepackedQuantity] = useState<string>(String(originalBags));
@@ -93,12 +101,10 @@ export function GrnSortingStep2Repack({
             id="resulting-bag-type"
             label="Resulting Bag Type *"
             value={resultingBagType}
-            onChange={(e) => setResultingBagType(e.target.value as BagType)}
+            onChange={(e) => setResultingBagType(e.target.value as OperationalBagType)}
             required
           >
             <option value="S/B">S/B (Small / Big)</option>
-            <option value="S">S (All Small)</option>
-            <option value="B">B (All Big)</option>
             <option value="Hybrid">Hybrid</option>
           </Select>
         </div>

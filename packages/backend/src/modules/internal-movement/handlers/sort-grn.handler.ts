@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import {
   resolveTotalRentObligation,
+  toOperationalBagType,
   type Grn,
   type RentPayment,
   type SortGrnInput,
@@ -57,7 +58,8 @@ export async function executeSortGrn(
             `CONFIRMATION_MISMATCH: Confirmed bags (${input.confirmedBags}) does not match existing stock (${bal.total})`,
           );
         }
-        if (input.confirmedBagType !== grn.bagType) {
+        const expectedBagType = toOperationalBagType(grn.bagType);
+        if (input.confirmedBagType !== expectedBagType) {
           throw new Error(
             `CONFIRMATION_MISMATCH: Confirmed bag type (${input.confirmedBagType}) does not match existing bag type (${grn.bagType})`,
           );

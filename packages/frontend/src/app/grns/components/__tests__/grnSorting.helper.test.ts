@@ -16,11 +16,30 @@ describe('grnSorting.helper', () => {
       expect(errMissing).toContain('confirm the bag type');
 
       const errMismatch = validateSortConfirmation(
-        { confirmedBagType: 'S', confirmedBags: 100, paymentMode: 'Cash' },
+        { confirmedBagType: 'Hybrid', confirmedBags: 100, paymentMode: 'Cash' },
         'S/B',
         100,
       );
       expect(errMismatch).toContain('does not match existing bag type');
+
+      const errHybridMismatch = validateSortConfirmation(
+        { confirmedBagType: 'S/B', confirmedBags: 100, paymentMode: 'Cash' },
+        'Hybrid',
+        100,
+      );
+      expect(errHybridMismatch).toContain('does not match existing bag type');
+    });
+
+    it('correctly maps legacy non-hybrid bag types (S, B, S+B) to confirmed S/B', () => {
+      expect(
+        validateSortConfirmation({ confirmedBagType: 'S/B', confirmedBags: 50, paymentMode: 'Cash' }, 'S', 50),
+      ).toBeNull();
+      expect(
+        validateSortConfirmation({ confirmedBagType: 'S/B', confirmedBags: 50, paymentMode: 'Cash' }, 'B', 50),
+      ).toBeNull();
+      expect(
+        validateSortConfirmation({ confirmedBagType: 'S/B', confirmedBags: 50, paymentMode: 'Cash' }, 'S+B', 50),
+      ).toBeNull();
     });
 
     it('returns error when confirmed bags does not match available stock', () => {
@@ -89,6 +108,31 @@ describe('grnSorting.helper', () => {
         remarks: 'ab',
       }, 100);
       expect(err).toContain('Remarks (minimum 3 characters)');
+    });
+
+    it('validates Hybrid repacking with quantity and variance', () => {
+      const err = validateRepackOperation(
+        { resultingBagType: 'Hybrid', repackedQuantity: 0, remarks: 'Repack hybrid' },
+        100,
+      );
+      expect(err).toContain('greater than zero');
+
+      const errVariance = validateRepackOperation(
+        { resultingBagType: 'Hybrid', repackedQuantity: 90, remarks: 'Repack hybrid' },
+        100,
+      );
+      expect(errVariance).toContain('Variance reason');
+
+      const valid = validateRepackOperation(
+        {
+          resultingBagType: 'Hybrid',
+          repackedQuantity: 90,
+          repackVarianceReason: 'Culled 10 bags',
+          remarks: 'Repack hybrid',
+        },
+        100,
+      );
+      expect(valid).toBeNull();
     });
   });
 

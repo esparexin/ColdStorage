@@ -49,20 +49,15 @@ describe('GRN Sorting and Repacking Workflow (Phase 1)', () => {
     commodityId = cmd.id;
   });
 
-  it('rejects repacking if GRN has not completed sorting confirmation', async () => {
-    const grnId = await seedGrn({
-      facilityId,
-      customerId,
-      customerName: 'Farmer Gopal',
-      commodityId,
-      commodityName: 'Potato',
-      chamber: 'CH-01',
-      bags: 100,
-      bagType: 'S/B',
-      rentType: 'Seasonal',
-      rentAmount: 5000,
-      grnNumber: 'GRN-26-27-0101',
+  const createTestGrn = (grnNumber: string, rentAmount = 5000) =>
+    seedGrn({
+      facilityId, customerId, customerName: 'Farmer Gopal', commodityId,
+      commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S/B',
+      rentType: 'Seasonal', rentAmount, grnNumber,
     });
+
+  it('rejects repacking if GRN has not completed sorting confirmation', async () => {
+    const grnId = await createTestGrn('GRN-26-27-0101');
 
     const res = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/repack`)
@@ -80,19 +75,7 @@ describe('GRN Sorting and Repacking Workflow (Phase 1)', () => {
   });
 
   it('sorting fails if confirmed details do not match existing GRN', async () => {
-    const grnId = await seedGrn({
-      facilityId,
-      customerId,
-      customerName: 'Farmer Gopal',
-      commodityId,
-      commodityName: 'Potato',
-      chamber: 'CH-01',
-      bags: 100,
-      bagType: 'S/B',
-      rentType: 'Seasonal',
-      rentAmount: 5000,
-      grnNumber: 'GRN-26-27-0102',
-    });
+    const grnId = await createTestGrn('GRN-26-27-0102');
 
     // Mismatched bags count
     const resCount = await request(app)
@@ -107,34 +90,35 @@ describe('GRN Sorting and Repacking Workflow (Phase 1)', () => {
     expect(resCount.status).toBe(400);
     expect(resCount.body.error).toContain('CONFIRMATION_MISMATCH');
 
-    // Mismatched bag type
+    // Mismatched bag type (operational mismatch: confirming Hybrid for S/B lot)
     const resType = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/sort`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         grnId,
-        confirmedBagType: 'S', // Actual is S/B
+        confirmedBagType: 'Hybrid', // Actual is S/B
         confirmedBags: 100,
       });
 
     expect(resType.status).toBe(400);
     expect(resType.body.error).toContain('CONFIRMATION_MISMATCH');
+
+    // Obsolete non-operational bag type rejected by contract schema
+    const resObsolete = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/sort`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        grnId,
+        confirmedBagType: 'S',
+        confirmedBags: 100,
+      });
+
+    expect(resObsolete.status).toBe(400);
+    expect(resObsolete.body.error).toContain('Validation failed');
   });
 
   it('sorting generates rent bill, verifies lot, and preserves bag composition', async () => {
-    const grnId = await seedGrn({
-      facilityId,
-      customerId,
-      customerName: 'Farmer Gopal',
-      commodityId,
-      commodityName: 'Potato',
-      chamber: 'CH-01',
-      bags: 100,
-      bagType: 'S/B',
-      rentType: 'Seasonal',
-      rentAmount: 5000,
-      grnNumber: 'GRN-26-27-0103',
-    });
+    const grnId = await createTestGrn('GRN-26-27-0103');
 
     const res = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/sort`)
@@ -162,19 +146,7 @@ describe('GRN Sorting and Repacking Workflow (Phase 1)', () => {
   });
 
   it('completes full workflow: sorting confirms and bills, then repacking converts bags and applies hamali', async () => {
-    const grnId = await seedGrn({
-      facilityId,
-      customerId,
-      customerName: 'Farmer Gopal',
-      commodityId,
-      commodityName: 'Potato',
-      chamber: 'CH-01',
-      bags: 100,
-      bagType: 'S/B',
-      rentType: 'Seasonal',
-      rentAmount: 3000,
-      grnNumber: 'GRN-26-27-0104',
-    });
+    const grnId = await createTestGrn('GRN-26-27-0104', 3000);
 
     // Step 1: Sorting
     const sortRes = await request(app)

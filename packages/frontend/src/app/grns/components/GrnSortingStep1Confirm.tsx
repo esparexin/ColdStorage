@@ -2,7 +2,14 @@
 
 import React, { useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
-import type { BagType, Grn, PaymentMode, SortGrnInput, SortGrnResult } from '@cold-storage/contracts';
+import {
+  toOperationalBagType,
+  type Grn,
+  type OperationalBagType,
+  type PaymentMode,
+  type SortGrnInput,
+  type SortGrnResult,
+} from '@cold-storage/contracts';
 import { Button, Input, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { validateSortConfirmation } from './grnSorting.helper';
@@ -24,7 +31,9 @@ export function GrnSortingStep1Confirm({
   onProceedToRepack,
 }: GrnSortingStep1ConfirmProps) {
   const availableBags = grn.closingBags ?? grn.bags;
-  const [confirmedBagType, setConfirmedBagType] = useState<BagType>(grn.bagType);
+  const [confirmedBagType, setConfirmedBagType] = useState<OperationalBagType>(
+    toOperationalBagType(grn.bagType),
+  );
   const [confirmedBags, setConfirmedBags] = useState<string>(String(availableBags));
   const [totalWeight, setTotalWeight] = useState<string>(
     grn.totalBagsWeight != null ? String(grn.totalBagsWeight) : '',
@@ -108,12 +117,10 @@ export function GrnSortingStep1Confirm({
                 id="confirmed-bag-type"
                 label="Confirm Bag Type *"
                 value={confirmedBagType}
-                onChange={(e) => setConfirmedBagType(e.target.value as BagType)}
+                onChange={(e) => setConfirmedBagType(e.target.value as OperationalBagType)}
                 required
               >
                 <option value="S/B">S/B (Small / Big)</option>
-                <option value="S">S (All Small)</option>
-                <option value="B">B (All Big)</option>
                 <option value="Hybrid">Hybrid</option>
               </Select>
             </div>
