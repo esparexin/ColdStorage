@@ -35,7 +35,7 @@ export function assertCorrectionAllowed(
   }
   if (opts.activeChallans > 0 && opts.structural) {
     throw new Error(
-      `GRN_ACTIVE_DELIVERY: Cannot correct GRN '${grn.grnNumber}': stock has already been delivered. Use the delivery reversal workflow instead.`,
+      `GRN_ACTIVE_DELIVERY: Cannot correct GRN '${grn.grnNumber}': stock has already been delivered and cannot be structurally modified.`,
     );
   }
   if (opts.hasMovement && opts.structural) {

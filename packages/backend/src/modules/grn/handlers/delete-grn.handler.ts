@@ -79,7 +79,7 @@ export async function deleteGrn(
   }).exec();
   if (activeChallans > 0) {
     throw new Error(
-      `Cannot delete GRN '${grn.grnNumber}' because ${activeChallans} delivery challan(s) are still ISSUED. Reverse or settle them first.`,
+      `Cannot delete GRN '${grn.grnNumber}' because ${activeChallans} delivery challan(s) are still ISSUED. Settle all outstanding deliveries first.`,
     );
   }
 

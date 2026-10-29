@@ -57,7 +57,7 @@ export function GrnDetailModal({
             aria-label="Edit GRN details"
             title={
               (grn.netDeliveredBags ?? 0) > 0
-                ? 'Stock has moved — only chamber may be corrected; reverse active deliveries first'
+                ? 'Stock has moved — only chamber may be corrected once delivery has occurred'
                 : 'Edit / Correct GRN details'
             }
             leftIcon={<Edit2 size={16} aria-hidden="true" />}
