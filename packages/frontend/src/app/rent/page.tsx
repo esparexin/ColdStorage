@@ -18,7 +18,7 @@ import { RentHistoryModal } from './components/RentHistoryModal';
 import { RentKpiCards } from './components/RentKpiCards';
 import { RentStatusTabs } from './components/RentStatusTabs';
 import { RentTable } from './components/RentTable';
-import { getRentStatusCategory, isMergedRentAccount } from './hooks/rentFilter.helper';
+import { getRentStatusCategory, isClosedWithDuesRentAccount, isMergedRentAccount } from './hooks/rentFilter.helper';
 import { useRentData } from './hooks/useRentData';
 import styles from './page.module.css';
 
@@ -58,10 +58,14 @@ export default function RentPage() {
     let settled = 0;
     let noDues = 0;
     let merged = 0;
+    let closedWithDues = 0;
 
     for (const acc of rentSummaries) {
       if (isMergedRentAccount(acc)) {
         merged++;
+      }
+      if (isClosedWithDuesRentAccount(acc)) {
+        closedWithDues++;
       }
       const cat = getRentStatusCategory(acc);
       if (cat === 'UNPAID') unpaid++;
@@ -77,6 +81,7 @@ export default function RentPage() {
       settled,
       noDues,
       merged,
+      closedWithDues,
     };
   }, [rentSummaries]);
 

@@ -7,6 +7,7 @@ import { CommodityModel } from '../database/models/commodity.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { InternalMovementModel } from '../database/models/internal-movement.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
+import { grnService } from '../modules/grn/grn.service.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import {
@@ -41,16 +42,9 @@ describe('GRN Sorting and Repacking Workflow (Phase 1)', () => {
     await mongoose.connection.collection('rentpayments').deleteMany({});
     await mongoose.connection.collection('internalmovements').deleteMany({});
     await seedFacility({ id: facilityId, code: 'SRT', name: 'Sorting Facility' });
-
     customerId = await seedCustomer({ id: 'cust-srt-1', facilityId, name: 'Farmer Gopal' });
-
     const cmd = await CommodityModel.create({
-      id: 'cmd-potato',
-      name: 'Potato',
-      normalizedName: 'potato',
-      isActive: true,
-      isHamaliApplicable: true,
-      hamaliRate: 4,
+      id: 'cmd-potato', name: 'Potato', normalizedName: 'potato', isActive: true, isHamaliApplicable: true, hamaliRate: 4,
     });
     commodityId = cmd.id;
   });
@@ -242,5 +236,11 @@ describe('GRN Sorting and Repacking Workflow (Phase 1)', () => {
     expect((outTx?.smallQuantity ?? 0) + (outTx?.bigQuantity ?? 0)).toBe(100);
     expect((inTx?.smallQuantity ?? 0) + (inTx?.bigQuantity ?? 0)).toBe(95);
     expect(inTx?.bagType).toBe('S/B');
+
+    // Verify entity closing bags and net delivered are truthful and not polluted
+    const entity = await grnService.getGrnById(grnId);
+    expect(entity?.bags).toBe(95);
+    expect(entity?.closingBags).toBe(95);
+    expect(entity?.netDeliveredBags).toBe(0);
   });
 });

@@ -12,6 +12,7 @@ export interface RentTabCounts {
   settled: number;
   noDues?: number;
   merged?: number;
+  closedWithDues?: number;
 }
 
 interface RentStatusTabsProps {
@@ -114,6 +115,21 @@ export function RentStatusTabs({
         Merged{' '}
         <span className={`${styles.tabBadge} ${statusFilter === 'MERGED' ? styles.tabBadgeActive : ''}`}>
           {counts.merged ?? 0}
+        </span>
+      </Button>
+
+      <Button
+        id="rent-status-tab-closed-with-dues"
+        role="tab"
+        aria-selected={statusFilter === 'CLOSED_WITH_DUES'}
+        variant={statusFilter === 'CLOSED_WITH_DUES' ? 'secondary' : 'ghost'}
+        size="sm"
+        className={`${styles.statusTab} ${statusFilter === 'CLOSED_WITH_DUES' ? styles.statusTabActive : ''}`}
+        onClick={() => onStatusChange('CLOSED_WITH_DUES')}
+      >
+        Closed with Dues{' '}
+        <span className={`${styles.tabBadge} ${statusFilter === 'CLOSED_WITH_DUES' ? styles.tabBadgeActive : ''}`}>
+          {counts.closedWithDues ?? 0}
         </span>
       </Button>
     </div>

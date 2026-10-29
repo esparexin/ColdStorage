@@ -14,6 +14,7 @@ import { counterService } from '../../common/counter.service.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
+import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 
@@ -41,12 +42,19 @@ export async function executeSortGrn(
         if (grn.loanStatus === 'TAKEN') {
           throw new Error(`Cannot perform sorting: Active loan hold against GRN '${grn.grnNumber}'`);
         }
+        if (grn.isSorted) {
+          resultGrn = toGrnEntity(grn.toObject());
+          return;
+        }
 
         // 1. Mandatory Confirmation Check
-        const lotBags = grn.bags;
-        if (input.confirmedBags !== lotBags) {
+        const bal = await readLedgerBalance(facilityId, grn.id, session);
+        if (bal.total <= 0) {
+          throw new Error(`Cannot perform sorting: No stock remaining in GRN '${grn.grnNumber}'`);
+        }
+        if (input.confirmedBags !== bal.total) {
           throw new Error(
-            `CONFIRMATION_MISMATCH: Confirmed bags (${input.confirmedBags}) does not match existing stock (${lotBags})`,
+            `CONFIRMATION_MISMATCH: Confirmed bags (${input.confirmedBags}) does not match existing stock (${bal.total})`,
           );
         }
         if (input.confirmedBagType !== grn.bagType) {

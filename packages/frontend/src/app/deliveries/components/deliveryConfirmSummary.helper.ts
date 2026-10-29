@@ -1,3 +1,5 @@
+import { allocateHamaliShare, calculateHamaliAmount } from '@cold-storage/contracts';
+
 export function formatBagCompositionText(
   bagType: string,
   totalBags: number,
@@ -10,21 +12,42 @@ export function formatBagCompositionText(
   return `${smallBags} Small / ${bigBags} Big`;
 }
 
+export interface ProRataHamaliContext {
+  originalBags?: number | null;
+  priorDeliveredBags?: number | null;
+  totalHamaliAmount?: number | null;
+}
+
 export function calculateProRataHamali(
-  totalBags: number,
+  withdrawnBags: number,
   hamaliRate?: number | null,
+  context?: ProRataHamaliContext,
 ): number {
-  if (typeof hamaliRate === 'number' && hamaliRate > 0 && totalBags > 0) {
-    return totalBags * hamaliRate;
+  if (typeof hamaliRate !== 'number' || hamaliRate <= 0 || withdrawnBags <= 0) {
+    return 0;
   }
-  return 0;
+
+  const totalBags = context?.originalBags ?? withdrawnBags;
+  if (totalBags <= 0) return 0;
+
+  const full =
+    context?.totalHamaliAmount != null && context.totalHamaliAmount >= 0
+      ? context.totalHamaliAmount
+      : calculateHamaliAmount(totalBags, hamaliRate);
+
+  if (full <= 0) return 0;
+
+  const priorDelivered = Math.max(0, context?.priorDeliveredBags ?? 0);
+  const prior = Number((full * (priorDelivered / totalBags)).toFixed(2));
+  return allocateHamaliShare(full, withdrawnBags, totalBags, prior);
 }
 
 export function formatProRataHamaliText(
-  totalBags: number,
+  withdrawnBags: number,
   hamaliRate?: number | null,
+  context?: ProRataHamaliContext,
 ): string {
-  const charge = calculateProRataHamali(totalBags, hamaliRate);
+  const charge = calculateProRataHamali(withdrawnBags, hamaliRate, context);
   if (charge > 0 && typeof hamaliRate === 'number') {
     return `₹${charge.toLocaleString('en-IN', {
       minimumFractionDigits: 2,
@@ -40,3 +63,4 @@ export function formatCurrencyAmount(amount: number): string {
     maximumFractionDigits: 2,
   })}`;
 }
+

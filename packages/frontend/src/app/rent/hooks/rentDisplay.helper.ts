@@ -152,4 +152,39 @@ export function deriveHamaliChargeFromSummary(totalDue: number, rentAmount: numb
   return diff > 0 ? Number(diff.toFixed(2)) : 0;
 }
 
+export interface OwnershipTransferDisplayInfo {
+  isTransferred: boolean;
+  fromParty?: string;
+  toParty?: string;
+  hasCarriedDebt: boolean;
+}
+
+/**
+ * Parses ownership transfer audit notes from GRN remarks for rent display attribution.
+ */
+export function parseOwnershipTransferDisplayInfo(remarks?: string | null): OwnershipTransferDisplayInfo | null {
+  if (!remarks || !remarks.includes('[OWNERSHIP TRANSFERRED')) {
+    return null;
+  }
+  const match = remarks.match(
+    /\[OWNERSHIP TRANSFERRED on ([^:]+):\s*from\s+([^(]+)(?:\s*\([^)]*\))?\s+to\s+([^(]+)(?:\s*\([^)]*\))?\./i,
+  );
+  const hasCarriedDebt =
+    remarks.includes('carried forward') || remarks.includes('Pending rent obligation');
+
+  if (!match) {
+    return {
+      isTransferred: true,
+      hasCarriedDebt,
+    };
+  }
+
+  return {
+    isTransferred: true,
+    fromParty: match[2].trim(),
+    toParty: match[3].trim(),
+    hasCarriedDebt,
+  };
+}
+
 

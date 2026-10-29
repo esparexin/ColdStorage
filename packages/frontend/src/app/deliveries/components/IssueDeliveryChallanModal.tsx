@@ -218,6 +218,13 @@ export function IssueDeliveryChallanModal({
               hamaliRate={form.hamaliRate}
               vehicleNumber={form.createVehicleNumber}
               gpNumber={form.createGpNumber}
+              originalBags={form.selectedGrn.bags}
+              priorDeliveredBags={
+                form.grnSummary
+                  ? Math.max(0, form.selectedGrn.bags - (form.grnSummary.availableSmallBags + form.grnSummary.availableBigBags))
+                  : undefined
+              }
+              totalHamaliAmount={form.selectedGrn.hamaliAmount}
             />
           }
           confirmLabel="Yes, Issue Delivery"

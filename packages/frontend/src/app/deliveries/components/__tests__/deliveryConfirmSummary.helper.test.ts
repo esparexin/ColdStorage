@@ -33,9 +33,47 @@ describe('deliveryConfirmSummary.helper', () => {
       expect(calculateProRataHamali(-10, 5)).toBe(0);
     });
 
-    it('multiplies totalBags by hamaliRate correctly', () => {
+    it('multiplies totalBags by hamaliRate correctly without context', () => {
       expect(calculateProRataHamali(100, 3.5)).toBe(350);
       expect(calculateProRataHamali(50, 4)).toBe(200);
+    });
+
+    it('allocates pro-rata share on partial delivery', () => {
+      // 100 bags inward at ₹5/bag => ₹500 total obligation.
+      // First partial delivery: 40 bags => ₹200
+      const share1 = calculateProRataHamali(40, 5, {
+        originalBags: 100,
+        priorDeliveredBags: 0,
+        totalHamaliAmount: 500,
+      });
+      expect(share1).toBe(200);
+
+      // Second partial delivery: 60 bags => ₹300 (remaining ₹300 cap)
+      const share2 = calculateProRataHamali(60, 5, {
+        originalBags: 100,
+        priorDeliveredBags: 40,
+        totalHamaliAmount: 500,
+      });
+      expect(share2).toBe(300);
+    });
+
+    it('respects inward total hamali cap on subsequent deliveries', () => {
+      // Total capped obligation ₹450 on 100 bags (rate ₹5).
+      // Delivery 1: 50 bags
+      const share1 = calculateProRataHamali(50, 5, {
+        originalBags: 100,
+        priorDeliveredBags: 0,
+        totalHamaliAmount: 450,
+      });
+      expect(share1).toBe(225);
+
+      // Delivery 2: 50 bags (priorDelivered = 50, prior share = 225)
+      const share2 = calculateProRataHamali(50, 5, {
+        originalBags: 100,
+        priorDeliveredBags: 50,
+        totalHamaliAmount: 450,
+      });
+      expect(share2).toBe(225);
     });
   });
 

@@ -13,6 +13,7 @@ import { InventoryTransactionModel } from '../../../database/models/inventory-tr
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
+import { readLedgerBalance, readLedgerNetDelivered } from '../../inventory/ledger-balance.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 
 export async function executeRepackGrn(
@@ -29,6 +30,22 @@ export async function executeRepackGrn(
   try {
     await withMongoRetry(() =>
       session.withTransaction(async () => {
+        if (input.idempotencyKey) {
+          const existing = await InternalMovementModel.findOne(
+            { facilityId, idempotencyKey: input.idempotencyKey }, null, { session },
+          ).lean().exec();
+          if (existing) {
+            const exGrn = await GrnModel.findOne({ id: existing.targetGrnId, facilityId }, null, { session }).lean().exec();
+            if (exGrn) {
+              resultGrn = toGrnEntity(exGrn);
+              resultMovement = { ...existing, movementDate: new Date(existing.movementDate), createdAt: new Date(existing.createdAt) } as InternalMovementRecord;
+              repackVariance = existing.repackVariance ?? 0;
+              repackHamaliCharge = existing.hamaliCharge ?? 0;
+              return;
+            }
+          }
+        }
+
         const grn = await GrnModel.findOne({ id: input.grnId, facilityId }, null, { session });
         if (!grn) {
           throw new Error(`GRN '${input.grnId}' not found in facility '${facilityId}'`);
@@ -47,6 +64,11 @@ export async function executeRepackGrn(
           );
         }
 
+        const bal = await readLedgerBalance(facilityId, grn.id, session);
+        if (bal.total <= 0) {
+          throw new Error(`Cannot repack GRN '${grn.grnNumber}': No stock remaining`);
+        }
+
         const isHybrid = input.resultingBagType === 'Hybrid';
         const actualRepackedBags = isHybrid
           ? (input.repackedQuantity ?? 0)
@@ -56,8 +78,7 @@ export async function executeRepackGrn(
           throw new Error('Repacked bag count must be greater than zero');
         }
 
-        const originalBags = grn.bags;
-        repackVariance = actualRepackedBags - originalBags;
+        repackVariance = actualRepackedBags - bal.total;
 
         if (repackVariance !== 0 && !input.repackVarianceReason?.trim()) {
           throw new Error(
@@ -80,8 +101,8 @@ export async function executeRepackGrn(
             (input.repackedBigBags ?? 0) * grn.bigBagWeight;
         }
 
-        const outSmall = grn.smallBags > 0 || grn.bigBags > 0 ? grn.smallBags : originalBags;
-        const outBig = grn.smallBags > 0 || grn.bigBags > 0 ? grn.bigBags : 0;
+        const outSmall = bal.smallBags;
+        const outBig = bal.bigBags;
 
         const inSmall = isHybrid
           ? actualRepackedBags
@@ -105,48 +126,32 @@ export async function executeRepackGrn(
         await InventoryTransactionModel.create(
           [
             {
-              id: `tx-out-${randomUUID()}`,
-              facilityId,
-              grnId: grn.id,
-              grnNumber: grn.grnNumber,
-              chamber: grn.chamber,
-              commodityId: grn.commodityId,
-              bagType: grn.bagType,
-              transactionType: 'OUTWARD_DELIVERY',
-              smallQuantity: outSmall,
-              bigQuantity: outBig,
-              referenceType: 'DELIVERY',
-              referenceId: movementId,
+              id: `tx-out-${randomUUID()}`, facilityId, grnId: grn.id, grnNumber: grn.grnNumber,
+              chamber: grn.chamber, commodityId: grn.commodityId, bagType: grn.bagType,
+              transactionType: 'OUTWARD_DELIVERY', smallQuantity: outSmall, bigQuantity: outBig,
+              referenceType: 'DELIVERY', referenceId: movementId,
               notes: `Stock adjustment for repacking (Lot ${grn.grnNumber})`,
-              createdBy: userId,
-              createdAt: movementDate,
+              createdBy: userId, createdAt: movementDate,
             },
             {
-              id: `tx-in-${randomUUID()}`,
-              facilityId,
-              grnId: grn.id,
-              grnNumber: grn.grnNumber,
-              chamber: grn.chamber,
-              commodityId: grn.commodityId,
-              bagType: input.resultingBagType,
-              transactionType: 'INWARD_PUTAWAY',
-              smallQuantity: inSmall,
-              bigQuantity: inBig,
-              referenceType: 'PUT_AWAY',
-              referenceId: movementId,
+              id: `tx-in-${randomUUID()}`, facilityId, grnId: grn.id, grnNumber: grn.grnNumber,
+              chamber: grn.chamber, commodityId: grn.commodityId, bagType: input.resultingBagType,
+              transactionType: 'INWARD_PUTAWAY', smallQuantity: inSmall, bigQuantity: inBig,
+              referenceType: 'PUT_AWAY', referenceId: movementId,
               notes: `Repacked stock putaway (Lot ${grn.grnNumber})`,
-              createdBy: userId,
-              createdAt: movementDate,
+              createdBy: userId, createdAt: movementDate,
             },
           ],
           { session, ordered: true },
         );
 
+        const delivered = await readLedgerNetDelivered(facilityId, grn.id, session);
+
         // Update GRN document
         grn.bagType = input.resultingBagType;
-        grn.bags = actualRepackedBags;
-        grn.smallBags = inSmall;
-        grn.bigBags = inBig;
+        grn.bags = grn.bags + repackVariance;
+        grn.smallBags = delivered.smallBags + inSmall;
+        grn.bigBags = delivered.bigBags + inBig;
         grn.isCompositionVerified = true;
         grn.isSorted = false;
         if (input.remarks) {
@@ -174,7 +179,7 @@ export async function executeRepackGrn(
               hamaliRate,
               hamaliCharge: repackHamaliCharge,
               repackVariance,
-              repackSourceBags: originalBags,
+              repackSourceBags: bal.total,
               referenceWeight: grn.totalBagsWeight,
               financialSnapshot: {
                 rentAmount: grn.rentAmount,
@@ -186,6 +191,7 @@ export async function executeRepackGrn(
               remarks: input.repackVarianceReason
                 ? `${input.remarks} (Variance: ${input.repackVarianceReason})`
                 : input.remarks,
+              idempotencyKey: input.idempotencyKey ?? null,
               performedBy: userId,
             },
           ],
