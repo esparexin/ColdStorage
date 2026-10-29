@@ -4,6 +4,8 @@ import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
 import {
   filterDeliveries,
+  hasDeliveryClientFilters,
+  resolveDisplayPagination,
   type DeliveryRentStatusFilter,
   type DeliveryStatusTab,
 } from './deliveryFilter.helper';
@@ -115,23 +117,22 @@ export function useDeliveries(
     return filterDeliveries(deliveries, searchTerm, rentStatusFilter, statusTab);
   }, [deliveries, searchTerm, rentStatusFilter, statusTab]);
 
-  const hasActiveFilters = Boolean(
-    statusTab !== '' || rentStatusFilter !== '' || searchTerm.trim() !== '',
+  const hasClientFilters = useMemo(
+    () => hasDeliveryClientFilters(searchTerm, rentStatusFilter),
+    [searchTerm, rentStatusFilter],
   );
 
-  const displayTotalDeliveries = useMemo(() => {
-    if (hasActiveFilters) {
-      return filteredDeliveries.length;
-    }
-    return totalDeliveries;
-  }, [filteredDeliveries.length, hasActiveFilters, totalDeliveries]);
-
-  const displayTotalPages = useMemo(() => {
-    if (hasActiveFilters) {
-      return Math.max(1, Math.ceil(filteredDeliveries.length / DELIVERY_PAGE_SIZE));
-    }
-    return totalPages;
-  }, [filteredDeliveries.length, hasActiveFilters, totalPages]);
+  const { totalDeliveries: displayTotalDeliveries, totalPages: displayTotalPages } = useMemo(
+    () =>
+      resolveDisplayPagination(
+        hasClientFilters,
+        filteredDeliveries.length,
+        totalDeliveries,
+        totalPages,
+        DELIVERY_PAGE_SIZE,
+      ),
+    [hasClientFilters, filteredDeliveries.length, totalDeliveries, totalPages],
+  );
 
   const currentFacilityName = useMemo(() => {
     return (

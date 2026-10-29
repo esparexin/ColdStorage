@@ -43,6 +43,32 @@ export function isDeliveryUnsettled(d: DeliveryChallan): boolean {
 
 export const isDeliveryPendingPayment = isDeliveryDuePayment;
 
+export function hasDeliveryClientFilters(
+  searchTerm: string,
+  rentStatusFilter: DeliveryRentStatusFilter = '',
+): boolean {
+  return rentStatusFilter !== '' || searchTerm.trim() !== '';
+}
+
+export function resolveDisplayPagination(
+  hasClientFilters: boolean,
+  filteredCount: number,
+  serverTotal: number,
+  serverPages: number,
+  pageSize: number = 20,
+): { totalDeliveries: number; totalPages: number } {
+  if (hasClientFilters) {
+    return {
+      totalDeliveries: filteredCount,
+      totalPages: Math.max(1, Math.ceil(filteredCount / pageSize)),
+    };
+  }
+  return {
+    totalDeliveries: serverTotal,
+    totalPages: serverPages,
+  };
+}
+
 export function filterDeliveries(
   deliveries: DeliveryChallan[],
   searchTerm: string,
