@@ -6,7 +6,7 @@
  */
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { AUTH_BOOTSTRAP_OVERALL_TIMEOUT_MS, AUTH_REQUEST_TIMEOUT_MS, executeSingleFlightRefresh, fetchWithTimeout, requestWithAuth, setAccessToken, setOnAuthExpired } from '@/lib/api-client';
+import { AUTH_BOOTSTRAP_OVERALL_TIMEOUT_MS, AUTH_REQUEST_TIMEOUT_MS, LOGIN_REQUEST_TIMEOUT_MS, executeSingleFlightRefresh, fetchWithTimeout, requestWithAuth, setAccessToken, setOnAuthExpired } from '@/lib/api-client';
 import { LoginApiError, parseLoginResponse } from '@/lib/auth-errors';
 
 export interface AuthUser {
@@ -146,7 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           credentials: 'include',
           body: JSON.stringify({ username, password }),
         },
-        AUTH_REQUEST_TIMEOUT_MS,
+        LOGIN_REQUEST_TIMEOUT_MS,
       );
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') {
