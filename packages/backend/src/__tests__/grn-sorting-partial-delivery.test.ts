@@ -148,8 +148,8 @@ describe('GRN Sorting & Repacking with Partial Deliveries (Phase 2)', () => {
     // 5. Verify GRN and Ledger State
     const grn = await GrnModel.findOne({ id: grnId }).lean().exec();
     expect(grn?.bags).toBe(96); // 100 + (-4)
-    expect(grn?.smallBags).toBe(50);
-    expect(grn?.bigBags).toBe(26);
+    expect(grn?.smallBags).toBe(60);
+    expect(grn?.bigBags).toBe(36);
 
     const balAfter = await readLedgerBalance(facilityId, grnId);
     expect(balAfter.total).toBe(76);

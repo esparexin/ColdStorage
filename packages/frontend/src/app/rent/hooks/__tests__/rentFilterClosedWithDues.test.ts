@@ -78,3 +78,4 @@ describe('CLOSED_WITH_DUES filter and helper', () => {
     expect(results[0].grnNumber).toBe('GRN-C1');
   });
 });
+

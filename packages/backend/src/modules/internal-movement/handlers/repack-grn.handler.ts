@@ -148,8 +148,8 @@ export async function executeRepackGrn(
         // Update GRN document
         grn.bagType = input.resultingBagType;
         grn.bags = grn.bags + repackVariance;
-        grn.smallBags = inSmall;
-        grn.bigBags = inBig;
+        grn.smallBags = grn.smallBags + (inSmall - bal.smallBags);
+        grn.bigBags = grn.bigBags + (inBig - bal.bigBags);
         grn.isCompositionVerified = true;
         grn.isSorted = false;
         if (input.remarks) {
