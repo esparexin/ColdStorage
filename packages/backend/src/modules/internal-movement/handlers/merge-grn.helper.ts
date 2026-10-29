@@ -34,7 +34,7 @@ export interface SourceRentResolution {
 }
 
 export interface ResolveSourceRentParams {
-  facilityId: string; sourceGrn: MergeSourceGrn; targetGrnDate: Date; movementDate: Date;
+  facilityId: string; sourceGrn: MergeSourceGrn; targetGrnDate: Date; movementDate: Date; targetGrnNumber?: string;
   sourcePaymentAmount?: number | null; sourcePaymentMode?: PaymentMode | null; userId: string; session: mongoose.ClientSession;
   sourceBagType?: BagType | null; sourceBagCategory?: string | null; sourceQuantity?: number | null;
   sourceBagPrice?: number | null; sourceSeasonalBagPrice?: number | null; sourceMonthlyBagPrice?: number | null;
@@ -172,7 +172,7 @@ export async function resolveSourceRentObligation(
         id: `rent-pay-${randomUUID()}`, facilityId, grnId: sourceGrn.id, grnNumber: sourceGrn.grnNumber,
         customerId: sourceGrn.customerId, customerName: sourceGrn.customerName,
         receiptNumber, amountPaid: payThisSource, paymentMode: (sourcePaymentMode ?? 'Cash') as 'Cash' | 'UPI',
-        paymentDate: movementDate, notes: `Pre-merge settlement: GRN ${sourceGrn.grnNumber}`, createdBy: userId,
+        paymentDate: movementDate, notes: `Pre-merge settlement: GRN ${sourceGrn.grnNumber}${params.targetGrnNumber ? ` (merged into ${params.targetGrnNumber})` : ''}`, createdBy: userId,
       }, session);
       totalPaid += payThisSource;
       paidAmount = payThisSource;

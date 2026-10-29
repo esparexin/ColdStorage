@@ -80,6 +80,7 @@ export async function processMergeSource(params: {
   const effectiveCategory = input.sourceGrnIds.length === 1 ? (input.sourceBagCategory ?? (isSourceHybrid ? 'Hybrid' : undefined)) : (isSourceHybrid ? 'Hybrid' : undefined);
   const rentResolution = await resolveSourceRentObligation({
     facilityId, sourceGrn: s, targetGrnDate: targetGrn.date, movementDate: moveDate,
+    targetGrnNumber: targetGrn.grnNumber,
     sourcePaymentAmount: effectivePayment, sourcePaymentMode: input.sourcePaymentMode, userId, session,
     sourceBagCategory: effectiveCategory, sourceQuantity: bal.total,
     sourceBagPrice: input.sourceGrnIds.length === 1 ? input.sourceBagPrice : s.bagPrice,
