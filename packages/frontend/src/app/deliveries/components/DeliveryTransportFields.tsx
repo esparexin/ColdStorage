@@ -13,7 +13,6 @@ interface DeliveryTransportFieldsProps {
   setCreateGpNumber: (v: string) => void;
   createDriverName: string;
   setCreateDriverName: (v: string) => void;
-  totalBagsWeight?: number | null;
   createWeight: number | '';
   setCreateWeight: (v: number | '') => void;
   createRemarks: string;
