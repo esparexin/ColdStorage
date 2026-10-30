@@ -90,3 +90,4 @@ describe('Transfer Ownership: Hamali Rate Resolution and Obligation Alignment', 
     expect(totalObligation).toBe(6460 + 85); // 6545
   });
 });
+

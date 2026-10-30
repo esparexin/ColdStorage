@@ -102,3 +102,4 @@ describe('transferStep3Summary.helper', () => {
     });
   });
 });
+

@@ -41,3 +41,4 @@ export function formatTransferSettlement(params: {
   const target = params.newCustomerName ? `to ${params.newCustomerName}` : 'forward';
   return `Pay Later (Liability carried ${target})`;
 }
+
