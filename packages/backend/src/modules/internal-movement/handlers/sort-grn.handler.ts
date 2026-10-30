@@ -17,7 +17,7 @@ import { rentRepository } from '../../rent/rent.repository.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
-import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
+import { computeFirstSeasonHamali, resolveEffectiveHamaliRate } from '../../common/hamali-resolution.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 
 export async function executeSortGrn(
@@ -76,6 +76,10 @@ export async function executeSortGrn(
         const extensions = await RentExtensionModel.find({ facilityId, grnId: grn.id }, null, { session }).lean().exec();
         const commodity = await CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec();
         const hamaliShare = computeFirstSeasonHamali(grn.bags, commodity, extensions, grn.hamaliRate, grn.hamaliAmount);
+        if (grn.hamaliAmount == null) {
+          grn.hamaliRate = resolveEffectiveHamaliRate(grn.hamaliRate, commodity);
+          grn.hamaliAmount = hamaliShare;
+        }
 
         const totalDue = resolveTotalRentObligation({
           rentType: grn.rentType,
