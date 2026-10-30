@@ -74,11 +74,7 @@ describe('Transfer Ownership: Hamali Rate Resolution and Obligation Alignment', 
     const hamaliRate = 5;
     const remainingBags = 17;
     const hamaliAmount = calculateHamaliAmount(remainingBags, hamaliRate); // 85
-
-    const storedRent = 0; // Unbilled / at outward transfer
-    const effectiveBaseRent = storedRent > 0
-      ? (storedRent > assessedRent ? storedRent : assessedRent)
-      : assessedRent;
+    const effectiveBaseRent = assessedRent;
 
     const totalObligation = resolveTotalRentObligation({
       rentType: 'Seasonal',
