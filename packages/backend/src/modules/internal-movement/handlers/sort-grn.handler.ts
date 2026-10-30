@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import {
+  getFinancialYearKey,
   resolveTotalRentObligation,
   toOperationalBagType,
   type Grn,
@@ -88,7 +89,14 @@ export async function executeSortGrn(
         const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
         const remainingDue = Math.max(0, Number((totalDue - totalPaid).toFixed(2)));
 
-        if (remainingDue > 0) {
+        const currentFy = getFinancialYearKey(new Date());
+        const grnFy = getFinancialYearKey(new Date(grn.date));
+        const isPreviousFinancialYear = grnFy !== currentFy;
+
+        // When GRN belongs to a previous financial year, preserve historical rent as pending
+        // against the original bill, customer, and GRN profile. Do not auto-settle or fabricate
+        // current-year payments against historical debt.
+        if (remainingDue > 0 && !isPreviousFinancialYear) {
           const receiptNumber = await counterService.generateRentReceiptNumber(facilityId, new Date(), session);
           const paymentDoc = await rentRepository.createPayment(
             {

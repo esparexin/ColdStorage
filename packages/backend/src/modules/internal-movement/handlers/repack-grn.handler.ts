@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import {
   calculateHamaliAmount,
+  resolveTotalRentObligation,
   type Grn,
   type InternalMovementRecord,
   type RepackGrnInput,
@@ -11,9 +12,13 @@ import { GrnModel } from '../../../database/models/grn.model.js';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
+import { RentExtensionModel } from '../../../database/models/rent-extension.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
 import { readLedgerBalance, readLedgerNetDelivered } from '../../inventory/ledger-balance.js';
+import { rentRepository } from '../../rent/rent.repository.js';
+import { computeRentBalance } from '../../common/rent-balance.js';
+import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 
 export async function executeRepackGrn(
@@ -148,6 +153,21 @@ export async function executeRepackGrn(
         grn.updatedAt = movementDate;
         await grn.save({ session });
 
+        // Authoritative rent obligation & balance snapshot (SSOT)
+        const outwardInfo = await rentRepository.getOutwardRentInfoForGrn(facilityId, grn.id, session);
+        const extensions = await RentExtensionModel.find({ facilityId, grnId: grn.id }, null, { session }).lean().exec();
+        const hamaliShare = computeFirstSeasonHamali(grn.bags, commodity, extensions, grn.hamaliRate, grn.hamaliAmount);
+        const totalDue = resolveTotalRentObligation({
+          rentType: grn.rentType,
+          rentAmount: grn.rentAmount,
+          outwardRentCharges: outwardInfo.total,
+          extensionAmounts: extensions.map((e) => e.finalAmount),
+          hamaliShare,
+        });
+        const payments = await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session);
+        const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
+        const rentBal = computeRentBalance(totalDue, totalPaid);
+
         // Record in InternalMovementModel for history and audit
         const movementDoc = await InternalMovementModel.create(
           [
@@ -170,10 +190,11 @@ export async function executeRepackGrn(
               repackSourceBags: bal.total,
               referenceWeight: grn.totalBagsWeight,
               financialSnapshot: {
-                rentAmount: grn.rentAmount,
-                totalPaid: 0,
-                remainingBalance: 0,
-                paymentStatus: 'SETTLED',
+                rentAmount: rentBal.rentAmount,
+                totalPaid: rentBal.totalPaid,
+                remainingBalance: rentBal.remainingBalance,
+                paymentStatus: rentBal.paymentStatus,
+                rentState: rentBal.rentState,
                 hamaliAmount: repackHamaliCharge,
               },
               remarks: input.repackVarianceReason
