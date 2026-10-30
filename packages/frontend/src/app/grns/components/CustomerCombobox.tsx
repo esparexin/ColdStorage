@@ -12,6 +12,7 @@ export interface CustomerComboboxProps {
   customerId: string;
   customers: Customer[];
   id?: string;
+  listboxId?: string;
   label?: string;
   required?: boolean;
   addLabel?: string;
@@ -29,6 +30,7 @@ export function CustomerCombobox({
   customerId,
   customers,
   id = 'create-customer-search',
+  listboxId,
   label = 'Customer',
   required = false,
   addLabel = '+ Add',
@@ -42,6 +44,7 @@ export function CustomerCombobox({
 }: CustomerComboboxProps) {
   const selectedCustomer = customers.find((c) => c.id === customerId);
   const term = customerBox.query.trim();
+  const dropdownId = listboxId ?? (id === 'create-customer-search' ? 'customer-combobox-listbox' : `${id}-listbox`);
 
   return (
     <div className={styles.fieldGroup}>
@@ -74,7 +77,7 @@ export function CustomerCombobox({
           role="combobox"
           aria-expanded={customerBox.isOpen}
           aria-autocomplete="list"
-          aria-controls={`${id}-listbox`}
+          aria-controls={dropdownId}
           autoComplete="off"
           disabled={disabled}
           className={`${styles.comboboxInput} ${error ? styles.inputError : ''} ${disabled ? styles.calculatedField : ''}`}
@@ -113,7 +116,7 @@ export function CustomerCombobox({
           </span>
         )}
         {customerBox.isOpen && !disabled && (
-          <div id={`${id}-listbox`} className={styles.comboboxDropdown} role="listbox">
+          <div id={dropdownId} className={styles.comboboxDropdown} role="listbox">
             {isLoading ? (
               <div className={styles.comboboxPrompt} role="status">
                 <Loader2 size={14} className={styles.spinner} aria-hidden="true" />

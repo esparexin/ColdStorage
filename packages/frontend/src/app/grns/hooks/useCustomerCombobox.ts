@@ -13,7 +13,7 @@ export interface UseCustomerComboboxOptions {
 export function filterCustomerMatches(
   customers: Customer[],
   query: string,
-  showAllByDefault = false,
+  showAllByDefault = true,
 ): Customer[] {
   const term = query.trim().toLowerCase();
   if (term) {
@@ -36,7 +36,7 @@ export function useCustomerCombobox(
   onRequestAdd: () => void,
   options?: UseCustomerComboboxOptions,
 ) {
-  const showAllByDefault = options?.showAllByDefault ?? false;
+  const showAllByDefault = options?.showAllByDefault ?? true;
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIdx, setHighlightIdx] = useState(-1);

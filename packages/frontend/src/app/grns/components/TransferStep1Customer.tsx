@@ -51,6 +51,7 @@ export function TransferStep1Customer({
     newCustomerId,
     onNewCustomerIdChange,
     () => setIsAddingCustomer(true),
+    { showAllByDefault: false },
   );
 
   return (

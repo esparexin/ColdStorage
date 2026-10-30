@@ -27,6 +27,11 @@ describe('useCustomerCombobox - filterCustomerMatches', () => {
     expect(matches.length).toBe(120);
   });
 
+  it('defaults to returning all customers when showAllByDefault is omitted (preserving backward compatibility)', () => {
+    const matches = filterCustomerMatches(mockCustomers, '');
+    expect(matches.length).toBe(120);
+  });
+
   it('filters customers matching search query case-insensitively with 100+ customers', () => {
     const matches = filterCustomerMatches(mockCustomers, 'punna');
     expect(matches.length).toBe(1);
