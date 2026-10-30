@@ -4,7 +4,12 @@ import {
   projectCommodityBreakdown,
   projectRecentActivity,
 } from './dashboard-projections.js';
-import { fetchPhaseAData, fetchPhaseBData, getIstMonthlyWindow } from './dashboard-queries.js';
+import {
+  fetchGrnCounts,
+  fetchRecentActivityData,
+  fetchStockData,
+  getIstMonthlyWindow,
+} from './dashboard-queries.js';
 
 export class DashboardService {
   /**
@@ -23,27 +28,14 @@ export class DashboardService {
     const now = new Date();
     const { startOfMonth, startOfNextMonth } = getIstMonthlyWindow(now);
 
-    const [facilityTotals, stockBreakdown, grnCounts, recentTxns] = await fetchPhaseAData(
-      facilityId,
-      startOfMonth,
-      startOfNextMonth,
-    );
+    const [stockData, grnCounts, recentData] = await Promise.all([
+      fetchStockData(facilityId, startOfMonth, startOfNextMonth),
+      fetchGrnCounts(facilityId),
+      fetchRecentActivityData(facilityId),
+    ]);
 
-    const facetResult = stockBreakdown[0] ?? { byChamber: [], byCommodity: [] };
-    const commodityIds = facetResult.byCommodity.map((c) => c._id);
-    const deliveryIds = recentTxns
-      .filter((t) => t.transactionType === 'OUTWARD_DELIVERY')
-      .map((t) => t.referenceId);
-    const reversalIds = recentTxns
-      .filter((t) => t.transactionType === 'DELIVERY_REVERSAL')
-      .map((t) => t.referenceId);
-
-    const [commodities, challans, reversals] = await fetchPhaseBData(
-      facilityId,
-      commodityIds,
-      deliveryIds,
-      reversalIds,
-    );
+    const { totalAgg, facetResult, commodities } = stockData;
+    const { recentTxns, challans, reversals } = recentData;
 
     const commodityMap = new Map<string, string>(
       commodities.map((c) => [c.id, (c as unknown as { name: string }).name]),
@@ -55,7 +47,7 @@ export class DashboardService {
       reversals.map((r) => [r.id, (r as unknown as { challanNumber: string }).challanNumber]),
     );
 
-    const totals = facilityTotals[0];
+    const totals = totalAgg[0];
     const activeGrns = grnCounts.find((g) => g._id === 'OPEN')?.count ?? 0;
     const closedGrns = grnCounts.find((g) => g._id === 'CLOSED')?.count ?? 0;
 

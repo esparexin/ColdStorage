@@ -59,6 +59,17 @@ async function fetchLedgerStockData(
   }>([
     { $match: { facilityId } },
     {
+      $project: {
+        _id: 0,
+        chamber: 1,
+        commodityId: 1,
+        transactionType: 1,
+        smallQuantity: 1,
+        bigQuantity: 1,
+        createdAt: 1,
+      },
+    },
+    {
       $facet: {
         totals: [
           {
@@ -97,6 +108,73 @@ async function fetchLedgerStockData(
   return { totalAgg, chamberCommodityAgg };
 }
 
+export async function fetchStockData(
+  facilityId: string,
+  startOfMonth: Date,
+  startOfNextMonth: Date,
+) {
+  const { totalAgg, chamberCommodityAgg } = await fetchLedgerStockData(
+    facilityId,
+    startOfMonth,
+    startOfNextMonth,
+  );
+  const facetResult = chamberCommodityAgg[0] ?? { byChamber: [], byCommodity: [] };
+  const commodityIds = facetResult.byCommodity.map((c) => c._id);
+
+  const commodities =
+    commodityIds.length > 0
+      ? await CommodityModel.find({ id: { $in: commodityIds } })
+          .select('id name')
+          .lean()
+          .exec()
+      : [];
+
+  return { totalAgg, facetResult, commodities };
+}
+
+export async function fetchGrnCounts(facilityId: string) {
+  return GrnModel.aggregate<{ _id: string; count: number }>([
+    { $match: { facilityId } },
+    { $group: { _id: '$status', count: { $sum: 1 } } },
+  ]);
+}
+
+export async function fetchRecentActivityData(facilityId: string) {
+  const recentTxns = await InventoryTransactionModel.find({
+    facilityId,
+    transactionType: { $in: [...APPROVED_RECENT_TYPES] },
+  })
+    .sort({ createdAt: -1 })
+    .limit(10)
+    .select('id transactionType grnNumber referenceId chamber createdAt smallQuantity bigQuantity')
+    .lean()
+    .exec();
+
+  const deliveryIds = recentTxns
+    .filter((t) => t.transactionType === 'OUTWARD_DELIVERY')
+    .map((t) => t.referenceId);
+  const reversalIds = recentTxns
+    .filter((t) => t.transactionType === 'DELIVERY_REVERSAL')
+    .map((t) => t.referenceId);
+
+  const [challans, reversals] = await Promise.all([
+    deliveryIds.length > 0
+      ? DeliveryChallanModel.find({ facilityId, id: { $in: deliveryIds } })
+          .select('id challanNumber')
+          .lean()
+          .exec()
+      : Promise.resolve([]),
+    reversalIds.length > 0
+      ? DeliveryReversalModel.find({ facilityId, id: { $in: reversalIds } })
+          .select('id challanNumber')
+          .lean()
+          .exec()
+      : Promise.resolve([]),
+  ]);
+
+  return { recentTxns, challans, reversals };
+}
+
 export async function fetchPhaseAData(
   facilityId: string,
   startOfMonth: Date,
@@ -106,16 +184,14 @@ export async function fetchPhaseAData(
   // balance for every facility, including ones that have never recorded a delivery.
   const [stockData, grnStatusAgg, recentTxns] = await Promise.all([
     fetchLedgerStockData(facilityId, startOfMonth, startOfNextMonth),
-    GrnModel.aggregate<{ _id: string; count: number }>([
-      { $match: { facilityId } },
-      { $group: { _id: '$status', count: { $sum: 1 } } },
-    ]),
+    fetchGrnCounts(facilityId),
     InventoryTransactionModel.find({
       facilityId,
       transactionType: { $in: [...APPROVED_RECENT_TYPES] },
     })
       .sort({ createdAt: -1 })
       .limit(10)
+      .select('id transactionType grnNumber referenceId chamber createdAt smallQuantity bigQuantity')
       .lean()
       .exec(),
   ]);

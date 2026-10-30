@@ -121,4 +121,47 @@ describe('Reference Data Caching and Targeted Invalidation', () => {
       expect(apiClient.requestWithAuth).toHaveBeenCalledTimes(3);
     });
   });
+
+  describe('Dashboard summary caching', () => {
+    const mockSummary = {
+      summary: {
+        facilityId: 'fac-1',
+        totalStockBags: 1200,
+        activeGrns: 4,
+        closedGrns: 8,
+        monthlyInwardBags: 200,
+        monthlyDeliveredBags: 50,
+        chamberStock: [{ chamber: 'CH-1', totalBags: 1200 }],
+        commodityBreakdown: [{ commodityId: 'cmd-1', commodityName: 'Wheat', totalBags: 1200 }],
+        recentActivity: [],
+      },
+    };
+
+    it('caches dashboard summary and bypasses cache when force is requested', async () => {
+      vi.mocked(apiClient.requestWithAuth).mockImplementation(() =>
+        Promise.resolve(
+          new Response(JSON.stringify(mockSummary), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        ),
+      );
+
+      const url = '/api/facilities/fac-1/dashboard/summary';
+      const res1 = await cachedRequestWithAuth(url, { ttlMs: 30000 });
+      expect(res1.ok).toBe(true);
+      expect(apiClient.requestWithAuth).toHaveBeenCalledTimes(1);
+
+      // Hit cache within TTL
+      const res2 = await cachedRequestWithAuth(url, { ttlMs: 30000 });
+      expect(res2.ok).toBe(true);
+      expect(res2.headers.get('X-Client-Cache')).toBe('HIT');
+      expect(apiClient.requestWithAuth).toHaveBeenCalledTimes(1);
+
+      // Force refresh (e.g. user clicks Retry or manual refresh)
+      const res3 = await cachedRequestWithAuth(url, { ttlMs: 30000, force: true });
+      expect(res3.ok).toBe(true);
+      expect(apiClient.requestWithAuth).toHaveBeenCalledTimes(2);
+    });
+  });
 });
