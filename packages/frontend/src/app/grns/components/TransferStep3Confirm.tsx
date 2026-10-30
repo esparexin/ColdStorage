@@ -5,13 +5,24 @@ import { UserCheck } from 'lucide-react';
 import type { Customer, Grn, OutwardBagCategory, TransferPaymentDecision } from '@cold-storage/contracts';
 import { Badge, Input } from '@/components/ui';
 import { WizardStepActions } from './WizardStepActions';
+import {
+  formatTransferComposition,
+  formatTransferHamali,
+  formatTransferSettlement,
+} from './transferStep3Summary.helper';
 import styles from './InternalMovementModal.module.css';
 
 interface TransferStep3ConfirmProps {
   currentGrn: Grn;
   selectedNewCustomer?: Customer;
   remainingBags: number;
+  confirmedSmallBags?: number | '';
+  confirmedBigBags?: number | '';
   sourceBagCategory: OutwardBagCategory | '';
+  hamaliRate?: number | null;
+  hamaliAmount?: number;
+  assessedRent: number;
+  totalPaid: number;
   effectiveDue: number;
   decision: TransferPaymentDecision;
   settleAmount: number;
@@ -28,7 +39,13 @@ export function TransferStep3Confirm({
   currentGrn,
   selectedNewCustomer,
   remainingBags,
+  confirmedSmallBags,
+  confirmedBigBags,
   sourceBagCategory,
+  hamaliRate,
+  hamaliAmount,
+  assessedRent,
+  totalPaid,
   effectiveDue,
   decision,
   settleAmount,
@@ -40,6 +57,10 @@ export function TransferStep3Confirm({
   submitting,
   onBack,
 }: TransferStep3ConfirmProps) {
+  const isHybrid = sourceBagCategory === 'Hybrid' || currentGrn.bagType === 'Hybrid';
+  const totalLabor = hamaliAmount ?? 0;
+  const totalApplicableRent = assessedRent + totalLabor;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
       <div className={styles.reviewGrid}>
@@ -57,48 +78,60 @@ export function TransferStep3Confirm({
             <span className={styles.detailValue} style={{ fontWeight: 'var(--font-bold)' }}>{currentGrn.grnNumber}</span>
           </div>
           <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Current Owner:</span>
+            <span className={styles.detailLabel}>Previous Owner:</span>
             <span className={styles.detailValue}>{currentGrn.customerName}</span>
           </div>
           <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>New Transferee:</span>
+            <span className={styles.detailLabel}>New Owner:</span>
             <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-bold)' }}>
               {selectedNewCustomer?.name}
             </span>
           </div>
           <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Stock to Transfer:</span>
+            <span className={styles.detailLabel}>Transfer Date:</span>
+            <span className={styles.detailValue}>{movementDate}</span>
+          </div>
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>Updated Total Bags:</span>
             <span className={styles.detailValue}>{remainingBags} Bags</span>
           </div>
           <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Confirmed Composition:</span>
+            <span className={styles.detailLabel}>Confirmed Bag Type:</span>
             <span className={styles.detailValue}>
-              <Badge variant="neutral">{sourceBagCategory || currentGrn.bagType}</Badge>
+              <Badge variant="neutral">{isHybrid ? 'Hybrid' : 'S/B'}</Badge>
+            </span>
+          </div>
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>Bag Composition:</span>
+            <span className={styles.detailValue}>
+              {formatTransferComposition({ isHybrid, remainingBags, confirmedSmallBags, confirmedBigBags })}
+            </span>
+          </div>
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>Applicable Hamali:</span>
+            <span className={styles.detailValue}>
+              {formatTransferHamali({ hamaliRate, hamaliAmount: totalLabor })}
             </span>
           </div>
           <div className={styles.detailRow} style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
-            <span className={styles.detailLabel}>Rent Resolution:</span>
-            <span className={styles.detailValue}>
-              {effectiveDue > 0
-                ? decision === 'SETTLE_NOW'
-                  ? `Settled ₹${settleAmount} now (Receipt minted)`
-                  : `Carried ₹${effectiveDue.toLocaleString('en-IN')} forward`
-                : 'Fully Settled (₹0 due)'}
+            <span className={styles.detailLabel}>Total Rent Assessed:</span>
+            <span className={styles.detailValue}>₹{totalApplicableRent.toLocaleString('en-IN')}</span>
+          </div>
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>Already Paid:</span>
+            <span className={styles.detailValue}>₹{totalPaid.toLocaleString('en-IN')}</span>
+          </div>
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>Outstanding Balance:</span>
+            <span className={styles.detailValue} style={{ fontWeight: 'var(--font-bold)' }}>
+              ₹{effectiveDue.toLocaleString('en-IN')}
             </span>
           </div>
-
-          <div style={{ marginTop: 'var(--space-1)' }}>
-            <Input
-              id="transfer-movement-date"
-              label="Movement Date"
-              type="date"
-              value={movementDate}
-              readOnly
-              disabled={submitting}
-              aria-label="Movement Date (read-only)"
-              title="Authoritative operational date"
-              required
-            />
+          <div className={styles.detailRow} style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
+            <span className={styles.detailLabel}>Settlement Decision:</span>
+            <span className={styles.detailValue}>
+              {formatTransferSettlement({ effectiveDue, decision, settleAmount, newCustomerName: selectedNewCustomer?.name })}
+            </span>
           </div>
         </div>
 

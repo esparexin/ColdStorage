@@ -212,8 +212,11 @@ export function InternalMovementTransferTab({
       {step === 3 && (
         <TransferStep3Confirm
           currentGrn={currentGrn} selectedNewCustomer={selectedNewCustomer} remainingBags={remainingBags}
-          sourceBagCategory={sourceBagCategory} effectiveDue={effectiveDue} decision={decision} settleAmount={settleAmount}
-          movementDate={movementDate} reason={reason} onReasonChange={setReason} remarks={remarks} onRemarksChange={setRemarks}
+          confirmedSmallBags={confirmedSmallBags} confirmedBigBags={confirmedBigBags}
+          sourceBagCategory={sourceBagCategory} hamaliRate={effectiveHamaliRate} hamaliAmount={hamaliAmount}
+          assessedRent={assessedRent} totalPaid={totalPaid} effectiveDue={effectiveDue}
+          decision={decision} settleAmount={settleAmount} movementDate={movementDate}
+          reason={reason} onReasonChange={setReason} remarks={remarks} onRemarksChange={setRemarks}
           submitting={submitting} onBack={() => setStep(2)}
         />
       )}
@@ -223,10 +226,7 @@ export function InternalMovementTransferTab({
           title="Confirm Ownership Transfer"
           message={
             <div>
-              <p>
-                Are you sure you want to transfer ownership of GRN <strong>{currentGrn.grnNumber}</strong> from{' '}
-                <strong>{currentGrn.customerName}</strong> to <strong>{selectedNewCustomer?.name}</strong>?
-              </p>
+              <p>Are you sure you want to transfer ownership of GRN <strong>{currentGrn.grnNumber}</strong> from <strong>{currentGrn.customerName}</strong> to <strong>{selectedNewCustomer?.name}</strong>?</p>
               <p style={{ marginTop: 'var(--space-2)', color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
                 Once confirmed, the transfer will be finalized and this operation cannot be reversed.
               </p>
