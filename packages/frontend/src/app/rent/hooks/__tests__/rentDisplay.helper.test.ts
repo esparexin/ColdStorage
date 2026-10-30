@@ -7,6 +7,7 @@ import {
   getRentCollectionNotice,
   formatBillingPeriodSubtitle,
   formatExtensionPeriodSubtitle,
+  deriveHamaliChargeFromSummary,
 } from '../rentDisplay.helper';
 
 describe('rentDisplay.helper', () => {
@@ -197,6 +198,24 @@ describe('rentDisplay.helper', () => {
         bagRate: 150,
       });
       expect(res).toBe('March 2027 – December 2027 (10 months renewal) · Snapshot 20 bags · ₹150.00/bag');
+    });
+  });
+
+  describe('deriveHamaliChargeFromSummary', () => {
+    it('returns positive hamali difference when totalDue exceeds rentAmount', () => {
+      expect(deriveHamaliChargeFromSummary(5000, 3250, [])).toBe(1750);
+    });
+
+    it('accounts for extension amounts in deriving hamali difference', () => {
+      expect(deriveHamaliChargeFromSummary(6000, 3250, [{ finalAmount: 1000 }])).toBe(1750);
+    });
+
+    it('returns 0 when totalDue equals rentAmount and extensions', () => {
+      expect(deriveHamaliChargeFromSummary(3250, 3250, [])).toBe(0);
+    });
+
+    it('returns 0 when difference is negative or zero', () => {
+      expect(deriveHamaliChargeFromSummary(3000, 3250, [])).toBe(0);
     });
   });
 });

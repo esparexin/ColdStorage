@@ -29,17 +29,8 @@ export function RentBillingChargesSection({
   const breakdown =
     account.mergedConsignment ??
     parseMergedConsignmentBreakdown(account.remarks, account.totalBags, account.customerName);
-  const repackDeduction = (breakdown?.repackHamali?.amount ?? 0) + (breakdown?.totalCarriedRent ?? 0);
-  const targetBaseRent = breakdown
-    ? (account.rentAmount > repackDeduction ? account.rentAmount - repackDeduction : 0)
-    : account.rentAmount;
 
-  const totalEntries = breakdown
-    ? (targetBaseRent > 0 || breakdown.genesisBags > 0 ? 1 : 0) +
-      (breakdown.repackHamali ? 1 : 0) +
-      account.extensions.length +
-      (hamaliDue > 0 ? 1 : 0)
-    : account.extensions.length + 1 + (hamaliDue > 0 ? 1 : 0);
+  const totalEntries = 1 + account.extensions.length + (hamaliDue > 0 ? 1 : 0);
 
   return (
     <>
@@ -61,75 +52,31 @@ export function RentBillingChargesSection({
         />
       )}
       <div className={styles.paymentsList}>
-        {!breakdown ? (
-          <div className={styles.paymentItem}>
-            <div>
-              <div className={styles.paymentHead}>
-                <strong className={styles.receiptNumber}>Season {originSeason} — Original</strong>
-                <Badge variant="primary">{account.rentType}</Badge>
-                <Badge variant={account.remainingBalance === 0 ? 'success' : 'warning'}>
-                  {account.remainingBalance === 0 ? 'Settled' : 'Pending'}
-                </Badge>
-              </div>
-              <span className={styles.paymentMeta}>
-                {formatBillingPeriodSubtitle({
-                  rentType: account.rentType,
-                  seasonYear: originSeason,
-                  totalBags: account.totalBags,
-                  rates: agreedRates,
-                  rentMonths: account.rentMonths,
-                })}
-              </span>
+        <div className={styles.paymentItem}>
+          <div>
+            <div className={styles.paymentHead}>
+              <strong className={styles.receiptNumber}>
+                Season {originSeason} — {account.rentType === 'Seasonal' ? 'Storage Rent' : `${account.rentType} Storage`}
+              </strong>
+              <Badge variant="primary">{account.rentType}</Badge>
+              <Badge variant={account.remainingBalance === 0 ? 'success' : 'warning'}>
+                {account.remainingBalance === 0 ? 'Settled' : 'Pending'}
+              </Badge>
             </div>
-            <strong className={styles.paymentAmount}>
-              ₹{account.rentAmount.toLocaleString('en-IN')}
-            </strong>
+            <span className={styles.paymentMeta}>
+              {formatBillingPeriodSubtitle({
+                rentType: account.rentType,
+                seasonYear: originSeason,
+                totalBags: account.totalBags,
+                rates: agreedRates,
+                rentMonths: account.rentMonths,
+              })}
+            </span>
           </div>
-        ) : (
-          <>
-            {(targetBaseRent > 0 || breakdown.genesisBags > 0) && (
-              <div className={styles.paymentItem}>
-                <div>
-                  <div className={styles.paymentHead}>
-                    <strong className={styles.receiptNumber}>
-                      Season {originSeason} — {targetBaseRent > 0 ? `Genesis Inward (${breakdown.genesisCustomerName})` : 'Storage Stock'}
-                    </strong>
-                    <Badge variant="primary">Season {originSeason}</Badge>
-                    <Badge variant={targetBaseRent > 0 ? 'neutral' : 'warning'}>
-                      {targetBaseRent > 0 ? 'Genesis Stock' : 'At Outward Dispatch'}
-                    </Badge>
-                  </div>
-                  <span className={styles.paymentMeta}>
-                    {targetBaseRent > 0
-                      ? `${breakdown.genesisBags.toLocaleString('en-IN')} original inward bags · ${breakdown.genesisCustomerName}${agreedRates ? ` · ${agreedRates}` : ''}`
-                      : `${account.totalBags.toLocaleString('en-IN')} total bags in storage (${breakdown.genesisBags} Genesis + ${breakdown.totalMergedAddedBags} Merged) · Storage rent calculated upon Outward Delivery & Gate Pass`}
-                  </span>
-                </div>
-                <strong className={styles.paymentAmount}>
-                  {targetBaseRent > 0 ? `₹${targetBaseRent.toLocaleString('en-IN')}` : '₹0 (At Outward)'}
-                </strong>
-              </div>
-            )}
-            {breakdown.repackHamali && (
-              <div className={styles.paymentItem}>
-                <div>
-                  <div className={styles.paymentHead}>
-                    <strong className={styles.receiptNumber}>
-                      Repacking Labor & Handling ({breakdown.repackHamali.repackBags} Bags)
-                    </strong>
-                    <Badge variant="neutral">Repack Labor</Badge>
-                  </div>
-                  <span className={styles.paymentMeta}>
-                    {breakdown.repackHamali.repackBags.toLocaleString('en-IN')} newly repacked bags @ ₹{breakdown.repackHamali.ratePerBag}/bag labor
-                  </span>
-                </div>
-                <strong className={styles.paymentAmount}>
-                  ₹{breakdown.repackHamali.amount.toLocaleString('en-IN')}
-                </strong>
-              </div>
-            )}
-          </>
-        )}
+          <strong className={styles.paymentAmount}>
+            {account.rentAmount > 0 ? `₹${account.rentAmount.toLocaleString('en-IN')}` : '₹0 (At Outward)'}
+          </strong>
+        </div>
         {account.extensions.map((ext) => (
           <div key={ext.id} className={styles.paymentItem}>
             <div>
@@ -165,7 +112,7 @@ export function RentBillingChargesSection({
                 <Badge variant="neutral">Handling</Badge>
               </div>
               <span className={styles.paymentMeta}>
-                Physical inward / repacking handling labor charge recorded on account
+                Physical inward handling labor charge recorded on account
               </span>
             </div>
             <strong className={styles.paymentAmount}>
