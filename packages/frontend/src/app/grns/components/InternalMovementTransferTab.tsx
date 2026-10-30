@@ -55,8 +55,10 @@ export function InternalMovementTransferTab({
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('Cash');
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>('');
-  const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>('');
+  const remainingBags = currentGrn.closingBags ?? currentGrn.bags;
+  const initialSb = currentGrn.bagType !== 'Hybrid' && ((currentGrn.smallBags ?? 0) + (currentGrn.bigBags ?? 0) === remainingBags);
+  const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>(initialSb ? (currentGrn.smallBags ?? 0) : '');
+  const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>(initialSb ? (currentGrn.bigBags ?? 0) : '');
   const [sourceBagCategory, setSourceBagCategory] = useState<OutwardBagCategory>(
     isHybridBagCategory(currentGrn.bagType) ? 'Hybrid' : 'S/B',
   );
@@ -70,7 +72,6 @@ export function InternalMovementTransferTab({
   const candidateCustomers = useMemo(() => customers.filter((c) => c.id !== currentGrn.customerId && c.isActive), [customers, currentGrn.customerId]);
   const selectedNewCustomer = useMemo(() => candidateCustomers.find((c) => c.id === newCustomerId), [candidateCustomers, newCustomerId]);
 
-  const remainingBags = currentGrn.closingBags ?? currentGrn.bags;
   const isUnverified = currentGrn.isCompositionVerified === false;
   const isHybrid = isHybridBagCategory(sourceBagCategory);
   const smallBags = isHybrid
@@ -169,7 +170,7 @@ export function InternalMovementTransferTab({
       sourceBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
       sourceSeasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
       sourceMonthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
-    } : isUnverified && typeof confirmedSmallBags === 'number' && typeof confirmedBigBags === 'number'
+    } : typeof confirmedSmallBags === 'number' && typeof confirmedBigBags === 'number'
       ? { confirmedSmallBags, confirmedBigBags } : undefined;
 
     await onExecuteTransfer(

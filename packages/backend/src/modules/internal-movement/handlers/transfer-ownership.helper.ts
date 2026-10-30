@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import type { TransferOwnershipInput, RentPayment } from '@cold-storage/contracts';
+import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { computeRentBalance, type RentBalance } from '../../common/rent-balance.js';
 import { counterService } from '../../common/counter.service.js';
 import { rentRepository } from '../../rent/rent.repository.js';
@@ -124,4 +125,42 @@ export function formatTransferAuditNote(params: {
     return `${prefix} Pending rent obligation: ₹${effectiveRentBal.remainingBalance} carried forward under agreed pending terms. Rent obligation: ₹${effectiveRentBal.rentAmount} (Prior collected: ₹${effectiveRentBal.totalPaid}). Reason: ${remarks.trim()}]`;
   }
   return `${prefix} Rent obligation: ₹${effectiveRentBal.rentAmount} previously settled (Prior collected: ₹${effectiveRentBal.totalPaid}). Reason: ${remarks.trim()}]`;
+}
+
+export async function alignTransferLedger(params: {
+  facilityId: string;
+  grn: { id: string; grnNumber: string; chamber: string; commodityId: string; bagType: string };
+  movementId: string;
+  movementDate: Date;
+  userId: string;
+  bal: { smallBags: number; bigBags: number; total: number };
+  confSmall: number;
+  confBig: number;
+  resultingBagType: string;
+  session: mongoose.ClientSession;
+}): Promise<void> {
+  const { facilityId, grn, movementId, movementDate, userId, bal, confSmall, confBig, resultingBagType, session } = params;
+  if (bal.smallBags === confSmall && bal.bigBags === confBig) return;
+
+  await InventoryTransactionModel.create(
+    [
+      {
+        id: `tx-out-${randomUUID()}`, facilityId, grnId: grn.id, grnNumber: grn.grnNumber,
+        chamber: grn.chamber, commodityId: grn.commodityId, bagType: grn.bagType,
+        transactionType: 'OUTWARD_DELIVERY', smallQuantity: bal.smallBags, bigQuantity: bal.bigBags,
+        referenceType: 'DELIVERY', referenceId: movementId,
+        notes: `Stock composition adjustment for ownership transfer (Lot ${grn.grnNumber})`,
+        createdBy: userId, createdAt: movementDate,
+      },
+      {
+        id: `tx-in-${randomUUID()}`, facilityId, grnId: grn.id, grnNumber: grn.grnNumber,
+        chamber: grn.chamber, commodityId: grn.commodityId, bagType: resultingBagType,
+        transactionType: 'INWARD_PUTAWAY', smallQuantity: confSmall, bigQuantity: confBig,
+        referenceType: 'PUT_AWAY', referenceId: movementId,
+        notes: `Confirmed composition putaway for ownership transfer (Lot ${grn.grnNumber})`,
+        createdBy: userId, createdAt: movementDate,
+      },
+    ],
+    { session, ordered: true },
+  );
 }

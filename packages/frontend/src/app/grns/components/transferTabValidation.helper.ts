@@ -63,17 +63,8 @@ export function validateTransferConfirmation(params: TransferConfirmationParams)
     return null;
   }
 
-  if (!isUnverified) {
-    if (typeof confirmedSmallBags === 'number' || typeof confirmedBigBags === 'number') {
-      const s = typeof confirmedSmallBags === 'number' ? confirmedSmallBags : 0;
-      const b = typeof confirmedBigBags === 'number' ? confirmedBigBags : 0;
-      return validateBagReconciliation(s, b, remainingBags);
-    }
-    return null;
-  }
-
   if (typeof confirmedSmallBags !== 'number' || typeof confirmedBigBags !== 'number') {
-    return `Confirmed composition required for unverified GRN (${remainingBags} bags). Confirm Small + Big counts.`;
+    return `Confirmed composition required for ${remainingBags} bags. Confirm Small + Big counts.`;
   }
   return validateBagReconciliation(confirmedSmallBags, confirmedBigBags, remainingBags);
 }

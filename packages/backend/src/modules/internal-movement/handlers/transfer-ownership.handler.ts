@@ -14,7 +14,7 @@ import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
-import { formatTransferAuditNote, settleTransferRent } from './transfer-ownership.helper.js';
+import { alignTransferLedger, formatTransferAuditNote, settleTransferRent } from './transfer-ownership.helper.js';
 import { validateTransferBagConfirmation } from './transfer-ownership-validation.helper.js';
 
 export async function transferOwnership(
@@ -33,31 +33,17 @@ export async function transferOwnership(
       const grn = await GrnModel.findOne({ id: input.grnId, facilityId }, null, { session })
         .lean()
         .exec();
-      if (!grn) {
-        throw new Error(`GRN '${input.grnId}' not found in facility '${facilityId}'`);
-      }
-      if (grn.status === 'CLOSED') {
-        throw new Error(`Cannot transfer ownership of CLOSED GRN '${grn.grnNumber}'`);
-      }
-      if (grn.loanStatus === 'TAKEN') {
-        throw new Error(`Cannot transfer ownership: Active loan hold against GRN '${grn.grnNumber}'`);
-      }
-      if (grn.customerId === input.newCustomerId) {
-        throw new Error('New customer must be different from current customer');
-      }
+      if (!grn) throw new Error(`GRN '${input.grnId}' not found in facility '${facilityId}'`);
+      if (grn.status === 'CLOSED') throw new Error(`Cannot transfer ownership of CLOSED GRN '${grn.grnNumber}'`);
+      if (grn.loanStatus === 'TAKEN') throw new Error(`Cannot transfer ownership: Active loan hold against GRN '${grn.grnNumber}'`);
+      if (grn.customerId === input.newCustomerId) throw new Error('New customer must be different from current customer');
 
       const newCustomer = await CustomerModel.findOne({ id: input.newCustomerId }, null, { session })
         .lean()
         .exec();
-      if (!newCustomer) {
-        throw new Error(`Customer '${input.newCustomerId}' not found`);
-      }
-      if (!newCustomer.isActive) {
-        throw new Error(`Customer '${newCustomer.name}' is inactive`);
-      }
-      if (!newCustomer.facilityIds.includes(facilityId)) {
-        throw new Error(`Customer '${newCustomer.name}' is not assigned to facility '${facilityId}'`);
-      }
+      if (!newCustomer) throw new Error(`Customer '${input.newCustomerId}' not found`);
+      if (!newCustomer.isActive) throw new Error(`Customer '${newCustomer.name}' is inactive`);
+      if (!newCustomer.facilityIds.includes(facilityId)) throw new Error(`Customer '${newCustomer.name}' is not assigned to facility '${facilityId}'`);
 
       const bal = await readLedgerBalance(facilityId, grn.id, session);
       if (bal.total <= 0) {
@@ -76,6 +62,8 @@ export async function transferOwnership(
 
       const movementDate = new Date(input.movementDate);
       const isHybrid = input.sourceBagType === 'Hybrid' || grn.bagType === 'Hybrid' || isHybridBagCategory(input.sourceBagCategory);
+      const confSmall = isHybrid ? bal.total : (typeof input.confirmedSmallBags === 'number' ? input.confirmedSmallBags : bal.smallBags);
+      const confBig = isHybrid ? 0 : (typeof input.confirmedBigBags === 'number' ? input.confirmedBigBags : bal.bigBags);
       const transferExtensions = await rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session);
       // 1. Authoritative outward-style rent assessment for all remaining bags being transferred
       const { expectedRentCharge } = await computeExpectedDeliveryRent({
@@ -83,7 +71,7 @@ export async function transferOwnership(
           id: grn.id, grnNumber: grn.grnNumber, date: grn.date, rentType: grn.rentType, commodityId: grn.commodityId,
           smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, bagPrice: grn.bagPrice,
         },
-        withdrawal: { smallBags: bal.smallBags, bigBags: bal.bigBags },
+        withdrawal: { smallBags: confSmall, bigBags: confBig },
         quantity: isHybrid ? (input.sourceQuantity ?? bal.total) : undefined,
         deliveryDate: movementDate, session,
         excludePeriodKeys: toExcludedPeriodKeys(transferExtensions),
@@ -139,6 +127,11 @@ export async function transferOwnership(
       });
 
       const movementId = `mov-${randomUUID()}`;
+      const resultingBagType = isHybrid ? 'Hybrid' : 'S/B';
+      await alignTransferLedger({
+        facilityId, grn, movementId, movementDate, userId, bal, confSmall, confBig, resultingBagType, session,
+      });
+
       const transferDateStr = movementDate.toISOString().split('T')[0];
       const transferNote = formatTransferAuditNote({
         transferDateStr,
@@ -155,11 +148,18 @@ export async function transferOwnership(
       const updateFields: Record<string, unknown> = {
         customerId: newCustomer.id,
         customerName: newCustomer.name,
+        bagType: resultingBagType,
+        smallBags: confSmall,
+        bigBags: confBig,
+        isCompositionVerified: true,
         remarks: updatedRemarks,
         updatedAt: new Date(),
       };
-      if (effectiveObligation > 0) {
-        updateFields.rentAmount = effectiveObligation;
+      if (effectiveObligation > 0) updateFields.rentAmount = effectiveObligation;
+      if (isHybrid) {
+        if (typeof input.sourceBagPrice === 'number' && input.sourceBagPrice > 0) updateFields.bagPrice = input.sourceBagPrice;
+        if (typeof input.sourceSeasonalBagPrice === 'number' && input.sourceSeasonalBagPrice > 0) updateFields.smallBagPrice = input.sourceSeasonalBagPrice;
+        if (typeof input.sourceMonthlyBagPrice === 'number' && input.sourceMonthlyBagPrice > 0) updateFields.bigBagPrice = input.sourceMonthlyBagPrice;
       }
 
       const updatedGrn = await GrnModel.findOneAndUpdate(
@@ -187,10 +187,10 @@ export async function transferOwnership(
             toCustomerId: newCustomer.id,
             toCustomerName: newCustomer.name,
             totalBagsMoved: bal.total,
-            smallBagsMoved: bal.smallBags,
-            bigBagsMoved: bal.bigBags,
-            sourceBagType: input.sourceBagType ?? (isHybrid ? 'Hybrid' : (grn.bagType ?? null)),
-            sourceBagCategory: input.sourceBagCategory ?? null,
+            smallBagsMoved: confSmall,
+            bigBagsMoved: confBig,
+            sourceBagType: input.sourceBagType ?? resultingBagType,
+            sourceBagCategory: input.sourceBagCategory ?? resultingBagType,
             sourceQuantity: input.sourceQuantity ?? null,
             sourceBagPrice: input.sourceBagPrice ?? null,
             sourceSeasonalBagPrice: input.sourceSeasonalBagPrice ?? null,
