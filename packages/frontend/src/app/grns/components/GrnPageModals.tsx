@@ -150,6 +150,7 @@ export function GrnPageModals({
           commodities={commodities}
           onClose={onCloseInternalMovementModal}
           onSuccess={onInternalMovementSuccess}
+          onCustomerAdded={onCustomerAdded}
         />
       )}
 

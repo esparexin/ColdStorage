@@ -13,6 +13,7 @@ import { WizardStepper } from './WizardStepper';
 import { computeOutwardRentCharge } from '@/app/deliveries/hooks/deliveryRent.helper';
 import { validateTransferPayment } from './internalMovementPayload.helper';
 import { validateTransferConfirmation } from './transferTabValidation.helper';
+import { resolveCandidateTransferees } from './transferCandidateCustomer.helper';
 import { TransferStep1Customer } from './TransferStep1Customer';
 import { TransferStep2Dues } from './TransferStep2Dues';
 import { TransferStep3Confirm } from './TransferStep3Confirm';
@@ -39,14 +40,16 @@ interface InternalMovementTransferTabProps {
       sourceBagPrice?: number; sourceSeasonalBagPrice?: number; sourceMonthlyBagPrice?: number;
     },
   ) => Promise<void>;
+  onCustomerAdded?: () => void;
 }
 
 export function InternalMovementTransferTab({
-  currentGrn, facilityId, customers, commodities, submitting, onExecuteTransfer,
+  currentGrn, facilityId, customers, commodities, submitting, onExecuteTransfer, onCustomerAdded,
 }: InternalMovementTransferTabProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [newCustomerId, setNewCustomerId] = useState('');
+  const [createdCustomers, setCreatedCustomers] = useState<Customer[]>([]);
   const [movementDate] = useState(new Date().toISOString().slice(0, 10));
   const [reason, setReason] = useState('');
   const [remarks, setRemarks] = useState('');
@@ -69,36 +72,27 @@ export function InternalMovementTransferTab({
   const { rentSummary, rentLoading, refreshRentGate } = useRentGate();
   useEffect(() => { void refreshRentGate(facilityId, currentGrn.id); }, [facilityId, currentGrn.id, refreshRentGate]);
 
-  const candidateCustomers = useMemo(() => customers.filter((c) => c.id !== currentGrn.customerId && c.isActive), [customers, currentGrn.customerId]);
+  const candidateCustomers = useMemo(
+    () => resolveCandidateTransferees(customers, currentGrn.customerId, createdCustomers),
+    [customers, currentGrn.customerId, createdCustomers],
+  );
   const selectedNewCustomer = useMemo(() => candidateCustomers.find((c) => c.id === newCustomerId), [candidateCustomers, newCustomerId]);
 
   const isUnverified = currentGrn.isCompositionVerified === false;
   const isHybrid = isHybridBagCategory(sourceBagCategory);
-  const smallBags = isHybrid
-    ? remainingBags
-    : (typeof confirmedSmallBags === 'number' ? confirmedSmallBags : currentGrn.smallBags ?? 0);
+  const smallBags = isHybrid ? remainingBags : (typeof confirmedSmallBags === 'number' ? confirmedSmallBags : currentGrn.smallBags ?? 0);
   const bigBags = isHybrid ? 0 : (typeof confirmedBigBags === 'number' ? confirmedBigBags : currentGrn.bigBags ?? 0);
 
-  const assessedRent = useMemo(() => {
-    return computeOutwardRentCharge({
-      rentType: currentGrn.rentType,
-      bagCategory: (sourceBagCategory || 'S/B') as OutwardBagCategory,
-      smallBags,
-      bigBags,
-      quantity: isHybrid ? smallBags : undefined,
-      manualBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
-      seasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
-      monthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
-      inwardDate: currentGrn.date,
-      deliveryDate: movementDate,
-      smallBagPrice: currentGrn.smallBagPrice,
-      bigBagPrice: currentGrn.bigBagPrice,
-      bagPrice: currentGrn.bagPrice,
-    });
-  }, [
-    currentGrn, sourceBagCategory, smallBags, bigBags, isHybrid,
-    sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice, movementDate,
-  ]);
+  const assessedRent = useMemo(() => computeOutwardRentCharge({
+    rentType: currentGrn.rentType,
+    bagCategory: (sourceBagCategory || 'S/B') as OutwardBagCategory,
+    smallBags, bigBags, quantity: isHybrid ? smallBags : undefined,
+    manualBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
+    seasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
+    monthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
+    inwardDate: currentGrn.date, deliveryDate: movementDate,
+    smallBagPrice: currentGrn.smallBagPrice, bigBagPrice: currentGrn.bigBagPrice, bagPrice: currentGrn.bagPrice,
+  }), [currentGrn, sourceBagCategory, smallBags, bigBags, isHybrid, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice, movementDate]);
 
   const commodity = useMemo(() => commodities?.find((c) => c.id === currentGrn.commodityId), [commodities, currentGrn.commodityId]);
   const effectiveHamaliRate = useMemo(() => {
@@ -115,15 +109,11 @@ export function InternalMovementTransferTab({
   const pendingAmount = rentSummary?.remainingBalance ?? 0;
   const isUnbilled = totalPaid === 0 && pendingAmount === 0 && (rentSummary?.rentAmount ?? 0) === 0;
   const storedRent = rentSummary?.rentAmount ?? 0;
-  const effectiveBaseRent = storedRent > 0
-    ? (storedRent > assessedRent ? storedRent : assessedRent)
-    : assessedRent;
+  const effectiveBaseRent = storedRent > 0 ? (storedRent > assessedRent ? storedRent : assessedRent) : assessedRent;
 
   const effectiveObligation = resolveTotalRentObligation({
-    rentType: currentGrn.rentType,
-    rentAmount: effectiveBaseRent,
-    outwardRentCharges: 0,
-    extensionAmounts: rentSummary?.extensions?.map((e) => e.finalAmount),
+    rentType: currentGrn.rentType, rentAmount: effectiveBaseRent,
+    outwardRentCharges: 0, extensionAmounts: rentSummary?.extensions?.map((e) => e.finalAmount),
     hamaliShare: hamaliAmount,
   });
   const effectiveDue = Math.max(0, effectiveObligation - totalPaid);
@@ -143,7 +133,6 @@ export function InternalMovementTransferTab({
     setValidationError(null);
     const payErr = validateTransferPayment(decision, settleAmount, effectiveDue);
     if (payErr) return setValidationError(payErr);
-    const isHybrid = isHybridBagCategory(sourceBagCategory);
     const confirmErr = validateTransferConfirmation({
       isUnverified, remainingBags, confirmedSmallBags, confirmedBigBags,
       sourceBagCategory, sourceQuantity: isHybrid ? remainingBags : undefined,
@@ -163,7 +152,6 @@ export function InternalMovementTransferTab({
   };
 
   const doExecuteTransfer = async () => {
-    const isHybrid = isHybridBagCategory(sourceBagCategory);
     const conf = isHybrid ? {
       sourceBagCategory: sourceBagCategory || undefined,
       sourceQuantity: remainingBags,
@@ -194,6 +182,11 @@ export function InternalMovementTransferTab({
           currentGrn={currentGrn} remainingBags={remainingBags} totalPaid={totalPaid} pendingAmount={pendingAmount}
           isUnbilled={isUnbilled} rentLoading={rentLoading} newCustomerId={newCustomerId} onNewCustomerIdChange={setNewCustomerId}
           candidateCustomers={candidateCustomers} selectedNewCustomer={selectedNewCustomer} submitting={submitting} onNext={handleProceedToStep2}
+          facilityId={facilityId}
+          onCustomerAdded={(newCustomer) => {
+            if (newCustomer) setCreatedCustomers((prev) => [...prev, newCustomer]);
+            onCustomerAdded?.();
+          }}
         />
       )}
       {step === 2 && (

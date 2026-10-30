@@ -35,7 +35,6 @@ function validateBagReconciliation(s: number, b: number, remaining: number): str
 
 export function validateTransferConfirmation(params: TransferConfirmationParams): string | null {
   const {
-    isUnverified,
     remainingBags,
     confirmedSmallBags,
     confirmedBigBags,

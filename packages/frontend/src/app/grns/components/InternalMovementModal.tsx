@@ -17,6 +17,7 @@ interface InternalMovementModalProps {
   commodities?: Commodity[];
   onClose: () => void;
   onSuccess: (updatedGrn: Grn) => void;
+  onCustomerAdded?: () => void;
 }
 
 export function InternalMovementModal({
@@ -26,6 +27,7 @@ export function InternalMovementModal({
   commodities,
   onClose,
   onSuccess,
+  onCustomerAdded,
 }: InternalMovementModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,6 +114,7 @@ export function InternalMovementModal({
           commodities={commodities}
           submitting={submitting}
           onExecuteTransfer={handleExecuteTransfer}
+          onCustomerAdded={onCustomerAdded}
         />
       </div>
     </Modal>
