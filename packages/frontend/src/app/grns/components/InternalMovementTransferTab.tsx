@@ -14,6 +14,7 @@ import { computeOutwardRentCharge } from '@/app/deliveries/hooks/deliveryRent.he
 import { validateTransferPayment } from './internalMovementPayload.helper';
 import { validateTransferConfirmation } from './transferTabValidation.helper';
 import { resolveCandidateTransferees } from './transferCandidateCustomer.helper';
+import { resolveTransferRates } from './transferRentRates.helper';
 import { TransferStep1Customer } from './TransferStep1Customer';
 import { TransferStep2Dues } from './TransferStep2Dues';
 import { TransferStep3Confirm } from './TransferStep3Confirm';
@@ -83,18 +84,22 @@ export function InternalMovementTransferTab({
   const smallBags = isHybrid ? remainingBags : (typeof confirmedSmallBags === 'number' ? confirmedSmallBags : currentGrn.smallBags ?? 0);
   const bigBags = isHybrid ? 0 : (typeof confirmedBigBags === 'number' ? confirmedBigBags : currentGrn.bigBags ?? 0);
 
+  const commodity = useMemo(() => commodities?.find((c) => c.id === currentGrn.commodityId), [commodities, currentGrn.commodityId]);
+  const { seasonalRates, monthlyRates } = useMemo(() => resolveTransferRates(currentGrn, commodity), [currentGrn, commodity]);
+
   const assessedRent = useMemo(() => computeOutwardRentCharge({
-    rentType: currentGrn.rentType,
-    bagCategory: (sourceBagCategory || 'S/B') as OutwardBagCategory,
+    rentType: currentGrn.rentType, bagCategory: (sourceBagCategory || 'S/B') as OutwardBagCategory,
     smallBags, bigBags, quantity: isHybrid ? smallBags : undefined,
     manualBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
     seasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
     monthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
     inwardDate: currentGrn.date, deliveryDate: movementDate,
-    smallBagPrice: currentGrn.smallBagPrice, bigBagPrice: currentGrn.bigBagPrice, bagPrice: currentGrn.bagPrice,
-  }), [currentGrn, sourceBagCategory, smallBags, bigBags, isHybrid, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice, movementDate]);
+    smallBagPrice: currentGrn.smallBagPrice ?? seasonalRates.small,
+    bigBagPrice: currentGrn.bigBagPrice ?? seasonalRates.big,
+    monthlySmallBagPrice: monthlyRates.small, monthlyBigBagPrice: monthlyRates.big,
+    bagPrice: currentGrn.bagPrice,
+  }), [currentGrn, sourceBagCategory, smallBags, bigBags, isHybrid, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice, movementDate, seasonalRates, monthlyRates]);
 
-  const commodity = useMemo(() => commodities?.find((c) => c.id === currentGrn.commodityId), [commodities, currentGrn.commodityId]);
   const effectiveHamaliRate = useMemo(() => {
     if (typeof currentGrn.hamaliRate === 'number') return currentGrn.hamaliRate;
     const isApp = commodity?.isHamaliApplicable ?? ((commodity?.hamaliRate ?? 0) > 0);
@@ -102,8 +107,8 @@ export function InternalMovementTransferTab({
   }, [currentGrn.hamaliRate, commodity]);
   const hamaliAmount = useMemo(() => {
     if (typeof currentGrn.hamaliAmount === 'number' && currentGrn.hamaliAmount >= 0) return currentGrn.hamaliAmount;
-    return calculateHamaliAmount(remainingBags, effectiveHamaliRate);
-  }, [currentGrn.hamaliAmount, remainingBags, effectiveHamaliRate]);
+    return calculateHamaliAmount(currentGrn.bags, effectiveHamaliRate);
+  }, [currentGrn.hamaliAmount, currentGrn.bags, effectiveHamaliRate]);
 
   const totalPaid = rentSummary?.totalPaid ?? 0;
   const pendingAmount = rentSummary?.remainingBalance ?? 0;
@@ -197,7 +202,9 @@ export function InternalMovementTransferTab({
           onPriceChange={setSourceBagPrice} sourceSeasonalBagPrice={sourceSeasonalBagPrice} onSeasonalPriceChange={setSourceSeasonalBagPrice}
           sourceMonthlyBagPrice={sourceMonthlyBagPrice} onMonthlyPriceChange={setSourceMonthlyBagPrice} movementDate={movementDate}
           selectedNewCustomer={selectedNewCustomer} totalPaid={totalPaid} outstandingBalance={effectiveDue}
-          assessedRent={assessedRent} effectiveDue={effectiveDue} hamaliRate={effectiveHamaliRate} decision={decision} onDecisionChange={setDecision}
+          assessedRent={assessedRent} effectiveDue={effectiveDue} hamaliRate={effectiveHamaliRate}
+          seasonalRates={seasonalRates} monthlyRates={monthlyRates}
+          decision={decision} onDecisionChange={setDecision}
           settleAmount={settleAmount} onSettleAmountChange={setSettleAmount} paymentMode={paymentMode} onPaymentModeChange={setPaymentMode}
           submitting={submitting} onBack={() => setStep(1)} onNext={handleProceedToStep3}
         />

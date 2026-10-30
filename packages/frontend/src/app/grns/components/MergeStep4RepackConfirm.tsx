@@ -5,6 +5,7 @@ import {
   isHybridBagCategory,
   resolveOutwardRates,
   type Grn,
+  type OperationalBagType,
   type OutwardBagCategory,
   type TransferPaymentDecision,
 } from '@cold-storage/contracts';
@@ -15,7 +16,7 @@ import styles from './InternalMovementModal.module.css';
 
 interface MergeStep4RepackConfirmProps {
   repackMode: boolean; onRepackModeChange: (active: boolean) => void;
-  repackBagType: 'S/B' | 'Hybrid'; onRepackBagTypeChange: (type: 'S/B' | 'Hybrid') => void;
+  repackBagType: OperationalBagType; onRepackBagTypeChange: (type: OperationalBagType) => void;
   repackSmall: number | ''; onRepackSmallChange: (val: number | '') => void;
   repackBig: number | ''; onRepackBigChange: (val: number | '') => void;
   repackQuantity: number | ''; onRepackQuantityChange: (val: number | '') => void;
@@ -41,7 +42,7 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
     totalSourceBags, referenceWeight, onReferenceWeightChange, repackHamaliCharge,
     actualRepackedBags, commodityHamaliRate, movementDate, targetGrn, targetCurrentRemaining,
     addedBagsToTarget, isRepackFilled, targetNewRemaining, confirmationCategory,
-    resultingBagType, settlementDecision, settleAmount, totalSourcePendingRent,
+    resultingBagType, totalSourcePendingRent,
     reason, onReasonChange, remarks, onRemarksChange, selectedSourcesCount,
     movedSmall, movedBig, submitting, onBack,
   } = props;
@@ -145,11 +146,9 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Rent Settlement:</span>
             <span className={styles.detailValue}>
-              {settlementDecision === 'SETTLE_NOW'
-                ? settleAmount < totalSourcePendingRent
-                  ? `Settled ₹${settleAmount.toLocaleString('en-IN')} now (₹${(totalSourcePendingRent - settleAmount).toLocaleString('en-IN')} carried forward)`
-                  : `Settled ₹${settleAmount.toLocaleString('en-IN')} now (Pay Now)`
-                : `Carried ₹${totalSourcePendingRent.toLocaleString('en-IN')} forward (Pay Later)`}
+              {totalSourcePendingRent > 0
+                ? `Carried ₹${totalSourcePendingRent.toLocaleString('en-IN')} forward (Pay Later)`
+                : 'Fully Settled (₹0 due)'}
             </span>
           </div>
 

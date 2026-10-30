@@ -43,8 +43,8 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
     step, setStep, targetGrnId, selectedSourceIds,
     movementDate, reason, setReason, remarks, setRemarks, confirmation,
     sourceConfirmations, updateSourceConfirmation, sourceRentSummaries,
-    settlementDecision, setSettlementDecision, settleAmount, setSettleAmount,
-    paymentMode, setPaymentMode, repackMode, setRepackMode, repackBagType, setRepackBagType,
+    settlementDecision, settleAmount,
+    repackMode, setRepackMode, repackBagType, setRepackBagType,
     repackSmall, setRepackSmall, repackBig, setRepackBig, repackQuantity, setRepackQuantity,
     repackSeasonalBagPrice, setRepackSeasonalBagPrice, repackMonthlyBagPrice, setRepackMonthlyBagPrice,
     repackBagPrice, setRepackBagPrice, referenceWeight, setReferenceWeight, validationError,
@@ -95,6 +95,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
           selectedSources={selectedSources}
           commodityHamaliRate={commodityHamaliRate}
           targetGrnDate={targetGrn.date}
+          commodities={props.commodities}
           submitting={submitting}
           onBack={() => setStep(1)}
           onNext={handleProceedToStep3}
@@ -103,9 +104,11 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
       )}
       {step === 3 && (
         <MergeStep3Settlement
-          totalSourcePendingRent={totalSourcePendingRent} settlementDecision={settlementDecision} onSettlementDecisionChange={setSettlementDecision}
-          settleAmount={settleAmount} onSettleAmountChange={setSettleAmount} paymentMode={paymentMode} onPaymentModeChange={setPaymentMode}
-          targetGrnNumber={targetGrn.grnNumber} submitting={submitting} onBack={() => setStep(2)} onNext={handleProceedToStep4} isMultiSource={selectedSources.length > 1}
+          totalSourcePendingRent={totalSourcePendingRent}
+          targetGrnNumber={targetGrn.grnNumber}
+          submitting={submitting}
+          onBack={() => setStep(2)}
+          onNext={handleProceedToStep4}
         />
       )}
       {step === 4 && (

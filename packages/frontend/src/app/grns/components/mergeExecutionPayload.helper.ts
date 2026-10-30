@@ -1,10 +1,10 @@
-import type { OutwardBagCategory } from '@cold-storage/contracts';
+import type { OperationalBagType, OutwardBagCategory } from '@cold-storage/contracts';
 import { isHybridBagCategory } from '@cold-storage/contracts';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
 
 export interface MergeExecutionPayloadParams {
   repackMode: boolean;
-  repackBagType: 'S/B' | 'Hybrid';
+  repackBagType: OperationalBagType;
   repackSmall: number | '';
   repackBig: number | '';
   repackQuantity: number | '';

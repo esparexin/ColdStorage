@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Package } from 'lucide-react';
-import type { Grn, RentSummaryDto } from '@cold-storage/contracts';
+import type { Commodity, Grn, RentSummaryDto } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
 import { calculateMergeGrandTotal } from './mergeRentAssessment.helper';
@@ -19,6 +19,7 @@ interface MergeStep2BagTypeProps {
   selectedSources: Grn[];
   commodityHamaliRate: number;
   targetGrnDate?: Date | string | null;
+  commodities?: Commodity[];
   submitting: boolean;
   onBack: () => void;
   onNext: () => void;
@@ -34,6 +35,7 @@ export function MergeStep2BagType({
   selectedSources,
   commodityHamaliRate,
   targetGrnDate,
+  commodities,
   submitting,
   onBack,
   onNext,
@@ -48,8 +50,9 @@ export function MergeStep2BagType({
         commodityHamaliRate,
         targetGrnDate,
         sourceRentSummaries,
+        commodities,
       }),
-    [selectedSources, sourceConfirmations, movementDate, commodityHamaliRate, targetGrnDate, sourceRentSummaries],
+    [selectedSources, sourceConfirmations, movementDate, commodityHamaliRate, targetGrnDate, sourceRentSummaries, commodities],
   );
 
   return (
@@ -91,6 +94,7 @@ export function MergeStep2BagType({
             commodityHamaliRate={commodityHamaliRate}
             targetGrnDate={targetGrnDate}
             summary={sourceRentSummaries?.[source.id]}
+            commodity={commodities?.find((c) => c.id === source.commodityId)}
           />
         ))}
       </div>

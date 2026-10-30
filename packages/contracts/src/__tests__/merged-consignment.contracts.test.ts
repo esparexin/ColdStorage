@@ -3,6 +3,8 @@ import {
   parseMergedConsignmentBreakdown,
   createDeliverySchema,
   deliveryChallanSchema,
+  mergedRepackedStockSchema,
+  mergedConsignmentBreakdownSchema,
 } from '../index.js';
 
 describe('merged-consignment.contracts', () => {
@@ -151,5 +153,34 @@ describe('merged-consignment.contracts', () => {
     const duration = performance.now() - t0;
 
     expect(duration).toBeLessThan(100);
+  });
+
+  it('strictly enforces operationalBagTypeSchema on repacked stock and breakdown schemas', () => {
+    // Valid operational bag types: 'S/B' and 'Hybrid'
+    expect(mergedRepackedStockSchema.safeParse({ bagType: 'S/B', quantity: 50 }).success).toBe(true);
+    expect(mergedRepackedStockSchema.safeParse({ bagType: 'Hybrid', quantity: 50 }).success).toBe(true);
+
+    // Rejects non-operational canonical or invalid tokens
+    expect(mergedRepackedStockSchema.safeParse({ bagType: 'S', quantity: 50 }).success).toBe(false);
+    expect(mergedRepackedStockSchema.safeParse({ bagType: 'B', quantity: 50 }).success).toBe(false);
+    expect(mergedRepackedStockSchema.safeParse({ bagType: 'Modern', quantity: 50 }).success).toBe(false);
+    expect(mergedRepackedStockSchema.safeParse({ bagType: 'Invalid', quantity: 50 }).success).toBe(false);
+
+    expect(
+      mergedConsignmentBreakdownSchema.safeParse({
+        isMergedTarget: true,
+        totalMergedAddedBags: 50,
+        genesisBags: 20,
+        repackedBagType: 'S/B',
+      }).success,
+    ).toBe(true);
+    expect(
+      mergedConsignmentBreakdownSchema.safeParse({
+        isMergedTarget: true,
+        totalMergedAddedBags: 50,
+        genesisBags: 20,
+        repackedBagType: 'Modern',
+      }).success,
+    ).toBe(false);
   });
 });

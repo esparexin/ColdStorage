@@ -2,6 +2,7 @@ import type mongoose from 'mongoose';
 import {
   parseMergedConsignmentBreakdown,
   type CreateDeliveryInput,
+  type OperationalBagType,
 } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 
@@ -11,7 +12,7 @@ export interface MergedStockPools {
   initialConfirmedSmall: number;
   initialConfirmedBig: number;
   initialConfirmedHybrid: number;
-  confirmedBagType: 'S/B' | 'Hybrid';
+  confirmedBagType: OperationalBagType;
   availableUnclassified: number;
   availableConfirmedSmall: number;
   availableConfirmedBig: number;
@@ -33,7 +34,7 @@ export async function resolveMergedStockPools(
   const initialConfirmedSmall = breakdown.repackedSmallBags ?? 0;
   const initialConfirmedBig = breakdown.repackedBigBags ?? 0;
   const initialConfirmedHybrid = breakdown.repackedHybridBags ?? 0;
-  const confirmedBagType: 'S/B' | 'Hybrid' = breakdown.repackedBagType ?? 'S/B';
+  const confirmedBagType: OperationalBagType = breakdown.repackedBagType ?? 'S/B';
 
   const priorChallans = await DeliveryChallanModel.find(
     { facilityId, grnId: grn.id, status: 'ISSUED' },

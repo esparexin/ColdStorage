@@ -2,13 +2,13 @@
 
 import React from 'react';
 import { Layers } from 'lucide-react';
-import { deriveHybridRateVisibility, type RentType } from '@cold-storage/contracts';
+import { deriveHybridRateVisibility, type OperationalBagType, type RentType } from '@cold-storage/contracts';
 import { Input, Select } from '@/components/ui';
 import styles from './InternalMovementModal.module.css';
 
 export interface MergeStep4RepackSectionProps {
   repackMode: boolean; onRepackModeChange: (active: boolean) => void;
-  repackBagType: 'S/B' | 'Hybrid'; onRepackBagTypeChange: (type: 'S/B' | 'Hybrid') => void;
+  repackBagType: OperationalBagType; onRepackBagTypeChange: (type: OperationalBagType) => void;
   repackSmall: number | ''; onRepackSmallChange: (val: number | '') => void;
   repackBig: number | ''; onRepackBigChange: (val: number | '') => void;
   repackQuantity: number | ''; onRepackQuantityChange: (val: number | '') => void;
@@ -67,7 +67,7 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
               id="repack-bag-type-select"
               label="Bag Type"
               value={repackBagType === 'Hybrid' ? 'Hybrid' : 'S/B'}
-              onChange={(e) => onRepackBagTypeChange(e.target.value as 'S/B' | 'Hybrid')}
+              onChange={(e) => onRepackBagTypeChange(e.target.value as OperationalBagType)}
               disabled={submitting}
             >
               <option value="S/B">S/B (Small &amp; Big)</option>

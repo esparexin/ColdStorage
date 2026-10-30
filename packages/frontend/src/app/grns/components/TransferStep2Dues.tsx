@@ -35,6 +35,8 @@ interface TransferStep2DuesProps {
   assessedRent?: number;
   effectiveDue: number;
   hamaliRate?: number | null;
+  seasonalRates?: { small: number; big: number };
+  monthlyRates?: { small: number; big: number };
   decision: TransferPaymentDecision;
   onDecisionChange: (d: TransferPaymentDecision) => void;
   settleAmount: number;
@@ -53,6 +55,7 @@ export function TransferStep2Dues(props: TransferStep2DuesProps) {
     sourceBagPrice, onPriceChange, sourceSeasonalBagPrice, onSeasonalPriceChange,
     sourceMonthlyBagPrice, onMonthlyPriceChange, movementDate, selectedNewCustomer,
     totalPaid, outstandingBalance, assessedRent, effectiveDue, hamaliRate,
+    seasonalRates, monthlyRates,
     decision, onDecisionChange, settleAmount, onSettleAmountChange,
     paymentMode, onPaymentModeChange, submitting, onBack, onNext,
   } = props;
@@ -111,6 +114,8 @@ export function TransferStep2Dues(props: TransferStep2DuesProps) {
         outstandingBalance={outstandingBalance}
         assessedRent={assessedRent}
         hamaliRate={hamaliRate}
+        seasonalRates={seasonalRates}
+        monthlyRates={monthlyRates}
       />
 
       {/* Rent Settlement Decision Card */}

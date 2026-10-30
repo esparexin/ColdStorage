@@ -4,13 +4,13 @@ import React, { useMemo } from 'react';
 import {
   calculateHamaliAmount,
   isHybridBagCategory,
-  resolveOutwardRates,
   type Grn,
   type OutwardBagCategory,
 } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import { OutwardRentBreakdown } from '@/app/deliveries/components/OutwardRentBreakdown';
 import { computeOutwardRentCharge } from '@/app/deliveries/hooks/deliveryRent.helper';
+import { resolveTransferRates } from './transferRentRates.helper';
 import styles from './InternalMovementModal.module.css';
 
 export interface TransferRentAssessmentProps {
@@ -29,6 +29,8 @@ export interface TransferRentAssessmentProps {
   outstandingBalance?: number;
   assessedRent?: number;
   hamaliRate?: number | null;
+  seasonalRates?: { small: number; big: number };
+  monthlyRates?: { small: number; big: number };
 }
 
 export function TransferRentAssessment({
@@ -47,6 +49,8 @@ export function TransferRentAssessment({
   outstandingBalance,
   assessedRent: propAssessedRent,
   hamaliRate,
+  seasonalRates: propSeasonalRates,
+  monthlyRates: propMonthlyRates,
 }: TransferRentAssessmentProps) {
   const isHybrid = isHybridBagCategory(sourceBagCategory);
   const smallBags = isHybrid
@@ -54,9 +58,14 @@ export function TransferRentAssessment({
     : (typeof confirmedSmallBags === 'number' ? confirmedSmallBags : currentGrn.smallBags ?? 0);
   const bigBags = isHybrid ? 0 : (typeof confirmedBigBags === 'number' ? confirmedBigBags : currentGrn.bigBags ?? 0);
 
-  const effectiveRates = useMemo(
-    () => resolveOutwardRates(currentGrn.rentType, currentGrn),
-    [currentGrn],
+  const resolvedRates = useMemo(
+    () => {
+      if (propSeasonalRates && propMonthlyRates) {
+        return { seasonalRates: propSeasonalRates, monthlyRates: propMonthlyRates };
+      }
+      return resolveTransferRates(currentGrn);
+    },
+    [currentGrn, propSeasonalRates, propMonthlyRates],
   );
 
   const calculatedRent = useMemo(() => {
@@ -72,13 +81,15 @@ export function TransferRentAssessment({
       monthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
       inwardDate: currentGrn.date,
       deliveryDate: movementDate,
-      smallBagPrice: currentGrn.smallBagPrice,
-      bigBagPrice: currentGrn.bigBagPrice,
+      smallBagPrice: currentGrn.smallBagPrice ?? resolvedRates.seasonalRates.small,
+      bigBagPrice: currentGrn.bigBagPrice ?? resolvedRates.seasonalRates.big,
       bagPrice: currentGrn.bagPrice,
+      monthlySmallBagPrice: resolvedRates.monthlyRates.small,
+      monthlyBigBagPrice: resolvedRates.monthlyRates.big,
     });
   }, [
     propAssessedRent, currentGrn, sourceBagCategory, smallBags, bigBags, isHybrid,
-    sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice, movementDate,
+    sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice, movementDate, resolvedRates,
   ]);
 
   const totalRent = propAssessedRent ?? calculatedRent;
@@ -146,8 +157,8 @@ export function TransferRentAssessment({
         bagPrice={typeof sourceBagPrice === 'number' ? sourceBagPrice : currentGrn.bagPrice}
         seasonalBagPrice={typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined}
         monthlyBagPrice={typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined}
-        seasonalRates={effectiveRates}
-        monthlyRates={effectiveRates}
+        seasonalRates={resolvedRates.seasonalRates}
+        monthlyRates={resolvedRates.monthlyRates}
         totalRent={totalRent}
         hamaliRate={hamaliRate}
       />

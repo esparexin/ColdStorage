@@ -77,7 +77,7 @@ export function createDeliveryColumns({
       sortType: 'number',
       sortAccessor: (row) => row.totalBags,
       render: (row) => {
-        if (isHybridBagCategory(row.bagCategory)) {
+        if (row.bagType === 'Hybrid' || isHybridBagCategory(row.bagCategory)) {
           return (
             <span className={styles.bagsTotal}>{row.totalBags.toLocaleString('en-IN')} Hybrid</span>
           );
