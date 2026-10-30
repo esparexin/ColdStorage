@@ -72,8 +72,8 @@ describe('Transfer Ownership: Hamali Rate Resolution and Obligation Alignment', 
   it('joins hamali share into resolveTotalRentObligation matching backend calculation', () => {
     const assessedRent = 6460;
     const hamaliRate = 5;
-    const remainingBags = 17;
-    const hamaliAmount = calculateHamaliAmount(remainingBags, hamaliRate); // 85
+    const intakeBags = 20; // Original intake bags
+    const hamaliAmount = calculateHamaliAmount(intakeBags, hamaliRate); // 100
     const effectiveBaseRent = assessedRent;
 
     const totalObligation = resolveTotalRentObligation({
@@ -83,7 +83,19 @@ describe('Transfer Ownership: Hamali Rate Resolution and Obligation Alignment', 
       hamaliShare: hamaliAmount,
     });
 
-    expect(totalObligation).toBe(6460 + 85); // 6545
+    expect(totalObligation).toBe(6460 + 100); // 6560
+  });
+
+  it('calculates intake hamali from initial intake bags (grn.bags) even after partial deliveries', () => {
+    const grn: Partial<Grn> = {
+      bags: 100,
+      closingBags: 40, // 60 bags delivered out already
+      hamaliRate: 5,
+    };
+    const effectiveHamaliRate = grn.hamaliRate ?? 0;
+    // Intake hamali obligation is on intake bags (100 bags), not closing/remaining bags (40)
+    const hamaliAmount = calculateHamaliAmount(grn.bags ?? 0, effectiveHamaliRate);
+    expect(hamaliAmount).toBe(500);
   });
 });
 
