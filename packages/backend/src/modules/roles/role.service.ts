@@ -39,7 +39,24 @@ export function toRoleDefinition(entity: RoleEntity): RoleDefinition {
 }
 
 export class RoleService {
+  private roleCache = new Map<string, RoleEntity>();
+
   constructor(private repo: typeof roleRepository = roleRepository) {}
+
+  public clearCache(): void {
+    this.roleCache.clear();
+  }
+
+  private async getCachedRole(identifier: string): Promise<RoleEntity | null> {
+    const cached = this.roleCache.get(identifier);
+    if (cached) return cached;
+    const role = (await this.repo.findById(identifier)) ?? (await this.repo.findByKey(identifier));
+    if (role) {
+      this.roleCache.set(role.id, role);
+      this.roleCache.set(role.key, role);
+    }
+    return role;
+  }
 
   private validatePermissions(permissions: PermissionKey[]): void {
     const catalog = new Set<string>(PERMISSION_KEYS);
@@ -71,6 +88,7 @@ export class RoleService {
       seeded.push(created);
     }
     await this.backfillUserRoleIds();
+    this.roleCache.clear();
     return seeded;
   }
 
@@ -97,7 +115,7 @@ export class RoleService {
   }
 
   public async getRole(id: string): Promise<RoleDefinition | null> {
-    const entity = (await this.repo.findById(id)) ?? (await this.repo.findByKey(id));
+    const entity = await this.getCachedRole(id);
     return entity ? toRoleDefinition(entity) : null;
   }
 
@@ -121,6 +139,7 @@ export class RoleService {
       isSystem: false,
       createdBy: actingUserId,
     });
+    this.roleCache.clear();
     await auditService.log({
       eventType: 'ROLE_CREATED',
       severity: 'INFO',
@@ -152,6 +171,7 @@ export class RoleService {
         : {}),
     });
     if (updated) {
+      this.roleCache.clear();
       await auditService.log({
         eventType: 'ROLE_UPDATED',
         severity: 'INFO',
@@ -178,6 +198,7 @@ export class RoleService {
     }
     const ok = await this.repo.deleteById(id);
     if (ok) {
+      this.roleCache.clear();
       await auditService.log({
         eventType: 'ROLE_DELETED',
         severity: 'INFO',
@@ -195,19 +216,11 @@ export class RoleService {
     role: Role;
     roleId?: string | null;
   }): Promise<{ permissions: PermissionKey[]; hasGlobalScope: boolean; roleKey: string }> {
-    if (user.roleId) {
-      const role = await this.repo.findById(user.roleId);
-      if (role) {
-        return { permissions: role.permissions, hasGlobalScope: role.hasGlobalFacilityScope, roleKey: role.key };
-      }
-    }
-    const fallback = await this.repo.findByKey(user.role);
-    if (fallback) {
-      return {
-        permissions: fallback.permissions,
-        hasGlobalScope: fallback.hasGlobalFacilityScope,
-        roleKey: fallback.key,
-      };
+    const role = user.roleId
+      ? await this.getCachedRole(user.roleId)
+      : await this.getCachedRole(user.role);
+    if (role) {
+      return { permissions: role.permissions, hasGlobalScope: role.hasGlobalFacilityScope, roleKey: role.key };
     }
     return {
       permissions: permissionsForRole(user.role),

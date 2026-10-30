@@ -24,6 +24,12 @@ export interface RefreshResult<T = unknown> {
 export const AUTH_REQUEST_TIMEOUT_MS = 12000;
 
 /**
+ * Dedicated timeout for explicit user login submission (POST /api/auth/login).
+ * Allows container cold starts and TLS/DNS resolution to complete without premature client-side abort.
+ */
+export const LOGIN_REQUEST_TIMEOUT_MS = 30000;
+
+/**
  * Overall bootstrap deadline (Phase 3 hardening).
  *
  * Per-fetch `AUTH_REQUEST_TIMEOUT_MS` bounds each HTTP call, but sequential

@@ -86,22 +86,24 @@ export class AuthService {
     if (!passwordValid) {
       await recordInvalidPassword(this.userRepo, user);
     }
-    await this.userRepo.updateLastLogin(user.id);
-    const permissions = await resolveUserPermissions(user);
-    const accessToken = mintAccessToken(user, permissions);
     const refreshToken = generateOpaqueToken(32);
-    await this.sessionRepo.createSession(user.id, refreshToken, config.refreshTokenExpiryDays);
-    await auditService.log({
-      eventType: 'AUTH_LOGIN_SUCCESS',
-      severity: 'INFO',
-      userId: user.id,
-      username: user.username,
-      userRole: user.role,
-      ipAddress: ctx.ipAddress,
-      userAgent: ctx.userAgent,
-      resource: 'auth',
-      details: { mustChangePassword: user.mustChangePassword },
-    });
+    const [permissions] = await Promise.all([
+      resolveUserPermissions(user),
+      this.userRepo.updateLastLogin(user.id),
+      this.sessionRepo.createSession(user.id, refreshToken, config.refreshTokenExpiryDays),
+      auditService.log({
+        eventType: 'AUTH_LOGIN_SUCCESS',
+        severity: 'INFO',
+        userId: user.id,
+        username: user.username,
+        userRole: user.role,
+        ipAddress: ctx.ipAddress,
+        userAgent: ctx.userAgent,
+        resource: 'auth',
+        details: { mustChangePassword: user.mustChangePassword },
+      }),
+    ]);
+    const accessToken = mintAccessToken(user, permissions);
     const totalMs = Date.now() - opStart;
     if (totalMs > 1000) logger.warn('auth.login slow', { totalMs });
 

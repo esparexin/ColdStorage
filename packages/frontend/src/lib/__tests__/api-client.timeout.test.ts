@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   AUTH_BOOTSTRAP_OVERALL_TIMEOUT_MS,
   AUTH_REQUEST_TIMEOUT_MS,
+  LOGIN_REQUEST_TIMEOUT_MS,
   executeSingleFlightRefresh,
   fetchWithTimeout,
   getLastRefreshFailure,
@@ -88,6 +89,7 @@ describe('api-client auth timeout', () => {
     expect(AUTH_BOOTSTRAP_OVERALL_TIMEOUT_MS).toBe(15000);
     expect(AUTH_BOOTSTRAP_OVERALL_TIMEOUT_MS).toBeGreaterThan(AUTH_REQUEST_TIMEOUT_MS);
     expect(AUTH_BOOTSTRAP_OVERALL_TIMEOUT_MS).toBeLessThan(60000);
+    expect(LOGIN_REQUEST_TIMEOUT_MS).toBe(30000);
   });
 
   it('bootstrap race falls through to login when refresh hangs past the deadline', async () => {
