@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { operationalBagTypeSchema, type OperationalBagType } from './bags.js';
 
 export const mergedSourceBillingItemSchema = z.object({
   grnId: z.string().optional(),
@@ -23,7 +24,7 @@ export const mergedRepackHamaliItemSchema = z.object({
 export type MergedRepackHamaliItem = z.infer<typeof mergedRepackHamaliItemSchema>;
 
 export const mergedRepackedStockSchema = z.object({
-  bagType: z.enum(['S/B', 'Hybrid']),
+  bagType: operationalBagTypeSchema,
   smallBags: z.number().int().min(0).optional(),
   bigBags: z.number().int().min(0).optional(),
   quantity: z.number().int().min(0).optional(),
@@ -43,7 +44,7 @@ export const mergedConsignmentBreakdownSchema = z.object({
   repackedSmallBags: z.number().int().min(0).nullable().optional(),
   repackedBigBags: z.number().int().min(0).nullable().optional(),
   repackedHybridBags: z.number().int().min(0).nullable().optional(),
-  repackedBagType: z.enum(['S/B', 'Hybrid']).nullable().optional(),
+  repackedBagType: operationalBagTypeSchema.nullable().optional(),
   repackVariance: z.number().int().optional(),
   repackSourceBags: z.number().int().min(0).optional(),
 });
@@ -177,7 +178,7 @@ export function parseMergedConsignmentBreakdown(
   let repackedSmallBags: number | null = null;
   let repackedBigBags: number | null = null;
   let repackedHybridBags: number | null = null;
-  let repackedBagType: 'S/B' | 'Hybrid' | null = null;
+  let repackedBagType: OperationalBagType | null = null;
   let repackedStock: MergedRepackedStock | null = null;
 
   if (repackedSbMatch) {

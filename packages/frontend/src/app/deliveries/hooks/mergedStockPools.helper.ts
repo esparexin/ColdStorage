@@ -1,4 +1,4 @@
-import type { DeliveryChallan, MergedConsignmentBreakdown } from '@cold-storage/contracts';
+import type { DeliveryChallan, MergedConsignmentBreakdown, OperationalBagType } from '@cold-storage/contracts';
 
 export interface MergedStockPools {
   isMerged: boolean;
@@ -6,7 +6,7 @@ export interface MergedStockPools {
   initialConfirmedSmall: number;
   initialConfirmedBig: number;
   initialConfirmedHybrid: number;
-  confirmedBagType: 'S/B' | 'Hybrid';
+  confirmedBagType: OperationalBagType;
   availableUnclassified: number;
   availableConfirmedSmall: number;
   availableConfirmedBig: number;
@@ -27,7 +27,7 @@ export function calculateRemainingMergedStockPools(
   const initialConfirmedSmall = breakdown.repackedSmallBags ?? 0;
   const initialConfirmedBig = breakdown.repackedBigBags ?? 0;
   const initialConfirmedHybrid = breakdown.repackedHybridBags ?? 0;
-  const confirmedBagType: 'S/B' | 'Hybrid' = breakdown.repackedBagType ?? 'S/B';
+  const confirmedBagType: OperationalBagType = breakdown.repackedBagType ?? 'S/B';
 
   let priorUnclassified = 0;
   let priorConfirmedSmall = 0;

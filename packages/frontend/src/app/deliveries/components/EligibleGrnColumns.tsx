@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Grn } from '@cold-storage/contracts';
+import { formatDisplayBagType, type Grn } from '@cold-storage/contracts';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { Badge, Button } from '@/components/ui';
 import {
@@ -115,7 +115,16 @@ export function createEligibleGrnColumns({
             <span className={styles.stockQuantity}>
               {availableBags.toLocaleString('en-IN')} bags
             </span>
-            {row.bagType && <span className={styles.bagTypeSub}>{row.bagType}</span>}
+            {row.bagType && (
+              <span className={styles.bagTypeSub}>
+                {formatDisplayBagType({
+                  bagType: row.bagType,
+                  smallBags: row.smallBags,
+                  bigBags: row.bigBags,
+                  isCompositionVerified: row.isCompositionVerified,
+                })}
+              </span>
+            )}
           </div>
         );
       },

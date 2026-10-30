@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { Grn } from '@cold-storage/contracts';
+import type { Grn, OperationalBagType } from '@cold-storage/contracts';
 import { Badge, Select } from '@/components/ui';
 import type { useDualSectionDelivery } from '../hooks/useDualSectionDelivery';
 import { DualSectionRateFields } from './DualSectionRateFields';
@@ -54,7 +54,7 @@ export function MergedDualSectionDelivery({ grn, dualSection }: MergedDualSectio
             <label htmlFor="delivery-section-a-bag-type" className={styles.fieldLabel}>Bag Type <span aria-hidden="true">*</span></label>
             <Select
               id="delivery-section-a-bag-type" label="Bag Type" value={unclassifiedBagType}
-              onChange={(e) => setUnclassifiedBagType(e.target.value as 'S/B' | 'Hybrid' | '')} aria-required="true"
+              onChange={(e) => setUnclassifiedBagType(e.target.value as OperationalBagType | '')} aria-required="true"
             >
               <option value="">-- Select Bag Type --</option>
               <option value="S/B">Small &amp; Big (S/B)</option>

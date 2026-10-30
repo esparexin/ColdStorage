@@ -5,6 +5,7 @@ import type {
   ConfirmedDispatchAllocation,
   DeliveryChallan,
   Grn,
+  OperationalBagType,
   RentSummaryDto,
   RentType,
   UnclassifiedDispatchAllocation,
@@ -25,7 +26,7 @@ export interface UseDualSectionDeliveryParams {
 }
 
 function computePoolRent(params: {
-  rentType: RentType; bagType: 'S/B' | 'Hybrid'; small: number; big: number; qty?: number;
+  rentType: RentType; bagType: OperationalBagType; small: number; big: number; qty?: number;
   seasonalPrice: number | ''; monthlyPrice: number | ''; months: number;
   grn: Grn | null; date: string; sRates: { small: number; big: number } | null; mRates: { small: number; big: number } | null;
 }) {
@@ -49,7 +50,7 @@ export function useDualSectionDelivery(params: UseDualSectionDeliveryParams) {
   const [loadingDeliveries, setLoadingDeliveries] = useState(false);
 
   // Section A: Unclassified bags state (bagType starts unselected '')
-  const [unclassifiedBagType, setUnclassifiedBagType] = useState<'S/B' | 'Hybrid' | ''>('');
+  const [unclassifiedBagType, setUnclassifiedBagType] = useState<OperationalBagType | ''>('');
   const [unclassifiedQty, setUnclassifiedQty] = useState<number | ''>('');
   const [unclassifiedSmall, setUnclassifiedSmall] = useState<number | ''>('');
   const [unclassifiedBig, setUnclassifiedBig] = useState<number | ''>('');

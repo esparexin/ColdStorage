@@ -3,7 +3,7 @@
 import React from 'react';
 import { GitMerge } from 'lucide-react';
 import type { BagType, Grn, GrnInventorySummary, OutwardBagCategory, RentSummaryDto } from '@cold-storage/contracts';
-import { isHybridBagCategory, parseMergedConsignmentBreakdown } from '@cold-storage/contracts';
+import { formatDisplayBagType, isHybridBagCategory, parseMergedConsignmentBreakdown } from '@cold-storage/contracts';
 import { Badge, Button, Select } from '@/components/ui';
 import {
   parseMergedAddedBags,
@@ -62,13 +62,13 @@ export function SelectedGrnCard({
     : (isMergedConsignment && grn.bags > safeAddedBags ? grn.bags - safeAddedBags : grn.bags);
   const displayBagType = isDualSectionMerged
     ? `${genesisInwardBags} Unclassified + ${safeAddedBags} Confirmed`
-    : isHybrid
-      ? 'Hybrid'
-      : grn.bagType === 'S'
-        ? 'Small'
-        : grn.bagType === 'B'
-          ? 'Big'
-          : 'Small & Big';
+    : formatDisplayBagType({
+        bagType: grn.bagType,
+        isHybrid,
+        smallBags: grn.smallBags,
+        bigBags: grn.bigBags,
+        isCompositionVerified: grn.isCompositionVerified,
+      });
 
   return (
     <div className={styles.card} id="selected-grn-summary-card">
