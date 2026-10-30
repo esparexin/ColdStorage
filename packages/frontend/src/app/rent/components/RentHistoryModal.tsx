@@ -59,7 +59,7 @@ export function RentHistoryModal({
       isOpen
       onClose={onClose}
       title={`Cash Memos & Rent History: ${account.grnNumber}`}
-      subtitle={`${account.customerName} · Inward: ${account.totalBags.toLocaleString('en-IN')} bags · Delivered: ${(account.deliveredBags ?? 0).toLocaleString('en-IN')} bags · Balance: ${(account.remainingBags ?? Math.max(0, account.totalBags - (account.deliveredBags ?? 0))).toLocaleString('en-IN')} bags`}
+      subtitle={`${account.customerName} · Inward: ${account.totalBags.toLocaleString('en-IN')} bags · Delivered: ${(account.deliveredBags ?? 0).toLocaleString('en-IN')} bags · Stock Balance: ${(account.remainingBags ?? Math.max(0, account.totalBags - (account.deliveredBags ?? 0))).toLocaleString('en-IN')} bags`}
       size="lg"
       footer={
         <Button variant="outline" onClick={onClose}>

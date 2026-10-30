@@ -66,12 +66,24 @@ export function TransferOwnershipConfirmation(p: Props) {
         }}
         disabled={p.disabled}
       >
-        <option value="S/B">Small &amp; Big</option>
+        <option value="S/B">S/B</option>
         <option value="Hybrid">Hybrid</option>
       </Select>
 
       {isHybrid ? (
         <div className={styles.formSection}>
+          <div style={{ marginBottom: 'var(--space-2)' }}>
+            <Input
+              id="transfer-hybrid-quantity-bags"
+              label="Hybrid Bags"
+              type="number"
+              value={p.remainingBags}
+              readOnly
+              disabled={p.disabled}
+              aria-label="Hybrid Bags (read-only)"
+              title="Confirmed Hybrid quantity matches total available stock"
+            />
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--space-2)' }}>
             {visibility.showSeasonalRate && (
               <Input
@@ -114,7 +126,7 @@ export function TransferOwnershipConfirmation(p: Props) {
         </div>
       ) : null}
 
-      {!isHybrid && p.isUnverified ? (
+      {!isHybrid ? (
         <TransferBagConfirmationFields
           remainingBags={p.remainingBags}
           confirmedSmallBags={p.confirmedSmallBags}

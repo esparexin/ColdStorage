@@ -172,7 +172,7 @@ export class RentService {
     ]);
 
     const netDeliveredBags = netDelivered.total;
-    const remainingBags = Math.max(0, grn.bags - netDeliveredBags);
+    const remainingBags = summary.remainingBags ?? Math.max(0, grn.bags - netDeliveredBags);
     const billingCyclePeriod = deriveBillingCycle(grn.date, grn.rentType, payment.paymentDate);
     const previousPaidAmount = Math.max(0, summary.totalPaid - payment.amountPaid);
 

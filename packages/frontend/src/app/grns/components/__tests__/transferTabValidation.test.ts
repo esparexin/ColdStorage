@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { validateTransferConfirmation } from '../transferTabValidation.helper';
 
 describe('validateTransferConfirmation', () => {
-  it('returns null when composition is verified and not hybrid', () => {
+  it('requires confirmed Small and Big counts before transfer', () => {
     expect(
       validateTransferConfirmation({
         isUnverified: false,
@@ -10,7 +10,7 @@ describe('validateTransferConfirmation', () => {
         confirmedSmallBags: '',
         confirmedBigBags: '',
       }),
-    ).toBeNull();
+    ).toContain('Confirmed composition required');
   });
 
   it('requires confirmed Small and Big counts for unverified lots', () => {
@@ -152,9 +152,10 @@ describe('validateTransferConfirmation', () => {
   });
 
   it('validates composition requirements cleanly', () => {
-    expect(validateTransferConfirmation({ isUnverified: false, remainingBags: 100, confirmedSmallBags: '', confirmedBigBags: '' })).toBeNull();
+    expect(validateTransferConfirmation({ isUnverified: false, remainingBags: 100, confirmedSmallBags: '', confirmedBigBags: '' })).toContain('Confirmed composition required');
     expect(validateTransferConfirmation({ isUnverified: true, remainingBags: 100, confirmedSmallBags: '', confirmedBigBags: '' })).toContain('Confirmed composition required');
     expect(validateTransferConfirmation({ isUnverified: true, remainingBags: 100, confirmedSmallBags: 60, confirmedBigBags: 40 })).toBeNull();
+    expect(validateTransferConfirmation({ isUnverified: false, remainingBags: 100, confirmedSmallBags: 60, confirmedBigBags: 40 })).toBeNull();
   });
 
   it('rejects zero or negative remaining stock', () => {
@@ -190,7 +191,7 @@ describe('validateTransferConfirmation', () => {
     ).toBeNull();
   });
 
-  it('accepts default and S/B with verified stock without confirmed split counts', () => {
+  it('requires confirmed split counts for default and S/B transfers', () => {
     expect(
       validateTransferConfirmation({
         isUnverified: false,
@@ -199,14 +200,14 @@ describe('validateTransferConfirmation', () => {
         confirmedBigBags: '',
         sourceBagCategory: '',
       }),
-    ).toBeNull();
+    ).toContain('Confirmed composition required');
 
     expect(
       validateTransferConfirmation({
         isUnverified: false,
         remainingBags: 120,
-        confirmedSmallBags: '',
-        confirmedBigBags: '',
+        confirmedSmallBags: 80,
+        confirmedBigBags: 40,
         sourceBagCategory: 'S/B',
       }),
     ).toBeNull();

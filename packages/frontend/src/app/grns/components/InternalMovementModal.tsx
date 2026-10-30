@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { UserCheck } from 'lucide-react';
-import type { Customer, Grn, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
+import type { Commodity, Customer, Grn, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
 import { Banner, Button, Modal } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
 import { formatApiErrorMessage, parseApiResponse } from '@/lib/api-response';
@@ -14,16 +14,20 @@ interface InternalMovementModalProps {
   grn: Grn;
   facilityId: string;
   customers: Customer[];
+  commodities?: Commodity[];
   onClose: () => void;
   onSuccess: (updatedGrn: Grn) => void;
+  onCustomerAdded?: () => void;
 }
 
 export function InternalMovementModal({
   grn,
   facilityId,
   customers,
+  commodities,
   onClose,
   onSuccess,
+  onCustomerAdded,
 }: InternalMovementModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -107,8 +111,10 @@ export function InternalMovementModal({
           currentGrn={grn}
           facilityId={facilityId}
           customers={customers}
+          commodities={commodities}
           submitting={submitting}
           onExecuteTransfer={handleExecuteTransfer}
+          onCustomerAdded={onCustomerAdded}
         />
       </div>
     </Modal>

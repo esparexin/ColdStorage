@@ -10,10 +10,25 @@
   justify-content: space-between;
 }
 
+.labelGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .fieldLabel {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-primary);
+}
+
+.requiredStar {
+  color: var(--color-danger-text);
+  margin-left: var(--space-0-5);
+}
+
+.addCustomerBtn {
+  font-weight: var(--font-medium);
 }
 
 .inputError {
@@ -38,7 +53,7 @@
 
 .comboboxInput {
   width: 100%;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-8) var(--space-2) var(--space-3);
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -53,6 +68,38 @@
   border-color: var(--color-primary-text);
   outline: var(--focus-ring-width) solid var(--color-primary);
   outline-offset: var(--focus-ring-offset);
+}
+
+.comboboxActions {
+  position: absolute;
+  right: var(--space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.comboboxClearBtn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: var(--space-0-5) var(--space-1-5);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+}
+
+.comboboxClearBtn:hover {
+  color: var(--color-text-primary);
+}
+
+.dropdownIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  pointer-events: none;
 }
 
 .comboboxDropdown {
@@ -88,22 +135,9 @@
   background: var(--color-surface-2);
 }
 
-.comboboxClearBtn {
-  position: absolute;
-  right: var(--space-2);
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: var(--space-0-5) var(--space-1-5);
-  font-size: var(--text-sm);
-  border-radius: var(--radius-sm);
-}
-
-.comboboxClearBtn:hover {
-  color: var(--color-text-primary);
+.comboboxOptionSelected {
+  background: var(--color-surface-2);
+  font-weight: var(--font-semibold);
 }
 
 .comboboxOptionName {
@@ -112,9 +146,37 @@
   color: var(--color-text-primary);
 }
 
-.comboboxEmpty {
-  padding: var(--space-2);
+.comboboxPrompt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
   font-size: var(--text-sm);
   color: var(--color-text-muted);
   text-align: center;
+}
+
+.comboboxEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }

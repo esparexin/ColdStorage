@@ -166,7 +166,7 @@ describe('Bag lifecycle: total-only inward, verified outward, guarded movement/t
       {
         grnId: grn.id, newCustomerId: customerB, movementDate: new Date(),
         remarks: 'Transfer with valid confirmation', confirmedSmallBags: 60, confirmedBigBags: 40,
-        paymentDecision: 'SETTLE_NOW', settlementDetails: { amountPaid: 1200, paymentMode: 'Cash' },
+        paymentDecision: 'SETTLE_NOW', settlementDetails: { amountPaid: 1440, paymentMode: 'Cash' },
       } as never,
       USER_ID,
     );

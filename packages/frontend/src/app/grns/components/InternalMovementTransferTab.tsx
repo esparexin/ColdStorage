@@ -2,8 +2,9 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  calculateHamaliAmount,
   isHybridBagCategory, resolveTotalRentObligation,
-  type Customer, type Grn, type OutwardBagCategory, type PaymentMode,
+  type Commodity, type Customer, type Grn, type OutwardBagCategory, type PaymentMode,
   type TransferPaymentDecision, type TransferSettlementDetails,
 } from '@cold-storage/contracts';
 import { useRentGate } from '@/hooks/useRentGate';
@@ -12,6 +13,7 @@ import { WizardStepper } from './WizardStepper';
 import { computeOutwardRentCharge } from '@/app/deliveries/hooks/deliveryRent.helper';
 import { validateTransferPayment } from './internalMovementPayload.helper';
 import { validateTransferConfirmation } from './transferTabValidation.helper';
+import { resolveCandidateTransferees } from './transferCandidateCustomer.helper';
 import { TransferStep1Customer } from './TransferStep1Customer';
 import { TransferStep2Dues } from './TransferStep2Dues';
 import { TransferStep3Confirm } from './TransferStep3Confirm';
@@ -27,6 +29,7 @@ interface InternalMovementTransferTabProps {
   currentGrn: Grn;
   facilityId: string;
   customers: Customer[];
+  commodities?: Commodity[];
   submitting: boolean;
   onExecuteTransfer: (
     newCustomerId: string, movementDate: string, reason: string, remarks?: string,
@@ -37,14 +40,16 @@ interface InternalMovementTransferTabProps {
       sourceBagPrice?: number; sourceSeasonalBagPrice?: number; sourceMonthlyBagPrice?: number;
     },
   ) => Promise<void>;
+  onCustomerAdded?: () => void;
 }
 
 export function InternalMovementTransferTab({
-  currentGrn, facilityId, customers, submitting, onExecuteTransfer,
+  currentGrn, facilityId, customers, commodities, submitting, onExecuteTransfer, onCustomerAdded,
 }: InternalMovementTransferTabProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [newCustomerId, setNewCustomerId] = useState('');
+  const [createdCustomers, setCreatedCustomers] = useState<Customer[]>([]);
   const [movementDate] = useState(new Date().toISOString().slice(0, 10));
   const [reason, setReason] = useState('');
   const [remarks, setRemarks] = useState('');
@@ -53,8 +58,10 @@ export function InternalMovementTransferTab({
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('Cash');
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>('');
-  const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>('');
+  const remainingBags = currentGrn.closingBags ?? currentGrn.bags;
+  const initialSb = currentGrn.bagType !== 'Hybrid' && ((currentGrn.smallBags ?? 0) + (currentGrn.bigBags ?? 0) === remainingBags);
+  const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>(initialSb ? (currentGrn.smallBags ?? 0) : '');
+  const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>(initialSb ? (currentGrn.bigBags ?? 0) : '');
   const [sourceBagCategory, setSourceBagCategory] = useState<OutwardBagCategory>(
     isHybridBagCategory(currentGrn.bagType) ? 'Hybrid' : 'S/B',
   );
@@ -65,46 +72,51 @@ export function InternalMovementTransferTab({
   const { rentSummary, rentLoading, refreshRentGate } = useRentGate();
   useEffect(() => { void refreshRentGate(facilityId, currentGrn.id); }, [facilityId, currentGrn.id, refreshRentGate]);
 
-  const candidateCustomers = useMemo(() => customers.filter((c) => c.id !== currentGrn.customerId && c.isActive), [customers, currentGrn.customerId]);
+  const candidateCustomers = useMemo(
+    () => resolveCandidateTransferees(customers, currentGrn.customerId, createdCustomers),
+    [customers, currentGrn.customerId, createdCustomers],
+  );
   const selectedNewCustomer = useMemo(() => candidateCustomers.find((c) => c.id === newCustomerId), [candidateCustomers, newCustomerId]);
 
-  const remainingBags = currentGrn.closingBags ?? currentGrn.bags;
   const isUnverified = currentGrn.isCompositionVerified === false;
   const isHybrid = isHybridBagCategory(sourceBagCategory);
-  const smallBags = isHybrid
-    ? remainingBags
-    : (typeof confirmedSmallBags === 'number' ? confirmedSmallBags : currentGrn.smallBags ?? 0);
+  const smallBags = isHybrid ? remainingBags : (typeof confirmedSmallBags === 'number' ? confirmedSmallBags : currentGrn.smallBags ?? 0);
   const bigBags = isHybrid ? 0 : (typeof confirmedBigBags === 'number' ? confirmedBigBags : currentGrn.bigBags ?? 0);
 
-  const assessedRent = useMemo(() => {
-    return computeOutwardRentCharge({
-      rentType: currentGrn.rentType,
-      bagCategory: (sourceBagCategory || 'S/B') as OutwardBagCategory,
-      smallBags,
-      bigBags,
-      quantity: isHybrid ? smallBags : undefined,
-      manualBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
-      seasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
-      monthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
-      inwardDate: currentGrn.date,
-      deliveryDate: movementDate,
-      smallBagPrice: currentGrn.smallBagPrice,
-      bigBagPrice: currentGrn.bigBagPrice,
-      bagPrice: currentGrn.bagPrice,
-    });
-  }, [
-    currentGrn, sourceBagCategory, smallBags, bigBags, isHybrid,
-    sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice, movementDate,
-  ]);
+  const assessedRent = useMemo(() => computeOutwardRentCharge({
+    rentType: currentGrn.rentType,
+    bagCategory: (sourceBagCategory || 'S/B') as OutwardBagCategory,
+    smallBags, bigBags, quantity: isHybrid ? smallBags : undefined,
+    manualBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
+    seasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
+    monthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
+    inwardDate: currentGrn.date, deliveryDate: movementDate,
+    smallBagPrice: currentGrn.smallBagPrice, bigBagPrice: currentGrn.bigBagPrice, bagPrice: currentGrn.bagPrice,
+  }), [currentGrn, sourceBagCategory, smallBags, bigBags, isHybrid, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice, movementDate]);
+
+  const commodity = useMemo(() => commodities?.find((c) => c.id === currentGrn.commodityId), [commodities, currentGrn.commodityId]);
+  const effectiveHamaliRate = useMemo(() => {
+    if (typeof currentGrn.hamaliRate === 'number') return currentGrn.hamaliRate;
+    const isApp = commodity?.isHamaliApplicable ?? ((commodity?.hamaliRate ?? 0) > 0);
+    return isApp ? (commodity?.hamaliRate ?? 0) : 0;
+  }, [currentGrn.hamaliRate, commodity]);
+  const hamaliAmount = useMemo(() => {
+    if (typeof currentGrn.hamaliAmount === 'number' && currentGrn.hamaliAmount >= 0) return currentGrn.hamaliAmount;
+    return calculateHamaliAmount(remainingBags, effectiveHamaliRate);
+  }, [currentGrn.hamaliAmount, remainingBags, effectiveHamaliRate]);
 
   const totalPaid = rentSummary?.totalPaid ?? 0;
   const pendingAmount = rentSummary?.remainingBalance ?? 0;
   const isUnbilled = totalPaid === 0 && pendingAmount === 0 && (rentSummary?.rentAmount ?? 0) === 0;
+  const storedRent = rentSummary?.rentAmount ?? 0;
+  const effectiveBaseRent = storedRent > 0 ? (storedRent > assessedRent ? storedRent : assessedRent) : assessedRent;
+
   const effectiveObligation = resolveTotalRentObligation({
-    rentType: currentGrn.rentType, rentAmount: rentSummary?.rentAmount ?? 0,
-    outwardRentCharges: assessedRent, extensionAmounts: rentSummary?.extensions?.map((e) => e.finalAmount),
+    rentType: currentGrn.rentType, rentAmount: effectiveBaseRent,
+    outwardRentCharges: 0, extensionAmounts: rentSummary?.extensions?.map((e) => e.finalAmount),
+    hamaliShare: hamaliAmount,
   });
-  const effectiveDue = isUnbilled ? assessedRent : Math.max(0, effectiveObligation - totalPaid);
+  const effectiveDue = Math.max(0, effectiveObligation - totalPaid);
 
   useEffect(() => {
     if (effectiveDue > 0 && settleAmount === 0) setSettleAmount(effectiveDue);
@@ -121,7 +133,6 @@ export function InternalMovementTransferTab({
     setValidationError(null);
     const payErr = validateTransferPayment(decision, settleAmount, effectiveDue);
     if (payErr) return setValidationError(payErr);
-    const isHybrid = isHybridBagCategory(sourceBagCategory);
     const confirmErr = validateTransferConfirmation({
       isUnverified, remainingBags, confirmedSmallBags, confirmedBigBags,
       sourceBagCategory, sourceQuantity: isHybrid ? remainingBags : undefined,
@@ -131,35 +142,23 @@ export function InternalMovementTransferTab({
     setStep(3);
   };
 
-  const handleTransferSubmit = async (e: React.FormEvent) => {
+  const handleTransferSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
     if (!newCustomerId) return setValidationError('Select the new customer to transfer ownership to.');
     if (remainingBags <= 0) return setValidationError('Cannot transfer ownership: No stock remaining in this GRN.');
     if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
-
-    const payErr = validateTransferPayment(decision, settleAmount, effectiveDue);
-    if (payErr) return setValidationError(payErr);
-    const isHybrid = isHybridBagCategory(sourceBagCategory);
-    const confirmErr = validateTransferConfirmation({
-      isUnverified, remainingBags, confirmedSmallBags, confirmedBigBags,
-      sourceBagCategory, sourceQuantity: isHybrid ? remainingBags : undefined,
-      sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice,
-    });
-    if (confirmErr) return setValidationError(confirmErr);
-
     setShowConfirm(true);
   };
 
   const doExecuteTransfer = async () => {
-    const isHybrid = isHybridBagCategory(sourceBagCategory);
     const conf = isHybrid ? {
       sourceBagCategory: sourceBagCategory || undefined,
       sourceQuantity: remainingBags,
       sourceBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
       sourceSeasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
       sourceMonthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
-    } : isUnverified && typeof confirmedSmallBags === 'number' && typeof confirmedBigBags === 'number'
+    } : typeof confirmedSmallBags === 'number' && typeof confirmedBigBags === 'number'
       ? { confirmedSmallBags, confirmedBigBags } : undefined;
 
     await onExecuteTransfer(
@@ -183,6 +182,11 @@ export function InternalMovementTransferTab({
           currentGrn={currentGrn} remainingBags={remainingBags} totalPaid={totalPaid} pendingAmount={pendingAmount}
           isUnbilled={isUnbilled} rentLoading={rentLoading} newCustomerId={newCustomerId} onNewCustomerIdChange={setNewCustomerId}
           candidateCustomers={candidateCustomers} selectedNewCustomer={selectedNewCustomer} submitting={submitting} onNext={handleProceedToStep2}
+          facilityId={facilityId}
+          onCustomerAdded={(newCustomer) => {
+            if (newCustomer) setCreatedCustomers((prev) => [...prev, newCustomer]);
+            onCustomerAdded?.();
+          }}
         />
       )}
       {step === 2 && (
@@ -193,7 +197,7 @@ export function InternalMovementTransferTab({
           onPriceChange={setSourceBagPrice} sourceSeasonalBagPrice={sourceSeasonalBagPrice} onSeasonalPriceChange={setSourceSeasonalBagPrice}
           sourceMonthlyBagPrice={sourceMonthlyBagPrice} onMonthlyPriceChange={setSourceMonthlyBagPrice} movementDate={movementDate}
           selectedNewCustomer={selectedNewCustomer} totalPaid={totalPaid} outstandingBalance={effectiveDue}
-          assessedRent={assessedRent} effectiveDue={effectiveDue} decision={decision} onDecisionChange={setDecision}
+          assessedRent={assessedRent} effectiveDue={effectiveDue} hamaliRate={effectiveHamaliRate} decision={decision} onDecisionChange={setDecision}
           settleAmount={settleAmount} onSettleAmountChange={setSettleAmount} paymentMode={paymentMode} onPaymentModeChange={setPaymentMode}
           submitting={submitting} onBack={() => setStep(1)} onNext={handleProceedToStep3}
         />
@@ -201,8 +205,11 @@ export function InternalMovementTransferTab({
       {step === 3 && (
         <TransferStep3Confirm
           currentGrn={currentGrn} selectedNewCustomer={selectedNewCustomer} remainingBags={remainingBags}
-          sourceBagCategory={sourceBagCategory} effectiveDue={effectiveDue} decision={decision} settleAmount={settleAmount}
-          movementDate={movementDate} reason={reason} onReasonChange={setReason} remarks={remarks} onRemarksChange={setRemarks}
+          confirmedSmallBags={confirmedSmallBags} confirmedBigBags={confirmedBigBags}
+          sourceBagCategory={sourceBagCategory} hamaliRate={effectiveHamaliRate} hamaliAmount={hamaliAmount}
+          assessedRent={assessedRent} totalPaid={totalPaid} effectiveDue={effectiveDue}
+          decision={decision} settleAmount={settleAmount} movementDate={movementDate}
+          reason={reason} onReasonChange={setReason} remarks={remarks} onRemarksChange={setRemarks}
           submitting={submitting} onBack={() => setStep(2)}
         />
       )}
@@ -212,10 +219,7 @@ export function InternalMovementTransferTab({
           title="Confirm Ownership Transfer"
           message={
             <div>
-              <p>
-                Are you sure you want to transfer ownership of GRN <strong>{currentGrn.grnNumber}</strong> from{' '}
-                <strong>{currentGrn.customerName}</strong> to <strong>{selectedNewCustomer?.name}</strong>?
-              </p>
+              <p>Are you sure you want to transfer ownership of GRN <strong>{currentGrn.grnNumber}</strong> from <strong>{currentGrn.customerName}</strong> to <strong>{selectedNewCustomer?.name}</strong>?</p>
               <p style={{ marginTop: 'var(--space-2)', color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
                 Once confirmed, the transfer will be finalized and this operation cannot be reversed.
               </p>

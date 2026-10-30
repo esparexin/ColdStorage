@@ -14,7 +14,7 @@ interface CustomerFormModalProps {
   selectedFacilityId: string | null;
   existingCustomers?: Customer[];
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (newCustomer?: Customer) => void;
 }
 
 /**
@@ -72,13 +72,13 @@ export function CustomerFormModal({
         },
       );
 
-      const parsed = await parseApiResponse(res);
+      const parsed = await parseApiResponse<{ customer?: Customer }>(res);
       if (!parsed.ok) {
         throw new Error(formatApiErrorMessage(parsed));
       }
 
       invalidateCache('/api/customers');
-      onSuccess();
+      onSuccess(parsed.data?.customer);
     } catch (err: unknown) {
       setModalError(err instanceof Error ? err.message : 'Operation failed');
     } finally {
