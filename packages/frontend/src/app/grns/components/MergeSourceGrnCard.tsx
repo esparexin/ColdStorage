@@ -3,8 +3,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Package } from 'lucide-react';
 import {
-  resolveOutwardRates,
   seasonYearForInwardDate,
+  type Commodity,
   type Grn,
   type RentSummaryDto,
 } from '@cold-storage/contracts';
@@ -13,6 +13,7 @@ import { requestWithAuth } from '@/lib/api-client';
 import { MergeBagTypeFields } from './MergeBagTypeFields';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
 import { calculateMergeSourceRentSummary } from './mergeRentAssessment.helper';
+import { resolveTransferRates } from './transferRentRates.helper';
 import styles from './InternalMovementModal.module.css';
 
 export interface MergeSourceGrnCardProps {
@@ -25,6 +26,7 @@ export interface MergeSourceGrnCardProps {
   commodityHamaliRate: number;
   targetGrnDate?: Date | string | null;
   summary?: RentSummaryDto | null;
+  commodity?: Pick<Commodity, 'rates'> | null;
 }
 
 export function MergeSourceGrnCard({
@@ -37,6 +39,7 @@ export function MergeSourceGrnCard({
   commodityHamaliRate,
   targetGrnDate,
   summary: propSummary,
+  commodity,
 }: MergeSourceGrnCardProps) {
   const [isCardExpanded, setIsCardExpanded] = useState(true);
   const [isBagTypeExpanded, setIsBagTypeExpanded] = useState(true);
@@ -58,23 +61,17 @@ export function MergeSourceGrnCard({
 
   const summary = propSummary ?? fetchedSummary;
   const sourceBags = source.closingBags ?? source.bags;
-  const rates = resolveOutwardRates(source.rentType, {
-    smallBagPrice: source.smallBagPrice,
-    bigBagPrice: source.bigBagPrice,
-    bagPrice: source.bagPrice,
-  });
+  const { seasonalRates: rates } = useMemo(
+    () => resolveTransferRates(source, commodity),
+    [source, commodity],
+  );
 
   const rentCalc = useMemo(
     () =>
       calculateMergeSourceRentSummary({
-        source,
-        confirmation,
-        movementDate,
-        commodityHamaliRate,
-        targetGrnDate,
-        summary,
+        source, confirmation, movementDate, commodityHamaliRate, targetGrnDate, summary, commodity,
       }),
-    [source, confirmation, movementDate, commodityHamaliRate, targetGrnDate, summary],
+    [source, confirmation, movementDate, commodityHamaliRate, targetGrnDate, summary, commodity],
   );
 
   return (

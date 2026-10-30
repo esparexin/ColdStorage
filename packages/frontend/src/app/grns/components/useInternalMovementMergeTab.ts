@@ -14,7 +14,6 @@ import {
   filterEligibleTargetGrns, findForwardMergeTarget, partitionMergeSources,
   resolveInitialMergeState, resolveNextSelectedSources,
 } from './mergeEligibility.helper';
-import { validateMergePaymentDecision } from './internalMovementPayload.helper';
 import {
   deriveMovedAndTargetBags,
   deriveRepackCompositionStatus,
@@ -52,8 +51,12 @@ export function useInternalMovementMergeTab({
   const updateSourceConfirmation = (grnId: string, patch: Partial<BagConfirmationValue>) => {
     setSourceConfirmations((prev) => ({ ...prev, [grnId]: { ...(prev[grnId] ?? DEFAULT_BAG_CONFIRMATION), ...patch } }));
   };
-  const [settlementDecision, setSettlementDecision] = useState<TransferPaymentDecision>('AGREED_PENDING');
-  const [settleAmount, setSettleAmount] = useState<number>(0); const [paymentMode, setPaymentMode] = useState<PaymentMode>('Cash');
+  const settlementDecision: TransferPaymentDecision = 'AGREED_PENDING';
+  const settleAmount = 0;
+  const paymentMode: PaymentMode = 'Cash';
+  const setSettlementDecision = () => {};
+  const setSettleAmount = () => {};
+  const setPaymentMode = () => {};
   const repack = useMergeRepackForm();
   const {
     repackMode, repackBagType, repackSmall, repackBig, repackQuantity,
@@ -115,11 +118,8 @@ export function useInternalMovementMergeTab({
     commodityHamaliRate,
     targetGrnDate: targetGrn.date,
     sourceRentSummaries,
-  }), [selectedSources, sourceConfirmations, movementDate, commodityHamaliRate, targetGrn.date, sourceRentSummaries]);
-
-  useEffect(() => {
-    if (totalSourcePendingRent > 0 && settleAmount === 0) setSettleAmount(totalSourcePendingRent);
-  }, [totalSourcePendingRent, settleAmount]);
+    commodities,
+  }), [selectedSources, sourceConfirmations, movementDate, commodityHamaliRate, targetGrn.date, sourceRentSummaries, commodities]);
 
   const { isTargetDiff, isRepackRequired, isRepackFilled, actualRepackedBags } =
     deriveRepackCompositionStatus({ targetGrn, selectedSources, repackMode, repackBagType, repackQuantity, repackSmall, repackBig });
@@ -150,7 +150,6 @@ export function useInternalMovementMergeTab({
     const derived = initialConfirmations[selectedSources[0]?.id] ?? deriveAutoInheritedBagComposition(selectedSources, totalSourceBags);
     setConfirmation(derived);
     repack.applyDerivedRepackDefaults(derived, totalSourceBags);
-    if (selectedSourceIds.length > 1) setSettlementDecision('AGREED_PENDING');
     setStep(2);
   };
 
@@ -158,14 +157,11 @@ export function useInternalMovementMergeTab({
     setValidationError(null);
     const err = validateStep3Proceed({ selectedSources, sourceConfirmations });
     if (err) return setValidationError(err);
-    setSettleAmount(totalSourcePendingRent);
     setStep(3);
   };
 
   const handleProceedToStep4 = () => {
     setValidationError(null);
-    const err = validateMergePaymentDecision({ decision: settlementDecision, sourceCount: selectedSources.length, amount: settleAmount, pending: totalSourcePendingRent, paymentMode });
-    if (err) return setValidationError(err);
     setStep(4);
   };
 
@@ -178,12 +174,11 @@ export function useInternalMovementMergeTab({
     const primaryConf = sourceConfirmations[selectedSources[0]?.id] ?? confirmation;
     const { effSmall, effBig, effQuantity, effBagPrice, effSeasonalPrice, effMonthlyPrice, effRepackedBagCount, resolvedCategory } =
       buildMergeExecutionPayload({ repackMode, repackBagType, repackSmall, repackBig, repackQuantity, repackBagPrice, repackSeasonalBagPrice, repackMonthlyBagPrice, isRepackFilled, isRepackRequired, movedSmall, movedBig, totalSourceBags, primaryConf });
-    const isSettleNow = settlementDecision === 'SETTLE_NOW' && settleAmount > 0;
 
     await onExecuteMerge(
       targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0, effSmall, effBig,
       typeof referenceWeight === 'number' && referenceWeight > 0 ? referenceWeight : undefined,
-      isSettleNow ? settleAmount : undefined, isSettleNow ? paymentMode : undefined,
+      undefined, undefined,
       resolvedCategory,
       effQuantity, effBagPrice, effSeasonalPrice, effMonthlyPrice, repackMode, effRepackedBagCount,
     );

@@ -1,3 +1,5 @@
+import type { OperationalBagType } from '@cold-storage/contracts';
+
 export interface RepackVarianceResult {
   text: string;
   isVariance: boolean;
@@ -43,7 +45,7 @@ export function formatRepackVariance(
 
 export function formatRepackComposition(
   repackMode: boolean,
-  repackBagType: 'S/B' | 'Hybrid',
+  repackBagType: OperationalBagType,
   repackSmall: number | '',
   repackBig: number | '',
   actualRepackedBags: number,

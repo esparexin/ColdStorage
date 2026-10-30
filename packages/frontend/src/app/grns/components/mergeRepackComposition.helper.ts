@@ -3,6 +3,7 @@ import {
   isHybridBagCategory,
   resolveStoredCompositionVerified,
   type Grn,
+  type OperationalBagType,
 } from '@cold-storage/contracts';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
 
@@ -10,7 +11,7 @@ export interface RepackCompositionStatusParams {
   targetGrn: Grn;
   selectedSources: Grn[];
   repackMode: boolean;
-  repackBagType: 'S/B' | 'Hybrid';
+  repackBagType: OperationalBagType;
   repackQuantity: number | '';
   repackSmall: number | '';
   repackBig: number | '';
@@ -92,7 +93,7 @@ export interface MovedAndTargetBagsParams {
   selectedSources: Grn[];
   sourceConfirmations: Record<string, BagConfirmationValue>;
   repackMode: boolean;
-  repackBagType: 'S/B' | 'Hybrid';
+  repackBagType: OperationalBagType;
   isRepackFilled: boolean;
   repackSmall: number | '';
   repackBig: number | '';

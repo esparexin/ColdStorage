@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { isHybridBagCategory } from '@cold-storage/contracts';
+import { isHybridBagCategory, type OperationalBagType } from '@cold-storage/contracts';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
 
 export function useMergeRepackForm() {
   const [repackMode, setRepackMode] = useState(false);
-  const [repackBagType, setRepackBagType] = useState<'S/B' | 'Hybrid'>('S/B');
+  const [repackBagType, setRepackBagType] = useState<OperationalBagType>('S/B');
   const [repackSmall, setRepackSmall] = useState<number | ''>('');
   const [repackBig, setRepackBig] = useState<number | ''>('');
   const [repackQuantity, setRepackQuantity] = useState<number | ''>('');

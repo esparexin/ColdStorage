@@ -3,6 +3,7 @@ import {
   HYBRID_RATE_REQUIRED_MESSAGE,
   isHybridBagCategory,
   type Grn,
+  type OperationalBagType,
 } from '@cold-storage/contracts';
 import { deriveAutoInheritedBagComposition, type BagConfirmationValue } from './bagConfirmation.helper';
 
@@ -52,7 +53,7 @@ export interface MergeSubmitValidationParams {
   isTargetLoanHold: boolean;
   targetGrnNumber: string;
   repackMode: boolean;
-  repackBagType: 'S/B' | 'Hybrid';
+  repackBagType: OperationalBagType;
   isRepackFilled: boolean;
   repackSmall: number | '';
   repackBig: number | '';

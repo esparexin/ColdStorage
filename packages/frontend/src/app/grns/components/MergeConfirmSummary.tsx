@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import type { OperationalBagType } from '@cold-storage/contracts';
 import {
   formatRepackComposition,
   formatRepackHamali,
@@ -18,7 +19,7 @@ export interface MergeConfirmSummaryProps {
   actualRepackedBags: number;
   repackSmall: number | '';
   repackBig: number | '';
-  repackBagType: 'S/B' | 'Hybrid';
+  repackBagType: OperationalBagType;
   commodityHamaliRate: number;
   repackHamaliCharge: number;
   settlementDecision: string;
@@ -39,8 +40,8 @@ export function MergeConfirmSummary({
   repackBagType,
   commodityHamaliRate,
   repackHamaliCharge,
-  settlementDecision,
-  settleAmount,
+  settlementDecision: _settlementDecision,
+  settleAmount: _settleAmount,
   totalSourcePendingRent,
 }: MergeConfirmSummaryProps) {
   const variance = formatRepackVariance(repackMode, actualRepackedBags, totalSourceBags);
@@ -96,11 +97,9 @@ export function MergeConfirmSummary({
           <div className={styles.item}>
             <span className={styles.label}>Rent Settlement Gate</span>
             <span className={styles.value}>
-              {settlementDecision === 'SETTLE_NOW'
-                ? settleAmount < totalSourcePendingRent
-                  ? `₹${settleAmount.toLocaleString('en-IN')} Settled Now / ₹${(totalSourcePendingRent - settleAmount).toLocaleString('en-IN')} Carried Forward`
-                  : `₹${settleAmount.toLocaleString('en-IN')} Settled Now (Pay Now)`
-                : `₹${totalSourcePendingRent.toLocaleString('en-IN')} Carried Forward (Pay Later)`}
+              {totalSourcePendingRent > 0
+                ? `₹${totalSourcePendingRent.toLocaleString('en-IN')} Carried Forward (Pay Later)`
+                : 'Fully Settled (₹0 due)'}
             </span>
           </div>
           <div className={styles.item}>

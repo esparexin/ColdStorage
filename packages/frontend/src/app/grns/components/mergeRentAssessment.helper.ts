@@ -2,11 +2,13 @@ import {
   isHybridBagCategory,
   resolveSeasonalElapsedPeriods,
   seasonYearForInwardDate,
+  type Commodity,
   type Grn,
   type OutwardBagCategory,
   type RentSummaryDto,
 } from '@cold-storage/contracts';
 import { computeOutwardRentCharge } from '../../deliveries/hooks/deliveryRent.helper';
+import { resolveTransferRates } from './transferRentRates.helper';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
 import {
   deriveMergeRentAssessment,
@@ -38,6 +40,7 @@ export function calculateMergeSourceRentSummary(params: {
   commodityHamaliRate?: number;
   targetGrnDate?: Date | string | null;
   summary?: RentSummaryDto | null;
+  commodity?: Pick<Commodity, 'rates'> | null;
 }): MergeSourceRentCalculation {
   const {
     source,
@@ -46,6 +49,7 @@ export function calculateMergeSourceRentSummary(params: {
     commodityHamaliRate = 0,
     targetGrnDate,
     summary,
+    commodity,
   } = params;
 
   const sourceBags = source.closingBags ?? source.bags;
@@ -91,6 +95,8 @@ export function calculateMergeSourceRentSummary(params: {
     ? confirmation.monthlyBagPrice
     : undefined;
 
+  const { seasonalRates, monthlyRates } = resolveTransferRates(source, commodity);
+
   let calculatedRent = 0;
   if (isConfirmed) {
     calculatedRent = computeOutwardRentCharge({
@@ -104,8 +110,10 @@ export function calculateMergeSourceRentSummary(params: {
       monthlyBagPrice,
       inwardDate: source.date,
       deliveryDate: movementDate,
-      smallBagPrice: source.smallBagPrice,
-      bigBagPrice: source.bigBagPrice,
+      smallBagPrice: source.smallBagPrice ?? seasonalRates.small,
+      bigBagPrice: source.bigBagPrice ?? seasonalRates.big,
+      monthlySmallBagPrice: monthlyRates.small,
+      monthlyBigBagPrice: monthlyRates.big,
       bagPrice: source.bagPrice,
       excludePeriodKeys,
     });
@@ -175,6 +183,7 @@ export function calculateMergeGrandTotal(params: {
   commodityHamaliRate?: number;
   targetGrnDate?: Date | string | null;
   sourceRentSummaries?: Record<string, RentSummaryDto>;
+  commodities?: Commodity[];
 }): number {
   const {
     selectedSources,
@@ -183,9 +192,11 @@ export function calculateMergeGrandTotal(params: {
     commodityHamaliRate = 0,
     targetGrnDate,
     sourceRentSummaries,
+    commodities,
   } = params;
 
   return selectedSources.reduce((acc, source) => {
+    const commodity = commodities?.find((c) => c.id === source.commodityId);
     const calc = calculateMergeSourceRentSummary({
       source,
       confirmation: sourceConfirmations[source.id],
@@ -193,6 +204,7 @@ export function calculateMergeGrandTotal(params: {
       commodityHamaliRate,
       targetGrnDate,
       summary: sourceRentSummaries?.[source.id],
+      commodity,
     });
     return acc + calc.totalAmountToPay;
   }, 0);
