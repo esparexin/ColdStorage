@@ -1,7 +1,12 @@
-import { calculateHamaliAmount, type BagType } from '@cold-storage/contracts';
+import {
+  calculateHamaliAmount,
+  toOperationalBagType,
+  type BagType,
+  type OperationalBagType,
+} from '@cold-storage/contracts';
 
 export interface SortConfirmationFields {
-  confirmedBagType: BagType;
+  confirmedBagType: OperationalBagType;
   confirmedBags: number;
   totalBagsWeight?: number | null;
   paymentMode: 'Cash' | 'UPI';
@@ -16,7 +21,8 @@ export function validateSortConfirmation(
   if (!fields.confirmedBagType) {
     return 'Please confirm the bag type.';
   }
-  if (fields.confirmedBagType !== existingBagType) {
+  const expectedOperational = toOperationalBagType(existingBagType);
+  if (fields.confirmedBagType !== expectedOperational) {
     return `Confirmed bag type (${fields.confirmedBagType}) does not match existing bag type (${existingBagType}).`;
   }
   if (fields.confirmedBags === undefined || fields.confirmedBags === null || isNaN(fields.confirmedBags)) {
@@ -37,7 +43,7 @@ export function validateSortConfirmation(
 }
 
 export interface RepackFields {
-  resultingBagType: BagType;
+  resultingBagType: OperationalBagType;
   repackedSmallBags?: number | null;
   repackedBigBags?: number | null;
   repackedQuantity?: number | null;
@@ -60,6 +66,15 @@ export function validateRepackOperation(
 
   if (totalRepacked <= 0) {
     return 'Repacked bag count must be greater than zero.';
+  }
+
+  if (!isHybrid) {
+    if (fields.repackedSmallBags != null && fields.repackedSmallBags < 0) {
+      return 'Repacked small bags cannot be negative.';
+    }
+    if (fields.repackedBigBags != null && fields.repackedBigBags < 0) {
+      return 'Repacked big bags cannot be negative.';
+    }
   }
 
   const variance = totalRepacked - originalBags;

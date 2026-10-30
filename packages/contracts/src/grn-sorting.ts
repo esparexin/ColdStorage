@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { bagTypeSchema } from './bags.js';
+import { operationalBagTypeSchema } from './bags.js';
 import { paymentModeSchema, rentPaymentSchema } from './rent.js';
 import { grnSchema } from './grn.js';
 import { internalMovementRecordSchema } from './internal-movement.js';
@@ -10,7 +10,7 @@ import { internalMovementRecordSchema } from './internal-movement.js';
  */
 export const sortGrnInputSchema = z.object({
   grnId: z.string().trim().min(1, 'GRN ID is required'),
-  confirmedBagType: bagTypeSchema,
+  confirmedBagType: operationalBagTypeSchema,
   confirmedBags: z.number().int().positive('Confirmed bags must be greater than zero'),
   /** Optional confirmed total bags weight (kg). */
   totalBagsWeight: z.number().positive('Total bags weight must be positive').nullish(),
@@ -35,7 +35,7 @@ export type SortGrnResult = z.infer<typeof sortGrnResultSchema>;
  */
 export const repackGrnInputSchema = z.object({
   grnId: z.string().trim().min(1, 'GRN ID is required'),
-  resultingBagType: bagTypeSchema,
+  resultingBagType: operationalBagTypeSchema,
   repackedSmallBags: z.number().int().min(0).nullish(),
   repackedBigBags: z.number().int().min(0).nullish(),
   repackedQuantity: z.number().int().min(0).nullish(),

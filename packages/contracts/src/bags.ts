@@ -232,6 +232,11 @@ export function isHybridBagCategory(category?: string | null): boolean {
   return c === 'hybrid' || c === 'modern' || c === 'modern size' || c === 'mixed';
 }
 
+/** Maps any canonical or legacy bag type to operational bag type ('S/B' | 'Hybrid'). */
+export function toOperationalBagType(bagType?: string | null): OperationalBagType {
+  return isHybridBagCategory(bagType) ? 'Hybrid' : 'S/B';
+}
+
 /**
  * Canonical Hybrid ledger split shared by Outward Delivery and Internal Move:
  * fill Small from remaining Small first, remainder to Big. Reconciles to the

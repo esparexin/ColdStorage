@@ -104,20 +104,8 @@ export async function executeRepackGrn(
         const outSmall = bal.smallBags;
         const outBig = bal.bigBags;
 
-        const inSmall = isHybrid
-          ? actualRepackedBags
-          : input.resultingBagType === 'S'
-            ? actualRepackedBags
-            : input.resultingBagType === 'B'
-              ? 0
-              : (input.repackedSmallBags ?? 0);
-        const inBig = isHybrid
-          ? 0
-          : input.resultingBagType === 'S'
-            ? 0
-            : input.resultingBagType === 'B'
-              ? actualRepackedBags
-              : (input.repackedBigBags ?? 0);
+        const inSmall = isHybrid ? actualRepackedBags : (input.repackedSmallBags ?? 0);
+        const inBig = isHybrid ? 0 : (input.repackedBigBags ?? 0);
 
         const movementId = `mov-${randomUUID()}`;
         const movementDate = new Date();
