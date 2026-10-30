@@ -86,7 +86,7 @@ export function resolveBagEdit(input: CorrectGrnInput, grn: StoredBagState): Bag
       smallBags: input.smallBags ?? null,
       bigBags: input.bigBags ?? null,
     });
-  } else if (finalBagType === 'S' || finalBagType === 'B') {
+  } else if (finalBagType === 'S' || finalBagType === 'B' || finalBagType === 'Hybrid') {
     finalIsCompositionVerified = true;
   } else if (input.bags !== undefined || input.bagType !== undefined) {
     finalIsCompositionVerified = false;
@@ -99,8 +99,8 @@ export function resolveBagEdit(input: CorrectGrnInput, grn: StoredBagState): Bag
   update.bigBags = composition.bigBags;
   update.isCompositionVerified = finalIsCompositionVerified;
   inwardUpdate.bagType = finalBagType;
-  inwardUpdate.smallQuantity = composition.smallBags;
-  inwardUpdate.bigQuantity = composition.bigBags;
+  inwardUpdate.smallQuantity = finalIsCompositionVerified ? composition.smallBags : finalBags;
+  inwardUpdate.bigQuantity = finalIsCompositionVerified ? composition.bigBags : 0;
   finalSmallBags = composition.smallBags;
   finalBigBags = composition.bigBags;
   // Per-bag weights are independent of the bag count, so a corrected count
