@@ -183,14 +183,14 @@ describe('GRN Sorting & Repacking with Partial Deliveries (Phase 2)', () => {
     const sort1 = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/sort`)
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ grnId, confirmedBagType: 'S', confirmedBags: 50 });
+      .send({ grnId, confirmedBagType: 'S/B', confirmedBags: 50 });
     expect(sort1.status).toBe(200);
 
     // Replay sort: returns isSortingComplete: true without error
     const sort2 = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/sort`)
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ grnId, confirmedBagType: 'S', confirmedBags: 50 });
+      .send({ grnId, confirmedBagType: 'S/B', confirmedBags: 50 });
     expect(sort2.status).toBe(200);
     expect(sort2.body.isSortingComplete).toBe(true);
 
@@ -199,7 +199,7 @@ describe('GRN Sorting & Repacking with Partial Deliveries (Phase 2)', () => {
       .post(`/api/facilities/${facilityId}/internal-movements/repack`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        grnId, resultingBagType: 'S', repackedSmallBags: 48, repackedBigBags: 0,
+        grnId, resultingBagType: 'S/B', repackedSmallBags: 48, repackedBigBags: 0,
         repackVarianceReason: 'Culls', remarks: 'Repack', idempotencyKey: idemKey,
       });
     expect(repack1.status).toBe(200);
@@ -211,7 +211,7 @@ describe('GRN Sorting & Repacking with Partial Deliveries (Phase 2)', () => {
       .post(`/api/facilities/${facilityId}/internal-movements/repack`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        grnId, resultingBagType: 'S', repackedSmallBags: 48, repackedBigBags: 0,
+        grnId, resultingBagType: 'S/B', repackedSmallBags: 48, repackedBigBags: 0,
         repackVarianceReason: 'Culls', remarks: 'Repack', idempotencyKey: idemKey,
       });
     expect(repack2.status).toBe(200);

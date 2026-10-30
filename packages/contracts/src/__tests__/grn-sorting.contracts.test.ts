@@ -93,4 +93,3 @@ describe('Contracts: GRN Sorting and Repack Bag Type Contracts', () => {
     expect(invalidB.success).toBe(false);
   });
 });
-
