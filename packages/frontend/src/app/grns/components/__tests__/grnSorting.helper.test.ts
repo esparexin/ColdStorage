@@ -68,6 +68,29 @@ describe('grnSorting.helper', () => {
       );
       expect(err).toBeNull();
     });
+
+    it('validates explicit small and big bag confirmation for S/B lots', () => {
+      const errMismatch = validateSortConfirmation(
+        { confirmedBagType: 'S/B', confirmedSmallBags: 60, confirmedBigBags: 30, paymentMode: 'Cash' },
+        'S/B',
+        100,
+      );
+      expect(errMismatch).toContain('must match available stock');
+
+      const errNegative = validateSortConfirmation(
+        { confirmedBagType: 'S/B', confirmedSmallBags: -5, confirmedBigBags: 105, paymentMode: 'Cash' },
+        'S/B',
+        100,
+      );
+      expect(errNegative).toContain('non-negative whole number');
+
+      const validSplit = validateSortConfirmation(
+        { confirmedBagType: 'S/B', confirmedSmallBags: 60, confirmedBigBags: 40, paymentMode: 'Cash' },
+        'S/B',
+        100,
+      );
+      expect(validSplit).toBeNull();
+    });
   });
 
   describe('validateRepackOperation', () => {

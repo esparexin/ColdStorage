@@ -211,7 +211,10 @@ export function GrnSortingStep2Repack({
           </div>
           <div className={styles.summaryItem}>
             <span className={styles.summaryLabel}>Labor / Hamali Charge</span>
-            <span className={styles.summaryValue}>₹{hamaliCharge.toFixed(2)}</span>
+            <span className={styles.summaryValue}>
+              ₹{hamaliCharge.toFixed(2)}
+              {hamaliRate > 0 ? ` (@ ₹${hamaliRate}/bag)` : ''}
+            </span>
           </div>
         </div>
       </div>
