@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import {
+  calculateHamaliAmount,
   isHybridBagCategory,
   resolveOutwardRates,
   type Grn,
@@ -27,6 +28,7 @@ export interface TransferRentAssessmentProps {
   totalPaid?: number;
   outstandingBalance?: number;
   assessedRent?: number;
+  hamaliRate?: number | null;
 }
 
 export function TransferRentAssessment({
@@ -44,6 +46,7 @@ export function TransferRentAssessment({
   totalPaid = 0,
   outstandingBalance,
   assessedRent: propAssessedRent,
+  hamaliRate,
 }: TransferRentAssessmentProps) {
   const isHybrid = isHybridBagCategory(sourceBagCategory);
   const smallBags = isHybrid
@@ -79,7 +82,11 @@ export function TransferRentAssessment({
   ]);
 
   const totalRent = propAssessedRent ?? calculatedRent;
-  const balance = outstandingBalance !== undefined ? outstandingBalance : Math.max(0, totalRent - totalPaid);
+  const hamaliCharge = typeof hamaliRate === 'number' && hamaliRate > 0 && remainingBags > 0
+    ? calculateHamaliAmount(remainingBags, hamaliRate)
+    : 0;
+  const totalObligation = totalRent + hamaliCharge;
+  const balance = outstandingBalance !== undefined ? outstandingBalance : Math.max(0, totalObligation - totalPaid);
   const inwardDateStr = currentGrn.date ? new Date(currentGrn.date).toISOString().slice(0, 10) : '—';
 
   return (
@@ -114,7 +121,7 @@ export function TransferRentAssessment({
           </div>
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Total Applicable Rent:</span>
-            <span className={styles.detailValue}>₹{totalRent.toLocaleString('en-IN')}</span>
+            <span className={styles.detailValue}>₹{totalObligation.toLocaleString('en-IN')}</span>
           </div>
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Already Paid:</span>
@@ -142,6 +149,7 @@ export function TransferRentAssessment({
         seasonalRates={effectiveRates}
         monthlyRates={effectiveRates}
         totalRent={totalRent}
+        hamaliRate={hamaliRate}
       />
     </div>
   );
