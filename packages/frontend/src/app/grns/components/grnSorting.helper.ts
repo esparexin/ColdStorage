@@ -8,6 +8,8 @@ import {
 export interface SortConfirmationFields {
   confirmedBagType: OperationalBagType;
   confirmedBags: number;
+  confirmedSmallBags?: number | null;
+  confirmedBigBags?: number | null;
   totalBagsWeight?: number | null;
   paymentMode: 'Cash' | 'UPI';
   paymentNotes?: string;
@@ -25,14 +27,38 @@ export function validateSortConfirmation(
   if (fields.confirmedBagType !== expectedOperational) {
     return `Confirmed bag type (${fields.confirmedBagType}) does not match existing bag type (${existingBagType}).`;
   }
-  if (fields.confirmedBags === undefined || fields.confirmedBags === null || isNaN(fields.confirmedBags)) {
-    return 'Please enter the number of bags to confirm.';
-  }
-  if (!Number.isInteger(fields.confirmedBags) || fields.confirmedBags <= 0) {
-    return 'Confirmed bags must be a positive whole number.';
-  }
-  if (fields.confirmedBags !== availableBags) {
-    return `Confirmed bags (${fields.confirmedBags}) must match available stock (${availableBags}).`;
+  const isHybrid = fields.confirmedBagType === 'Hybrid';
+  if (!isHybrid && (fields.confirmedSmallBags != null || fields.confirmedBigBags != null)) {
+    if (
+      fields.confirmedSmallBags == null ||
+      isNaN(fields.confirmedSmallBags) ||
+      !Number.isInteger(fields.confirmedSmallBags) ||
+      fields.confirmedSmallBags < 0
+    ) {
+      return 'Confirmed small bags must be a non-negative whole number.';
+    }
+    if (
+      fields.confirmedBigBags == null ||
+      isNaN(fields.confirmedBigBags) ||
+      !Number.isInteger(fields.confirmedBigBags) ||
+      fields.confirmedBigBags < 0
+    ) {
+      return 'Confirmed big bags must be a non-negative whole number.';
+    }
+    const sum = fields.confirmedSmallBags + fields.confirmedBigBags;
+    if (sum !== availableBags) {
+      return `Sum of small and big bags (${sum}) must match available stock (${availableBags}).`;
+    }
+  } else {
+    if (fields.confirmedBags === undefined || fields.confirmedBags === null || isNaN(fields.confirmedBags)) {
+      return 'Please enter the number of bags to confirm.';
+    }
+    if (!Number.isInteger(fields.confirmedBags) || fields.confirmedBags <= 0) {
+      return 'Confirmed bags must be a positive whole number.';
+    }
+    if (fields.confirmedBags !== availableBags) {
+      return `Confirmed bags (${fields.confirmedBags}) must match available stock (${availableBags}).`;
+    }
   }
   if (fields.totalBagsWeight !== undefined && fields.totalBagsWeight !== null) {
     if (isNaN(fields.totalBagsWeight) || fields.totalBagsWeight <= 0) {

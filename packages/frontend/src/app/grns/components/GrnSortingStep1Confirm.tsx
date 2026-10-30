@@ -34,7 +34,13 @@ export function GrnSortingStep1Confirm({
   const [confirmedBagType, setConfirmedBagType] = useState<OperationalBagType>(
     toOperationalBagType(grn.bagType),
   );
-  const [confirmedBags, setConfirmedBags] = useState<string>(String(availableBags));
+  const isHybrid = confirmedBagType === 'Hybrid';
+  const [confirmedSmallBags, setConfirmedSmallBags] = useState<string>(
+    grn.smallBags != null ? String(grn.smallBags) : String(availableBags),
+  );
+  const [confirmedBigBags, setConfirmedBigBags] = useState<string>(
+    grn.bigBags != null ? String(grn.bigBags) : '0',
+  );
   const [totalWeight, setTotalWeight] = useState<string>(
     grn.totalBagsWeight != null ? String(grn.totalBagsWeight) : '',
   );
@@ -46,13 +52,17 @@ export function GrnSortingStep1Confirm({
     e.preventDefault();
     setValidationError(null);
 
-    const parsedBags = Number(confirmedBags);
+    const parsedSmall = isHybrid ? null : Number(confirmedSmallBags);
+    const parsedBig = isHybrid ? null : Number(confirmedBigBags);
+    const parsedBags = isHybrid ? availableBags : (parsedSmall ?? 0) + (parsedBig ?? 0);
     const parsedWeight = totalWeight.trim() ? Number(totalWeight) : null;
 
     const error = validateSortConfirmation(
       {
         confirmedBagType,
         confirmedBags: parsedBags,
+        confirmedSmallBags: parsedSmall,
+        confirmedBigBags: parsedBig,
         totalBagsWeight: parsedWeight,
         paymentMode,
       },
@@ -125,18 +135,46 @@ export function GrnSortingStep1Confirm({
               </Select>
             </div>
 
-            <div className={styles.fieldGroup}>
-              <Input
-                id="confirmed-bags"
-                label="Confirm Number of Bags *"
-                type="number"
-                min={1}
-                step={1}
-                value={confirmedBags}
-                onChange={(e) => setConfirmedBags(e.target.value)}
-                required
-              />
-            </div>
+            {isHybrid ? (
+              <div className={styles.fieldGroup}>
+                <Input
+                  id="confirmed-hybrid-bags"
+                  label="Hybrid Bags *"
+                  type="number"
+                  value={availableBags}
+                  readOnly
+                  aria-label="Hybrid Bags (read-only)"
+                  title="Confirmed Hybrid quantity matches total available stock"
+                />
+              </div>
+            ) : (
+              <>
+                <div className={styles.fieldGroup}>
+                  <Input
+                    id="confirmed-small-bags"
+                    label="Small Bags *"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={confirmedSmallBags}
+                    onChange={(e) => setConfirmedSmallBags(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <Input
+                    id="confirmed-big-bags"
+                    label="Big Bags *"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={confirmedBigBags}
+                    onChange={(e) => setConfirmedBigBags(e.target.value)}
+                    required
+                  />
+                </div>
+              </>
+            )}
 
             <div className={styles.fieldGroup}>
               <Input
