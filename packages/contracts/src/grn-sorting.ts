@@ -59,7 +59,7 @@ export type SortGrnResult = z.infer<typeof sortGrnResultSchema>;
 export const repackGrnInputSchema = z.object({
   grnId: z.string().trim().min(1, 'GRN ID is required'),
   resultingBagType: operationalBagTypeSchema,
-  destinationChamber: chamberTextSchema.nullish(),
+  destinationChamber: chamberTextSchema,
   repackedSmallBags: z.number().int().min(0).nullish(),
   repackedBigBags: z.number().int().min(0).nullish(),
   repackedQuantity: z.number().int().min(0).nullish(),

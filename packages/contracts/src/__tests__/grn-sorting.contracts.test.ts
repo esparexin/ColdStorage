@@ -115,6 +115,7 @@ describe('Contracts: GRN Sorting and Repack Bag Type Contracts', () => {
     const validHybrid = repackGrnInputSchema.safeParse({
       grnId: 'grn-1',
       resultingBagType: 'Hybrid',
+      destinationChamber: 'CH-02',
       repackedQuantity: 100,
       remarks: 'Standard repacking',
     });

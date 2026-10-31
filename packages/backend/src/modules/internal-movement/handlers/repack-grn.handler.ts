@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import {
-  calculateHamaliAmount, calculateRentAmount, deriveBagPrice, resolveTotalRentObligation,
+  calculateHamaliAmount, calculateNetRentAmount, calculateRentAmount, deriveBagPrice, resolveTotalRentObligation,
   seasonYearForInwardDate, type Grn, type InternalMovementRecord, type RepackGrnInput, type RepackGrnResult,
 } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
@@ -108,7 +108,10 @@ export async function executeRepackGrn(
 
         const movementId = `mov-${randomUUID()}`;
         const movementDate = new Date();
-        const destinationChamber = input.destinationChamber?.trim() || grn.chamber;
+        const destinationChamber = input.destinationChamber.trim();
+        if (!destinationChamber) {
+          throw new Error('Destination chamber is required for repacking putaway');
+        }
 
         // Ledger balance adjustment: outward old composition, inward repacked composition
         await InventoryTransactionModel.create(
@@ -160,11 +163,12 @@ export async function executeRepackGrn(
             rentType: grn.rentType, bags: bal.total, rentAmount: grn.rentAmount,
             smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice,
           });
-          grn.rentAmount = calculateRentAmount({
+          const { netStorageRent } = calculateNetRentAmount({
             rentType: grn.rentType, bags: grn.bags, bagType: grn.bagType,
             smallBags: grn.smallBags, bigBags: grn.bigBags, bagPrice: effectiveBagPrice,
             smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, rentAmount: grn.rentAmount,
-          });
+          }, grn.hamaliRate);
+          grn.rentAmount = netStorageRent;
         }
         await grn.save({ session });
 

@@ -30,7 +30,8 @@ export function GrnSortingStep2Repack({
 }: GrnSortingStep2RepackProps) {
   const originalBags = grn.closingBags ?? grn.bags;
   const [resultingBagType, setResultingBagType] = useState<OperationalBagType>(toOperationalBagType(grn.bagType));
-  const [destinationChamber, setDestinationChamber] = useState<string>(grn.chamber || '');
+  // Chamber must be explicitly entered by the operator — do not pre-fill with old chamber
+  const [destinationChamber, setDestinationChamber] = useState<string>('');
   const hasMatchingComposition = grn.smallBags != null && grn.bigBags != null && grn.smallBags + grn.bigBags === originalBags;
   const [repackedSmallBags, setRepackedSmallBags] = useState<string>(hasMatchingComposition ? String(grn.smallBags) : String(originalBags));
   const [repackedBigBags, setRepackedBigBags] = useState<string>(hasMatchingComposition ? String(grn.bigBags) : '0');

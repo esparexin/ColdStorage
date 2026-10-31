@@ -92,11 +92,12 @@ export function validateRepackOperation(
   if (!fields.resultingBagType) {
     return 'Please select the resulting bag type.';
   }
-  if (fields.destinationChamber !== undefined) {
-    const chamberResult = chamberTextSchema.safeParse(fields.destinationChamber);
-    if (!chamberResult.success) {
-      return chamberResult.error.issues[0]?.message ?? 'Chamber is required';
-    }
+  if (!fields.destinationChamber || !fields.destinationChamber.trim()) {
+    return 'Chamber is required';
+  }
+  const chamberResult = chamberTextSchema.safeParse(fields.destinationChamber.trim());
+  if (!chamberResult.success) {
+    return chamberResult.error.issues[0]?.message ?? 'Chamber is required';
   }
   const isHybrid = fields.resultingBagType === 'Hybrid';
   const totalRepacked = isHybrid
