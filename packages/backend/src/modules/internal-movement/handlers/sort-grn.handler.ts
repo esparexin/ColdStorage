@@ -1,8 +1,7 @@
 import mongoose from 'mongoose';
-import { randomUUID } from 'node:crypto';
 import {
-  getFinancialYearKey,
   resolveTotalRentObligation,
+  seasonYearForInwardDate,
   toOperationalBagType,
   type Grn,
   type RentPayment,
@@ -12,7 +11,6 @@ import {
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { RentExtensionModel } from '../../../database/models/rent-extension.model.js';
-import { counterService } from '../../common/counter.service.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
@@ -27,8 +25,8 @@ export async function executeSortGrn(
 ): Promise<SortGrnResult> {
   const session = await mongoose.startSession();
   let resultGrn!: Grn;
-  let resultPayment: RentPayment | undefined;
-  let resultReceiptNumber: string | undefined;
+  const resultPayment: RentPayment | undefined = undefined;
+  const resultReceiptNumber: string | undefined = undefined;
   let billedAmount = 0;
 
   try {
@@ -59,6 +57,7 @@ export async function executeSortGrn(
             `CONFIRMATION_MISMATCH: Confirmed bags (${input.confirmedBags}) does not match existing stock (${bal.total})`,
           );
         }
+
         const expectedBagType = toOperationalBagType(grn.bagType);
         if (input.confirmedBagType !== expectedBagType) {
           throw new Error(
@@ -66,12 +65,34 @@ export async function executeSortGrn(
           );
         }
 
+        // Validate and apply confirmed small and big bags composition for S/B lots when supplied
+        if (
+          input.confirmedBagType === 'S/B' &&
+          (input.confirmedSmallBags != null || input.confirmedBigBags != null)
+        ) {
+          const small = input.confirmedSmallBags ?? 0;
+          const big = input.confirmedBigBags ?? 0;
+          if (small < 0 || big < 0 || !Number.isInteger(small) || !Number.isInteger(big)) {
+            throw new Error('Confirmed small and big bags must be non-negative whole numbers');
+          }
+          if (small + big !== bal.total) {
+            throw new Error(
+              `CONFIRMATION_MISMATCH: Sum of small (${small}) and big (${big}) bags does not match existing stock (${bal.total})`,
+            );
+          }
+          grn.smallBags = small;
+          grn.bigBags = big;
+          grn.isCompositionVerified = true;
+        } else if (input.confirmedBagType === 'Hybrid') {
+          grn.isCompositionVerified = true;
+        }
+
         // Optional weight confirmation / update
         if (typeof input.totalBagsWeight === 'number' && input.totalBagsWeight > 0) {
           grn.totalBagsWeight = input.totalBagsWeight;
         }
 
-        // 2. Rent Recalculation & Bill Generation Gate
+        // 2. Rent Recalculation & Historical Settlement Gate (Excluding Active Subscription)
         const outwardInfo = await rentRepository.getOutwardRentInfoForGrn(facilityId, grn.id, session);
         const extensions = await RentExtensionModel.find({ facilityId, grnId: grn.id }, null, { session }).lean().exec();
         const commodity = await CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec();
@@ -81,65 +102,36 @@ export async function executeSortGrn(
           grn.hamaliAmount = hamaliShare;
         }
 
-        const totalDue = resolveTotalRentObligation({
-          rentType: grn.rentType,
-          rentAmount: grn.rentAmount,
-          outwardRentCharges: outwardInfo.total,
-          extensionAmounts: extensions.map((e) => e.finalAmount),
-          hamaliShare,
-        });
-
         const payments = await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session);
         const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
-        const remainingDue = Math.max(0, Number((totalDue - totalPaid).toFixed(2)));
 
-        const currentFy = getFinancialYearKey(new Date());
-        const grnFy = getFinancialYearKey(new Date(grn.date));
-        const isPreviousFinancialYear = grnFy !== currentFy;
+        const currentSeasonYear = seasonYearForInwardDate(new Date());
+        const grnSeasonYear = seasonYearForInwardDate(grn.date);
+        const isCurrentSeasonLot = grnSeasonYear === currentSeasonYear;
 
-        // When GRN belongs to a previous financial year, preserve historical rent as pending
-        // against the original bill, customer, and GRN profile. Do not auto-settle or fabricate
-        // current-year payments against historical debt.
-        if (remainingDue > 0 && !isPreviousFinancialYear) {
-          const receiptNumber = await counterService.generateRentReceiptNumber(facilityId, new Date(), session);
-          const paymentDoc = await rentRepository.createPayment(
-            {
-              id: `rent-pay-${randomUUID()}`,
-              facilityId,
-              grnId: grn.id,
-              grnNumber: grn.grnNumber,
-              customerId: grn.customerId,
-              customerName: grn.customerName,
-              receiptNumber,
-              amountPaid: remainingDue,
-              paymentMode: input.paymentMode ?? 'Cash',
-              paymentDate: new Date(),
-              notes: input.paymentNotes?.trim() || `Sorting confirmation bill: GRN ${grn.grnNumber}`,
-              createdBy: userId,
-            },
-            session,
-          );
+        // Current active subscription is strictly excluded from Step 1 settlement.
+        // For current-season lots (e.g. GRN 0021), Season 1 is active, so historical dues prior to it are ₹0.
+        // For multi-season lots, Season 1 and prior extensions are historical obligations.
+        const historicalRentAmount = isCurrentSeasonLot ? 0 : grn.rentAmount;
+        const historicalExtensions = isCurrentSeasonLot
+          ? []
+          : extensions
+              .filter((e) => !(e.seasonYear === currentSeasonYear && e.period === 'SEASON'))
+              .map((e) => e.finalAmount);
 
-          resultPayment = {
-            id: paymentDoc.id,
-            facilityId: paymentDoc.facilityId,
-            grnId: paymentDoc.grnId,
-            grnNumber: paymentDoc.grnNumber,
-            customerId: paymentDoc.customerId ?? null,
-            customerName: paymentDoc.customerName ?? null,
-            receiptNumber: paymentDoc.receiptNumber,
-            amountPaid: paymentDoc.amountPaid,
-            paymentMode: paymentDoc.paymentMode,
-            paymentDate: new Date(paymentDoc.paymentDate),
-            notes: paymentDoc.notes,
-            createdBy: paymentDoc.createdBy,
-            createdAt: new Date(paymentDoc.createdAt),
-          };
-          resultReceiptNumber = receiptNumber;
-          billedAmount = remainingDue;
-        }
+        const historicalTotalDue = resolveTotalRentObligation({
+          rentType: grn.rentType,
+          rentAmount: historicalRentAmount,
+          outwardRentCharges: outwardInfo.total,
+          extensionAmounts: historicalExtensions,
+          hamaliShare: isCurrentSeasonLot ? 0 : hamaliShare,
+        });
 
-        // 3. Mark sorting confirmation complete
+        // FIFO Allocation: subtract payments made to date from historical debt
+        const outstandingHistoricalDue = Math.max(0, Number((historicalTotalDue - totalPaid).toFixed(2)));
+        billedAmount = outstandingHistoricalDue;
+
+        // 3. Mark sorting confirmation complete (active subscription continues post-repack)
         grn.isSorted = true;
         grn.sortedAt = new Date();
         grn.updatedAt = new Date();

@@ -29,15 +29,13 @@ export function GrnSortingStep2Repack({
   onBack,
 }: GrnSortingStep2RepackProps) {
   const originalBags = grn.closingBags ?? grn.bags;
-  const [resultingBagType, setResultingBagType] = useState<OperationalBagType>(
-    toOperationalBagType(grn.bagType),
-  );
-  const [repackedSmallBags, setRepackedSmallBags] = useState<string>(String(grn.smallBags || 0));
-  const [repackedBigBags, setRepackedBigBags] = useState<string>(String(grn.bigBags || 0));
+  const [resultingBagType, setResultingBagType] = useState<OperationalBagType>(toOperationalBagType(grn.bagType));
+  const [destinationChamber, setDestinationChamber] = useState<string>(grn.chamber || '');
+  const hasMatchingComposition = grn.smallBags != null && grn.bigBags != null && grn.smallBags + grn.bigBags === originalBags;
+  const [repackedSmallBags, setRepackedSmallBags] = useState<string>(hasMatchingComposition ? String(grn.smallBags) : String(originalBags));
+  const [repackedBigBags, setRepackedBigBags] = useState<string>(hasMatchingComposition ? String(grn.bigBags) : '0');
   const [repackedQuantity, setRepackedQuantity] = useState<string>(String(originalBags));
-  const [referenceWeight, setReferenceWeight] = useState<string>(
-    grn.totalBagsWeight != null ? String(grn.totalBagsWeight) : '',
-  );
+  const [referenceWeight, setReferenceWeight] = useState<string>(grn.totalBagsWeight != null ? String(grn.totalBagsWeight) : '');
   const [varianceReason, setVarianceReason] = useState<string>('');
   const [remarks, setRemarks] = useState<string>('');
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -48,9 +46,8 @@ export function GrnSortingStep2Repack({
     : (Number(repackedSmallBags) || 0) + (Number(repackedBigBags) || 0);
   const variance = totalRepacked - originalBags;
 
-  const hamaliRate = commodity?.isHamaliApplicable || (commodity?.hamaliRate ?? 0) > 0
-    ? (commodity?.hamaliRate ?? 0)
-    : 0;
+  const hamaliRate = (commodity?.isHamaliApplicable || (commodity?.hamaliRate ?? 0) > 0)
+    ? (commodity?.hamaliRate ?? 0) : 0;
   const hamaliCharge = computeHamaliCharge(totalRepacked, hamaliRate);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,7 +56,7 @@ export function GrnSortingStep2Repack({
 
     const error = validateRepackOperation(
       {
-        resultingBagType,
+        resultingBagType, destinationChamber: destinationChamber.trim(),
         repackedSmallBags: isHybrid ? null : Number(repackedSmallBags),
         repackedBigBags: isHybrid ? null : Number(repackedBigBags),
         repackedQuantity: isHybrid ? Number(repackedQuantity) : null,
@@ -75,8 +72,7 @@ export function GrnSortingStep2Repack({
     }
 
     await onExecuteRepack({
-      grnId: grn.id,
-      resultingBagType,
+      grnId: grn.id, resultingBagType, destinationChamber: destinationChamber.trim(),
       repackedSmallBags: isHybrid ? undefined : Number(repackedSmallBags),
       repackedBigBags: isHybrid ? undefined : Number(repackedBigBags),
       repackedQuantity: isHybrid ? Number(repackedQuantity) : undefined,
@@ -97,71 +93,33 @@ export function GrnSortingStep2Repack({
 
       <div className={styles.formGrid}>
         <div className={styles.fieldGroup}>
-          <Select
-            id="resulting-bag-type"
-            label="Resulting Bag Type *"
-            value={resultingBagType}
-            onChange={(e) => setResultingBagType(e.target.value as OperationalBagType)}
-            required
-          >
+          <Select id="resulting-bag-type" label="Resulting Bag Type *" value={resultingBagType} onChange={(e) => setResultingBagType(e.target.value as OperationalBagType)} required>
             <option value="S/B">S/B (Small / Big)</option>
             <option value="Hybrid">Hybrid</option>
           </Select>
         </div>
 
+        <div className={styles.fieldGroup}>
+          <Input id="repack-destination-chamber" label="Destination Chamber *" type="text" required maxLength={20} value={destinationChamber} onChange={(e) => setDestinationChamber(e.target.value)} placeholder="e.g. A or CH-01" disabled={submitting} />
+        </div>
+
         {isHybrid ? (
           <div className={styles.fieldGroup}>
-            <Input
-              id="repack-quantity"
-              label="Repacked Quantity *"
-              type="number"
-              min={1}
-              step={1}
-              value={repackedQuantity}
-              onChange={(e) => setRepackedQuantity(e.target.value)}
-              required
-            />
+            <Input id="repack-quantity" label="Repacked Quantity *" type="number" min={1} step={1} value={repackedQuantity} onChange={(e) => setRepackedQuantity(e.target.value)} required />
           </div>
         ) : (
           <>
             <div className={styles.fieldGroup}>
-              <Input
-                id="repack-small-bags"
-                label="Repacked Small Bags *"
-                type="number"
-                min={0}
-                step={1}
-                value={repackedSmallBags}
-                onChange={(e) => setRepackedSmallBags(e.target.value)}
-                required
-              />
+              <Input id="repack-small-bags" label="Repacked Small Bags *" type="number" min={0} step={1} value={repackedSmallBags} onChange={(e) => setRepackedSmallBags(e.target.value)} required />
             </div>
             <div className={styles.fieldGroup}>
-              <Input
-                id="repack-big-bags"
-                label="Repacked Big Bags *"
-                type="number"
-                min={0}
-                step={1}
-                value={repackedBigBags}
-                onChange={(e) => setRepackedBigBags(e.target.value)}
-                required
-              />
+              <Input id="repack-big-bags" label="Repacked Big Bags *" type="number" min={0} step={1} value={repackedBigBags} onChange={(e) => setRepackedBigBags(e.target.value)} required />
             </div>
           </>
         )}
 
         <div className={styles.fieldGroup}>
-          <Input
-            id="repack-reference-weight"
-            label="Resulting Weight (kg, optional)"
-            type="number"
-            min={0.1}
-            step={0.1}
-            value={referenceWeight}
-            onChange={(e) => setReferenceWeight(e.target.value)}
-            placeholder="e.g. 4950"
-          />
+          <Input id="repack-reference-weight" label="Resulting Weight (kg, optional)" type="number" min={0.1} step={0.1} value={referenceWeight} onChange={(e) => setReferenceWeight(e.target.value)} placeholder="e.g. 4950" />
         </div>
       </div>
 

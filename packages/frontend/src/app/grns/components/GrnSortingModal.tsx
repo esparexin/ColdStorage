@@ -12,6 +12,7 @@ import type {
 import { Button, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { requestWithAuth } from '@/lib/api-client';
+import { formatDisplayDate } from '@/lib/date-format';
 import { GrnSortingStep1Confirm } from './GrnSortingStep1Confirm';
 import { GrnSortingStep2Repack } from './GrnSortingStep2Repack';
 import styles from './GrnSortingModal.module.css';
@@ -158,6 +159,10 @@ export function GrnSortingModal({
             <div className={styles.summaryItem}>
               <span className={styles.summaryLabel}>GRN Number</span>
               <span className={styles.summaryValue}>{currentGrn.grnNumber}</span>
+            </div>
+            <div className={styles.summaryItem}>
+              <span className={styles.summaryLabel}>Inward Date</span>
+              <span className={styles.summaryValue}>{formatDisplayDate(currentGrn.date)}</span>
             </div>
             <div className={styles.summaryItem}>
               <span className={styles.summaryLabel}>Customer</span>

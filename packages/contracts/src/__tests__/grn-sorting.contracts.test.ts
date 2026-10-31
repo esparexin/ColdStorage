@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  clampBagAllocation,
   operationalBagTypeSchema,
   repackGrnInputSchema,
   sortGrnInputSchema,
@@ -35,8 +36,38 @@ describe('Contracts: GRN Sorting and Repack Bag Type Contracts', () => {
       grnId: 'grn-1',
       confirmedBagType: 'S/B',
       confirmedBags: 100,
+      confirmedSmallBags: 60,
+      confirmedBigBags: 40,
     });
     expect(validSb.success).toBe(true);
+    if (validSb.success) {
+      expect(validSb.data.paymentMode).toBe('Cash');
+      expect(validSb.data.confirmedSmallBags).toBe(60);
+      expect(validSb.data.confirmedBigBags).toBe(40);
+    }
+
+    const invalidNegative = sortGrnInputSchema.safeParse({
+      grnId: 'grn-1',
+      confirmedBagType: 'S/B',
+      confirmedBags: 100,
+      confirmedSmallBags: -5,
+      confirmedBigBags: 105,
+    });
+    expect(invalidNegative.success).toBe(false);
+
+    const invalidCompositionMismatch = sortGrnInputSchema.safeParse({
+      grnId: 'grn-1',
+      confirmedBagType: 'S/B',
+      confirmedBags: 25,
+      confirmedSmallBags: 1233,
+      confirmedBigBags: 1533,
+    });
+    expect(invalidCompositionMismatch.success).toBe(false);
+    if (!invalidCompositionMismatch.success) {
+      expect(invalidCompositionMismatch.error.issues[0].message).toContain(
+        'Sum of confirmed small and big bags must match confirmed total bags',
+      );
+    }
 
     const validHybrid = sortGrnInputSchema.safeParse({
       grnId: 'grn-1',
@@ -64,11 +95,22 @@ describe('Contracts: GRN Sorting and Repack Bag Type Contracts', () => {
     const validSb = repackGrnInputSchema.safeParse({
       grnId: 'grn-1',
       resultingBagType: 'S/B',
+      destinationChamber: 'CH-01',
       repackedSmallBags: 60,
       repackedBigBags: 40,
       remarks: 'Standard repacking',
     });
     expect(validSb.success).toBe(true);
+
+    const invalidEmptyChamber = repackGrnInputSchema.safeParse({
+      grnId: 'grn-1',
+      resultingBagType: 'S/B',
+      destinationChamber: '',
+      repackedSmallBags: 60,
+      repackedBigBags: 40,
+      remarks: 'Standard repacking',
+    });
+    expect(invalidEmptyChamber.success).toBe(false);
 
     const validHybrid = repackGrnInputSchema.safeParse({
       grnId: 'grn-1',
@@ -91,5 +133,13 @@ describe('Contracts: GRN Sorting and Repack Bag Type Contracts', () => {
       remarks: 'Invalid bag type',
     });
     expect(invalidB.success).toBe(false);
+  });
+
+  it('clampBagAllocation in contracts SSOT prevents bag quantities from exceeding stock', () => {
+    expect(clampBagAllocation(20, 5, 25)).toBe(20);
+    expect(clampBagAllocation(30, 0, 25)).toBe(25);
+    expect(clampBagAllocation(1233, 1533, 25)).toBe(0);
+    expect(clampBagAllocation(50, 0, 25, 10)).toBe(10);
+    expect(clampBagAllocation(-1, 0, 25)).toBe(0);
   });
 });
