@@ -156,4 +156,50 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
     // 40 bags × ₹12/bag season total = ₹480
     expect(del.delivery.rentCharge).toBe(480);
   });
+
+  it('Seasonal Outward: multi-year audit scenario (10 Small + 8 Big) calculates exactly ₹10,220', async () => {
+    const originalEnv = process.env.ALLOW_HISTORICAL_TESTING_DATES;
+    process.env.ALLOW_HISTORICAL_TESTING_DATES = 'true';
+    try {
+      await seedCommodityWithRates({
+        id: 'cmd-mirchi',
+        name: 'Mirchi',
+        seasonal: { small: 110, big: 185 },
+        monthly: { small: 30, big: 40 },
+      });
+
+      const inwardDate = new Date('2024-04-12');
+      const deliveryDate = new Date('2026-10-31');
+
+      const grn = await makeGrn('1008', {
+        commodityId: 'cmd-mirchi',
+        date: inwardDate,
+        bags: 18,
+        bagType: 'S+B',
+        smallBags: 10,
+        bigBags: 8,
+        smallBagPrice: 110,
+        bigBagPrice: 185,
+      });
+
+      const del = await deliveryService.createDelivery(
+        facilityId,
+        {
+          grnId: grn.id,
+          date: deliveryDate,
+          smallBags: 10,
+          bigBags: 8,
+          bagCategory: 'Small & Big',
+        },
+        USER_ID,
+      );
+
+      // 3 seasons @ (10*110 + 8*185 = 2,580) = 7,740
+      // 4 extension months @ (10*30 + 8*40 = 620) = 2,480
+      // Total = 10,220
+      expect(del.delivery.rentCharge).toBe(10220);
+    } finally {
+      process.env.ALLOW_HISTORICAL_TESTING_DATES = originalEnv;
+    }
+  });
 });
