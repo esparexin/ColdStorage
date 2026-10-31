@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { calculateOutwardSeasonalBreakdown, toExcludedPeriodKeys } from '@cold-storage/contracts';
 import { formatSeasonalBreakdownRows } from '../outwardRentBreakdown.helper';
 import { computeOutwardRentCharge } from '../../hooks/deliveryRent.helper';
 
@@ -94,5 +95,58 @@ describe('Outward Rent Breakdown - Audit Reproduction Cases', () => {
     // 4 extension months (Jan 25, Feb 25, Jan 26, Feb 26) @ (10*30 + 8*40 = 620) = 2,480
     // Total = 7,740 + 2,480 = 10,220
     expect(rent).toBe(10220);
+  });
+
+  it('deduplicates finalized extensions via excludePeriodKeys in both charge computation and breakdown rows', () => {
+    // If January and February 2025 were already finalized as extensions:
+    const extensions = [
+      { seasonYear: 2024, period: 'JANUARY' as const },
+      { seasonYear: 2024, period: 'FEBRUARY' as const },
+    ];
+    const excludePeriodKeys = toExcludedPeriodKeys(extensions);
+    expect(excludePeriodKeys).toEqual(['JANUARY_2025', 'FEBRUARY_2025']);
+
+    const rent = computeOutwardRentCharge({
+      rentType: 'Seasonal',
+      bagCategory: 'S/B',
+      smallBags: 10,
+      bigBags: 8,
+      smallBagPrice: 110,
+      bigBagPrice: 185,
+      monthlySmallBagPrice: 30,
+      monthlyBigBagPrice: 40,
+      inwardDate: '2024-04-12',
+      deliveryDate: '2026-10-31',
+      excludePeriodKeys,
+    });
+    // 3 seasons @ 2,580 = 7,740
+    // 2 extension months in 2026 @ 620 = 1,240 (Jan & Feb 2025 skipped!)
+    // Total Storage Rent = 7,740 + 1,240 = 8,980
+    expect(rent).toBe(8980);
+
+    const breakdown = calculateOutwardSeasonalBreakdown({
+      inwardDate: '2024-04-12',
+      deliveryDate: '2026-10-31',
+      smallBags: 10,
+      bigBags: 8,
+      seasonalRates: { small: 110, big: 185 },
+      monthlyRates: { small: 30, big: 40 },
+      excludePeriodKeys,
+    });
+    expect(breakdown.totalRent).toBe(8980);
+    expect(breakdown.periods).toHaveLength(5); // 3 seasons + Jan 2026 + Feb 2026
+
+    const rows = formatSeasonalBreakdownRows({
+      periods: breakdown.periods,
+      isHybrid: false,
+      totalWithdrawing: 18,
+      hamaliRate: 25,
+    });
+
+    const storageSum = rows.filter((r) => r.id !== 'hamali-charges').reduce((sum, r) => sum + r.amount, 0);
+    expect(storageSum).toBe(8980);
+
+    const totalPayable = rows.reduce((sum, r) => sum + r.amount, 0);
+    expect(totalPayable).toBe(8980 + 450); // 9,430
   });
 });

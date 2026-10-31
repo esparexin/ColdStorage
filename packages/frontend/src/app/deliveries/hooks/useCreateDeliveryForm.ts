@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  deriveHybridRateVisibility, isHybridBagCategory, type DeliveryChallan, type DeliverySummary, type Grn, type GrnInventorySummary, type OutwardBagCategory,
+  deriveHybridRateVisibility, isHybridBagCategory, toExcludedPeriodKeys, type DeliveryChallan, type DeliverySummary, type Grn, type GrnInventorySummary, type OutwardBagCategory,
 } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { useRentGate } from '@/hooks/useRentGate';
@@ -132,9 +132,8 @@ export function useCreateDeliveryForm(
   const hybridQty = typeof withdrawal.quantity === 'number' ? withdrawal.quantity : 0;
   const totalWithdrawingBags = dualSection.isDualSection ? dualSection.totalWithdrawingBags : (isHybrid ? hybridQty : smallBags + bigBags);
 
-  const rateVisibility = deriveHybridRateVisibility({
-    rentType: selectedGrn?.rentType ?? 'Seasonal', inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal,
-  });
+  const rateVisibility = deriveHybridRateVisibility({ rentType: selectedGrn?.rentType ?? 'Seasonal', inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal });
+  const excludePeriodKeys = useMemo(() => toExcludedPeriodKeys(rentGate.rentSummary?.extensions ?? []), [rentGate.rentSummary?.extensions]);
 
   const standardOutwardRent = computeOutwardRentCharge({
     rentType: selectedGrn?.rentType ?? 'Seasonal', bagCategory, smallBags: isHybrid ? 0 : smallBags, bigBags: isHybrid ? 0 : bigBags, quantity: isHybrid ? hybridQty : undefined,
@@ -144,7 +143,7 @@ export function useCreateDeliveryForm(
     rentMonths: billableRentMonths, inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal,
     smallBagPrice: selectedGrn?.smallBagPrice ?? (selectedGrn?.rentType === 'Monthly' ? monthlyCommodityRates?.small : seasonalCommodityRates?.small),
     bigBagPrice: selectedGrn?.bigBagPrice ?? (selectedGrn?.rentType === 'Monthly' ? monthlyCommodityRates?.big : seasonalCommodityRates?.big),
-    bagPrice: selectedGrn?.bagPrice, monthlySmallBagPrice: monthlyCommodityRates?.small, monthlyBigBagPrice: monthlyCommodityRates?.big,
+    bagPrice: selectedGrn?.bagPrice, monthlySmallBagPrice: monthlyCommodityRates?.small, monthlyBigBagPrice: monthlyCommodityRates?.big, excludePeriodKeys,
   });
   const outwardRent = dualSection.isDualSection ? dualSection.totalOutwardRent : standardOutwardRent;
 
