@@ -48,11 +48,16 @@ export function SelectedGrnCard({
     breakdown.genesisBags > 0 &&
     breakdown.totalMergedAddedBags > 0,
   );
-  const hasTypeSelection = !isDualSectionMerged && Boolean(onBagTypeChange || onBagCategoryChange);
+  const isAlreadyConfirmed = Boolean(
+    grn.isCompositionVerified === true
+  );
+  const hasTypeSelection = !isDualSectionMerged && !isAlreadyConfirmed && Boolean(onBagTypeChange || onBagCategoryChange);
   const selectedBagCategory = bagCategory ?? (bagType ? (bagType === 'Hybrid' ? 'Hybrid' : 'S/B') : undefined);
-  const isHybrid = selectedBagCategory
-    ? isHybridBagCategory(selectedBagCategory)
-    : (bagType === 'Hybrid' || isHybridBagCategory(grn.bagType));
+  const isHybrid = isAlreadyConfirmed
+    ? (grn.bagType === 'Hybrid' || isHybridBagCategory(grn.bagType))
+    : (selectedBagCategory
+      ? isHybridBagCategory(selectedBagCategory)
+      : (bagType === 'Hybrid' || isHybridBagCategory(grn.bagType)));
   const mergedFrom = breakdown && breakdown.sources.length > 0
     ? Array.from(new Set(breakdown.sources.map((s) => s.grnNumber))).join(', ')
     : parseMergedSourceGrns(grn.remarks);

@@ -138,25 +138,7 @@ export function calculateRemainingStock(
   return Math.max(0, availableTotal - (s + b));
 }
 
-/**
- * Clamps bag allocation to ensure the combined quantity cannot exceed available stock.
- * When remaining stock is 0, prevents any further increase.
- */
-export function clampBagAllocation(
-  value: number,
-  otherBagValue: number,
-  availableTotal: number,
-  maxCategoryStock?: number,
-): number {
-  if (isNaN(value) || value <= 0) return 0;
-  const other = Math.max(0, otherBagValue || 0);
-  const remainingAllowed = Math.max(0, availableTotal - other);
-  const categoryCap =
-    typeof maxCategoryStock === 'number'
-      ? Math.min(maxCategoryStock, remainingAllowed)
-      : remainingAllowed;
-  return Math.min(value, categoryCap);
-}
+export { clampBagAllocation } from '@cold-storage/contracts';
 
 /**
  * Clears entered counts when the outward bag category changes. Stale counts
