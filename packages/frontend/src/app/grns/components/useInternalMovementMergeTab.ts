@@ -33,7 +33,7 @@ export interface UseInternalMovementMergeTabProps {
     additionalRentAmount?: number, repackedSmallBags?: number, repackedBigBags?: number, referenceWeight?: number,
     sourcePaymentAmount?: number, sourcePaymentMode?: PaymentMode, sourceBagCategory?: OutwardBagCategory,
     sourceQuantity?: number, sourceBagPrice?: number, sourceSeasonalBagPrice?: number, sourceMonthlyBagPrice?: number,
-    isRepackSelected?: boolean, repackedBagCount?: number,
+    isRepackSelected?: boolean, repackedBagCount?: number, destinationChamber?: string,
   ) => Promise<void>;
 }
 
@@ -59,6 +59,7 @@ export function useInternalMovementMergeTab({
   const setPaymentMode = () => {};
   const repack = useMergeRepackForm();
   const {
+    destinationChamber,
     repackMode, repackBagType, repackSmall, repackBig, repackQuantity,
     repackBagPrice, repackSeasonalBagPrice, repackMonthlyBagPrice, referenceWeight,
   } = repack;
@@ -168,7 +169,23 @@ export function useInternalMovementMergeTab({
   const handleMergeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
-    const err = validateMergeSubmit({ selectedSourceIds, reason, isTargetLoanHold, targetGrnNumber: targetGrn.grnNumber, repackMode, repackBagType, isRepackFilled, repackSmall, repackBig, repackQuantity, repackBagPrice, repackSeasonalBagPrice, repackMonthlyBagPrice });
+    const effectiveChamber = destinationChamber || targetGrn.chamber || '';
+    const err = validateMergeSubmit({
+      selectedSourceIds,
+      reason,
+      isTargetLoanHold,
+      targetGrnNumber: targetGrn.grnNumber,
+      destinationChamber: effectiveChamber,
+      repackMode,
+      repackBagType,
+      isRepackFilled,
+      repackSmall,
+      repackBig,
+      repackQuantity,
+      repackBagPrice,
+      repackSeasonalBagPrice,
+      repackMonthlyBagPrice,
+    });
     if (err) return setValidationError(err);
 
     const primaryConf = sourceConfirmations[selectedSources[0]?.id] ?? confirmation;
@@ -181,6 +198,7 @@ export function useInternalMovementMergeTab({
       undefined, undefined,
       resolvedCategory,
       effQuantity, effBagPrice, effSeasonalPrice, effMonthlyPrice, repackMode, effRepackedBagCount,
+      effectiveChamber,
     );
   };
 

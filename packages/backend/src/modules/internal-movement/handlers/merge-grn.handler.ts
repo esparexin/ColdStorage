@@ -144,11 +144,13 @@ export async function mergeGrn(
         newBigBags: newBig,
       });
 
+      const destinationChamber = input.destinationChamber?.trim() || targetGrn.chamber;
+
       await createMergePutawayTransaction({
         facilityId,
         movementId,
         moveDate,
-        targetGrn,
+        targetGrn: { ...targetGrn, chamber: destinationChamber },
         resultingBagType,
         sourceGrns,
         totalMovedSmall,
@@ -175,6 +177,7 @@ export async function mergeGrn(
         { id: targetGrn.id },
         {
           $set: {
+            chamber: destinationChamber,
             bagType: resultingBagType,
             bags: newBags,
             smallBags: newSmall,

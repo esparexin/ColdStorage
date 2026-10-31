@@ -131,5 +131,67 @@ describe('mergeStepValidation.helper', () => {
         }),
       ).toBe('Audit reason must be at least 5 characters.');
     });
+
+    it('rejects repacking when repacked counts are not filled or total zero', () => {
+      expect(
+        validateMergeSubmit({
+          selectedSourceIds: ['src-1'],
+          reason: 'Consolidation reason',
+          isTargetLoanHold: false,
+          targetGrnNumber: '1001',
+          destinationChamber: 'CH-01',
+          repackMode: true,
+          repackBagType: 'S/B',
+          isRepackFilled: false,
+          repackSmall: '',
+          repackBig: '',
+          repackQuantity: '',
+          repackBagPrice: '',
+          repackSeasonalBagPrice: '',
+          repackMonthlyBagPrice: '',
+        }),
+      ).toBe('Both Repacked Small and Big bag counts are required and must total greater than zero.');
+    });
+
+    it('rejects repacking when destination chamber is missing', () => {
+      expect(
+        validateMergeSubmit({
+          selectedSourceIds: ['src-1'],
+          reason: 'Consolidation reason',
+          isTargetLoanHold: false,
+          targetGrnNumber: '1001',
+          repackMode: true,
+          repackBagType: 'S/B',
+          isRepackFilled: true,
+          repackSmall: 25,
+          repackBig: 20,
+          repackQuantity: '',
+          repackBagPrice: '',
+          repackSeasonalBagPrice: '',
+          repackMonthlyBagPrice: '',
+        }),
+      ).toBe('Destination chamber is required when repacking.');
+    });
+
+    it('accepts valid confirmed repacked Small and Big bag counts', () => {
+      expect(
+        validateMergeSubmit({
+          selectedSourceIds: ['src-1'],
+          reason: 'Consolidation reason',
+          isTargetLoanHold: false,
+          targetGrnNumber: '1001',
+          destinationChamber: 'CH-01',
+          repackMode: true,
+          repackBagType: 'S/B',
+          isRepackFilled: true,
+          repackSmall: 25,
+          repackBig: 20,
+          repackQuantity: '',
+          repackBagPrice: '',
+          repackSeasonalBagPrice: '',
+          repackMonthlyBagPrice: '',
+        }),
+      ).toBeNull();
+    });
   });
 });

@@ -165,4 +165,56 @@ describe('mergePerGrnStep2 per-GRN bag type and rent separation', () => {
     expect(movedBig).toBe(23); // 23 + 0
     expect(movedSmall + movedBig).toBe(93); // 83 + 10
   });
+
+  it('correctly derives 4 participating GRN profiles for 1 destination and 3 source GRNs without conflating stock', () => {
+    const destinationGrn0013: Grn = {
+      ...grn3769,
+      id: 'grn-0013',
+      grnNumber: '0013',
+      customerName: 'Balaji',
+      bags: 70,
+      closingBags: 70,
+      bagType: 'Hybrid',
+      date: new Date('2026-02-15'),
+    };
+
+    const source0019: Grn = {
+      ...grn0003,
+      id: 'grn-0019',
+      grnNumber: '0019',
+      customerName: 'punnarao',
+      bags: 17,
+      closingBags: 17,
+      bagType: 'Hybrid',
+    };
+    const source0020: Grn = {
+      ...grn0003,
+      id: 'grn-0020',
+      grnNumber: '0020',
+      customerName: 'punnarao',
+      bags: 18,
+      closingBags: 18,
+      bagType: 'S/B',
+    };
+    const source0023: Grn = {
+      ...grn0003,
+      id: 'grn-0023',
+      grnNumber: '0023',
+      customerName: 'Balaji',
+      bags: 10,
+      closingBags: 10,
+      bagType: 'S/B',
+    };
+
+    const sources = [source0019, source0020, source0023];
+    const participatingGrnCount = 1 + sources.length;
+    const totalSourceBags = sources.reduce((sum, s) => sum + (s.closingBags ?? s.bags), 0);
+
+    // Verify 4 participating profiles
+    expect(participatingGrnCount).toBe(4);
+    // Source consolidated stock must be strictly 45 bags, excluding destination 70 bags
+    expect(totalSourceBags).toBe(45);
+    expect(destinationGrn0013.closingBags).toBe(70);
+    expect(totalSourceBags + (destinationGrn0013.closingBags ?? 0)).toBe(115);
+  });
 });

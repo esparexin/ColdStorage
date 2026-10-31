@@ -1,4 +1,5 @@
 import {
+  chamberTextSchema,
   hasPositiveHybridRate,
   HYBRID_RATE_REQUIRED_MESSAGE,
   isHybridBagCategory,
@@ -52,6 +53,7 @@ export interface MergeSubmitValidationParams {
   reason: string;
   isTargetLoanHold: boolean;
   targetGrnNumber: string;
+  destinationChamber?: string;
   repackMode: boolean;
   repackBagType: OperationalBagType;
   isRepackFilled: boolean;
@@ -66,7 +68,7 @@ export interface MergeSubmitValidationParams {
 export function validateMergeSubmit(params: MergeSubmitValidationParams): string | null {
   const {
     selectedSourceIds, reason, isTargetLoanHold, targetGrnNumber,
-    repackMode, repackBagType, isRepackFilled, repackSmall, repackBig,
+    destinationChamber, repackMode, repackBagType, isRepackFilled, repackSmall, repackBig,
     repackQuantity, repackBagPrice, repackSeasonalBagPrice, repackMonthlyBagPrice,
   } = params;
 
@@ -74,10 +76,19 @@ export function validateMergeSubmit(params: MergeSubmitValidationParams): string
   if (reason.trim().length < 5) return 'Audit reason must be at least 5 characters.';
   if (isTargetLoanHold) return `Target GRN '${targetGrnNumber}' has an active loan hold.`;
 
+  if (destinationChamber !== undefined && destinationChamber.trim().length > 0) {
+    const chamberRes = chamberTextSchema.safeParse(destinationChamber);
+    if (!chamberRes.success) {
+      return chamberRes.error.issues[0]?.message ?? 'Chamber is required.';
+    }
+  } else if (repackMode) {
+    return 'Destination chamber is required when repacking.';
+  }
+
   if (repackMode) {
     if (repackBagType === 'S/B') {
-      if (!isRepackFilled || Number(repackSmall) < 0 || Number(repackBig) < 0) {
-        return 'Both Repacked Small and Big bag counts are required.';
+      if (!isRepackFilled || Number(repackSmall) < 0 || Number(repackBig) < 0 || Number(repackSmall) + Number(repackBig) <= 0) {
+        return 'Both Repacked Small and Big bag counts are required and must total greater than zero.';
       }
     } else {
       if (!isRepackFilled || Number(repackQuantity) <= 0) {

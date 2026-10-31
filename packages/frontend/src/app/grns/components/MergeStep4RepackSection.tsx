@@ -7,6 +7,7 @@ import { Input, Select } from '@/components/ui';
 import styles from './InternalMovementModal.module.css';
 
 export interface MergeStep4RepackSectionProps {
+  destinationChamber: string; onDestinationChamberChange: (val: string) => void;
   repackMode: boolean; onRepackModeChange: (active: boolean) => void;
   repackBagType: OperationalBagType; onRepackBagTypeChange: (type: OperationalBagType) => void;
   repackSmall: number | ''; onRepackSmallChange: (val: number | '') => void;
@@ -23,6 +24,7 @@ export interface MergeStep4RepackSectionProps {
 
 export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
   const {
+    destinationChamber, onDestinationChamberChange,
     repackMode, onRepackModeChange, repackBagType, onRepackBagTypeChange,
     repackSmall, onRepackSmallChange, repackBig, onRepackBigChange,
     repackQuantity, onRepackQuantityChange, repackSeasonalBagPrice, onRepackSeasonalBagPriceChange,
@@ -78,91 +80,33 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
           {repackBagType === 'S/B' ? (
             <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
               <div style={{ flex: 1 }}>
-                <label htmlFor="repack-small-step4" className={styles.inputLabel}>
-                  Repacked Small Bags *
-                </label>
-                <Input
-                  id="repack-small-step4"
-                  type="number"
-                  min={0}
-                  placeholder="Small Bags"
-                  value={repackSmall}
-                  rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>₹{targetSmallRate}/bag</span>}
-                  onChange={(e) => onRepackSmallChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')}
-                  disabled={submitting}
-                  required
-                />
+                <label htmlFor="repack-small-step4" className={styles.inputLabel}>Repacked Small Bags *</label>
+                <Input id="repack-small-step4" type="number" min={0} placeholder="Small Bags" value={repackSmall} rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>₹{targetSmallRate}/bag</span>} onChange={(e) => onRepackSmallChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} required />
               </div>
               <div style={{ flex: 1 }}>
-                <label htmlFor="repack-big-step4" className={styles.inputLabel}>
-                  Repacked Big Bags *
-                </label>
-                <Input
-                  id="repack-big-step4"
-                  type="number"
-                  min={0}
-                  placeholder="Big Bags"
-                  value={repackBig}
-                  rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>₹{targetBigRate}/bag</span>}
-                  onChange={(e) => onRepackBigChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')}
-                  disabled={submitting}
-                  required
-                />
+                <label htmlFor="repack-big-step4" className={styles.inputLabel}>Repacked Big Bags *</label>
+                <Input id="repack-big-step4" type="number" min={0} placeholder="Big Bags" value={repackBig} rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>₹{targetBigRate}/bag</span>} onChange={(e) => onRepackBigChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} required />
               </div>
             </div>
           ) : (
             <>
               <div>
-                <label htmlFor="repack-hybrid-quantity-step4" className={styles.inputLabel}>
-                  Repacked Hybrid Bags *
-                </label>
-                <Input
-                  id="repack-hybrid-quantity-step4"
-                  type="number"
-                  min={1}
-                  placeholder={`e.g. ${totalSourceBags}`}
-                  value={repackQuantity}
-                  rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Total: {totalSourceBags}</span>}
-                  onChange={(e) => onRepackQuantityChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')}
-                  disabled={submitting}
-                  required
-                />
+                <label htmlFor="repack-hybrid-quantity-step4" className={styles.inputLabel}>Repacked Hybrid Bags *</label>
+                <Input id="repack-hybrid-quantity-step4" type="number" min={1} placeholder={`e.g. ${totalSourceBags}`} value={repackQuantity} rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Total: {totalSourceBags}</span>} onChange={(e) => onRepackQuantityChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} required />
               </div>
 
               {(visibility.showSeasonalRate || visibility.showMonthlyRate) && (
                 <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                   {visibility.showSeasonalRate && (
                     <div style={{ flex: 1 }}>
-                      <label htmlFor="repack-seasonal-rate-step4" className={styles.inputLabel}>
-                        Seasonal Rate
-                      </label>
-                      <Input
-                        id="repack-seasonal-rate-step4"
-                        type="number"
-                        min={0}
-                        placeholder="0.00"
-                        value={repackSeasonalBagPrice}
-                        rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>₹/bag</span>}
-                        onChange={(e) => onRepackSeasonalBagPriceChange(e.target.value !== '' ? parseFloat(e.target.value) : '')}
-                        disabled={submitting}
-                      />
+                      <label htmlFor="repack-seasonal-rate-step4" className={styles.inputLabel}>Seasonal Rate</label>
+                      <Input id="repack-seasonal-rate-step4" type="number" min={0} placeholder="0.00" value={repackSeasonalBagPrice} rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>₹/bag</span>} onChange={(e) => onRepackSeasonalBagPriceChange(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
                     </div>
                   )}
                   {visibility.showMonthlyRate && (
                     <div style={{ flex: 1 }}>
-                      <label htmlFor="repack-monthly-rate-step4" className={styles.inputLabel}>
-                        Monthly Rate
-                      </label>
-                      <Input
-                        id="repack-monthly-rate-step4"
-                        type="number"
-                        min={0}
-                        placeholder="0.00"
-                        value={repackMonthlyBagPrice}
-                        rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>₹/bag</span>}
-                        onChange={(e) => onRepackMonthlyBagPriceChange(e.target.value !== '' ? parseFloat(e.target.value) : '')}
-                        disabled={submitting}
-                      />
+                      <label htmlFor="repack-monthly-rate-step4" className={styles.inputLabel}>Monthly Rate</label>
+                      <Input id="repack-monthly-rate-step4" type="number" min={0} placeholder="0.00" value={repackMonthlyBagPrice} rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>₹/bag</span>} onChange={(e) => onRepackMonthlyBagPriceChange(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
                     </div>
                   )}
                 </div>
@@ -170,19 +114,8 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
 
               {!visibility.showSeasonalRate && !visibility.showMonthlyRate && (
                 <div>
-                  <label htmlFor="repack-bag-price-step4" className={styles.inputLabel}>
-                    Each Bag Price
-                  </label>
-                  <Input
-                    id="repack-bag-price-step4"
-                    type="number"
-                    min={0}
-                    placeholder="0.00"
-                    value={repackBagPrice}
-                    rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>₹/bag</span>}
-                    onChange={(e) => onRepackBagPriceChange(e.target.value !== '' ? parseFloat(e.target.value) : '')}
-                    disabled={submitting}
-                  />
+                  <label htmlFor="repack-bag-price-step4" className={styles.inputLabel}>Each Bag Price</label>
+                  <Input id="repack-bag-price-step4" type="number" min={0} placeholder="0.00" value={repackBagPrice} rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>₹/bag</span>} onChange={(e) => onRepackBagPriceChange(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
                 </div>
               )}
             </>
@@ -214,6 +147,21 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
       )}
 
       <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-1)' }}>
+        <div style={{ flex: 1 }}>
+          <label htmlFor="merge-destination-chamber" className={styles.inputLabel}>
+            Destination Chamber *
+          </label>
+          <Input
+            id="merge-destination-chamber"
+            type="text"
+            required
+            maxLength={20}
+            value={destinationChamber}
+            placeholder="e.g. A or CH-01"
+            onChange={(e) => onDestinationChamberChange(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
         <div style={{ flex: 1 }}>
           <label htmlFor="merge-ref-weight" className={styles.inputLabel}>
             Reference Weight (kg) — Optional
