@@ -22,8 +22,55 @@ describe('grnMovementView.helper parseMovementRow', () => {
     expect(res.typeLabel).toBe('INWARD');
     expect(res.badgeType).toBe('inward');
     expect(res.totalDisplay).toBe('100');
+    expect(res.smallDisplay).toBe('100');
+    expect(res.bigDisplay).toBe('0');
     expect(res.isReceived).toBe(true);
     expect(res.notes).toBe('Genesis Inward');
+  });
+
+  it('renders unclassified genesis INWARD (null small/big bags) with dashes', () => {
+    const res = parseMovementRow({
+      ...baseEntry,
+      smallBags: null,
+      bigBags: null,
+      receivedBags: 10,
+      closingBags: 10,
+    });
+    expect(res.typeLabel).toBe('INWARD');
+    expect(res.totalDisplay).toBe('10');
+    expect(res.smallDisplay).toBe('—');
+    expect(res.bigDisplay).toBe('—');
+    expect(res.isReceived).toBe(true);
+    expect(res.notes).toBe('Genesis Inward');
+  });
+
+  it('renders unclassified genesis INWARD (0/0 placeholder bags) with dashes', () => {
+    const res = parseMovementRow({
+      ...baseEntry,
+      smallBags: 0,
+      bigBags: 0,
+      receivedBags: 10,
+      closingBags: 10,
+    });
+    expect(res.typeLabel).toBe('INWARD');
+    expect(res.totalDisplay).toBe('10');
+    expect(res.smallDisplay).toBe('—');
+    expect(res.bigDisplay).toBe('—');
+    expect(res.isReceived).toBe(true);
+  });
+
+  it('renders verified genesis INWARD with confirmed small and big bags', () => {
+    const res = parseMovementRow({
+      ...baseEntry,
+      smallBags: 60,
+      bigBags: 40,
+      receivedBags: 100,
+      closingBags: 100,
+    });
+    expect(res.typeLabel).toBe('INWARD');
+    expect(res.totalDisplay).toBe('100');
+    expect(res.smallDisplay).toBe('60');
+    expect(res.bigDisplay).toBe('40');
   });
 
   it('correctly parses INTERNAL_MERGE_IN with source GRN extraction', () => {
