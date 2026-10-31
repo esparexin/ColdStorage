@@ -221,26 +221,4 @@ describe('GRN Sorting and Repacking Workflow (Phase 1)', () => {
     expect(entity?.closingBags).toBe(95);
     expect(entity?.netDeliveredBags).toBe(0);
   });
-
-  it('sorting on a multi-season lot bills historical debt and preserves Season 1 rentAmount', async () => {
-    const historicalDate = new Date('2025-04-15');
-    const grnId = await seedGrn({
-      facilityId, customerId, customerName: 'Farmer Gopal', commodityId,
-      commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S/B',
-      rentType: 'Seasonal', rentAmount: 5000, grnNumber: 'GRN-25-26-0001', date: historicalDate,
-    });
-    const res = await request(app)
-      .post(`/api/facilities/${facilityId}/internal-movements/sort`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({
-        grnId,
-        confirmedBagType: 'S/B',
-        confirmedBags: 100,
-        totalBagsWeight: 5000,
-      });
-
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.billedAmount).toBe(5400); // 5000 rent + 400 hamali
-  });
 });

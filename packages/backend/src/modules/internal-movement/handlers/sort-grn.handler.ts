@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import {
+  getFinancialYearKey,
   resolveTotalRentObligation,
   seasonYearForInwardDate,
   toOperationalBagType,
@@ -127,8 +128,16 @@ export async function executeSortGrn(
           hamaliShare: isCurrentSeasonLot ? 0 : hamaliShare,
         });
 
-        // FIFO Allocation: subtract payments made to date from historical debt
-        const outstandingHistoricalDue = Math.max(0, Number((historicalTotalDue - totalPaid).toFixed(2)));
+        const currentFy = getFinancialYearKey(new Date());
+        const grnFy = getFinancialYearKey(new Date(grn.date));
+        const isPreviousFinancialYear = grnFy !== currentFy;
+
+        // When GRN belongs to a previous financial year, preserve historical rent as pending
+        // against the original bill, customer, and GRN profile. Do not auto-settle or fabricate
+        // current-year payments against historical debt.
+        const outstandingHistoricalDue = isPreviousFinancialYear
+          ? 0
+          : Math.max(0, Number((historicalTotalDue - totalPaid).toFixed(2)));
         billedAmount = outstandingHistoricalDue;
 
         // 3. Mark sorting confirmation complete (active subscription continues post-repack)

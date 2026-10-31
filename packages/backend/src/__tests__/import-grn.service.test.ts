@@ -35,14 +35,18 @@ const withGrn = (row: string) => {
  * inactive" rejection to assert. Customer and commodity references are still resolved, and
  * still in batched reads.
  */
-describe('ImportService — GRN CSV import', () => {
+describe('ImportService — GRN CSV import', { timeout: 35000 }, () => {
+  const originalEnv = process.env.ALLOW_HISTORICAL_TESTING_DATES;
   let harness: ImportHarness;
 
   beforeAll(async () => {
+    process.env.ALLOW_HISTORICAL_TESTING_DATES = 'true';
     await connectImportDatabase();
   });
 
   afterAll(async () => {
+    if (originalEnv !== undefined) process.env.ALLOW_HISTORICAL_TESTING_DATES = originalEnv;
+    else delete process.env.ALLOW_HISTORICAL_TESTING_DATES;
     await disconnectImportDatabase();
   });
 

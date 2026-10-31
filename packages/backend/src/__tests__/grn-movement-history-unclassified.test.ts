@@ -11,11 +11,13 @@ import {
 } from './helpers/stock-reset.js';
 
 describe('grn-movement-history unclassified bag composition', () => {
+  const originalEnv = process.env.ALLOW_HISTORICAL_TESTING_DATES;
   let facilityId: string;
   let customerId: string;
   const userId = 'user-mvhist-unclass';
 
   beforeAll(async () => {
+    process.env.ALLOW_HISTORICAL_TESTING_DATES = 'true';
     await connectToTestDatabase();
     await resetStockCollections();
     await CommodityModel.findOneAndUpdate(
@@ -31,7 +33,11 @@ describe('grn-movement-history unclassified bag composition', () => {
     customerId = await seedCustomer({ facilityId, name: 'Unclass Customer' });
   });
 
-  afterAll(disconnectTestDatabase);
+  afterAll(async () => {
+    if (originalEnv !== undefined) process.env.ALLOW_HISTORICAL_TESTING_DATES = originalEnv;
+    else delete process.env.ALLOW_HISTORICAL_TESTING_DATES;
+    await disconnectTestDatabase();
+  });
 
   it('preserves unclassified inward stock without assigning Small bags for 10 bags inward (GRN 0023 reproduction)', async () => {
     const { grn } = await grnService.createGrn(

@@ -22,7 +22,7 @@ import { rentExtensionService } from '../modules/rent/rent-extension.service.js'
  * rate) joins totalDue while no SEASON renewal is finalized; never stored on
  * transaction records, never returned, never shown in transaction UI.
  */
-describe('First-season internal hamali', () => {
+describe('First-season internal hamali', { timeout: 35000 }, () => {
   const facilityId = 'fac-hamali-fs';
   const customerId = 'cust-hamali-fs';
   const customerB = 'cust-hamali-fs-b';

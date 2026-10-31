@@ -11,17 +11,17 @@ import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtu
 import { connectToTestDatabase, disconnectTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
 import { seedControllerRates } from './helpers/lifecycle-testkit.js';
 
-const app = createApp();
-const seedAuth = createAuthSeeder(config.jwtSecret);
-const facilityId = 'fac-cross-wf';
+const app = createApp(), seedAuth = createAuthSeeder(config.jwtSecret), facilityId = 'fac-cross-wf';
 
 describe('Cross-Workflow Lifecycle: Inward -> Internal Movement -> Subsequent Outward', () => {
+  const originalEnv = process.env.ALLOW_HISTORICAL_TESTING_DATES;
   let adminToken: string;
   let customerA: string;
   let customerB: string;
   let commodityId: string;
 
   beforeAll(async () => {
+    process.env.ALLOW_HISTORICAL_TESTING_DATES = 'true';
     await connectToTestDatabase();
     ({ token: adminToken } = await seedAuth({
       userId: 'usr-cross-admin',
@@ -31,24 +31,23 @@ describe('Cross-Workflow Lifecycle: Inward -> Internal Movement -> Subsequent Ou
     }));
   });
 
-  afterAll(disconnectTestDatabase);
+  afterAll(async () => {
+    if (originalEnv !== undefined) process.env.ALLOW_HISTORICAL_TESTING_DATES = originalEnv;
+    else delete process.env.ALLOW_HISTORICAL_TESTING_DATES;
+    await disconnectTestDatabase();
+  });
 
   beforeEach(async () => {
     await resetStockCollections();
-    await mongoose.connection.collection('rentpayments').deleteMany({});
-    await mongoose.connection.collection('internalmovements').deleteMany({});
-    await mongoose.connection.collection('deliverychallans').deleteMany({});
+    await Promise.all([
+      mongoose.connection.collection('rentpayments').deleteMany({}),
+      mongoose.connection.collection('internalmovements').deleteMany({}),
+      mongoose.connection.collection('deliverychallans').deleteMany({}),
+    ]);
     await seedFacility({ id: facilityId, code: 'CWF', name: 'Cross Workflow Facility' });
-
     customerA = await seedCustomer({ id: 'cust-cwf-a', facilityId, name: 'Farmer Ramesh' });
     customerB = await seedCustomer({ id: 'cust-cwf-b', facilityId, name: 'Trader Suresh' });
-
-    const cmd = await CommodityModel.create({
-      id: 'cmd-cwf-potato',
-      name: 'Potato',
-      normalizedName: 'potato',
-      isActive: true,
-    });
+    const cmd = await CommodityModel.create({ id: 'cmd-cwf-potato', name: 'Potato', normalizedName: 'potato', isActive: true });
     commodityId = cmd.id;
     await seedControllerRates(commodityId, { small: 10, big: 15 }, { small: 10, big: 15 });
   });

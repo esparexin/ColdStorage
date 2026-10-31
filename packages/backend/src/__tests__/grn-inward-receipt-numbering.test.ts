@@ -26,11 +26,16 @@ import {
  *     supplied billNumber via an unanchored `/(\d+)$/` match plus `$max`.
  */
 describe('inward receipt numbering is derived from the GR Number', () => {
+  const originalEnv = process.env.ALLOW_HISTORICAL_TESTING_DATES;
+
   beforeAll(async () => {
+    process.env.ALLOW_HISTORICAL_TESTING_DATES = 'true';
     await connectToTestDatabase();
   });
 
   afterAll(async () => {
+    if (originalEnv !== undefined) process.env.ALLOW_HISTORICAL_TESTING_DATES = originalEnv;
+    else delete process.env.ALLOW_HISTORICAL_TESTING_DATES;
     await disconnectTestDatabase();
   });
 

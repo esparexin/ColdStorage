@@ -92,14 +92,19 @@ export async function createGrn(
   });
   const hasExplicitSplit =
     input.smallBags != null && input.bigBags != null && (input.smallBags + input.bigBags === input.bags);
-  const isCompositionVerified = hasExplicitSplit
-    ? isBagCompositionVerified({
-        bagType: effectiveBagType,
-        bags: input.bags,
-        smallBags: input.smallBags,
-        bigBags: input.bigBags,
-      })
-    : false;
+  const isCompositionVerified =
+    typeof (input as Record<string, unknown>).isCompositionVerified === 'boolean'
+      ? ((input as Record<string, unknown>).isCompositionVerified as boolean)
+      : effectiveBagType === 'S' || effectiveBagType === 'B'
+        ? true
+        : hasExplicitSplit
+          ? isBagCompositionVerified({
+              bagType: effectiveBagType,
+              bags: input.bags,
+              smallBags: input.smallBags,
+              bigBags: input.bigBags,
+            })
+          : false;
 
   // Per-bag weight is optional: the Inward form captures Total Bags and a single Bag Price.
   // A supplied weight is preserved for that bag type; an absent one is stored as null.
