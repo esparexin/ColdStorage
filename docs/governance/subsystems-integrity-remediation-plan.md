@@ -3,6 +3,8 @@
 **Date:** 2026-10-15  
 **Scope:** Hamali Rate Configuration, Small/Big/Hybrid Bag Types, Seasonal/Monthly Rent, Internal Movement, GRN Merging, Repacking/Rebagging, Full/Partial Ownership Transfer.
 
+> **Supersession notice (2026-10-31):** Historical planning snapshot of 2026-10-15. Phase 3 (Inward Bag Type selector) and Phase 6 (partial ownership transfer split) were explicitly superseded by authoritative business rules: Bag Type must never be selected, assigned, defaulted, or confirmed during Inward (all inwarded bags remain unclassified until manual confirmation in outward workflows); and Ownership Transfer is strictly Full Transfer Only (zero partial or split-GRN transfers).
+
 ---
 
 ## 1. Baseline Verification

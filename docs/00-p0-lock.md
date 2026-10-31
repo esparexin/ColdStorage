@@ -1,9 +1,8 @@
 # P0 Requirements & Architecture Lock
 
 **Date**: 2026-10-01  
-**Status**: LOCKED (Awaiting Final Review Before P1)  
-**Implementation**: STOPPED (No application implementation is currently approved or present. P1 remains NOT APPROVED.)  
-**P1 Gate**: NOT APPROVED  
+**Status**: LOCKED & AUTHORITATIVE (Implementation progressed through P12 per Addenda and Amendment A-001)  
+**P1–P12 Progression**: APPROVED (See Section 6 Architecture Amendment, Addendum 2026-10-12, and Amendment Log A-001)  
 
 ---
 

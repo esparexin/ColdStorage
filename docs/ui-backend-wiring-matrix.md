@@ -7,7 +7,7 @@
 ## 1. Frontend inventory
 
 - Framework: Next.js 14 App Router, `src/app/*/page.tsx`, `next.config.mjs` rewrites `/api/:path*` → backend `:4000/api/:path*`.
-- Routes (14): `/`, `/grns`, `/deliveries`, `/rent`, `/grn-stock`, `/bonds`, `/customers`, `/commodities`, `/settings`, `/import-export`, `/audit`, `/backup`, `/users`, `/groups`. (`/bond-ledger`, `/inventory`, and `/storage` are retired; chamber is free text.)
+- Routes (16): `/`, `/login`, `/grns`, `/grns/merge`, `/deliveries`, `/rent`, `/grn-stock`, `/bonds`, `/customers`, `/commodities`, `/settings`, `/import-export`, `/audit`, `/backup`, `/users`, `/groups`. (`/bond-ledger`, `/inventory`, and `/storage` are retired; chamber is free text.)
 - Primitives (`components/ui/index.ts`, 16): `Button`, `Input`, `Select`, `Badge`, `Card`, `StatCard`, `SearchBar`, `FilterToolbar`, `Modal`, `ConfirmDialog`, `Pagination`, `DataTable`, `FeedbackStates`, `Banner`, `OverflowMenu` + `stateCopy.ts`.
 - Client: `lib/api-client.ts` (`requestWithAuth` + single-flight `POST /api/auth/refresh`, Bearer memory-only, `credentials:include`).
 - Contexts: `AuthContext` (login/logout/change-password), `FacilityContext` (`GET /api/facilities`), `SettingsContext` (`GET /api/settings`).
