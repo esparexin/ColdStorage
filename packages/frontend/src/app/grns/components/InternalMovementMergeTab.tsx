@@ -33,6 +33,7 @@ interface InternalMovementMergeTabProps {
     sourcePaymentMode?: PaymentMode, sourceBagCategory?: OutwardBagCategory,
     sourceQuantity?: number, sourceBagPrice?: number, sourceSeasonalBagPrice?: number,
     sourceMonthlyBagPrice?: number, isRepackSelected?: boolean, repackedBagCount?: number,
+    destinationChamber?: string,
   ) => Promise<void>;
 }
 
@@ -44,6 +45,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
     movementDate, reason, setReason, remarks, setRemarks, confirmation,
     sourceConfirmations, updateSourceConfirmation, sourceRentSummaries,
     settlementDecision, settleAmount,
+    destinationChamber, setDestinationChamber,
     repackMode, setRepackMode, repackBagType, setRepackBagType,
     repackSmall, setRepackSmall, repackBig, setRepackBig, repackQuantity, setRepackQuantity,
     repackSeasonalBagPrice, setRepackSeasonalBagPrice, repackMonthlyBagPrice, setRepackMonthlyBagPrice,
@@ -94,6 +96,10 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
           facilityId={facilityId ?? currentGrn.facilityId}
           selectedSources={selectedSources}
           commodityHamaliRate={commodityHamaliRate}
+          targetGrn={targetGrn}
+          targetSeason={targetSeason}
+          targetCurrentRemaining={targetCurrentRemaining}
+          isTargetHybrid={(!isTargetDiff && targetGrn.bagPrice != null) || isHybridBagCategory(targetGrn.bagType)}
           targetGrnDate={targetGrn.date}
           commodities={props.commodities}
           submitting={submitting}
@@ -105,7 +111,13 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
       {step === 3 && (
         <MergeStep3Settlement
           totalSourcePendingRent={totalSourcePendingRent}
-          targetGrnNumber={targetGrn.grnNumber}
+          targetGrn={targetGrn}
+          selectedSources={selectedSources}
+          sourceConfirmations={sourceConfirmations}
+          sourceRentSummaries={sourceRentSummaries}
+          movementDate={movementDate}
+          commodities={props.commodities}
+          commodityHamaliRate={commodityHamaliRate}
           submitting={submitting}
           onBack={() => setStep(2)}
           onNext={handleProceedToStep4}
@@ -113,6 +125,8 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
       )}
       {step === 4 && (
         <MergeStep4RepackConfirm
+          destinationChamber={destinationChamber || targetGrn.chamber || ''}
+          onDestinationChamberChange={setDestinationChamber}
           repackMode={repackMode}
           onRepackModeChange={(act) => {
             setRepackMode(act);

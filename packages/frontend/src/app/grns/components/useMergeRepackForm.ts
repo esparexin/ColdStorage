@@ -5,6 +5,7 @@ import { isHybridBagCategory, type OperationalBagType } from '@cold-storage/cont
 import type { BagConfirmationValue } from './bagConfirmation.helper';
 
 export function useMergeRepackForm() {
+  const [destinationChamber, setDestinationChamber] = useState<string>('');
   const [repackMode, setRepackMode] = useState(false);
   const [repackBagType, setRepackBagType] = useState<OperationalBagType>('S/B');
   const [repackSmall, setRepackSmall] = useState<number | ''>('');
@@ -24,6 +25,8 @@ export function useMergeRepackForm() {
   };
 
   return {
+    destinationChamber,
+    setDestinationChamber,
     repackMode,
     setRepackMode,
     repackBagType,

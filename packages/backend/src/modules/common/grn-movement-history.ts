@@ -1,4 +1,8 @@
-import type { GrnMovementEntry, GrnMovementHistory } from '@cold-storage/contracts';
+import {
+  resolveStoredCompositionVerified,
+  type GrnMovementEntry,
+  type GrnMovementHistory,
+} from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
 import { DeliveryReversalModel } from '../../database/models/delivery-reversal.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
@@ -42,24 +46,34 @@ export async function getGrnMovementHistory(
   const genesisTx = txs.find((t) => t.referenceType === 'PUT_AWAY' && t.referenceId === grn.id);
   const subsequentTxs = txs.filter((t) => t !== genesisTx);
 
-  const initialSmall = genesisTx ? genesisTx.smallQuantity : grn.smallBags;
-  const initialBig = genesisTx ? genesisTx.bigQuantity : grn.bigBags;
+  const isGenesisVerified = resolveStoredCompositionVerified({
+    isCompositionVerified: grn.isCompositionVerified,
+    bagType: grn.bagType,
+    bags: grn.bags,
+    smallBags: grn.smallBags,
+    bigBags: grn.bigBags,
+  });
+
   const initialTotal = genesisTx ? genesisTx.smallQuantity + genesisTx.bigQuantity : grn.bags;
+  const initialSmall = isGenesisVerified
+    ? (grn.bagType === 'S' ? initialTotal : grn.bagType === 'B' ? 0 : (genesisTx ? genesisTx.smallQuantity : grn.smallBags))
+    : null;
+  const initialBig = isGenesisVerified
+    ? (grn.bagType === 'B' ? initialTotal : grn.bagType === 'S' ? 0 : (genesisTx ? genesisTx.bigQuantity : grn.bigBags))
+    : null;
 
   let runningBalance = initialTotal;
-  let runningSmall = initialSmall;
-  let runningBig = initialBig;
+  let runningSmall: number | null = initialSmall;
+  let runningBig: number | null = initialBig;
   let netDelivered = 0;
 
   const entries: GrnMovementEntry[] = [
     {
       date: grn.date, grnId: grn.id, grnNumber: grn.grnNumber, type: 'INWARD',
       openingBags: 0, receivedBags: initialTotal, deliveredBags: 0, closingBags: initialTotal,
-      smallBags: initialSmall, bigBags: initialBig,
-      remainingSmallBags: initialSmall, remainingBigBags: initialBig,
+      smallBags: initialSmall, bigBags: initialBig, remainingSmallBags: initialSmall, remainingBigBags: initialBig,
       marks: grn.partyMark || grn.storageMark || grn.marks || null,
-      gpNumber: grn.gpNumber ?? null, vehicleNumber: grn.vehicleNumber ?? null,
-      remarks: grn.remarks ?? null, performedBy: grn.createdBy,
+      gpNumber: grn.gpNumber ?? null, vehicleNumber: grn.vehicleNumber ?? null, remarks: grn.remarks ?? null, performedBy: grn.createdBy,
     },
   ];
 
@@ -89,8 +103,7 @@ export async function getGrnMovementHistory(
   timeline.sort((a, b) => {
     const diff = getEventTime(a) - getEventTime(b);
     if (diff !== 0) return diff;
-    const prio = (i: TimelineItem) =>
-      i.kind === 'OWNERSHIP' ? 2 : i.tx.transactionType === 'INWARD_PUTAWAY' ? 1 : 3;
+    const prio = (i: TimelineItem) => (i.kind === 'OWNERSHIP' ? 2 : i.tx.transactionType === 'INWARD_PUTAWAY' ? 1 : 3);
     return prio(a) - prio(b);
   });
 
@@ -98,18 +111,10 @@ export async function getGrnMovementHistory(
     if (item.kind === 'OWNERSHIP') {
       const m = item.movement;
       entries.push({
-        date: m.movementDate,
-        grnId: grn.id,
-        grnNumber: grn.grnNumber,
-        type: 'OWNERSHIP_TRANSFER',
-        openingBags: runningBalance,
-        receivedBags: 0,
-        deliveredBags: 0,
-        closingBags: runningBalance,
-        remainingSmallBags: runningSmall,
-        remainingBigBags: runningBig,
-        remarks: `Ownership transferred: ${m.fromCustomerName} → ${m.toCustomerName}: ${m.remarks || ''}`,
-        performedBy: m.performedBy,
+        date: m.movementDate, grnId: grn.id, grnNumber: grn.grnNumber, type: 'OWNERSHIP_TRANSFER',
+        openingBags: runningBalance, receivedBags: 0, deliveredBags: 0, closingBags: runningBalance,
+        remainingSmallBags: runningSmall, remainingBigBags: runningBig,
+        remarks: `Ownership transferred: ${m.fromCustomerName} → ${m.toCustomerName}: ${m.remarks || ''}`, performedBy: m.performedBy,
       });
       continue;
     }
@@ -120,92 +125,82 @@ export async function getGrnMovementHistory(
 
     if (t.transactionType === 'INWARD_PUTAWAY') {
       runningBalance += deltaTotal;
-      runningSmall += t.smallQuantity;
-      runningBig += t.bigQuantity;
+      if (runningSmall != null && runningBig != null) {
+        runningSmall += t.smallQuantity;
+        runningBig += t.bigQuantity;
+      }
 
       const mov = movRefMap.get(t.referenceId);
-      const isRepack = mov?.movementType === 'REPACK' || t.notes?.includes('repack');
+      const isRepack = mov?.movementType === 'REPACK' || (!challanMap.has(t.referenceId) && Boolean(t.notes?.includes('repack')));
+      if (isRepack) {
+        runningSmall = t.smallQuantity;
+        runningBig = t.bigQuantity;
+      }
       entries.push({
-        date: mov?.movementDate ?? t.createdAt,
-        grnId: grn.id,
-        grnNumber: grn.grnNumber,
+        date: mov?.movementDate ?? t.createdAt, grnId: grn.id, grnNumber: grn.grnNumber,
         type: isRepack ? 'INTERNAL_REPACK' : 'INTERNAL_MERGE_IN',
-        openingBags: opening,
-        receivedBags: deltaTotal,
-        deliveredBags: 0,
-        closingBags: runningBalance,
-        smallBags: t.smallQuantity,
-        bigBags: t.bigQuantity,
-        remainingSmallBags: runningSmall,
-        remainingBigBags: runningBig,
-        remarks: t.notes,
-        performedBy: mov?.performedBy ?? t.createdBy,
+        openingBags: opening, receivedBags: deltaTotal, deliveredBags: 0, closingBags: runningBalance,
+        smallBags: t.smallQuantity, bigBags: t.bigQuantity, remainingSmallBags: runningSmall, remainingBigBags: runningBig,
+        remarks: t.notes, performedBy: mov?.performedBy ?? t.createdBy,
       });
     } else if (t.transactionType === 'OUTWARD_DELIVERY') {
       const isMergeOut = t.notes?.startsWith('Merged into');
       const mov = movRefMap.get(getMovId(t.referenceId));
-      const isRepack = mov?.movementType === 'REPACK' || t.notes?.includes('repack');
+      const isRepack = mov?.movementType === 'REPACK' || (!challanMap.has(t.referenceId) && Boolean(t.notes?.includes('repack')));
       const closing = Math.max(0, runningBalance - deltaTotal);
-      const closingSmall = Math.max(0, runningSmall - t.smallQuantity);
-      const closingBig = Math.max(0, runningBig - t.bigQuantity);
+      let closingSmall: number | null = null;
+      let closingBig: number | null = null;
+      if (closing === 0) {
+        closingSmall = 0;
+        closingBig = 0;
+        runningSmall = 0;
+        runningBig = 0;
+      } else if (runningSmall != null && runningBig != null) {
+        closingSmall = Math.max(0, runningSmall - t.smallQuantity);
+        closingBig = Math.max(0, runningBig - t.bigQuantity);
+        runningSmall = closingSmall;
+        runningBig = closingBig;
+      }
       runningBalance = closing;
-      runningSmall = closingSmall;
-      runningBig = closingBig;
       if (!isRepack && !isMergeOut) {
         netDelivered += deltaTotal;
       }
 
       if (isMergeOut || isRepack) {
         entries.push({
-          date: mov?.movementDate ?? t.createdAt,
-          grnId: grn.id,
-          grnNumber: grn.grnNumber,
+          date: mov?.movementDate ?? t.createdAt, grnId: grn.id, grnNumber: grn.grnNumber,
           type: isMergeOut ? 'INTERNAL_MERGE_OUT' : 'INTERNAL_REPACK',
-          openingBags: opening,
-          receivedBags: 0,
-          deliveredBags: deltaTotal,
-          closingBags: isMergeOut ? 0 : closing,
-          smallBags: t.smallQuantity,
-          bigBags: t.bigQuantity,
-          remainingSmallBags: isMergeOut ? 0 : closingSmall,
-          remainingBigBags: isMergeOut ? 0 : closingBig,
-          remarks: t.notes,
-          performedBy: mov?.performedBy ?? t.createdBy,
+          openingBags: opening, receivedBags: 0, deliveredBags: deltaTotal, closingBags: isMergeOut ? 0 : closing,
+          smallBags: t.smallQuantity, bigBags: t.bigQuantity,
+          remainingSmallBags: isMergeOut ? 0 : closingSmall, remainingBigBags: isMergeOut ? 0 : closingBig,
+          remarks: t.notes, performedBy: mov?.performedBy ?? t.createdBy,
         });
       } else {
         const challan = challanMap.get(t.referenceId);
         const isLive = challan?.status === 'ISSUED';
         entries.push({
-          date: challan?.date ?? t.createdAt,
-          grnId: grn.id,
-          grnNumber: grn.grnNumber,
+          date: challan?.date ?? t.createdAt, grnId: grn.id, grnNumber: grn.grnNumber,
           type: isLive && closing === 0 ? 'FINAL_OUTWARD' : 'PARTIAL_OUTWARD',
-          openingBags: opening,
-          receivedBags: 0,
-          deliveredBags: deltaTotal,
-          closingBags: closing,
-          smallBags: t.smallQuantity,
-          bigBags: t.bigQuantity,
-          remainingSmallBags: closingSmall,
-          remainingBigBags: closingBig,
-          challanNumber: challan?.challanNumber ?? null,
-          deliveryId: challan?.id ?? t.referenceId,
+          openingBags: opening, receivedBags: 0, deliveredBags: deltaTotal, closingBags: closing,
+          smallBags: t.smallQuantity, bigBags: t.bigQuantity, remainingSmallBags: closingSmall, remainingBigBags: closingBig,
+          challanNumber: challan?.challanNumber ?? null, deliveryId: challan?.id ?? t.referenceId,
           marks: challan?.marks ?? grn.partyMark ?? grn.storageMark ?? grn.marks ?? null,
-          gpNumber: challan?.gpNumber ?? grn.gpNumber ?? null,
-          vehicleNumber: challan?.vehicleNumber ?? null,
-          driverName: challan?.driverName ?? null,
-          remarks: challan?.remarks ?? t.notes ?? null,
-          performedBy: challan?.issuedBy ?? t.createdBy,
+          gpNumber: challan?.gpNumber ?? grn.gpNumber ?? null, vehicleNumber: challan?.vehicleNumber ?? null,
+          driverName: challan?.driverName ?? null, remarks: challan?.remarks ?? t.notes ?? null, performedBy: challan?.issuedBy ?? t.createdBy,
         });
       }
     } else if (t.transactionType === 'DELIVERY_REVERSAL') {
       const reversal = reversalMap.get(t.referenceId);
       const closing = runningBalance + deltaTotal;
-      const closingSmall = runningSmall + t.smallQuantity;
-      const closingBig = runningBig + t.bigQuantity;
+      let closingSmall: number | null = null;
+      let closingBig: number | null = null;
+      if (runningSmall != null && runningBig != null) {
+        closingSmall = runningSmall + t.smallQuantity;
+        closingBig = runningBig + t.bigQuantity;
+        runningSmall = closingSmall;
+        runningBig = closingBig;
+      }
       runningBalance = closing;
-      runningSmall = closingSmall;
-      runningBig = closingBig;
       netDelivered = Math.max(0, netDelivered - deltaTotal);
 
       entries.push({
@@ -222,21 +217,16 @@ export async function getGrnMovementHistory(
 
   return {
     grnId: grn.id, facilityId: grn.facilityId, grnNumber: grn.grnNumber,
-    customerId: grn.customerId, customerName: grn.customerName,
-    commodityId: grn.commodityId, commodityName: grn.commodityName,
+    customerId: grn.customerId, customerName: grn.customerName, commodityId: grn.commodityId, commodityName: grn.commodityName,
     chamber: grn.chamber, inwardDate: grn.date, totalInwardBags: grn.bags,
-    originalSmallBags: grn.smallBags, originalBigBags: grn.bigBags,
-    netDeliveredBags: Math.max(0, netDelivered),
-    currentClosingBags: runningBalance,
-    currentClosingSmallBags: runningSmall,
-    currentClosingBigBags: runningBig,
-    status: grn.status,
-    bondNumber: grn.bondNumber ?? null,
-    isBondForLoan: grn.isBondForLoan ?? false,
-    loanStatus: grn.loanStatus ?? 'NONE',
-    isLoanHoldActive: grn.loanStatus === 'TAKEN',
-    loanBankName: grn.loanBankName ?? null,
-    loanReferenceNumber: grn.loanReferenceNumber ?? null,
+    originalSmallBags: isGenesisVerified ? (initialSmall ?? undefined) : undefined,
+    originalBigBags: isGenesisVerified ? (initialBig ?? undefined) : undefined,
+    netDeliveredBags: Math.max(0, netDelivered), currentClosingBags: runningBalance,
+    currentClosingSmallBags: runningSmall != null ? runningSmall : (runningBalance === 0 ? 0 : undefined),
+    currentClosingBigBags: runningBig != null ? runningBig : (runningBalance === 0 ? 0 : undefined),
+    status: grn.status, bondNumber: grn.bondNumber ?? null, isBondForLoan: grn.isBondForLoan ?? false,
+    loanStatus: grn.loanStatus ?? 'NONE', isLoanHoldActive: grn.loanStatus === 'TAKEN',
+    loanBankName: grn.loanBankName ?? null, loanReferenceNumber: grn.loanReferenceNumber ?? null,
     entries,
   };
 }

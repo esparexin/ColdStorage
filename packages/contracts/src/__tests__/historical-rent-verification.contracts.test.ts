@@ -3,6 +3,7 @@ import {
   bagCompositionIssue,
   normalizeBagComposition,
   isBagCompositionVerified,
+  resolveStoredCompositionVerified,
   canCalculateAuthoritativeRent,
   calculateRentAmount,
   mergeGrnInputSchema,
@@ -52,6 +53,11 @@ describe('Historical Rent & Bag Composition Verification Contracts', () => {
       expect(bagCompositionIssue({ bagType: 'S+B', bags: 200, smallBags: 10, bigBags: 190 })).toBeNull();
       expect(normalizeBagComposition({ bagType: 'S+B', bags: 200, smallBags: 10, bigBags: 190 })).toEqual({ smallBags: 10, bigBags: 190 });
       expect(calculateRentAmount({ rentType: 'Seasonal', bags: 200, bagType: 'S+B', smallBags: 10, bigBags: 190, smallBagPrice: 150, bigBagPrice: 210 })).toBe(41400);
+
+      // 4. resolveStoredCompositionVerified with false / null
+      expect(resolveStoredCompositionVerified({ bagType: 'S/B', bags: 100, smallBags: 100, bigBags: 0, isCompositionVerified: null })).toBe(false);
+      expect(resolveStoredCompositionVerified({ bagType: 'S/B', bags: 100, smallBags: 100, bigBags: 0, isCompositionVerified: false })).toBe(false);
+      expect(resolveStoredCompositionVerified({ bagType: 'S/B', bags: 100, smallBags: 60, bigBags: 40, isCompositionVerified: true })).toBe(true);
     });
   });
 

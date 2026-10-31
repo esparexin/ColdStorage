@@ -137,10 +137,12 @@ export async function alignTransferLedger(params: {
   confSmall: number;
   confBig: number;
   resultingBagType: string;
+  destinationChamber?: string;
   session: mongoose.ClientSession;
 }): Promise<void> {
-  const { facilityId, grn, movementId, movementDate, userId, bal, confSmall, confBig, resultingBagType, session } = params;
-  if (bal.smallBags === confSmall && bal.bigBags === confBig) return;
+  const { facilityId, grn, movementId, movementDate, userId, bal, confSmall, confBig, resultingBagType, destinationChamber, session } = params;
+  const targetChamber = destinationChamber || grn.chamber;
+  if (bal.smallBags === confSmall && bal.bigBags === confBig && targetChamber === grn.chamber && resultingBagType === grn.bagType) return;
 
   await InventoryTransactionModel.create(
     [
@@ -154,7 +156,7 @@ export async function alignTransferLedger(params: {
       },
       {
         id: `tx-in-${randomUUID()}`, facilityId, grnId: grn.id, grnNumber: grn.grnNumber,
-        chamber: grn.chamber, commodityId: grn.commodityId, bagType: resultingBagType,
+        chamber: targetChamber, commodityId: grn.commodityId, bagType: resultingBagType,
         transactionType: 'INWARD_PUTAWAY', smallQuantity: confSmall, bigQuantity: confBig,
         referenceType: 'PUT_AWAY', referenceId: movementId,
         notes: `Confirmed composition putaway for ownership transfer (Lot ${grn.grnNumber})`,

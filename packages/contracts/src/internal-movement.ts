@@ -3,6 +3,7 @@ import { bagTypeSchema } from './bags.js';
 import { paymentModeSchema } from './rent.js';
 import { outwardBagCategorySchema } from './delivery.js';
 import { bagPriceSchema } from './pricing.js';
+import { chamberTextSchema } from './common.js';
 
 export const internalMovementTypeSchema = z.enum(['MERGE', 'TRANSFER_OWNERSHIP', 'REPACK']);
 export type InternalMovementType = z.infer<typeof internalMovementTypeSchema>;
@@ -17,6 +18,7 @@ export const mergeGrnInputSchema = z.object({
    */
   additionalRentAmount: z.number().min(0).default(0),
   remarks: z.string().trim().min(3, 'Remarks must be at least 3 characters').max(500),
+  destinationChamber: chamberTextSchema.nullish(),
   isRepackSelected: z.boolean().optional(),
   repackedSmallBags: z.number().int().min(0).nullish(),
   repackedBigBags: z.number().int().min(0).nullish(),
@@ -65,6 +67,12 @@ export const transferOwnershipInputSchema = z.object({
   sourceBagPrice: bagPriceSchema.nullish(),
   sourceSeasonalBagPrice: bagPriceSchema.nullish(),
   sourceMonthlyBagPrice: bagPriceSchema.nullish(),
+  destinationChamber: chamberTextSchema.nullish(),
+  resultingBagType: bagTypeSchema.nullish(),
+  repackedSmallBags: z.number().int().min(0).max(100000).nullish(),
+  repackedBigBags: z.number().int().min(0).max(100000).nullish(),
+  repackedQuantity: z.number().int().min(1).max(100000).nullish(),
+  referenceWeight: z.number().positive('Total weight must be positive').max(1000000).nullish(),
 });
 export type TransferOwnershipInput = z.infer<typeof transferOwnershipInputSchema>;
 
@@ -80,6 +88,8 @@ export const internalMovementRecordSchema = z.object({
   totalBagsMoved: z.number().min(0).default(0),
   smallBagsMoved: z.number().min(0).default(0),
   bigBagsMoved: z.number().min(0).default(0),
+  destinationChamber: chamberTextSchema.nullish(),
+  resultingBagType: bagTypeSchema.nullish(),
   // Informational confirmation echo (challan-column mirror): never billed,
   // read-optional so pre-change documents still parse.
   sourceBagType: bagTypeSchema.nullish(),

@@ -13,6 +13,8 @@ export interface InternalMovementDoc extends Document {
   totalBagsMoved: number;
   smallBagsMoved: number;
   bigBagsMoved: number;
+  destinationChamber?: string | null;
+  resultingBagType?: BagType | null;
   // Informational bag-type / bag-category confirmation echo (challan-column mirror).
   sourceBagType?: BagType | null;
   sourceBagCategory?: OutwardBagCategory | null;
@@ -68,6 +70,8 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
     totalBagsMoved: { type: Number, default: 0, min: 0 },
     smallBagsMoved: { type: Number, default: 0, min: 0 },
     bigBagsMoved: { type: Number, default: 0, min: 0 },
+    destinationChamber: { type: String, default: null },
+    resultingBagType: { type: String, enum: ['S', 'B', 'S+B', 'S/B', 'Hybrid'], default: null },
     // Informational confirmation echo: no defaults, never billed.
     sourceBagType: { type: String, enum: ['S', 'B', 'S+B', 'S/B', 'Hybrid'], default: null },
     sourceBagCategory: { type: String },

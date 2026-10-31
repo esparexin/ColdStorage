@@ -23,7 +23,7 @@ export function formatDisplayBagType(input: FormatDisplayBagTypeInput): string {
   if (type === 'B' || type === 'Big') return 'Big';
 
   // An unverified lot cannot be resolved to a single bag type purely from DB fallback placeholders.
-  if (input.isCompositionVerified === false) {
+  if (input.isCompositionVerified === false || input.isCompositionVerified === null) {
     return 'Unconfirmed';
   }
 

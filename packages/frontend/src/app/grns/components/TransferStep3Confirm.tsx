@@ -19,6 +19,8 @@ interface TransferStep3ConfirmProps {
   confirmedSmallBags?: number | '';
   confirmedBigBags?: number | '';
   sourceBagCategory: OutwardBagCategory | '';
+  destinationChamber?: string;
+  referenceWeight?: number | '';
   hamaliRate?: number | null;
   hamaliAmount?: number;
   assessedRent: number;
@@ -42,6 +44,8 @@ export function TransferStep3Confirm({
   confirmedSmallBags,
   confirmedBigBags,
   sourceBagCategory,
+  destinationChamber,
+  referenceWeight,
   hamaliRate,
   hamaliAmount,
   assessedRent,
@@ -91,6 +95,18 @@ export function TransferStep3Confirm({
             <span className={styles.detailLabel}>Transfer Date:</span>
             <span className={styles.detailValue}>{movementDate}</span>
           </div>
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>Destination Chamber:</span>
+            <span className={styles.detailValue} style={{ fontWeight: 'var(--font-bold)' }}>
+              {destinationChamber || currentGrn.chamber}
+            </span>
+          </div>
+          {typeof referenceWeight === 'number' && referenceWeight > 0 && (
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Total Weight:</span>
+              <span className={styles.detailValue}>{referenceWeight} kg</span>
+            </div>
+          )}
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Updated Total Bags:</span>
             <span className={styles.detailValue}>{remainingBags} Bags</span>
@@ -173,7 +189,7 @@ export function TransferStep3Confirm({
 
       <WizardStepActions
         onBack={onBack}
-        backLabel="Back to Dues & Settlement"
+        backLabel="Back to Repack & Chamber"
         isSubmitStep
         submitLabel="Transfer Ownership"
         submitting={submitting}

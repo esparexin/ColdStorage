@@ -15,6 +15,7 @@ import { MergeStep4RepackSection } from './MergeStep4RepackSection';
 import styles from './InternalMovementModal.module.css';
 
 interface MergeStep4RepackConfirmProps {
+  destinationChamber: string; onDestinationChamberChange: (val: string) => void;
   repackMode: boolean; onRepackModeChange: (active: boolean) => void;
   repackBagType: OperationalBagType; onRepackBagTypeChange: (type: OperationalBagType) => void;
   repackSmall: number | ''; onRepackSmallChange: (val: number | '') => void;
@@ -35,6 +36,7 @@ interface MergeStep4RepackConfirmProps {
 
 export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
   const {
+    destinationChamber, onDestinationChamberChange,
     repackMode, onRepackModeChange, repackBagType, onRepackBagTypeChange,
     repackSmall, onRepackSmallChange, repackBig, onRepackBigChange,
     repackQuantity, onRepackQuantityChange, repackSeasonalBagPrice, onRepackSeasonalBagPriceChange,
@@ -62,6 +64,8 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
       <div className={styles.reviewGrid}>
         <MergeStep4RepackSection
+          destinationChamber={destinationChamber}
+          onDestinationChamberChange={onDestinationChamberChange}
           repackMode={repackMode}
           onRepackModeChange={onRepackModeChange}
           repackBagType={repackBagType}
@@ -102,6 +106,10 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Target GRN:</span>
             <span className={styles.detailValue}>{targetGrn.grnNumber} ({targetGrn.customerName})</span>
+          </div>
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>Destination Chamber:</span>
+            <span className={styles.detailValue} style={{ fontWeight: 'var(--font-semibold)' }}>{destinationChamber || targetGrn.chamber}</span>
           </div>
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Initial Target Stock:</span>

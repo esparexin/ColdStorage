@@ -18,6 +18,7 @@ export interface MergePayload {
   sourceGrnIds: string[];
   movementDate: string;
   remarks: string;
+  destinationChamber?: string;
   additionalRentAmount: number;
   isRepackSelected?: boolean;
   repackedSmallBags?: number;
@@ -49,6 +50,12 @@ export interface TransferPayload {
   sourceBagPrice?: number;
   sourceSeasonalBagPrice?: number;
   sourceMonthlyBagPrice?: number;
+  destinationChamber?: string;
+  resultingBagType?: BagType;
+  repackedSmallBags?: number;
+  repackedBigBags?: number;
+  repackedQuantity?: number;
+  referenceWeight?: number;
 }
 
 /** Single SSOT for the `reason. remarks` audit composition both flows share. */
@@ -75,12 +82,14 @@ export function buildMergePayload(
   sourceMonthlyBagPrice?: number,
   isRepackSelected?: boolean,
   repackedBagCount?: number,
+  destinationChamber?: string,
 ): MergePayload {
   return {
     targetGrnId,
     sourceGrnIds,
     movementDate: movementDate || new Date().toISOString(),
     remarks: composeRemarks(reason, remarks),
+    destinationChamber,
     additionalRentAmount: additionalRentAmount ?? 0,
     isRepackSelected,
     repackedSmallBags,
@@ -114,6 +123,14 @@ export function buildTransferPayload(
     sourceSeasonalBagPrice?: number;
     sourceMonthlyBagPrice?: number;
   },
+  repack?: {
+    destinationChamber?: string;
+    resultingBagType?: BagType;
+    repackedSmallBags?: number;
+    repackedBigBags?: number;
+    repackedQuantity?: number;
+    referenceWeight?: number;
+  },
 ): TransferPayload {
   return {
     grnId,
@@ -129,6 +146,12 @@ export function buildTransferPayload(
     sourceBagPrice: confirmation?.sourceBagPrice,
     sourceSeasonalBagPrice: confirmation?.sourceSeasonalBagPrice,
     sourceMonthlyBagPrice: confirmation?.sourceMonthlyBagPrice,
+    destinationChamber: repack?.destinationChamber,
+    resultingBagType: repack?.resultingBagType,
+    repackedSmallBags: repack?.repackedSmallBags,
+    repackedBigBags: repack?.repackedBigBags,
+    repackedQuantity: repack?.repackedQuantity,
+    referenceWeight: repack?.referenceWeight,
   };
 }
 

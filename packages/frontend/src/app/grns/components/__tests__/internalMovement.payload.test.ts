@@ -146,5 +146,19 @@ describe('internalMovement payload helpers', () => {
     expect(payload.repackedBagCount).toBe(50);
     expect(mergeGrnInputSchema.safeParse(payload).success).toBe(true);
   });
+
+  it('builds a transfer payload with repacking and destination chamber satisfying contract', () => {
+    const payload = buildTransferPayload(
+      'grn-1', 'cust-2', 'Ownership sale', 'Rebagged', '2026-10-10', 'AGREED_PENDING', undefined,
+      { confirmedSmallBags: 60, confirmedBigBags: 40 },
+      { destinationChamber: 'CH-05', resultingBagType: 'S/B', repackedSmallBags: 50, repackedBigBags: 50, referenceWeight: 4900 },
+    );
+    expect(payload.destinationChamber).toBe('CH-05');
+    expect(payload.resultingBagType).toBe('S/B');
+    expect(payload.repackedSmallBags).toBe(50);
+    expect(payload.repackedBigBags).toBe(50);
+    expect(payload.referenceWeight).toBe(4900);
+    expect(transferOwnershipInputSchema.safeParse(payload).success).toBe(true);
+  });
 });
 

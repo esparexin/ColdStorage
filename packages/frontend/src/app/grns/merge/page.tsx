@@ -83,6 +83,7 @@ function MergeScreenContent() {
     sourcePaymentMode?: PaymentMode, sourceBagCategory?: OutwardBagCategory,
     sourceQuantity?: number, sourceBagPrice?: number, sourceSeasonalBagPrice?: number,
     sourceMonthlyBagPrice?: number, isRepackSelected?: boolean, repackedBagCount?: number,
+    destinationChamber?: string,
   ) => {
     if (!selectedFacilityId || submitting) return;
     setSubmitting(true);
@@ -99,6 +100,7 @@ function MergeScreenContent() {
               repackedSmallBags, repackedBigBags, referenceWeight, sourcePaymentAmount, sourcePaymentMode,
               sourceBagCategory, sourceQuantity, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice,
               isRepackSelected, repackedBagCount,
+              destinationChamber,
             ),
           ),
         },

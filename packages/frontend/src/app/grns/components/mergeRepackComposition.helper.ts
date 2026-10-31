@@ -70,7 +70,10 @@ export function deriveRepackCompositionStatus(
       : typeof repackSmall === 'number' &&
         typeof repackBig === 'number' &&
         Number.isInteger(repackSmall) &&
-        Number.isInteger(repackBig);
+        Number.isInteger(repackBig) &&
+        repackSmall >= 0 &&
+        repackBig >= 0 &&
+        repackSmall + repackBig > 0;
 
   const actualRepackedBags =
     repackMode && isRepackFilled

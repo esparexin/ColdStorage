@@ -50,6 +50,14 @@ export function InternalMovementModal({
       sourceSeasonalBagPrice?: number;
       sourceMonthlyBagPrice?: number;
     },
+    repack?: {
+      destinationChamber?: string;
+      resultingBagType?: import('@cold-storage/contracts').BagType;
+      repackedSmallBags?: number;
+      repackedBigBags?: number;
+      repackedQuantity?: number;
+      referenceWeight?: number;
+    },
   ) => {
     setSubmitting(true);
     setError(null);
@@ -69,6 +77,7 @@ export function InternalMovementModal({
               paymentDecision,
               settlementDetails,
               confirmation,
+              repack,
             ),
           ),
         },

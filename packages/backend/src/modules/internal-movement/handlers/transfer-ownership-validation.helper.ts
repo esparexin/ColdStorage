@@ -1,9 +1,49 @@
 import {
+  chamberTextSchema,
   hasPositiveHybridRate,
   isHybridBagCategory,
   validateHybridQuantityInput,
   type TransferOwnershipInput,
 } from '@cold-storage/contracts';
+
+export function validateTransferRepack(
+  input: TransferOwnershipInput,
+  ledgerTotal: number,
+  grnNumber: string,
+): void {
+  if (input.destinationChamber !== undefined && input.destinationChamber !== null) {
+    const res = chamberTextSchema.safeParse(input.destinationChamber);
+    if (!res.success) {
+      throw new Error(res.error.issues[0]?.message ?? 'Chamber is required');
+    }
+  }
+  if (input.resultingBagType === 'Hybrid') {
+    if (input.repackedQuantity != null) {
+      if (!Number.isInteger(input.repackedQuantity) || input.repackedQuantity <= 0) {
+        throw new Error('Repacked Hybrid quantity must be a positive whole number');
+      }
+      if (input.repackedQuantity !== ledgerTotal) {
+        throw new Error(`Repacked quantity (${input.repackedQuantity}) must match total stock of ${ledgerTotal} bags for GRN '${grnNumber}'`);
+      }
+    }
+  } else if (input.resultingBagType === 'S/B' || input.repackedSmallBags != null || input.repackedBigBags != null) {
+    if (input.repackedSmallBags != null || input.repackedBigBags != null) {
+      const s = input.repackedSmallBags ?? 0;
+      const b = input.repackedBigBags ?? 0;
+      if (!Number.isInteger(s) || !Number.isInteger(b) || s < 0 || b < 0) {
+        throw new Error('Repacked bag counts must be whole non-negative numbers');
+      }
+      if (s + b !== ledgerTotal) {
+        throw new Error(`Repacked counts (${s} small + ${b} big = ${s + b}) must match total stock of ${ledgerTotal} bags for GRN '${grnNumber}'`);
+      }
+    }
+  }
+  if (input.referenceWeight !== undefined && input.referenceWeight !== null) {
+    if (typeof input.referenceWeight !== 'number' || input.referenceWeight <= 0) {
+      throw new Error('Reference weight must be a positive number');
+    }
+  }
+}
 
 export function validateTransferBagConfirmation(
   input: TransferOwnershipInput,

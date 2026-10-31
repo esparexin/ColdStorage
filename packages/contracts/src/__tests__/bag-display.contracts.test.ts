@@ -19,6 +19,8 @@ describe('formatDisplayBagType contracts SSOT', () => {
     expect(formatDisplayBagType({ bagType: 'S/B', smallBags: 10, bigBags: 10 })).toBe('Small & Big');
     expect(formatDisplayBagType({ bagType: 'S/B', smallBags: 10, bigBags: 0, isCompositionVerified: false })).toBe('Unconfirmed');
     expect(formatDisplayBagType({ bagType: 'S/B', smallBags: 0, bigBags: 10, isCompositionVerified: false })).toBe('Unconfirmed');
+    expect(formatDisplayBagType({ bagType: 'S/B', smallBags: 0, bigBags: 0, isCompositionVerified: null })).toBe('Unconfirmed');
+    expect(formatDisplayBagType({ bagType: 'S/B', isCompositionVerified: null })).toBe('Unconfirmed');
     expect(formatDisplayBagType({ bagType: 'S/B' })).toBe('Small & Big');
     expect(formatDisplayBagType({ bagType: 'S+B' })).toBe('Small & Big');
     expect(formatDisplayBagType({ category: 'Small & Big' })).toBe('Small & Big');

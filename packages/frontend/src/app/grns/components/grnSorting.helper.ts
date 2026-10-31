@@ -1,5 +1,6 @@
 import {
   calculateHamaliAmount,
+  chamberTextSchema,
   toOperationalBagType,
   type BagType,
   type OperationalBagType,
@@ -11,24 +12,29 @@ export interface SortConfirmationFields {
   confirmedSmallBags?: number | null;
   confirmedBigBags?: number | null;
   totalBagsWeight?: number | null;
-  paymentMode: 'Cash' | 'UPI';
+  paymentMode?: 'Cash' | 'UPI' | string;
   paymentNotes?: string;
 }
+
+export { clampBagAllocation, clampBagAllocation as clampSortBagAllocation } from '@cold-storage/contracts';
 
 export function validateSortConfirmation(
   fields: Partial<SortConfirmationFields>,
   existingBagType: BagType,
   availableBags: number,
+  isCompositionVerified?: boolean,
 ): string | null {
   if (!fields.confirmedBagType) {
     return 'Please confirm the bag type.';
   }
+  const isVerified = isCompositionVerified ?? true;
   const expectedOperational = toOperationalBagType(existingBagType);
-  if (fields.confirmedBagType !== expectedOperational) {
+  if (isVerified && fields.confirmedBagType !== expectedOperational) {
     return `Confirmed bag type (${fields.confirmedBagType}) does not match existing bag type (${existingBagType}).`;
   }
   const isHybrid = fields.confirmedBagType === 'Hybrid';
-  if (!isHybrid && (fields.confirmedSmallBags != null || fields.confirmedBigBags != null)) {
+  const hasSplit = fields.confirmedSmallBags != null || fields.confirmedBigBags != null;
+  if (!isHybrid && (hasSplit || !isVerified)) {
     if (
       fields.confirmedSmallBags == null ||
       isNaN(fields.confirmedSmallBags) ||
@@ -70,6 +76,7 @@ export function validateSortConfirmation(
 
 export interface RepackFields {
   resultingBagType: OperationalBagType;
+  destinationChamber?: string | null;
   repackedSmallBags?: number | null;
   repackedBigBags?: number | null;
   repackedQuantity?: number | null;
@@ -84,6 +91,12 @@ export function validateRepackOperation(
 ): string | null {
   if (!fields.resultingBagType) {
     return 'Please select the resulting bag type.';
+  }
+  if (fields.destinationChamber !== undefined) {
+    const chamberResult = chamberTextSchema.safeParse(fields.destinationChamber);
+    if (!chamberResult.success) {
+      return chamberResult.error.issues[0]?.message ?? 'Chamber is required';
+    }
   }
   const isHybrid = fields.resultingBagType === 'Hybrid';
   const totalRepacked = isHybrid

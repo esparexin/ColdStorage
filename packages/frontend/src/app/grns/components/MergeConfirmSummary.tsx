@@ -73,6 +73,12 @@ export function MergeConfirmSummary({
             <span className={styles.label}>Source GRN(s) (Closing)</span>
             <span className={styles.value}>{sourceGrnNumbers.join(', ')}</span>
           </div>
+          <div className={styles.item}>
+            <span className={styles.label}>Participating GRN Profiles</span>
+            <span className={styles.value}>
+              {1 + sourceGrnNumbers.length} Profiles (1 Destination + {sourceGrnNumbers.length} Source)
+            </span>
+          </div>
 
           <div className={styles.item}>
             <span className={styles.label}>Resulting Bag Type</span>

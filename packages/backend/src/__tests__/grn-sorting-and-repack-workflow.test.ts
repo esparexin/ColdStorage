@@ -65,6 +65,7 @@ describe('GRN Sorting and Repacking Workflow (Phase 1)', () => {
       .send({
         grnId,
         resultingBagType: 'S/B',
+        destinationChamber: 'CH-09',
         repackedSmallBags: 60,
         repackedBigBags: 40,
         remarks: 'Attempt repacking before sorting',
@@ -128,14 +129,14 @@ describe('GRN Sorting and Repacking Workflow (Phase 1)', () => {
         confirmedBagType: 'S/B',
         confirmedBags: 100,
         totalBagsWeight: 5000,
-        paymentMode: 'Cash',
       });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.isSortingComplete).toBe(true);
-    expect(res.body.billedAmount).toBe(5400);
-    expect(res.body.receiptNumber).toMatch(/^RRCPT-\d{2}-\d{2}-\d{4}$/);
+    // Active season lot: active subscription excluded from Step 1, no fabricated receipts
+    expect(res.body.billedAmount).toBe(0);
+    expect(res.body.receiptNumber).toBeUndefined();
 
     const updated = await GrnModel.findOne({ id: grnId }).lean().exec();
     expect(updated?.isSorted).toBe(true);
@@ -145,10 +146,10 @@ describe('GRN Sorting and Repacking Workflow (Phase 1)', () => {
     expect(updated?.bagType).toBe('S/B');
   });
 
-  it('completes full workflow: sorting confirms and bills, then repacking converts bags and applies hamali', async () => {
+  it('completes full workflow: sorting confirms, repacking converts bags, and recalculates prospective rent', async () => {
     const grnId = await createTestGrn('GRN-26-27-0104', 3000);
 
-    // Step 1: Sorting
+    // Step 1: Sorting confirms lot (active season debt excluded from Step 1)
     const sortRes = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/sort`)
       .set('Authorization', `Bearer ${adminToken}`)
@@ -161,7 +162,8 @@ describe('GRN Sorting and Repacking Workflow (Phase 1)', () => {
 
     expect(sortRes.status).toBe(200);
     expect(sortRes.body.success).toBe(true);
-    expect(sortRes.body.billedAmount).toBe(3400);
+    expect(sortRes.body.billedAmount).toBe(0);
+    expect(sortRes.body.receiptNumber).toBeUndefined();
 
     // Step 2: Repacking into S/B with variance (60 small + 35 big = 95 bags, -5 variance)
     const repackRes = await request(app)
@@ -170,6 +172,7 @@ describe('GRN Sorting and Repacking Workflow (Phase 1)', () => {
       .send({
         grnId,
         resultingBagType: 'S/B',
+        destinationChamber: 'CH-09',
         repackedSmallBags: 60,
         repackedBigBags: 35,
         repackVarianceReason: 'Damaged or culled produce removed during sorting/rebagging',
@@ -183,13 +186,15 @@ describe('GRN Sorting and Repacking Workflow (Phase 1)', () => {
     // Hamali: 95 repacked bags * 4 = 380
     expect(repackRes.body.hamaliCharge).toBe(380);
 
-    // Verify GRN document state
+    // Verify GRN document state: prospective rent recalculated for continuing subscription (95 * 30 = 2850)
     const grn = await GrnModel.findOne({ id: grnId }).lean().exec();
+    expect(grn?.chamber).toBe('CH-09');
     expect(grn?.bagType).toBe('S/B');
     expect(grn?.bags).toBe(95);
     expect(grn?.smallBags).toBe(60);
     expect(grn?.bigBags).toBe(35);
     expect(grn?.totalBagsWeight).toBe(4950);
+    expect(grn?.rentAmount).toBe(2850);
 
     // Verify Internal Movement history record
     const movement = await InternalMovementModel.findOne({ targetGrnId: grnId, movementType: 'REPACK' }).lean().exec();
@@ -205,6 +210,7 @@ describe('GRN Sorting and Repacking Workflow (Phase 1)', () => {
     const inTx = txs.find((t) => t.transactionType === 'INWARD_PUTAWAY' && t.referenceId === movement?.id);
     expect(outTx).toBeDefined();
     expect(inTx).toBeDefined();
+    expect(inTx?.chamber).toBe('CH-09');
     expect((outTx?.smallQuantity ?? 0) + (outTx?.bigQuantity ?? 0)).toBe(100);
     expect((inTx?.smallQuantity ?? 0) + (inTx?.bigQuantity ?? 0)).toBe(95);
     expect(inTx?.bagType).toBe('S/B');

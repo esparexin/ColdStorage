@@ -92,15 +92,20 @@ export function parseMovementRow(entry: GrnMovementEntry): ParsedMovementRow {
       break;
   }
 
+  const isUnclassifiedInward =
+    entry.type === 'INWARD' &&
+    (entry.smallBags == null ||
+      (entry.smallBags === 0 && entry.bigBags === 0 && (entry.receivedBags ?? entry.closingBags ?? 0) > 0));
+
   const smallDisplay =
-    entry.type === 'OWNERSHIP_TRANSFER'
+    entry.type === 'OWNERSHIP_TRANSFER' || isUnclassifiedInward
       ? '—'
       : entry.smallBags != null
         ? entry.smallBags.toLocaleString('en-IN')
         : '—';
 
   const bigDisplay =
-    entry.type === 'OWNERSHIP_TRANSFER'
+    entry.type === 'OWNERSHIP_TRANSFER' || isUnclassifiedInward
       ? '—'
       : entry.bigBags != null
         ? entry.bigBags.toLocaleString('en-IN')

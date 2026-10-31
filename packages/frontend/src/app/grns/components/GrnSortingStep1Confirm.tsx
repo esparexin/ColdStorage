@@ -6,13 +6,12 @@ import {
   toOperationalBagType,
   type Grn,
   type OperationalBagType,
-  type PaymentMode,
   type SortGrnInput,
   type SortGrnResult,
 } from '@cold-storage/contracts';
 import { Button, Input, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
-import { validateSortConfirmation } from './grnSorting.helper';
+import { clampSortBagAllocation, validateSortConfirmation } from './grnSorting.helper';
 import styles from './GrnSortingModal.module.css';
 
 interface GrnSortingStep1ConfirmProps {
@@ -23,53 +22,65 @@ interface GrnSortingStep1ConfirmProps {
   onProceedToRepack: () => void;
 }
 
-export function GrnSortingStep1Confirm({
-  grn,
-  submitting,
-  onConfirmAndBill,
-  sortingResult,
-  onProceedToRepack,
-}: GrnSortingStep1ConfirmProps) {
+export function GrnSortingStep1Confirm(props: GrnSortingStep1ConfirmProps) {
+  const { grn, submitting, onConfirmAndBill, sortingResult, onProceedToRepack } = props;
   const availableBags = grn.closingBags ?? grn.bags;
+  const isAlreadyVerified = grn.isCompositionVerified === true;
   const [confirmedBagType, setConfirmedBagType] = useState<OperationalBagType>(
-    toOperationalBagType(grn.bagType),
+    isAlreadyVerified ? toOperationalBagType(grn.bagType) : 'S/B',
   );
   const isHybrid = confirmedBagType === 'Hybrid';
+
+  const hasMatchingComposition =
+    isAlreadyVerified &&
+    grn.smallBags != null && grn.bigBags != null && grn.smallBags + grn.bigBags === availableBags;
+
   const [confirmedSmallBags, setConfirmedSmallBags] = useState<string>(
-    grn.smallBags != null ? String(grn.smallBags) : String(availableBags),
+    hasMatchingComposition ? String(grn.smallBags) : '',
   );
   const [confirmedBigBags, setConfirmedBigBags] = useState<string>(
-    grn.bigBags != null ? String(grn.bigBags) : '0',
+    hasMatchingComposition ? String(grn.bigBags) : '',
   );
-  const [totalWeight, setTotalWeight] = useState<string>(
-    grn.totalBagsWeight != null ? String(grn.totalBagsWeight) : '',
-  );
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>('Cash');
+  const [totalWeight, setTotalWeight] = useState<string>(grn.totalBagsWeight != null ? String(grn.totalBagsWeight) : '');
   const [paymentNotes, setPaymentNotes] = useState<string>('');
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  const handleBagChange = (isSmall: boolean) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.trim();
+    const setter = isSmall ? setConfirmedSmallBags : setConfirmedBigBags;
+    if (!val) return setter('');
+    const parsed = parseInt(val, 10);
+    if (!isNaN(parsed) && parsed >= 0) {
+      const other = parseInt(isSmall ? confirmedBigBags : confirmedSmallBags, 10) || 0;
+      setter(String(clampSortBagAllocation(parsed, other, availableBags)));
+    }
+  };
+
+  const parsedSmall = isHybrid ? null : Number(confirmedSmallBags);
+  const parsedBig = isHybrid ? null : Number(confirmedBigBags);
+  const parsedBags = isHybrid ? availableBags : (parsedSmall ?? 0) + (parsedBig ?? 0);
+  const parsedWeight = totalWeight.trim() ? Number(totalWeight) : null;
+
+  const isSmallValid = isHybrid || (confirmedSmallBags !== '' && parsedSmall !== null && !isNaN(parsedSmall) && Number.isInteger(parsedSmall) && parsedSmall >= 0);
+  const isBigValid = isHybrid || (confirmedBigBags !== '' && parsedBig !== null && !isNaN(parsedBig) && Number.isInteger(parsedBig) && parsedBig >= 0);
+  const sumMatchesStock = isHybrid || parsedBags === availableBags;
+  const isFormValid = isHybrid ? true : (isSmallValid && isBigValid && sumMatchesStock);
+
+  const liveMismatchNotice =
+    !isHybrid && confirmedSmallBags !== '' && confirmedBigBags !== '' && !sumMatchesStock
+      ? `Sum of small (${parsedSmall ?? 0}) and big (${parsedBig ?? 0}) bags (${parsedBags}) must match available stock (${availableBags}).`
+      : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
 
-    const parsedSmall = isHybrid ? null : Number(confirmedSmallBags);
-    const parsedBig = isHybrid ? null : Number(confirmedBigBags);
-    const parsedBags = isHybrid ? availableBags : (parsedSmall ?? 0) + (parsedBig ?? 0);
-    const parsedWeight = totalWeight.trim() ? Number(totalWeight) : null;
-
     const error = validateSortConfirmation(
-      {
-        confirmedBagType,
-        confirmedBags: parsedBags,
-        confirmedSmallBags: parsedSmall,
-        confirmedBigBags: parsedBig,
-        totalBagsWeight: parsedWeight,
-        paymentMode,
-      },
+      { confirmedBagType, confirmedBags: parsedBags, confirmedSmallBags: parsedSmall, confirmedBigBags: parsedBig, totalBagsWeight: parsedWeight },
       grn.bagType,
       availableBags,
+      isAlreadyVerified,
     );
-
     if (error) {
       setValidationError(error);
       return;
@@ -79,15 +90,19 @@ export function GrnSortingStep1Confirm({
       grnId: grn.id,
       confirmedBagType,
       confirmedBags: parsedBags,
+      confirmedSmallBags: parsedSmall,
+      confirmedBigBags: parsedBig,
       totalBagsWeight: parsedWeight,
-      paymentMode,
+      paymentMode: 'Cash',
       paymentNotes: paymentNotes.trim() || undefined,
     });
   };
 
   return (
     <div className={styles.modalContainer}>
-      {validationError && <Banner message={validationError} id="sorting-validation-banner" />}
+      {(validationError || liveMismatchNotice) && (
+        <Banner message={validationError || liveMismatchNotice!} id="sorting-validation-banner" />
+      )}
 
       {sortingResult?.isSortingComplete ? (
         <div className={styles.billSuccessNotice}>
@@ -123,16 +138,26 @@ export function GrnSortingStep1Confirm({
 
           <div className={styles.formGrid}>
             <div className={styles.fieldGroup}>
-              <Select
-                id="confirmed-bag-type"
-                label="Confirm Bag Type *"
-                value={confirmedBagType}
-                onChange={(e) => setConfirmedBagType(e.target.value as OperationalBagType)}
-                required
-              >
-                <option value="S/B">S/B (Small / Big)</option>
-                <option value="Hybrid">Hybrid</option>
-              </Select>
+              {isAlreadyVerified ? (
+                <Input
+                  id="confirmed-bag-type"
+                  label="Confirm Bag Type *"
+                  value={confirmedBagType === 'Hybrid' ? 'Hybrid' : 'S/B (Small / Big)'}
+                  readOnly
+                  aria-label="Confirm Bag Type (read-only)"
+                  title="Existing bag type confirmed before repacking"
+                />
+              ) : (
+                <Select
+                  id="confirmed-bag-type-select"
+                  label="Confirm Bag Type *"
+                  value={confirmedBagType}
+                  onChange={(e) => setConfirmedBagType(e.target.value as OperationalBagType)}
+                >
+                  <option value="S/B">S/B (Small / Big)</option>
+                  <option value="Hybrid">Hybrid</option>
+                </Select>
+              )}
             </div>
 
             {isHybrid ? (
@@ -155,9 +180,10 @@ export function GrnSortingStep1Confirm({
                     label="Small Bags *"
                     type="number"
                     min={0}
+                    max={availableBags}
                     step={1}
                     value={confirmedSmallBags}
-                    onChange={(e) => setConfirmedSmallBags(e.target.value)}
+                    onChange={handleBagChange(true)}
                     required
                   />
                 </div>
@@ -167,9 +193,10 @@ export function GrnSortingStep1Confirm({
                     label="Big Bags *"
                     type="number"
                     min={0}
+                    max={availableBags}
                     step={1}
                     value={confirmedBigBags}
-                    onChange={(e) => setConfirmedBigBags(e.target.value)}
+                    onChange={handleBagChange(false)}
                     required
                   />
                 </div>
@@ -188,24 +215,12 @@ export function GrnSortingStep1Confirm({
                 placeholder="e.g. 5000"
               />
             </div>
-
-            <div className={styles.fieldGroup}>
-              <Select
-                id="sorting-payment-mode"
-                label="Payment Mode *"
-                value={paymentMode}
-                onChange={(e) => setPaymentMode(e.target.value as PaymentMode)}
-              >
-                <option value="Cash">Cash</option>
-                <option value="UPI">UPI</option>
-              </Select>
-            </div>
           </div>
 
           <div className={styles.fieldGroup}>
             <Input
               id="sorting-payment-notes"
-              label="Payment / Sorting Notes (optional)"
+              label="Sorting Notes (optional)"
               type="text"
               maxLength={250}
               value={paymentNotes}
@@ -221,7 +236,7 @@ export function GrnSortingStep1Confirm({
               variant="primary"
               size="sm"
               isLoading={submitting}
-              disabled={submitting}
+              disabled={submitting || !isFormValid}
             >
               Confirm Details &amp; Generate Bill
             </Button>
