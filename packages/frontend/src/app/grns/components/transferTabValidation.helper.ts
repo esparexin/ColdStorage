@@ -1,4 +1,5 @@
 import {
+  chamberTextSchema,
   hasPositiveHybridRate,
   HYBRID_RATE_REQUIRED_MESSAGE,
   isHybridBagCategory,
@@ -66,5 +67,35 @@ export function validateTransferConfirmation(params: TransferConfirmationParams)
     return `Confirmed composition required for ${remainingBags} bags. Confirm Small + Big counts.`;
   }
   return validateBagReconciliation(confirmedSmallBags, confirmedBigBags, remainingBags);
+}
+
+export function validateTransferRepack(params: {
+  resultingBagType: 'S/B' | 'Hybrid';
+  destinationChamber: string;
+  totalBags: number;
+  repackedSmallBags?: number | '';
+  repackedBigBags?: number | '';
+  repackedQuantity?: number | '';
+  referenceWeight?: number | '';
+}): string | null {
+  const chamberRes = chamberTextSchema.safeParse(params.destinationChamber.trim());
+  if (!chamberRes.success) return chamberRes.error.issues[0]?.message ?? 'Chamber is required';
+  if (params.resultingBagType === 'Hybrid') {
+    const qty = Number(params.repackedQuantity);
+    if (!Number.isInteger(qty) || qty <= 0) return 'Repacked quantity must be a positive whole number';
+    if (qty !== params.totalBags) return `Repacked quantity (${qty}) must match total bags (${params.totalBags})`;
+  } else {
+    const s = Number(params.repackedSmallBags);
+    const b = Number(params.repackedBigBags);
+    if (!Number.isInteger(s) || !Number.isInteger(b) || s < 0 || b < 0) {
+      return 'Repacked small and big bags must be non-negative whole numbers';
+    }
+    if (s + b !== params.totalBags) return `Repacked bag total (${s + b}) must match total bags (${params.totalBags})`;
+  }
+  if (params.referenceWeight !== '' && params.referenceWeight != null) {
+    const w = Number(params.referenceWeight);
+    if (isNaN(w) || w <= 0) return 'Reference weight must be a positive number';
+  }
+  return null;
 }
 

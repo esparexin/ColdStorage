@@ -15,7 +15,7 @@ import { rentRepository } from '../../rent/rent.repository.js';
 import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
 import { alignTransferLedger, formatTransferAuditNote, settleTransferRent } from './transfer-ownership.helper.js';
-import { validateTransferBagConfirmation } from './transfer-ownership-validation.helper.js';
+import { validateTransferBagConfirmation, validateTransferRepack } from './transfer-ownership-validation.helper.js';
 
 export async function transferOwnership(
   facilityId: string,
@@ -59,6 +59,7 @@ export async function transferOwnership(
         bigBags: grn.bigBags,
       });
       validateTransferBagConfirmation(input, bal.total, grn.grnNumber, isVerified);
+      validateTransferRepack(input, bal.total, grn.grnNumber);
 
       const movementDate = new Date(input.movementDate);
       const isHybrid = input.sourceBagType === 'Hybrid' || grn.bagType === 'Hybrid' || isHybridBagCategory(input.sourceBagCategory);
@@ -71,46 +72,22 @@ export async function transferOwnership(
           id: grn.id, grnNumber: grn.grnNumber, date: grn.date, rentType: grn.rentType, commodityId: grn.commodityId,
           smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, bagPrice: grn.bagPrice,
         },
-        withdrawal: { smallBags: confSmall, bigBags: confBig },
-        quantity: isHybrid ? (input.sourceQuantity ?? bal.total) : undefined,
-        deliveryDate: movementDate, session,
-        excludePeriodKeys: toExcludedPeriodKeys(transferExtensions),
-        bagCategory: input.sourceBagCategory, bagPrice: input.sourceBagPrice,
-        seasonalBagPrice: input.sourceSeasonalBagPrice, monthlyBagPrice: input.sourceMonthlyBagPrice,
+        withdrawal: { smallBags: confSmall, bigBags: confBig }, quantity: isHybrid ? (input.sourceQuantity ?? bal.total) : undefined,
+        deliveryDate: movementDate, session, excludePeriodKeys: toExcludedPeriodKeys(transferExtensions),
+        bagCategory: input.sourceBagCategory, bagPrice: input.sourceBagPrice, seasonalBagPrice: input.sourceSeasonalBagPrice, monthlyBagPrice: input.sourceMonthlyBagPrice,
       });
 
       const storedRent = grn.rentAmount ?? 0;
-      const effectiveObligation =
-        storedRent > 0
-          ? (storedRent > expectedRentCharge ? storedRent : expectedRentCharge)
-          : expectedRentCharge;
+      const effectiveObligation = storedRent > 0 ? (storedRent > expectedRentCharge ? storedRent : expectedRentCharge) : expectedRentCharge;
+      const totalPaid = (await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session)).reduce((sum, p) => sum + p.amountPaid, 0);
 
-      const totalPaid = (await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session))
-        .reduce((sum, p) => sum + p.amountPaid, 0);
-
-      // D3: first-season hamali joins the transfer settlement like every other
-      // obligation path (rent-gate, record-payment, rent summary). Zero for
-      // non-hamali commodities and post-renewal seasons, so legacy flows are unchanged.
       const transferCommodity = await CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec();
-      const transferHamaliShare = computeFirstSeasonHamali(
-        grn.bags,
-        transferCommodity,
-        transferExtensions,
-        grn.hamaliRate,
-        grn.hamaliAmount,
-      );
+      const transferHamaliShare = computeFirstSeasonHamali(grn.bags, transferCommodity, transferExtensions, grn.hamaliRate, grn.hamaliAmount);
 
-      // The base is PROSPECTIVE, not historical: a transfer settles rent for
-      // every remaining bag, and a Monthly lot has accrued rent for its elapsed
-      // cycles. A different input to the obligation, not a competing rule - the
-      // SSOT still governs extensions, outward charges and Hamali. Passing the
-      // stored rentAmount would drop the accrual and skip the gate entirely.
       const totalDue = await rentExtensionRepository.resolveTotalDue(
         facilityId,
         {
-          id: grn.id,
-          rentAmount: effectiveObligation,
-          rentType: grn.rentType,
+          id: grn.id, rentAmount: effectiveObligation, rentType: grn.rentType,
           outwardRentCharges: await rentRepository.getOutwardRentChargesForGrn(facilityId, grn.id, session),
           hamaliShare: transferHamaliShare,
         },
@@ -127,9 +104,20 @@ export async function transferOwnership(
       });
 
       const movementId = `mov-${randomUUID()}`;
-      const resultingBagType = isHybrid ? 'Hybrid' : 'S/B';
+      const isRepackedHybrid = input.resultingBagType === 'Hybrid' || (!input.resultingBagType && isHybrid);
+      const resultingBagType = input.resultingBagType ?? (isHybrid ? 'Hybrid' : 'S/B');
+      const finalSmall = isRepackedHybrid
+        ? (input.repackedQuantity ?? confSmall)
+        : (typeof input.repackedSmallBags === 'number' ? input.repackedSmallBags : confSmall);
+      const finalBig = isRepackedHybrid
+        ? 0
+        : (typeof input.repackedBigBags === 'number' ? input.repackedBigBags : confBig);
+      const finalChamber = input.destinationChamber ? input.destinationChamber.trim() : grn.chamber;
+
       await alignTransferLedger({
-        facilityId, grn, movementId, movementDate, userId, bal, confSmall, confBig, resultingBagType, session,
+        facilityId, grn, movementId, movementDate, userId, bal,
+        confSmall: finalSmall, confBig: finalBig, resultingBagType,
+        destinationChamber: finalChamber, session,
       });
 
       const transferDateStr = movementDate.toISOString().split('T')[0];
@@ -148,13 +136,17 @@ export async function transferOwnership(
       const updateFields: Record<string, unknown> = {
         customerId: newCustomer.id,
         customerName: newCustomer.name,
+        chamber: finalChamber,
         bagType: resultingBagType,
-        smallBags: confSmall,
-        bigBags: confBig,
+        smallBags: finalSmall,
+        bigBags: finalBig,
         isCompositionVerified: true,
         remarks: updatedRemarks,
         updatedAt: new Date(),
       };
+      if (input.referenceWeight !== undefined && input.referenceWeight !== null) {
+        updateFields.totalBagsWeight = input.referenceWeight;
+      }
       if (effectiveObligation > 0) updateFields.rentAmount = effectiveObligation;
       if (isHybrid) {
         if (typeof input.sourceBagPrice === 'number' && input.sourceBagPrice > 0) updateFields.bagPrice = input.sourceBagPrice;
@@ -166,9 +158,7 @@ export async function transferOwnership(
         { id: grn.id },
         { $set: updateFields },
         { session, new: true },
-      )
-        .lean()
-        .exec();
+      ).lean().exec();
 
       resultGrnDoc = updatedGrn;
       resultPayment = paymentRecord;
@@ -187,8 +177,11 @@ export async function transferOwnership(
             toCustomerId: newCustomer.id,
             toCustomerName: newCustomer.name,
             totalBagsMoved: bal.total,
-            smallBagsMoved: confSmall,
-            bigBagsMoved: confBig,
+            smallBagsMoved: finalSmall,
+            bigBagsMoved: finalBig,
+            destinationChamber: finalChamber,
+            resultingBagType,
+            referenceWeight: input.referenceWeight ?? null,
             sourceBagType: input.sourceBagType ?? resultingBagType,
             sourceBagCategory: input.sourceBagCategory ?? resultingBagType,
             sourceQuantity: input.sourceQuantity ?? null,

@@ -1,29 +1,21 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import {
-  calculateHamaliAmount,
-  isHybridBagCategory, resolveTotalRentObligation,
-  type Commodity, type Customer, type Grn, type OutwardBagCategory, type PaymentMode,
-  type TransferPaymentDecision, type TransferSettlementDetails,
-} from '@cold-storage/contracts';
-import { useRentGate } from '@/hooks/useRentGate';
+import React from 'react';
+import type { Commodity, Customer, Grn, OutwardBagCategory, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
 import { ConfirmDialog } from '@/components/ui';
 import { WizardStepper } from './WizardStepper';
-import { computeOutwardRentCharge } from '@/app/deliveries/hooks/deliveryRent.helper';
-import { validateTransferPayment } from './internalMovementPayload.helper';
-import { validateTransferConfirmation } from './transferTabValidation.helper';
-import { resolveCandidateTransferees } from './transferCandidateCustomer.helper';
-import { resolveTransferRates } from './transferRentRates.helper';
 import { TransferStep1Customer } from './TransferStep1Customer';
 import { TransferStep2Dues } from './TransferStep2Dues';
+import { TransferStep3Repack } from './TransferStep3Repack';
 import { TransferStep3Confirm } from './TransferStep3Confirm';
+import { useInternalMovementTransferTab } from './useInternalMovementTransferTab';
 import styles from './InternalMovementModal.module.css';
 
 const TRANSFER_STEPS = [
-  { number: 1, label: '1. Select Transferee' },
-  { number: 2, label: '2. Confirm Bag Type & Dues' },
-  { number: 3, label: '3. Confirm Transfer' },
+  { number: 1, label: '1. Transferee' },
+  { number: 2, label: '2. Dues' },
+  { number: 3, label: '3. Repack & Chamber' },
+  { number: 4, label: '4. Confirm' },
 ];
 
 interface InternalMovementTransferTabProps {
@@ -40,193 +32,89 @@ interface InternalMovementTransferTabProps {
       sourceBagCategory?: OutwardBagCategory; sourceQuantity?: number;
       sourceBagPrice?: number; sourceSeasonalBagPrice?: number; sourceMonthlyBagPrice?: number;
     },
+    repack?: {
+      destinationChamber?: string; resultingBagType?: import('@cold-storage/contracts').BagType;
+      repackedSmallBags?: number; repackedBigBags?: number;
+      repackedQuantity?: number; referenceWeight?: number;
+    },
   ) => Promise<void>;
   onCustomerAdded?: () => void;
 }
 
-export function InternalMovementTransferTab({
-  currentGrn, facilityId, customers, commodities, submitting, onExecuteTransfer, onCustomerAdded,
-}: InternalMovementTransferTabProps) {
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [newCustomerId, setNewCustomerId] = useState('');
-  const [createdCustomers, setCreatedCustomers] = useState<Customer[]>([]);
-  const [movementDate] = useState(new Date().toISOString().slice(0, 10));
-  const [reason, setReason] = useState('');
-  const [remarks, setRemarks] = useState('');
-  const [decision, setDecision] = useState<TransferPaymentDecision>('AGREED_PENDING');
-  const [settleAmount, setSettleAmount] = useState<number>(0);
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>('Cash');
-  const [validationError, setValidationError] = useState<string | null>(null);
-
-  const remainingBags = currentGrn.closingBags ?? currentGrn.bags;
-  const initialSb = currentGrn.bagType !== 'Hybrid' && ((currentGrn.smallBags ?? 0) + (currentGrn.bigBags ?? 0) === remainingBags);
-  const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>(initialSb ? (currentGrn.smallBags ?? 0) : '');
-  const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>(initialSb ? (currentGrn.bigBags ?? 0) : '');
-  const [sourceBagCategory, setSourceBagCategory] = useState<OutwardBagCategory>(
-    isHybridBagCategory(currentGrn.bagType) ? 'Hybrid' : 'S/B',
-  );
-  const [sourceBagPrice, setSourceBagPrice] = useState<number | ''>('');
-  const [sourceSeasonalBagPrice, setSourceSeasonalBagPrice] = useState<number | ''>('');
-  const [sourceMonthlyBagPrice, setSourceMonthlyBagPrice] = useState<number | ''>('');
-
-  const { rentSummary, rentLoading, refreshRentGate } = useRentGate();
-  useEffect(() => { void refreshRentGate(facilityId, currentGrn.id); }, [facilityId, currentGrn.id, refreshRentGate]);
-
-  const candidateCustomers = useMemo(
-    () => resolveCandidateTransferees(customers, currentGrn.customerId, createdCustomers),
-    [customers, currentGrn.customerId, createdCustomers],
-  );
-  const selectedNewCustomer = useMemo(() => candidateCustomers.find((c) => c.id === newCustomerId), [candidateCustomers, newCustomerId]);
-
-  const isUnverified = currentGrn.isCompositionVerified === false;
-  const isHybrid = isHybridBagCategory(sourceBagCategory);
-  const smallBags = isHybrid ? remainingBags : (typeof confirmedSmallBags === 'number' ? confirmedSmallBags : currentGrn.smallBags ?? 0);
-  const bigBags = isHybrid ? 0 : (typeof confirmedBigBags === 'number' ? confirmedBigBags : currentGrn.bigBags ?? 0);
-
-  const commodity = useMemo(() => commodities?.find((c) => c.id === currentGrn.commodityId), [commodities, currentGrn.commodityId]);
-  const { seasonalRates, monthlyRates } = useMemo(() => resolveTransferRates(currentGrn, commodity), [currentGrn, commodity]);
-
-  const assessedRent = useMemo(() => computeOutwardRentCharge({
-    rentType: currentGrn.rentType, bagCategory: (sourceBagCategory || 'S/B') as OutwardBagCategory,
-    smallBags, bigBags, quantity: isHybrid ? smallBags : undefined,
-    manualBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
-    seasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
-    monthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
-    inwardDate: currentGrn.date, deliveryDate: movementDate,
-    smallBagPrice: currentGrn.smallBagPrice ?? seasonalRates.small,
-    bigBagPrice: currentGrn.bigBagPrice ?? seasonalRates.big,
-    monthlySmallBagPrice: monthlyRates.small, monthlyBigBagPrice: monthlyRates.big,
-    bagPrice: currentGrn.bagPrice,
-  }), [currentGrn, sourceBagCategory, smallBags, bigBags, isHybrid, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice, movementDate, seasonalRates, monthlyRates]);
-
-  const effectiveHamaliRate = useMemo(() => {
-    if (typeof currentGrn.hamaliRate === 'number') return currentGrn.hamaliRate;
-    const isApp = commodity?.isHamaliApplicable ?? ((commodity?.hamaliRate ?? 0) > 0);
-    return isApp ? (commodity?.hamaliRate ?? 0) : 0;
-  }, [currentGrn.hamaliRate, commodity]);
-  const hamaliAmount = useMemo(() => {
-    if (typeof currentGrn.hamaliAmount === 'number' && currentGrn.hamaliAmount >= 0) return currentGrn.hamaliAmount;
-    return calculateHamaliAmount(currentGrn.bags, effectiveHamaliRate);
-  }, [currentGrn.hamaliAmount, currentGrn.bags, effectiveHamaliRate]);
-
-  const totalPaid = rentSummary?.totalPaid ?? 0;
-  const pendingAmount = rentSummary?.remainingBalance ?? 0;
-  const isUnbilled = totalPaid === 0 && pendingAmount === 0 && (rentSummary?.rentAmount ?? 0) === 0;
-  const storedRent = rentSummary?.rentAmount ?? 0;
-  const effectiveBaseRent = storedRent > 0 ? (storedRent > assessedRent ? storedRent : assessedRent) : assessedRent;
-
-  const effectiveObligation = resolveTotalRentObligation({
-    rentType: currentGrn.rentType, rentAmount: effectiveBaseRent,
-    outwardRentCharges: 0, extensionAmounts: rentSummary?.extensions?.map((e) => e.finalAmount),
-    hamaliShare: hamaliAmount,
-  });
-  const effectiveDue = Math.max(0, effectiveObligation - totalPaid);
-
-  useEffect(() => {
-    if (effectiveDue > 0 && settleAmount === 0) setSettleAmount(effectiveDue);
-  }, [effectiveDue, settleAmount]);
-
-  const handleProceedToStep2 = () => {
-    setValidationError(null);
-    if (!newCustomerId) return setValidationError('Please select the new customer to transfer ownership to.');
-    if (remainingBags <= 0) return setValidationError('Cannot transfer ownership: No stock remaining in this GRN.');
-    setStep(2);
-  };
-
-  const handleProceedToStep3 = () => {
-    setValidationError(null);
-    const payErr = validateTransferPayment(decision, settleAmount, effectiveDue);
-    if (payErr) return setValidationError(payErr);
-    const confirmErr = validateTransferConfirmation({
-      isUnverified, remainingBags, confirmedSmallBags, confirmedBigBags,
-      sourceBagCategory, sourceQuantity: isHybrid ? remainingBags : undefined,
-      sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice,
-    });
-    if (confirmErr) return setValidationError(confirmErr);
-    setStep(3);
-  };
-
-  const handleTransferSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setValidationError(null);
-    if (!newCustomerId) return setValidationError('Select the new customer to transfer ownership to.');
-    if (remainingBags <= 0) return setValidationError('Cannot transfer ownership: No stock remaining in this GRN.');
-    if (reason.trim().length < 5) return setValidationError('Audit reason must be at least 5 characters.');
-    setShowConfirm(true);
-  };
-
-  const doExecuteTransfer = async () => {
-    const conf = isHybrid ? {
-      sourceBagCategory: sourceBagCategory || undefined,
-      sourceQuantity: remainingBags,
-      sourceBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
-      sourceSeasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
-      sourceMonthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
-    } : typeof confirmedSmallBags === 'number' && typeof confirmedBigBags === 'number'
-      ? { confirmedSmallBags, confirmedBigBags } : undefined;
-
-    await onExecuteTransfer(
-      newCustomerId, movementDate, reason.trim(), remarks.trim() || undefined,
-      effectiveDue > 0 ? decision : undefined,
-      effectiveDue > 0 && decision === 'SETTLE_NOW' ? { amountPaid: settleAmount, paymentMode } : undefined,
-      conf,
-    );
-  };
+export function InternalMovementTransferTab(props: InternalMovementTransferTabProps) {
+  const { currentGrn, facilityId, submitting, onCustomerAdded } = props;
+  const tab = useInternalMovementTransferTab(props);
 
   return (
-    <form id="transfer-ownership-form" onSubmit={handleTransferSubmit} className={styles.modalContent}>
-      {validationError && (
+    <form id="transfer-ownership-form" onSubmit={tab.handleTransferSubmit} className={styles.modalContent}>
+      {tab.validationError && (
         <div role="alert" className={styles.noticeBox} style={{ color: 'var(--color-danger-text)', borderColor: 'var(--color-danger)' }}>
-          {validationError}
+          {tab.validationError}
         </div>
       )}
-      <WizardStepper steps={TRANSFER_STEPS} currentStep={step} onStepClick={(s) => setStep(s as 1 | 2 | 3)} canNavigateToStep={(s) => (s === 1 || Boolean(newCustomerId))} disabled={submitting} />
-      {step === 1 && (
+      <WizardStepper steps={TRANSFER_STEPS} currentStep={tab.step} onStepClick={(s) => tab.setStep(s as 1 | 2 | 3 | 4)} canNavigateToStep={(s) => (s === 1 || Boolean(tab.newCustomerId))} disabled={submitting} />
+      {tab.step === 1 && (
         <TransferStep1Customer
-          currentGrn={currentGrn} remainingBags={remainingBags} totalPaid={totalPaid} pendingAmount={pendingAmount}
-          isUnbilled={isUnbilled} rentLoading={rentLoading} newCustomerId={newCustomerId} onNewCustomerIdChange={setNewCustomerId}
-          candidateCustomers={candidateCustomers} selectedNewCustomer={selectedNewCustomer} submitting={submitting} onNext={handleProceedToStep2}
+          currentGrn={currentGrn} remainingBags={tab.remainingBags} totalPaid={tab.totalPaid} pendingAmount={tab.pendingAmount}
+          isUnbilled={tab.isUnbilled} rentLoading={tab.rentLoading} newCustomerId={tab.newCustomerId} onNewCustomerIdChange={tab.setNewCustomerId}
+          candidateCustomers={tab.candidateCustomers} selectedNewCustomer={tab.selectedNewCustomer} submitting={submitting} onNext={tab.handleProceedToStep2}
           facilityId={facilityId}
-          onCustomerAdded={(newCustomer) => {
-            if (newCustomer) setCreatedCustomers((prev) => [...prev, newCustomer]);
+          onCustomerAdded={(newCust) => {
+            if (newCust) tab.setCreatedCustomers((prev) => [...prev, newCust]);
             onCustomerAdded?.();
           }}
         />
       )}
-      {step === 2 && (
+      {tab.step === 2 && (
         <TransferStep2Dues
-          currentGrn={currentGrn} remainingBags={remainingBags} isUnverified={isUnverified} confirmedSmallBags={confirmedSmallBags}
-          onSmallChange={setConfirmedSmallBags} confirmedBigBags={confirmedBigBags} onBigChange={setConfirmedBigBags}
-          sourceBagCategory={sourceBagCategory} onCategoryChange={setSourceBagCategory} sourceBagPrice={sourceBagPrice}
-          onPriceChange={setSourceBagPrice} sourceSeasonalBagPrice={sourceSeasonalBagPrice} onSeasonalPriceChange={setSourceSeasonalBagPrice}
-          sourceMonthlyBagPrice={sourceMonthlyBagPrice} onMonthlyPriceChange={setSourceMonthlyBagPrice} movementDate={movementDate}
-          selectedNewCustomer={selectedNewCustomer} totalPaid={totalPaid} outstandingBalance={effectiveDue}
-          assessedRent={assessedRent} effectiveDue={effectiveDue} hamaliRate={effectiveHamaliRate}
-          seasonalRates={seasonalRates} monthlyRates={monthlyRates}
-          decision={decision} onDecisionChange={setDecision}
-          settleAmount={settleAmount} onSettleAmountChange={setSettleAmount} paymentMode={paymentMode} onPaymentModeChange={setPaymentMode}
-          submitting={submitting} onBack={() => setStep(1)} onNext={handleProceedToStep3}
+          currentGrn={currentGrn} remainingBags={tab.remainingBags} isUnverified={tab.isUnverified} confirmedSmallBags={tab.confirmedSmallBags}
+          onSmallChange={tab.setConfirmedSmallBags} confirmedBigBags={tab.confirmedBigBags} onBigChange={tab.setConfirmedBigBags}
+          sourceBagCategory={tab.sourceBagCategory} onCategoryChange={tab.setSourceBagCategory} sourceBagPrice={tab.sourceBagPrice}
+          onPriceChange={tab.setSourceBagPrice} sourceSeasonalBagPrice={tab.sourceSeasonalBagPrice} onSeasonalPriceChange={tab.setSourceSeasonalBagPrice}
+          sourceMonthlyBagPrice={tab.sourceMonthlyBagPrice} onMonthlyPriceChange={tab.setSourceMonthlyBagPrice} movementDate={tab.movementDate}
+          selectedNewCustomer={tab.selectedNewCustomer} totalPaid={tab.totalPaid} outstandingBalance={tab.effectiveDue}
+          assessedRent={tab.assessedRent} effectiveDue={tab.effectiveDue} hamaliRate={tab.effectiveHamaliRate}
+          seasonalRates={tab.seasonalRates} monthlyRates={tab.monthlyRates}
+          decision={tab.decision} onDecisionChange={tab.setDecision}
+          settleAmount={tab.settleAmount} onSettleAmountChange={tab.setSettleAmount} paymentMode={tab.paymentMode} onPaymentModeChange={tab.setPaymentMode}
+          submitting={submitting} onBack={() => tab.setStep(1)} onNext={tab.handleProceedToStep3}
         />
       )}
-      {step === 3 && (
+      {tab.step === 3 && (
+        <TransferStep3Repack
+          currentChamber={currentGrn.chamber || ''}
+          destinationChamber={tab.destinationChamber} onDestinationChamberChange={tab.setDestinationChamber}
+          resultingBagType={tab.resultingBagType} onResultingBagTypeChange={tab.setResultingBagType}
+          totalBags={tab.remainingBags}
+          repackedSmallBags={tab.repackedSmallBags} onRepackedSmallChange={tab.setRepackedSmallBags}
+          repackedBigBags={tab.repackedBigBags} onRepackedBigChange={tab.setRepackedBigBags}
+          repackedQuantity={tab.repackedQuantity} onRepackedQuantityChange={tab.setRepackedQuantity}
+          referenceWeight={tab.referenceWeight} onReferenceWeightChange={tab.setReferenceWeight}
+          submitting={submitting} onBack={() => tab.setStep(2)} onNext={tab.handleProceedToStep4}
+        />
+      )}
+      {tab.step === 4 && (
         <TransferStep3Confirm
-          currentGrn={currentGrn} selectedNewCustomer={selectedNewCustomer} remainingBags={remainingBags}
-          confirmedSmallBags={confirmedSmallBags} confirmedBigBags={confirmedBigBags}
-          sourceBagCategory={sourceBagCategory} hamaliRate={effectiveHamaliRate} hamaliAmount={hamaliAmount}
-          assessedRent={assessedRent} totalPaid={totalPaid} effectiveDue={effectiveDue}
-          decision={decision} settleAmount={settleAmount} movementDate={movementDate}
-          reason={reason} onReasonChange={setReason} remarks={remarks} onRemarksChange={setRemarks}
-          submitting={submitting} onBack={() => setStep(2)}
+          currentGrn={currentGrn} selectedNewCustomer={tab.selectedNewCustomer} remainingBags={tab.remainingBags}
+          confirmedSmallBags={tab.resultingBagType === 'Hybrid' ? undefined : (typeof tab.repackedSmallBags === 'number' ? tab.repackedSmallBags : tab.confirmedSmallBags)}
+          confirmedBigBags={tab.resultingBagType === 'Hybrid' ? undefined : (typeof tab.repackedBigBags === 'number' ? tab.repackedBigBags : tab.confirmedBigBags)}
+          sourceBagCategory={tab.resultingBagType === 'Hybrid' ? 'Hybrid' : tab.sourceBagCategory}
+          destinationChamber={tab.destinationChamber}
+          referenceWeight={tab.referenceWeight}
+          hamaliRate={tab.effectiveHamaliRate} hamaliAmount={tab.hamaliAmount}
+          assessedRent={tab.assessedRent} totalPaid={tab.totalPaid} effectiveDue={tab.effectiveDue}
+          decision={tab.decision} settleAmount={tab.settleAmount} movementDate={tab.movementDate}
+          reason={tab.reason} onReasonChange={tab.setReason} remarks={tab.remarks} onRemarksChange={tab.setRemarks}
+          submitting={submitting} onBack={() => tab.setStep(3)}
         />
       )}
-      {showConfirm && (
+      {tab.showConfirm && (
         <ConfirmDialog
-          isOpen={showConfirm}
+          isOpen={tab.showConfirm}
           title="Confirm Ownership Transfer"
           message={
             <div>
-              <p>Are you sure you want to transfer ownership of GRN <strong>{currentGrn.grnNumber}</strong> from <strong>{currentGrn.customerName}</strong> to <strong>{selectedNewCustomer?.name}</strong>?</p>
+              <p>Are you sure you want to transfer ownership of GRN <strong>{currentGrn.grnNumber}</strong> from <strong>{currentGrn.customerName}</strong> to <strong>{tab.selectedNewCustomer?.name}</strong>?</p>
               <p style={{ marginTop: 'var(--space-2)', color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
                 Once confirmed, the transfer will be finalized and this operation cannot be reversed.
               </p>
@@ -235,10 +123,10 @@ export function InternalMovementTransferTab({
           confirmLabel="Yes, Transfer Ownership"
           confirmVariant="primary"
           isBusy={submitting}
-          onCancel={() => setShowConfirm(false)}
+          onCancel={() => tab.setShowConfirm(false)}
           onConfirm={async () => {
-            setShowConfirm(false);
-            await doExecuteTransfer();
+            tab.setShowConfirm(false);
+            await tab.doExecuteTransfer();
           }}
         />
       )}

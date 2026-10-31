@@ -151,4 +151,42 @@ describe('Transfer Ownership: Paid & Unpaid Lifecycle & Subsequent Delivery', ()
     expect(payRes.status).toBe(201);
     expect(payRes.body.payment.amountPaid).toBe(3000);
   });
+
+  it('transfers lot with repacking, destination chamber update, and reference weight', async () => {
+    const grnId = await seedGrn({
+      facilityId, customerId: customerA, customerName: 'Farmer Ramesh',
+      commodityId, commodityName: 'Wheat', chamber: 'CH-01', bags: 100,
+      rentType: 'Seasonal', rentAmount: 3000, grnNumber: 'GRN-26-27-0103',
+    });
+    await GrnModel.updateOne({ id: grnId }, { $set: { bagPrice: 30, smallBags: 60, bigBags: 40, isCompositionVerified: true } });
+
+    const trRes = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/transfer-ownership`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        grnId, newCustomerId: customerB, movementDate: new Date(),
+        remarks: 'Transfer lot with repacking into CH-08',
+        destinationChamber: 'CH-08',
+        resultingBagType: 'S/B',
+        repackedSmallBags: 50,
+        repackedBigBags: 50,
+        referenceWeight: 4950,
+        paymentDecision: 'AGREED_PENDING',
+      });
+
+    expect(trRes.status).toBe(200);
+    expect(trRes.body.grn.chamber).toBe('CH-08');
+    expect(trRes.body.grn.smallBags).toBe(50);
+    expect(trRes.body.grn.bigBags).toBe(50);
+    expect(trRes.body.grn.totalBagsWeight).toBe(4950);
+    expect(trRes.body.grn.isCompositionVerified).toBe(true);
+    expect(trRes.body.movement.destinationChamber).toBe('CH-08');
+    expect(trRes.body.movement.referenceWeight).toBe(4950);
+
+    const updated = await GrnModel.findOne({ id: grnId }).lean().exec();
+    expect(updated?.chamber).toBe('CH-08');
+    expect(updated?.smallBags).toBe(50);
+    expect(updated?.bigBags).toBe(50);
+    expect(updated?.totalBagsWeight).toBe(4950);
+  });
 });

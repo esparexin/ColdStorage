@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateTransferConfirmation } from '../transferTabValidation.helper';
+import { validateTransferConfirmation, validateTransferRepack } from '../transferTabValidation.helper';
 
 describe('validateTransferConfirmation', () => {
   it('requires confirmed Small and Big counts before transfer', () => {
@@ -192,24 +192,29 @@ describe('validateTransferConfirmation', () => {
   });
 
   it('requires confirmed split counts for default and S/B transfers', () => {
-    expect(
-      validateTransferConfirmation({
-        isUnverified: false,
-        remainingBags: 120,
-        confirmedSmallBags: '',
-        confirmedBigBags: '',
-        sourceBagCategory: '',
-      }),
-    ).toContain('Confirmed composition required');
+    expect(validateTransferConfirmation({ isUnverified: false, remainingBags: 120, confirmedSmallBags: '', confirmedBigBags: '', sourceBagCategory: '' })).toContain('Confirmed composition required');
+    expect(validateTransferConfirmation({ isUnverified: false, remainingBags: 120, confirmedSmallBags: 80, confirmedBigBags: 40, sourceBagCategory: 'S/B' })).toBeNull();
+  });
 
-    expect(
-      validateTransferConfirmation({
-        isUnverified: false,
-        remainingBags: 120,
-        confirmedSmallBags: 80,
-        confirmedBigBags: 40,
-        sourceBagCategory: 'S/B',
-      }),
-    ).toBeNull();
+  describe('validateTransferRepack', () => {
+    it('requires non-empty destination chamber', () => {
+      expect(validateTransferRepack({ resultingBagType: 'S/B', destinationChamber: '', totalBags: 100, repackedSmallBags: 60, repackedBigBags: 40 })).toBe('Chamber is required');
+    });
+
+    it('validates S/B repacked small and big bags reconciling to total', () => {
+      expect(validateTransferRepack({ resultingBagType: 'S/B', destinationChamber: 'CH-02', totalBags: 100, repackedSmallBags: 60, repackedBigBags: 30 })).toContain('must match total bags');
+      expect(validateTransferRepack({ resultingBagType: 'S/B', destinationChamber: 'CH-02', totalBags: 100, repackedSmallBags: -5, repackedBigBags: 105 })).toContain('non-negative whole numbers');
+      expect(validateTransferRepack({ resultingBagType: 'S/B', destinationChamber: 'CH-02', totalBags: 100, repackedSmallBags: 60, repackedBigBags: 40 })).toBeNull();
+    });
+
+    it('validates Hybrid repacked quantity reconciling to total', () => {
+      expect(validateTransferRepack({ resultingBagType: 'Hybrid', destinationChamber: 'CH-02', totalBags: 100, repackedQuantity: 90 })).toContain('must match total bags');
+      expect(validateTransferRepack({ resultingBagType: 'Hybrid', destinationChamber: 'CH-02', totalBags: 100, repackedQuantity: 100 })).toBeNull();
+    });
+
+    it('validates optional reference weight', () => {
+      expect(validateTransferRepack({ resultingBagType: 'S/B', destinationChamber: 'CH-02', totalBags: 100, repackedSmallBags: 60, repackedBigBags: 40, referenceWeight: -10 })).toBe('Reference weight must be a positive number');
+      expect(validateTransferRepack({ resultingBagType: 'S/B', destinationChamber: 'CH-02', totalBags: 100, repackedSmallBags: 60, repackedBigBags: 40, referenceWeight: 5000 })).toBeNull();
+    });
   });
 });
