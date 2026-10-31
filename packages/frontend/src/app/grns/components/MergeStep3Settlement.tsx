@@ -143,9 +143,9 @@ export function MergeStep3Settlement({
                 smallBags={rentCalc.smallBags}
                 bigBags={rentCalc.bigBags}
                 bagType={rentCalc.isHybrid ? 'Hybrid' : 'S/B'}
-                bagPrice={typeof conf?.bagPrice === 'number' && conf.bagPrice > 0 ? conf.bagPrice : source.bagPrice}
-                seasonalBagPrice={typeof conf?.seasonalBagPrice === 'number' && conf.seasonalBagPrice > 0 ? conf.seasonalBagPrice : undefined}
-                monthlyBagPrice={typeof conf?.monthlyBagPrice === 'number' && conf.monthlyBagPrice > 0 ? conf.monthlyBagPrice : undefined}
+                bagPrice={rentCalc.isHybrid ? (typeof conf?.bagPrice === 'number' && conf.bagPrice > 0 ? conf.bagPrice : source.bagPrice) : undefined}
+                seasonalBagPrice={rentCalc.isHybrid && typeof conf?.seasonalBagPrice === 'number' && conf.seasonalBagPrice > 0 ? conf.seasonalBagPrice : undefined}
+                monthlyBagPrice={rentCalc.isHybrid && typeof conf?.monthlyBagPrice === 'number' && conf.monthlyBagPrice > 0 ? conf.monthlyBagPrice : undefined}
                 seasonalRates={seasonalRates}
                 monthlyRates={monthlyRates}
                 totalRent={rentCalc.totalRent}

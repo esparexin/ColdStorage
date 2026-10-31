@@ -5,7 +5,9 @@ import {
   calculate3MAdditionalMonths,
   calculateOutwardSeasonalBreakdown,
   isHybridBagCategory,
+  resolveDiscriminatedOutwardRates,
   type BagType,
+  type DiscriminatedOutwardPricing,
   type OutwardBagCategory,
   type RentType,
 } from '@cold-storage/contracts';
@@ -65,20 +67,29 @@ export function OutwardRentBreakdown({
   const totalWithdrawing = smallBags + bigBags;
   const extra3MMonths = isSeasonal3M && inwardDate ? calculate3MAdditionalMonths(inwardDate, deliveryDate) : 0;
 
-  const effectiveSeasonalRates = useMemo(
+  const discriminatedPricing: DiscriminatedOutwardPricing = useMemo(
     () =>
-      typeof seasonalBagPrice === 'number' && seasonalBagPrice > 0
-        ? { small: seasonalBagPrice, big: seasonalBagPrice }
-        : seasonalRates,
-    [seasonalBagPrice, seasonalRates],
+      isHybrid
+        ? {
+            isHybrid: true,
+            totalBags: totalWithdrawing,
+            bagPrice: typeof bagPrice === 'number' && bagPrice > 0 ? bagPrice : undefined,
+            seasonalBagPrice: typeof seasonalBagPrice === 'number' && seasonalBagPrice > 0 ? seasonalBagPrice : undefined,
+            monthlyBagPrice: typeof monthlyBagPrice === 'number' && monthlyBagPrice > 0 ? monthlyBagPrice : undefined,
+          }
+        : {
+            isHybrid: false,
+            seasonalRates,
+            monthlyRates,
+            smallBags,
+            bigBags,
+          },
+    [isHybrid, totalWithdrawing, bagPrice, seasonalBagPrice, monthlyBagPrice, seasonalRates, monthlyRates, smallBags, bigBags],
   );
 
-  const effectiveMonthlyRates = useMemo(
-    () =>
-      typeof monthlyBagPrice === 'number' && monthlyBagPrice > 0
-        ? { small: monthlyBagPrice, big: monthlyBagPrice }
-        : monthlyRates,
-    [monthlyBagPrice, monthlyRates],
+  const resolved = useMemo(
+    () => resolveDiscriminatedOutwardRates(discriminatedPricing),
+    [discriminatedPricing],
   );
 
   const seasonalBreakdown = useMemo(
@@ -87,26 +98,34 @@ export function OutwardRentBreakdown({
         ? calculateOutwardSeasonalBreakdown({
             inwardDate,
             deliveryDate,
-            smallBags: isHybrid ? totalWithdrawing : smallBags,
-            bigBags: isHybrid ? 0 : bigBags,
-            seasonalRates: effectiveSeasonalRates,
-            monthlyRates: effectiveMonthlyRates,
+            smallBags: resolved.smallBags,
+            bigBags: resolved.bigBags,
+            seasonalRates: resolved.effectiveSeasonalRates,
+            monthlyRates: resolved.effectiveMonthlyRates,
             excludePeriodKeys,
           })
         : null,
     [
       isSeasonal,
       inwardDate,
-      totalWithdrawing,
-      isHybrid,
       deliveryDate,
-      smallBags,
-      bigBags,
-      effectiveSeasonalRates,
-      effectiveMonthlyRates,
+      totalWithdrawing,
+      resolved,
       excludePeriodKeys,
     ],
   );
+
+  // Single calculation projection: authoritative storage rent derives directly from the breakdown SSOT
+  const storageRent = isSeasonal && seasonalBreakdown ? seasonalBreakdown.totalRent : totalRent;
+
+  // Development/test assertion: verify that upstream totalRent matches breakdown totalRent
+  if (process.env.NODE_ENV !== 'production' && isSeasonal && seasonalBreakdown) {
+    if (typeof totalRent === 'number' && totalRent > 0 && Math.abs(totalRent - seasonalBreakdown.totalRent) > 0.01) {
+      console.warn(
+        `[OutwardRentBreakdown] Mismatch detected: upstream totalRent (₹${totalRent}) != breakdown totalRent (₹${seasonalBreakdown.totalRent}) for GRN ${grnNumber ?? 'N/A'}`,
+      );
+    }
+  }
 
   const rows = useMemo<RentBreakdownItem[]>(() => {
     if (isSeasonal && seasonalBreakdown && seasonalBreakdown.periods.length > 0) {
@@ -118,7 +137,7 @@ export function OutwardRentBreakdown({
       });
     }
 
-    const activeRates = isSeasonal || isSeasonal3M ? effectiveSeasonalRates : effectiveMonthlyRates;
+    const activeRates = isSeasonal || isSeasonal3M ? resolved.effectiveSeasonalRates : resolved.effectiveMonthlyRates;
     let detailsFormula = '';
     if (isHybrid) {
       const seasonalPerBag = typeof seasonalBagPrice === 'number' && seasonalBagPrice > 0
@@ -130,7 +149,7 @@ export function OutwardRentBreakdown({
         ? monthlyBagPrice
         : typeof bagPrice === 'number' && bagPrice > 0
           ? bagPrice
-          : effectiveMonthlyRates.small;
+          : resolved.effectiveMonthlyRates.small;
       if (isSeasonal3M && extra3MMonths > 0) {
         detailsFormula = `${totalWithdrawing} Bags × ₹${Number(seasonalPerBag).toFixed(2)} (3-mo) + ${extra3MMonths} mo × ₹${Number(monthlyPerBag).toFixed(2)}`;
       } else if (isSeasonal3M) {
@@ -169,8 +188,7 @@ export function OutwardRentBreakdown({
     seasonalBreakdown,
     isHybrid,
     totalWithdrawing,
-    effectiveSeasonalRates,
-    effectiveMonthlyRates,
+    resolved,
     bagPrice,
     seasonalBagPrice,
     monthlyBagPrice,
@@ -211,7 +229,7 @@ export function OutwardRentBreakdown({
                 {effectiveHamaliAmount > 0 ? 'Total Storage Rent' : 'Total Rent Payable'}
               </td>
               <td style={{ textAlign: 'right' }} className={styles.totalAmount}>
-                ₹{totalRent.toLocaleString('en-IN')}
+                ₹{storageRent.toLocaleString('en-IN')}
               </td>
             </tr>
             {effectiveHamaliAmount > 0 && (
@@ -220,7 +238,7 @@ export function OutwardRentBreakdown({
                   Total Amount to Pay
                 </td>
                 <td style={{ textAlign: 'right' }} className={styles.totalAmount}>
-                  ₹{(totalRent + effectiveHamaliAmount).toLocaleString('en-IN')}
+                  ₹{(storageRent + effectiveHamaliAmount).toLocaleString('en-IN')}
                 </td>
               </tr>
             )}

@@ -27,6 +27,8 @@ export function resolveOutwardRates(rentType: RentType, o?: OutwardRateOverride 
   return { small: o?.smallBagPrice ?? o?.bagPrice ?? r.small, big: o?.bigBagPrice ?? o?.bagPrice ?? r.big };
 }
 
+export * from './discriminated-pricing.js';
+
 export interface RentalCalculationInput {
   rentType: RentType;
   bags: number;

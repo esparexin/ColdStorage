@@ -154,9 +154,9 @@ export function TransferRentAssessment({
         smallBags={smallBags}
         bigBags={bigBags}
         bagCategory={(sourceBagCategory || 'S/B') as OutwardBagCategory}
-        bagPrice={typeof sourceBagPrice === 'number' ? sourceBagPrice : currentGrn.bagPrice}
-        seasonalBagPrice={typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined}
-        monthlyBagPrice={typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined}
+        bagPrice={isHybrid ? (typeof sourceBagPrice === 'number' ? sourceBagPrice : currentGrn.bagPrice) : undefined}
+        seasonalBagPrice={isHybrid && typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined}
+        monthlyBagPrice={isHybrid && typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined}
         seasonalRates={resolvedRates.seasonalRates}
         monthlyRates={resolvedRates.monthlyRates}
         totalRent={totalRent}

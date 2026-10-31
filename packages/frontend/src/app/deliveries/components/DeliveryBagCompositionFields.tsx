@@ -207,9 +207,9 @@ export function DeliveryBagCompositionFields({
         bigBags={isHybrid ? 0 : bigQty}
         bagType={isHybrid ? 'Hybrid' : bagType}
         bagCategory={bagCategory}
-        bagPrice={typeof manualBagPrice === 'number' ? manualBagPrice : bagPrice}
-        seasonalBagPrice={typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined}
-        monthlyBagPrice={typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined}
+        bagPrice={isHybrid ? (typeof manualBagPrice === 'number' ? manualBagPrice : bagPrice) : undefined}
+        seasonalBagPrice={isHybrid && typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined}
+        monthlyBagPrice={isHybrid && typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined}
         seasonalRates={rates}
         monthlyRates={monthlyRates ?? rates}
         rentMonths={rentMonths}
