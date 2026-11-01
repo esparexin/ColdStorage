@@ -23,7 +23,7 @@ ColdStorage/
 ├── .github/workflows/coldstorage-ci.yml  # CI verification workflow
 ├── docs/00-p0-lock.md               # Authoritative P0 Requirements & Architecture Lock
 ├── packages/
-│   ├── contracts/                   # Shared validation SSOT (@cold-storage/contracts, 34 modules)
+│   ├── contracts/                   # Shared validation SSOT (@cold-storage/contracts, 40 modules)
 │   │   └── src/                     # common, identifiers, bags, inventory, permissions,
 │   │                                # settings, user, auth, backup, rent, groups, ... + index.ts
 │   ├── backend/                     # Backend API service (@cold-storage/backend, 19 routers)
@@ -32,9 +32,9 @@ ColdStorage/
 │   │       ├── utils/crypto.ts      # Native crypto password hashing & JWT utilities
 │   │       ├── modules/*/           # users, auth, grn, delivery, rent, backup, ...
 │   │       ├── middleware/          # JWT authentication, RBAC guard, facility scope guard
-│   │       ├── routes/              # 19 mounted routers (auth..group, see wiring matrix)
+│   │       ├── routes/              # 19 mounted routers (auth..internal-movement, see wiring matrix)
 │   │       └── app.ts               # Express application
-│   └── frontend/                    # Next.js UI (@cold-storage/frontend, 14 routes: / + 13 features incl. /groups)
+│   └── frontend/                    # Next.js UI (@cold-storage/frontend, 16 routes: / + 15 features incl. /groups, /grns/merge)
 ├── scripts/
 │   └── hygiene-audit.sh             # Repository hygiene and governance verification gate
 ├── eslint.config.mjs                # ESLint configuration

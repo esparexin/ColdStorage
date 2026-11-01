@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  deriveHybridRateVisibility, isHybridBagCategory, type DeliveryChallan, type DeliverySummary, type Grn, type GrnInventorySummary, type OutwardBagCategory,
+  deriveHybridRateVisibility, isHybridBagCategory, toExcludedPeriodKeys, type DeliveryChallan, type DeliverySummary, type Grn, type GrnInventorySummary, type OutwardBagCategory,
 } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { useRentGate } from '@/hooks/useRentGate';
@@ -76,7 +76,7 @@ export function useCreateDeliveryForm(
       const isHybridGrn = matched?.bagType === 'Hybrid' || isHybridBagCategory(matched?.bagType);
       const grnPrice = matched?.bagPrice ?? '';
       setBagCategory(isHybridGrn ? 'Hybrid' : 'S/B');
-      setManualBagPrice(grnPrice); setSeasonalBagPrice(grnPrice); setMonthlyBagPrice(grnPrice);
+      setManualBagPrice(isHybridGrn ? grnPrice : ''); setSeasonalBagPrice(isHybridGrn ? grnPrice : ''); setMonthlyBagPrice(isHybridGrn ? grnPrice : '');
       if (typeof matched?.hamaliRate === 'number') setHamaliRate(matched.hamaliRate);
 
       const commodityId = matched?.commodityId;
@@ -98,9 +98,9 @@ export function useCreateDeliveryForm(
           if (matched?.hamaliRate == null && typeof rData.hamaliRate === 'number') setHamaliRate(rData.hamaliRate);
           const s = Array.isArray(rData.items) ? rData.items.find((r) => r.rentType === 'Seasonal' && r.isActive !== false) : null;
           const m = Array.isArray(rData.items) ? rData.items.find((r) => r.rentType === 'Monthly' && r.isActive !== false) : null;
-          if (s) { setSeasonalCommodityRates({ small: s.smallRate, big: s.bigRate }); if (grnPrice === '') setSeasonalBagPrice(s.smallRate); }
-          if (m) { setMonthlyCommodityRates({ small: m.smallRate, big: m.bigRate }); if (grnPrice === '') setMonthlyBagPrice(m.smallRate); }
-          else if (rData.rate) { setMonthlyCommodityRates({ small: rData.rate.smallRate, big: rData.rate.bigRate }); if (grnPrice === '') setMonthlyBagPrice(rData.rate.smallRate); }
+          if (s) { setSeasonalCommodityRates({ small: s.smallRate, big: s.bigRate }); if (isHybridGrn && grnPrice === '') setSeasonalBagPrice(s.smallRate); }
+          if (m) { setMonthlyCommodityRates({ small: m.smallRate, big: m.bigRate }); if (isHybridGrn && grnPrice === '') setMonthlyBagPrice(m.smallRate); }
+          else if (rData.rate) { setMonthlyCommodityRates({ small: rData.rate.smallRate, big: rData.rate.bigRate }); if (isHybridGrn && grnPrice === '') setMonthlyBagPrice(rData.rate.smallRate); }
         }
       } catch {
         setModalError('Failed to load GRN stock summary');
@@ -132,9 +132,8 @@ export function useCreateDeliveryForm(
   const hybridQty = typeof withdrawal.quantity === 'number' ? withdrawal.quantity : 0;
   const totalWithdrawingBags = dualSection.isDualSection ? dualSection.totalWithdrawingBags : (isHybrid ? hybridQty : smallBags + bigBags);
 
-  const rateVisibility = deriveHybridRateVisibility({
-    rentType: selectedGrn?.rentType ?? 'Seasonal', inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal,
-  });
+  const rateVisibility = deriveHybridRateVisibility({ rentType: selectedGrn?.rentType ?? 'Seasonal', inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal });
+  const excludePeriodKeys = useMemo(() => toExcludedPeriodKeys(rentGate.rentSummary?.extensions ?? []), [rentGate.rentSummary?.extensions]);
 
   const standardOutwardRent = computeOutwardRentCharge({
     rentType: selectedGrn?.rentType ?? 'Seasonal', bagCategory, smallBags: isHybrid ? 0 : smallBags, bigBags: isHybrid ? 0 : bigBags, quantity: isHybrid ? hybridQty : undefined,
@@ -144,13 +143,14 @@ export function useCreateDeliveryForm(
     rentMonths: billableRentMonths, inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal,
     smallBagPrice: selectedGrn?.smallBagPrice ?? (selectedGrn?.rentType === 'Monthly' ? monthlyCommodityRates?.small : seasonalCommodityRates?.small),
     bigBagPrice: selectedGrn?.bigBagPrice ?? (selectedGrn?.rentType === 'Monthly' ? monthlyCommodityRates?.big : seasonalCommodityRates?.big),
-    bagPrice: selectedGrn?.bagPrice, monthlySmallBagPrice: monthlyCommodityRates?.small, monthlyBigBagPrice: monthlyCommodityRates?.big,
+    bagPrice: selectedGrn?.bagPrice, monthlySmallBagPrice: monthlyCommodityRates?.small, monthlyBigBagPrice: monthlyCommodityRates?.big, excludePeriodKeys,
   });
   const outwardRent = dualSection.isDualSection ? dualSection.totalOutwardRent : standardOutwardRent;
 
   const handleBagCategoryChange = (cat: OutwardBagCategory) => {
     setBagCategory(cat); setWithdrawal((prev) => clearWithdrawalCounts(prev));
     clearFieldError('bags'); clearFieldError('smallBags'); clearFieldError('bigBags'); clearFieldError('bagPrice'); clearFieldError('seasonalBagPrice'); clearFieldError('monthlyBagPrice');
+    if (!isHybridBagCategory(cat)) { setManualBagPrice(''); setSeasonalBagPrice(''); setMonthlyBagPrice(''); }
   };
 
   const handleQuantityChange = (val: number | '') => { setWithdrawal((prev) => ({ ...prev, quantity: val })); clearFieldError('bags'); };

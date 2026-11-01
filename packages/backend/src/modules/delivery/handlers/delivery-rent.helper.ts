@@ -1,7 +1,7 @@
 import type mongoose from 'mongoose';
 import {
-  calculate3MAdditionalMonths, calculateMonthlyElapsedCycles, calculateRentAmount,
-  isHybridBagCategory, resolveOutwardRates, resolveSeasonalElapsedPeriods,
+  calculate3MAdditionalMonths, calculateMonthlyElapsedCycles, calculateOutwardSeasonalBreakdown,
+  calculateRentAmount, isHybridBagCategory, resolveOutwardRates, resolveSeasonalElapsedPeriods,
   type BagComposition, type RentType,
 } from '@cold-storage/contracts';
 import { CommodityRateModel } from '../../../database/models/commodity-rate.model.js';
@@ -96,20 +96,16 @@ export async function computeExpectedDeliveryRent(
     }
 
     if (grn.rentType === 'Seasonal') {
-      const elapsedPeriods = resolveSeasonalElapsedPeriods(grn.date, deliveryDate);
-      let totalSeasonalRent = 0;
-      for (const p of elapsedPeriods) {
-        if (params.excludePeriodKeys?.includes(p.key)) continue;
-        const periodRate = p.period === 'SEASON' ? sRate : mRate;
-        totalSeasonalRent += calculateRentAmount({
-          rentType: p.period === 'SEASON' ? 'Seasonal' : 'Monthly',
-          bags: withdrawnTotal,
-          bagCategory: params.bagCategory,
-          bagPrice: periodRate,
-          rentMonths: 1,
-        });
-      }
-      return { expectedRentCharge: totalSeasonalRent, effectiveRates: { small: sRate, big: sRate } };
+      const breakdown = calculateOutwardSeasonalBreakdown({
+        inwardDate: grn.date,
+        deliveryDate,
+        smallBags: withdrawnTotal,
+        bigBags: 0,
+        seasonalRates: { small: sRate, big: sRate },
+        monthlyRates: { small: mRate, big: mRate },
+        excludePeriodKeys: params.excludePeriodKeys ?? undefined,
+      });
+      return { expectedRentCharge: breakdown.totalRent, effectiveRates: { small: sRate, big: sRate } };
     }
     const billableMonths = calculateMonthlyElapsedCycles(grn.date, deliveryDate);
     const expectedRentCharge = calculateRentAmount({
@@ -192,25 +188,17 @@ export async function computeExpectedDeliveryRent(
       return { expectedRentCharge: baseRent + extraRent, effectiveRates: seasonalRates };
     }
 
-    const elapsedPeriods = resolveSeasonalElapsedPeriods(grn.date, deliveryDate);
-    let totalSeasonalRent = 0;
-    for (const p of elapsedPeriods) {
-      if (params.excludePeriodKeys?.includes(p.key)) continue;
-      const rates = p.period === 'SEASON' ? seasonalRates : monthlyRates;
-      const periodRent = calculateRentAmount({
-        rentType: p.period === 'SEASON' ? 'Seasonal' : 'Monthly',
-        bags: withdrawnTotal,
-        bagType: 'S+B',
-        smallBags: withdrawal.smallBags,
-        bigBags: withdrawal.bigBags,
-        smallBagPrice: rates.small,
-        bigBagPrice: rates.big,
-        rentMonths: 1,
-      });
-      totalSeasonalRent += periodRent;
-    }
+    const breakdown = calculateOutwardSeasonalBreakdown({
+      inwardDate: grn.date,
+      deliveryDate,
+      smallBags: withdrawal.smallBags,
+      bigBags: withdrawal.bigBags,
+      seasonalRates,
+      monthlyRates,
+      excludePeriodKeys: params.excludePeriodKeys ?? undefined,
+    });
 
-    return { expectedRentCharge: totalSeasonalRent, effectiveRates: seasonalRates };
+    return { expectedRentCharge: breakdown.totalRent, effectiveRates: seasonalRates };
   }
 
   const hasAgreedRates = grn.smallBagPrice != null || grn.bigBagPrice != null || grn.bagPrice != null;

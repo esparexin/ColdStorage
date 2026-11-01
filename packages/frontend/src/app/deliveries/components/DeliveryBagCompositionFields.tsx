@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   isHybridBagCategory,
   resolveOutwardRates,
+  toExcludedPeriodKeys,
   type BagType,
   type GrnInventorySummary,
   type OutwardBagCategory,
@@ -74,6 +75,7 @@ export function DeliveryBagCompositionFields({
   outwardRent = 0,
   hamaliRate,
   fieldErrors = {},
+  rentSummary,
 }: DeliveryBagCompositionFieldsProps) {
   const { bags: bagsError, smallBags: smallError, bigBags: bigError } = fieldErrors;
   const availableTotal = summary.availableSmallBags + summary.availableBigBags;
@@ -96,6 +98,10 @@ export function DeliveryBagCompositionFields({
     : Math.min(summary.availableBigBags, Math.max(0, availableTotal - smallQty));
 
   const rates = resolveOutwardRates(rentType, { smallBagPrice, bigBagPrice, bagPrice });
+  const excludePeriodKeys = useMemo(
+    () => toExcludedPeriodKeys(rentSummary?.extensions ?? []),
+    [rentSummary?.extensions],
+  );
 
   const handleSmallChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.trim();
@@ -207,9 +213,9 @@ export function DeliveryBagCompositionFields({
         bigBags={isHybrid ? 0 : bigQty}
         bagType={isHybrid ? 'Hybrid' : bagType}
         bagCategory={bagCategory}
-        bagPrice={typeof manualBagPrice === 'number' ? manualBagPrice : bagPrice}
-        seasonalBagPrice={typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined}
-        monthlyBagPrice={typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined}
+        bagPrice={isHybrid ? (typeof manualBagPrice === 'number' ? manualBagPrice : bagPrice) : undefined}
+        seasonalBagPrice={isHybrid && typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined}
+        monthlyBagPrice={isHybrid && typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined}
         seasonalRates={rates}
         monthlyRates={monthlyRates ?? rates}
         rentMonths={rentMonths}
@@ -217,6 +223,7 @@ export function DeliveryBagCompositionFields({
         remainingStock={remainingStock}
         totalStock={availableTotal}
         hamaliRate={hamaliRate}
+        excludePeriodKeys={excludePeriodKeys}
       />
     </>
   );

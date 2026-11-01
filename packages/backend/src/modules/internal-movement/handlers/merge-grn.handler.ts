@@ -107,14 +107,13 @@ export async function mergeGrn(
           smallBags: s.smallBags as number | null, bigBags: s.bigBags as number | null,
         }),
       );
-      const newIsCompositionVerified = explicitConfirmation ? true : targetWasVerified && allSourcesVerified;
+      const targetConfirmed = (input.targetSmallBags != null && input.targetBigBags != null) ||
+        isHybridBagCategory(input.targetBagCategory) || input.targetBagType === 'Hybrid';
+      const newIsCompositionVerified = explicitConfirmation ? true : (targetWasVerified || targetConfirmed) && allSourcesVerified;
 
       // Source GRN pending rent remains as separate pending bills and does not reflect on target GRN.
       // Only explicit manual additionalRentAmount overrides add to the target GRN obligation.
-      finalCarriedRent =
-        input.additionalRentAmount != null && input.additionalRentAmount > 0
-          ? input.additionalRentAmount
-          : 0;
+      finalCarriedRent = input.additionalRentAmount != null && input.additionalRentAmount > 0 ? input.additionalRentAmount : 0;
 
       const repackHamali = await resolveMergeRepackHamali({
         commodityId: targetGrn.commodityId,
@@ -128,8 +127,8 @@ export async function mergeGrn(
       repackHamaliCharge = repackHamali.repackHamaliCharge;
 
       const newBags = targetGrn.bags + actualMovedBags;
-      const baseTSmall = targetWasVerified ? targetGrn.smallBags : targetGrn.bags;
-      const baseTBig = targetWasVerified ? targetGrn.bigBags : 0;
+      const baseTSmall = input.targetSmallBags != null ? input.targetSmallBags : (targetWasVerified ? targetGrn.smallBags : targetGrn.bags);
+      const baseTBig = input.targetBigBags != null ? input.targetBigBags : (targetWasVerified ? targetGrn.bigBags : 0);
       const newSmall = baseTSmall + totalMovedSmall;
       const newBig = baseTBig + totalMovedBig;
       const newRentAmount = Number((targetGrn.rentAmount + finalCarriedRent).toFixed(2));

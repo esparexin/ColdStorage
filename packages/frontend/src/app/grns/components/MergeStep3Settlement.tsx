@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { DollarSign, ShieldCheck } from 'lucide-react';
 import {
+  calculateHamaliAmount,
   seasonYearForInwardDate,
   type Commodity,
   type Grn,
@@ -19,6 +20,7 @@ import styles from './InternalMovementModal.module.css';
 export interface MergeStep3SettlementProps {
   totalSourcePendingRent: number;
   targetGrn: Grn;
+  targetConfirmation?: BagConfirmationValue;
   selectedSources: Grn[];
   sourceConfirmations: Record<string, BagConfirmationValue>;
   sourceRentSummaries?: Record<string, RentSummaryDto>;
@@ -33,6 +35,7 @@ export interface MergeStep3SettlementProps {
 export function MergeStep3Settlement({
   totalSourcePendingRent,
   targetGrn,
+  targetConfirmation,
   selectedSources,
   sourceConfirmations,
   sourceRentSummaries,
@@ -85,8 +88,80 @@ export function MergeStep3Settlement({
         </div>
       </div>
 
-      {/* Outward Rent Calculation Breakdown for Each Source GRN */}
+      {/* Outward Rent Calculation Breakdown for Each Participating GRN Profile */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+        {/* Surviving Target GRN Profile */}
+        {(() => {
+          const targetCommodity = commodities?.find((c) => c.id === targetGrn.commodityId);
+          const tSummary = sourceRentSummaries?.[targetGrn.id];
+          const tCalc = calculateMergeSourceRentSummary({
+            source: targetGrn,
+            confirmation: targetConfirmation,
+            movementDate,
+            commodityHamaliRate,
+            summary: tSummary,
+            commodity: targetCommodity,
+          });
+          const tBags = tCalc.totalBags;
+          const tHamali = calculateHamaliAmount(tBags, commodityHamaliRate);
+          const tDueNow = tHamali;
+
+          return (
+            <div
+              className={styles.compactCard}
+              style={{
+                background: 'var(--color-surface-2)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)',
+                padding: 'var(--space-2)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-2)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>
+                    Target GRN #{targetGrn.grnNumber} (Surviving Lot)
+                  </span>
+                  {targetGrn.customerName && (
+                    <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
+                      — {targetGrn.customerName}
+                    </span>
+                  )}
+                  <Badge variant="primary">Active Subscription</Badge>
+                  <Badge variant="neutral">Season {targetSeason}</Badge>
+                </div>
+                <Badge variant={tDueNow > 0 ? 'warning' : 'primary'}>
+                  {tDueNow > 0 ? `₹${tDueNow.toLocaleString('en-IN')} Due (Hamali)` : 'Active (Preserved)'}
+                </Badge>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', background: 'var(--color-surface-1)', padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Current Season ({targetSeason}) Storage Rent:</span>
+                  <span style={{ fontWeight: 'var(--font-semibold)' }}>
+                    ₹{tCalc.totalRent.toLocaleString('en-IN')} <span style={{ color: 'var(--color-primary-text)' }}>(Preserved — Continues Until Outward Delivery)</span>
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Previous Monthly Subscriptions:</span>
+                  <span>₹0 (None used)</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Hamali Charge ({tBags} bags @ ₹{commodityHamaliRate}/bag):</span>
+                  <strong style={{ color: tHamali > 0 ? 'var(--color-primary-text)' : 'inherit' }}>₹{tHamali.toLocaleString('en-IN')}</strong>
+                </div>
+                <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: '4px', marginTop: '2px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'var(--font-bold)' }}>
+                  <span>Target Profile Due Now:</span>
+                  <span>₹{tDueNow.toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Source Closing GRN Profiles */}
         {selectedSources.map((source) => {
           const conf = sourceConfirmations[source.id];
           const summary = sourceRentSummaries?.[source.id];
@@ -102,8 +177,9 @@ export function MergeStep3Settlement({
             commodity,
           });
 
-          const isSettled = source.rentPaymentStatus === 'Settled' || (summary && summary.remainingBalance === 0);
-          const pendingDues = summary?.remainingBalance ?? source.rentRemainingBalance ?? 0;
+          const paid = summary?.totalPaid ?? 0;
+          const pendingDues = Math.max(0, rentCalc.totalAmountToPay - paid);
+          const isSettled = rentCalc.totalAmountToPay === 0 || (paid >= rentCalc.totalAmountToPay && rentCalc.totalAmountToPay > 0);
 
           return (
             <div
@@ -143,12 +219,14 @@ export function MergeStep3Settlement({
                 smallBags={rentCalc.smallBags}
                 bigBags={rentCalc.bigBags}
                 bagType={rentCalc.isHybrid ? 'Hybrid' : 'S/B'}
-                bagPrice={typeof conf?.bagPrice === 'number' && conf.bagPrice > 0 ? conf.bagPrice : source.bagPrice}
-                seasonalBagPrice={typeof conf?.seasonalBagPrice === 'number' && conf.seasonalBagPrice > 0 ? conf.seasonalBagPrice : undefined}
-                monthlyBagPrice={typeof conf?.monthlyBagPrice === 'number' && conf.monthlyBagPrice > 0 ? conf.monthlyBagPrice : undefined}
+                bagPrice={rentCalc.isHybrid ? (typeof conf?.bagPrice === 'number' && conf.bagPrice > 0 ? conf.bagPrice : source.bagPrice) : undefined}
+                seasonalBagPrice={rentCalc.isHybrid && typeof conf?.seasonalBagPrice === 'number' && conf.seasonalBagPrice > 0 ? conf.seasonalBagPrice : undefined}
+                monthlyBagPrice={rentCalc.isHybrid && typeof conf?.monthlyBagPrice === 'number' && conf.monthlyBagPrice > 0 ? conf.monthlyBagPrice : undefined}
                 seasonalRates={seasonalRates}
                 monthlyRates={monthlyRates}
                 totalRent={rentCalc.totalRent}
+                hamaliRate={commodityHamaliRate}
+                excludePeriodKeys={rentCalc.excludePeriodKeys}
                 grnNumber={source.grnNumber}
               />
             </div>

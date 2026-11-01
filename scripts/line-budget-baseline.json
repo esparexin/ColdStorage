@@ -1,7 +1,10 @@
 {
-  "packages/frontend/src/app/grns/components/__tests__/mergeRentAssessment.helper.test.ts": 530,
-  "packages/frontend/src/app/rent/hooks/__tests__/rentFilter.helper.test.ts": 310,
   "packages/backend/src/__tests__/e2e-rent-visibility-lifecycle.test.ts": 351,
   "packages/backend/src/__tests__/rent-generated-date-and-carryforward.test.ts": 255,
-  "packages/contracts/src/__tests__/rent.contracts.test.ts": 323
+  "packages/contracts/src/__tests__/rent.contracts.test.ts": 323,
+  "packages/contracts/src/pricing.ts": 279,
+  "packages/contracts/src/seasonal-periods.ts": 283,
+  "packages/frontend/src/app/deliveries/components/OutwardRentBreakdown.tsx": 252,
+  "packages/frontend/src/app/grns/components/__tests__/mergeRentAssessment.helper.test.ts": 530,
+  "packages/frontend/src/app/rent/hooks/__tests__/rentFilter.helper.test.ts": 310
 }

@@ -28,10 +28,24 @@ export function validateStep2Proceed(params: Step2ValidationParams): string | nu
 export interface Step3ValidationParams {
   selectedSources: Grn[];
   sourceConfirmations: Record<string, BagConfirmationValue>;
+  targetGrn?: Grn;
+  targetConfirmation?: BagConfirmationValue;
+  targetCurrentRemaining?: number;
 }
 
 export function validateStep3Proceed(params: Step3ValidationParams): string | null {
-  const { selectedSources, sourceConfirmations } = params;
+  const { selectedSources, sourceConfirmations, targetGrn, targetConfirmation, targetCurrentRemaining } = params;
+  if (targetGrn && !targetGrn.isCompositionVerified && targetConfirmation && targetCurrentRemaining !== undefined) {
+    if (!isHybridBagCategory(targetConfirmation.category)) {
+      const tSm = typeof targetConfirmation.smallBags === 'number' ? targetConfirmation.smallBags : 0;
+      const tBg = typeof targetConfirmation.bigBags === 'number' ? targetConfirmation.bigBags : 0;
+      if (tSm + tBg !== targetCurrentRemaining) {
+        return `Target GRN '${targetGrn.grnNumber}': Confirmed Small (${tSm}) and Big (${tBg}) bags must equal ${targetCurrentRemaining} bags.`;
+      }
+    } else if ((typeof targetConfirmation.quantity === 'number' ? targetConfirmation.quantity : 0) !== targetCurrentRemaining) {
+      return `Target GRN '${targetGrn.grnNumber}': Hybrid bags must match ${targetCurrentRemaining} bags.`;
+    }
+  }
   for (const s of selectedSources) {
     const conf = sourceConfirmations[s.id] ?? deriveAutoInheritedBagComposition([s], s.closingBags ?? s.bags);
     const bags = s.closingBags ?? s.bags;

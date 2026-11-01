@@ -1,4 +1,5 @@
 import {
+  calculateHamaliAmount,
   isHybridBagCategory,
   resolveSeasonalElapsedPeriods,
   seasonYearForInwardDate,
@@ -31,6 +32,7 @@ export interface MergeSourceRentCalculation {
   totalAmountToPay: number;
   isConfirmed: boolean;
   bagCountLabel: string;
+  excludePeriodKeys?: string[];
 }
 
 export function calculateMergeSourceRentSummary(params: {
@@ -142,10 +144,8 @@ export function calculateMergeSourceRentSummary(params: {
     totalRent = calculatedRent > 0 ? calculatedRent : (historicalObligation > 0 ? historicalObligation : 0);
   }
 
-  // Repacking Hamali is never calculated or applied in Step 2; it applies exclusively
-  // in Step 4 once physical repacking and bag counts are explicitly confirmed.
-  const hamaliAmount = 0;
-  const totalAmountToPay = totalRent;
+  const hamaliAmount = calculateHamaliAmount(sourceBags, commodityHamaliRate);
+  const totalAmountToPay = totalRent + hamaliAmount;
 
   let bagCountLabel = `${sourceBags} Bags`;
   if (!isHybrid) {
@@ -173,6 +173,7 @@ export function calculateMergeSourceRentSummary(params: {
     totalAmountToPay,
     isConfirmed,
     bagCountLabel,
+    excludePeriodKeys,
   };
 }
 

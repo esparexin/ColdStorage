@@ -34,6 +34,9 @@ export interface UseInternalMovementMergeTabProps {
     sourcePaymentAmount?: number, sourcePaymentMode?: PaymentMode, sourceBagCategory?: OutwardBagCategory,
     sourceQuantity?: number, sourceBagPrice?: number, sourceSeasonalBagPrice?: number, sourceMonthlyBagPrice?: number,
     isRepackSelected?: boolean, repackedBagCount?: number, destinationChamber?: string,
+    targetSmallBags?: number, targetBigBags?: number, targetBagCategory?: OutwardBagCategory,
+    targetQuantity?: number, targetBagPrice?: number, targetSeasonalBagPrice?: number,
+    targetMonthlyBagPrice?: number,
   ) => Promise<void>;
 }
 
@@ -47,7 +50,11 @@ export function useInternalMovementMergeTab({
   const [movementDate] = useState(new Date().toISOString().slice(0, 10));
   const [reason, setReason] = useState(''); const [remarks, setRemarks] = useState('');
   const [confirmation, setConfirmation] = useState<BagConfirmationValue>(DEFAULT_BAG_CONFIRMATION);
+  const [targetConfirmation, setTargetConfirmation] = useState<BagConfirmationValue>(DEFAULT_BAG_CONFIRMATION);
   const [sourceConfirmations, setSourceConfirmations] = useState<Record<string, BagConfirmationValue>>({});
+  const updateTargetConfirmation = (patch: Partial<BagConfirmationValue>) => {
+    setTargetConfirmation((prev) => ({ ...prev, ...patch }));
+  };
   const updateSourceConfirmation = (grnId: string, patch: Partial<BagConfirmationValue>) => {
     setSourceConfirmations((prev) => ({ ...prev, [grnId]: { ...(prev[grnId] ?? DEFAULT_BAG_CONFIRMATION), ...patch } }));
   };
@@ -95,16 +102,17 @@ export function useInternalMovementMergeTab({
 
   useEffect(() => {
     const effectiveFacilityId = facilityId ?? currentGrn.facilityId;
-    if (!effectiveFacilityId || selectedSources.length === 0) return;
-    for (const source of selectedSources) {
-      if (!sourceRentSummaries[source.id]) {
-        requestWithAuth(`/api/facilities/${encodeURIComponent(effectiveFacilityId)}/rent/grn/${encodeURIComponent(source.id)}`)
+    if (!effectiveFacilityId) return;
+    const allParticipating = [targetGrn, ...selectedSources];
+    for (const grn of allParticipating) {
+      if (grn?.id && !sourceRentSummaries[grn.id]) {
+        requestWithAuth(`/api/facilities/${encodeURIComponent(effectiveFacilityId)}/rent/grn/${encodeURIComponent(grn.id)}`)
           .then((res) => (res.ok ? res.json() : null))
-          .then((dto: RentSummaryDto | null) => { if (dto) setSourceRentSummaries((prev) => ({ ...prev, [source.id]: dto })); })
+          .then((dto: RentSummaryDto | null) => { if (dto) setSourceRentSummaries((prev) => ({ ...prev, [grn.id]: dto })); })
           .catch(() => {});
       }
     }
-  }, [facilityId, currentGrn.facilityId, selectedSources, sourceRentSummaries]);
+  }, [facilityId, currentGrn.facilityId, targetGrn, selectedSources, sourceRentSummaries]);
 
   const targetCommodity = useMemo(() => commodities?.find((c) => c.id === targetGrn.commodityId), [commodities, targetGrn.commodityId]);
   const commodityHamaliRate = useMemo(() => {
@@ -148,6 +156,7 @@ export function useInternalMovementMergeTab({
     const initialConfirmations: Record<string, BagConfirmationValue> = {};
     for (const s of selectedSources) initialConfirmations[s.id] = deriveAutoInheritedBagComposition([s], s.closingBags ?? s.bags);
     setSourceConfirmations(initialConfirmations);
+    setTargetConfirmation(deriveAutoInheritedBagComposition([targetGrn], targetCurrentRemaining));
     const derived = initialConfirmations[selectedSources[0]?.id] ?? deriveAutoInheritedBagComposition(selectedSources, totalSourceBags);
     setConfirmation(derived);
     repack.applyDerivedRepackDefaults(derived, totalSourceBags);
@@ -156,7 +165,7 @@ export function useInternalMovementMergeTab({
 
   const handleProceedToStep3 = () => {
     setValidationError(null);
-    const err = validateStep3Proceed({ selectedSources, sourceConfirmations });
+    const err = validateStep3Proceed({ selectedSources, sourceConfirmations, targetGrn, targetConfirmation, targetCurrentRemaining });
     if (err) return setValidationError(err);
     setStep(3);
   };
@@ -171,20 +180,9 @@ export function useInternalMovementMergeTab({
     setValidationError(null);
     const effectiveChamber = destinationChamber || targetGrn.chamber || '';
     const err = validateMergeSubmit({
-      selectedSourceIds,
-      reason,
-      isTargetLoanHold,
-      targetGrnNumber: targetGrn.grnNumber,
-      destinationChamber: effectiveChamber,
-      repackMode,
-      repackBagType,
-      isRepackFilled,
-      repackSmall,
-      repackBig,
-      repackQuantity,
-      repackBagPrice,
-      repackSeasonalBagPrice,
-      repackMonthlyBagPrice,
+      selectedSourceIds, reason, isTargetLoanHold, targetGrnNumber: targetGrn.grnNumber,
+      destinationChamber: effectiveChamber, repackMode, repackBagType, isRepackFilled,
+      repackSmall, repackBig, repackQuantity, repackBagPrice, repackSeasonalBagPrice, repackMonthlyBagPrice,
     });
     if (err) return setValidationError(err);
 
@@ -192,19 +190,27 @@ export function useInternalMovementMergeTab({
     const { effSmall, effBig, effQuantity, effBagPrice, effSeasonalPrice, effMonthlyPrice, effRepackedBagCount, resolvedCategory } =
       buildMergeExecutionPayload({ repackMode, repackBagType, repackSmall, repackBig, repackQuantity, repackBagPrice, repackSeasonalBagPrice, repackMonthlyBagPrice, isRepackFilled, isRepackRequired, movedSmall, movedBig, totalSourceBags, primaryConf });
 
+    const tSmall = !targetGrn.isCompositionVerified && targetConfirmation.category !== 'Hybrid' && typeof targetConfirmation.smallBags === 'number' ? targetConfirmation.smallBags : undefined;
+    const tBig = !targetGrn.isCompositionVerified && targetConfirmation.category !== 'Hybrid' && typeof targetConfirmation.bigBags === 'number' ? targetConfirmation.bigBags : undefined;
+    const tCat = !targetGrn.isCompositionVerified ? targetConfirmation.category : undefined;
+    const tQty = !targetGrn.isCompositionVerified && targetConfirmation.category === 'Hybrid' ? (typeof targetConfirmation.quantity === 'number' ? targetConfirmation.quantity : targetCurrentRemaining) : undefined;
+    const tPrice = !targetGrn.isCompositionVerified && typeof targetConfirmation.bagPrice === 'number' ? targetConfirmation.bagPrice : undefined;
+    const tSeasonalPrice = !targetGrn.isCompositionVerified && typeof targetConfirmation.seasonalBagPrice === 'number' ? targetConfirmation.seasonalBagPrice : undefined;
+    const tMonthlyPrice = !targetGrn.isCompositionVerified && typeof targetConfirmation.monthlyBagPrice === 'number' ? targetConfirmation.monthlyBagPrice : undefined;
+
     await onExecuteMerge(
       targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0, effSmall, effBig,
       typeof referenceWeight === 'number' && referenceWeight > 0 ? referenceWeight : undefined,
-      undefined, undefined,
-      resolvedCategory,
+      undefined, undefined, resolvedCategory,
       effQuantity, effBagPrice, effSeasonalPrice, effMonthlyPrice, repackMode, effRepackedBagCount,
-      effectiveChamber,
+      effectiveChamber, tSmall, tBig, tCat, tQty, tPrice, tSeasonalPrice, tMonthlyPrice,
     );
   };
 
   return {
     step, setStep, targetGrnId, setTargetGrnId, selectedSourceIds, setSelectedSourceIds,
     movementDate, reason, setReason, remarks, setRemarks, confirmation, setConfirmation,
+    targetConfirmation, setTargetConfirmation, updateTargetConfirmation,
     sourceConfirmations, setSourceConfirmations, updateSourceConfirmation, sourceRentSummaries,
     settlementDecision, setSettlementDecision, settleAmount, setSettleAmount, paymentMode, setPaymentMode,
     ...repack, validationError, openGrns, targetGrn, targetSeason,

@@ -1,5 +1,7 @@
 # GRN Storage Occupancy, Delivery, & Rent Settlement Audit Baseline
 
+> **Supersession notice (2026-10-31):** Historical snapshot of Phase 0. Recommendations to persist stored movement snapshots (e.g., `openingBags`, `closingBags`) on `DeliveryChallan` were permanently superseded by Architecture Boundary Rule 20 (zero stored balance snapshots; balances are strictly ledger-derived from immutable inventory transactions).
+
 ## 1. Executive Summary
 
 This document establishes the audit baseline for Phase 0 of the dedicated feature branch `feat/grn-storage-occupancy-rent-settlement`.
