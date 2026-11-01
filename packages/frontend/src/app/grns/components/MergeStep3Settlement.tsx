@@ -104,8 +104,7 @@ export function MergeStep3Settlement({
           });
           const tBags = tCalc.totalBags;
           const tHamali = calculateHamaliAmount(tBags, commodityHamaliRate);
-          const tPastMonthly = 0;
-          const tDueNow = tHamali + tPastMonthly;
+          const tDueNow = tHamali;
 
           return (
             <div
@@ -147,7 +146,7 @@ export function MergeStep3Settlement({
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ color: 'var(--color-text-secondary)' }}>Previous Monthly Subscriptions:</span>
-                  <span>{tPastMonthly > 0 ? `₹${tPastMonthly.toLocaleString('en-IN')}` : '₹0 (None used)'}</span>
+                  <span>₹0 (None used)</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ color: 'var(--color-text-secondary)' }}>Hamali Charge ({tBags} bags @ ₹{commodityHamaliRate}/bag):</span>
