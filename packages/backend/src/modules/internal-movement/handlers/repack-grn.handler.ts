@@ -108,7 +108,7 @@ export async function executeRepackGrn(
 
         const movementId = `mov-${randomUUID()}`;
         const movementDate = new Date();
-        const destinationChamber = input.destinationChamber.trim();
+        const destinationChamber = input.destinationChamber?.trim() || grn.chamber;
         if (!destinationChamber) {
           throw new Error('Destination chamber is required for repacking putaway');
         }

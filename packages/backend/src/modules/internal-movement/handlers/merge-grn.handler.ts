@@ -109,7 +109,7 @@ export async function mergeGrn(
       );
       const targetConfirmed = (input.targetSmallBags != null && input.targetBigBags != null) ||
         isHybridBagCategory(input.targetBagCategory) || input.targetBagType === 'Hybrid';
-      const newIsCompositionVerified = (targetWasVerified || targetConfirmed) && (explicitConfirmation || allSourcesVerified);
+      const newIsCompositionVerified = explicitConfirmation ? true : (targetWasVerified || targetConfirmed) && allSourcesVerified;
 
       // Source GRN pending rent remains as separate pending bills and does not reflect on target GRN.
       // Only explicit manual additionalRentAmount overrides add to the target GRN obligation.
