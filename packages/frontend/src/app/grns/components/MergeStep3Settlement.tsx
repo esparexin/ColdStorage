@@ -93,7 +93,6 @@ export function MergeStep3Settlement({
         {/* Surviving Target GRN Profile */}
         {(() => {
           const targetCommodity = commodities?.find((c) => c.id === targetGrn.commodityId);
-          const { seasonalRates: tSeasonal, monthlyRates: tMonthly } = resolveTransferRates(targetGrn, targetCommodity);
           const tSummary = sourceRentSummaries?.[targetGrn.id];
           const tCalc = calculateMergeSourceRentSummary({
             source: targetGrn,
