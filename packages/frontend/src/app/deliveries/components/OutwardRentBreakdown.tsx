@@ -103,6 +103,7 @@ export function OutwardRentBreakdown({
             seasonalRates: resolved.effectiveSeasonalRates,
             monthlyRates: resolved.effectiveMonthlyRates,
             excludePeriodKeys,
+            hamaliRate,
           })
         : null,
     [
@@ -112,6 +113,7 @@ export function OutwardRentBreakdown({
       totalWithdrawing,
       resolved,
       excludePeriodKeys,
+      hamaliRate,
     ],
   );
 

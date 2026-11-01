@@ -1,15 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
-  buildInwardReceiptNumber,
-  calculateHamaliAmount,
-  getFinancialYearKey,
-  isBagCompositionVerified,
-  normalizeBagComposition,
-  rentMonthsForType,
-  type CreateGrnInput,
-  type Grn,
-  type GrnAcknowledgement,
+  buildInwardReceiptNumber, calculateHamaliAmount, getFinancialYearKey,
+  isBagCompositionVerified, normalizeBagComposition, rentMonthsForType,
+  type CreateGrnInput, type Grn, type GrnAcknowledgement,
 } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
@@ -112,11 +106,17 @@ export async function createGrn(
 
   const rentMonths = rentMonthsForType(input.rentType) ?? (input.rentMonths ?? null);
 
-  // Inward GRN does not calculate rent upfront: bag composition is unconfirmed at entry,
-  // and rent derivation occurs at Outward delivery / billing settlement time.
-  const finalRentAmount = input.rentAmount != null && input.rentAmount > 0 ? input.rentAmount : 0;
+  // Hamali is a one-time inward labour charge included in the initial Seasonal rate.
+  // For Seasonal and Seasonal_3M GRNs: store net storage rent (gross − hamaliAmount)
+  // so that subsequent renewals and outward breakdowns operate on the net figure.
+  // Monthly GRNs have no Hamali component — store the submitted amount as-is.
   const hamaliRate = resolveEffectiveHamaliRate(null, commodity);
   const hamaliAmount = calculateHamaliAmount(input.bags, hamaliRate);
+  const grossRentAmount = input.rentAmount != null && input.rentAmount > 0 ? input.rentAmount : 0;
+  const isSeasonalRent = input.rentType === 'Seasonal' || input.rentType === 'Seasonal_3M';
+  const finalRentAmount = isSeasonalRent && grossRentAmount > 0 && hamaliAmount > 0
+    ? Math.max(0, grossRentAmount - hamaliAmount)
+    : grossRentAmount;
 
   const id = `grn-${randomUUID()}`;
 

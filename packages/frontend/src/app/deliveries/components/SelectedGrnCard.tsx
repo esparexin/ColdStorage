@@ -42,16 +42,8 @@ export function SelectedGrnCard({
     parseMergedConsignmentBreakdown(grn.remarks, grn.bags, grn.customerName);
   const safeAddedBags = breakdown ? breakdown.totalMergedAddedBags : (parseMergedAddedBags(grn.remarks) ?? 0);
   const isMergedConsignment = safeAddedBags > 0;
-  const isDualSectionMerged = Boolean(
-    breakdown &&
-    breakdown.isMergedTarget &&
-    breakdown.genesisBags > 0 &&
-    breakdown.totalMergedAddedBags > 0,
-  );
-  const isAlreadyConfirmed = Boolean(
-    grn.isCompositionVerified === true
-  );
-  const hasTypeSelection = !isDualSectionMerged && !isAlreadyConfirmed && Boolean(onBagTypeChange || onBagCategoryChange);
+  const isAlreadyConfirmed = Boolean(grn.isCompositionVerified === true);
+  const hasTypeSelection = !isAlreadyConfirmed && Boolean(onBagTypeChange || onBagCategoryChange);
   const selectedBagCategory = bagCategory ?? (bagType ? (bagType === 'Hybrid' ? 'Hybrid' : 'S/B') : undefined);
   const isHybrid = isAlreadyConfirmed
     ? (grn.bagType === 'Hybrid' || isHybridBagCategory(grn.bagType))
@@ -65,15 +57,13 @@ export function SelectedGrnCard({
   const genesisInwardBags = breakdown
     ? breakdown.genesisBags
     : (isMergedConsignment && grn.bags > safeAddedBags ? grn.bags - safeAddedBags : grn.bags);
-  const displayBagType = isDualSectionMerged
-    ? `${genesisInwardBags} Unclassified + ${safeAddedBags} Confirmed`
-    : formatDisplayBagType({
-        bagType: grn.bagType,
-        isHybrid,
-        smallBags: grn.smallBags,
-        bigBags: grn.bigBags,
-        isCompositionVerified: grn.isCompositionVerified,
-      });
+  const displayBagType = formatDisplayBagType({
+    bagType: grn.bagType,
+    isHybrid,
+    smallBags: grn.smallBags,
+    bigBags: grn.bigBags,
+    isCompositionVerified: grn.isCompositionVerified,
+  });
 
   return (
     <div className={styles.card} id="selected-grn-summary-card">

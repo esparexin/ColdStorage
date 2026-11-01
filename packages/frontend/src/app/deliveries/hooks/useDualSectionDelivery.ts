@@ -40,6 +40,7 @@ function computePoolRent(params: {
     smallBagPrice: params.grn?.smallBagPrice ?? (params.rentType === 'Monthly' ? params.mRates?.small : params.sRates?.small),
     bigBagPrice: params.grn?.bigBagPrice ?? (params.rentType === 'Monthly' ? params.mRates?.big : params.sRates?.big),
     bagPrice: params.grn?.bagPrice,
+    hamaliRate: params.grn?.hamaliRate,
   });
 }
 
@@ -48,6 +49,7 @@ export function useDualSectionDelivery(params: UseDualSectionDeliveryParams) {
 
   const [priorDeliveries, setPriorDeliveries] = useState<DeliveryChallan[]>([]);
   const [loadingDeliveries, setLoadingDeliveries] = useState(false);
+  const [activeSection, setActiveSectionState] = useState<'A' | 'B'>('A');
 
   // Section A: Unclassified bags state (bagType starts unselected '')
   const [unclassifiedBagType, setUnclassifiedBagType] = useState<OperationalBagType | ''>('');
@@ -71,6 +73,7 @@ export function useDualSectionDelivery(params: UseDualSectionDeliveryParams) {
     setConfirmedSmall(''); setConfirmedBig(''); setConfirmedQty('');
     setConfirmedSeasonalPrice(selectedGrn?.smallBagPrice ?? seasonalCommodityRates?.small ?? '');
     setConfirmedMonthlyPrice(monthlyCommodityRates?.small ?? '');
+    setActiveSectionState('A');
   }, [selectedGrn?.id, seasonalCommodityRates, monthlyCommodityRates, selectedGrn?.smallBagPrice]);
 
   const fetchPriorDeliveries = useCallback(async () => {
@@ -94,12 +97,26 @@ export function useDualSectionDelivery(params: UseDualSectionDeliveryParams) {
 
   const pools = useMemo<MergedStockPools | null>(() => calculateRemainingMergedStockPools(breakdown, priorDeliveries), [breakdown, priorDeliveries]);
   const isDualSection = Boolean(pools && pools.initialUnclassified > 0 && pools.availableConfirmedTotal > 0);
+
+  // Auto-switch to Section B if Section A is already fully exhausted, or to A if B is exhausted
+  useEffect(() => {
+    if (pools) {
+      if (pools.availableUnclassified === 0 && pools.availableConfirmedTotal > 0) setActiveSectionState('B');
+      else if (pools.availableConfirmedTotal === 0 && pools.availableUnclassified > 0) setActiveSectionState('A');
+    }
+  }, [pools?.availableUnclassified, pools?.availableConfirmedTotal]);
+
+  const setActiveSection = useCallback((section: 'A' | 'B') => {
+    setActiveSectionState(section);
+    if (section === 'A') {
+      setConfirmedSmall(''); setConfirmedBig(''); setConfirmedQty('');
+    } else {
+      setUnclassifiedSmall(''); setUnclassifiedBig(''); setUnclassifiedQty(''); setUnclassifiedBagType('');
+    }
+  }, []);
+
   const rateVisibility = useMemo(
-    () => deriveHybridRateVisibility({
-      rentType: selectedGrn?.rentType,
-      inwardDate: selectedGrn?.date,
-      deliveryDate: createDate,
-    }),
+    () => deriveHybridRateVisibility({ rentType: selectedGrn?.rentType, inwardDate: selectedGrn?.date, deliveryDate: createDate }),
     [selectedGrn?.rentType, selectedGrn?.date, createDate],
   );
 
@@ -119,8 +136,6 @@ export function useDualSectionDelivery(params: UseDualSectionDeliveryParams) {
   const remainingConfirmedBig = Math.max(0, (pools?.availableConfirmedBig ?? 0) - cBigNum);
   const remainingConfirmedHybrid = Math.max(0, (pools?.availableConfirmedHybrid ?? 0) - cQtyNum);
 
-  const totalWithdrawingBags = effectiveUnclassifiedBags + effectiveConfirmedBags;
-  const overallRemainingStock = Math.max(0, (pools?.totalAvailable ?? 0) - totalWithdrawingBags);
   const rentType = selectedGrn?.rentType ?? 'Seasonal';
 
   const unclassifiedRent = useMemo(() => {
@@ -143,7 +158,13 @@ export function useDualSectionDelivery(params: UseDualSectionDeliveryParams) {
     });
   }, [effectiveConfirmedBags, pools, rentType, cSmallNum, cBigNum, cQtyNum, confirmedSeasonalPrice, confirmedMonthlyPrice, billableRentMonths, selectedGrn, createDate, seasonalCommodityRates, monthlyCommodityRates]);
 
-  const totalOutwardRent = Number((unclassifiedRent + confirmedRent).toFixed(2));
+  const totalWithdrawingBags = activeSection === 'A' ? effectiveUnclassifiedBags : effectiveConfirmedBags;
+  const totalOutwardRent = activeSection === 'A' ? unclassifiedRent : confirmedRent;
+  const activeSmallBags = activeSection === 'A' ? (isHybridSecA ? 0 : uSmallNum) : (isHybridSecB ? 0 : cSmallNum);
+  const activeBigBags = activeSection === 'A' ? (isHybridSecA ? 0 : uBigNum) : (isHybridSecB ? 0 : cBigNum);
+  const activeBagType: OperationalBagType = activeSection === 'A' ? (unclassifiedBagType || 'S/B') : (pools?.confirmedBagType ?? 'S/B');
+  const activeRemainingStock = activeSection === 'A' ? remainingUnclassifiedStock : (isHybridSecB ? remainingConfirmedHybrid : remainingConfirmedSmall + remainingConfirmedBig);
+  const activeAvailableStock = activeSection === 'A' ? (pools?.availableUnclassified ?? 0) : (pools?.availableConfirmedTotal ?? 0);
 
   const sectionAErrors: Record<string, string> = {};
   if (effectiveUnclassifiedBags > 0) {
@@ -164,40 +185,44 @@ export function useDualSectionDelivery(params: UseDualSectionDeliveryParams) {
   }
 
   const isDualSectionValid = Boolean(
-    totalWithdrawingBags > 0 && totalWithdrawingBags <= (pools?.totalAvailable ?? 0) &&
-    Object.keys(sectionAErrors).length === 0 && Object.keys(sectionBErrors).length === 0,
+    activeSection === 'A'
+      ? (effectiveUnclassifiedBags > 0 && effectiveUnclassifiedBags <= (pools?.availableUnclassified ?? 0) && Boolean(unclassifiedBagType) && Object.keys(sectionAErrors).length === 0)
+      : (effectiveConfirmedBags > 0 && effectiveConfirmedBags <= (pools?.availableConfirmedTotal ?? 0) && Object.keys(sectionBErrors).length === 0),
   );
 
   const buildAllocations = (): { unclassifiedDispatch?: UnclassifiedDispatchAllocation; confirmedDispatch?: ConfirmedDispatchAllocation } => {
-    let unclassifiedDispatch: UnclassifiedDispatchAllocation | undefined;
-    let confirmedDispatch: ConfirmedDispatchAllocation | undefined;
-    if (effectiveUnclassifiedBags > 0 && unclassifiedBagType) {
-      unclassifiedDispatch = {
-        bagType: unclassifiedBagType, quantity: effectiveUnclassifiedBags,
-        smallBags: isHybridSecA ? 0 : uSmallNum, bigBags: isHybridSecA ? 0 : uBigNum,
-        seasonalBagPrice: typeof unclassifiedSeasonalPrice === 'number' ? unclassifiedSeasonalPrice : undefined,
-        monthlyBagPrice: typeof unclassifiedMonthlyPrice === 'number' ? unclassifiedMonthlyPrice : undefined,
+    if (activeSection === 'A') {
+      if (effectiveUnclassifiedBags <= 0 || !unclassifiedBagType) return {};
+      return {
+        unclassifiedDispatch: {
+          bagType: unclassifiedBagType, quantity: effectiveUnclassifiedBags,
+          smallBags: isHybridSecA ? 0 : uSmallNum, bigBags: isHybridSecA ? 0 : uBigNum,
+          seasonalBagPrice: typeof unclassifiedSeasonalPrice === 'number' ? unclassifiedSeasonalPrice : undefined,
+          monthlyBagPrice: typeof unclassifiedMonthlyPrice === 'number' ? unclassifiedMonthlyPrice : undefined,
+        },
       };
     }
-    if (effectiveConfirmedBags > 0 && pools) {
-      confirmedDispatch = {
+    if (effectiveConfirmedBags <= 0 || !pools) return {};
+    return {
+      confirmedDispatch: {
         bagType: pools.confirmedBagType, quantity: effectiveConfirmedBags,
         smallBags: isHybridSecB ? 0 : cSmallNum, bigBags: isHybridSecB ? 0 : cBigNum,
         seasonalBagPrice: typeof confirmedSeasonalPrice === 'number' ? confirmedSeasonalPrice : undefined,
         monthlyBagPrice: typeof confirmedMonthlyPrice === 'number' ? confirmedMonthlyPrice : undefined,
-      };
-    }
-    return { unclassifiedDispatch, confirmedDispatch };
+      },
+    };
   };
 
   return {
-    isDualSection, pools, loadingDeliveries, unclassifiedBagType, setUnclassifiedBagType,
-    unclassifiedQty, setUnclassifiedQty, unclassifiedSmall, setUnclassifiedSmall, unclassifiedBig, setUnclassifiedBig,
+    isDualSection, pools, loadingDeliveries, activeSection, setActiveSection,
+    unclassifiedBagType, setUnclassifiedBagType, unclassifiedQty, setUnclassifiedQty,
+    unclassifiedSmall, setUnclassifiedSmall, unclassifiedBig, setUnclassifiedBig,
     unclassifiedSeasonalPrice, setUnclassifiedSeasonalPrice, unclassifiedMonthlyPrice, setUnclassifiedMonthlyPrice,
     unclassifiedRent, effectiveUnclassifiedBags, remainingUnclassifiedStock,
     confirmedSmall, setConfirmedSmall, confirmedBig, setConfirmedBig, confirmedQty, setConfirmedQty,
     confirmedSeasonalPrice, setConfirmedSeasonalPrice, confirmedMonthlyPrice, setConfirmedMonthlyPrice,
     confirmedRent, effectiveConfirmedBags, remainingConfirmedSmall, remainingConfirmedBig, remainingConfirmedHybrid,
-    totalWithdrawingBags, totalOutwardRent, overallRemainingStock, sectionAErrors, sectionBErrors, isDualSectionValid, buildAllocations, rateVisibility,
+    totalWithdrawingBags, totalOutwardRent, activeSmallBags, activeBigBags, activeBagType,
+    activeRemainingStock, activeAvailableStock, sectionAErrors, sectionBErrors, isDualSectionValid, buildAllocations, rateVisibility,
   };
 }

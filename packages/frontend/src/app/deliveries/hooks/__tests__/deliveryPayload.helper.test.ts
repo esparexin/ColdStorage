@@ -90,18 +90,12 @@ describe('buildDeliveryPayload', () => {
     });
   });
 
-  it('includes Hybrid unclassifiedDispatch and confirmedDispatch with monthly and seasonal rates', () => {
+  it('includes Section A unclassifiedDispatch independently', () => {
     const payload = buildDeliveryPayload({
       ...baseInput,
       unclassifiedDispatch: {
         bagType: 'Hybrid',
         quantity: 14,
-        seasonalBagPrice: 110,
-        monthlyBagPrice: 20,
-      },
-      confirmedDispatch: {
-        bagType: 'Hybrid',
-        quantity: 30,
         seasonalBagPrice: 110,
         monthlyBagPrice: 20,
       },
@@ -113,11 +107,26 @@ describe('buildDeliveryPayload', () => {
       seasonalBagPrice: 110,
       monthlyBagPrice: 20,
     });
+    expect(payload.confirmedDispatch).toBeUndefined();
+  });
+
+  it('includes Section B confirmedDispatch independently', () => {
+    const payload = buildDeliveryPayload({
+      ...baseInput,
+      confirmedDispatch: {
+        bagType: 'Hybrid',
+        quantity: 30,
+        seasonalBagPrice: 110,
+        monthlyBagPrice: 20,
+      },
+    });
+
     expect(payload.confirmedDispatch).toEqual({
       bagType: 'Hybrid',
       quantity: 30,
       seasonalBagPrice: 110,
       monthlyBagPrice: 20,
     });
+    expect(payload.unclassifiedDispatch).toBeUndefined();
   });
 });

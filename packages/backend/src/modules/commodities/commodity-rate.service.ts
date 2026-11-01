@@ -1,14 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import {
-  calculateRentAmount,
-  resolveControllerRentType,
-  type BagType,
-  type CommodityRate,
-  type RentType,
-  type UpsertCommodityRateInput,
+  calculateHamaliAmount, calculateRentAmount, resolveControllerRentType,
+  type BagType, type CommodityRate, type RentType, type UpsertCommodityRateInput,
 } from '@cold-storage/contracts';
 import { CommodityModel } from '../../database/models/commodity.model.js';
 import { CommodityRateModel, type CommodityRateDoc } from '../../database/models/commodity-rate.model.js';
+import { resolveEffectiveHamaliRate } from '../common/hamali-resolution.js';
 
 export interface SubmittedRateAgreement {
   bagType?: BagType | null;
@@ -167,23 +164,29 @@ export class CommodityRateService {
     }
     // Lump-sum invariant: a positive rentAmount must equal the SSOT derivation
     // from the (now verified) agreed rates. Skipped when underivable.
+    // For Seasonal rates inclusive of Hamali, submitted.rentAmount can be either
+    // the gross inclusive rent (expected) or the net storage rent (expected - hamaliAmount).
     if (
       submitted.rentAmount != null && submitted.rentAmount > 0 &&
       submitted.bags != null && submitted.bags > 0 &&
       (!useSplit || (submitted.smallBags != null && submitted.bigBags != null))
     ) {
       const expected = calculateRentAmount({
-        rentType,
-        bags: submitted.bags,
-        bagType: submitted.bagType ?? undefined,
-        smallBags: submitted.smallBags,
-        bigBags: submitted.bigBags,
+        rentType, bags: submitted.bags, bagType: submitted.bagType ?? undefined,
+        smallBags: submitted.smallBags, bigBags: submitted.bigBags,
         smallBagPrice: useSplit ? rate.smallRate : undefined,
         bigBagPrice: useSplit ? rate.bigRate : undefined,
-        bagPrice: useSplit ? undefined : singleSide,
-        rentMonths: submitted.rentMonths,
+        bagPrice: useSplit ? undefined : singleSide, rentMonths: submitted.rentMonths,
       });
-      if (Math.abs(norm(submitted.rentAmount) - expected) > 0.01) {
+      const normSubmitted = norm(submitted.rentAmount);
+      let matches = Math.abs(normSubmitted - expected) <= 0.01;
+      if (!matches && (rentType === 'Seasonal' || rentType === 'Seasonal_3M')) {
+        const comm = await CommodityModel.findOne({ id: commodityId }).lean();
+        const effHamaliRate = resolveEffectiveHamaliRate(rate.hamaliRate, comm);
+        const hamaliAmount = calculateHamaliAmount(submitted.bags, effHamaliRate);
+        if (Math.abs(normSubmitted - Math.max(0, expected - hamaliAmount)) <= 0.01) matches = true;
+      }
+      if (!matches) {
         throw rateMismatch(
           commodityId, rentType,
           `rent amount ₹${submitted.rentAmount} contradicts the derived ₹${expected}`,

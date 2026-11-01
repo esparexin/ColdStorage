@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
-  resolvePeriodEffectiveRate,
   deriveBagPrice,
+  deriveNetStorageRate,
   extensionSnapshotDate,
   resolveExtensionFinalAmount,
+  resolvePeriodEffectiveRate,
   seasonYearForInwardDate,
+  toOperationalBagType,
   type ExtensionPeriod,
   type FinalizeExtensionInput,
   type OverrideExtensionInput,
@@ -92,34 +94,38 @@ export class RentExtensionService {
 
         // Period pair: controller rate for the period kind, else the legacy
         // single rate on both sides. S+B snapshots keep their split via SSOT.
-        const legacySingle =
-          grn.bagPrice ??
-          deriveBagPrice({
-            rentType: grn.rentType,
-            bags: grn.bags,
-            bagPrice: grn.bagPrice,
-            rentMonths: grn.rentMonths,
-            rentAmount: grn.rentAmount,
-          }) ??
-          null;
-        const pair = await commodityRateService.resolvePeriodPair(
-          grn.commodityId,
-          input.period,
-          legacySingle,
-        );
-        if (!pair) {
-          throw new Error(
-            `Cannot price the ${input.period} extension for GRN '${grn.grnNumber}': no bag rate`,
-          );
+        const legacySingle = grn.bagPrice ?? deriveBagPrice({
+          rentType: grn.rentType, bags: grn.bags, bagPrice: grn.bagPrice,
+          rentMonths: grn.rentMonths, rentAmount: grn.rentAmount,
+        }) ?? null;
+        const pair = await commodityRateService.resolvePeriodPair(grn.commodityId, input.period, legacySingle);
+        const isHybrid = toOperationalBagType(grn.bagType) === 'Hybrid';
+        let smallRate: number, bigRate: number;
+
+        if (input.period === 'SEASON') {
+          if (isHybrid) {
+            const raw = grn.bagPrice ?? legacySingle ?? (pair ? pair.smallRate : 0);
+            if (raw <= 0) throw new Error(`Cannot price the SEASON extension for GRN '${grn.grnNumber}': no bag rate`);
+            const net = deriveNetStorageRate(raw, grn.hamaliRate);
+            smallRate = net;
+            bigRate = net;
+          } else {
+            const rawS = grn.smallBagPrice ?? (pair ? pair.smallRate : legacySingle ?? 0);
+            const rawB = grn.bigBagPrice ?? (pair ? pair.bigRate : legacySingle ?? 0);
+            if (rawS <= 0 && rawB <= 0) throw new Error(`Cannot price the SEASON extension for GRN '${grn.grnNumber}': no bag rate`);
+            smallRate = deriveNetStorageRate(rawS, grn.hamaliRate);
+            bigRate = deriveNetStorageRate(rawB, grn.hamaliRate);
+          }
+        } else {
+          if (!pair) throw new Error(`Cannot price the ${input.period} extension for GRN '${grn.grnNumber}': no bag rate`);
+          smallRate = pair.smallRate;
+          bigRate = pair.bigRate;
         }
 
         const { calculatedAmount, bagRate } = resolvePeriodEffectiveRate({
-          period: input.period,
-          bagType: grn.bagType,
-          snapshotSmallBags: snapshot.smallBags,
-          snapshotBigBags: snapshot.bigBags,
-          smallRate: pair.smallRate,
-          bigRate: pair.bigRate,
+          period: input.period, bagType: grn.bagType,
+          snapshotSmallBags: snapshot.smallBags, snapshotBigBags: snapshot.bigBags,
+          smallRate, bigRate,
         });
         const now = new Date();
         const docs = await RentExtensionModel.create(

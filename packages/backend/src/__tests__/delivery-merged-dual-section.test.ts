@@ -106,76 +106,111 @@ describe('Delivery Merged Dual-Section Outward Dispatches', () => {
     expect(pools?.availableConfirmedBig).toBe(30);
     expect(pools?.availableConfirmedTotal).toBe(60);
 
-    // 1. Partial Outward Delivery:
-    // Dispatch Section A: 10 Small, 4 Big (14 unclassified bags)
-    // Dispatch Section B: 15 Small, 15 Big (30 confirmed bags)
-    // Total delivery: 25 Small + 19 Big = 44 bags
+    // 1. Validation check: Attempting to dispatch Section A and Section B simultaneously in one transaction fails
     const delDate = new Date('2026-10-24');
+    await expect(
+      deliveryService.createDelivery(
+        facilityId,
+        {
+          grnId, date: delDate, smallBags: 25, bigBags: 19,
+          unclassifiedDispatch: { bagType: 'S/B', smallBags: 10, bigBags: 4, seasonalBagPrice: 110 },
+          confirmedDispatch: { bagType: 'S/B', smallBags: 15, bigBags: 15, seasonalBagPrice: 110 },
+          rentCharge: 4840, gpNumber: 'GP-0004', vehicleNumber: 'UP32AA1111', driverName: 'Ramesh Singh',
+        },
+        USER_ID,
+      ),
+    ).rejects.toThrow('Section A and Section B cannot be dispatched simultaneously in one delivery transaction.');
+
+    // 2. Independent Outward Delivery: Dispatch Section A (10 Small, 4 Big = 14 unclassified bags)
     const { delivery: d1 } = await deliveryService.createDelivery(
       facilityId,
       {
-        grnId, date: delDate, smallBags: 25, bigBags: 19,
+        grnId, date: delDate, smallBags: 10, bigBags: 4,
         unclassifiedDispatch: { bagType: 'S/B', smallBags: 10, bigBags: 4, seasonalBagPrice: 110 },
-        confirmedDispatch: { bagType: 'S/B', smallBags: 15, bigBags: 15, seasonalBagPrice: 110 },
-        rentCharge: 4840, gpNumber: 'GP-0004', vehicleNumber: 'UP32AA1111', driverName: 'Ramesh Singh',
+        rentCharge: 1540, gpNumber: 'GP-0004', vehicleNumber: 'UP32AA1111', driverName: 'Ramesh Singh',
       },
       USER_ID,
     );
 
-    expect(d1.totalBags).toBe(44);
+    expect(d1.totalBags).toBe(14);
     expect(d1.unclassifiedDispatch?.smallBags).toBe(10);
     expect(d1.unclassifiedDispatch?.bigBags).toBe(4);
-    expect(d1.confirmedDispatch?.smallBags).toBe(15);
-    expect(d1.confirmedDispatch?.bigBags).toBe(15);
+    expect(d1.confirmedDispatch).toBeNull();
 
-    // Verify remaining pools after Delivery 1
+    // Verify remaining pools after Delivery 1 (unclassified is exhausted, 60 confirmed remain)
     const poolsAfterD1 = await resolveMergedStockPools(facilityId, grn!);
     expect(poolsAfterD1?.availableUnclassified).toBe(0);
-    expect(poolsAfterD1?.availableConfirmedSmall).toBe(15);
-    expect(poolsAfterD1?.availableConfirmedBig).toBe(15);
-    expect(poolsAfterD1?.availableConfirmedTotal).toBe(30);
+    expect(poolsAfterD1?.availableConfirmedSmall).toBe(30);
+    expect(poolsAfterD1?.availableConfirmedBig).toBe(30);
+    expect(poolsAfterD1?.availableConfirmedTotal).toBe(60);
 
     const ledgerAfterD1 = await readLedgerBalance(facilityId, grnId);
-    expect(ledgerAfterD1.total).toBe(30);
+    expect(ledgerAfterD1.total).toBe(60);
 
-    // 2. Validation check: Attempting to withdraw from Section A when 0 remaining fails
+    // 3. Independent Outward Delivery: Dispatch partial Section B (15 Small, 15 Big = 30 confirmed bags)
+    const { delivery: d2 } = await deliveryService.createDelivery(
+      facilityId,
+      {
+        grnId, date: delDate, smallBags: 15, bigBags: 15,
+        confirmedDispatch: { bagType: 'S/B', smallBags: 15, bigBags: 15, seasonalBagPrice: 110 },
+        rentCharge: 3300, gpNumber: 'GP-0005', vehicleNumber: 'UP32AA2222', driverName: 'Suresh Kumar',
+      },
+      USER_ID,
+    );
+
+    expect(d2.totalBags).toBe(30);
+    expect(d2.confirmedDispatch?.smallBags).toBe(15);
+    expect(d2.confirmedDispatch?.bigBags).toBe(15);
+    expect(d2.unclassifiedDispatch).toBeNull();
+
+    // Verify remaining pools after Delivery 2 (15 Small, 15 Big remain)
+    const poolsAfterD2 = await resolveMergedStockPools(facilityId, grn!);
+    expect(poolsAfterD2?.availableUnclassified).toBe(0);
+    expect(poolsAfterD2?.availableConfirmedSmall).toBe(15);
+    expect(poolsAfterD2?.availableConfirmedBig).toBe(15);
+    expect(poolsAfterD2?.availableConfirmedTotal).toBe(30);
+
+    const ledgerAfterD2 = await readLedgerBalance(facilityId, grnId);
+    expect(ledgerAfterD2.total).toBe(30);
+
+    // 4. Validation check: Attempting to withdraw from Section A when 0 remaining fails
     await expect(
       deliveryService.createDelivery(
         facilityId,
         {
           grnId, date: delDate,
           unclassifiedDispatch: { bagType: 'S/B', smallBags: 1, bigBags: 0, seasonalBagPrice: 110 },
-          rentCharge: 110, gpNumber: 'GP-0005',
+          rentCharge: 110, gpNumber: 'GP-0006',
         },
         USER_ID,
       ),
     ).rejects.toThrow('exceeds remaining unclassified stock');
 
-    // 3. Validation check: Attempting to withdraw > 15 confirmed small bags fails
+    // 5. Validation check: Attempting to withdraw > 15 confirmed small bags fails
     await expect(
       deliveryService.createDelivery(
         facilityId,
         {
           grnId, date: delDate,
           confirmedDispatch: { bagType: 'S/B', smallBags: 20, bigBags: 0, seasonalBagPrice: 110 },
-          rentCharge: 2200, gpNumber: 'GP-0006',
+          rentCharge: 2200, gpNumber: 'GP-0007',
         },
         USER_ID,
       ),
     ).rejects.toThrow('exceeds remaining confirmed stock');
 
-    // 4. Final Delivery: Dispatch remaining Section B (15 Small, 15 Big)
-    const { delivery: d2 } = await deliveryService.createDelivery(
+    // 6. Final Delivery: Dispatch remaining Section B (15 Small, 15 Big)
+    const { delivery: d3 } = await deliveryService.createDelivery(
       facilityId,
       {
         grnId, date: delDate, smallBags: 15, bigBags: 15,
         confirmedDispatch: { bagType: 'S/B', smallBags: 15, bigBags: 15, seasonalBagPrice: 110 },
-        rentCharge: 3300, gpNumber: 'GP-0007', vehicleNumber: 'UP32AA2222', driverName: 'Suresh Kumar',
+        rentCharge: 3300, gpNumber: 'GP-0008', vehicleNumber: 'UP32AA3333', driverName: 'Mahesh Kumar',
       },
       USER_ID,
     );
 
-    expect(d2.totalBags).toBe(30);
+    expect(d3.totalBags).toBe(30);
 
     // Verify final pools and ledger balances reach 0
     const poolsFinal = await resolveMergedStockPools(facilityId, grn!);

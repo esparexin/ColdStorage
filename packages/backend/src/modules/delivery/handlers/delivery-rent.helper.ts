@@ -16,6 +16,7 @@ export interface ComputeDeliveryRentParams {
     smallBagPrice?: number | null;
     bigBagPrice?: number | null;
     bagPrice?: number | null;
+    hamaliRate?: number | null;
   };
   withdrawal: BagComposition;
   quantity?: number | null;

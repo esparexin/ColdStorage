@@ -29,6 +29,7 @@ export interface ComputeOutwardRentParams {
   monthlySmallBagPrice?: number | null;
   monthlyBigBagPrice?: number | null;
   excludePeriodKeys?: string[];
+  hamaliRate?: number | null;
 }
 
 export function resolveOutwardBillableMonths(params: {
@@ -91,6 +92,7 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
         seasonalRates: { small: sRate, big: sRate },
         monthlyRates: { small: mRate, big: mRate },
         excludePeriodKeys: params.excludePeriodKeys,
+        hamaliRate: params.hamaliRate,
       });
       return breakdown.totalRent;
     }
@@ -163,6 +165,7 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
       seasonalRates: { small: smallRate, big: bigRate },
       monthlyRates: { small: monthlySmall, big: monthlyBig },
       excludePeriodKeys: params.excludePeriodKeys,
+      hamaliRate: params.hamaliRate,
     });
     return breakdown.totalRent;
   }
