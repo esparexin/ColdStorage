@@ -40,6 +40,7 @@ export default function UsersPage() {
   } = useRolesData(canManage);
 
   const {
+    users,
     totalUsers,
     page,
     setPage,
@@ -165,7 +166,7 @@ export default function UsersPage() {
 
       {activeTab === 'roles' && (
         <RolesSection
-          users={filteredUsers}
+          users={users}
           roles={roles}
           loading={loadingRoles}
           error={rolesError}
