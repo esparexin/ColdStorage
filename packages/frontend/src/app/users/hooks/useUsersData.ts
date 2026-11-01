@@ -5,6 +5,7 @@ import type { RoleDefinition, UserSummary } from '@cold-storage/contracts';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
 import { useFacility } from '@/context/FacilityContext';
+import { hasUserClientFilters, resolveUserDisplayPagination } from './userPagination.helper';
 
 export const PAGE_SIZE = 20;
 
@@ -90,13 +91,32 @@ export function useUsersData(canManage: boolean, roles: RoleDefinition[] = []) {
     return new Map(availableFacilities.map((f) => [f.id, f.name || f.code]));
   }, [availableFacilities]);
 
-  const totalPages = Math.ceil(totalUsers / PAGE_SIZE);
+  const hasClientFilters = useMemo(
+    () => hasUserClientFilters(searchTerm, roleFilter),
+    [searchTerm, roleFilter],
+  );
+
+  const serverTotalPages = totalUsers === 0 ? 0 : Math.ceil(totalUsers / PAGE_SIZE);
+
+  const { totalUsers: displayTotalUsers, totalPages: displayTotalPages } = useMemo(
+    () =>
+      resolveUserDisplayPagination(
+        hasClientFilters,
+        filteredUsers.length,
+        totalUsers,
+        serverTotalPages,
+        PAGE_SIZE,
+      ),
+    [hasClientFilters, filteredUsers.length, totalUsers, serverTotalPages],
+  );
 
   return {
-    totalUsers,
+    users,
+    totalUsers: displayTotalUsers,
     page,
     setPage,
-    totalPages,
+    totalPages: displayTotalPages,
+    rawTotalUsers: totalUsers,
     loadingUsers,
     loadError,
     facilityNameMap,

@@ -3,26 +3,12 @@
 import { useCallback, useState } from 'react';
 import type { Role, UserStatus, UserSummary } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
+import {
+  buildUserEditPatch,
+  type UserEditDraft,
+} from './userEditPayload.helper';
 
-export interface UserEditDraft {
-  fullName: string;
-  mobile: string;
-  email: string;
-  role: Role;
-  roleId?: string;
-  facilityIds: string[];
-}
-
-export function toUserEditDraft(user: UserSummary): UserEditDraft {
-  return {
-    fullName: user.fullName,
-    mobile: user.mobile,
-    email: user.email,
-    role: user.role,
-    roleId: user.roleId,
-    facilityIds: [...user.facilityIds],
-  };
-}
+export { toUserEditDraft, type UserEditDraft } from './userEditPayload.helper';
 
 async function readError(res: Response, fallback: string): Promise<Error> {
   const body = (await res.json().catch(() => ({}))) as { error?: string };
@@ -115,19 +101,12 @@ export function useUserLifecycle(onMutated: () => void) {
   );
 
   /**
-   * Applies an edited account draft. Trimming and field selection live here so the modal and
-   * the page only deal in the draft shape the user actually filled in.
+   * Applies an edited account draft. Trimming and field selection live in buildUserEditPatch
+   * so the modal and the page only deal in the draft shape the user actually filled in.
    */
   const submitEdit = useCallback(
     async (userId: string, draft: UserEditDraft): Promise<UserSummary | null> =>
-      patchUser(userId, {
-        fullName: draft.fullName.trim(),
-        mobile: draft.mobile.trim(),
-        email: draft.email.trim(),
-        role: draft.role,
-        ...(draft.roleId ? { roleId: draft.roleId } : {}),
-        facilityIds: draft.facilityIds,
-      }),
+      patchUser(userId, buildUserEditPatch(draft)),
     [patchUser],
   );
 

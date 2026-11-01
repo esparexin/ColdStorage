@@ -1,11 +1,16 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { indianMobileSchema, type RoleDefinition, type UserSummary } from '@cold-storage/contracts';
+import {
+  indianMobileSchema,
+  type RoleDefinition,
+  type UserSummary,
+} from '@cold-storage/contracts';
 import { Button, Modal, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import type { FacilityOption } from '@/context/FacilityContext';
 import { toUserEditDraft, type UserEditDraft } from '../hooks/useUserLifecycle';
+import { resolveUserSystemRole } from '../hooks/userEditPayload.helper';
 import { FacilityFieldset, FieldError } from './UserFormFields';
 import styles from '../page.module.css';
 
@@ -32,7 +37,11 @@ export function EditUserModal({
     const base = toUserEditDraft(user);
     const matched = availableRoles.find((r) => r.id === base.roleId)
       ?? availableRoles.find((r) => r.key === base.role);
-    return { ...base, roleId: matched?.id ?? base.roleId, role: (matched?.key as UserEditDraft['role']) ?? base.role };
+    return {
+      ...base,
+      roleId: matched?.id ?? base.roleId,
+      role: resolveUserSystemRole(matched?.key, base.role),
+    };
   });
   const [localError, setLocalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -44,7 +53,11 @@ export function EditUserModal({
       const matched = availableRoles.find((r) => r.id === prev.roleId)
         ?? availableRoles.find((r) => r.key === prev.role);
       if (!matched || matched.id === prev.roleId) return prev;
-      return { ...prev, roleId: matched.id, role: matched.key as UserEditDraft['role'] };
+      return {
+        ...prev,
+        roleId: matched.id,
+        role: resolveUserSystemRole(matched.key, prev.role),
+      };
     });
   }, [availableRoles]);
 
@@ -138,7 +151,7 @@ export function EditUserModal({
                   setDraft({
                     ...draft,
                     roleId: selected.id,
-                    role: selected.key as UserEditDraft['role'],
+                    role: resolveUserSystemRole(selected.key, draft.role),
                   });
                 }}
               >
