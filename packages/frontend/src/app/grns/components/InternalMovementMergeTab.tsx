@@ -45,7 +45,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
   const { currentGrn, facilityId, submitting, initiatingGrnId } = props;
   const {
     step, setStep, targetGrnId, selectedSourceIds,
-    movementDate, reason, setReason, remarks, setRemarks, confirmation,
+    movementDate, reason, setReason, remarks, setRemarks,
     targetConfirmation, updateTargetConfirmation,
     sourceConfirmations, updateSourceConfirmation, sourceRentSummaries,
     settlementDecision, settleAmount,
@@ -57,9 +57,9 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
     openGrns, targetGrn, targetSeason, eligibleSources, futureSeasonCount, recommendedSwitchGrn,
     targetOptions, handleTargetChange, handleToggleSource, handleSwitchTarget,
     selectedSources, totalSourceBags, targetCurrentRemaining,
-    totalSourcePendingRent, isTargetDiff, isRepackFilled, commodityHamaliRate, actualRepackedBags,
-    repackHamaliCharge, movedSmall, movedBig, addedBagsToTarget, targetNewRemaining,
-    resultingBagType, handleProceedToStep2, handleProceedToStep3, handleProceedToStep4, handleMergeSubmit,
+    totalSourcePendingRent, isTargetDiff, commodityHamaliRate, actualRepackedBags,
+    repackHamaliCharge, resultingBagType,
+    handleProceedToStep2, handleProceedToStep3, handleProceedToStep4, handleMergeSubmit,
   } = useInternalMovementMergeTab(props);
 
   const onFormSubmit = (e: React.FormEvent) => {
@@ -132,7 +132,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
       )}
       {step === 4 && (
         <MergeStep4RepackConfirm
-          destinationChamber={destinationChamber || targetGrn.chamber || ''}
+          destinationChamber={destinationChamber}
           onDestinationChamberChange={setDestinationChamber}
           repackMode={repackMode}
           onRepackModeChange={(act) => {
@@ -166,22 +166,11 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
           commodityHamaliRate={commodityHamaliRate}
           movementDate={movementDate}
           targetGrn={targetGrn}
-          targetCurrentRemaining={targetCurrentRemaining}
-          addedBagsToTarget={addedBagsToTarget}
-          isRepackFilled={isRepackFilled}
-          targetNewRemaining={targetNewRemaining}
-          confirmationCategory={confirmation.category}
-          resultingBagType={resultingBagType}
-          settlementDecision={settlementDecision}
-          settleAmount={settleAmount}
-          totalSourcePendingRent={totalSourcePendingRent}
           reason={reason}
           onReasonChange={setReason}
           remarks={remarks}
           onRemarksChange={setRemarks}
           selectedSourcesCount={selectedSources.length}
-          movedSmall={movedSmall}
-          movedBig={movedBig}
           submitting={submitting}
           onBack={() => setStep(3)}
         />

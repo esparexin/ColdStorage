@@ -122,10 +122,6 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
           )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
-            <span>Source Consolidated Pool:</span>
-            <strong>{totalSourceBags} Bags</strong>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
             <span>Physical Repacked Total:</span>
             <strong style={{ color: 'var(--color-primary-text)' }}>{actualRepackedBags} Bags</strong>
           </div>

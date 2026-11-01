@@ -101,6 +101,10 @@ export function useInternalMovementMergeTab({
   const isTargetLoanHold = targetGrn.loanStatus === 'TAKEN';
 
   useEffect(() => {
+    repack.setDestinationChamber(targetGrn.chamber || '');
+  }, [targetGrn.id, targetGrn.chamber]);
+
+  useEffect(() => {
     const effectiveFacilityId = facilityId ?? currentGrn.facilityId;
     if (!effectiveFacilityId) return;
     const allParticipating = [targetGrn, ...selectedSources];
@@ -178,7 +182,7 @@ export function useInternalMovementMergeTab({
   const handleMergeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
-    const effectiveChamber = destinationChamber || targetGrn.chamber || '';
+    const effectiveChamber = destinationChamber.trim();
     const err = validateMergeSubmit({
       selectedSourceIds, reason, isTargetLoanHold, targetGrnNumber: targetGrn.grnNumber,
       destinationChamber: effectiveChamber, repackMode, repackBagType, isRepackFilled,
