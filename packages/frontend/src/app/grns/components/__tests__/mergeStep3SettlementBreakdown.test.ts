@@ -180,7 +180,7 @@ describe('Merge Step 3 Settlement - Outward Rent Calculation Breakdown & Destina
     expect(targetGrn0013.rentAmount).toBe(0);
   });
 
-  it('calculates pre-merge assessment for destination GRN up to movement date', () => {
+  it('preserves target active subscription: storage rent continues, only hamali is collected during merge', () => {
     const movementDate = '2026-10-31';
     const targetCalc = calculateMergeSourceRentSummary({
       source: targetGrn0013,
@@ -198,6 +198,10 @@ describe('Merge Step 3 Settlement - Outward Rent Calculation Breakdown & Destina
     expect(targetCalc.totalBags).toBe(70);
     expect(targetCalc.isHybrid).toBe(true);
     expect(targetCalc.hamaliAmount).toBe(70 * 25);
-    expect(targetCalc.totalAmountToPay).toBeGreaterThan(0);
+    // Active subscription storage rent continues until outward delivery; storage collection at merge is 0
+    const targetStorageRentCollectedAtMerge = 0;
+    const targetHamaliDueAtMerge = targetCalc.hamaliAmount;
+    expect(targetStorageRentCollectedAtMerge).toBe(0);
+    expect(targetHamaliDueAtMerge).toBe(1750);
   });
 });

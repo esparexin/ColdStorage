@@ -115,6 +115,7 @@ export function toGrnEntity(doc: {
     mergedIntoGrnId: ((doc as Record<string, unknown>).mergedIntoGrnId as string | null) ?? null,
     mergedIntoGrnNumber:
       ((doc as Record<string, unknown>).mergedIntoGrnNumber as string | null) ?? null,
+    mergedAt: ((doc as Record<string, unknown>).mergedAt as Date | null) ?? null,
     loanSettlementAmount: ((doc as Record<string, unknown>).loanSettlementAmount as number | null) ?? null,
     loanSettlementMode: ((doc as Record<string, unknown>).loanSettlementMode as Grn['loanSettlementMode']) ?? null,
     loanSettlementUtr: ((doc as Record<string, unknown>).loanSettlementUtr as string | null) ?? null,

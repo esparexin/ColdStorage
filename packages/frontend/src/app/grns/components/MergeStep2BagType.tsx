@@ -179,9 +179,9 @@ export function MergeStep2BagType({
               <span style={{ fontWeight: 'var(--font-bold)' }}>{targetCurrentRemaining} Bags</span>
             </div>
             <div>
-              <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>Pre-Merge Subscription</span>
+              <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>Active Subscription</span>
               <span style={{ fontWeight: 'var(--font-medium)' }}>
-                {targetGrn.rentType} (Closes at Merge)
+                {targetGrn.rentType} (Preserved)
               </span>
             </div>
           </div>
@@ -206,7 +206,7 @@ export function MergeStep2BagType({
           )}
 
           <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
-            Pre-merge subscriptions close on the merge date. The consolidated lot ({totalConsolidatedBags} bags) will begin a fresh rent lifecycle from the movement date.
+            Destination GRN profile and active subscription are preserved. Incoming stock ({totalSourceBags} bags) will be consolidated into this lot under the existing active subscription.
           </div>
         </div>
 

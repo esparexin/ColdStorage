@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { DollarSign } from 'lucide-react';
 import {
+  calculateHamaliAmount,
   seasonYearForInwardDate,
   type Commodity,
   type Grn,
@@ -59,17 +60,16 @@ export function MergeStep3Settlement({
         </div>
 
         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
-          Pre-merge rent obligations for all participating GRNs close on Movement Date ({movementDate}). Consolidated stock begins a fresh rent lifecycle from the merge date.
+          Destination GRN #{targetGrn.grnNumber} retains its active subscription (Season {targetSeason}) without recalculating historical destination rent.
         </div>
       </div>
 
       {/* Outward Rent Calculation Breakdown for Each Participating GRN Profile */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-        {/* Surviving Target GRN Profile (Pre-Merge Assessment) */}
+        {/* Surviving Target GRN Profile (Active Subscription Preserved) */}
         {(() => {
           const targetCommodity = commodities?.find((c) => c.id === targetGrn.commodityId);
           const tSummary = sourceRentSummaries?.[targetGrn.id];
-          const { seasonalRates: tSeasonalRates, monthlyRates: tMonthlyRates } = resolveTransferRates(targetGrn, targetCommodity);
           const tCalc = calculateMergeSourceRentSummary({
             source: targetGrn,
             confirmation: targetConfirmation,
@@ -78,10 +78,9 @@ export function MergeStep3Settlement({
             summary: tSummary,
             commodity: targetCommodity,
           });
-          const tPaid = tSummary?.totalPaid ?? 0;
-          const tTotalObligation = Math.max(tSummary?.totalDue ?? 0, tCalc.totalAmountToPay);
-          const tPendingDues = Math.max(0, tTotalObligation - tPaid);
-          const tIsSettled = tTotalObligation === 0 || (tPaid >= tTotalObligation && tTotalObligation > 0);
+          const tBags = tCalc.totalBags;
+          const tHamali = calculateHamaliAmount(tBags, commodityHamaliRate);
+          const tDueNow = tHamali;
 
           return (
             <div
@@ -99,38 +98,41 @@ export function MergeStep3Settlement({
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>
-                    Target GRN #{targetGrn.grnNumber} (Pre-Merge Assessment)
+                    Target GRN #{targetGrn.grnNumber} (Surviving Lot)
                   </span>
                   {targetGrn.customerName && (
                     <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
                       — {targetGrn.customerName}
                     </span>
                   )}
-                  <Badge variant="neutral">Pre-Merge Cycle</Badge>
+                  <Badge variant="primary">Active Subscription</Badge>
                   <Badge variant="neutral">Season {targetSeason}</Badge>
                 </div>
-                <Badge variant={tIsSettled ? 'success' : 'warning'}>
-                  {tIsSettled ? 'Settled (₹0 Due)' : `₹${tPendingDues.toLocaleString('en-IN')} Pending`}
+                <Badge variant={tDueNow > 0 ? 'warning' : 'primary'}>
+                  {tDueNow > 0 ? `₹${tDueNow.toLocaleString('en-IN')} Due (Hamali)` : 'Active (Preserved)'}
                 </Badge>
               </div>
 
-              <OutwardRentBreakdown
-                rentType={targetGrn.rentType}
-                inwardDate={targetGrn.date}
-                deliveryDate={movementDate}
-                smallBags={tCalc.smallBags}
-                bigBags={tCalc.bigBags}
-                bagType={tCalc.isHybrid ? 'Hybrid' : 'S/B'}
-                bagPrice={tCalc.isHybrid ? (typeof targetConfirmation?.bagPrice === 'number' && targetConfirmation.bagPrice > 0 ? targetConfirmation.bagPrice : targetGrn.bagPrice) : undefined}
-                seasonalBagPrice={tCalc.isHybrid && typeof targetConfirmation?.seasonalBagPrice === 'number' && targetConfirmation.seasonalBagPrice > 0 ? targetConfirmation.seasonalBagPrice : undefined}
-                monthlyBagPrice={tCalc.isHybrid && typeof targetConfirmation?.monthlyBagPrice === 'number' && targetConfirmation.monthlyBagPrice > 0 ? targetConfirmation.monthlyBagPrice : undefined}
-                seasonalRates={tSeasonalRates}
-                monthlyRates={tMonthlyRates}
-                totalRent={tCalc.totalRent}
-                hamaliRate={commodityHamaliRate}
-                excludePeriodKeys={tCalc.excludePeriodKeys}
-                grnNumber={targetGrn.grnNumber}
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', background: 'var(--color-surface-1)', padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Current Season ({targetSeason}) Storage Rent:</span>
+                  <span style={{ fontWeight: 'var(--font-semibold)' }}>
+                    ₹{tCalc.totalRent.toLocaleString('en-IN')} <span style={{ color: 'var(--color-primary-text)' }}>(Preserved — Continues Until Outward Delivery)</span>
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Previous Monthly Subscriptions:</span>
+                  <span>₹0 (None used)</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Hamali Charge ({tBags} bags @ ₹{commodityHamaliRate}/bag):</span>
+                  <strong style={{ color: tHamali > 0 ? 'var(--color-primary-text)' : 'inherit' }}>₹{tHamali.toLocaleString('en-IN')}</strong>
+                </div>
+                <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: '4px', marginTop: '2px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'var(--font-bold)' }}>
+                  <span>Target Profile Due Now:</span>
+                  <span>₹{tDueNow.toLocaleString('en-IN')}</span>
+                </div>
+              </div>
             </div>
           );
         })()}
