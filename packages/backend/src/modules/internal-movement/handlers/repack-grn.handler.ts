@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import {
-  calculateHamaliAmount, calculateNetRentAmount, deriveBagPrice, resolveTotalRentObligation,
+  calculateHamaliAmount, calculateRentAmount, deriveBagPrice, resolveTotalRentObligation,
   seasonYearForInwardDate, type Grn, type InternalMovementRecord, type RepackGrnInput, type RepackGrnResult,
 } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
@@ -163,12 +163,11 @@ export async function executeRepackGrn(
             rentType: grn.rentType, bags: bal.total, rentAmount: grn.rentAmount,
             smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice,
           });
-          const { netStorageRent } = calculateNetRentAmount({
+          grn.rentAmount = calculateRentAmount({
             rentType: grn.rentType, bags: grn.bags, bagType: grn.bagType,
             smallBags: grn.smallBags, bigBags: grn.bigBags, bagPrice: effectiveBagPrice,
             smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, rentAmount: grn.rentAmount,
-          }, grn.hamaliRate);
-          grn.rentAmount = netStorageRent;
+          });
         }
         await grn.save({ session });
 
