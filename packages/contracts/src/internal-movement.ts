@@ -23,6 +23,15 @@ export const mergeGrnInputSchema = z.object({
   repackedSmallBags: z.number().int().min(0).nullish(),
   repackedBigBags: z.number().int().min(0).nullish(),
   repackedBagCount: z.number().int().min(0).max(100000).nullish(),
+  // Target bag type / category confirmation when target composition is unverified:
+  targetBagType: bagTypeSchema.nullish(),
+  targetBagCategory: outwardBagCategorySchema.nullish(),
+  targetSmallBags: z.number().int().min(0).nullish(),
+  targetBigBags: z.number().int().min(0).nullish(),
+  targetQuantity: z.number().int().min(0).max(100000).nullish(),
+  targetBagPrice: bagPriceSchema.nullish(),
+  targetSeasonalBagPrice: bagPriceSchema.nullish(),
+  targetMonthlyBagPrice: bagPriceSchema.nullish(),
   // Source bag type / category confirmation: canonical bagType ('S', 'B', 'S+B', 'S/B', 'Hybrid')
   // or legacy category. Informational for rent — backend recomputes obligations.
   sourceBagType: bagTypeSchema.nullish(),

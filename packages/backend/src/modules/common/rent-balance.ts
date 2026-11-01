@@ -55,7 +55,7 @@ export function computeRentBalance(
     rentAmount: obligation,
     totalPaid: paid,
     remainingBalance,
-    paymentStatus: remainingBalance === 0 ? 'Settled' : 'Not Settled',
+    paymentStatus: isSettled ? 'Settled' : 'Not Settled',
     isPartial: paid > 0 && remainingBalance > 0,
     rentState,
   };

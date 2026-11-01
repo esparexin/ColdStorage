@@ -34,6 +34,9 @@ interface InternalMovementMergeTabProps {
     sourceQuantity?: number, sourceBagPrice?: number, sourceSeasonalBagPrice?: number,
     sourceMonthlyBagPrice?: number, isRepackSelected?: boolean, repackedBagCount?: number,
     destinationChamber?: string,
+    targetSmallBags?: number, targetBigBags?: number, targetBagCategory?: OutwardBagCategory,
+    targetQuantity?: number, targetBagPrice?: number, targetSeasonalBagPrice?: number,
+    targetMonthlyBagPrice?: number,
   ) => Promise<void>;
 }
 
@@ -43,6 +46,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
   const {
     step, setStep, targetGrnId, selectedSourceIds,
     movementDate, reason, setReason, remarks, setRemarks, confirmation,
+    targetConfirmation, updateTargetConfirmation,
     sourceConfirmations, updateSourceConfirmation, sourceRentSummaries,
     settlementDecision, settleAmount,
     destinationChamber, setDestinationChamber,
@@ -91,6 +95,8 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
         <MergeStep2BagType
           sourceConfirmations={sourceConfirmations}
           onSourceConfirmationChange={updateSourceConfirmation}
+          targetConfirmation={targetConfirmation}
+          onTargetConfirmationChange={updateTargetConfirmation}
           totalSourceBags={totalSourceBags}
           movementDate={movementDate}
           facilityId={facilityId ?? currentGrn.facilityId}
@@ -112,6 +118,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
         <MergeStep3Settlement
           totalSourcePendingRent={totalSourcePendingRent}
           targetGrn={targetGrn}
+          targetConfirmation={targetConfirmation}
           selectedSources={selectedSources}
           sourceConfirmations={sourceConfirmations}
           sourceRentSummaries={sourceRentSummaries}

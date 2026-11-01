@@ -6,13 +6,17 @@ import { formatDisplayBagType, type Commodity, type Grn, type RentSummaryDto } f
 import { Badge } from '@/components/ui';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
 import { calculateMergeGrandTotal } from './mergeRentAssessment.helper';
+import { MergeBagTypeFields } from './MergeBagTypeFields';
 import { MergeSourceGrnCard } from './MergeSourceGrnCard';
+import { resolveTransferRates } from './transferRentRates.helper';
 import { WizardStepActions } from './WizardStepActions';
 import styles from './InternalMovementModal.module.css';
 
 interface MergeStep2BagTypeProps {
   sourceConfirmations: Record<string, BagConfirmationValue>;
   onSourceConfirmationChange: (grnId: string, patch: Partial<BagConfirmationValue>) => void;
+  targetConfirmation?: BagConfirmationValue;
+  onTargetConfirmationChange?: (patch: Partial<BagConfirmationValue>) => void;
   totalSourceBags: number;
   movementDate: string;
   facilityId: string;
@@ -33,6 +37,8 @@ interface MergeStep2BagTypeProps {
 export function MergeStep2BagType({
   sourceConfirmations,
   onSourceConfirmationChange,
+  targetConfirmation,
+  onTargetConfirmationChange,
   totalSourceBags,
   movementDate,
   facilityId,
@@ -50,6 +56,12 @@ export function MergeStep2BagType({
   sourceRentSummaries,
 }: MergeStep2BagTypeProps) {
   const participatingGrnCount = 1 + selectedSources.length;
+  const totalConsolidatedBags = targetCurrentRemaining + totalSourceBags;
+  const targetCommodity = commodities?.find((c) => c.id === targetGrn.commodityId);
+  const { seasonalRates: targetRates } = useMemo(
+    () => resolveTransferRates(targetGrn, targetCommodity),
+    [targetGrn, targetCommodity],
+  );
   const targetDisplayType = formatDisplayBagType({
     bagType: targetGrn.bagType,
     smallBags: targetGrn.smallBags,
@@ -82,7 +94,7 @@ export function MergeStep2BagType({
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Badge variant="neutral">
-              Consolidated Pool: {totalSourceBags} Bags ({participatingGrnCount} Participating GRNs)
+              Consolidated Pool: {totalConsolidatedBags} Bags ({participatingGrnCount} Participating GRNs)
             </Badge>
             {grandTotalRent > 0 ? (
               <Badge variant="warning">
@@ -94,7 +106,7 @@ export function MergeStep2BagType({
           </div>
         </div>
         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
-          {participatingGrnCount} participating GRN profiles: Destination GRN #{targetGrn.grnNumber} (Surviving) + {selectedSources.length} Source GRN{selectedSources.length === 1 ? '' : 's'} (Closing). Source stock remains {totalSourceBags} bags.
+          {participatingGrnCount} participating GRN profiles: Destination GRN #{targetGrn.grnNumber} (Surviving) + {selectedSources.length} Source GRN{selectedSources.length === 1 ? '' : 's'} (Closing). Consolidated stock is {totalConsolidatedBags} bags ({targetCurrentRemaining} destination + {totalSourceBags} incoming).
         </div>
       </div>
 
@@ -173,6 +185,25 @@ export function MergeStep2BagType({
               </span>
             </div>
           </div>
+
+          {!targetGrn.isCompositionVerified && targetConfirmation && onTargetConfirmationChange && (
+            <div style={{ marginTop: 'var(--space-1-5)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-1-5)' }}>
+              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', marginBottom: 'var(--space-1)', color: 'var(--color-primary-text)' }}>
+                Bag Type Configuration — Target GRN #{targetGrn.grnNumber} ({targetCurrentRemaining} Bags)
+              </div>
+              <MergeBagTypeFields
+                value={targetConfirmation}
+                onChange={onTargetConfirmationChange}
+                totalMovedBags={targetCurrentRemaining}
+                rentType={targetGrn.rentType}
+                inwardDate={targetGrn.date}
+                movementDate={movementDate}
+                submitting={submitting}
+                rates={targetRates}
+                sourceBagType={targetGrn.bagType}
+              />
+            </div>
+          )}
 
           <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
             Destination GRN profile and active subscription are preserved. Incoming stock ({totalSourceBags} bags) will be consolidated into this lot without recalculating historical destination rent.

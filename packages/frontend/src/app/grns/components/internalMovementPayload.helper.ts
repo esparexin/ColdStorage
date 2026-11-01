@@ -24,6 +24,13 @@ export interface MergePayload {
   repackedSmallBags?: number;
   repackedBigBags?: number;
   repackedBagCount?: number;
+  targetSmallBags?: number;
+  targetBigBags?: number;
+  targetBagCategory?: OutwardBagCategory | BagType;
+  targetQuantity?: number;
+  targetBagPrice?: number;
+  targetSeasonalBagPrice?: number;
+  targetMonthlyBagPrice?: number;
   // Source bag-type confirmation (outward vocabulary, informational for rent).
   sourceBagCategory?: OutwardBagCategory | BagType;
   sourceQuantity?: number;
@@ -83,6 +90,13 @@ export function buildMergePayload(
   isRepackSelected?: boolean,
   repackedBagCount?: number,
   destinationChamber?: string,
+  targetSmallBags?: number,
+  targetBigBags?: number,
+  targetBagCategory?: OutwardBagCategory | BagType,
+  targetQuantity?: number,
+  targetBagPrice?: number,
+  targetSeasonalBagPrice?: number,
+  targetMonthlyBagPrice?: number,
 ): MergePayload {
   return {
     targetGrnId,
@@ -95,6 +109,13 @@ export function buildMergePayload(
     repackedSmallBags,
     repackedBigBags,
     repackedBagCount,
+    targetSmallBags,
+    targetBigBags,
+    targetBagCategory,
+    targetQuantity,
+    targetBagPrice,
+    targetSeasonalBagPrice,
+    targetMonthlyBagPrice,
     sourceBagCategory,
     sourceQuantity,
     sourceBagPrice,
