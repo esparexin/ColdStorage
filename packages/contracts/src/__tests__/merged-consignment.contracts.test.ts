@@ -61,8 +61,8 @@ describe('merged-consignment.contracts', () => {
     expect(parsed.genesisBags + (parsed.repackedHybridBags ?? 0)).toBe(74);
   });
 
-  it('validates dual-section outward delivery payload with both Section A and Section B', () => {
-    const dualSectionPayload = {
+  it('strictly rejects simultaneous dispatch of both Section A and Section B', () => {
+    const simultaneousPayload = {
       grnId: 'grn-0013',
       date: new Date(),
       unclassifiedDispatch: {
@@ -85,14 +85,62 @@ describe('merged-consignment.contracts', () => {
       driverName: 'Ramesh Singh',
     };
 
-    const parsed = createDeliverySchema.safeParse(dualSectionPayload);
+    const parsed = createDeliverySchema.safeParse(simultaneousPayload);
+    expect(parsed.success).toBe(false);
+    if (parsed.success) return;
+    expect(parsed.error.issues[0]?.message).toBe(
+      'Section A and Section B cannot be dispatched simultaneously in one delivery transaction.',
+    );
+  });
+
+  it('validates Section A outward delivery independently', () => {
+    const secAPayload = {
+      grnId: 'grn-0013',
+      date: new Date(),
+      unclassifiedDispatch: {
+        bagType: 'S/B' as const,
+        smallBags: 10,
+        bigBags: 4,
+        seasonalBagPrice: 110,
+        rentCharge: 1540,
+      },
+      rentCharge: 1540,
+      gpNumber: 'GP-0004',
+      vehicleNumber: 'UP32AA1111',
+      driverName: 'Ramesh Singh',
+    };
+
+    const parsed = createDeliverySchema.safeParse(secAPayload);
     expect(parsed.success).toBe(true);
     if (!parsed.success) return;
-
     expect(parsed.data.unclassifiedDispatch?.smallBags).toBe(10);
     expect(parsed.data.unclassifiedDispatch?.bigBags).toBe(4);
+    expect(parsed.data.confirmedDispatch).toBeUndefined();
+  });
+
+  it('validates Section B outward delivery independently', () => {
+    const secBPayload = {
+      grnId: 'grn-0013',
+      date: new Date(),
+      confirmedDispatch: {
+        bagType: 'S/B' as const,
+        smallBags: 15,
+        bigBags: 15,
+        seasonalBagPrice: 110,
+        rentCharge: 3300,
+      },
+      rentCharge: 3300,
+      gpNumber: 'GP-0004',
+      vehicleNumber: 'UP32AA1111',
+      driverName: 'Ramesh Singh',
+    };
+
+    const parsed = createDeliverySchema.safeParse(secBPayload);
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
     expect(parsed.data.confirmedDispatch?.smallBags).toBe(15);
     expect(parsed.data.confirmedDispatch?.bigBags).toBe(15);
+    expect(parsed.data.unclassifiedDispatch).toBeUndefined();
   });
 
   it('validates dual-section outward challan persistence schema', () => {

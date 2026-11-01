@@ -3,6 +3,7 @@ import {
   type ExtensionPeriod,
 } from './rent-extension.js';
 import type { RentType } from './grn-rent.js';
+import { calculateHamaliAmount, deriveNetStorageRate } from './hamali.js';
 
 export interface SeasonalElapsedPeriod {
   key: string;
@@ -144,7 +145,7 @@ export function resolveSeasonalElapsedPeriods(
   return periods;
 }
 
-export function calculateOutwardSeasonalBreakdown(params: {
+export interface OutwardSeasonalBreakdownInput {
   inwardDate: Date | string;
   deliveryDate: Date | string;
   smallBags: number;
@@ -152,20 +153,50 @@ export function calculateOutwardSeasonalBreakdown(params: {
   seasonalRates: { small: number; big: number };
   monthlyRates: { small: number; big: number };
   excludePeriodKeys?: string[];
-}): {
+  hamaliRate?: number | null;
+  /**
+   * Whether seasonalRates passed in are gross inclusive rates that contain the hamali component.
+   * Defaults to true if hamaliRate is positive, ensuring net storage rates are derived.
+   */
+  isRatesInclusiveOfHamali?: boolean;
+}
+
+export interface OutwardSeasonalBreakdownResult {
   periods: OutwardPeriodRentBreakdown[];
+  /** Total Storage Rent (sum of all storage period amounts, without hamali) */
   totalRent: number;
-} {
+  /** Explicit alias for total storage rent */
+  storageRent: number;
+  /** One-time inward handling charge: (smallBags + bigBags) * hamaliRate */
+  hamaliAmount: number;
+  /** Grand total payable: storageRent + hamaliAmount */
+  totalAmount: number;
+}
+
+export function calculateOutwardSeasonalBreakdown(
+  params: OutwardSeasonalBreakdownInput,
+): OutwardSeasonalBreakdownResult {
   const elapsed = resolveSeasonalElapsedPeriods(params.inwardDate, params.deliveryDate);
   const periods: OutwardPeriodRentBreakdown[] = [];
   let totalRent = 0;
+
+  const hasHamali = typeof params.hamaliRate === 'number' && Number.isFinite(params.hamaliRate) && params.hamaliRate > 0;
+  const isInclusive = params.isRatesInclusiveOfHamali ?? hasHamali;
+
+  // Deriving seasonal net storage rates (Option A Path 2)
+  const seasonalSmall = isInclusive && hasHamali
+    ? deriveNetStorageRate(params.seasonalRates.small, params.hamaliRate)
+    : params.seasonalRates.small;
+  const seasonalBig = isInclusive && hasHamali
+    ? deriveNetStorageRate(params.seasonalRates.big, params.hamaliRate)
+    : params.seasonalRates.big;
 
   for (const p of elapsed) {
     if (params.excludePeriodKeys?.includes(p.key)) continue;
 
     const isSeason = p.period === 'SEASON';
-    const sRate = isSeason ? params.seasonalRates.small : params.monthlyRates.small;
-    const bRate = isSeason ? params.seasonalRates.big : params.monthlyRates.big;
+    const sRate = isSeason ? seasonalSmall : params.monthlyRates.small;
+    const bRate = isSeason ? seasonalBig : params.monthlyRates.big;
     const amount = Number((params.smallBags * sRate + params.bigBags * bRate).toFixed(2));
     totalRent += amount;
 
@@ -181,9 +212,17 @@ export function calculateOutwardSeasonalBreakdown(params: {
     });
   }
 
+  const roundedStorageRent = Number(totalRent.toFixed(2));
+  const totalBags = params.smallBags + params.bigBags;
+  const hamaliAmount = hasHamali ? calculateHamaliAmount(totalBags, params.hamaliRate) : 0;
+  const totalAmount = Number((roundedStorageRent + hamaliAmount).toFixed(2));
+
   return {
     periods,
-    totalRent: Number(totalRent.toFixed(2)),
+    totalRent: roundedStorageRent,
+    storageRent: roundedStorageRent,
+    hamaliAmount,
+    totalAmount,
   };
 }
 

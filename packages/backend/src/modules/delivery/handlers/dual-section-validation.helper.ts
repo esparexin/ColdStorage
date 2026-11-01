@@ -90,6 +90,10 @@ export function validateDualSectionDispatch(
   pools: MergedStockPools,
 ): { totalSmall: number; totalBig: number; totalWithdrawn: number; isHybridCombined: boolean } {
   const { unclassifiedDispatch: u, confirmedDispatch: c } = input;
+  if (u && c) {
+    throw new Error('Section A and Section B cannot be dispatched simultaneously in one delivery transaction.');
+  }
+
   let uQty = 0;
   let uSmall = 0;
   let uBig = 0;
@@ -163,9 +167,9 @@ export function validateDualSectionDispatch(
   }
 
   return {
-    totalSmall: uSmall + cSmall,
-    totalBig: uBig + cBig,
+    totalSmall: u ? uSmall : cSmall,
+    totalBig: u ? uBig : cBig,
     totalWithdrawn,
-    isHybridCombined: (u ? isUHybrid : true) && (c ? isCHybrid : true) && Boolean(u || c),
+    isHybridCombined: u ? isUHybrid : isCHybrid,
   };
 }

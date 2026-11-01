@@ -9,7 +9,6 @@ import { clearWithdrawalCounts, resolveValidationStock } from './eligibleGrn.hel
 import { buildDeliveryPayload } from './deliveryPayload.helper';
 import { computeOutwardRentCharge, resolveOutwardBillableMonths } from './deliveryRent.helper';
 import { submitDeliveryRequest } from './deliverySubmit.helper';
-import { useDualSectionDelivery } from './useDualSectionDelivery';
 import type { GrnWithdrawal } from '../types';
 
 export function useCreateDeliveryForm(
@@ -123,19 +122,16 @@ export function useCreateDeliveryForm(
   const billableRentMonths = resolveOutwardBillableMonths({
     rentType: selectedGrn?.rentType ?? 'Seasonal', inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal, rentMonths: selectedGrn?.rentMonths,
   });
-  const dualSection = useDualSectionDelivery({
-    facilityId, selectedGrn, rentSummary: rentGate.rentSummary, createDate: deliveryDateVal, billableRentMonths, seasonalCommodityRates, monthlyCommodityRates,
-  });
 
   const isHybrid = isHybridBagCategory(bagCategory);
   const smallBags = typeof withdrawal.smallBags === 'number' ? withdrawal.smallBags : 0; const bigBags = typeof withdrawal.bigBags === 'number' ? withdrawal.bigBags : 0;
   const hybridQty = typeof withdrawal.quantity === 'number' ? withdrawal.quantity : 0;
-  const totalWithdrawingBags = dualSection.isDualSection ? dualSection.totalWithdrawingBags : (isHybrid ? hybridQty : smallBags + bigBags);
+  const totalWithdrawingBags = isHybrid ? hybridQty : smallBags + bigBags;
 
   const rateVisibility = deriveHybridRateVisibility({ rentType: selectedGrn?.rentType ?? 'Seasonal', inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal });
   const excludePeriodKeys = useMemo(() => toExcludedPeriodKeys(rentGate.rentSummary?.extensions ?? []), [rentGate.rentSummary?.extensions]);
 
-  const standardOutwardRent = computeOutwardRentCharge({
+  const outwardRent = computeOutwardRentCharge({
     rentType: selectedGrn?.rentType ?? 'Seasonal', bagCategory, smallBags: isHybrid ? 0 : smallBags, bigBags: isHybrid ? 0 : bigBags, quantity: isHybrid ? hybridQty : undefined,
     manualBagPrice: isHybrid && typeof manualBagPrice === 'number' ? manualBagPrice : undefined,
     seasonalBagPrice: isHybrid && typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
@@ -144,8 +140,8 @@ export function useCreateDeliveryForm(
     smallBagPrice: selectedGrn?.smallBagPrice ?? (selectedGrn?.rentType === 'Monthly' ? monthlyCommodityRates?.small : seasonalCommodityRates?.small),
     bigBagPrice: selectedGrn?.bigBagPrice ?? (selectedGrn?.rentType === 'Monthly' ? monthlyCommodityRates?.big : seasonalCommodityRates?.big),
     bagPrice: selectedGrn?.bagPrice, monthlySmallBagPrice: monthlyCommodityRates?.small, monthlyBigBagPrice: monthlyCommodityRates?.big, excludePeriodKeys,
+    hamaliRate: selectedGrn?.hamaliRate ?? hamaliRate,
   });
-  const outwardRent = dualSection.isDualSection ? dualSection.totalOutwardRent : standardOutwardRent;
 
   const handleBagCategoryChange = (cat: OutwardBagCategory) => {
     setBagCategory(cat); setWithdrawal((prev) => clearWithdrawalCounts(prev));
@@ -158,10 +154,6 @@ export function useCreateDeliveryForm(
   const setWithdrawalBigBags = (val: number | '') => { setWithdrawal((prev) => ({ ...prev, bigBags: val })); clearFieldError('bags'); clearFieldError('bigBags'); };
 
   const validateForm = (): boolean => {
-    if (dualSection.isDualSection) {
-      if (!dualSection.isDualSectionValid) { setModalError('Please resolve errors in Section A and Section B allocations'); return false; }
-      return true;
-    }
     const isSeg = (grnSummary?.availableSmallBags ?? 0) > 0 && (grnSummary?.availableBigBags ?? 0) > 0;
     const totalAvail = (grnSummary?.availableSmallBags ?? 0) + (grnSummary?.availableBigBags ?? 0);
     const isUnsegregatedSb = selectedGrn?.bagType === 'S/B' && !selectedGrn?.isCompositionVerified;
@@ -188,26 +180,13 @@ export function useCreateDeliveryForm(
     setSubmitting(true); setModalError(null); setFieldErrors({});
 
     try {
-      let payloadInput;
-      if (dualSection.isDualSection) {
-        const { unclassifiedDispatch, confirmedDispatch } = dualSection.buildAllocations();
-        payloadInput = {
-          grnId: createGrnId, createDate,
-          smallBags: (unclassifiedDispatch?.smallBags ?? 0) + (confirmedDispatch?.smallBags ?? 0),
-          bigBags: (unclassifiedDispatch?.bigBags ?? 0) + (confirmedDispatch?.bigBags ?? 0),
-          quantity: dualSection.totalWithdrawingBags, bagType: 'S/B' as const, bagCategory: 'S/B' as const,
-          rentCharge: outwardRent, unclassifiedDispatch, confirmedDispatch,
-          createVehicleNumber, createDriverName, createWeight, createGpNumber, createRemarks, idempotencyKey,
-        };
-      } else {
-        payloadInput = {
-          grnId: createGrnId, createDate, smallBags: isHybrid ? 0 : smallBags, bigBags: isHybrid ? 0 : bigBags, quantity: isHybrid ? hybridQty : undefined,
-          bagCategory, bagType: isHybrid ? 'Hybrid' as const : 'S/B' as const, bagPrice: isHybrid && typeof manualBagPrice === 'number' ? manualBagPrice : undefined,
-          seasonalBagPrice: isHybrid && typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
-          monthlyBagPrice: isHybrid && typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,
-          rentCharge: outwardRent, createVehicleNumber, createDriverName, createWeight, createGpNumber, createRemarks, idempotencyKey,
-        };
-      }
+      const payloadInput = {
+        grnId: createGrnId, createDate, smallBags: isHybrid ? 0 : smallBags, bigBags: isHybrid ? 0 : bigBags, quantity: isHybrid ? hybridQty : undefined,
+        bagCategory, bagType: isHybrid ? ('Hybrid' as const) : ('S/B' as const), bagPrice: isHybrid && typeof manualBagPrice === 'number' ? manualBagPrice : undefined,
+        seasonalBagPrice: isHybrid && typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
+        monthlyBagPrice: isHybrid && typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,
+        rentCharge: outwardRent, createVehicleNumber, createDriverName, createWeight, createGpNumber, createRemarks, idempotencyKey,
+      };
       const responseData = await submitDeliveryRequest(facilityId, buildDeliveryPayload(payloadInput));
       setIdempotencyKey(`del-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
       onSuccess(responseData.delivery, responseData.summary);
@@ -227,7 +206,7 @@ export function useCreateDeliveryForm(
   );
   const isFormValid = Boolean(
     selectedGrn && createDate.trim() && createVehicleNumber.trim() && createGpNumber.trim() && createDriverName.trim() &&
-    !isLoanHoldActive && !submitting && (dualSection.isDualSection ? dualSection.isDualSectionValid : (totalWithdrawingBags > 0 && totalWithdrawingBags <= availableStock && perSideValid && hasValidPrice)),
+    !isLoanHoldActive && !submitting && totalWithdrawingBags > 0 && totalWithdrawingBags <= availableStock && perSideValid && hasValidPrice,
   );
 
   return {
@@ -244,6 +223,6 @@ export function useCreateDeliveryForm(
     createRemarks, setCreateRemarks, modalError, fieldErrors, clearFieldError, submitting, hamaliRate, totalWithdrawingBags,
     fetchAvailableGrns, handleSelectGrn, handleSubmit, validateForm, selectedGrn, isLoanHoldActive, billableRentMonths,
     seasonalCommodityRates, monthlyCommodityRates, isFormValid, rentSummary: rentGate.rentSummary, rentLoading: rentGate.rentLoading,
-    refreshRentGate: rentGate.refreshRentGate, dualSection,
+    refreshRentGate: rentGate.refreshRentGate,
   };
 }

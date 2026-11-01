@@ -13,6 +13,7 @@ export interface ComputeDualSectionRentParams {
     smallBagPrice?: number | null;
     bigBagPrice?: number | null;
     bagPrice?: number | null;
+    hamaliRate?: number | null;
   };
   deliveryDate: Date;
   input: CreateDeliveryInput;
@@ -77,7 +78,7 @@ export async function computeDualSectionRent(
     }
   }
 
-  const expectedRentCharge = Number((unclassifiedRent + confirmedRent).toFixed(2));
+  const expectedRentCharge = input.unclassifiedDispatch ? unclassifiedRent : confirmedRent;
   return {
     expectedRentCharge,
     unclassifiedRent,

@@ -35,6 +35,7 @@ export async function resolveDeliveryPlan(params: {
     smallBagPrice?: number | null;
     bigBagPrice?: number | null;
     bagPrice?: number | null;
+    hamaliRate?: number | null;
     bags: number;
     customerName: string;
     remarks?: string | null;

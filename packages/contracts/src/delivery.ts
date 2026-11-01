@@ -104,6 +104,13 @@ export const createDeliverySchema = z
     confirmedDispatch: confirmedDispatchAllocationSchema.nullish(),
   })
   .refine(
+    (data) => !(data.unclassifiedDispatch && data.confirmedDispatch),
+    {
+      message: 'Section A and Section B cannot be dispatched simultaneously in one delivery transaction.',
+      path: ['confirmedDispatch'],
+    },
+  )
+  .refine(
     (data) => {
       const uCount = data.unclassifiedDispatch
         ? (data.unclassifiedDispatch.quantity ?? ((data.unclassifiedDispatch.smallBags ?? 0) + (data.unclassifiedDispatch.bigBags ?? 0)))
