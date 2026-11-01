@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { type BagType, isHybridBagCategory, canCalculateAuthoritativeRent } from './bags.js';
 import type { RentType } from './grn-rent.js';
+import { calculateHamaliAmount } from './hamali.js';
 
 /**
  * Bag Price & Rental Calculation SSOT.
@@ -109,6 +110,34 @@ export function calculateRentAmount(input: RentalCalculationInput): number {
 /** Seasonal renewal under the same GRN: Applicable Bags × Seasonal Rate. */
 export function calculateSeasonalRenewal(input: RentalCalculationInput): number {
   return calculateRentAmount({ ...input, rentType: 'Seasonal' });
+}
+
+/**
+ * Calculates net storage rent commitment and inward hamali separation (Option A Path 2).
+ *
+ * For Seasonal and Seasonal_3M rent types:
+ * - Gross Commitment = calculateRentAmount(input) (e.g. ₹2,580 for 10 Small + 8 Big)
+ * - Inward Hamali Component = calculateHamaliAmount(bags, hamaliRate) (e.g. 18 * ₹25 = ₹450)
+ * - Net Storage Rent = max(0, grossRent - hamaliAmount) (e.g. ₹2,130)
+ *
+ * For Monthly rent types:
+ * - Pure storage rent: hamali is never deducted from monthly rates.
+ */
+export function calculateNetRentAmount(
+  input: RentalCalculationInput,
+  hamaliRate?: number | null,
+): { grossRent: number; netStorageRent: number; hamaliAmount: number } {
+  const grossRent = calculateRentAmount(input);
+  const isSeasonal = input.rentType === 'Seasonal' || input.rentType === 'Seasonal_3M';
+  const totalBags = input.bags > 0 ? input.bags : (input.smallBags ?? 0) + (input.bigBags ?? 0);
+  const hasHamali = typeof hamaliRate === 'number' && Number.isFinite(hamaliRate) && hamaliRate > 0;
+  const hamali = isSeasonal && hasHamali ? calculateHamaliAmount(totalBags, hamaliRate) : 0;
+  const netStorageRent = isSeasonal ? Number(Math.max(0, grossRent - hamali).toFixed(2)) : grossRent;
+  return {
+    grossRent,
+    netStorageRent,
+    hamaliAmount: isSeasonal ? Math.min(grossRent, hamali) : 0,
+  };
 }
 
 /** Derives the effective per-bag rate from an obligation. */
