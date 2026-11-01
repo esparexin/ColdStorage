@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { DollarSign, ShieldCheck } from 'lucide-react';
+import { DollarSign } from 'lucide-react';
 import {
   calculateHamaliAmount,
   seasonYearForInwardDate,
@@ -33,7 +33,7 @@ export interface MergeStep3SettlementProps {
 }
 
 export function MergeStep3Settlement({
-  totalSourcePendingRent,
+  totalSourcePendingRent: _totalSourcePendingRent,
   targetGrn,
   targetConfirmation,
   selectedSources,
@@ -57,33 +57,9 @@ export function MergeStep3Settlement({
             <DollarSign size={14} aria-hidden="true" />
             <span>Step 3: Rent Settlement</span>
           </span>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary-text)', fontWeight: 'var(--font-bold)' }}>
-            {totalSourcePendingRent > 0
-              ? `Consolidated Outstanding: ₹${totalSourcePendingRent.toLocaleString('en-IN')}`
-              : 'All Historical Obligations Settled (₹0 Due)'}
-          </span>
         </div>
 
-        {totalSourcePendingRent > 0 ? (
-          <div className={`${styles.decisionCard} ${styles.decisionCardSelected}`}>
-            <div className={styles.decisionHeader}>
-              <span className={styles.decisionTitle}>
-                <ShieldCheck size={16} aria-hidden="true" style={{ color: 'var(--color-primary)' }} />
-                <span>Pay Later · Separate Pending Bills</span>
-              </span>
-              <Badge variant="neutral">AGREED_PENDING</Badge>
-            </div>
-            <div className={styles.decisionDesc}>
-              Total pending rent of ₹{totalSourcePendingRent.toLocaleString('en-IN')} across source GRNs will be carried forward under AGREED_PENDING terms as separate collectible bills. Dues must be cleared prior to outward delivery of Destination GRN #{targetGrn.grnNumber}.
-            </div>
-          </div>
-        ) : (
-          <div className={styles.noticeBox} style={{ color: 'var(--color-success-text)', borderColor: 'var(--color-success)' }}>
-            ✓ All source GRN obligations are fully settled. No pending balance carried forward.
-          </div>
-        )}
-
-        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontStyle: 'italic', marginTop: 'var(--space-1)' }}>
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
           Destination GRN #{targetGrn.grnNumber} retains its active subscription (Season {targetSeason}) without recalculating historical destination rent.
         </div>
       </div>

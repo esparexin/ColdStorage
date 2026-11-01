@@ -73,7 +73,7 @@ describe('mergeRentObligation.helper', () => {
     expect(res.totalCarried).toBe(10000 + 1500);
   });
 
-  it('marks isSettled true when outstanding balance is 0', () => {
+  it('marks isSettled true when outstanding balance is 0 and fully paid', () => {
     const settledGrn: Grn = {
       ...sampleGrn,
       rentPaymentStatus: 'Settled',
@@ -90,5 +90,61 @@ describe('mergeRentObligation.helper', () => {
     expect(res.isSettled).toBe(true);
     expect(res.outstandingBalance).toBe(0);
     expect(res.carriedRent).toBe(0);
+  });
+
+  it('does NOT mark unbilled GRN as settled when unbilled calculated obligation exists despite rentPaymentStatus Settled', () => {
+    // Unbilled GRNs can carry rentPaymentStatus: 'Settled' from initial computeRentBalance(0,0)
+    const unbilledGrn: Grn = {
+      ...sampleGrn,
+      rentAmount: 0,
+      rentPaymentStatus: 'Settled',
+      rentRemainingBalance: 0,
+    };
+
+    const res = deriveMergeRentAssessment({
+      source: unbilledGrn,
+      summary: {
+        grnId: 'grn-source-1',
+        grnNumber: 'GRN-0010',
+        totalDue: 0,
+        totalPaid: 0,
+        remainingBalance: 0,
+        paymentStatus: 'Settled',
+        rentAmount: 0,
+      } as unknown as RentSummaryDto,
+      repackMode: false,
+      commodityHamaliRate: 0,
+      calculatedRent: 3240,
+    });
+
+    expect(res.historicalObligation).toBe(3240);
+    expect(res.amountPaid).toBe(0);
+    expect(res.outstandingBalance).toBe(3240);
+    expect(res.isSettled).toBe(false);
+  });
+
+  it('evaluates fully paid GRN as settled when amountPaid equals totalDue', () => {
+    const fullyPaidSummary = {
+      grnId: 'grn-source-1',
+      grnNumber: 'GRN-0010',
+      totalDue: 5000,
+      totalPaid: 5000,
+      remainingBalance: 0,
+      paymentStatus: 'Settled',
+      rentAmount: 5000,
+    } as unknown as RentSummaryDto;
+
+    const res = deriveMergeRentAssessment({
+      source: sampleGrn,
+      summary: fullyPaidSummary,
+      repackMode: false,
+      commodityHamaliRate: 0,
+      calculatedRent: 5000,
+    });
+
+    expect(res.historicalObligation).toBe(5000);
+    expect(res.amountPaid).toBe(5000);
+    expect(res.outstandingBalance).toBe(0);
+    expect(res.isSettled).toBe(true);
   });
 });

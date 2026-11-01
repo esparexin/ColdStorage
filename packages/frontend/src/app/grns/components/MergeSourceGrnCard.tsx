@@ -74,6 +74,11 @@ export function MergeSourceGrnCard({
     [source, confirmation, movementDate, commodityHamaliRate, targetGrnDate, summary, commodity],
   );
 
+  const paid = summary?.totalPaid ?? 0;
+  const totalObligation = Math.max(summary?.totalDue ?? 0, rentCalc.totalAmountToPay);
+  const pendingDues = Math.max(0, totalObligation - paid);
+  const isSettled = totalObligation === 0 || (paid >= totalObligation && totalObligation > 0);
+
   return (
     <div className={styles.compactCard} id={`source-card-${source.id}`}>
       <div
@@ -122,10 +127,10 @@ export function MergeSourceGrnCard({
           >
             <Badge variant="neutral">{rentCalc.bagTypeLabel}</Badge>
             <Badge variant="neutral">{rentCalc.bagCountLabel}</Badge>
-            <Badge variant={source.rentPaymentStatus === 'Settled' || (summary && summary.remainingBalance === 0) ? 'success' : 'warning'}>
-              {source.rentPaymentStatus === 'Settled' || (summary && summary.remainingBalance === 0)
+            <Badge variant={isSettled ? 'success' : 'warning'}>
+              {isSettled
                 ? 'Rent Settled'
-                : `Rent Due: ₹${(summary?.remainingBalance ?? source.rentRemainingBalance ?? 0).toLocaleString('en-IN')}`}
+                : `Rent Due: ₹${pendingDues.toLocaleString('en-IN')}`}
             </Badge>
           </div>
         )}
@@ -227,15 +232,15 @@ export function MergeSourceGrnCard({
                 Source GRN Rent Ledger Status (Not Outwarded)
               </span>
               <span style={{ color: 'var(--color-text-muted)' }}>
-                {source.rentPaymentStatus === 'Settled' || (summary && summary.remainingBalance === 0)
+                {isSettled
                   ? 'All historical storage obligations are settled.'
                   : `Dues remain as an independent collectible bill under ${source.customerName || 'Customer'} in /rent.`}
               </span>
             </div>
-            <Badge variant={source.rentPaymentStatus === 'Settled' || (summary && summary.remainingBalance === 0) ? 'success' : 'warning'}>
-              {source.rentPaymentStatus === 'Settled' || (summary && summary.remainingBalance === 0)
+            <Badge variant={isSettled ? 'success' : 'warning'}>
+              {isSettled
                 ? 'Settled (₹0 Due)'
-                : `₹${(summary?.remainingBalance ?? source.rentRemainingBalance ?? 0).toLocaleString('en-IN')} Pending`}
+                : `₹${pendingDues.toLocaleString('en-IN')} Pending`}
             </Badge>
           </div>
         </div>
