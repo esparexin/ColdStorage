@@ -82,6 +82,23 @@ export function MergeStep2BagType({
   const targetPendingDues = Math.max(0, targetHamaliAmount - targetPaid);
   const isTargetSettled = targetPendingDues === 0;
 
+  const targetConfirmedSmall = typeof targetConfirmation?.smallBags === 'number'
+    ? targetConfirmation.smallBags
+    : (targetGrn.smallBags ?? targetCurrentRemaining);
+  const targetConfirmedBig = typeof targetConfirmation?.bigBags === 'number'
+    ? targetConfirmation.bigBags
+    : (targetGrn.bigBags ?? 0);
+
+  const confirmedClassificationLabel = isTargetConfirmed
+    ? isTargetHybrid
+      ? 'Confirmed: Hybrid'
+      : targetConfirmedSmall > 0 && targetConfirmedBig > 0
+        ? `Confirmed: S/B (${targetConfirmedSmall} Small, ${targetConfirmedBig} Big)`
+        : targetConfirmedSmall > 0
+          ? `Confirmed: Small (${targetConfirmedSmall} Bags)`
+          : `Confirmed: Big (${targetConfirmedBig} Bags)`
+    : targetDisplayType;
+
   const grandTotalRent = useMemo(
     () =>
       calculateMergeGrandTotal({
@@ -96,6 +113,13 @@ export function MergeStep2BagType({
     [selectedSources, sourceConfirmations, movementDate, commodityHamaliRate, targetGrnDate, sourceRentSummaries, commodities],
   );
 
+  const sourcePaid = useMemo(
+    () => selectedSources.reduce((sum, s) => sum + (sourceRentSummaries?.[s.id]?.totalPaid ?? 0), 0),
+    [selectedSources, sourceRentSummaries],
+  );
+  const grossCharges = grandTotalRent + targetHamaliAmount;
+  const netDue = Math.max(0, grossCharges - (targetPaid + sourcePaid));
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
       <div className={styles.compactCard}>
@@ -106,22 +130,15 @@ export function MergeStep2BagType({
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Badge variant="neutral">
-              Consolidated Pool: {totalConsolidatedBags} Bags ({participatingGrnCount} Participating GRNs)
+              Gross Consolidated Charges: ₹{grossCharges.toLocaleString('en-IN')}
             </Badge>
-            <Badge variant="neutral">
-              Target Hamali Charge: ₹{targetHamaliAmount.toLocaleString('en-IN')}
+            <Badge variant={netDue > 0 ? 'warning' : 'success'}>
+              Net Due: ₹{netDue.toLocaleString('en-IN')}
             </Badge>
-            {grandTotalRent > 0 ? (
-              <Badge variant="neutral">
-                Calculated Source Charges: ₹{grandTotalRent.toLocaleString('en-IN')}
-              </Badge>
-            ) : (
-              <Badge variant="neutral">Calculated Source Charges: ₹0</Badge>
-            )}
           </div>
         </div>
         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
-          {participatingGrnCount} participating GRN profiles: Destination GRN #{targetGrn.grnNumber} (Surviving) + {selectedSources.length} Source GRN{selectedSources.length === 1 ? '' : 's'} (Closing). Consolidated stock is {totalConsolidatedBags} bags ({targetCurrentRemaining} destination + {totalSourceBags} incoming).
+          Target Lot #{targetGrn.grnNumber} ({targetCurrentRemaining} bags) + {selectedSources.length} Source Lot{selectedSources.length === 1 ? '' : 's'} ({totalSourceBags} bags). Consolidated stock is {totalConsolidatedBags} bags.
         </div>
       </div>
 
@@ -138,7 +155,7 @@ export function MergeStep2BagType({
               <Badge variant="primary">Receiving Lot (Surviving)</Badge>
               <Badge variant="neutral">Season {targetSeason}</Badge>
               <Badge variant="neutral">{targetCurrentRemaining} Bags</Badge>
-              <Badge variant="neutral">Hamali Charge: ₹{targetHamaliAmount.toLocaleString('en-IN')}</Badge>
+              <Badge variant="neutral">Hamali Charge: ₹{targetHamaliAmount.toLocaleString('en-IN')} ({targetCurrentRemaining} bags @ ₹{commodityHamaliRate}/bag)</Badge>
               {!isTargetConfirmed && <Badge variant="warning">Awaiting Bag Confirmation</Badge>}
             </div>
           </div>
@@ -153,8 +170,12 @@ export function MergeStep2BagType({
               <span style={{ fontWeight: 'var(--font-medium)' }}>{targetGrn.commodityName} (Ch. {targetGrn.chamber})</span>
             </div>
             <div>
-              <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>{targetGrn.isCompositionVerified ? 'Confirmed Bag Type' : 'Bag Classification'}</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}><Badge variant={targetGrn.isCompositionVerified ? 'neutral' : 'warning'}>{targetDisplayType}</Badge></span>
+              <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>Bag Classification</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                <Badge variant={isTargetConfirmed ? 'success' : 'warning'}>
+                  {confirmedClassificationLabel}
+                </Badge>
+              </span>
             </div>
             <div>
               <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>Current Existing Stock</span>

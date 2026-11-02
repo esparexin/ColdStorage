@@ -117,16 +117,12 @@ export function MergeSourceGrnCard({
           </span>
           <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
           <Badge variant="primary">{sourceBags} Bags</Badge>
-          <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-          <Badge variant="neutral">Hamali Charge: ₹{sourceHamali.toLocaleString('en-IN')}</Badge>
-          <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-          <Badge variant={isConfirmed ? (isSettled ? 'success' : 'neutral') : 'neutral'}>
-            {!isConfirmed
-              ? 'Awaiting Bag Confirmation'
-              : isSettled
-                ? 'Charges Settled (₹0 Due)'
-                : `Calculated Charges: ₹${rentCalc.totalAmountToPay.toLocaleString('en-IN')}`}
-          </Badge>
+          {!isConfirmed && (
+            <>
+              <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
+              <Badge variant="warning">Awaiting Bag Confirmation</Badge>
+            </>
+          )}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
