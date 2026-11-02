@@ -2,50 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   formatRepackComposition,
   formatRepackHamali,
-  formatRepackVariance,
 } from '../mergeConfirmSummary.helper';
 
 describe('mergeConfirmSummary.helper', () => {
-  describe('formatRepackVariance', () => {
-    it('returns direct consolidation when repackMode is false', () => {
-      const result = formatRepackVariance(false, 100, 100);
-      expect(result.text).toBe('No Physical Repack (Direct Consolidation)');
-      expect(result.isVariance).toBe(false);
-      expect(result.isLoss).toBe(false);
-    });
-
-    it('returns exact match when actual repacked bags equals total source bags', () => {
-      const result = formatRepackVariance(true, 100, 100);
-      expect(result.text).toBe('0 Bags (Exact match)');
-      expect(result.isVariance).toBe(false);
-      expect(result.isLoss).toBe(false);
-    });
-
-    it('identifies gain/smaller packaging when actual repacked bags exceeds source bags', () => {
-      const result = formatRepackVariance(true, 120, 100);
-      expect(result.text).toBe('+20 Bags (Gain / Smaller Packaging)');
-      expect(result.isVariance).toBe(true);
-      expect(result.isLoss).toBe(false);
-    });
-
-    it('identifies shrinkage/loss when actual repacked bags is less than source bags', () => {
-      const result = formatRepackVariance(true, 85, 100);
-      expect(result.text).toBe('-15 Bags (Shrinkage / Loss)');
-      expect(result.isVariance).toBe(true);
-      expect(result.isLoss).toBe(true);
-    });
-
-    it('measures variance against totalConsolidatedBags when provided', () => {
-      const exact = formatRepackVariance(true, 38, 30, 38);
-      expect(exact.text).toBe('0 Bags (Exact match)');
-      expect(exact.isVariance).toBe(false);
-
-      const variance = formatRepackVariance(true, 36, 30, 38);
-      expect(variance.text).toBe('-2 Bags (Shrinkage / Loss)');
-      expect(variance.isLoss).toBe(true);
-    });
-  });
-
   describe('formatRepackComposition', () => {
     it('formats non-repack mode as consolidated pool', () => {
       expect(formatRepackComposition(false, 'S/B', '', '', 0, 150)).toBe('150 Bags (Consolidated Pool)');

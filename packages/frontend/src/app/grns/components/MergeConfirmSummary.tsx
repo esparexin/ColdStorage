@@ -5,7 +5,6 @@ import type { OperationalBagType } from '@cold-storage/contracts';
 import {
   formatRepackComposition,
   formatRepackHamali,
-  formatRepackVariance,
 } from './mergeConfirmSummary.helper';
 import styles from './MergeConfirmSummary.module.css';
 
@@ -46,7 +45,6 @@ export function MergeConfirmSummary({
   totalSourcePendingRent,
   totalConsolidatedBags,
 }: MergeConfirmSummaryProps) {
-  const variance = formatRepackVariance(repackMode, actualRepackedBags, totalSourceBags, totalConsolidatedBags);
   const composition = formatRepackComposition(
     repackMode,
     repackBagType,
@@ -92,12 +90,6 @@ export function MergeConfirmSummary({
             <span className={styles.highlightValue}>{composition}</span>
           </div>
 
-          <div className={styles.item}>
-            <span className={styles.label}>Repack Net Variance</span>
-            <span className={variance.isLoss ? styles.warningValue : styles.value}>
-              {variance.text}
-            </span>
-          </div>
           <div className={styles.item}>
             <span className={styles.label}>Repacking Labor Hamali</span>
             <span className={styles.value}>{hamali}</span>

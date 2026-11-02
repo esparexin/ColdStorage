@@ -133,14 +133,6 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
             <span>Physical Repacked Total:</span>
             <strong style={{ color: 'var(--color-primary-text)' }}>{actualRepackedBags} Bags</strong>
           </div>
-          {actualRepackedBags > 0 && actualRepackedBags !== poolBags && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
-              <span>Repacking Net Variance:</span>
-              <strong style={{ color: actualRepackedBags < poolBags ? 'var(--color-warning-text)' : 'var(--color-primary-text)' }}>
-                {actualRepackedBags > poolBags ? `+${actualRepackedBags - poolBags}` : actualRepackedBags - poolBags} Bags {actualRepackedBags < poolBags ? '(Shrinkage / Loss)' : '(Smaller Packaging)'}
-              </strong>
-            </div>
-          )}
 
           {repackHamaliCharge > 0 && (
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>

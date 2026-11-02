@@ -1,50 +1,5 @@
 import type { OperationalBagType } from '@cold-storage/contracts';
 
-export interface RepackVarianceResult {
-  text: string;
-  isVariance: boolean;
-  isLoss: boolean;
-}
-
-export function formatRepackVariance(
-  repackMode: boolean,
-  actualRepackedBags: number,
-  totalSourceBags: number,
-  totalConsolidatedBags?: number,
-): RepackVarianceResult {
-  if (!repackMode) {
-    return {
-      text: 'No Physical Repack (Direct Consolidation)',
-      isVariance: false,
-      isLoss: false,
-    };
-  }
-
-  const baseBags = typeof totalConsolidatedBags === 'number' && totalConsolidatedBags > 0 ? totalConsolidatedBags : totalSourceBags;
-  const diff = actualRepackedBags - baseBags;
-  if (diff === 0) {
-    return {
-      text: '0 Bags (Exact match)',
-      isVariance: false,
-      isLoss: false,
-    };
-  }
-
-  if (diff > 0) {
-    return {
-      text: `+${diff} Bags (Gain / Smaller Packaging)`,
-      isVariance: true,
-      isLoss: false,
-    };
-  }
-
-  return {
-    text: `${diff} Bags (Shrinkage / Loss)`,
-    isVariance: true,
-    isLoss: true,
-  };
-}
-
 export function formatRepackComposition(
   repackMode: boolean,
   repackBagType: OperationalBagType,
