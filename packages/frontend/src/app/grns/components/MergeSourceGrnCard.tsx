@@ -149,12 +149,8 @@ export function MergeSourceGrnCard({
               <span>Rent Charge: <strong>₹{rentCalc.totalRent.toLocaleString('en-IN')}</strong></span>
               <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
               <span>Hamali Charge ({sourceBags} bags @ ₹{commodityHamaliRate}/bag): <strong>₹{rentCalc.hamaliAmount.toLocaleString('en-IN')}</strong></span>
-              {paid > 0 && (
-                <>
-                  <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-                  <span>Previously Paid: <strong>₹{paid.toLocaleString('en-IN')}</strong></span>
-                </>
-              )}
+              <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
+              <span>Total Calculated Charges: <strong>₹{rentCalc.totalAmountToPay.toLocaleString('en-IN')}</strong></span>
             </div>
           )}
 
