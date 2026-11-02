@@ -7,6 +7,7 @@ import { formatDisplayBagType, isHybridBagCategory, parseMergedConsignmentBreakd
 import { Badge, Button, Select } from '@/components/ui';
 import {
   parseMergedAddedBags,
+  parseMergedDate,
   parseMergedRepackedDetail,
   parseMergedSourceGrns,
 } from '../hooks/eligibleGrn.helper';
@@ -54,9 +55,7 @@ export function SelectedGrnCard({
     ? Array.from(new Set(breakdown.sources.map((s) => s.grnNumber))).join(', ')
     : parseMergedSourceGrns(grn.remarks);
   const repackedDetail = parseMergedRepackedDetail(grn.remarks);
-  const genesisInwardBags = breakdown
-    ? breakdown.genesisBags
-    : (isMergedConsignment && grn.bags > safeAddedBags ? grn.bags - safeAddedBags : grn.bags);
+  const mergedDate = breakdown?.mergeDate || parseMergedDate(grn.remarks);
   const displayBagType = formatDisplayBagType({
     bagType: grn.bagType,
     isHybrid,
@@ -73,6 +72,11 @@ export function SelectedGrnCard({
           <span className={styles.inwardDateBadge}>
             Inward: {formatGrnDate(grn.date)}
           </span>
+          {mergedDate && (
+            <Badge variant="primary">
+              Merged Inward(Repacked): {formatGrnDate(mergedDate)}
+            </Badge>
+          )}
           <Badge variant="neutral">{grn.rentType}</Badge>
           {mergedFrom && (
             <Badge variant="primary" icon={<GitMerge size={12} aria-hidden="true" />}>
@@ -116,38 +120,29 @@ export function SelectedGrnCard({
         {isMergedConsignment ? (
           <>
             <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Genesis Inward Bags</span>
-              <span className={styles.detailValue}>
-                {genesisInwardBags.toLocaleString('en-IN')} bags
-              </span>
-            </div>
-            <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>New Bags Added</span>
+              <span className={styles.detailLabel}>Confirmed Repacked Bags</span>
               <span
                 className={styles.detailValue}
                 style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}
               >
-                +{safeAddedBags.toLocaleString('en-IN')} repacked bags
-                {repackedDetail ? ` (${repackedDetail})` : ''}
+                {safeAddedBags.toLocaleString('en-IN')} bags
               </span>
             </div>
             <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Total Stock</span>
+              <span className={styles.detailLabel}>Confirmed Bag Types</span>
+              <span className={styles.detailValue}>
+                {repackedDetail ? repackedDetail.replace(',', ' +') : displayBagType}
+              </span>
+            </div>
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Total Available Stock</span>
               <strong
                 className={styles.detailValue}
                 style={{ color: 'var(--color-success-text)', fontSize: 'var(--text-sm)' }}
               >
-                {grn.bags.toLocaleString('en-IN')} bags
+                {availableBags.toLocaleString('en-IN')} bags
               </strong>
             </div>
-            {availableBags !== grn.bags && (
-              <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>Available Stock</span>
-                <strong className={styles.detailValue}>
-                  {availableBags.toLocaleString('en-IN')} bags
-                </strong>
-              </div>
-            )}
           </>
         ) : (
           <>
@@ -158,7 +153,7 @@ export function SelectedGrnCard({
               </span>
             </div>
             <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Available Stock</span>
+              <span className={styles.detailLabel}>Total Available Stock</span>
               <strong className={styles.detailValue}>
                 {availableBags.toLocaleString('en-IN')} bags
               </strong>

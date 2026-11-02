@@ -47,6 +47,7 @@ export const mergedConsignmentBreakdownSchema = z.object({
   repackedBagType: operationalBagTypeSchema.nullable().optional(),
   repackVariance: z.number().int().optional(),
   repackSourceBags: z.number().int().min(0).optional(),
+  mergeDate: z.string().optional(),
 });
 export type MergedConsignmentBreakdown = z.infer<typeof mergedConsignmentBreakdownSchema>;
 
@@ -62,6 +63,9 @@ export function parseMergedConsignmentBreakdown(
   if (!remarks || !remarks.includes('[MERGE RECEIVED')) {
     return null;
   }
+
+  const mergeDateMatch = remarks.match(/\[MERGE RECEIVED on (\d{4}-\d{2}-\d{2})/i);
+  const mergeDate = mergeDateMatch ? mergeDateMatch[1] : undefined;
 
   const addedBagsMatch = remarks.match(/\+(\d+)\s+bags/);
   const totalMergedAddedBags = addedBagsMatch ? parseInt(addedBagsMatch[1], 10) : 0;
@@ -206,6 +210,7 @@ export function parseMergedConsignmentBreakdown(
 
   return {
     isMergedTarget: true,
+    mergeDate,
     totalMergedAddedBags,
     repackHamali,
     totalCarriedRent,

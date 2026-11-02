@@ -40,9 +40,9 @@ export function resolveSeasonalElapsedPeriods(
 ): SeasonalElapsedPeriod[] {
   const inD = new Date(inwardDate);
   const delD = new Date(deliveryDate);
-  if (isNaN(inD.getTime()) || isNaN(delD.getTime()) || delD < inD) {
-    return [];
-  }
+  if (isNaN(inD.getTime()) || isNaN(delD.getTime())) return [];
+  const toDay = (v: Date | string) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : new Date(v).toISOString().slice(0, 10));
+  if (toDay(deliveryDate) < toDay(inwardDate)) return [];
 
   const periods: SeasonalElapsedPeriod[] = [];
   const inYear = inD.getFullYear();
