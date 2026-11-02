@@ -179,6 +179,15 @@ export function useInternalMovementMergeTab({
 
   const handleProceedToStep4 = () => {
     setValidationError(null);
+    if (repackSmall === '' && repackBig === '') {
+      const tS = typeof targetConfirmation?.smallBags === 'number' ? targetConfirmation.smallBags : (targetGrn.smallBags ?? 0);
+      const tB = typeof targetConfirmation?.bigBags === 'number' ? targetConfirmation.bigBags : (targetGrn.bigBags ?? 0);
+      const sS = selectedSources.reduce((sum, s) => sum + (typeof sourceConfirmations[s.id]?.smallBags === 'number' ? (sourceConfirmations[s.id].smallBags as number) : (s.smallBags ?? 0)), 0);
+      const sB = selectedSources.reduce((sum, s) => sum + (typeof sourceConfirmations[s.id]?.bigBags === 'number' ? (sourceConfirmations[s.id].bigBags as number) : (s.bigBags ?? 0)), 0);
+      repack.setRepackSmall(tS + sS);
+      repack.setRepackBig(tB + sB);
+      repack.setRepackQuantity(targetCurrentRemaining + totalSourceBags);
+    }
     setStep(4);
   };
 

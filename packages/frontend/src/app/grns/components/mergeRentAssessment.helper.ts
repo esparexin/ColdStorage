@@ -82,8 +82,9 @@ export function calculateMergeSourceRentSummary(params: {
 
   const targetSeason = targetGrnDate ? seasonYearForInwardDate(targetGrnDate) : null;
   const sourceSeason = source.date ? seasonYearForInwardDate(source.date) : null;
+  const isPriorYear = Boolean(source.date && targetGrnDate && new Date(source.date).getFullYear() < new Date(targetGrnDate).getFullYear());
   const excludePeriodKeys: string[] = [];
-  if (targetSeason !== null && sourceSeason !== null && targetSeason > sourceSeason && source.date) {
+  if (targetSeason !== null && sourceSeason !== null && targetSeason > sourceSeason && isPriorYear && source.date) {
     const elapsed = resolveSeasonalElapsedPeriods(source.date, movementDate);
     for (const p of elapsed) {
       if (p.period === 'SEASON' && p.seasonYear >= targetSeason) {

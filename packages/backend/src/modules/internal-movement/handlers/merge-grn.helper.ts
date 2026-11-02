@@ -58,7 +58,7 @@ export async function resolveSourceRentObligation(
     rentExtensionRepository.findExtensionsByGrn(facilityId, sourceGrn.id, session),
   ]);
   const excludedKeys = toExcludedPeriodKeys(extensions);
-  if (targetSeason > sourceSeason) {
+  if (targetSeason > sourceSeason && new Date(sourceGrn.date).getFullYear() < new Date(targetGrnDate).getFullYear()) {
     const elapsed = resolveSeasonalElapsedPeriods(sourceGrn.date, movementDate);
     for (const p of elapsed) {
       if (p.period === 'SEASON' && p.seasonYear >= targetSeason) {

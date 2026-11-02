@@ -103,7 +103,13 @@ export function MergeStep3Settlement({
           const tPaid = tSummary?.totalPaid ?? 0;
           const tDueNow = Math.max(0, tHamali - tPaid);
           const isSettled = tDueNow === 0;
-          const targetRentAmount = tCalc.totalRent > 0 ? tCalc.totalRent : targetGrn.rentAmount;
+          const { seasonalRates: tRates } = resolveTransferRates(targetGrn, targetCommodity);
+          const tSmall = typeof targetConfirmation?.smallBags === 'number' ? targetConfirmation.smallBags : (targetGrn.smallBags ?? tBags);
+          const tBig = typeof targetConfirmation?.bigBags === 'number' ? targetConfirmation.bigBags : (targetGrn.bigBags ?? 0);
+          const netSmallRate = Math.max(0, tRates.small - commodityHamaliRate);
+          const netBigRate = Math.max(0, tRates.big - commodityHamaliRate);
+          const liveTargetRent = Math.max(0, tSmall * netSmallRate + tBig * netBigRate);
+          const targetRentAmount = tCalc.totalRent > 0 ? tCalc.totalRent : (liveTargetRent > 0 ? liveTargetRent : targetGrn.rentAmount);
 
           return (
             <div className={styles.compactCard} style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
