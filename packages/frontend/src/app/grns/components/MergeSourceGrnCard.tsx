@@ -74,6 +74,11 @@ export function MergeSourceGrnCard({
     [source, confirmation, movementDate, commodityHamaliRate, targetGrnDate, summary, commodity],
   );
 
+  const paid = summary?.totalPaid ?? 0;
+  const totalObligation = Math.max(summary?.totalDue ?? 0, rentCalc.totalAmountToPay);
+  const pendingDues = Math.max(0, totalObligation - paid);
+  const isSettled = totalObligation === 0 || (paid >= totalObligation && totalObligation > 0);
+
   return (
     <div className={styles.compactCard} id={`source-card-${source.id}`}>
       <div
@@ -81,7 +86,7 @@ export function MergeSourceGrnCard({
         style={{ cursor: 'pointer', userSelect: 'none', flexWrap: 'wrap', gap: '8px' }}
         onClick={() => setIsCardExpanded((prev) => !prev)}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <Button
             type="button"
             variant="ghost"
@@ -102,39 +107,20 @@ export function MergeSourceGrnCard({
           <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>
             GRN #{source.grnNumber}
           </span>
-          {source.customerName && (
-            <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)', fontWeight: 'normal' }}>
-              — {source.customerName}
-            </span>
-          )}
+          <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
+          <span style={{ fontWeight: 'var(--font-semibold)', textTransform: 'uppercase', color: 'var(--color-text-primary)', fontSize: 'var(--text-xs)' }}>
+            {source.customerName || 'CUSTOMER'}
+          </span>
+          <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
+          <Badge variant="primary">{sourceBags} Bags</Badge>
+          <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
+          <Badge variant={isSettled ? 'success' : 'warning'}>
+            {isSettled ? 'Rent Settled (₹0 Due)' : `₹${pendingDues.toLocaleString('en-IN')} Pending`}
+          </Badge>
         </div>
-
-        {!isCardExpanded && (
-          <div
-            id={`source-grn-summary-${source.id}`}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              textTransform: 'none',
-              letterSpacing: 'normal',
-            }}
-          >
-            <Badge variant="neutral">{rentCalc.bagTypeLabel}</Badge>
-            <Badge variant="neutral">{rentCalc.bagCountLabel}</Badge>
-            <Badge variant={source.rentPaymentStatus === 'Settled' || (summary && summary.remainingBalance === 0) ? 'success' : 'warning'}>
-              {source.rentPaymentStatus === 'Settled' || (summary && summary.remainingBalance === 0)
-                ? 'Rent Settled'
-                : `Rent Due: ₹${(summary?.remainingBalance ?? source.rentRemainingBalance ?? 0).toLocaleString('en-IN')}`}
-            </Badge>
-          </div>
-        )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Badge variant="neutral">Season {seasonYearForInwardDate(source.date)}</Badge>
-          {isCardExpanded && (
-            <Badge variant="primary">{sourceBags} Bags</Badge>
-          )}
         </div>
       </div>
 
@@ -182,12 +168,10 @@ export function MergeSourceGrnCard({
                   style={{
                     fontSize: 'var(--text-xs)',
                     fontWeight: 'var(--font-bold)',
-                    textTransform: 'uppercase',
-                    color: 'var(--color-text-secondary)',
-                    letterSpacing: 'var(--tracking-label)',
+                    color: 'var(--color-text-primary)',
                   }}
                 >
-                  Bag Type Configuration — GRN #{source.grnNumber}
+                  Bag Configuration
                 </span>
               </div>
               <Badge variant="neutral">Bag Confirmation</Badge>
@@ -207,36 +191,6 @@ export function MergeSourceGrnCard({
                 />
               </div>
             )}
-          </div>
-
-          {/* Section 2: Source GRN Rent Ledger Status (Not Outwarded) */}
-          <div
-            style={{
-              background: 'var(--color-surface-1)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-md)',
-              padding: 'var(--space-2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              fontSize: 'var(--text-xs)',
-            }}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span style={{ fontWeight: 'var(--font-medium)', color: 'var(--color-text-secondary)' }}>
-                Source GRN Rent Ledger Status (Not Outwarded)
-              </span>
-              <span style={{ color: 'var(--color-text-muted)' }}>
-                {source.rentPaymentStatus === 'Settled' || (summary && summary.remainingBalance === 0)
-                  ? 'All historical storage obligations are settled.'
-                  : `Dues remain as an independent collectible bill under ${source.customerName || 'Customer'} in /rent.`}
-              </span>
-            </div>
-            <Badge variant={source.rentPaymentStatus === 'Settled' || (summary && summary.remainingBalance === 0) ? 'success' : 'warning'}>
-              {source.rentPaymentStatus === 'Settled' || (summary && summary.remainingBalance === 0)
-                ? 'Settled (₹0 Due)'
-                : `₹${(summary?.remainingBalance ?? source.rentRemainingBalance ?? 0).toLocaleString('en-IN')} Pending`}
-            </Badge>
           </div>
         </div>
       )}

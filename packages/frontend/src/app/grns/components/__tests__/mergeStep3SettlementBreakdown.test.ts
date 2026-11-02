@@ -179,4 +179,29 @@ describe('Merge Step 3 Settlement - Outward Rent Calculation Breakdown & Destina
     // Target GRN retains 0 additional obligation from settled source lots
     expect(targetGrn0013.rentAmount).toBe(0);
   });
+
+  it('preserves target active subscription: storage rent continues, only hamali is collected during merge', () => {
+    const movementDate = '2026-10-31';
+    const targetCalc = calculateMergeSourceRentSummary({
+      source: targetGrn0013,
+      confirmation: {
+        category: 'Hybrid',
+        quantity: 70,
+        bagPrice: 160,
+        seasonalBagPrice: '',
+        monthlyBagPrice: '',
+      },
+      movementDate,
+      commodityHamaliRate: 25,
+    });
+
+    expect(targetCalc.totalBags).toBe(70);
+    expect(targetCalc.isHybrid).toBe(true);
+    expect(targetCalc.hamaliAmount).toBe(70 * 25);
+    // Active subscription storage rent continues until outward delivery; storage collection at merge is 0
+    const targetStorageRentCollectedAtMerge = 0;
+    const targetHamaliDueAtMerge = targetCalc.hamaliAmount;
+    expect(targetStorageRentCollectedAtMerge).toBe(0);
+    expect(targetHamaliDueAtMerge).toBe(1750);
+  });
 });

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { DollarSign, ShieldCheck } from 'lucide-react';
+import { DollarSign } from 'lucide-react';
 import {
   calculateHamaliAmount,
   seasonYearForInwardDate,
@@ -33,7 +33,7 @@ export interface MergeStep3SettlementProps {
 }
 
 export function MergeStep3Settlement({
-  totalSourcePendingRent,
+  totalSourcePendingRent: _totalSourcePendingRent,
   targetGrn,
   targetConfirmation,
   selectedSources,
@@ -57,40 +57,16 @@ export function MergeStep3Settlement({
             <DollarSign size={14} aria-hidden="true" />
             <span>Step 3: Rent Settlement</span>
           </span>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary-text)', fontWeight: 'var(--font-bold)' }}>
-            {totalSourcePendingRent > 0
-              ? `Consolidated Outstanding: ₹${totalSourcePendingRent.toLocaleString('en-IN')}`
-              : 'All Historical Obligations Settled (₹0 Due)'}
-          </span>
         </div>
 
-        {totalSourcePendingRent > 0 ? (
-          <div className={`${styles.decisionCard} ${styles.decisionCardSelected}`}>
-            <div className={styles.decisionHeader}>
-              <span className={styles.decisionTitle}>
-                <ShieldCheck size={16} aria-hidden="true" style={{ color: 'var(--color-primary)' }} />
-                <span>Pay Later · Separate Pending Bills</span>
-              </span>
-              <Badge variant="neutral">AGREED_PENDING</Badge>
-            </div>
-            <div className={styles.decisionDesc}>
-              Total pending rent of ₹{totalSourcePendingRent.toLocaleString('en-IN')} across source GRNs will be carried forward under AGREED_PENDING terms as separate collectible bills. Dues must be cleared prior to outward delivery of Destination GRN #{targetGrn.grnNumber}.
-            </div>
-          </div>
-        ) : (
-          <div className={styles.noticeBox} style={{ color: 'var(--color-success-text)', borderColor: 'var(--color-success)' }}>
-            ✓ All source GRN obligations are fully settled. No pending balance carried forward.
-          </div>
-        )}
-
-        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontStyle: 'italic', marginTop: 'var(--space-1)' }}>
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
           Destination GRN #{targetGrn.grnNumber} retains its active subscription (Season {targetSeason}) without recalculating historical destination rent.
         </div>
       </div>
 
       {/* Outward Rent Calculation Breakdown for Each Participating GRN Profile */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-        {/* Surviving Target GRN Profile */}
+        {/* Surviving Target GRN Profile (Active Subscription Preserved) */}
         {(() => {
           const targetCommodity = commodities?.find((c) => c.id === targetGrn.commodityId);
           const tSummary = sourceRentSummaries?.[targetGrn.id];
@@ -195,24 +171,42 @@ export function MergeStep3Settlement({
                 gap: 'var(--space-2)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                  paddingBottom: 'var(--space-1-5)',
+                  borderBottom: '1px solid var(--color-border)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>
                     Source GRN #{source.grnNumber}
                   </span>
-                  {source.customerName && (
-                    <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
-                      — {source.customerName}
-                    </span>
-                  )}
+                  <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
+                  <span style={{ fontWeight: 'var(--font-medium)', color: 'var(--color-text-primary)', fontSize: 'var(--text-xs)' }}>
+                    {source.customerName || 'CUSTOMER'}
+                  </span>
+                  <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
                   <Badge variant="neutral">Season {seasonYearForInwardDate(source.date)}</Badge>
+                  <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
+                  <Badge variant={isSettled ? 'success' : 'warning'}>
+                    {isSettled ? 'Settled (₹0 Due)' : `₹${pendingDues.toLocaleString('en-IN')} Pending`}
+                  </Badge>
                 </div>
-                <Badge variant={isSettled ? 'success' : 'warning'}>
-                  {isSettled ? 'Settled (₹0 Due)' : `₹${pendingDues.toLocaleString('en-IN')} Pending`}
-                </Badge>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-text-secondary)' }}>
+                    Outward Rent Calculation ({source.rentType})
+                  </span>
+                </div>
               </div>
 
               <OutwardRentBreakdown
+                hideHeader
                 rentType={source.rentType}
                 inwardDate={source.date}
                 deliveryDate={movementDate}

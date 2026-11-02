@@ -101,6 +101,10 @@ export function useInternalMovementMergeTab({
   const isTargetLoanHold = targetGrn.loanStatus === 'TAKEN';
 
   useEffect(() => {
+    repack.setDestinationChamber(targetGrn.chamber || '');
+  }, [targetGrn.id, targetGrn.chamber]);
+
+  useEffect(() => {
     const effectiveFacilityId = facilityId ?? currentGrn.facilityId;
     if (!effectiveFacilityId) return;
     const allParticipating = [targetGrn, ...selectedSources];
@@ -133,13 +137,16 @@ export function useInternalMovementMergeTab({
   const { isTargetDiff, isRepackRequired, isRepackFilled, actualRepackedBags } =
     deriveRepackCompositionStatus({ targetGrn, selectedSources, repackMode, repackBagType, repackQuantity, repackSmall, repackBig });
 
-  const repackHamaliCharge = useMemo(
-    () => (repackMode && actualRepackedBags > 0 && commodityHamaliRate > 0 ? calculateHamaliAmount(actualRepackedBags, commodityHamaliRate) : 0),
-    [repackMode, actualRepackedBags, commodityHamaliRate],
-  );
+  const repackHamaliCharge = useMemo(() => {
+    if (!repackMode || actualRepackedBags <= 0 || commodityHamaliRate <= 0) return 0;
+    const hamaliBags = actualRepackedBags > totalSourceBags ? totalSourceBags : actualRepackedBags;
+    return calculateHamaliAmount(hamaliBags, commodityHamaliRate);
+  }, [repackMode, actualRepackedBags, totalSourceBags, commodityHamaliRate]);
 
+  const targetSmall = typeof targetConfirmation.smallBags === 'number' ? targetConfirmation.smallBags : (targetGrn.smallBags ?? 0);
+  const targetBig = typeof targetConfirmation.bigBags === 'number' ? targetConfirmation.bigBags : (targetGrn.bigBags ?? 0);
   const { movedSmall, movedBig, addedBagsToTarget, targetNewRemaining, effectiveIsHybrid } =
-    deriveMovedAndTargetBags({ selectedSources, sourceConfirmations, repackMode, repackBagType, isRepackFilled, repackSmall, repackBig, repackQuantity, totalSourceBags, targetCurrentRemaining, targetBagType: targetGrn.bagType, actualRepackedBags });
+    deriveMovedAndTargetBags({ selectedSources, sourceConfirmations, repackMode, repackBagType, isRepackFilled, repackSmall, repackBig, repackQuantity, totalSourceBags, targetCurrentRemaining, targetBagType: targetGrn.bagType, actualRepackedBags, targetSmall, targetBig });
 
   const resultingBagType = useMemo(() => resolveMergedBagType({
     targetBagType: targetGrn.bagType,
@@ -178,11 +185,13 @@ export function useInternalMovementMergeTab({
   const handleMergeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
-    const effectiveChamber = destinationChamber || targetGrn.chamber || '';
+    const effectiveChamber = destinationChamber.trim();
+    const totalConsolidatedBags = targetCurrentRemaining + totalSourceBags;
     const err = validateMergeSubmit({
       selectedSourceIds, reason, isTargetLoanHold, targetGrnNumber: targetGrn.grnNumber,
       destinationChamber: effectiveChamber, repackMode, repackBagType, isRepackFilled,
       repackSmall, repackBig, repackQuantity, repackBagPrice, repackSeasonalBagPrice, repackMonthlyBagPrice,
+      totalConsolidatedBags,
     });
     if (err) return setValidationError(err);
 

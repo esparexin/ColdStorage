@@ -20,6 +20,7 @@ export interface MergeStep4RepackSectionProps {
   repackHamaliCharge: number; actualRepackedBags: number; commodityHamaliRate: number;
   movementDate: string; targetSmallRate: number; targetBigRate: number; submitting: boolean;
   targetGrnRentType: RentType; targetGrnDate: Date | string;
+  totalConsolidatedBags?: number;
 }
 
 export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
@@ -32,7 +33,10 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
     totalSourceBags, referenceWeight, onReferenceWeightChange, repackHamaliCharge,
     actualRepackedBags, commodityHamaliRate, movementDate, targetSmallRate,
     targetBigRate, submitting, targetGrnRentType, targetGrnDate,
+    totalConsolidatedBags,
   } = props;
+
+  const poolBags = typeof totalConsolidatedBags === 'number' && totalConsolidatedBags > 0 ? totalConsolidatedBags : totalSourceBags;
 
   const visibility = deriveHybridRateVisibility({
     rentType: targetGrnRentType,
@@ -92,7 +96,7 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
             <>
               <div>
                 <label htmlFor="repack-hybrid-quantity-step4" className={styles.inputLabel}>Repacked Hybrid Bags *</label>
-                <Input id="repack-hybrid-quantity-step4" type="number" min={1} placeholder={`e.g. ${totalSourceBags}`} value={repackQuantity} rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Total: {totalSourceBags}</span>} onChange={(e) => onRepackQuantityChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} required />
+                <Input id="repack-hybrid-quantity-step4" type="number" min={1} placeholder={`e.g. ${poolBags}`} value={repackQuantity} rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Consolidated Pool: {poolBags}</span>} onChange={(e) => onRepackQuantityChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} required />
               </div>
 
               {(visibility.showSeasonalRate || visibility.showMonthlyRate) && (
@@ -122,21 +126,13 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
           )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
-            <span>Source Consolidated Pool:</span>
-            <strong>{totalSourceBags} Bags</strong>
+            <span>Consolidated Stock Pool:</span>
+            <strong>{poolBags} Bags</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
             <span>Physical Repacked Total:</span>
             <strong style={{ color: 'var(--color-primary-text)' }}>{actualRepackedBags} Bags</strong>
           </div>
-          {actualRepackedBags > 0 && actualRepackedBags !== totalSourceBags && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
-              <span>Repacking Net Variance:</span>
-              <strong style={{ color: actualRepackedBags < totalSourceBags ? 'var(--color-warning-text)' : 'var(--color-primary-text)' }}>
-                {actualRepackedBags > totalSourceBags ? `+${actualRepackedBags - totalSourceBags}` : actualRepackedBags - totalSourceBags} Bags {actualRepackedBags < totalSourceBags ? '(Shrinkage / Loss)' : '(Smaller Packaging)'}
-              </strong>
-            </div>
-          )}
 
           {repackHamaliCharge > 0 && (
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>

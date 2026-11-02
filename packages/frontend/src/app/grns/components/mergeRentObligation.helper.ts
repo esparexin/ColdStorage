@@ -50,11 +50,11 @@ export function deriveMergeRentAssessment(params: {
     ? summary.remainingBalance
     : source.rentRemainingBalance !== undefined && source.rentRemainingBalance > 0
       ? source.rentRemainingBalance
-      : source.rentPaymentStatus === 'Settled'
+      : source.rentPaymentStatus === 'Settled' && (!unbilledCalculatedObligation || amountPaid >= historicalObligation)
         ? 0
         : Math.max(0, historicalObligation - amountPaid);
 
-  const isSettled = outstandingBalance === 0;
+  const isSettled = outstandingBalance === 0 && (historicalObligation === 0 || amountPaid >= historicalObligation);
   const carriedRent = outstandingBalance;
 
   const repackHamali = repackMode && commodityHamaliRate > 0

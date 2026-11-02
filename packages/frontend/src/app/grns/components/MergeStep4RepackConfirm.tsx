@@ -2,14 +2,11 @@
 
 import React from 'react';
 import {
-  isHybridBagCategory,
   resolveOutwardRates,
   type Grn,
   type OperationalBagType,
-  type OutwardBagCategory,
-  type TransferPaymentDecision,
 } from '@cold-storage/contracts';
-import { Badge, Input } from '@/components/ui';
+import { Input } from '@/components/ui';
 import { WizardStepActions } from './WizardStepActions';
 import { MergeStep4RepackSection } from './MergeStep4RepackSection';
 import styles from './InternalMovementModal.module.css';
@@ -25,13 +22,11 @@ interface MergeStep4RepackConfirmProps {
   repackMonthlyBagPrice: number | ''; onRepackMonthlyBagPriceChange: (val: number | '') => void;
   repackBagPrice: number | ''; onRepackBagPriceChange: (val: number | '') => void;
   totalSourceBags: number; referenceWeight: number | ''; onReferenceWeightChange: (val: number | '') => void;
+  totalConsolidatedBags?: number;
   repackHamaliCharge: number; actualRepackedBags: number; commodityHamaliRate: number;
-  movementDate: string; targetGrn: Grn; targetCurrentRemaining: number;
-  addedBagsToTarget: number; isRepackFilled: boolean; targetNewRemaining: number;
-  confirmationCategory: OutwardBagCategory; resultingBagType: string;
-  settlementDecision: TransferPaymentDecision; settleAmount: number; totalSourcePendingRent: number;
+  movementDate: string; targetGrn: Grn;
   reason: string; onReasonChange: (r: string) => void; remarks: string; onRemarksChange: (r: string) => void;
-  selectedSourcesCount: number; movedSmall: number; movedBig: number; submitting: boolean; onBack: () => void;
+  selectedSourcesCount: number; submitting: boolean; onBack: () => void;
 }
 
 export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
@@ -42,11 +37,9 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
     repackQuantity, onRepackQuantityChange, repackSeasonalBagPrice, onRepackSeasonalBagPriceChange,
     repackMonthlyBagPrice, onRepackMonthlyBagPriceChange, repackBagPrice, onRepackBagPriceChange,
     totalSourceBags, referenceWeight, onReferenceWeightChange, repackHamaliCharge,
-    actualRepackedBags, commodityHamaliRate, movementDate, targetGrn, targetCurrentRemaining,
-    addedBagsToTarget, isRepackFilled, targetNewRemaining, confirmationCategory,
-    resultingBagType, totalSourcePendingRent,
+    actualRepackedBags, commodityHamaliRate, movementDate, targetGrn,
     reason, onReasonChange, remarks, onRemarksChange, selectedSourcesCount,
-    movedSmall, movedBig, submitting, onBack,
+    submitting, onBack, totalConsolidatedBags,
   } = props;
 
   const targetRates = resolveOutwardRates(targetGrn.rentType, {
@@ -56,9 +49,6 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
   });
   const targetSmallRate = targetRates.small > 0 ? targetRates.small : (targetGrn.smallBagPrice ?? targetGrn.bagPrice ?? 10);
   const targetBigRate = targetRates.big > 0 ? targetRates.big : (targetGrn.bigBagPrice ?? targetGrn.bagPrice ?? 15);
-  const isHybrid = repackMode
-    ? repackBagType === 'Hybrid'
-    : (isHybridBagCategory(confirmationCategory) || isHybridBagCategory(targetGrn.bagType));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
@@ -83,6 +73,7 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
           repackBagPrice={repackBagPrice}
           onRepackBagPriceChange={onRepackBagPriceChange}
           totalSourceBags={totalSourceBags}
+          totalConsolidatedBags={totalConsolidatedBags}
           referenceWeight={referenceWeight}
           onReferenceWeightChange={onReferenceWeightChange}
           repackHamaliCharge={repackHamaliCharge}
@@ -96,71 +87,8 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
           targetGrnDate={targetGrn.date}
         />
 
-        {/* Destination Preview & Audit */}
         <div className={styles.compactCard}>
-          <div className={styles.cardHeader}>
-            <span>Destination GRN Preview & Audit</span>
-            <Badge variant="primary">Audit-Safe</Badge>
-          </div>
-
-          <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Target GRN:</span>
-            <span className={styles.detailValue}>{targetGrn.grnNumber} ({targetGrn.customerName})</span>
-          </div>
-          <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Destination Chamber:</span>
-            <span className={styles.detailValue} style={{ fontWeight: 'var(--font-semibold)' }}>{destinationChamber || targetGrn.chamber}</span>
-          </div>
-          <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Initial Target Stock:</span>
-            <span className={styles.detailValue}>{targetCurrentRemaining} bags</span>
-          </div>
-          <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>+ Added from Merge:</span>
-            <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-bold)' }}>
-              {repackMode && !isRepackFilled ? (
-                <span style={{ color: 'var(--color-text-secondary)', fontWeight: 'normal' }}>Pending repacked counts</span>
-              ) : repackMode && isRepackFilled ? (
-                repackBagType === 'Hybrid' ? (
-                  `+${addedBagsToTarget} Bags (Hybrid)`
-                ) : (
-                  `+${addedBagsToTarget} Bags (${repackSmall}S @ ₹${targetSmallRate} · ${repackBig}B @ ₹${targetBigRate})`
-                )
-              ) : isHybrid ? (
-                `+${addedBagsToTarget} Bags (Hybrid)`
-              ) : movedSmall > 0 && movedBig > 0 ? (
-                `+${addedBagsToTarget} Bags (${movedSmall}S @ ₹${targetSmallRate} · ${movedBig}B @ ₹${targetBigRate})`
-              ) : movedSmall > 0 ? (
-                `+${addedBagsToTarget} Bags (${movedSmall} Small @ ₹${targetSmallRate})`
-              ) : movedBig > 0 ? (
-                `+${addedBagsToTarget} Bags (${movedBig} Big @ ₹${targetBigRate})`
-              ) : (
-                `+${addedBagsToTarget} Bags`
-              )}
-            </span>
-          </div>
-          <div className={styles.detailRow} style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
-            <span className={styles.detailLabel}>Combined Target Stock:</span>
-            <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-bold)', fontSize: 'var(--text-sm)' }}>{targetNewRemaining} Bags</span>
-          </div>
-          <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Resulting Bag Type:</span>
-            <span className={styles.detailValue}>
-              <Badge variant="primary">
-                {isHybrid ? 'Hybrid' : resultingBagType === 'S/B' || resultingBagType === 'S+B' ? `Small & Big (₹${targetSmallRate} / ₹${targetBigRate})` : resultingBagType === 'S' ? `Small Bags (₹${targetSmallRate}/bag)` : resultingBagType === 'B' ? `Big Bags (₹${targetBigRate}/bag)` : resultingBagType}
-              </Badge>
-            </span>
-          </div>
-          <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Rent Settlement:</span>
-            <span className={styles.detailValue}>
-              {totalSourcePendingRent > 0
-                ? `Carried ₹${totalSourcePendingRent.toLocaleString('en-IN')} forward (Pay Later)`
-                : 'Fully Settled (₹0 due)'}
-            </span>
-          </div>
-
-          <div className={styles.formSection} style={{ marginTop: 'var(--space-1)' }}>
+          <div className={styles.formSection}>
             <label htmlFor="merge-reason" className={styles.inputLabel}>Audit Reason (min 5 chars) *</label>
             <Input id="merge-reason" placeholder="e.g. Stock consolidation / Re-bagging lot" value={reason} onChange={(e) => onReasonChange(e.target.value)} disabled={submitting} required />
           </div>

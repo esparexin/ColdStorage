@@ -206,7 +206,7 @@ export function MergeStep2BagType({
           )}
 
           <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
-            Destination GRN profile and active subscription are preserved. Incoming stock ({totalSourceBags} bags) will be consolidated into this lot without recalculating historical destination rent.
+            Destination GRN profile and active subscription are preserved. Incoming stock ({totalSourceBags} bags) will be consolidated into this lot under the existing active subscription.
           </div>
         </div>
 

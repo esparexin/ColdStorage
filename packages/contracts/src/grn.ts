@@ -24,7 +24,6 @@ import {
 export { rentMonthsForType, rentMonthsInputSchema, rentTypeSchema, SEASONAL_RENT_MONTHS };
 export type { RentType } from './grn-rent.js';
 export { correctGrnSchema, type CorrectGrnInput } from './grn-correction.js';
-
 import {
   loanPaymentModeSchema,
   updateGrnLoanStatusSchema,
@@ -33,12 +32,10 @@ import {
 
 export const grnStatusSchema = z.enum(['OPEN', 'CLOSED']);
 export type GrnStatus = z.infer<typeof grnStatusSchema>;
-
 export const loanStatusSchema = z.enum(['NONE', 'NOT_TAKEN', 'TAKEN', 'CLEARED']);
 export type LoanStatus = z.infer<typeof loanStatusSchema>;
 
 export { updateGrnLoanStatusSchema, type UpdateGrnLoanStatusInput };
-
 export const inwardReceiptNumberSchema = receiptNumberSchema;
 export type InwardReceiptNumber = z.infer<typeof inwardReceiptNumberSchema>;
 
@@ -196,6 +193,8 @@ export const grnSchema = z.object({
   /** Set when this GRN was merged into a surviving target; lifecycle status stays CLOSED. */
   mergedIntoGrnId: z.string().nullable().optional(),
   mergedIntoGrnNumber: z.string().nullable().optional(),
+  /** Surviving target of a merge: audit timestamp when merge occurred. */
+  mergedAt: z.coerce.date().nullable().optional(),
   loanSettlementAmount: z.number().nullable().optional(),
   loanSettlementMode: loanPaymentModeSchema.nullable().optional(),
   loanSettlementUtr: z.string().nullable().optional(),
