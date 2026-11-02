@@ -56,13 +56,16 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
   const { sourceBagType, sourceBagCategory, sourceQuantity, sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice } = params;
   const effectiveCategory = sourceBagType ?? sourceBagCategory;
 
-  // 1. Movement date sanity
-  if (movementDate < new Date(targetGrn.date)) {
-    throw new Error(`Movement date cannot predate target GRN '${targetGrn.grnNumber}' receipt date`);
+  // 1. Merge date sanity (calendar day comparison allows same-day merges without time-of-day skew)
+  const moveDay = new Date(movementDate).toISOString().slice(0, 10);
+  const targetDay = new Date(targetGrn.date).toISOString().slice(0, 10);
+  if (moveDay < targetDay) {
+    throw new Error(`Merge date cannot predate target GRN '${targetGrn.grnNumber}' receipt date`);
   }
   for (const s of sourceGrns) {
-    if (movementDate < new Date(s.date)) {
-      throw new Error(`Movement date cannot predate source GRN '${s.grnNumber}' receipt date`);
+    const srcDay = new Date(s.date).toISOString().slice(0, 10);
+    if (moveDay < srcDay) {
+      throw new Error(`Merge date cannot predate source GRN '${s.grnNumber}' receipt date`);
     }
   }
 

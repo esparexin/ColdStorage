@@ -133,7 +133,7 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
           <Input id="merge-ref-weight" label="Reference Weight (kg) — Optional" type="number" min={0} placeholder="e.g. 2500" value={referenceWeight} onChange={(e) => onReferenceWeightChange(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
         </div>
         <div style={{ flex: 1 }}>
-          <Input id="merge-date" label="Movement Date *" type="date" value={movementDate} readOnly disabled={submitting} aria-label="Movement Date (read-only)" title="Authoritative operational date" required />
+          <Input id="merge-date" label="Merge Date *" type="date" value={movementDate} readOnly disabled={submitting} aria-label="Merge Date (read-only)" title="Authoritative operational date" required />
         </div>
       </div>
     </div>

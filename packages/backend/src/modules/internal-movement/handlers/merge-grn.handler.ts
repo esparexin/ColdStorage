@@ -68,7 +68,7 @@ export async function mergeGrn(
       let totalMovedBig = 0;
       let totalSourcePendingRent = 0;
       const sourceSummaries: string[] = [];
-      const moveDate = validateOperationalDate(input.movementDate, { label: 'Movement' });
+      const moveDate = validateOperationalDate(input.movementDate, { label: 'Merge' });
       const confirmed = await validateProspectiveMergeMove({
         facilityId, targetGrn, sourceGrns, input, moveDate, session,
       });
