@@ -50,7 +50,7 @@ export function MergeStep3Settlement({
   const targetSeason = useMemo(() => seasonYearForInwardDate(targetGrn.date), [targetGrn.date]);
 
   const totalSettlementBill = useMemo(() => {
-    return selectedSources.reduce((acc, source) => {
+    const sourcesTotal = selectedSources.reduce((acc, source) => {
       const conf = sourceConfirmations[source.id];
       const summary = sourceRentSummaries?.[source.id];
       const commodity = commodities?.find((c) => c.id === source.commodityId);
@@ -66,7 +66,14 @@ export function MergeStep3Settlement({
       const paid = summary?.totalPaid ?? 0;
       return acc + Math.max(0, rentCalc.totalAmountToPay - paid);
     }, 0);
-  }, [selectedSources, sourceConfirmations, sourceRentSummaries, commodities, movementDate, commodityHamaliRate, targetGrn.date]);
+
+    const tBags = targetGrn.closingBags ?? targetGrn.bags;
+    const tHamali = calculateHamaliAmount(tBags, commodityHamaliRate);
+    const tPaid = sourceRentSummaries?.[targetGrn.id]?.totalPaid ?? 0;
+    const tDue = Math.max(0, tHamali - tPaid);
+
+    return sourcesTotal + tDue;
+  }, [selectedSources, sourceConfirmations, sourceRentSummaries, commodities, movementDate, commodityHamaliRate, targetGrn]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
@@ -87,29 +94,12 @@ export function MergeStep3Settlement({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
         {/* Surviving Target GRN Profile (Active Subscription Preserved) */}
         {(() => {
-          const targetCommodity = commodities?.find((c) => c.id === targetGrn.commodityId);
           const tSummary = sourceRentSummaries?.[targetGrn.id];
-          const tCalc = calculateMergeSourceRentSummary({
-            source: targetGrn,
-            confirmation: targetConfirmation,
-            movementDate,
-            commodityHamaliRate,
-            targetGrnDate: targetGrn.date,
-            summary: tSummary,
-            commodity: targetCommodity,
-          });
-          const tBags = tCalc.totalBags;
+          const tBags = targetGrn.closingBags ?? targetGrn.bags;
           const tHamali = calculateHamaliAmount(tBags, commodityHamaliRate);
           const tPaid = tSummary?.totalPaid ?? 0;
           const tDueNow = Math.max(0, tHamali - tPaid);
           const isSettled = tDueNow === 0;
-          const { seasonalRates: tRates } = resolveTransferRates(targetGrn, targetCommodity);
-          const tSmall = typeof targetConfirmation?.smallBags === 'number' ? targetConfirmation.smallBags : (targetGrn.smallBags ?? tBags);
-          const tBig = typeof targetConfirmation?.bigBags === 'number' ? targetConfirmation.bigBags : (targetGrn.bigBags ?? 0);
-          const netSmallRate = Math.max(0, tRates.small - commodityHamaliRate);
-          const netBigRate = Math.max(0, tRates.big - commodityHamaliRate);
-          const liveTargetRent = Math.max(0, tSmall * netSmallRate + tBig * netBigRate);
-          const targetRentAmount = tCalc.totalRent > 0 ? tCalc.totalRent : (liveTargetRent > 0 ? liveTargetRent : targetGrn.rentAmount);
 
           return (
             <div className={styles.compactCard} style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
@@ -124,10 +114,6 @@ export function MergeStep3Settlement({
               </div>
 
               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px', background: 'var(--color-surface-1)', padding: 'var(--space-1-5)', borderRadius: 'var(--radius-sm)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Current Season ({targetSeason}) Storage Rent:</span>
-                  <span style={{ fontWeight: 'var(--font-semibold)' }}>₹{targetRentAmount.toLocaleString('en-IN')} (Preserved — Continues Until Outward Delivery)</span>
-                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Hamali Charge ({tBags} bags @ ₹{commodityHamaliRate}/bag):</span>
                   <span style={{ fontWeight: 'var(--font-semibold)' }}>₹{tHamali.toLocaleString('en-IN')}</span>

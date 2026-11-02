@@ -9,7 +9,7 @@ import { computeRentBalance } from '../../common/rent-balance.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
-import { validateProspectiveMergeMove, processMergeSource } from './merge-source-move.helper.js';
+import { validateProspectiveMergeMove, processMergeSource, settleTargetHamaliPayment } from './merge-source-move.helper.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 import { createMergePutawayTransaction, createMergeMovementRecord } from './merge-grn-movement.helper.js';
 import { resolveMergeRepackHamali } from './merge-repack-hamali.helper.js';
@@ -86,8 +86,15 @@ export async function mergeGrn(
         sourceSummaries.push(step.summary);
       }
       if (remainingPaymentPool > 0.01) {
+        const targetSettlement = await settleTargetHamaliPayment({
+          facilityId, targetGrn, moveDate, allocatedPayment: remainingPaymentPool,
+          paymentMode: input.sourcePaymentMode, userId, session,
+        });
+        remainingPaymentPool = Math.max(0, Number((remainingPaymentPool - targetSettlement.paidAmount).toFixed(2)));
+      }
+      if (remainingPaymentPool > 0.01) {
         throw new Error(
-          `Requested payment ₹${input.sourcePaymentAmount} exceeds total remaining rent balance across source GRNs`,
+          `Requested payment ₹${input.sourcePaymentAmount} exceeds total settlement balance across source and target GRNs`,
         );
       }
       const { smallMoved, bigMoved, actualMovedBags, repackVariance, explicitConfirmation } = confirmed;
