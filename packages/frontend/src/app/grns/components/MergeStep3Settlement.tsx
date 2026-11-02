@@ -12,7 +12,7 @@ import {
 import { Badge } from '@/components/ui';
 import { OutwardRentBreakdown } from '@/app/deliveries/components/OutwardRentBreakdown';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
-import { calculateMergeSourceRentSummary } from './mergeRentAssessment.helper';
+import { calculateMergeSettlementBill, calculateMergeSourceRentSummary } from './mergeRentAssessment.helper';
 import { resolveTransferRates } from './transferRentRates.helper';
 import { formatGrnSeasonLabel } from './mergeSeasonDisplay.helper';
 import { WizardStepActions } from './WizardStepActions';
@@ -50,29 +50,15 @@ export function MergeStep3Settlement({
   const targetSeason = useMemo(() => seasonYearForInwardDate(targetGrn.date), [targetGrn.date]);
 
   const totalSettlementBill = useMemo(() => {
-    const sourcesTotal = selectedSources.reduce((acc, source) => {
-      const conf = sourceConfirmations[source.id];
-      const summary = sourceRentSummaries?.[source.id];
-      const commodity = commodities?.find((c) => c.id === source.commodityId);
-      const rentCalc = calculateMergeSourceRentSummary({
-        source,
-        confirmation: conf,
-        movementDate,
-        commodityHamaliRate,
-        targetGrnDate: targetGrn.date,
-        summary,
-        commodity,
-      });
-      const paid = summary?.totalPaid ?? 0;
-      return acc + Math.max(0, rentCalc.totalAmountToPay - paid);
-    }, 0);
-
-    const tBags = targetGrn.closingBags ?? targetGrn.bags;
-    const tHamali = calculateHamaliAmount(tBags, commodityHamaliRate);
-    const tPaid = sourceRentSummaries?.[targetGrn.id]?.totalPaid ?? 0;
-    const tDue = Math.max(0, tHamali - tPaid);
-
-    return sourcesTotal + tDue;
+    return calculateMergeSettlementBill({
+      selectedSources,
+      sourceConfirmations,
+      movementDate,
+      commodityHamaliRate,
+      targetGrn,
+      sourceRentSummaries,
+      commodities,
+    });
   }, [selectedSources, sourceConfirmations, sourceRentSummaries, commodities, movementDate, commodityHamaliRate, targetGrn]);
 
   return (

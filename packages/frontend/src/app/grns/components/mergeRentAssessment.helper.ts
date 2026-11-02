@@ -11,15 +11,8 @@ import {
 import { computeOutwardRentCharge } from '../../deliveries/hooks/deliveryRent.helper';
 import { resolveTransferRates } from './transferRentRates.helper';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
-import {
-  deriveMergeRentAssessment,
-  type DerivedMergeRentAssessment,
-} from './mergeRentObligation.helper';
-
-export {
-  deriveMergeRentAssessment,
-  type DerivedMergeRentAssessment,
-};
+import { deriveMergeRentAssessment, type DerivedMergeRentAssessment } from './mergeRentObligation.helper';
+export { deriveMergeRentAssessment, type DerivedMergeRentAssessment };
 
 export interface MergeSourceRentCalculation {
   isHybrid: boolean;
@@ -197,28 +190,48 @@ export function calculateMergeGrandTotal(params: {
   resetRentState?: boolean;
 }): number {
   const {
-    selectedSources,
-    sourceConfirmations = {},
-    movementDate,
-    commodityHamaliRate = 0,
-    targetGrnDate,
-    sourceRentSummaries,
-    commodities,
-    resetRentState = false,
+    selectedSources, sourceConfirmations = {}, movementDate,
+    commodityHamaliRate = 0, targetGrnDate, sourceRentSummaries, commodities, resetRentState = false,
   } = params;
 
   return selectedSources.reduce((acc, source) => {
     const commodity = commodities?.find((c) => c.id === source.commodityId);
     const calc = calculateMergeSourceRentSummary({
-      source,
-      confirmation: sourceConfirmations[source.id],
-      movementDate,
-      commodityHamaliRate,
-      targetGrnDate,
-      summary: sourceRentSummaries?.[source.id],
-      commodity,
-      resetRentState,
+      source, confirmation: sourceConfirmations[source.id],
+      movementDate, commodityHamaliRate, targetGrnDate,
+      summary: sourceRentSummaries?.[source.id], commodity, resetRentState,
     });
     return acc + calc.totalAmountToPay;
   }, 0);
 }
+
+export function calculateMergeSettlementBill(params: {
+  selectedSources: Grn[];
+  sourceConfirmations?: Record<string, BagConfirmationValue>;
+  movementDate: string;
+  commodityHamaliRate?: number;
+  targetGrn: Grn;
+  sourceRentSummaries?: Record<string, RentSummaryDto>;
+  commodities?: Commodity[];
+}): number {
+  const {
+    selectedSources, sourceConfirmations = {}, movementDate,
+    commodityHamaliRate = 0, targetGrn, sourceRentSummaries, commodities,
+  } = params;
+
+  const sourcesTotal = selectedSources.reduce((acc, source) => {
+    const commodity = commodities?.find((c) => c.id === source.commodityId);
+    const summary = sourceRentSummaries?.[source.id];
+    const calc = calculateMergeSourceRentSummary({
+      source, confirmation: sourceConfirmations[source.id], movementDate,
+      commodityHamaliRate, targetGrnDate: targetGrn.date, summary, commodity,
+    });
+    return acc + Math.max(0, calc.totalAmountToPay - (summary?.totalPaid ?? 0));
+  }, 0);
+
+  const tBags = targetGrn.closingBags ?? targetGrn.bags;
+  const tHamali = calculateHamaliAmount(tBags, commodityHamaliRate);
+  const tPaid = sourceRentSummaries?.[targetGrn.id]?.totalPaid ?? 0;
+  return sourcesTotal + Math.max(0, tHamali - tPaid);
+}
+
