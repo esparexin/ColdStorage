@@ -115,12 +115,12 @@ export function MergeSourceGrnCard({
           <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
           <Badge variant="primary">{sourceBags} Bags</Badge>
           <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-          <Badge variant={isConfirmed ? (isSettled ? 'success' : 'warning') : 'neutral'}>
+          <Badge variant={isConfirmed ? (isSettled ? 'success' : 'neutral') : 'neutral'}>
             {!isConfirmed
               ? 'Awaiting Bag Confirmation'
               : isSettled
-                ? 'Rent Settled (₹0 Due)'
-                : `₹${pendingDues.toLocaleString('en-IN')} Pending`}
+                ? 'Charges Settled (₹0 Due)'
+                : `Calculated Charges: ₹${rentCalc.totalAmountToPay.toLocaleString('en-IN')}`}
           </Badge>
         </div>
 
@@ -131,6 +131,33 @@ export function MergeSourceGrnCard({
 
       {isCardExpanded && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginTop: 'var(--space-1)' }}>
+          {isConfirmed && (
+            <div
+              style={{
+                display: 'flex',
+                gap: 'var(--space-2)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-secondary)',
+                background: 'var(--color-surface-2)',
+                padding: 'var(--space-1) var(--space-2)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--color-border)',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
+            >
+              <span>Rent Charge: <strong>₹{rentCalc.totalRent.toLocaleString('en-IN')}</strong></span>
+              <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
+              <span>Hamali Charge ({sourceBags} bags @ ₹{commodityHamaliRate}/bag): <strong>₹{rentCalc.hamaliAmount.toLocaleString('en-IN')}</strong></span>
+              {paid > 0 && (
+                <>
+                  <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
+                  <span>Previously Paid: <strong>₹{paid.toLocaleString('en-IN')}</strong></span>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Section 1: Bag Type Configuration */}
           <div
             style={{

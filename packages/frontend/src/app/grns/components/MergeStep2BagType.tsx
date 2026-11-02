@@ -113,15 +113,15 @@ export function MergeStep2BagType({
             <Badge variant="neutral">
               Consolidated Pool: {totalConsolidatedBags} Bags ({participatingGrnCount} Participating GRNs)
             </Badge>
-            <Badge variant={isTargetConfirmed && !isTargetSettled ? 'warning' : 'neutral'}>
-              Target Hamali: {isTargetConfirmed ? `₹${targetPendingDues.toLocaleString('en-IN')}` : 'Pending Confirmation'}
+            <Badge variant="neutral">
+              Target Hamali Charge: {isTargetConfirmed ? `₹${targetHamaliAmount.toLocaleString('en-IN')}` : 'Pending Confirmation'}
             </Badge>
             {grandTotalRent > 0 ? (
-              <Badge variant="warning">
-                Pending Source Dues: ₹{grandTotalRent.toLocaleString('en-IN')}
+              <Badge variant="neutral">
+                Calculated Source Charges: ₹{grandTotalRent.toLocaleString('en-IN')}
               </Badge>
             ) : (
-              <Badge variant="success">All Source Dues Settled</Badge>
+              <Badge variant="neutral">Calculated Source Charges: ₹0</Badge>
             )}
           </div>
         </div>
@@ -143,8 +143,8 @@ export function MergeStep2BagType({
               <Badge variant="primary">Receiving Lot (Surviving)</Badge>
               <Badge variant="neutral">Season {targetSeason}</Badge>
               <Badge variant="neutral">{targetCurrentRemaining} Bags</Badge>
-              <Badge variant={isTargetConfirmed ? (isTargetSettled ? 'success' : 'warning') : 'neutral'}>
-                {!isTargetConfirmed ? 'Awaiting Bag Confirmation' : isTargetSettled ? 'Settled (₹0 Due)' : `₹${targetPendingDues.toLocaleString('en-IN')} Due (Hamali)`}
+              <Badge variant={isTargetConfirmed ? (isTargetSettled ? 'success' : 'neutral') : 'neutral'}>
+                {!isTargetConfirmed ? 'Awaiting Bag Confirmation' : isTargetSettled ? 'Hamali Settled (₹0 Due)' : `Hamali Charge: ₹${targetHamaliAmount.toLocaleString('en-IN')}`}
               </Badge>
             </div>
           </div>

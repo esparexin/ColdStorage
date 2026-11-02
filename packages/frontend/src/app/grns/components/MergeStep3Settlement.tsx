@@ -94,7 +94,7 @@ export function MergeStep3Settlement({
                   <Badge variant="primary">Active Subscription</Badge>
                   <Badge variant="neutral">Season {targetSeason}</Badge>
                 </div>
-                <Badge variant={isSettled ? 'success' : 'warning'}>{isSettled ? 'Settled (₹0 Due)' : `₹${tDueNow.toLocaleString('en-IN')} Due (Hamali)`}</Badge>
+                <Badge variant={isSettled ? 'success' : 'neutral'}>{isSettled ? 'Hamali Settled (₹0 Due)' : `Hamali Bill: ₹${tDueNow.toLocaleString('en-IN')}`}</Badge>
               </div>
 
               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px', background: 'var(--color-surface-1)', padding: 'var(--space-1-5)', borderRadius: 'var(--radius-sm)' }}>
@@ -111,8 +111,8 @@ export function MergeStep3Settlement({
                   <span style={{ fontWeight: 'var(--font-semibold)' }}>₹{tHamali.toLocaleString('en-IN')}</span>
                 </div>
                 <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: '4px', marginTop: '2px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'var(--font-bold)' }}>
-                  <span>Target Profile Due Now:</span>
-                  <span>₹{tDueNow.toLocaleString('en-IN')}</span>
+                  <span>Target Profile Hamali Due:</span>
+                  <span>₹${tDueNow.toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>
@@ -149,7 +149,7 @@ export function MergeStep3Settlement({
                   <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
                   <Badge variant="neutral">Season {seasonYearForInwardDate(source.date)}</Badge>
                   <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-                  <Badge variant={isSettled ? 'success' : 'warning'}>{isSettled ? 'Settled (₹0 Due)' : `₹${pendingDues.toLocaleString('en-IN')} Pending`}</Badge>
+                  <Badge variant={isSettled ? 'success' : 'warning'}>{isSettled ? 'Settled (₹0 Due)' : `Settlement Bill: ₹${pendingDues.toLocaleString('en-IN')}`}</Badge>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-text-secondary)' }}>Outward Rent Calculation ({source.rentType})</span>
