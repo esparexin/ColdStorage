@@ -63,15 +63,18 @@ export function calculateMergeSourceRentSummary(params: {
     isHybridBagCategory(source.bagType) ||
     isHybridBagCategory(confirmation?.category);
 
-  const hasChoice = typeof confirmation?.smallBags === 'number' && typeof confirmation?.bigBags === 'number';
+  const hasChoice =
+    (typeof confirmation?.smallBags === 'number' && typeof confirmation?.bigBags === 'number') ||
+    (typeof confirmation?.smallBags === 'number' && confirmation.smallBags === sourceBags) ||
+    (typeof confirmation?.bigBags === 'number' && confirmation.bigBags === sourceBags);
   const isConfirmed = isHybrid || hasChoice || Boolean(source.isCompositionVerified);
 
   const confirmedSmall = typeof confirmation?.smallBags === 'number'
     ? confirmation.smallBags
-    : (source.smallBags ?? sourceBags);
+    : (typeof confirmation?.bigBags === 'number' && confirmation.bigBags === sourceBags ? 0 : (source.smallBags ?? sourceBags));
   const confirmedBig = typeof confirmation?.bigBags === 'number'
     ? confirmation.bigBags
-    : (source.bigBags ?? 0);
+    : (typeof confirmation?.smallBags === 'number' && confirmation.smallBags === sourceBags ? 0 : (source.bigBags ?? 0));
 
   const smallBags = isHybrid ? sourceBags : confirmedSmall;
   const bigBags = isHybrid ? 0 : confirmedBig;

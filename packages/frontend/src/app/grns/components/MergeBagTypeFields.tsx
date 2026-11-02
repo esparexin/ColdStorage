@@ -75,9 +75,31 @@ export function MergeBagTypeFields({
       const allowed = side === 'small' ? maxAllowedSmall : maxAllowedBig;
       const clamped = Math.min(parsed, allowed);
       if (side === 'small') {
-        onChange({ category: 'S/B', quantity: totalMovedBags, smallBags: clamped, confirmedSmallBags: clamped, seasonalBagPrice: smallRate, bagPrice: smallRate });
+        const remaining = totalMovedBags - clamped;
+        const autoBig = clamped === totalMovedBags ? 0 : (typeof value.bigBags === 'number' ? Math.min(value.bigBags, remaining) : '');
+        onChange({
+          category: 'S/B',
+          quantity: totalMovedBags,
+          smallBags: clamped,
+          confirmedSmallBags: clamped,
+          bigBags: autoBig,
+          confirmedBigBags: autoBig,
+          seasonalBagPrice: smallRate,
+          bagPrice: smallRate,
+        });
       } else {
-        onChange({ category: 'S/B', quantity: totalMovedBags, bigBags: clamped, confirmedBigBags: clamped, seasonalBagPrice: bigRate, bagPrice: bigRate });
+        const remaining = totalMovedBags - clamped;
+        const autoSmall = clamped === totalMovedBags ? 0 : (typeof value.smallBags === 'number' ? Math.min(value.smallBags, remaining) : '');
+        onChange({
+          category: 'S/B',
+          quantity: totalMovedBags,
+          bigBags: clamped,
+          confirmedBigBags: clamped,
+          smallBags: autoSmall,
+          confirmedSmallBags: autoSmall,
+          seasonalBagPrice: bigRate,
+          bagPrice: bigRate,
+        });
       }
     }
   };

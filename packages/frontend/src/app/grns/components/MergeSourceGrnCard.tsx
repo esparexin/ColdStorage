@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Package } from 'lucide-react';
 import {
+  calculateHamaliAmount,
   seasonYearForInwardDate,
   type Commodity,
   type Grn,
@@ -61,6 +62,7 @@ export function MergeSourceGrnCard({
 
   const summary = propSummary ?? fetchedSummary;
   const sourceBags = source.closingBags ?? source.bags;
+  const sourceHamali = calculateHamaliAmount(sourceBags, commodityHamaliRate);
   const { seasonalRates: rates } = useMemo(
     () => resolveTransferRates(source, commodity),
     [source, commodity],
@@ -114,6 +116,8 @@ export function MergeSourceGrnCard({
           </span>
           <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
           <Badge variant="primary">{sourceBags} Bags</Badge>
+          <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
+          <Badge variant="neutral">Hamali Charge: ₹{sourceHamali.toLocaleString('en-IN')}</Badge>
           <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
           <Badge variant={isConfirmed ? (isSettled ? 'success' : 'neutral') : 'neutral'}>
             {!isConfirmed

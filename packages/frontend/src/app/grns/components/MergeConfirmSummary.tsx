@@ -96,16 +96,12 @@ export function MergeConfirmSummary({
           </div>
 
           <div className={styles.item}>
-            <span className={styles.label}>Rent Settlement Gate</span>
+            <span className={styles.label}>Settlement Bills (Step 3)</span>
             <span className={styles.value}>
               {totalSourcePendingRent > 0
-                ? `₹${totalSourcePendingRent.toLocaleString('en-IN')} Carried Forward (Pay Later)`
-                : 'Fully Settled (₹0 due)'}
+                ? `₹${totalSourcePendingRent.toLocaleString('en-IN')} (Billed Separately per GRN)`
+                : 'Fully Settled (₹0 Due)'}
             </span>
-          </div>
-          <div className={styles.item}>
-            <span className={styles.label}>Consolidated Stock Pool</span>
-            <span className={styles.value}>{totalConsolidatedBags ?? totalSourceBags} Bags</span>
           </div>
         </div>
       </div>

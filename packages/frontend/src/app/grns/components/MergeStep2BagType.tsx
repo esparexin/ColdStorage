@@ -73,16 +73,11 @@ export function MergeStep2BagType({
   const isTargetConfirmed =
     isTargetHybrid ||
     Boolean(targetGrn.isCompositionVerified) ||
-    (typeof targetConfirmation?.smallBags === 'number' && typeof targetConfirmation?.bigBags === 'number');
+    (typeof targetConfirmation?.smallBags === 'number' && typeof targetConfirmation?.bigBags === 'number') ||
+    (typeof targetConfirmation?.smallBags === 'number' && targetConfirmation.smallBags === targetCurrentRemaining) ||
+    (typeof targetConfirmation?.bigBags === 'number' && targetConfirmation.bigBags === targetCurrentRemaining);
 
-  const targetConfirmedSmall = typeof targetConfirmation?.smallBags === 'number'
-    ? targetConfirmation.smallBags
-    : (targetGrn.smallBags ?? targetCurrentRemaining);
-  const targetConfirmedBig = typeof targetConfirmation?.bigBags === 'number'
-    ? targetConfirmation.bigBags
-    : (targetGrn.bigBags ?? 0);
-  const targetChargeableBags = isTargetHybrid ? targetCurrentRemaining : (targetConfirmedSmall + targetConfirmedBig);
-  const targetHamaliAmount = isTargetConfirmed ? calculateHamaliAmount(targetChargeableBags, commodityHamaliRate) : 0;
+  const targetHamaliAmount = calculateHamaliAmount(targetCurrentRemaining, commodityHamaliRate);
   const targetPaid = sourceRentSummaries?.[targetGrn.id]?.totalPaid ?? 0;
   const targetPendingDues = Math.max(0, targetHamaliAmount - targetPaid);
   const isTargetSettled = targetPendingDues === 0;
@@ -114,7 +109,7 @@ export function MergeStep2BagType({
               Consolidated Pool: {totalConsolidatedBags} Bags ({participatingGrnCount} Participating GRNs)
             </Badge>
             <Badge variant="neutral">
-              Target Hamali Charge: {isTargetConfirmed ? `₹${targetHamaliAmount.toLocaleString('en-IN')}` : 'Pending Confirmation'}
+              Target Hamali Charge: ₹{targetHamaliAmount.toLocaleString('en-IN')}
             </Badge>
             {grandTotalRent > 0 ? (
               <Badge variant="neutral">
@@ -143,9 +138,8 @@ export function MergeStep2BagType({
               <Badge variant="primary">Receiving Lot (Surviving)</Badge>
               <Badge variant="neutral">Season {targetSeason}</Badge>
               <Badge variant="neutral">{targetCurrentRemaining} Bags</Badge>
-              <Badge variant={isTargetConfirmed ? (isTargetSettled ? 'success' : 'neutral') : 'neutral'}>
-                {!isTargetConfirmed ? 'Awaiting Bag Confirmation' : isTargetSettled ? 'Hamali Settled (₹0 Due)' : `Hamali Charge: ₹${targetHamaliAmount.toLocaleString('en-IN')}`}
-              </Badge>
+              <Badge variant="neutral">Hamali Charge: ₹{targetHamaliAmount.toLocaleString('en-IN')}</Badge>
+              {!isTargetConfirmed && <Badge variant="warning">Awaiting Bag Confirmation</Badge>}
             </div>
           </div>
 
@@ -172,7 +166,7 @@ export function MergeStep2BagType({
             </div>
             <div>
               <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>Hamali Charge</span>
-              <span style={{ fontWeight: 'var(--font-medium)' }}>{isTargetConfirmed ? `₹${targetHamaliAmount.toLocaleString('en-IN')} (₹${commodityHamaliRate}/bag)` : `₹${commodityHamaliRate}/bag (Pending Confirmation)`}</span>
+              <span style={{ fontWeight: 'var(--font-medium)' }}>₹{targetHamaliAmount.toLocaleString('en-IN')} ({targetCurrentRemaining} bags @ ₹{commodityHamaliRate}/bag)</span>
             </div>
           </div>
 
