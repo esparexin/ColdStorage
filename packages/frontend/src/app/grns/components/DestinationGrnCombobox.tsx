@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { seasonYearForInwardDate, type Grn } from '@cold-storage/contracts';
+import type { Grn } from '@cold-storage/contracts';
 import { ChevronDown, Search, X } from 'lucide-react';
 import { Badge, Button } from '@/components/ui';
+import { formatGrnSeasonLabel } from './mergeSeasonDisplay.helper';
 import styles from './DestinationGrnCombobox.module.css';
 
 export interface DestinationGrnComboboxProps {
@@ -83,7 +84,7 @@ export function DestinationGrnCombobox({
   const displayInputValue = isOpen
     ? query
     : selectedGrn
-      ? `${selectedGrn.grnNumber} — ${selectedGrn.customerName} (${selectedGrn.closingBags ?? selectedGrn.bags} bags, Season ${seasonYearForInwardDate(selectedGrn.date)})`
+      ? `${selectedGrn.grnNumber} — ${selectedGrn.customerName} (${selectedGrn.closingBags ?? selectedGrn.bags} bags, ${formatGrnSeasonLabel(selectedGrn.date)})`
       : '';
 
   return (
@@ -166,7 +167,7 @@ export function DestinationGrnCombobox({
                   <div className={styles.optionMain}>
                     <div className={styles.optionHeaderRow}>
                       <span className={styles.optionGrnNumber}>{g.grnNumber}</span>
-                      <Badge variant="neutral">Season {seasonYearForInwardDate(g.date)}</Badge>
+                      <Badge variant="neutral">{formatGrnSeasonLabel(g.date)}</Badge>
                       <span className={styles.optionCustomer}>{g.customerName}</span>
                     </div>
                     <div className={styles.optionDetails}>

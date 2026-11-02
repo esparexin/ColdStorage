@@ -14,6 +14,7 @@ import { OutwardRentBreakdown } from '@/app/deliveries/components/OutwardRentBre
 import type { BagConfirmationValue } from './bagConfirmation.helper';
 import { calculateMergeSourceRentSummary } from './mergeRentAssessment.helper';
 import { resolveTransferRates } from './transferRentRates.helper';
+import { formatGrnSeasonLabel } from './mergeSeasonDisplay.helper';
 import { WizardStepActions } from './WizardStepActions';
 import styles from './InternalMovementModal.module.css';
 
@@ -147,7 +148,7 @@ export function MergeStep3Settlement({
                   <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
                   <span style={{ fontWeight: 'var(--font-medium)', color: 'var(--color-text-primary)', fontSize: 'var(--text-xs)' }}>{source.customerName || 'CUSTOMER'}</span>
                   <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-                  <Badge variant="neutral">Season {seasonYearForInwardDate(source.date)}</Badge>
+                  <Badge variant="neutral">{formatGrnSeasonLabel(source.date)}</Badge>
                   <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
                   <Badge variant={isSettled ? 'success' : 'warning'}>{isSettled ? 'Settled (₹0 Due)' : `Settlement Bill: ₹${pendingDues.toLocaleString('en-IN')}`}</Badge>
                 </div>

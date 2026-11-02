@@ -7,6 +7,7 @@ import {
 } from '@cold-storage/contracts';
 import { Badge, DataTable } from '@/components/ui';
 import { formatDisplayDate } from '@/lib/date-format';
+import { resolveSourceSeasonBadge } from './mergeSeasonDisplay.helper';
 
 interface MergeSourceTableProps {
   eligibleSources: Grn[];
@@ -57,8 +58,7 @@ export function MergeSourceTable({
           sortType: 'text',
           sortAccessor: (sg) => sg.grnNumber,
           render: (sg) => {
-            const srcSeason = seasonYearForInwardDate(sg.date);
-            const isSame = srcSeason === targetSeason;
+            const seasonBadge = resolveSourceSeasonBadge(sg.date, targetSeason);
             return (
               <div>
                 <span
@@ -72,9 +72,9 @@ export function MergeSourceTable({
                   <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
                     {formatDisplayDate(sg.date)}
                   </span>
-                  {!isSame && (
-                    <Badge variant="warning">
-                      {`Prev ${srcSeason}`}
+                  {seasonBadge && (
+                    <Badge variant={seasonBadge.variant}>
+                      {seasonBadge.label}
                     </Badge>
                   )}
                 </div>

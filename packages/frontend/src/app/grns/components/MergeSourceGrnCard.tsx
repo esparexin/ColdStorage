@@ -15,6 +15,7 @@ import { MergeBagTypeFields } from './MergeBagTypeFields';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
 import { calculateMergeSourceRentSummary } from './mergeRentAssessment.helper';
 import { resolveTransferRates } from './transferRentRates.helper';
+import { formatGrnSeasonLabel } from './mergeSeasonDisplay.helper';
 import styles from './InternalMovementModal.module.css';
 
 export interface MergeSourceGrnCardProps {
@@ -129,7 +130,7 @@ export function MergeSourceGrnCard({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Badge variant="neutral">Season {seasonYearForInwardDate(source.date)}</Badge>
+          <Badge variant="neutral">{formatGrnSeasonLabel(source.date)}</Badge>
         </div>
       </div>
 
