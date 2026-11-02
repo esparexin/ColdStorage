@@ -111,7 +111,7 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
         </div>
       </div>
 
-      <WizardStepActions onBack={onBack} backLabel="Back to Settlement" isSubmitStep submitLabel="Execute Merge & Repack" submitting={submitting} />
+      <WizardStepActions onBack={onBack} backLabel="Back to Settlement" isSubmitStep submitLabel={repackMode ? 'Execute Merge & Repack' : 'Execute Merge'} submitting={submitting} />
     </div>
   );
 }

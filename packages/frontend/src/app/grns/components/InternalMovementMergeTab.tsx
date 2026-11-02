@@ -55,7 +55,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
     repackMode, setRepackMode, repackBagType, setRepackBagType,
     repackSmall, setRepackSmall, repackBig, setRepackBig, repackQuantity, setRepackQuantity,
     repackSeasonalBagPrice, setRepackSeasonalBagPrice, repackMonthlyBagPrice, setRepackMonthlyBagPrice,
-    repackBagPrice, setRepackBagPrice, referenceWeight, setReferenceWeight, validationError,
+    repackBagPrice, setRepackBagPrice, referenceWeight, setReferenceWeight, validationError, setValidationError,
     openGrns, targetGrn, targetSeason, eligibleSources, futureSeasonCount, recommendedSwitchGrn,
     targetOptions, handleTargetChange, handleToggleSource, handleSwitchTarget,
     selectedSources, totalSourceBags, targetCurrentRemaining,
@@ -142,6 +142,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
           onStorageMarkChange={setStorageMark}
           repackMode={repackMode}
           onRepackModeChange={(act) => {
+            setValidationError(null);
             setRepackMode(act);
             if (!act) {
               setRepackSmall('');

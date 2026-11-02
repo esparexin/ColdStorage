@@ -223,7 +223,7 @@ export function useInternalMovementMergeTab({
     targetConfirmation, setTargetConfirmation, updateTargetConfirmation,
     sourceConfirmations, setSourceConfirmations, updateSourceConfirmation, sourceRentSummaries,
     settlementDecision, setSettlementDecision, settleAmount, setSettleAmount, paymentMode, setPaymentMode,
-    ...repack, validationError, openGrns, targetGrn, targetSeason,
+    ...repack, validationError, setValidationError, openGrns, targetGrn, targetSeason,
     eligibleSources, futureSeasonCount, recommendedSwitchGrn, targetOptions, handleTargetChange, handleToggleSource, handleSwitchTarget: handleTargetChange,
     selectedSources, totalSourceBags, targetCurrentRemaining, isTargetLoanHold,
     totalSourcePendingRent: totalSettlementBill, totalSettlementBill, isTargetDiff, isRepackFilled, commodityHamaliRate, actualRepackedBags,
