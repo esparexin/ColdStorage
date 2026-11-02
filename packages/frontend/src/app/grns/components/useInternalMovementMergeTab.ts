@@ -139,9 +139,8 @@ export function useInternalMovementMergeTab({
 
   const repackHamaliCharge = useMemo(() => {
     if (!repackMode || actualRepackedBags <= 0 || commodityHamaliRate <= 0) return 0;
-    const hamaliBags = actualRepackedBags > totalSourceBags ? totalSourceBags : actualRepackedBags;
-    return calculateHamaliAmount(hamaliBags, commodityHamaliRate);
-  }, [repackMode, actualRepackedBags, totalSourceBags, commodityHamaliRate]);
+    return calculateHamaliAmount(actualRepackedBags, commodityHamaliRate);
+  }, [repackMode, actualRepackedBags, commodityHamaliRate]);
 
   const targetSmall = typeof targetConfirmation.smallBags === 'number' ? targetConfirmation.smallBags : (targetGrn.smallBags ?? 0);
   const targetBig = typeof targetConfirmation.bigBags === 'number' ? targetConfirmation.bigBags : (targetGrn.bigBags ?? 0);

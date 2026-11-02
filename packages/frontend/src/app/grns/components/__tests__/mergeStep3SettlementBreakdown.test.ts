@@ -180,7 +180,7 @@ describe('Merge Step 3 Settlement - Outward Rent Calculation Breakdown & Destina
     expect(targetGrn0013.rentAmount).toBe(0);
   });
 
-  it('resets target and source rent calculation state and recalculates fresh outward rent without preserving active subscription', () => {
+  it('preserves target active subscription: storage rent continues, and hamali is assessed', () => {
     const movementDate = '2026-10-31';
 
     // Target GRN #0004 with inward date in Season 2026 and existing storage rent ₹1,000 from previous cycle
@@ -188,6 +188,8 @@ describe('Merge Step 3 Settlement - Outward Rent Calculation Breakdown & Destina
       ...targetGrn0013,
       id: 'grn-0004',
       grnNumber: '0004',
+      bags: 8,
+      closingBags: 8,
       date: new Date('2026-03-15'),
       rentAmount: 1000,
     };
@@ -196,24 +198,20 @@ describe('Merge Step 3 Settlement - Outward Rent Calculation Breakdown & Destina
       source: targetWithExistingRent,
       confirmation: {
         category: 'Hybrid',
-        quantity: 70,
+        quantity: 8,
         bagPrice: 160,
         seasonalBagPrice: '',
         monthlyBagPrice: '',
       },
       movementDate,
-      commodityHamaliRate: 0, // Hamali applies in Step 4 on repacked bags
-      resetRentState: true,
+      commodityHamaliRate: 25,
     });
 
-    expect(targetCalc.totalBags).toBe(70);
+    expect(targetCalc.totalBags).toBe(8);
     expect(targetCalc.isHybrid).toBe(true);
-    // Fresh storage rent calculation applies based on confirmed bags & rate (70 * 160 = 11,200)
-    expect(targetCalc.totalRent).toBe(11200);
-    // Previous ₹1,000 is reset and NOT carried forward
-    expect(targetCalc.totalRent).not.toBe(1000);
-    // Hamali is not charged on target in Step 3
-    expect(targetCalc.hamaliAmount).toBe(0);
-    expect(targetCalc.totalAmountToPay).toBe(11200);
+    // Active subscription storage rent continues
+    expect(targetWithExistingRent.rentAmount).toBe(1000);
+    // Target Hamali for 8 bags @ 25 = 200
+    expect(targetCalc.hamaliAmount).toBe(200);
   });
 });

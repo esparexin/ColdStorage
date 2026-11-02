@@ -118,7 +118,7 @@ export async function mergeGrn(
         repackedSmallBags: input.repackedSmallBags,
         repackedBigBags: input.repackedBigBags,
         repackedBagCount: input.repackedBagCount,
-        totalMovedBags: actualMovedBags,
+        totalMovedBags: targetGrn.bags + actualMovedBags,
         session,
       });
       repackHamaliCharge = repackHamali.repackHamaliCharge;
@@ -155,7 +155,8 @@ export async function mergeGrn(
       const carriedRentNote = finalCarriedRent > 0 ? `. Additional rent: ₹${finalCarriedRent}` : '';
       const sourceBillsNote = totalSourcePendingRent > 0 ? `. Source pending rent: ₹${totalSourcePendingRent} kept as separate pending bills` : '';
       const activeSubNote = `. Active subscription continued for consolidated stock`;
-      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${actualMovedBags} bags${repackedNote}${repackHamaliNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}${sourceBillsNote}${activeSubNote}. Reason: ${input.remarks.trim()}]`;
+      const inwardHistoryNote = `. Consolidated stock new inward date: ${moveDateStr}`;
+      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${actualMovedBags} bags${repackedNote}${repackHamaliNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}${sourceBillsNote}${activeSubNote}${inwardHistoryNote}. Reason: ${input.remarks.trim()}]`;
       const updatedTargetRemarks = appendGrnRemarks(targetGrn.remarks, targetNote);
 
       const updatedTarget = await GrnModel.findOneAndUpdate(
