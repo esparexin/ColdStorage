@@ -152,6 +152,7 @@ export async function mergeGrn(
       await createMergePutawayTransaction({
         facilityId, movementId, moveDate, targetGrn: { ...targetGrn, chamber: destinationChamber },
         resultingBagType, sourceGrns, totalMovedSmall, totalMovedBig, remarks: input.remarks, userId, session,
+        isRepackSelected: input.isRepackSelected,
       });
 
       const moveDateStr = moveDate.toISOString().split('T')[0];

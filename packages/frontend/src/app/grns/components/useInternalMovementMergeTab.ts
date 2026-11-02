@@ -143,10 +143,8 @@ export function useInternalMovementMergeTab({
     return calculateHamaliAmount(actualRepackedBags, commodityHamaliRate);
   }, [repackMode, actualRepackedBags, commodityHamaliRate]);
 
-  const targetSmall = typeof targetConfirmation.smallBags === 'number' ? targetConfirmation.smallBags : (targetGrn.smallBags ?? 0);
-  const targetBig = typeof targetConfirmation.bigBags === 'number' ? targetConfirmation.bigBags : (targetGrn.bigBags ?? 0);
   const { movedSmall, movedBig, addedBagsToTarget, targetNewRemaining, effectiveIsHybrid } =
-    deriveMovedAndTargetBags({ selectedSources, sourceConfirmations, repackMode, repackBagType, isRepackFilled, repackSmall, repackBig, repackQuantity, totalSourceBags, targetCurrentRemaining, targetBagType: targetGrn.bagType, actualRepackedBags, targetSmall, targetBig });
+    deriveMovedAndTargetBags({ selectedSources, sourceConfirmations, repackMode, repackBagType, isRepackFilled, repackSmall, repackBig, repackQuantity, totalSourceBags, targetCurrentRemaining, targetBagType: targetGrn.bagType, actualRepackedBags });
 
   const resultingBagType = useMemo(() => resolveMergedBagType({
     targetBagType: targetGrn.bagType,

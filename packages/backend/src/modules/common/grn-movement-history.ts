@@ -131,7 +131,7 @@ export async function getGrnMovementHistory(
       }
 
       const mov = movRefMap.get(t.referenceId);
-      const isRepack = mov?.movementType === 'REPACK' || (!challanMap.has(t.referenceId) && Boolean(t.notes?.includes('repack')));
+      const isRepack = mov?.movementType === 'REPACK' || (!challanMap.has(t.referenceId) && Boolean(t.notes?.toLowerCase().includes('repack')));
       if (isRepack) {
         runningSmall = t.smallQuantity;
         runningBig = t.bigQuantity;
@@ -218,7 +218,7 @@ export async function getGrnMovementHistory(
   return {
     grnId: grn.id, facilityId: grn.facilityId, grnNumber: grn.grnNumber,
     customerId: grn.customerId, customerName: grn.customerName, commodityId: grn.commodityId, commodityName: grn.commodityName,
-    chamber: grn.chamber, inwardDate: grn.date, totalInwardBags: grn.bags,
+    chamber: grn.chamber, inwardDate: grn.date, totalInwardBags: initialTotal,
     originalSmallBags: isGenesisVerified ? (initialSmall ?? undefined) : undefined,
     originalBigBags: isGenesisVerified ? (initialBig ?? undefined) : undefined,
     netDeliveredBags: Math.max(0, netDelivered), currentClosingBags: runningBalance,

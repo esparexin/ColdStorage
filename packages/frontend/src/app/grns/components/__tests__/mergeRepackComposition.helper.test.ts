@@ -153,8 +153,8 @@ describe('mergeRepackComposition.helper', () => {
         targetBig: 4,
       });
 
-      expect(res.movedSmall).toBe(20);
-      expect(res.movedBig).toBe(10);
+      expect(res.movedSmall).toBe(24);
+      expect(res.movedBig).toBe(14);
       expect(res.addedBagsToTarget).toBe(30);
       expect(res.targetNewRemaining).toBe(38);
     });
@@ -211,9 +211,9 @@ describe('mergeRepackComposition.helper', () => {
         },
       });
 
-      expect(payload.effSmall).toBe(20);
-      expect(payload.effBig).toBe(10);
-      expect(payload.effRepackedBagCount).toBe(30);
+      expect(payload.effSmall).toBe(24);
+      expect(payload.effBig).toBe(14);
+      expect(payload.effRepackedBagCount).toBe(38);
     });
   });
 });
