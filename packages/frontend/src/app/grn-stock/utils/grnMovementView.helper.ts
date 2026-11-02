@@ -7,11 +7,15 @@ export interface ParsedMovementRow {
   notes: string;
   smallDisplay: string;
   bigDisplay: string;
+  hybridDisplay: string;
   totalDisplay: string;
   isReceived: boolean;
 }
 
-export function parseMovementRow(entry: GrnMovementEntry): ParsedMovementRow {
+export function parseMovementRow(
+  entry: GrnMovementEntry,
+  grnBagType?: string | null,
+): ParsedMovementRow {
   let typeLabel: ParsedMovementRow['typeLabel'];
   let badgeType: ParsedMovementRow['badgeType'];
   let totalDisplay: string;
@@ -92,24 +96,45 @@ export function parseMovementRow(entry: GrnMovementEntry): ParsedMovementRow {
       break;
   }
 
+  const isHybrid =
+    grnBagType === 'Hybrid' ||
+    entry.remarks?.toLowerCase().includes('hybrid') === true ||
+    (entry as { bagType?: string }).bagType === 'Hybrid' ||
+    (entry.type !== 'OWNERSHIP_TRANSFER' &&
+      entry.smallBags == null &&
+      entry.bigBags == null &&
+      (entry.receivedBags ?? entry.deliveredBags ?? entry.closingBags ?? 0) > 0 &&
+      grnBagType !== 'S' &&
+      grnBagType !== 'B' &&
+      grnBagType !== 'S/B' &&
+      grnBagType !== 'S+B' &&
+      grnBagType !== undefined &&
+      grnBagType !== null);
+
   const isUnclassifiedInward =
+    !isHybrid &&
     entry.type === 'INWARD' &&
     (entry.smallBags == null ||
       (entry.smallBags === 0 && entry.bigBags === 0 && (entry.receivedBags ?? entry.closingBags ?? 0) > 0));
 
   const smallDisplay =
-    entry.type === 'OWNERSHIP_TRANSFER' || isUnclassifiedInward
+    entry.type === 'OWNERSHIP_TRANSFER' || isUnclassifiedInward || isHybrid
       ? '—'
       : entry.smallBags != null
         ? entry.smallBags.toLocaleString('en-IN')
         : '—';
 
   const bigDisplay =
-    entry.type === 'OWNERSHIP_TRANSFER' || isUnclassifiedInward
+    entry.type === 'OWNERSHIP_TRANSFER' || isUnclassifiedInward || isHybrid
       ? '—'
       : entry.bigBags != null
         ? entry.bigBags.toLocaleString('en-IN')
         : '—';
+
+  const hybridDisplay =
+    entry.type === 'OWNERSHIP_TRANSFER' || isUnclassifiedInward || !isHybrid
+      ? '—'
+      : totalDisplay;
 
   return {
     typeLabel,
@@ -118,6 +143,7 @@ export function parseMovementRow(entry: GrnMovementEntry): ParsedMovementRow {
     notes,
     smallDisplay,
     bigDisplay,
+    hybridDisplay,
     totalDisplay,
     isReceived,
   };

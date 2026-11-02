@@ -24,6 +24,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
     expect(res.totalDisplay).toBe('100');
     expect(res.smallDisplay).toBe('100');
     expect(res.bigDisplay).toBe('0');
+    expect(res.hybridDisplay).toBe('—');
     expect(res.isReceived).toBe(true);
     expect(res.notes).toBe('Genesis Inward');
   });
@@ -198,5 +199,41 @@ describe('grnMovementView.helper parseMovementRow', () => {
     expect(inRes.refNumber).toBe('Internal Repack');
     expect(inRes.totalDisplay).toBe('95');
     expect(inRes.isReceived).toBe(true);
+  });
+
+  it('correctly formats hybrid consignment inward in the hybrid column', () => {
+    const res = parseMovementRow(
+      {
+        ...baseEntry,
+        smallBags: null,
+        bigBags: null,
+        receivedBags: 200,
+        closingBags: 200,
+        remarks: 'Genesis Inward (Hybrid)',
+      },
+      'Hybrid',
+    );
+    expect(res.typeLabel).toBe('INWARD');
+    expect(res.smallDisplay).toBe('—');
+    expect(res.bigDisplay).toBe('—');
+    expect(res.hybridDisplay).toBe('200');
+    expect(res.totalDisplay).toBe('200');
+  });
+
+  it('correctly formats hybrid repacked lot in the hybrid column', () => {
+    const res = parseMovementRow({
+      ...baseEntry,
+      type: 'INTERNAL_MERGE_IN',
+      smallBags: null,
+      bigBags: null,
+      receivedBags: 30,
+      closingBags: 30,
+      remarks: 'Merged and repacked from GRNs 0008: 30 Hybrid bags',
+    });
+    expect(res.typeLabel).toBe('MERGE IN');
+    expect(res.smallDisplay).toBe('—');
+    expect(res.bigDisplay).toBe('—');
+    expect(res.hybridDisplay).toBe('30');
+    expect(res.totalDisplay).toBe('30');
   });
 });
