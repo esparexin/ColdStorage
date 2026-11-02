@@ -171,24 +171,42 @@ export function MergeStep3Settlement({
                 gap: 'var(--space-2)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                  paddingBottom: 'var(--space-1-5)',
+                  borderBottom: '1px solid var(--color-border)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>
                     Source GRN #{source.grnNumber}
                   </span>
-                  {source.customerName && (
-                    <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
-                      — {source.customerName}
-                    </span>
-                  )}
+                  <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
+                  <span style={{ fontWeight: 'var(--font-medium)', color: 'var(--color-text-primary)', fontSize: 'var(--text-xs)' }}>
+                    {source.customerName || 'CUSTOMER'}
+                  </span>
+                  <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
                   <Badge variant="neutral">Season {seasonYearForInwardDate(source.date)}</Badge>
+                  <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
+                  <Badge variant={isSettled ? 'success' : 'warning'}>
+                    {isSettled ? 'Settled (₹0 Due)' : `₹${pendingDues.toLocaleString('en-IN')} Pending`}
+                  </Badge>
                 </div>
-                <Badge variant={isSettled ? 'success' : 'warning'}>
-                  {isSettled ? 'Settled (₹0 Due)' : `₹${pendingDues.toLocaleString('en-IN')} Pending`}
-                </Badge>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-text-secondary)' }}>
+                    Outward Rent Calculation ({source.rentType})
+                  </span>
+                </div>
               </div>
 
               <OutwardRentBreakdown
+                hideHeader
                 rentType={source.rentType}
                 inwardDate={source.date}
                 deliveryDate={movementDate}

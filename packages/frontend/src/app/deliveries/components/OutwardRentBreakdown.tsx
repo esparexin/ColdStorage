@@ -40,26 +40,14 @@ export interface OutwardRentBreakdownProps {
   hamaliRate?: number | null;
   excludePeriodKeys?: string[];
   grnNumber?: string;
+  hideHeader?: boolean;
 }
 
 export function OutwardRentBreakdown({
-  rentType,
-  inwardDate,
-  deliveryDate,
-  smallBags,
-  bigBags,
-  bagType,
-  bagCategory,
-  bagPrice,
-  seasonalBagPrice,
-  monthlyBagPrice,
-  seasonalRates,
-  monthlyRates,
-  rentMonths,
-  totalRent,
-  hamaliRate,
-  excludePeriodKeys,
-  grnNumber,
+  rentType, inwardDate, deliveryDate, smallBags, bigBags,
+  bagType, bagCategory, bagPrice, seasonalBagPrice, monthlyBagPrice,
+  seasonalRates, monthlyRates, rentMonths, totalRent, hamaliRate,
+  excludePeriodKeys, grnNumber, hideHeader,
 }: OutwardRentBreakdownProps) {
   const isSeasonal = rentType === 'Seasonal';
   const isSeasonal3M = rentType === 'Seasonal_3M';
@@ -210,20 +198,22 @@ export function OutwardRentBreakdown({
   }
 
   return (
-    <div className={styles.card} id="outward-rent-breakdown-card">
-      <div className={styles.header}>
-        <div className={styles.titleGroup}>
-          <span className={styles.title}>Outward Rent Calculation</span>
-          <Badge variant="neutral">{rentType}</Badge>
-          {grnNumber && <Badge variant="primary">GRN #{grnNumber}</Badge>}
+    <div className={hideHeader ? styles.embeddedCard : styles.card} id="outward-rent-breakdown-card">
+      {!hideHeader && (
+        <div className={styles.header}>
+          <div className={styles.titleGroup}>
+            <span className={styles.title}>Outward Rent Calculation</span>
+            <Badge variant="neutral">{rentType}</Badge>
+            {grnNumber && <Badge variant="primary">GRN #{grnNumber}</Badge>}
+          </div>
         </div>
-      </div>
+      )}
 
       <DataTable
         columns={breakdownColumns}
         rows={rows}
         rowKey={(r) => r.id}
-        caption="Outward Rent Calculation Breakdown"
+        caption={hideHeader ? undefined : "Outward Rent Calculation Breakdown"}
         footer={
           <>
             <tr className={styles.totalRow}>
