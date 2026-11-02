@@ -74,6 +74,7 @@ export function MergeSourceGrnCard({
     [source, confirmation, movementDate, commodityHamaliRate, targetGrnDate, summary, commodity],
   );
 
+  const isConfirmed = rentCalc.isConfirmed;
   const paid = summary?.totalPaid ?? 0;
   const totalObligation = Math.max(summary?.totalDue ?? 0, rentCalc.totalAmountToPay);
   const pendingDues = Math.max(0, totalObligation - paid);
@@ -114,8 +115,12 @@ export function MergeSourceGrnCard({
           <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
           <Badge variant="primary">{sourceBags} Bags</Badge>
           <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-          <Badge variant={isSettled ? 'success' : 'warning'}>
-            {isSettled ? 'Rent Settled (₹0 Due)' : `₹${pendingDues.toLocaleString('en-IN')} Pending`}
+          <Badge variant={isConfirmed ? (isSettled ? 'success' : 'warning') : 'neutral'}>
+            {!isConfirmed
+              ? 'Awaiting Bag Confirmation'
+              : isSettled
+                ? 'Rent Settled (₹0 Due)'
+                : `₹${pendingDues.toLocaleString('en-IN')} Pending`}
           </Badge>
         </div>
 

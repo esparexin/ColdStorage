@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Package, ShieldCheck } from 'lucide-react';
-import { formatDisplayBagType, type Commodity, type Grn, type RentSummaryDto } from '@cold-storage/contracts';
+import { calculateHamaliAmount, formatDisplayBagType, type Commodity, type Grn, type RentSummaryDto } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
 import { calculateMergeGrandTotal } from './mergeRentAssessment.helper';
@@ -70,6 +70,23 @@ export function MergeStep2BagType({
     isCompositionVerified: targetGrn.isCompositionVerified,
   });
 
+  const isTargetConfirmed =
+    isTargetHybrid ||
+    Boolean(targetGrn.isCompositionVerified) ||
+    (typeof targetConfirmation?.smallBags === 'number' && typeof targetConfirmation?.bigBags === 'number');
+
+  const targetConfirmedSmall = typeof targetConfirmation?.smallBags === 'number'
+    ? targetConfirmation.smallBags
+    : (targetGrn.smallBags ?? targetCurrentRemaining);
+  const targetConfirmedBig = typeof targetConfirmation?.bigBags === 'number'
+    ? targetConfirmation.bigBags
+    : (targetGrn.bigBags ?? 0);
+  const targetChargeableBags = isTargetHybrid ? targetCurrentRemaining : (targetConfirmedSmall + targetConfirmedBig);
+  const targetHamaliAmount = isTargetConfirmed ? calculateHamaliAmount(targetChargeableBags, commodityHamaliRate) : 0;
+  const targetPaid = sourceRentSummaries?.[targetGrn.id]?.totalPaid ?? 0;
+  const targetPendingDues = Math.max(0, targetHamaliAmount - targetPaid);
+  const isTargetSettled = targetPendingDues === 0;
+
   const grandTotalRent = useMemo(
     () =>
       calculateMergeGrandTotal({
@@ -96,6 +113,9 @@ export function MergeStep2BagType({
             <Badge variant="neutral">
               Consolidated Pool: {totalConsolidatedBags} Bags ({participatingGrnCount} Participating GRNs)
             </Badge>
+            <Badge variant={isTargetConfirmed && !isTargetSettled ? 'warning' : 'neutral'}>
+              Target Hamali: {isTargetConfirmed ? `₹${targetPendingDues.toLocaleString('en-IN')}` : 'Pending Confirmation'}
+            </Badge>
             {grandTotalRent > 0 ? (
               <Badge variant="warning">
                 Pending Source Dues: ₹{grandTotalRent.toLocaleString('en-IN')}
@@ -112,67 +132,35 @@ export function MergeStep2BagType({
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
         {/* Destination GRN Profile Card (Surviving / Receiving) */}
-        <div
-          className={styles.compactCard}
-          id={`destination-card-${targetGrn.id}`}
-          style={{
-            background: 'var(--color-surface-2)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-2)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--space-2)',
-          }}
-        >
+        <div className={styles.compactCard} id={`destination-card-${targetGrn.id}`} style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ShieldCheck size={16} aria-hidden="true" style={{ color: 'var(--color-primary)' }} />
-              <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>
-                Target GRN #{targetGrn.grnNumber} (Merge Destination)
-              </span>
-              {targetGrn.customerName && (
-                <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
-                  — {targetGrn.customerName}
-                </span>
-              )}
+              <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>Target GRN #{targetGrn.grnNumber} (Merge Destination)</span>
+              {targetGrn.customerName && <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>— {targetGrn.customerName}</span>}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Badge variant="primary">Receiving Lot (Surviving)</Badge>
               <Badge variant="neutral">Season {targetSeason}</Badge>
               <Badge variant="neutral">{targetCurrentRemaining} Bags</Badge>
+              <Badge variant={isTargetConfirmed ? (isTargetSettled ? 'success' : 'warning') : 'neutral'}>
+                {!isTargetConfirmed ? 'Awaiting Bag Confirmation' : isTargetSettled ? 'Settled (₹0 Due)' : `₹${targetPendingDues.toLocaleString('en-IN')} Due (Hamali)`}
+              </Badge>
             </div>
           </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
-              gap: 'var(--space-2)',
-              fontSize: 'var(--text-xs)',
-              background: 'var(--color-surface-1)',
-              padding: 'var(--space-2)',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--color-border)',
-            }}
-          >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-2)', fontSize: 'var(--text-xs)', background: 'var(--color-surface-1)', padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
             <div>
               <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>Customer</span>
               <span style={{ fontWeight: 'var(--font-medium)' }}>{targetGrn.customerName}</span>
             </div>
             <div>
               <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>Commodity / Chamber</span>
-              <span style={{ fontWeight: 'var(--font-medium)' }}>
-                {targetGrn.commodityName} (Ch. {targetGrn.chamber})
-              </span>
+              <span style={{ fontWeight: 'var(--font-medium)' }}>{targetGrn.commodityName} (Ch. {targetGrn.chamber})</span>
             </div>
             <div>
-              <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>
-                {targetGrn.isCompositionVerified ? 'Confirmed Bag Type' : 'Bag Classification'}
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                <Badge variant={targetGrn.isCompositionVerified ? 'neutral' : 'warning'}>{targetDisplayType}</Badge>
-              </span>
+              <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>{targetGrn.isCompositionVerified ? 'Confirmed Bag Type' : 'Bag Classification'}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}><Badge variant={targetGrn.isCompositionVerified ? 'neutral' : 'warning'}>{targetDisplayType}</Badge></span>
             </div>
             <div>
               <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>Current Existing Stock</span>
@@ -180,9 +168,11 @@ export function MergeStep2BagType({
             </div>
             <div>
               <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>Active Subscription</span>
-              <span style={{ fontWeight: 'var(--font-medium)' }}>
-                {targetGrn.rentType} (Preserved)
-              </span>
+              <span style={{ fontWeight: 'var(--font-medium)' }}>{targetGrn.rentType} (Preserved)</span>
+            </div>
+            <div>
+              <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>Hamali Charge</span>
+              <span style={{ fontWeight: 'var(--font-medium)' }}>{isTargetConfirmed ? `₹${targetHamaliAmount.toLocaleString('en-IN')} (₹${commodityHamaliRate}/bag)` : `₹${commodityHamaliRate}/bag (Pending Confirmation)`}</span>
             </div>
           </div>
 
@@ -191,17 +181,7 @@ export function MergeStep2BagType({
               <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', marginBottom: 'var(--space-1)', color: 'var(--color-primary-text)' }}>
                 Bag Type Configuration — Target GRN #{targetGrn.grnNumber} ({targetCurrentRemaining} Bags)
               </div>
-              <MergeBagTypeFields
-                value={targetConfirmation}
-                onChange={onTargetConfirmationChange}
-                totalMovedBags={targetCurrentRemaining}
-                rentType={targetGrn.rentType}
-                inwardDate={targetGrn.date}
-                movementDate={movementDate}
-                submitting={submitting}
-                rates={targetRates}
-                sourceBagType={targetGrn.bagType}
-              />
+              <MergeBagTypeFields value={targetConfirmation} onChange={onTargetConfirmationChange} totalMovedBags={targetCurrentRemaining} rentType={targetGrn.rentType} inwardDate={targetGrn.date} movementDate={movementDate} submitting={submitting} rates={targetRates} sourceBagType={targetGrn.bagType} />
             </div>
           )}
 
@@ -212,19 +192,7 @@ export function MergeStep2BagType({
 
         {/* Source GRNs Cards (Closing Lots) */}
         {selectedSources.map((source) => (
-          <MergeSourceGrnCard
-            key={source.id}
-            source={source}
-            confirmation={sourceConfirmations[source.id]}
-            onConfirmationChange={(patch) => onSourceConfirmationChange(source.id, patch)}
-            movementDate={movementDate}
-            facilityId={facilityId}
-            submitting={submitting}
-            commodityHamaliRate={commodityHamaliRate}
-            targetGrnDate={targetGrnDate}
-            summary={sourceRentSummaries?.[source.id]}
-            commodity={commodities?.find((c) => c.id === source.commodityId)}
-          />
+          <MergeSourceGrnCard key={source.id} source={source} confirmation={sourceConfirmations[source.id]} onConfirmationChange={(patch) => onSourceConfirmationChange(source.id, patch)} movementDate={movementDate} facilityId={facilityId} submitting={submitting} commodityHamaliRate={commodityHamaliRate} targetGrnDate={targetGrnDate} summary={sourceRentSummaries?.[source.id]} commodity={commodities?.find((c) => c.id === source.commodityId)} />
         ))}
       </div>
 
