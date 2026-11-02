@@ -67,7 +67,7 @@ describe('Merge Step 4 Cleanup & Chamber Validation', () => {
     expect(result).toBeNull();
   });
 
-  it('rejects repacked stock when count does not equal consolidated pool of 38 bags', () => {
+  it('accepts repacked stock when count varies from consolidated pool (e.g. 30 bags instead of 38)', () => {
     const result = validateMergeSubmit({
       ...baseParams,
       destinationChamber: 'A-01,09',
@@ -77,11 +77,11 @@ describe('Merge Step 4 Cleanup & Chamber Validation', () => {
       repackBig: 20, // 30 bags instead of 38
       totalConsolidatedBags: 38,
     });
-    expect(result).toBe('Repacked bag count (30) must equal consolidated pool of 38 bags.');
+    expect(result).toBeNull();
   });
 
-  it('validates hybrid repacked stock against consolidated pool of 38 bags', () => {
-    const mismatch = validateMergeSubmit({
+  it('validates hybrid repacked stock allowing variance', () => {
+    const result = validateMergeSubmit({
       ...baseParams,
       destinationChamber: 'A-01,09',
       repackMode: true,
@@ -91,7 +91,7 @@ describe('Merge Step 4 Cleanup & Chamber Validation', () => {
       repackBagPrice: 50,
       totalConsolidatedBags: 38,
     });
-    expect(mismatch).toBe('Repacked bag count (30) must equal consolidated pool of 38 bags.');
+    expect(result).toBeNull();
 
     const match = validateMergeSubmit({
       ...baseParams,

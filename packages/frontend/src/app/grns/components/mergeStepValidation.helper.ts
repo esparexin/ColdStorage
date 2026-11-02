@@ -106,17 +106,9 @@ export function validateMergeSubmit(params: MergeSubmitValidationParams): string
       if (!isRepackFilled || Number(repackSmall) < 0 || Number(repackBig) < 0 || Number(repackSmall) + Number(repackBig) <= 0) {
         return 'Both Repacked Small and Big bag counts are required and must total greater than zero.';
       }
-      const totalRepacked = Number(repackSmall) + Number(repackBig);
-      if (typeof totalConsolidatedBags === 'number' && totalConsolidatedBags > 0 && totalRepacked !== totalConsolidatedBags) {
-        return `Repacked bag count (${totalRepacked}) must equal consolidated pool of ${totalConsolidatedBags} bags.`;
-      }
     } else {
       if (!isRepackFilled || Number(repackQuantity) <= 0) {
         return 'Repacked Hybrid bag count is required and must be greater than zero.';
-      }
-      const hybridQty = Number(repackQuantity);
-      if (typeof totalConsolidatedBags === 'number' && totalConsolidatedBags > 0 && hybridQty !== totalConsolidatedBags) {
-        return `Repacked bag count (${hybridQty}) must equal consolidated pool of ${totalConsolidatedBags} bags.`;
       }
       const hasRate = hasPositiveHybridRate({
         bagPrice: typeof repackBagPrice === 'number' ? repackBagPrice : undefined,
