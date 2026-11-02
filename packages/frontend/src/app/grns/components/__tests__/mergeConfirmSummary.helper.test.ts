@@ -34,11 +34,22 @@ describe('mergeConfirmSummary.helper', () => {
       expect(result.isVariance).toBe(true);
       expect(result.isLoss).toBe(true);
     });
+
+    it('measures variance against totalConsolidatedBags when provided', () => {
+      const exact = formatRepackVariance(true, 38, 30, 38);
+      expect(exact.text).toBe('0 Bags (Exact match)');
+      expect(exact.isVariance).toBe(false);
+
+      const variance = formatRepackVariance(true, 36, 30, 38);
+      expect(variance.text).toBe('-2 Bags (Shrinkage / Loss)');
+      expect(variance.isLoss).toBe(true);
+    });
   });
 
   describe('formatRepackComposition', () => {
     it('formats non-repack mode as consolidated pool', () => {
       expect(formatRepackComposition(false, 'S/B', '', '', 0, 150)).toBe('150 Bags (Consolidated Pool)');
+      expect(formatRepackComposition(false, 'S/B', '', '', 0, 30, 38)).toBe('38 Bags (Consolidated Pool)');
     });
 
     it('formats repack mode for Hybrid bag type', () => {

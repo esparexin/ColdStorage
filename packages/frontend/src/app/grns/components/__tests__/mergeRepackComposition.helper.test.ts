@@ -134,6 +134,30 @@ describe('mergeRepackComposition.helper', () => {
       expect(res.targetNewRemaining).toBe(150);
       expect(res.effectiveIsHybrid).toBe(false);
     });
+
+    it('derives moved and target bags for 38-bag consolidated pool (8 target + 30 sources)', () => {
+      const res = deriveMovedAndTargetBags({
+        selectedSources: [sampleSourceGrn],
+        sourceConfirmations: {},
+        repackMode: true,
+        repackBagType: 'S/B',
+        isRepackFilled: true,
+        repackSmall: 24,
+        repackBig: 14,
+        repackQuantity: '',
+        totalSourceBags: 30,
+        targetCurrentRemaining: 8,
+        targetBagType: 'S/B',
+        actualRepackedBags: 38,
+        targetSmall: 4,
+        targetBig: 4,
+      });
+
+      expect(res.movedSmall).toBe(20);
+      expect(res.movedBig).toBe(10);
+      expect(res.addedBagsToTarget).toBe(30);
+      expect(res.targetNewRemaining).toBe(38);
+    });
   });
 
   describe('buildMergeExecutionPayload', () => {
@@ -164,6 +188,32 @@ describe('mergeRepackComposition.helper', () => {
       expect(payload.effBig).toBe(20);
       expect(payload.resolvedCategory).toBe('S/B');
       expect(payload.effRepackedBagCount).toBeUndefined();
+    });
+
+    it('constructs correct payload for consolidated repacking', () => {
+      const payload = buildMergeExecutionPayload({
+        repackMode: true,
+        repackBagType: 'S/B',
+        repackSmall: 24,
+        repackBig: 14,
+        repackQuantity: '',
+        repackBagPrice: '',
+        repackSeasonalBagPrice: '',
+        repackMonthlyBagPrice: '',
+        isRepackFilled: true,
+        isRepackRequired: true,
+        movedSmall: 20,
+        movedBig: 10,
+        totalSourceBags: 30,
+        primaryConf: {
+          ...DEFAULT_BAG_CONFIRMATION,
+          category: 'S/B',
+        },
+      });
+
+      expect(payload.effSmall).toBe(20);
+      expect(payload.effBig).toBe(10);
+      expect(payload.effRepackedBagCount).toBe(30);
     });
   });
 });

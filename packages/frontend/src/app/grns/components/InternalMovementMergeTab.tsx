@@ -140,7 +140,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
             if (!act) {
               setRepackSmall('');
               setRepackBig('');
-              setRepackQuantity(totalSourceBags);
+              setRepackQuantity('');
               setReferenceWeight('');
             }
           }}
@@ -159,6 +159,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
           repackBagPrice={repackBagPrice}
           onRepackBagPriceChange={setRepackBagPrice}
           totalSourceBags={totalSourceBags}
+          totalConsolidatedBags={targetCurrentRemaining + totalSourceBags}
           referenceWeight={referenceWeight}
           onReferenceWeightChange={setReferenceWeight}
           repackHamaliCharge={repackHamaliCharge}
@@ -197,6 +198,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
               settlementDecision={settlementDecision}
               settleAmount={settleAmount}
               totalSourcePendingRent={totalSourcePendingRent}
+              totalConsolidatedBags={targetCurrentRemaining + totalSourceBags}
             />
           }
           confirmLabel="Yes, Execute Merge"

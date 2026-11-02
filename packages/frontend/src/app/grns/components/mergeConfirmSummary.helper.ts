@@ -10,6 +10,7 @@ export function formatRepackVariance(
   repackMode: boolean,
   actualRepackedBags: number,
   totalSourceBags: number,
+  totalConsolidatedBags?: number,
 ): RepackVarianceResult {
   if (!repackMode) {
     return {
@@ -19,7 +20,8 @@ export function formatRepackVariance(
     };
   }
 
-  const diff = actualRepackedBags - totalSourceBags;
+  const baseBags = typeof totalConsolidatedBags === 'number' && totalConsolidatedBags > 0 ? totalConsolidatedBags : totalSourceBags;
+  const diff = actualRepackedBags - baseBags;
   if (diff === 0) {
     return {
       text: '0 Bags (Exact match)',
@@ -50,6 +52,7 @@ export function formatRepackComposition(
   repackBig: number | '',
   actualRepackedBags: number,
   totalSourceBags: number,
+  totalConsolidatedBags?: number,
 ): string {
   if (repackMode) {
     if (repackBagType === 'Hybrid') {
@@ -59,7 +62,8 @@ export function formatRepackComposition(
     const big = typeof repackBig === 'number' ? repackBig : 0;
     return `${small} Small / ${big} Big (${actualRepackedBags} Total)`;
   }
-  return `${totalSourceBags} Bags (Consolidated Pool)`;
+  const pool = typeof totalConsolidatedBags === 'number' && totalConsolidatedBags > 0 ? totalConsolidatedBags : totalSourceBags;
+  return `${pool} Bags (Consolidated Pool)`;
 }
 
 export function formatRepackHamali(

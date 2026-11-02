@@ -22,6 +22,7 @@ interface MergeStep4RepackConfirmProps {
   repackMonthlyBagPrice: number | ''; onRepackMonthlyBagPriceChange: (val: number | '') => void;
   repackBagPrice: number | ''; onRepackBagPriceChange: (val: number | '') => void;
   totalSourceBags: number; referenceWeight: number | ''; onReferenceWeightChange: (val: number | '') => void;
+  totalConsolidatedBags?: number;
   repackHamaliCharge: number; actualRepackedBags: number; commodityHamaliRate: number;
   movementDate: string; targetGrn: Grn;
   reason: string; onReasonChange: (r: string) => void; remarks: string; onRemarksChange: (r: string) => void;
@@ -38,7 +39,7 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
     totalSourceBags, referenceWeight, onReferenceWeightChange, repackHamaliCharge,
     actualRepackedBags, commodityHamaliRate, movementDate, targetGrn,
     reason, onReasonChange, remarks, onRemarksChange, selectedSourcesCount,
-    submitting, onBack,
+    submitting, onBack, totalConsolidatedBags,
   } = props;
 
   const targetRates = resolveOutwardRates(targetGrn.rentType, {
@@ -72,6 +73,7 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
           repackBagPrice={repackBagPrice}
           onRepackBagPriceChange={onRepackBagPriceChange}
           totalSourceBags={totalSourceBags}
+          totalConsolidatedBags={totalConsolidatedBags}
           referenceWeight={referenceWeight}
           onReferenceWeightChange={onReferenceWeightChange}
           repackHamaliCharge={repackHamaliCharge}

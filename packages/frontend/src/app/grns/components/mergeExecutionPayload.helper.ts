@@ -31,19 +31,21 @@ export function buildMergeExecutionPayload(params: MergeExecutionPayloadParams) 
     (repackMode && repackBagType === 'S/B');
 
   const effSmall = repackMode
-    ? repackBagType === 'Hybrid' ? movedSmall : Number(repackSmall)
+    ? movedSmall
     : isRepackFilled
       ? Number(repackSmall)
       : typeof primaryConf.smallBags === 'number' ? primaryConf.smallBags : undefined;
 
   const effBig = repackMode
-    ? repackBagType === 'Hybrid' ? movedBig : Number(repackBig)
+    ? movedBig
     : isRepackFilled
       ? Number(repackBig)
       : typeof primaryConf.bigBags === 'number' ? primaryConf.bigBags : undefined;
 
   const effQuantity = repackMode
-    ? repackBagType === 'Hybrid' ? Number(repackQuantity) : undefined
+    ? repackBagType === 'Hybrid'
+      ? (typeof repackQuantity === 'number' && repackQuantity > totalSourceBags ? totalSourceBags : Number(repackQuantity))
+      : undefined
     : isHybridBagCategory(primaryConf.category)
       ? totalSourceBags
       : typeof primaryConf.quantity === 'number' ? primaryConf.quantity : undefined;
@@ -62,7 +64,9 @@ export function buildMergeExecutionPayload(params: MergeExecutionPayloadParams) 
 
   const effRepackedBagCount =
     repackMode && isRepackFilled
-      ? repackBagType === 'Hybrid' ? Number(repackQuantity) : Number(repackSmall) + Number(repackBig)
+      ? repackBagType === 'Hybrid'
+        ? (typeof repackQuantity === 'number' && repackQuantity > totalSourceBags ? totalSourceBags : Number(repackQuantity))
+        : movedSmall + movedBig
       : undefined;
 
   const resolvedCategory: OutwardBagCategory | undefined = repackMode

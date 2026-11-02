@@ -25,6 +25,7 @@ export interface MergeConfirmSummaryProps {
   settlementDecision: string;
   settleAmount: number;
   totalSourcePendingRent: number;
+  totalConsolidatedBags?: number;
 }
 
 export function MergeConfirmSummary({
@@ -43,8 +44,9 @@ export function MergeConfirmSummary({
   settlementDecision: _settlementDecision,
   settleAmount: _settleAmount,
   totalSourcePendingRent,
+  totalConsolidatedBags,
 }: MergeConfirmSummaryProps) {
-  const variance = formatRepackVariance(repackMode, actualRepackedBags, totalSourceBags);
+  const variance = formatRepackVariance(repackMode, actualRepackedBags, totalSourceBags, totalConsolidatedBags);
   const composition = formatRepackComposition(
     repackMode,
     repackBagType,
@@ -52,6 +54,7 @@ export function MergeConfirmSummary({
     repackBig,
     actualRepackedBags,
     totalSourceBags,
+    totalConsolidatedBags,
   );
   const hamali = formatRepackHamali(repackHamaliCharge, actualRepackedBags, commodityHamaliRate);
 
@@ -109,8 +112,8 @@ export function MergeConfirmSummary({
             </span>
           </div>
           <div className={styles.item}>
-            <span className={styles.label}>Original Source Pool</span>
-            <span className={styles.value}>{totalSourceBags} Bags</span>
+            <span className={styles.label}>Consolidated Stock Pool</span>
+            <span className={styles.value}>{totalConsolidatedBags ?? totalSourceBags} Bags</span>
           </div>
         </div>
       </div>
