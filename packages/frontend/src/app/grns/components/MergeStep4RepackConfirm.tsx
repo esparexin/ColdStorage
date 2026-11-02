@@ -13,6 +13,8 @@ import styles from './InternalMovementModal.module.css';
 
 interface MergeStep4RepackConfirmProps {
   destinationChamber: string; onDestinationChamberChange: (val: string) => void;
+  partyMark: string; onPartyMarkChange: (val: string) => void;
+  storageMark: string; onStorageMarkChange: (val: string) => void;
   repackMode: boolean; onRepackModeChange: (active: boolean) => void;
   repackBagType: OperationalBagType; onRepackBagTypeChange: (type: OperationalBagType) => void;
   repackSmall: number | ''; onRepackSmallChange: (val: number | '') => void;
@@ -32,6 +34,7 @@ interface MergeStep4RepackConfirmProps {
 export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
   const {
     destinationChamber, onDestinationChamberChange,
+    partyMark, onPartyMarkChange, storageMark, onStorageMarkChange,
     repackMode, onRepackModeChange, repackBagType, onRepackBagTypeChange,
     repackSmall, onRepackSmallChange, repackBig, onRepackBigChange,
     repackQuantity, onRepackQuantityChange, repackSeasonalBagPrice, onRepackSeasonalBagPriceChange,
@@ -56,6 +59,10 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
         <MergeStep4RepackSection
           destinationChamber={destinationChamber}
           onDestinationChamberChange={onDestinationChamberChange}
+          partyMark={partyMark}
+          onPartyMarkChange={onPartyMarkChange}
+          storageMark={storageMark}
+          onStorageMarkChange={onStorageMarkChange}
           repackMode={repackMode}
           onRepackModeChange={onRepackModeChange}
           repackBagType={repackBagType}

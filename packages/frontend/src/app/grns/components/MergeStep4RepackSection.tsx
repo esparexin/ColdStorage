@@ -2,12 +2,14 @@
 
 import React from 'react';
 import { Layers } from 'lucide-react';
-import { deriveHybridRateVisibility, type OperationalBagType, type RentType } from '@cold-storage/contracts';
+import { type OperationalBagType, type RentType } from '@cold-storage/contracts';
 import { Input, Select } from '@/components/ui';
 import styles from './InternalMovementModal.module.css';
 
 export interface MergeStep4RepackSectionProps {
   destinationChamber: string; onDestinationChamberChange: (val: string) => void;
+  partyMark: string; onPartyMarkChange: (val: string) => void;
+  storageMark: string; onStorageMarkChange: (val: string) => void;
   repackMode: boolean; onRepackModeChange: (active: boolean) => void;
   repackBagType: OperationalBagType; onRepackBagTypeChange: (type: OperationalBagType) => void;
   repackSmall: number | ''; onRepackSmallChange: (val: number | '') => void;
@@ -26,23 +28,15 @@ export interface MergeStep4RepackSectionProps {
 export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
   const {
     destinationChamber, onDestinationChamberChange,
+    partyMark, onPartyMarkChange, storageMark, onStorageMarkChange,
     repackMode, onRepackModeChange, repackBagType, onRepackBagTypeChange,
     repackSmall, onRepackSmallChange, repackBig, onRepackBigChange,
     repackQuantity, onRepackQuantityChange, repackSeasonalBagPrice, onRepackSeasonalBagPriceChange,
-    repackMonthlyBagPrice, onRepackMonthlyBagPriceChange, repackBagPrice, onRepackBagPriceChange,
-    totalSourceBags, referenceWeight, onReferenceWeightChange, repackHamaliCharge,
+    repackMonthlyBagPrice, onRepackMonthlyBagPriceChange, repackBagPrice: _repackBagPrice, onRepackBagPriceChange: _onRepackBagPriceChange,
+    totalSourceBags: _totalSourceBags, referenceWeight, onReferenceWeightChange, repackHamaliCharge,
     actualRepackedBags, commodityHamaliRate, movementDate, targetSmallRate,
-    targetBigRate, submitting, targetGrnRentType, targetGrnDate,
-    totalConsolidatedBags,
+    targetBigRate, submitting, targetGrnRentType,
   } = props;
-
-  const poolBags = typeof totalConsolidatedBags === 'number' && totalConsolidatedBags > 0 ? totalConsolidatedBags : totalSourceBags;
-
-  const visibility = deriveHybridRateVisibility({
-    rentType: targetGrnRentType,
-    inwardDate: targetGrnDate,
-    deliveryDate: movementDate,
-  });
 
   return (
     <div className={styles.compactCard}>
@@ -84,51 +78,31 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
           {repackBagType === 'S/B' ? (
             <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
               <div style={{ flex: 1 }}>
-                <label htmlFor="repack-small-step4" className={styles.inputLabel}>Repacked Small Bags *</label>
-                <Input id="repack-small-step4" type="number" min={0} placeholder="Small Bags" value={repackSmall} rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>₹{targetSmallRate}/bag</span>} onChange={(e) => onRepackSmallChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} required />
+                <Input id="repack-small-step4" label={`Repacked Small Bags * (₹${targetSmallRate}/bag)`} type="number" min={0} placeholder="Small Bags" value={repackSmall} onChange={(e) => onRepackSmallChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} required />
               </div>
               <div style={{ flex: 1 }}>
-                <label htmlFor="repack-big-step4" className={styles.inputLabel}>Repacked Big Bags *</label>
-                <Input id="repack-big-step4" type="number" min={0} placeholder="Big Bags" value={repackBig} rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>₹{targetBigRate}/bag</span>} onChange={(e) => onRepackBigChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} required />
+                <Input id="repack-big-step4" label={`Repacked Big Bags * (₹${targetBigRate}/bag)`} type="number" min={0} placeholder="Big Bags" value={repackBig} onChange={(e) => onRepackBigChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} required />
               </div>
             </div>
           ) : (
             <>
               <div>
-                <label htmlFor="repack-hybrid-quantity-step4" className={styles.inputLabel}>Repacked Hybrid Bags *</label>
-                <Input id="repack-hybrid-quantity-step4" type="number" min={1} placeholder={`e.g. ${poolBags}`} value={repackQuantity} rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>Consolidated Pool: {poolBags}</span>} onChange={(e) => onRepackQuantityChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} required />
+                <Input id="repack-hybrid-quantity-step4" label="Repacked Hybrid Bags *" type="number" min={1} placeholder="e.g. 35" value={repackQuantity} onChange={(e) => onRepackQuantityChange(e.target.value !== '' ? parseInt(e.target.value, 10) : '')} disabled={submitting} required />
               </div>
 
-              {(visibility.showSeasonalRate || visibility.showMonthlyRate) && (
-                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                  {visibility.showSeasonalRate && (
-                    <div style={{ flex: 1 }}>
-                      <label htmlFor="repack-seasonal-rate-step4" className={styles.inputLabel}>Seasonal Rate</label>
-                      <Input id="repack-seasonal-rate-step4" type="number" min={0} placeholder="0.00" value={repackSeasonalBagPrice} rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>₹/bag</span>} onChange={(e) => onRepackSeasonalBagPriceChange(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
-                    </div>
-                  )}
-                  {visibility.showMonthlyRate && (
-                    <div style={{ flex: 1 }}>
-                      <label htmlFor="repack-monthly-rate-step4" className={styles.inputLabel}>Monthly Rate</label>
-                      <Input id="repack-monthly-rate-step4" type="number" min={0} placeholder="0.00" value={repackMonthlyBagPrice} rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>₹/bag</span>} onChange={(e) => onRepackMonthlyBagPriceChange(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
-                    </div>
-                  )}
+              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                {targetGrnRentType !== 'Monthly' && (
+                  <div style={{ flex: 1 }}>
+                    <Input id="repack-seasonal-rate-step4" label="Seasonal Rate (₹/bag)" type="number" min={0} placeholder="0.00" value={repackSeasonalBagPrice} onChange={(e) => onRepackSeasonalBagPriceChange(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
+                  </div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <Input id="repack-monthly-rate-step4" label="Monthly Rate (₹/bag)" type="number" min={0} placeholder="0.00" value={repackMonthlyBagPrice} onChange={(e) => onRepackMonthlyBagPriceChange(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
                 </div>
-              )}
-
-              {!visibility.showSeasonalRate && !visibility.showMonthlyRate && (
-                <div>
-                  <label htmlFor="repack-bag-price-step4" className={styles.inputLabel}>Each Bag Price</label>
-                  <Input id="repack-bag-price-step4" type="number" min={0} placeholder="0.00" value={repackBagPrice} rightAction={<span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>₹/bag</span>} onChange={(e) => onRepackBagPriceChange(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
-                </div>
-              )}
+              </div>
             </>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
-            <span>Consolidated Stock Pool:</span>
-            <strong>{poolBags} Bags</strong>
-          </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
             <span>Physical Repacked Total:</span>
             <strong style={{ color: 'var(--color-primary-text)' }}>{actualRepackedBags} Bags</strong>
@@ -144,48 +118,22 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
 
       <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-1)' }}>
         <div style={{ flex: 1 }}>
-          <label htmlFor="merge-destination-chamber" className={styles.inputLabel}>
-            Destination Chamber *
-          </label>
-          <Input
-            id="merge-destination-chamber"
-            type="text"
-            required
-            maxLength={20}
-            value={destinationChamber}
-            placeholder="e.g. A or CH-01"
-            onChange={(e) => onDestinationChamberChange(e.target.value)}
-            disabled={submitting}
-          />
+          <Input id="merge-destination-chamber" label="Destination Chamber *" type="text" required maxLength={20} value={destinationChamber} placeholder="e.g. A or CH-01" onChange={(e) => onDestinationChamberChange(e.target.value)} disabled={submitting} />
         </div>
         <div style={{ flex: 1 }}>
-          <label htmlFor="merge-ref-weight" className={styles.inputLabel}>
-            Reference Weight (kg) — Optional
-          </label>
-          <Input
-            id="merge-ref-weight"
-            type="number"
-            min={0}
-            placeholder="e.g. 2500"
-            value={referenceWeight}
-            onChange={(e) => onReferenceWeightChange(e.target.value !== '' ? parseFloat(e.target.value) : '')}
-            disabled={submitting}
-          />
+          <Input id="merge-party-mark" label="Party Mark" type="text" maxLength={20} value={partyMark} placeholder="e.g. KSN-99 (max 20)" onChange={(e) => onPartyMarkChange(e.target.value)} disabled={submitting} />
         </div>
         <div style={{ flex: 1 }}>
-          <label htmlFor="merge-date" className={styles.inputLabel}>
-            Movement Date *
-          </label>
-          <Input
-            id="merge-date"
-            type="date"
-            value={movementDate}
-            readOnly
-            disabled={submitting}
-            aria-label="Movement Date (read-only)"
-            title="Authoritative operational date"
-            required
-          />
+          <Input id="merge-storage-mark" label="Storage Mark" type="text" maxLength={20} value={storageMark} placeholder="e.g. ST-01 (max 20)" onChange={(e) => onStorageMarkChange(e.target.value)} disabled={submitting} />
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-1)' }}>
+        <div style={{ flex: 1 }}>
+          <Input id="merge-ref-weight" label="Reference Weight (kg) — Optional" type="number" min={0} placeholder="e.g. 2500" value={referenceWeight} onChange={(e) => onReferenceWeightChange(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <Input id="merge-date" label="Movement Date *" type="date" value={movementDate} readOnly disabled={submitting} aria-label="Movement Date (read-only)" title="Authoritative operational date" required />
         </div>
       </div>
     </div>

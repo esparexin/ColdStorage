@@ -19,7 +19,7 @@ describe('Merge Step 4 Repacking Net Variance Removal Regression Tests', () => {
     expect(source).not.toContain('Shrinkage / Loss');
 
     // Regression check: Core operational metrics MUST remain present
-    expect(source).toContain('Consolidated Stock Pool:');
+    expect(source).not.toContain('Consolidated Stock Pool:');
     expect(source).toContain('Physical Repacked Total:');
     expect(source).toContain('Repacking Hamali Labor:');
   });

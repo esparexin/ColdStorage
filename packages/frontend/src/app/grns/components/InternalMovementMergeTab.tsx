@@ -37,6 +37,7 @@ interface InternalMovementMergeTabProps {
     targetSmallBags?: number, targetBigBags?: number, targetBagCategory?: OutwardBagCategory,
     targetQuantity?: number, targetBagPrice?: number, targetSeasonalBagPrice?: number,
     targetMonthlyBagPrice?: number,
+    partyMark?: string, storageMark?: string,
   ) => Promise<void>;
 }
 
@@ -50,6 +51,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
     sourceConfirmations, updateSourceConfirmation, sourceRentSummaries,
     settlementDecision, settleAmount,
     destinationChamber, setDestinationChamber,
+    partyMark, setPartyMark, storageMark, setStorageMark,
     repackMode, setRepackMode, repackBagType, setRepackBagType,
     repackSmall, setRepackSmall, repackBig, setRepackBig, repackQuantity, setRepackQuantity,
     repackSeasonalBagPrice, setRepackSeasonalBagPrice, repackMonthlyBagPrice, setRepackMonthlyBagPrice,
@@ -134,6 +136,10 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
         <MergeStep4RepackConfirm
           destinationChamber={destinationChamber}
           onDestinationChamberChange={setDestinationChamber}
+          partyMark={partyMark}
+          onPartyMarkChange={setPartyMark}
+          storageMark={storageMark}
+          onStorageMarkChange={setStorageMark}
           repackMode={repackMode}
           onRepackModeChange={(act) => {
             setRepackMode(act);

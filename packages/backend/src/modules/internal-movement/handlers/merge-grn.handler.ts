@@ -159,16 +159,22 @@ export async function mergeGrn(
       const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${actualMovedBags} bags${repackedNote}${repackHamaliNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}${sourceBillsNote}${activeSubNote}${inwardHistoryNote}. Reason: ${input.remarks.trim()}]`;
       const updatedTargetRemarks = appendGrnRemarks(targetGrn.remarks, targetNote);
 
+      const targetUpdateFields: Record<string, unknown> = {
+        chamber: destinationChamber, bagType: resultingBagType, bags: newBags,
+        smallBags: newSmall, bigBags: newBig, isCompositionVerified: newIsCompositionVerified,
+        rentAmount: newRentAmount, mergedAt: moveDate,
+        remarks: updatedTargetRemarks, updatedAt: new Date(),
+      };
+      if (input.partyMark?.trim()) targetUpdateFields.partyMark = input.partyMark.trim();
+      if (input.storageMark?.trim()) targetUpdateFields.storageMark = input.storageMark.trim();
+      if (input.partyMark?.trim() || input.storageMark?.trim()) {
+        const combined = [input.storageMark?.trim() || targetGrn.storageMark, input.partyMark?.trim() || targetGrn.partyMark].filter(Boolean).join(' / ');
+        if (combined) targetUpdateFields.marks = combined;
+      }
+
       const updatedTarget = await GrnModel.findOneAndUpdate(
         { id: targetGrn.id },
-        {
-          $set: {
-            chamber: destinationChamber, bagType: resultingBagType, bags: newBags,
-            smallBags: newSmall, bigBags: newBig, isCompositionVerified: newIsCompositionVerified,
-            rentAmount: newRentAmount, mergedAt: moveDate,
-            remarks: updatedTargetRemarks, updatedAt: new Date(),
-          },
-        },
+        { $set: targetUpdateFields },
         { session, new: true },
       ).lean().exec();
 

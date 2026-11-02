@@ -37,6 +37,7 @@ export interface UseInternalMovementMergeTabProps {
     targetSmallBags?: number, targetBigBags?: number, targetBagCategory?: OutwardBagCategory,
     targetQuantity?: number, targetBagPrice?: number, targetSeasonalBagPrice?: number,
     targetMonthlyBagPrice?: number,
+    partyMark?: string, storageMark?: string,
   ) => Promise<void>;
 }
 
@@ -212,6 +213,7 @@ export function useInternalMovementMergeTab({
       undefined, undefined, resolvedCategory,
       effQuantity, effBagPrice, effSeasonalPrice, effMonthlyPrice, repackMode, effRepackedBagCount,
       effectiveChamber, tSmall, tBig, tCat, tQty, tPrice, tSeasonalPrice, tMonthlyPrice,
+      repack.partyMark.trim() || undefined, repack.storageMark.trim() || undefined,
     );
   };
 

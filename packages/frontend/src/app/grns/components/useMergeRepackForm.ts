@@ -6,6 +6,8 @@ import type { BagConfirmationValue } from './bagConfirmation.helper';
 
 export function useMergeRepackForm() {
   const [destinationChamber, setDestinationChamber] = useState<string>('');
+  const [partyMark, setPartyMark] = useState<string>('');
+  const [storageMark, setStorageMark] = useState<string>('');
   const [repackMode, setRepackMode] = useState(false);
   const [repackBagType, setRepackBagType] = useState<OperationalBagType>('S/B');
   const [repackSmall, setRepackSmall] = useState<number | ''>('');
@@ -29,6 +31,10 @@ export function useMergeRepackForm() {
   return {
     destinationChamber,
     setDestinationChamber,
+    partyMark,
+    setPartyMark,
+    storageMark,
+    setStorageMark,
     repackMode,
     setRepackMode,
     repackBagType,
