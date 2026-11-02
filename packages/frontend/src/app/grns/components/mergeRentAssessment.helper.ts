@@ -43,6 +43,7 @@ export function calculateMergeSourceRentSummary(params: {
   targetGrnDate?: Date | string | null;
   summary?: RentSummaryDto | null;
   commodity?: Pick<Commodity, 'rates'> | null;
+  resetRentState?: boolean;
 }): MergeSourceRentCalculation {
   const {
     source,
@@ -52,6 +53,7 @@ export function calculateMergeSourceRentSummary(params: {
     targetGrnDate,
     summary,
     commodity,
+    resetRentState = false,
   } = params;
 
   const sourceBags = source.closingBags ?? source.bags;
@@ -136,7 +138,9 @@ export function calculateMergeSourceRentSummary(params: {
     (typeof confirmation?.monthlyBagPrice === 'number' && confirmation.monthlyBagPrice > 0);
 
   let totalRent: number;
-  if (hasManualRateOverride) {
+  if (resetRentState) {
+    totalRent = calculatedRent;
+  } else if (hasManualRateOverride) {
     totalRent = calculatedRent;
   } else if (storedRent > 0) {
     totalRent = Math.max(storedRent, calculatedRent);
@@ -185,6 +189,7 @@ export function calculateMergeGrandTotal(params: {
   targetGrnDate?: Date | string | null;
   sourceRentSummaries?: Record<string, RentSummaryDto>;
   commodities?: Commodity[];
+  resetRentState?: boolean;
 }): number {
   const {
     selectedSources,
@@ -194,6 +199,7 @@ export function calculateMergeGrandTotal(params: {
     targetGrnDate,
     sourceRentSummaries,
     commodities,
+    resetRentState = false,
   } = params;
 
   return selectedSources.reduce((acc, source) => {
@@ -206,6 +212,7 @@ export function calculateMergeGrandTotal(params: {
       targetGrnDate,
       summary: sourceRentSummaries?.[source.id],
       commodity,
+      resetRentState,
     });
     return acc + calc.totalAmountToPay;
   }, 0);
