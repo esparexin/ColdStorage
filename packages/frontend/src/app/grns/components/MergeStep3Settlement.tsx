@@ -49,19 +49,37 @@ export function MergeStep3Settlement({
 }: MergeStep3SettlementProps) {
   const targetSeason = useMemo(() => seasonYearForInwardDate(targetGrn.date), [targetGrn.date]);
 
+  const totalSettlementBill = useMemo(() => {
+    return selectedSources.reduce((acc, source) => {
+      const conf = sourceConfirmations[source.id];
+      const summary = sourceRentSummaries?.[source.id];
+      const commodity = commodities?.find((c) => c.id === source.commodityId);
+      const rentCalc = calculateMergeSourceRentSummary({
+        source,
+        confirmation: conf,
+        movementDate,
+        commodityHamaliRate,
+        targetGrnDate: targetGrn.date,
+        summary,
+        commodity,
+      });
+      const paid = summary?.totalPaid ?? 0;
+      return acc + Math.max(0, rentCalc.totalAmountToPay - paid);
+    }, 0);
+  }, [selectedSources, sourceConfirmations, sourceRentSummaries, commodities, movementDate, commodityHamaliRate, targetGrn.date]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
       {/* Header and Terms Overview */}
       <div className={styles.compactCard}>
-        <div className={styles.cardHeader} style={{ flexWrap: 'wrap', gap: '8px' }}>
+        <div className={styles.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <DollarSign size={14} aria-hidden="true" />
             <span>Step 3: Rent Settlement</span>
           </span>
-        </div>
-
-        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
-          Destination GRN #{targetGrn.grnNumber} retains its active subscription (Season {targetSeason}) without recalculating historical destination rent.
+          <Badge variant={totalSettlementBill > 0 ? 'warning' : 'success'}>
+            Settlement Bill: ₹{totalSettlementBill.toLocaleString('en-IN')}
+          </Badge>
         </div>
       </div>
 
@@ -85,6 +103,7 @@ export function MergeStep3Settlement({
           const tPaid = tSummary?.totalPaid ?? 0;
           const tDueNow = Math.max(0, tHamali - tPaid);
           const isSettled = tDueNow === 0;
+          const targetRentAmount = tCalc.totalRent > 0 ? tCalc.totalRent : targetGrn.rentAmount;
 
           return (
             <div className={styles.compactCard} style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
@@ -101,19 +120,11 @@ export function MergeStep3Settlement({
               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px', background: 'var(--color-surface-1)', padding: 'var(--space-1-5)', borderRadius: 'var(--radius-sm)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Current Season ({targetSeason}) Storage Rent:</span>
-                  <span style={{ fontWeight: 'var(--font-semibold)' }}>₹{targetGrn.rentAmount.toLocaleString('en-IN')} (Preserved — Continues Until Outward Delivery)</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Previous Monthly Subscriptions:</span>
-                  <span>₹0 (None used)</span>
+                  <span style={{ fontWeight: 'var(--font-semibold)' }}>₹{targetRentAmount.toLocaleString('en-IN')} (Preserved — Continues Until Outward Delivery)</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Hamali Charge ({tBags} bags @ ₹{commodityHamaliRate}/bag):</span>
                   <span style={{ fontWeight: 'var(--font-semibold)' }}>₹{tHamali.toLocaleString('en-IN')}</span>
-                </div>
-                <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: '4px', marginTop: '2px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'var(--font-bold)' }}>
-                  <span>Target Profile Hamali Due:</span>
-                  <span>₹${tDueNow.toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>
@@ -137,7 +148,6 @@ export function MergeStep3Settlement({
           });
 
           const paid = summary?.totalPaid ?? 0;
-          const pendingDues = Math.max(0, rentCalc.totalAmountToPay - paid);
           const isSettled = rentCalc.totalAmountToPay === 0 || (paid >= rentCalc.totalAmountToPay && rentCalc.totalAmountToPay > 0);
 
           return (
@@ -150,7 +160,7 @@ export function MergeStep3Settlement({
                   <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
                   <Badge variant="neutral">{formatGrnSeasonLabel(source.date)}</Badge>
                   <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-                  <Badge variant={isSettled ? 'success' : 'warning'}>{isSettled ? 'Settled (₹0 Due)' : `Settlement Bill: ₹${pendingDues.toLocaleString('en-IN')}`}</Badge>
+                  <Badge variant={isSettled ? 'success' : 'neutral'}>{isSettled ? 'Settled (₹0 Due)' : 'Pending Settlement'}</Badge>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-text-secondary)' }}>Outward Rent Calculation ({source.rentType})</span>

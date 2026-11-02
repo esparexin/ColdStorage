@@ -123,6 +123,7 @@ export function calculateMergeSourceRentSummary(params: {
       monthlyBigBagPrice: monthlyRates.big,
       bagPrice: source.bagPrice,
       excludePeriodKeys,
+      hamaliRate: commodityHamaliRate,
     });
   }
 

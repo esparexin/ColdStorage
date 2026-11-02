@@ -2,13 +2,14 @@
 
 import React from 'react';
 import {
-  resolveOutwardRates,
+  type Commodity,
   type Grn,
   type OperationalBagType,
 } from '@cold-storage/contracts';
 import { Input } from '@/components/ui';
 import { WizardStepActions } from './WizardStepActions';
 import { MergeStep4RepackSection } from './MergeStep4RepackSection';
+import { resolveTransferRates } from './transferRentRates.helper';
 import styles from './InternalMovementModal.module.css';
 
 interface MergeStep4RepackConfirmProps {
@@ -29,6 +30,7 @@ interface MergeStep4RepackConfirmProps {
   movementDate: string; targetGrn: Grn;
   reason: string; onReasonChange: (r: string) => void; remarks: string; onRemarksChange: (r: string) => void;
   selectedSourcesCount: number; submitting: boolean; onBack: () => void;
+  commodities?: Commodity[];
 }
 
 export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
@@ -42,16 +44,14 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
     totalSourceBags, referenceWeight, onReferenceWeightChange, repackHamaliCharge,
     actualRepackedBags, commodityHamaliRate, movementDate, targetGrn,
     reason, onReasonChange, remarks, onRemarksChange, selectedSourcesCount,
-    submitting, onBack, totalConsolidatedBags,
+    submitting, onBack, totalConsolidatedBags, commodities,
   } = props;
 
-  const targetRates = resolveOutwardRates(targetGrn.rentType, {
-    smallBagPrice: targetGrn.smallBagPrice,
-    bigBagPrice: targetGrn.bigBagPrice,
-    bagPrice: targetGrn.bagPrice,
-  });
-  const targetSmallRate = targetRates.small > 0 ? targetRates.small : (targetGrn.smallBagPrice ?? targetGrn.bagPrice ?? 10);
-  const targetBigRate = targetRates.big > 0 ? targetRates.big : (targetGrn.bigBagPrice ?? targetGrn.bagPrice ?? 15);
+  const targetCommodity = commodities?.find((c) => c.id === targetGrn.commodityId);
+  const { seasonalRates, monthlyRates } = resolveTransferRates(targetGrn, targetCommodity);
+  const effectiveRates = targetGrn.rentType === 'Monthly' ? monthlyRates : seasonalRates;
+  const targetSmallRate = effectiveRates.small;
+  const targetBigRate = effectiveRates.big;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>

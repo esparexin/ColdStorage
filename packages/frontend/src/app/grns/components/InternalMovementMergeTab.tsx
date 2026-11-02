@@ -180,6 +180,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
           selectedSourcesCount={selectedSources.length}
           submitting={submitting}
           onBack={() => setStep(3)}
+          commodities={props.commodities}
         />
       )}
       {showConfirm && (
