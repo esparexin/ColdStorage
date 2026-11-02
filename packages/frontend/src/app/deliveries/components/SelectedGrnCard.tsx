@@ -6,9 +6,7 @@ import type { BagType, Grn, GrnInventorySummary, OutwardBagCategory, RentSummary
 import { formatDisplayBagType, isHybridBagCategory, parseMergedConsignmentBreakdown } from '@cold-storage/contracts';
 import { Badge, Button, Select } from '@/components/ui';
 import {
-  parseMergedAddedBags,
   parseMergedDate,
-  parseMergedRepackedDetail,
   parseMergedSourceGrns,
 } from '../hooks/eligibleGrn.helper';
 import { formatGrnDate } from './EligibleGrnColumns';
@@ -41,8 +39,6 @@ export function SelectedGrnCard({
   const breakdown =
     rentSummary?.mergedConsignment ??
     parseMergedConsignmentBreakdown(grn.remarks, grn.bags, grn.customerName);
-  const safeAddedBags = breakdown ? breakdown.totalMergedAddedBags : (parseMergedAddedBags(grn.remarks) ?? 0);
-  const isMergedConsignment = safeAddedBags > 0;
   const isAlreadyConfirmed = Boolean(grn.isCompositionVerified === true);
   const hasTypeSelection = !isAlreadyConfirmed && Boolean(onBagTypeChange || onBagCategoryChange);
   const selectedBagCategory = bagCategory ?? (bagType ? (bagType === 'Hybrid' ? 'Hybrid' : 'S/B') : undefined);
@@ -54,7 +50,6 @@ export function SelectedGrnCard({
   const mergedFrom = breakdown && breakdown.sources.length > 0
     ? Array.from(new Set(breakdown.sources.map((s) => s.grnNumber))).join(', ')
     : parseMergedSourceGrns(grn.remarks);
-  const repackedDetail = parseMergedRepackedDetail(grn.remarks);
   const mergedDate = breakdown?.mergeDate || parseMergedDate(grn.remarks);
   const displayBagType = formatDisplayBagType({
     bagType: grn.bagType,
@@ -117,49 +112,21 @@ export function SelectedGrnCard({
           <span className={styles.detailValue}>{grn.partyMark || '—'}</span>
         </div>
 
-        {isMergedConsignment ? (
-          <>
-            <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Confirmed Repacked Bags</span>
-              <span
-                className={styles.detailValue}
-                style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}
-              >
-                {safeAddedBags.toLocaleString('en-IN')} bags
-              </span>
-            </div>
-            <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Confirmed Bag Types</span>
-              <span className={styles.detailValue}>
-                {repackedDetail ? repackedDetail.replace(',', ' +') : displayBagType}
-              </span>
-            </div>
-            <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Total Available Stock</span>
-              <strong
-                className={styles.detailValue}
-                style={{ color: 'var(--color-success-text)', fontSize: 'var(--text-sm)' }}
-              >
-                {availableBags.toLocaleString('en-IN')} bags
-              </strong>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Received</span>
-              <span className={styles.detailValue}>
-                {grn.bags.toLocaleString('en-IN')} bags
-              </span>
-            </div>
-            <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Total Available Stock</span>
-              <strong className={styles.detailValue}>
-                {availableBags.toLocaleString('en-IN')} bags
-              </strong>
-            </div>
-          </>
-        )}
+        <div className={styles.detailItem}>
+          <span className={styles.detailLabel}>Total Stock</span>
+          <span className={styles.detailValue}>
+            {grn.bags.toLocaleString('en-IN')} bags
+          </span>
+        </div>
+        <div className={styles.detailItem}>
+          <span className={styles.detailLabel}>Total Available Stock</span>
+          <strong
+            className={styles.detailValue}
+            style={{ color: 'var(--color-success-text)', fontSize: 'var(--text-sm)' }}
+          >
+            {availableBags.toLocaleString('en-IN')} bags
+          </strong>
+        </div>
 
         {hasTypeSelection ? (
           <div className={styles.detailItem}>
