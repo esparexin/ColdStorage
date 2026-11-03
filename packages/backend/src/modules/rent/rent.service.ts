@@ -31,8 +31,6 @@ import { executeRecordBatchPayment } from './handlers/record-batch-payment.handl
 import { rentExtensionRepository } from './rent-extension.repository.js';
 import { rentRepository } from './rent.repository.js';
 import { buildRentSummary } from './rent-summary.helper.js';
-import { CommodityModel } from '../../database/models/commodity.model.js';
-import { computeFirstSeasonHamali } from '../common/hamali-resolution.js';
 
 export class RentService {
   /**
@@ -76,9 +74,9 @@ export class RentService {
     ]);
     const delivered = netDelivered?.total ?? 0;
     const remaining = balance?.total ?? Math.max(0, grn.bags - delivered);
-    const commodity = await CommodityModel.findOne({ id: grn.commodityId }).lean().exec();
-    const hamaliShare = computeFirstSeasonHamali(grn.bags, commodity, extensions, grn.hamaliRate, grn.hamaliAmount);
-    return buildRentSummary(grn, payments, extensions, delivered, remaining, outwardInfo.total, hamaliShare, outwardInfo.earliestCreatedAt);
+    // Do not generate default Hamali charges on the Rent Billing screen (Issue #191).
+    // Hamali is assessed only upon actual eligible operational transactions.
+    return buildRentSummary(grn, payments, extensions, delivered, remaining, outwardInfo.total, 0, outwardInfo.earliestCreatedAt);
   }
 
   /**
@@ -108,17 +106,10 @@ export class RentService {
         ? rentRepository.getOutwardRentInfoByGrnIdsGrouped(facilityId, grnIds)
         : rentRepository.getOutwardRentInfoByFacilityGrouped(facilityId),
     ]);
-    const commodityIds = Array.from(new Set(grns.map((g) => g.commodityId)));
-    const commodityDocs = await CommodityModel.find({ id: { $in: commodityIds } }).lean().exec();
-    const commodityMap = new Map(commodityDocs.map((c) => [c.id, c]));
-
     return grns.map((grn) => {
       const delivered = deliveredMap.get(grn.id)?.total ?? 0;
       const remaining = balanceMap.get(grn.id)?.total ?? Math.max(0, grn.bags - delivered);
       const extensions = extensionsByGrn.get(grn.id) ?? [];
-      const hamaliShare = computeFirstSeasonHamali(
-        grn.bags, commodityMap.get(grn.commodityId) ?? null, extensions, grn.hamaliRate, grn.hamaliAmount,
-      );
       const outwardInfo = outwardRentMap.get(grn.id);
       return buildRentSummary(
         grn,
@@ -127,7 +118,7 @@ export class RentService {
         delivered,
         remaining,
         outwardInfo?.total ?? 0,
-        hamaliShare,
+        0,
         outwardInfo?.earliestCreatedAt ?? null,
       );
     });

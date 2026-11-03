@@ -15,8 +15,6 @@ import { computeRentBalance } from '../../common/rent-balance.js';
 import { rentExtensionRepository } from '../rent-extension.repository.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { rentRepository } from '../rent.repository.js';
-import { CommodityModel } from '../../../database/models/commodity.model.js';
-import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 import { toPaymentEntity } from './record-payment.handler.js';
 
@@ -77,20 +75,6 @@ export async function executeRecordBatchPayment(
             grn.id,
             session,
           );
-          const [commodity, extensions] = await Promise.all([
-            CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec(),
-            rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session),
-          ]);
-          const hamaliShare =
-            grn.rentAmount > 0
-              ? computeFirstSeasonHamali(
-                  grn.bags,
-                  commodity,
-                  extensions,
-                  grn.hamaliRate,
-                  grn.hamaliAmount,
-                )
-              : 0;
           const totalDue = await rentExtensionRepository.resolveTotalDue(
             facilityId,
             {
@@ -98,7 +82,7 @@ export async function executeRecordBatchPayment(
               rentAmount: grn.rentAmount,
               rentType: grn.rentType,
               outwardRentCharges: outwardRent,
-              hamaliShare,
+              hamaliShare: 0,
             },
             session,
           );
