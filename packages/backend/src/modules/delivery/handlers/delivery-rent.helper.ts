@@ -2,6 +2,7 @@ import type mongoose from 'mongoose';
 import {
   calculate3MAdditionalMonths, calculateMonthlyElapsedCycles, calculateOutwardSeasonalBreakdown,
   calculateRentAmount, isHybridBagCategory, resolveOutwardRates, resolveSeasonalElapsedPeriods,
+  shouldEvaluateSeasonalBreakdown,
   type BagComposition, type RentType,
 } from '@cold-storage/contracts';
 import { CommodityRateModel } from '../../../database/models/commodity-rate.model.js';
@@ -52,11 +53,17 @@ export async function computeExpectedDeliveryRent(
       ? params.quantity
       : withdrawal.smallBags + withdrawal.bigBags;
 
+  const isSeasonalEval = shouldEvaluateSeasonalBreakdown({
+    rentType: grn.rentType,
+    inwardDate: grn.date,
+    deliveryDate,
+  });
+
   if (isHybrid) {
     let sRate = params.seasonalBagPrice ?? params.bagPrice ?? grn.bagPrice ?? 0;
     let mRate = params.monthlyBagPrice ?? params.bagPrice ?? grn.bagPrice ?? 0;
 
-    if (mRate === 0 && (grn.rentType === 'Monthly' || grn.rentType === 'Seasonal_3M')) {
+    if (mRate === 0 && (grn.rentType === 'Monthly' || grn.rentType === 'Seasonal_3M' || isSeasonalEval)) {
       const monthlyRateDoc = await CommodityRateModel.findOne({
         commodityId: grn.commodityId,
         rentType: 'Monthly',
@@ -66,7 +73,7 @@ export async function computeExpectedDeliveryRent(
         mRate = monthlyRateDoc.smallRate;
       }
     }
-    if (sRate === 0 && (grn.rentType === 'Seasonal' || grn.rentType === 'Seasonal_3M')) {
+    if (sRate === 0 && (grn.rentType === 'Seasonal' || grn.rentType === 'Seasonal_3M' || isSeasonalEval)) {
       const seasonalRateDoc = await CommodityRateModel.findOne({
         commodityId: grn.commodityId,
         rentType: 'Seasonal',
@@ -96,7 +103,7 @@ export async function computeExpectedDeliveryRent(
       return { expectedRentCharge: baseRent + extraRent, effectiveRates: { small: sRate, big: sRate } };
     }
 
-    if (grn.rentType === 'Seasonal') {
+    if (isSeasonalEval) {
       const breakdown = calculateOutwardSeasonalBreakdown({
         inwardDate: grn.date,
         deliveryDate,
@@ -125,42 +132,28 @@ export async function computeExpectedDeliveryRent(
     bagPrice: grn.bagPrice,
   });
 
-  if (grn.rentType === 'Seasonal' || grn.rentType === 'Seasonal_3M') {
-    const hasNoAgreedRates =
-      grn.smallBagPrice == null && grn.bigBagPrice == null && grn.bagPrice == null;
-    const seasonalRateDoc = hasNoAgreedRates
-      ? await CommodityRateModel.findOne({
-          commodityId: grn.commodityId,
-          rentType: 'Seasonal',
-          isActive: true,
-        }).session(session)
+  if (isSeasonalEval || grn.rentType === 'Seasonal_3M') {
+    const isMonthlyTransition = grn.rentType === 'Monthly';
+    const hasNoAgreedRates = grn.smallBagPrice == null && grn.bigBagPrice == null && grn.bagPrice == null;
+    const seasonalRateDoc = (hasNoAgreedRates || isMonthlyTransition)
+      ? await CommodityRateModel.findOne({ commodityId: grn.commodityId, rentType: 'Seasonal', isActive: true }).session(session)
       : null;
-    const needsMonthly =
-      grn.rentType === 'Seasonal_3M'
-        ? calculate3MAdditionalMonths(grn.date, deliveryDate) > 0
-        : resolveSeasonalElapsedPeriods(grn.date, deliveryDate).some((p) => p.period !== 'SEASON');
-    if (hasNoAgreedRates && !seasonalRateDoc) {
-      throw new Error(
-        `Cannot price outward delivery for GRN '${grn.grnNumber ?? grn.id}': no agreed rates and no active Seasonal controller rate`,
-      );
+    const needsMonthly = grn.rentType === 'Seasonal_3M'
+      ? calculate3MAdditionalMonths(grn.date, deliveryDate) > 0
+      : resolveSeasonalElapsedPeriods(grn.date, deliveryDate).some((p) => p.period !== 'SEASON');
+    if ((hasNoAgreedRates || isMonthlyTransition) && !seasonalRateDoc) {
+      throw new Error(`Cannot price outward delivery for GRN '${grn.grnNumber ?? grn.id}': no agreed rates and no active Seasonal controller rate`);
     }
 
-    const seasonalRates = seasonalRateDoc
-      ? { small: seasonalRateDoc.smallRate, big: seasonalRateDoc.bigRate }
-      : effectiveRates;
-
-    const monthlyRateDoc = await CommodityRateModel.findOne({
-      commodityId: grn.commodityId,
-      rentType: 'Monthly',
-      isActive: true,
-    }).session(session);
+    const seasonalRates = seasonalRateDoc ? { small: seasonalRateDoc.smallRate, big: seasonalRateDoc.bigRate } : effectiveRates;
+    const monthlyRateDoc = await CommodityRateModel.findOne({ commodityId: grn.commodityId, rentType: 'Monthly', isActive: true }).session(session);
     if (needsMonthly && hasNoAgreedRates && !monthlyRateDoc) {
-      throw new Error(
-        `Cannot price outward delivery for GRN '${grn.grnNumber ?? grn.id}': January/February billing requires an active Monthly controller rate`,
-      );
+      throw new Error(`Cannot price outward delivery for GRN '${grn.grnNumber ?? grn.id}': January/February billing requires an active Monthly controller rate`);
     }
 
-    const monthlyRates = monthlyRateDoc
+    const monthlyRates = isMonthlyTransition && !hasNoAgreedRates
+      ? effectiveRates
+      : monthlyRateDoc
       ? { small: monthlyRateDoc.smallRate, big: monthlyRateDoc.bigRate }
       : seasonalRates;
 

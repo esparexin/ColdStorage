@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import {
   isHybridBagCategory,
   resolveOutwardRates,
+  shouldEvaluateSeasonalBreakdown,
   toExcludedPeriodKeys,
   type BagType,
   type GrnInventorySummary,
@@ -34,6 +35,7 @@ interface DeliveryBagCompositionFieldsProps {
   showMonthlyRate?: boolean;
   inwardDate?: Date | string | null;
   deliveryDate?: Date | string | null;
+  seasonalRates?: { small: number; big: number } | null;
   monthlyRates?: { small: number; big: number } | null;
   withdrawal: GrnWithdrawal;
   bagCategory?: OutwardBagCategory;
@@ -66,6 +68,7 @@ export function DeliveryBagCompositionFields({
   showMonthlyRate,
   inwardDate,
   deliveryDate,
+  seasonalRates,
   monthlyRates,
   withdrawal,
   bagCategory,
@@ -97,7 +100,15 @@ export function DeliveryBagCompositionFields({
     ? Math.max(0, availableTotal - smallQty)
     : Math.min(summary.availableBigBags, Math.max(0, availableTotal - smallQty));
 
+  const isSeasonalTransitioned = shouldEvaluateSeasonalBreakdown({
+    rentType,
+    inwardDate,
+    deliveryDate,
+    hasSeasonalRates: Boolean(seasonalRates?.small || seasonalRates?.big),
+  });
   const rates = resolveOutwardRates(rentType, { smallBagPrice, bigBagPrice, bagPrice });
+  const effectiveSeasonalRates = isSeasonalTransitioned && seasonalRates ? seasonalRates : rates;
+  const effectiveMonthlyRates = monthlyRates ?? rates;
   const excludePeriodKeys = useMemo(
     () => toExcludedPeriodKeys(rentSummary?.extensions ?? []),
     [rentSummary?.extensions],
@@ -183,8 +194,8 @@ export function DeliveryBagCompositionFields({
       ) : (
         <DeliveryStandardSbFields
           summary={summary}
-          rentType={rentType}
-          rates={rates}
+          rentType={isSeasonalTransitioned ? 'Seasonal' : rentType}
+          rates={effectiveSeasonalRates}
           availableTotal={availableTotal}
           maxAllowedSmall={maxAllowedSmall}
           maxAllowedBig={maxAllowedBig}
@@ -216,8 +227,8 @@ export function DeliveryBagCompositionFields({
         bagPrice={isHybrid ? (typeof manualBagPrice === 'number' ? manualBagPrice : bagPrice) : undefined}
         seasonalBagPrice={isHybrid && typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined}
         monthlyBagPrice={isHybrid && typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined}
-        seasonalRates={rates}
-        monthlyRates={monthlyRates ?? rates}
+        seasonalRates={effectiveSeasonalRates}
+        monthlyRates={effectiveMonthlyRates}
         rentMonths={rentMonths}
         totalRent={outwardRent}
         remainingStock={remainingStock}

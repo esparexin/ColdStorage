@@ -1,9 +1,8 @@
-import {
-  SEASON_START_MONTH_INDEX,
-  type ExtensionPeriod,
-} from './rent-extension.js';
+import { SEASON_START_MONTH_INDEX, type ExtensionPeriod } from './rent-extension.js';
 import type { RentType } from './grn-rent.js';
 import { calculateHamaliAmount, deriveNetStorageRate } from './hamali.js';
+import { shouldEvaluateSeasonalBreakdown } from './outward-seasonal-transition.js';
+export { shouldEvaluateSeasonalBreakdown };
 
 export interface SeasonalElapsedPeriod {
   key: string;
@@ -244,7 +243,6 @@ export function toExcludedPeriodKeys(extensions: Array<{ seasonYear: number; per
   return extensions.map((e) => extensionPeriodKey(e.seasonYear, e.period));
 }
 
-
 /**
  * Determines the visibility of manual pricing fields for Hybrid outward deliveries.
  * - Monthly Rent: Only Monthly Rate is shown (Scenario C).
@@ -256,8 +254,10 @@ export function deriveHybridRateVisibility(params: {
   rentType?: RentType | null;
   inwardDate?: Date | string | null;
   deliveryDate?: Date | string | null;
+  hasSeasonalRates?: boolean;
 }): HybridRateVisibility {
-  if (params.rentType === 'Monthly') {
+  const isSeasonal = shouldEvaluateSeasonalBreakdown(params);
+  if (!isSeasonal && params.rentType === 'Monthly') {
     return {
       showSeasonalRate: false,
       showMonthlyRate: true,
