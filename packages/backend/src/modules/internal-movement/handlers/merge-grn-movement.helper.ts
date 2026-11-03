@@ -18,8 +18,6 @@ export interface CreateMergePutawayTransactionParams {
   userId: string;
   session: mongoose.ClientSession;
   isRepackSelected?: boolean;
-  isConsolidatedRepack?: boolean;
-  targetPreviousBal?: { total: number; smallBags: number; bigBags: number };
 }
 
 export async function createMergePutawayTransaction(
@@ -38,55 +36,32 @@ export async function createMergePutawayTransaction(
     userId,
     session,
     isRepackSelected,
-    isConsolidatedRepack,
-    targetPreviousBal,
   } = params;
 
-  const txs: Array<Record<string, unknown>> = [];
-
-  // When repacking a consolidated lot, adjust out target's pre-repack balance first so the ledger
-  // accurately transitions from the intermediate state to the confirmed repacked stock.
-  if (isConsolidatedRepack && targetPreviousBal && targetPreviousBal.total > 0) {
-    txs.push({
-      id: `tx-out-${randomUUID()}`,
-      facilityId,
-      grnId: targetGrn.id,
-      grnNumber: targetGrn.grnNumber,
-      chamber: targetGrn.chamber,
-      commodityId: targetGrn.commodityId,
-      bagType: targetGrn.bagType ?? resultingBagType,
-      transactionType: 'OUTWARD_DELIVERY',
-      smallQuantity: targetPreviousBal.smallBags,
-      bigQuantity: targetPreviousBal.bigBags,
-      referenceType: 'DELIVERY',
-      referenceId: movementId,
-      notes: `Stock adjustment for repacking (Lot ${targetGrn.grnNumber})`,
-      createdBy: userId,
-      createdAt: moveDate,
-    });
-  }
-
-  txs.push({
-    id: `tx-${randomUUID()}`,
-    facilityId,
-    grnId: targetGrn.id,
-    grnNumber: targetGrn.grnNumber,
-    chamber: targetGrn.chamber,
-    commodityId: targetGrn.commodityId,
-    bagType: resultingBagType,
-    transactionType: 'INWARD_PUTAWAY',
-    smallQuantity: totalMovedSmall,
-    bigQuantity: totalMovedBig,
-    referenceType: 'PUT_AWAY',
-    referenceId: movementId,
-    notes: isRepackSelected
-      ? `Merged and repacked from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')}: ${remarks.trim()}`
-      : `Merged from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')}: ${remarks.trim()}`,
-    createdBy: userId,
-    createdAt: moveDate,
-  });
-
-  await InventoryTransactionModel.create(txs, { session, ordered: true });
+  await InventoryTransactionModel.create(
+    [
+      {
+        id: `tx-${randomUUID()}`,
+        facilityId,
+        grnId: targetGrn.id,
+        grnNumber: targetGrn.grnNumber,
+        chamber: targetGrn.chamber,
+        commodityId: targetGrn.commodityId,
+        bagType: resultingBagType,
+        transactionType: 'INWARD_PUTAWAY',
+        smallQuantity: totalMovedSmall,
+        bigQuantity: totalMovedBig,
+        referenceType: 'PUT_AWAY',
+        referenceId: movementId,
+        notes: isRepackSelected
+          ? `Merged and repacked from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')}: ${remarks.trim()}`
+          : `Merged from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')}: ${remarks.trim()}`,
+        createdBy: userId,
+        createdAt: moveDate,
+      },
+    ],
+    { session, ordered: true },
+  );
 }
 
 export interface CreateMergeMovementRecordParams {

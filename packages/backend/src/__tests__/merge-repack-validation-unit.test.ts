@@ -30,7 +30,7 @@ describe('validateMergeRepackedCounts (Unit)', () => {
     loanStatus: 'NONE' as const,
   };
 
-  it('reconciles consolidated repacking into 140 bags (70 Small + 70 Big)', () => {
+  it('reconciles repacking 96 source bags into 140 bags (70 Small + 70 Big)', () => {
     const result = validateMergeRepackedCounts({
       targetGrn,
       sourceGrns: [sourceGrn],
@@ -44,12 +44,12 @@ describe('validateMergeRepackedCounts (Unit)', () => {
     expect(result.actualMovedBags).toBe(140);
     expect(result.smallMoved).toBe(70);
     expect(result.bigMoved).toBe(70);
-    // Consolidated input = 30 (target) + 96 (source) = 126. Variance = 140 - 126 = +14
-    expect(result.repackVariance).toBe(14);
+    // Source bags = 96. Variance = 140 - 96 = +44
+    expect(result.repackVariance).toBe(44);
     expect(result.explicitConfirmation).toBe(true);
   });
 
-  it('reconciles repacking with reduction/waste into 30 bags (20 Small + 10 Big)', () => {
+  it('reconciles repacking with reduction/waste into 25 bags (15 Small + 10 Big)', () => {
     const result = validateMergeRepackedCounts({
       targetGrn: {
         ...targetGrn,
@@ -64,15 +64,15 @@ describe('validateMergeRepackedCounts (Unit)', () => {
       totalMovedBags: 30,
       movementDate: new Date('2026-04-05'),
       isRepackSelected: true,
-      repackedSmallBags: 20,
+      repackedSmallBags: 15,
       repackedBigBags: 10,
     });
 
-    expect(result.actualMovedBags).toBe(30);
-    expect(result.smallMoved).toBe(20);
+    expect(result.actualMovedBags).toBe(25);
+    expect(result.smallMoved).toBe(15);
     expect(result.bigMoved).toBe(10);
-    // Consolidated input = 8 (target) + 30 (source) = 38. Variance = 30 - 38 = -8
-    expect(result.repackVariance).toBe(-8);
+    // Source bags = 30. Variance = 25 - 30 = -5
+    expect(result.repackVariance).toBe(-5);
     expect(result.explicitConfirmation).toBe(true);
   });
 });

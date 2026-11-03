@@ -140,7 +140,8 @@ export async function getGrnMovementHistory(
       }
 
       const mov = movRefMap.get(t.referenceId);
-      const isRepack = mov?.movementType === 'REPACK' || (!challanMap.has(t.referenceId) && Boolean(t.notes?.toLowerCase().includes('repack')));
+      const isMergeIn = mov?.movementType === 'MERGE' || Boolean(t.notes?.startsWith('Merged'));
+      const isRepack = !isMergeIn && (mov?.movementType === 'REPACK' || (!challanMap.has(t.referenceId) && Boolean(t.notes?.toLowerCase().includes('repack'))));
       if (isRepack) {
         runningSmall = t.smallQuantity;
         runningBig = t.bigQuantity;
