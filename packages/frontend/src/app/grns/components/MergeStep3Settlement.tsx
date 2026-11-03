@@ -12,8 +12,9 @@ import {
 import { Badge } from '@/components/ui';
 import { OutwardRentBreakdown } from '@/app/deliveries/components/OutwardRentBreakdown';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
-import { calculateMergeSourceRentSummary } from './mergeRentAssessment.helper';
+import { calculateMergeSettlementBill, calculateMergeSourceRentSummary } from './mergeRentAssessment.helper';
 import { resolveTransferRates } from './transferRentRates.helper';
+import { formatGrnSeasonLabel } from './mergeSeasonDisplay.helper';
 import { WizardStepActions } from './WizardStepActions';
 import styles from './InternalMovementModal.module.css';
 
@@ -35,7 +36,7 @@ export interface MergeStep3SettlementProps {
 export function MergeStep3Settlement({
   totalSourcePendingRent: _totalSourcePendingRent,
   targetGrn,
-  targetConfirmation,
+  targetConfirmation: _targetConfirmation,
   selectedSources,
   sourceConfirmations,
   sourceRentSummaries,
@@ -48,19 +49,30 @@ export function MergeStep3Settlement({
 }: MergeStep3SettlementProps) {
   const targetSeason = useMemo(() => seasonYearForInwardDate(targetGrn.date), [targetGrn.date]);
 
+  const totalSettlementBill = useMemo(() => {
+    return calculateMergeSettlementBill({
+      selectedSources,
+      sourceConfirmations,
+      movementDate,
+      commodityHamaliRate,
+      targetGrn,
+      sourceRentSummaries,
+      commodities,
+    });
+  }, [selectedSources, sourceConfirmations, sourceRentSummaries, commodities, movementDate, commodityHamaliRate, targetGrn]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
       {/* Header and Terms Overview */}
       <div className={styles.compactCard}>
-        <div className={styles.cardHeader} style={{ flexWrap: 'wrap', gap: '8px' }}>
+        <div className={styles.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <DollarSign size={14} aria-hidden="true" />
             <span>Step 3: Rent Settlement</span>
           </span>
-        </div>
-
-        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
-          Destination GRN #{targetGrn.grnNumber} retains its active subscription (Season {targetSeason}) without recalculating historical destination rent.
+          <Badge variant={totalSettlementBill > 0 ? 'warning' : 'success'}>
+            Settlement Bill: ₹{totalSettlementBill.toLocaleString('en-IN')}
+          </Badge>
         </div>
       </div>
 
@@ -68,69 +80,29 @@ export function MergeStep3Settlement({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
         {/* Surviving Target GRN Profile (Active Subscription Preserved) */}
         {(() => {
-          const targetCommodity = commodities?.find((c) => c.id === targetGrn.commodityId);
           const tSummary = sourceRentSummaries?.[targetGrn.id];
-          const tCalc = calculateMergeSourceRentSummary({
-            source: targetGrn,
-            confirmation: targetConfirmation,
-            movementDate,
-            commodityHamaliRate,
-            summary: tSummary,
-            commodity: targetCommodity,
-          });
-          const tBags = tCalc.totalBags;
+          const tBags = targetGrn.closingBags ?? targetGrn.bags;
           const tHamali = calculateHamaliAmount(tBags, commodityHamaliRate);
-          const tDueNow = tHamali;
+          const tPaid = tSummary?.totalPaid ?? 0;
+          const tDueNow = Math.max(0, tHamali - tPaid);
+          const isSettled = tDueNow === 0;
 
           return (
-            <div
-              className={styles.compactCard}
-              style={{
-                background: 'var(--color-surface-2)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-md)',
-                padding: 'var(--space-2)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--space-2)',
-              }}
-            >
+            <div className={styles.compactCard} style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>
-                    Target GRN #{targetGrn.grnNumber} (Surviving Lot)
-                  </span>
-                  {targetGrn.customerName && (
-                    <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>
-                      — {targetGrn.customerName}
-                    </span>
-                  )}
+                  <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>Target GRN #{targetGrn.grnNumber} (Surviving Lot)</span>
+                  {targetGrn.customerName && <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>— {targetGrn.customerName}</span>}
                   <Badge variant="primary">Active Subscription</Badge>
                   <Badge variant="neutral">Season {targetSeason}</Badge>
                 </div>
-                <Badge variant={tDueNow > 0 ? 'warning' : 'primary'}>
-                  {tDueNow > 0 ? `₹${tDueNow.toLocaleString('en-IN')} Due (Hamali)` : 'Active (Preserved)'}
-                </Badge>
+                <Badge variant={isSettled ? 'success' : 'neutral'}>{isSettled ? 'Hamali Settled (₹0 Due)' : `Hamali Bill: ₹${tDueNow.toLocaleString('en-IN')}`}</Badge>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', background: 'var(--color-surface-1)', padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: 'var(--color-text-secondary)' }}>Current Season ({targetSeason}) Storage Rent:</span>
-                  <span style={{ fontWeight: 'var(--font-semibold)' }}>
-                    ₹{tCalc.totalRent.toLocaleString('en-IN')} <span style={{ color: 'var(--color-primary-text)' }}>(Preserved — Continues Until Outward Delivery)</span>
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: 'var(--color-text-secondary)' }}>Previous Monthly Subscriptions:</span>
-                  <span>₹0 (None used)</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: 'var(--color-text-secondary)' }}>Hamali Charge ({tBags} bags @ ₹{commodityHamaliRate}/bag):</span>
-                  <strong style={{ color: tHamali > 0 ? 'var(--color-primary-text)' : 'inherit' }}>₹{tHamali.toLocaleString('en-IN')}</strong>
-                </div>
-                <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: '4px', marginTop: '2px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'var(--font-bold)' }}>
-                  <span>Target Profile Due Now:</span>
-                  <span>₹{tDueNow.toLocaleString('en-IN')}</span>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px', background: 'var(--color-surface-1)', padding: 'var(--space-1-5)', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Hamali Charge ({tBags} bags @ ₹{commodityHamaliRate}/bag):</span>
+                  <span style={{ fontWeight: 'var(--font-semibold)' }}>₹{tHamali.toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>
@@ -154,54 +126,22 @@ export function MergeStep3Settlement({
           });
 
           const paid = summary?.totalPaid ?? 0;
-          const pendingDues = Math.max(0, rentCalc.totalAmountToPay - paid);
           const isSettled = rentCalc.totalAmountToPay === 0 || (paid >= rentCalc.totalAmountToPay && rentCalc.totalAmountToPay > 0);
 
           return (
-            <div
-              key={source.id}
-              className={styles.compactCard}
-              style={{
-                background: 'var(--color-surface-1)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-md)',
-                padding: 'var(--space-2)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--space-2)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '8px',
-                  paddingBottom: 'var(--space-1-5)',
-                  borderBottom: '1px solid var(--color-border)',
-                }}
-              >
+            <div key={source.id} className={styles.compactCard} style={{ background: 'var(--color-surface-1)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', paddingBottom: 'var(--space-1-5)', borderBottom: '1px solid var(--color-border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>
-                    Source GRN #{source.grnNumber}
-                  </span>
+                  <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>Source GRN #{source.grnNumber}</span>
                   <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-                  <span style={{ fontWeight: 'var(--font-medium)', color: 'var(--color-text-primary)', fontSize: 'var(--text-xs)' }}>
-                    {source.customerName || 'CUSTOMER'}
-                  </span>
+                  <span style={{ fontWeight: 'var(--font-medium)', color: 'var(--color-text-primary)', fontSize: 'var(--text-xs)' }}>{source.customerName || 'CUSTOMER'}</span>
                   <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-                  <Badge variant="neutral">Season {seasonYearForInwardDate(source.date)}</Badge>
+                  <Badge variant="neutral">{formatGrnSeasonLabel(source.date)}</Badge>
                   <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-                  <Badge variant={isSettled ? 'success' : 'warning'}>
-                    {isSettled ? 'Settled (₹0 Due)' : `₹${pendingDues.toLocaleString('en-IN')} Pending`}
-                  </Badge>
+                  <Badge variant={isSettled ? 'success' : 'neutral'}>{isSettled ? 'Settled (₹0 Due)' : 'Pending Settlement'}</Badge>
                 </div>
-
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-text-secondary)' }}>
-                    Outward Rent Calculation ({source.rentType})
-                  </span>
+                  <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-text-secondary)' }}>Outward Rent Calculation ({source.rentType})</span>
                 </div>
               </div>
 

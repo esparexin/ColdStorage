@@ -100,10 +100,19 @@ export async function getGrnMovementHistory(
     return new Date(t.createdAt).getTime();
   };
 
+  const isRepackAdjustment = (t: (typeof txs)[0]) =>
+    t.transactionType === 'OUTWARD_DELIVERY' &&
+    (!challanMap.has(t.referenceId) && Boolean(t.notes?.toLowerCase().includes('repack')));
+
   timeline.sort((a, b) => {
     const diff = getEventTime(a) - getEventTime(b);
     if (diff !== 0) return diff;
-    const prio = (i: TimelineItem) => (i.kind === 'OWNERSHIP' ? 2 : i.tx.transactionType === 'INWARD_PUTAWAY' ? 1 : 3);
+    const prio = (i: TimelineItem) => {
+      if (i.kind === 'OWNERSHIP') return 2;
+      if (isRepackAdjustment(i.tx)) return 0;
+      if (i.tx.transactionType === 'INWARD_PUTAWAY') return 1;
+      return 3;
+    };
     return prio(a) - prio(b);
   });
 
@@ -131,7 +140,8 @@ export async function getGrnMovementHistory(
       }
 
       const mov = movRefMap.get(t.referenceId);
-      const isRepack = mov?.movementType === 'REPACK' || (!challanMap.has(t.referenceId) && Boolean(t.notes?.includes('repack')));
+      const isMergeIn = mov?.movementType === 'MERGE' || Boolean(t.notes?.startsWith('Merged'));
+      const isRepack = !isMergeIn && (mov?.movementType === 'REPACK' || (!challanMap.has(t.referenceId) && Boolean(t.notes?.toLowerCase().includes('repack'))));
       if (isRepack) {
         runningSmall = t.smallQuantity;
         runningBig = t.bigQuantity;
@@ -218,7 +228,7 @@ export async function getGrnMovementHistory(
   return {
     grnId: grn.id, facilityId: grn.facilityId, grnNumber: grn.grnNumber,
     customerId: grn.customerId, customerName: grn.customerName, commodityId: grn.commodityId, commodityName: grn.commodityName,
-    chamber: grn.chamber, inwardDate: grn.date, totalInwardBags: grn.bags,
+    chamber: grn.chamber, inwardDate: grn.date, totalInwardBags: initialTotal,
     originalSmallBags: isGenesisVerified ? (initialSmall ?? undefined) : undefined,
     originalBigBags: isGenesisVerified ? (initialBig ?? undefined) : undefined,
     netDeliveredBags: Math.max(0, netDelivered), currentClosingBags: runningBalance,

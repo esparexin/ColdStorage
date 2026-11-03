@@ -105,8 +105,6 @@ export interface MovedAndTargetBagsParams {
   targetCurrentRemaining: number;
   targetBagType?: string | null;
   actualRepackedBags: number;
-  targetSmall?: number;
-  targetBig?: number;
 }
 
 export function deriveMovedAndTargetBags(params: MovedAndTargetBagsParams) {
@@ -138,28 +136,22 @@ export function deriveMovedAndTargetBags(params: MovedAndTargetBagsParams) {
     repackMode && isRepackFilled
       ? repackBagType === 'Hybrid'
         ? repackedHybridSplit.smallBags
-        : typeof params.targetSmall === 'number' && Number(repackSmall) + Number(repackBig) > totalSourceBags
-          ? Math.max(0, Number(repackSmall) - params.targetSmall)
-          : Number(repackSmall)
+        : Number(repackSmall)
       : confSmall;
 
   const movedBig =
     repackMode && isRepackFilled
       ? repackBagType === 'Hybrid'
         ? repackedHybridSplit.bigBags
-        : typeof params.targetBig === 'number' && Number(repackSmall) + Number(repackBig) > totalSourceBags
-          ? Math.max(0, Number(repackBig) - params.targetBig)
-          : Number(repackBig)
+        : Number(repackBig)
       : confBig;
 
   const addedBagsToTarget = repackMode
     ? isRepackFilled
-      ? actualRepackedBags > totalSourceBags
-        ? Math.max(0, actualRepackedBags - targetCurrentRemaining)
-        : actualRepackedBags
+      ? Math.max(0, actualRepackedBags - targetCurrentRemaining)
       : 0
     : totalSourceBags;
-  const targetNewRemaining = targetCurrentRemaining + addedBagsToTarget;
+  const targetNewRemaining = repackMode && isRepackFilled ? actualRepackedBags : targetCurrentRemaining + totalSourceBags;
 
   const anySourceHybrid = selectedSources.some((s) => isHybridBagCategory(sourceConfirmations[s.id]?.category));
   const effectiveIsHybrid = repackMode

@@ -19,6 +19,8 @@ export const mergeGrnInputSchema = z.object({
   additionalRentAmount: z.number().min(0).default(0),
   remarks: z.string().trim().min(3, 'Remarks must be at least 3 characters').max(500),
   destinationChamber: chamberTextSchema.nullish(),
+  partyMark: z.string().trim().max(20, 'Party mark cannot exceed 20 characters').nullish(),
+  storageMark: z.string().trim().max(20, 'Storage mark cannot exceed 20 characters').nullish(),
   isRepackSelected: z.boolean().optional(),
   repackedSmallBags: z.number().int().min(0).nullish(),
   repackedBigBags: z.number().int().min(0).nullish(),

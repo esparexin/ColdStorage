@@ -17,6 +17,7 @@ describe('merged-consignment.contracts', () => {
     if (!parsed) return;
 
     expect(parsed.isMergedTarget).toBe(true);
+    expect(parsed.mergeDate).toBe('2026-10-23');
     expect(parsed.totalMergedAddedBags).toBe(60);
     expect(parsed.genesisBags).toBe(14);
     expect(parsed.genesisCustomerName).toBe('Balaji');

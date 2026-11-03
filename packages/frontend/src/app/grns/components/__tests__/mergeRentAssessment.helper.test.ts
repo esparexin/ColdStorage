@@ -237,9 +237,9 @@ describe('mergeRentAssessment.helper', () => {
       expect(result.totalBags).toBe(100);
       expect(result.bagCountLabel).toBe('100 Bags');
       expect(result.hamaliAmount).toBe(2500); // 100 bags @ ₹25
-      // 100 * 120 (2025 season) + 100 * 60 * 2 (Jan-Feb 2026) = 24,000
-      expect(result.totalRent).toBe(24000);
-      expect(result.totalAmountToPay).toBe(26500);
+      // Option A net storage rent: 100 * (120 - 25) (2025 season) + 100 * 60 * 2 (Jan-Feb 2026) = 21,500
+      expect(result.totalRent).toBe(21500);
+      expect(result.totalAmountToPay).toBe(24000); // 21,500 storage rent + 2,500 hamali
     });
 
     it('computes S/B source GRN with split counts and formats breakdown label', () => {
@@ -389,8 +389,8 @@ describe('mergeRentAssessment.helper', () => {
       // Hamali: 0 (deferred to Step 4 repacking confirmation)
       // Storage Rent: 5,000, Total to Pay: 5,000
 
-      // Grand Total: Storage Rent (5,420) + Hamali (300 + 250 = 550) = 5,970
-      expect(grandTotal).toBe(5970);
+      // Grand Total: Storage Rent with Option A net deduction + Hamali = 5,330
+      expect(grandTotal).toBe(5330);
     });
 
     it('updates dynamically when a source confirmation rate or split changes', () => {
@@ -422,7 +422,7 @@ describe('mergeRentAssessment.helper', () => {
         commodityHamaliRate: 25,
       });
 
-      expect(initialTotal).toBe(5250); // 5,000 rent + 250 hamali
+      expect(initialTotal).toBe(4750); // Net storage rent + hamali
 
       // Increase seasonal rate from 110 to 120
       const updatedTotal = calculateMergeGrandTotal({
@@ -443,8 +443,8 @@ describe('mergeRentAssessment.helper', () => {
         commodityHamaliRate: 25,
       });
 
-      // 2 seasonal cycles (2024 and 2025) each increase by 10 * 10 = 100 -> +200 total (5,250 + 200 = 5,450)
-      expect(updatedTotal).toBe(5450);
+      // 2 seasonal cycles (2024 and 2025) each increase by 10 * 10 = 100 -> +200 total (4,750 + 200 = 4,950)
+      expect(updatedTotal).toBe(4950);
     });
 
     it('preserves authoritative stored seasonal obligations for GRN 0010 and GRN 0012 totaling ₹39,700 without manual rate overrides', () => {

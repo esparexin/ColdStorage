@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  deriveHybridRateVisibility, isHybridBagCategory, toExcludedPeriodKeys, type DeliveryChallan, type DeliverySummary, type Grn, type GrnInventorySummary, type OutwardBagCategory,
+  deriveHybridRateVisibility, isHybridBagCategory, shouldEvaluateSeasonalBreakdown, toExcludedPeriodKeys, type DeliveryChallan, type DeliverySummary, type Grn, type GrnInventorySummary, type OutwardBagCategory,
 } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { useRentGate } from '@/hooks/useRentGate';
@@ -128,7 +128,13 @@ export function useCreateDeliveryForm(
   const hybridQty = typeof withdrawal.quantity === 'number' ? withdrawal.quantity : 0;
   const totalWithdrawingBags = isHybrid ? hybridQty : smallBags + bigBags;
 
-  const rateVisibility = deriveHybridRateVisibility({ rentType: selectedGrn?.rentType ?? 'Seasonal', inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal });
+  const hasSeasonalRates = Boolean(seasonalCommodityRates?.small || seasonalCommodityRates?.big);
+  const isSeasonalTransitioned = shouldEvaluateSeasonalBreakdown({
+    rentType: selectedGrn?.rentType ?? 'Seasonal', inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal, hasSeasonalRates,
+  });
+  const rateVisibility = deriveHybridRateVisibility({
+    rentType: selectedGrn?.rentType ?? 'Seasonal', inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal, hasSeasonalRates,
+  });
   const excludePeriodKeys = useMemo(() => toExcludedPeriodKeys(rentGate.rentSummary?.extensions ?? []), [rentGate.rentSummary?.extensions]);
 
   const outwardRent = computeOutwardRentCharge({
@@ -137,10 +143,14 @@ export function useCreateDeliveryForm(
     seasonalBagPrice: isHybrid && typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
     monthlyBagPrice: isHybrid && typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,
     rentMonths: billableRentMonths, inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal,
-    smallBagPrice: selectedGrn?.smallBagPrice ?? (selectedGrn?.rentType === 'Monthly' ? monthlyCommodityRates?.small : seasonalCommodityRates?.small),
-    bigBagPrice: selectedGrn?.bigBagPrice ?? (selectedGrn?.rentType === 'Monthly' ? monthlyCommodityRates?.big : seasonalCommodityRates?.big),
-    bagPrice: selectedGrn?.bagPrice, monthlySmallBagPrice: monthlyCommodityRates?.small, monthlyBigBagPrice: monthlyCommodityRates?.big, excludePeriodKeys,
-    hamaliRate: selectedGrn?.hamaliRate ?? hamaliRate,
+    smallBagPrice: isSeasonalTransitioned
+      ? (seasonalCommodityRates?.small ?? selectedGrn?.smallBagPrice)
+      : (selectedGrn?.smallBagPrice ?? (selectedGrn?.rentType === 'Monthly' ? monthlyCommodityRates?.small : seasonalCommodityRates?.small)),
+    bigBagPrice: isSeasonalTransitioned
+      ? (seasonalCommodityRates?.big ?? selectedGrn?.bigBagPrice)
+      : (selectedGrn?.bigBagPrice ?? (selectedGrn?.rentType === 'Monthly' ? monthlyCommodityRates?.big : seasonalCommodityRates?.big)),
+    bagPrice: selectedGrn?.bagPrice, monthlySmallBagPrice: monthlyCommodityRates?.small ?? selectedGrn?.smallBagPrice, monthlyBigBagPrice: monthlyCommodityRates?.big ?? selectedGrn?.bigBagPrice, excludePeriodKeys,
+    hamaliRate: selectedGrn?.hamaliRate ?? hamaliRate, hasSeasonalRates,
   });
 
   const handleBagCategoryChange = (cat: OutwardBagCategory) => {

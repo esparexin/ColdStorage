@@ -9,7 +9,7 @@ import { computeRentBalance } from '../../common/rent-balance.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
-import { validateProspectiveMergeMove, processMergeSource } from './merge-source-move.helper.js';
+import { validateProspectiveMergeMove, processMergeSource, settleTargetHamaliPayment } from './merge-source-move.helper.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 import { createMergePutawayTransaction, createMergeMovementRecord } from './merge-grn-movement.helper.js';
 import { resolveMergeRepackHamali } from './merge-repack-hamali.helper.js';
@@ -68,7 +68,7 @@ export async function mergeGrn(
       let totalMovedBig = 0;
       let totalSourcePendingRent = 0;
       const sourceSummaries: string[] = [];
-      const moveDate = validateOperationalDate(input.movementDate, { label: 'Movement' });
+      const moveDate = validateOperationalDate(input.movementDate, { label: 'Merge' });
       const confirmed = await validateProspectiveMergeMove({
         facilityId, targetGrn, sourceGrns, input, moveDate, session,
       });
@@ -84,6 +84,13 @@ export async function mergeGrn(
         totalMovedSmall += step.movedSmall;
         totalMovedBig += step.movedBig;
         sourceSummaries.push(step.summary);
+      }
+      if (remainingPaymentPool > 0.01) {
+        const targetSettlement = await settleTargetHamaliPayment({
+          facilityId, targetGrn, moveDate, allocatedPayment: remainingPaymentPool,
+          paymentMode: input.sourcePaymentMode, userId, session,
+        });
+        remainingPaymentPool = Math.max(0, Number((remainingPaymentPool - targetSettlement.paidAmount).toFixed(2)));
       }
       if (remainingPaymentPool > 0.01) {
         throw new Error(
@@ -118,7 +125,7 @@ export async function mergeGrn(
         repackedSmallBags: input.repackedSmallBags,
         repackedBigBags: input.repackedBigBags,
         repackedBagCount: input.repackedBagCount,
-        totalMovedBags: actualMovedBags,
+        totalMovedBags: targetGrn.bags + actualMovedBags,
         session,
       });
       repackHamaliCharge = repackHamali.repackHamaliCharge;
@@ -145,29 +152,39 @@ export async function mergeGrn(
       await createMergePutawayTransaction({
         facilityId, movementId, moveDate, targetGrn: { ...targetGrn, chamber: destinationChamber },
         resultingBagType, sourceGrns, totalMovedSmall, totalMovedBig, remarks: input.remarks, userId, session,
+        isRepackSelected: input.isRepackSelected,
       });
 
       const moveDateStr = moveDate.toISOString().split('T')[0];
-      const varianceNote = repackVariance !== 0 ? `; Variance from ${totalMovedBags} source bags: ${repackVariance > 0 ? `+${repackVariance}` : repackVariance} bags` : '';
+      const varianceNote = repackVariance !== 0
+        ? `; Variance from ${totalMovedBags} source bags: ${repackVariance > 0 ? `+${repackVariance}` : repackVariance} bags`
+        : '';
       const repackedNote = input.repackedSmallBags != null ? ` (Repacked: ${totalMovedSmall} S + ${totalMovedBig} B = ${actualMovedBags} bags${varianceNote})` : '';
       const repackHamaliNote = repackHamali.repackHamaliCharge > 0 ? `. Repacking Hamali: ₹${repackHamali.repackHamaliCharge} (${repackHamali.repackHamaliBags} bags @ ₹${repackHamali.repackHamaliRate}/bag)` : '';
       const categoryNote = input.sourceBagCategory != null && isHybridBagCategory(input.sourceBagCategory) ? ` (Confirmed Hybrid: ${actualMovedBags} bags${varianceNote})` : '';
       const carriedRentNote = finalCarriedRent > 0 ? `. Additional rent: ₹${finalCarriedRent}` : '';
       const sourceBillsNote = totalSourcePendingRent > 0 ? `. Source pending rent: ₹${totalSourcePendingRent} kept as separate pending bills` : '';
       const activeSubNote = `. Active subscription continued for consolidated stock`;
-      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${actualMovedBags} bags${repackedNote}${repackHamaliNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}${sourceBillsNote}${activeSubNote}. Reason: ${input.remarks.trim()}]`;
+      const inwardHistoryNote = `. Consolidated stock new inward date: ${moveDateStr}`;
+      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${actualMovedBags} bags${repackedNote}${repackHamaliNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}${sourceBillsNote}${activeSubNote}${inwardHistoryNote}. Reason: ${input.remarks.trim()}]`;
       const updatedTargetRemarks = appendGrnRemarks(targetGrn.remarks, targetNote);
+
+      const targetUpdateFields: Record<string, unknown> = {
+        chamber: destinationChamber, bagType: resultingBagType, bags: newBags,
+        smallBags: newSmall, bigBags: newBig, isCompositionVerified: newIsCompositionVerified,
+        rentAmount: newRentAmount, mergedAt: moveDate,
+        remarks: updatedTargetRemarks, updatedAt: new Date(),
+      };
+      if (input.partyMark?.trim()) targetUpdateFields.partyMark = input.partyMark.trim();
+      if (input.storageMark?.trim()) targetUpdateFields.storageMark = input.storageMark.trim();
+      if (input.partyMark?.trim() || input.storageMark?.trim()) {
+        const combined = [input.storageMark?.trim() || targetGrn.storageMark, input.partyMark?.trim() || targetGrn.partyMark].filter(Boolean).join(' / ');
+        if (combined) targetUpdateFields.marks = combined;
+      }
 
       const updatedTarget = await GrnModel.findOneAndUpdate(
         { id: targetGrn.id },
-        {
-          $set: {
-            chamber: destinationChamber, bagType: resultingBagType, bags: newBags,
-            smallBags: newSmall, bigBags: newBig, isCompositionVerified: newIsCompositionVerified,
-            rentAmount: newRentAmount, mergedAt: moveDate,
-            remarks: updatedTargetRemarks, updatedAt: new Date(),
-          },
-        },
+        { $set: targetUpdateFields },
         { session, new: true },
       ).lean().exec();
 

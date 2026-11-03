@@ -18,14 +18,15 @@ export function formatDisplayBagType(input: FormatDisplayBagTypeInput): string {
   if (input.isHybrid || input.bagType === 'Hybrid' || isHybridBagCategory(input.category) || isHybridBagCategory(input.bagType)) {
     return 'Hybrid';
   }
-  const type = input.bagType ?? input.category;
-  if (type === 'S' || type === 'Small') return 'Small';
-  if (type === 'B' || type === 'Big') return 'Big';
 
   // An unverified lot cannot be resolved to a single bag type purely from DB fallback placeholders.
   if (input.isCompositionVerified === false || input.isCompositionVerified === null) {
     return 'Unconfirmed';
   }
+
+  const type = input.bagType ?? input.category;
+  if (type === 'S' || type === 'Small') return 'Small';
+  if (type === 'B' || type === 'Big') return 'Big';
 
   const s = input.smallBags ?? 0;
   const b = input.bigBags ?? 0;

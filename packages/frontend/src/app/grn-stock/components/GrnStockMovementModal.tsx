@@ -23,96 +23,107 @@ interface GrnStockMovementModalProps {
   onRetry: () => void;
 }
 
-const movementColumns: DataTableColumn<MovementEntry>[] = [
-  {
-    key: 'date',
-    header: 'Date',
-    render: (entry) =>
-      new Date(entry.date).toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: '2-digit',
-      }),
-  },
-  {
-    key: 'type',
-    header: 'Type',
-    render: (entry) => {
-      const p = parseMovementRow(entry);
-      const badgeClass = {
-        inward: styles.typeInward,
-        mergeIn: styles.typeMergeIn,
-        mergeOut: styles.typeOutward,
-        transfer: styles.typeTransfer,
-        outward: styles.typeOutward,
-        reversal: styles.typeReversal,
-      }[p.badgeType];
-      return <span className={`${styles.typeTag} ${badgeClass}`}>{p.typeLabel}</span>;
+function getMovementColumns(bagType?: string | null): DataTableColumn<MovementEntry>[] {
+  return [
+    {
+      key: 'date',
+      header: 'Date',
+      render: (entry) =>
+        new Date(entry.date).toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: '2-digit',
+          year: '2-digit',
+        }),
     },
-  },
-  {
-    key: 'refNumber',
-    header: 'GP / Ref #',
-    render: (entry) => {
-      const p = parseMovementRow(entry);
-      return <span className={styles.refCell}>{p.refNumber}</span>;
+    {
+      key: 'type',
+      header: 'Type',
+      render: (entry) => {
+        const p = parseMovementRow(entry, bagType);
+        const badgeClass = {
+          inward: styles.typeInward,
+          mergeIn: styles.typeMergeIn,
+          mergeOut: styles.typeOutward,
+          transfer: styles.typeTransfer,
+          outward: styles.typeOutward,
+          reversal: styles.typeReversal,
+        }[p.badgeType];
+        return <span className={`${styles.typeTag} ${badgeClass}`}>{p.typeLabel}</span>;
+      },
     },
-  },
-  {
-    key: 'small',
-    header: 'Small',
-    align: 'right',
-    render: (entry) => {
-      const p = parseMovementRow(entry);
-      return <span className={styles.numCell}>{p.smallDisplay}</span>;
+    {
+      key: 'refNumber',
+      header: 'GP / Ref #',
+      render: (entry) => {
+        const p = parseMovementRow(entry, bagType);
+        return <span className={styles.refCell}>{p.refNumber}</span>;
+      },
     },
-  },
-  {
-    key: 'big',
-    header: 'Big',
-    align: 'right',
-    render: (entry) => {
-      const p = parseMovementRow(entry);
-      return <span className={styles.numCell}>{p.bigDisplay}</span>;
+    {
+      key: 'small',
+      header: 'Small',
+      align: 'right',
+      render: (entry) => {
+        const p = parseMovementRow(entry, bagType);
+        return <span className={styles.numCell}>{p.smallDisplay}</span>;
+      },
     },
-  },
-  {
-    key: 'total',
-    header: 'Total',
-    align: 'right',
-    render: (entry) => {
-      const p = parseMovementRow(entry);
-      return (
-        <span className={`${styles.numCell} ${p.isReceived ? styles.receivedNum : ''}`}>
-          {p.totalDisplay}
+    {
+      key: 'big',
+      header: 'Big',
+      align: 'right',
+      render: (entry) => {
+        const p = parseMovementRow(entry, bagType);
+        return <span className={styles.numCell}>{p.bigDisplay}</span>;
+      },
+    },
+    {
+      key: 'hybrid',
+      header: 'Hybrid',
+      align: 'right',
+      render: (entry) => {
+        const p = parseMovementRow(entry, bagType);
+        return <span className={styles.numCell}>{p.hybridDisplay}</span>;
+      },
+    },
+    {
+      key: 'total',
+      header: 'Total',
+      align: 'right',
+      render: (entry) => {
+        const p = parseMovementRow(entry, bagType);
+        return (
+          <span className={`${styles.numCell} ${p.isReceived ? styles.receivedNum : ''}`}>
+            {p.totalDisplay}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'balance',
+      header: 'Balance',
+      align: 'right',
+      render: (entry) => (
+        <span className={`${styles.numCell} ${styles.closingNum}`}>
+          {entry.closingBags.toLocaleString('en-IN')}
+          {entry.closingBags === 0 && <span className={styles.closedTag}>CLOSED</span>}
         </span>
-      );
+      ),
     },
-  },
-  {
-    key: 'balance',
-    header: 'Balance',
-    align: 'right',
-    render: (entry) => (
-      <span className={`${styles.numCell} ${styles.closingNum}`}>
-        {entry.closingBags.toLocaleString('en-IN')}
-        {entry.closingBags === 0 && <span className={styles.closedTag}>CLOSED</span>}
-      </span>
-    ),
-  },
-  {
-    key: 'notes',
-    header: 'Notes',
-    render: (entry) => {
-      const p = parseMovementRow(entry);
-      return (
-        <span className={styles.notesCell} title={p.notes !== '—' ? p.notes : undefined}>
-          {p.notes}
-        </span>
-      );
+    {
+      key: 'notes',
+      header: 'Notes',
+      render: (entry) => {
+        const p = parseMovementRow(entry, bagType);
+        return (
+          <span className={styles.notesCell} title={p.notes !== '—' ? p.notes : undefined}>
+            {p.notes}
+          </span>
+        );
+      },
     },
-  },
-];
+  ];
+}
 
 export function GrnStockMovementModal({
   selectedGrn,
@@ -124,10 +135,14 @@ export function GrnStockMovementModal({
 }: GrnStockMovementModalProps) {
   const { settings } = useSettings();
   const orgName = settings?.orgName || ORG_NAME_FALLBACK;
+  const movementColumns = React.useMemo(
+    () => getMovementColumns(selectedGrn.bagType),
+    [selectedGrn.bagType],
+  );
 
   const handlePrint = () => {
     if (!history) return;
-    const html = renderGrnStockHtml(history, orgName);
+    const html = renderGrnStockHtml(history, orgName, selectedGrn.bagType);
     printHtmlString(html);
   };
 

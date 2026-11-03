@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import { seasonYearForInwardDate, type Grn } from '@cold-storage/contracts';
+import type { Grn } from '@cold-storage/contracts';
 import { X } from 'lucide-react';
 import { Badge, Button } from '@/components/ui';
+import { formatGrnSeasonLabel } from './mergeSeasonDisplay.helper';
 import stepStyles from './MergeStep1Batches.module.css';
 
 export interface SelectedSourcesPanelProps {
@@ -35,7 +36,7 @@ export function SelectedSourcesPanel({
             <div className={stepStyles.selectedSourceMain}>
               <div className={stepStyles.selectedSourceGrnRow}>
                 <span className={stepStyles.selectedSourceNumber}>{sg.grnNumber}</span>
-                <Badge variant="neutral">Season {seasonYearForInwardDate(sg.date)}</Badge>
+                <Badge variant="neutral">{formatGrnSeasonLabel(sg.date)}</Badge>
                 <Badge variant="primary">{sg.closingBags ?? sg.bags} Bags</Badge>
                 <span className={stepStyles.selectedSourceCustomer}>{sg.customerName}</span>
               </div>

@@ -73,7 +73,20 @@ export function parseMergedRepackedDetail(remarks?: string | null): string | nul
   if (match) {
     return `${match[1]} Small, ${match[2]} Big`;
   }
+  const hybridMatch = remarks.match(/Confirmed Hybrid:\s*(\d+)\s*bags/i);
+  if (hybridMatch) {
+    return `${hybridMatch[1]} Hybrid`;
+  }
   return null;
+}
+
+/**
+ * Extracts merged inward date from remarks (e.g. "[MERGE RECEIVED on 2026-11-02: ...]").
+ */
+export function parseMergedDate(remarks?: string | null): string | null {
+  if (!remarks) return null;
+  const match = remarks.match(/\[MERGE RECEIVED on (\d{4}-\d{2}-\d{2})/i);
+  return match ? match[1] : null;
 }
 
 /**

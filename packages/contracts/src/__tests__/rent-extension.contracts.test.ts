@@ -121,6 +121,10 @@ describe('rent-extension contracts', () => {
       'FEBRUARY_2026',
       'SEASON_2026',
     ]);
+
+    // 6. Same-day delivery with timestamp skew (e.g. Inward 03:17:41 and delivery 00:00:00)
+    const p6 = resolveSeasonalElapsedPeriods('2026-11-02T03:17:41.340Z', '2026-11-02');
+    expect(p6.map((p) => p.key)).toEqual(['SEASON_2026']);
   });
 
   it('calculates outward seasonal rent breakdown matching confirmed rates', () => {

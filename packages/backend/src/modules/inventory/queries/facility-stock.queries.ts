@@ -68,10 +68,13 @@ export async function getCustomerStockSummary(
   const grns = await GrnModel.find({ facilityId, customerId }).lean().exec();
   const balances = await Promise.all(grns.map((g) => readLedgerBalance(facilityId, g.id)));
 
-  const receivedSmallBags = grns.reduce((sum, g) => sum + g.smallBags, 0);
-  const receivedBigBags = grns.reduce((sum, g) => sum + g.bigBags, 0);
+  const totalReceivedBags = grns.reduce((sum, g) => sum + (g.bags || 0), 0);
+  const receivedSmallBags = grns.reduce((sum, g) => sum + (g.isCompositionVerified ? g.smallBags : 0), 0);
+  const receivedBigBags = grns.reduce((sum, g) => sum + (g.isCompositionVerified ? g.bigBags : 0), 0);
   const remainingSmallBags = balances.reduce((sum, b) => sum + b.smallBags, 0);
   const remainingBigBags = balances.reduce((sum, b) => sum + b.bigBags, 0);
+  const remainingBags = remainingSmallBags + remainingBigBags;
+  const netDeliveredBags = Math.max(0, totalReceivedBags - remainingBags);
 
   return {
     customerId: customer.id,
@@ -80,11 +83,11 @@ export async function getCustomerStockSummary(
     grnCount: grns.length,
     openGrns: grns.filter((g) => g.status === 'OPEN').length,
     closedGrns: grns.filter((g) => g.status === 'CLOSED').length,
-    totalReceivedBags: receivedSmallBags + receivedBigBags,
+    totalReceivedBags,
     receivedSmallBags,
     receivedBigBags,
-    netDeliveredBags: receivedSmallBags + receivedBigBags - remainingSmallBags - remainingBigBags,
-    remainingBags: remainingSmallBags + remainingBigBags,
+    netDeliveredBags,
+    remainingBags,
     remainingSmallBags,
     remainingBigBags,
   };

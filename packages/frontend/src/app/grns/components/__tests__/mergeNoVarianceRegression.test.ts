@@ -19,7 +19,7 @@ describe('Merge Step 4 Repacking Net Variance Removal Regression Tests', () => {
     expect(source).not.toContain('Shrinkage / Loss');
 
     // Regression check: Core operational metrics MUST remain present
-    expect(source).toContain('Consolidated Stock Pool:');
+    expect(source).not.toContain('Consolidated Stock Pool:');
     expect(source).toContain('Physical Repacked Total:');
     expect(source).toContain('Repacking Hamali Labor:');
   });
@@ -38,7 +38,7 @@ describe('Merge Step 4 Repacking Net Variance Removal Regression Tests', () => {
     expect(source).toContain('Source GRN(s) (Closing)');
     expect(source).toContain('Repacked Composition');
     expect(source).toContain('Repacking Labor Hamali');
-    expect(source).toContain('Consolidated Stock Pool');
+    expect(source).not.toContain('Consolidated Stock Pool');
   });
 
   it('confirms mergeConfirmSummary.helper.ts does not export formatRepackVariance or RepackVarianceResult', () => {

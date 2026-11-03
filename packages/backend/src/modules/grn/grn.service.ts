@@ -10,7 +10,7 @@ import type {
   UpdateGrnLoanStatusInput,
 } from '@cold-storage/contracts';
 import { GrnModel } from '../../database/models/grn.model.js';
-import { readLedgerNetDelivered } from '../inventory/ledger-balance.js';
+import { readLedgerBalance, readLedgerBalanceMany, readLedgerNetDelivered } from '../inventory/ledger-balance.js';
 import { getGrnMovementHistory } from '../common/grn-movement-history.js';
 import { toGrnAcknowledgement, toGrnEntity } from './grn.mappers.js';
 import { createGrn, type CreateGrnOptions } from './handlers/create-grn.handler.js';
@@ -65,8 +65,11 @@ export class GrnService {
   public async getGrnById(id: string): Promise<Grn | null> {
     const doc = await GrnModel.findOne({ id }).lean().exec();
     if (!doc) return null;
-    const netDelivered = await readLedgerNetDelivered(doc.facilityId, id);
-    const closing = Math.max(0, doc.bags - netDelivered.total);
+    const [netDelivered, balance] = await Promise.all([
+      readLedgerNetDelivered(doc.facilityId, id),
+      readLedgerBalance(doc.facilityId, id),
+    ]);
+    const closing = balance.total > 0 || doc.bags === 0 ? balance.total : Math.max(0, doc.bags - netDelivered.total);
     return toGrnEntity(doc, { netDeliveredBags: netDelivered.total, closingBags: closing });
   }
 
@@ -140,10 +143,14 @@ export class GrnService {
       GrnModel.countDocuments(filter).exec(),
     ]);
 
+    const grnIds = docs.map((d) => d.id);
+    const balances = await readLedgerBalanceMany(facilityId, grnIds);
+
     return {
       items: docs.map((d) => {
         const netDelivered = tabResolution.deliveredMap.get(d.id) ?? 0;
-        const closing = Math.max(0, d.bags - netDelivered);
+        const bal = balances.get(d.id);
+        const closing = bal != null ? bal.total : Math.max(0, d.bags - netDelivered);
         const rentBal = tabResolution.rentBalanceMap.get(d.id);
         return toGrnEntity(d, {
           netDeliveredBags: netDelivered,

@@ -132,7 +132,7 @@ export function deriveMergedAttributes(
   const totalMergedBags = mergedDetails.reduce((sum, m) => sum + (m.bags || 0), 0);
   const activeInitialBags = Math.max(0, grn.bags - totalMergedBags);
   const bagsBreakdown =
-    mergedDetails.length === 0 || totalMergedBags === 0
+    mergedDetails.length === 0 || totalMergedBags === 0 || totalMergedBags >= grn.bags
       ? null
       : `${activeInitialBags.toLocaleString('en-IN')} + ${totalMergedBags.toLocaleString('en-IN')}`;
 

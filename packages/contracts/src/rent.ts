@@ -205,7 +205,7 @@ export function calculateSeasonalOccupancy(input: SeasonalOccupancyCalculationIn
   let finalOutwardDate: Date | null = null;
 
   for (const m of movements) {
-    if (m.type === 'PARTIAL_OUTWARD' || m.type === 'FINAL_OUTWARD') {
+    if (m.type === 'OUTWARD' || m.type === 'PARTIAL_OUTWARD' || m.type === 'FINAL_OUTWARD') {
       netDelivered += m.deliveredBags;
       remaining = Math.max(0, remaining - m.deliveredBags);
       if (remaining === 0) {

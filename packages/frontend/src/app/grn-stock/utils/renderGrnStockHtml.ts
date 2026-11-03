@@ -3,7 +3,11 @@ import { ORG_NAME_FALLBACK } from '../../../lib/branding';
 import { escapeHtml } from '../../../lib/escape-html';
 import { parseMovementRow } from './grnMovementView.helper';
 
-export function renderGrnStockHtml(history: GrnMovementHistory, orgName?: string): string {
+export function renderGrnStockHtml(
+  history: GrnMovementHistory,
+  orgName?: string,
+  bagType?: string | null,
+): string {
   const displayOrg = orgName?.trim() || ORG_NAME_FALLBACK;
   const inwardStr = new Date(history.inwardDate).toLocaleDateString('en-IN', {
     day: '2-digit',
@@ -13,7 +17,7 @@ export function renderGrnStockHtml(history: GrnMovementHistory, orgName?: string
 
   const rowsHtml = history.entries
     .map((e) => {
-      const p = parseMovementRow(e);
+      const p = parseMovementRow(e, bagType);
       const dStr = new Date(e.date).toLocaleDateString('en-IN', {
         day: '2-digit',
         month: '2-digit',
@@ -35,6 +39,7 @@ export function renderGrnStockHtml(history: GrnMovementHistory, orgName?: string
         <td>${escapeHtml(p.refNumber)}</td>
         <td style="text-align: right;">${escapeHtml(p.smallDisplay)}</td>
         <td style="text-align: right;">${escapeHtml(p.bigDisplay)}</td>
+        <td style="text-align: right;">${escapeHtml(p.hybridDisplay)}</td>
         <td style="text-align: right; font-weight: bold; ${p.isReceived ? 'color: #059669;' : ''}">${escapeHtml(p.totalDisplay)}</td>
         <td style="text-align: right; font-weight: bold;">${escapeHtml(closing)}</td>
         <td style="color: #475569; font-size: 9px;">${escapeHtml(p.notes)}</td>
@@ -107,6 +112,7 @@ export function renderGrnStockHtml(history: GrnMovementHistory, orgName?: string
         <th>GP / Ref #</th>
         <th style="text-align: right;">Small</th>
         <th style="text-align: right;">Big</th>
+        <th style="text-align: right;">Hybrid</th>
         <th style="text-align: right;">Total</th>
         <th style="text-align: right;">Balance</th>
         <th>Notes</th>

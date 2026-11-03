@@ -5,6 +5,7 @@ import {
   calculateRentAmount,
   isHybridBagCategory,
   resolveOutwardRates,
+  shouldEvaluateSeasonalBreakdown,
   type BagType,
   type OutwardBagCategory,
   type RentType,
@@ -30,6 +31,7 @@ export interface ComputeOutwardRentParams {
   monthlyBigBagPrice?: number | null;
   excludePeriodKeys?: string[];
   hamaliRate?: number | null;
+  hasSeasonalRates?: boolean;
 }
 
 export function resolveOutwardBillableMonths(params: {
@@ -53,13 +55,19 @@ export function getOutwardEffectiveRates(
 
 export function computeOutwardRentCharge(params: ComputeOutwardRentParams): number {
   const { rentType, bagType, bagCategory, smallBags = 0, bigBags = 0 } = params;
+  const isSeasonalEval = shouldEvaluateSeasonalBreakdown({
+    rentType,
+    inwardDate: params.inwardDate,
+    deliveryDate: params.deliveryDate,
+    hasSeasonalRates: typeof params.smallBagPrice === 'number' || typeof params.seasonalBagPrice === 'number',
+  });
 
   const isHybrid = bagType === 'Hybrid' || isHybridBagCategory(bagCategory);
 
   if (isHybrid) {
     const qty = params.quantity ?? (smallBags + bigBags);
-    const sRate = params.seasonalBagPrice ?? params.manualBagPrice ?? params.bagPrice ?? (rentType === 'Seasonal' || rentType === 'Seasonal_3M' ? (params.smallBagPrice ?? 0) : 0);
-    const mRate = params.monthlyBagPrice ?? params.manualBagPrice ?? params.bagPrice ?? (rentType === 'Monthly' || rentType === 'Seasonal_3M' ? (params.monthlySmallBagPrice ?? 0) : 0);
+    const sRate = params.seasonalBagPrice ?? params.manualBagPrice ?? params.bagPrice ?? (isSeasonalEval ? (params.smallBagPrice ?? 0) : 0);
+    const mRate = params.monthlyBagPrice ?? params.manualBagPrice ?? params.bagPrice ?? (params.monthlySmallBagPrice ?? 0);
     if (qty <= 0) return 0;
 
     if (rentType === 'Seasonal_3M' && params.inwardDate && params.deliveryDate) {
@@ -83,7 +91,7 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
       return baseRent + extraRent;
     }
 
-    if (rentType === 'Seasonal' && params.inwardDate && params.deliveryDate) {
+    if (isSeasonalEval && params.inwardDate && params.deliveryDate) {
       const breakdown = calculateOutwardSeasonalBreakdown({
         inwardDate: params.inwardDate,
         deliveryDate: params.deliveryDate,
@@ -154,15 +162,17 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
     return baseRent + extraRent;
   }
 
-  if (rentType === 'Seasonal' && params.inwardDate && params.deliveryDate) {
-    const monthlySmall = params.monthlySmallBagPrice ?? smallRate;
-    const monthlyBig = params.monthlyBigBagPrice ?? bigRate;
+  if (isSeasonalEval && params.inwardDate && params.deliveryDate) {
+    const seasonalSmall = (rentType === 'Monthly' ? params.smallBagPrice : smallRate) ?? smallRate;
+    const seasonalBig = (rentType === 'Monthly' ? params.bigBagPrice : bigRate) ?? bigRate;
+    const monthlySmall = params.monthlySmallBagPrice ?? seasonalSmall;
+    const monthlyBig = params.monthlyBigBagPrice ?? seasonalBig;
     const breakdown = calculateOutwardSeasonalBreakdown({
       inwardDate: params.inwardDate,
       deliveryDate: params.deliveryDate,
       smallBags: effectiveSmall,
       bigBags: effectiveBig,
-      seasonalRates: { small: smallRate, big: bigRate },
+      seasonalRates: { small: seasonalSmall, big: seasonalBig },
       monthlyRates: { small: monthlySmall, big: monthlyBig },
       excludePeriodKeys: params.excludePeriodKeys,
       hamaliRate: params.hamaliRate,

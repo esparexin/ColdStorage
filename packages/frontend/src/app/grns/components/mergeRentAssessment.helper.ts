@@ -11,15 +11,8 @@ import {
 import { computeOutwardRentCharge } from '../../deliveries/hooks/deliveryRent.helper';
 import { resolveTransferRates } from './transferRentRates.helper';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
-import {
-  deriveMergeRentAssessment,
-  type DerivedMergeRentAssessment,
-} from './mergeRentObligation.helper';
-
-export {
-  deriveMergeRentAssessment,
-  type DerivedMergeRentAssessment,
-};
+import { deriveMergeRentAssessment, type DerivedMergeRentAssessment } from './mergeRentObligation.helper';
+export { deriveMergeRentAssessment, type DerivedMergeRentAssessment };
 
 export interface MergeSourceRentCalculation {
   isHybrid: boolean;
@@ -43,6 +36,7 @@ export function calculateMergeSourceRentSummary(params: {
   targetGrnDate?: Date | string | null;
   summary?: RentSummaryDto | null;
   commodity?: Pick<Commodity, 'rates'> | null;
+  resetRentState?: boolean;
 }): MergeSourceRentCalculation {
   const {
     source,
@@ -52,6 +46,7 @@ export function calculateMergeSourceRentSummary(params: {
     targetGrnDate,
     summary,
     commodity,
+    resetRentState = false,
   } = params;
 
   const sourceBags = source.closingBags ?? source.bags;
@@ -61,15 +56,18 @@ export function calculateMergeSourceRentSummary(params: {
     isHybridBagCategory(source.bagType) ||
     isHybridBagCategory(confirmation?.category);
 
-  const hasChoice = typeof confirmation?.smallBags === 'number' && typeof confirmation?.bigBags === 'number';
+  const hasChoice =
+    (typeof confirmation?.smallBags === 'number' && typeof confirmation?.bigBags === 'number') ||
+    (typeof confirmation?.smallBags === 'number' && confirmation.smallBags === sourceBags) ||
+    (typeof confirmation?.bigBags === 'number' && confirmation.bigBags === sourceBags);
   const isConfirmed = isHybrid || hasChoice || Boolean(source.isCompositionVerified);
 
   const confirmedSmall = typeof confirmation?.smallBags === 'number'
     ? confirmation.smallBags
-    : (source.smallBags ?? sourceBags);
+    : (typeof confirmation?.bigBags === 'number' && confirmation.bigBags === sourceBags ? 0 : (source.smallBags ?? sourceBags));
   const confirmedBig = typeof confirmation?.bigBags === 'number'
     ? confirmation.bigBags
-    : (source.bigBags ?? 0);
+    : (typeof confirmation?.smallBags === 'number' && confirmation.smallBags === sourceBags ? 0 : (source.bigBags ?? 0));
 
   const smallBags = isHybrid ? sourceBags : confirmedSmall;
   const bigBags = isHybrid ? 0 : confirmedBig;
@@ -77,8 +75,9 @@ export function calculateMergeSourceRentSummary(params: {
 
   const targetSeason = targetGrnDate ? seasonYearForInwardDate(targetGrnDate) : null;
   const sourceSeason = source.date ? seasonYearForInwardDate(source.date) : null;
+  const isPriorYear = Boolean(source.date && targetGrnDate && new Date(source.date).getFullYear() < new Date(targetGrnDate).getFullYear());
   const excludePeriodKeys: string[] = [];
-  if (targetSeason !== null && sourceSeason !== null && targetSeason > sourceSeason && source.date) {
+  if (targetSeason !== null && sourceSeason !== null && targetSeason > sourceSeason && isPriorYear && source.date) {
     const elapsed = resolveSeasonalElapsedPeriods(source.date, movementDate);
     for (const p of elapsed) {
       if (p.period === 'SEASON' && p.seasonYear >= targetSeason) {
@@ -118,6 +117,7 @@ export function calculateMergeSourceRentSummary(params: {
       monthlyBigBagPrice: monthlyRates.big,
       bagPrice: source.bagPrice,
       excludePeriodKeys,
+      hamaliRate: commodityHamaliRate,
     });
   }
 
@@ -136,7 +136,9 @@ export function calculateMergeSourceRentSummary(params: {
     (typeof confirmation?.monthlyBagPrice === 'number' && confirmation.monthlyBagPrice > 0);
 
   let totalRent: number;
-  if (hasManualRateOverride) {
+  if (resetRentState) {
+    totalRent = calculatedRent;
+  } else if (hasManualRateOverride) {
     totalRent = calculatedRent;
   } else if (storedRent > 0) {
     totalRent = Math.max(storedRent, calculatedRent);
@@ -185,28 +187,51 @@ export function calculateMergeGrandTotal(params: {
   targetGrnDate?: Date | string | null;
   sourceRentSummaries?: Record<string, RentSummaryDto>;
   commodities?: Commodity[];
+  resetRentState?: boolean;
 }): number {
   const {
-    selectedSources,
-    sourceConfirmations = {},
-    movementDate,
-    commodityHamaliRate = 0,
-    targetGrnDate,
-    sourceRentSummaries,
-    commodities,
+    selectedSources, sourceConfirmations = {}, movementDate,
+    commodityHamaliRate = 0, targetGrnDate, sourceRentSummaries, commodities, resetRentState = false,
   } = params;
 
   return selectedSources.reduce((acc, source) => {
     const commodity = commodities?.find((c) => c.id === source.commodityId);
     const calc = calculateMergeSourceRentSummary({
-      source,
-      confirmation: sourceConfirmations[source.id],
-      movementDate,
-      commodityHamaliRate,
-      targetGrnDate,
-      summary: sourceRentSummaries?.[source.id],
-      commodity,
+      source, confirmation: sourceConfirmations[source.id],
+      movementDate, commodityHamaliRate, targetGrnDate,
+      summary: sourceRentSummaries?.[source.id], commodity, resetRentState,
     });
     return acc + calc.totalAmountToPay;
   }, 0);
 }
+
+export function calculateMergeSettlementBill(params: {
+  selectedSources: Grn[];
+  sourceConfirmations?: Record<string, BagConfirmationValue>;
+  movementDate: string;
+  commodityHamaliRate?: number;
+  targetGrn: Grn;
+  sourceRentSummaries?: Record<string, RentSummaryDto>;
+  commodities?: Commodity[];
+}): number {
+  const {
+    selectedSources, sourceConfirmations = {}, movementDate,
+    commodityHamaliRate = 0, targetGrn, sourceRentSummaries, commodities,
+  } = params;
+
+  const sourcesTotal = selectedSources.reduce((acc, source) => {
+    const commodity = commodities?.find((c) => c.id === source.commodityId);
+    const summary = sourceRentSummaries?.[source.id];
+    const calc = calculateMergeSourceRentSummary({
+      source, confirmation: sourceConfirmations[source.id], movementDate,
+      commodityHamaliRate, targetGrnDate: targetGrn.date, summary, commodity,
+    });
+    return acc + Math.max(0, calc.totalAmountToPay - (summary?.totalPaid ?? 0));
+  }, 0);
+
+  const tBags = targetGrn.closingBags ?? targetGrn.bags;
+  const tHamali = calculateHamaliAmount(tBags, commodityHamaliRate);
+  const tPaid = sourceRentSummaries?.[targetGrn.id]?.totalPaid ?? 0;
+  return sourcesTotal + Math.max(0, tHamali - tPaid);
+}
+

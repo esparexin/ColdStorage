@@ -34,6 +34,19 @@ describe('internalMovement payload helpers', () => {
     expect(parsed.success).toBe(false);
   });
 
+  it('builds a merge payload with partyMark and storageMark satisfying the contract', () => {
+    const payload = buildMergePayload(
+      'grn-target', ['grn-a'], 'Rebagging', undefined, '2026-10-10',
+      0, undefined, undefined, undefined, undefined, undefined, undefined,
+      undefined, undefined, undefined, undefined, false, undefined, 'CH-1',
+      undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+      'KSN-99', 'ST-01',
+    );
+    expect(payload.partyMark).toBe('KSN-99');
+    expect(payload.storageMark).toBe('ST-01');
+    expect(mergeGrnInputSchema.safeParse(payload).success).toBe(true);
+  });
+
   it('builds a transfer payload satisfying the canonical contract', () => {
     const payload = buildTransferPayload(
       'grn-1',

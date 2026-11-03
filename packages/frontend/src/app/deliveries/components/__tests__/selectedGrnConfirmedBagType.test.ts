@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Grn } from '@cold-storage/contracts';
+import { parseMergedDate, parseMergedRepackedDetail } from '../../hooks/eligibleGrn.helper';
 
 describe('Outward Delivery - Reuse Previously Confirmed Bag Type', () => {
   const verifiedSbGrn: Grn = {
@@ -130,5 +131,17 @@ describe('Outward Delivery - Reuse Previously Confirmed Bag Type', () => {
       isCompositionVerified: null as unknown as boolean,
     };
     expect(Boolean(nullVerifiedGrn.isCompositionVerified === true)).toBe(false);
+  });
+
+  it('correctly extracts merged inward date and repacked details from remarks', () => {
+    const remarks =
+      '[MERGE RECEIVED on 2026-11-02: +18 bags (Repacked: 4 S + 14 B = 18 bags; Variance from 2 source bags: +16 bags). Repacking Hamali: ₹450 (18 bags @ ₹25/bag) from GRN 0008]';
+    expect(parseMergedDate(remarks)).toBe('2026-11-02');
+    expect(parseMergedRepackedDetail(remarks)).toBe('4 Small, 14 Big');
+
+    const hybridRemarks =
+      '[MERGE RECEIVED on 2026-11-02: +30 bags (Confirmed Hybrid: 30 bags) from GRN 0008]';
+    expect(parseMergedDate(hybridRemarks)).toBe('2026-11-02');
+    expect(parseMergedRepackedDetail(hybridRemarks)).toBe('30 Hybrid');
   });
 });

@@ -2,11 +2,10 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Package } from 'lucide-react';
-import {
-  seasonYearForInwardDate,
-  type Commodity,
-  type Grn,
-  type RentSummaryDto,
+import type {
+  Commodity,
+  Grn,
+  RentSummaryDto,
 } from '@cold-storage/contracts';
 import { Badge, Button } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
@@ -14,6 +13,7 @@ import { MergeBagTypeFields } from './MergeBagTypeFields';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
 import { calculateMergeSourceRentSummary } from './mergeRentAssessment.helper';
 import { resolveTransferRates } from './transferRentRates.helper';
+import { formatGrnSeasonLabel } from './mergeSeasonDisplay.helper';
 import styles from './InternalMovementModal.module.css';
 
 export interface MergeSourceGrnCardProps {
@@ -74,10 +74,7 @@ export function MergeSourceGrnCard({
     [source, confirmation, movementDate, commodityHamaliRate, targetGrnDate, summary, commodity],
   );
 
-  const paid = summary?.totalPaid ?? 0;
-  const totalObligation = Math.max(summary?.totalDue ?? 0, rentCalc.totalAmountToPay);
-  const pendingDues = Math.max(0, totalObligation - paid);
-  const isSettled = totalObligation === 0 || (paid >= totalObligation && totalObligation > 0);
+  const isConfirmed = rentCalc.isConfirmed;
 
   return (
     <div className={styles.compactCard} id={`source-card-${source.id}`}>
@@ -113,19 +110,44 @@ export function MergeSourceGrnCard({
           </span>
           <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
           <Badge variant="primary">{sourceBags} Bags</Badge>
-          <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-          <Badge variant={isSettled ? 'success' : 'warning'}>
-            {isSettled ? 'Rent Settled (₹0 Due)' : `₹${pendingDues.toLocaleString('en-IN')} Pending`}
-          </Badge>
+          {!isConfirmed && (
+            <>
+              <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
+              <Badge variant="warning">Awaiting Bag Confirmation</Badge>
+            </>
+          )}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Badge variant="neutral">Season {seasonYearForInwardDate(source.date)}</Badge>
+          <Badge variant="neutral">{formatGrnSeasonLabel(source.date)}</Badge>
         </div>
       </div>
 
       {isCardExpanded && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginTop: 'var(--space-1)' }}>
+          {isConfirmed && (
+            <div
+              style={{
+                display: 'flex',
+                gap: 'var(--space-2)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-secondary)',
+                background: 'var(--color-surface-2)',
+                padding: 'var(--space-1) var(--space-2)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--color-border)',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
+            >
+              <span>Rent Charge: <strong>₹{rentCalc.totalRent.toLocaleString('en-IN')}</strong></span>
+              <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
+              <span>Hamali Charge ({sourceBags} bags @ ₹{commodityHamaliRate}/bag): <strong>₹{rentCalc.hamaliAmount.toLocaleString('en-IN')}</strong></span>
+              <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
+              <span>Total Calculated Charges: <strong>₹{rentCalc.totalAmountToPay.toLocaleString('en-IN')}</strong></span>
+            </div>
+          )}
+
           {/* Section 1: Bag Type Configuration */}
           <div
             style={{

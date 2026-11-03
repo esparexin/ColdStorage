@@ -6,6 +6,7 @@ import {
   calculateOutwardSeasonalBreakdown,
   isHybridBagCategory,
   resolveDiscriminatedOutwardRates,
+  shouldEvaluateSeasonalBreakdown,
   type BagType,
   type DiscriminatedOutwardPricing,
   type OutwardBagCategory,
@@ -49,7 +50,13 @@ export function OutwardRentBreakdown({
   seasonalRates, monthlyRates, rentMonths, totalRent, hamaliRate,
   excludePeriodKeys, grnNumber, hideHeader,
 }: OutwardRentBreakdownProps) {
-  const isSeasonal = rentType === 'Seasonal';
+  const isSeasonalTransitioned = shouldEvaluateSeasonalBreakdown({
+    rentType,
+    inwardDate,
+    deliveryDate,
+    hasSeasonalRates: Boolean((seasonalRates && (seasonalRates.small > 0 || seasonalRates.big > 0)) || (typeof seasonalBagPrice === 'number' && seasonalBagPrice > 0)),
+  });
+  const isSeasonal = rentType === 'Seasonal' || isSeasonalTransitioned;
   const isSeasonal3M = rentType === 'Seasonal_3M';
   const isHybrid = bagType === 'Hybrid' || isHybridBagCategory(bagCategory);
   const totalWithdrawing = smallBags + bigBags;
@@ -203,7 +210,7 @@ export function OutwardRentBreakdown({
         <div className={styles.header}>
           <div className={styles.titleGroup}>
             <span className={styles.title}>Outward Rent Calculation</span>
-            <Badge variant="neutral">{rentType}</Badge>
+            <Badge variant="neutral">{isSeasonalTransitioned ? 'Seasonal' : rentType}</Badge>
             {grnNumber && <Badge variant="primary">GRN #{grnNumber}</Badge>}
           </div>
         </div>

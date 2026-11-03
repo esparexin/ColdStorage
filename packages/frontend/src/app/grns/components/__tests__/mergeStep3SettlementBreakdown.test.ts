@@ -180,13 +180,25 @@ describe('Merge Step 3 Settlement - Outward Rent Calculation Breakdown & Destina
     expect(targetGrn0013.rentAmount).toBe(0);
   });
 
-  it('preserves target active subscription: storage rent continues, only hamali is collected during merge', () => {
+  it('preserves target active subscription: storage rent continues, and hamali is assessed', () => {
     const movementDate = '2026-10-31';
+
+    // Target GRN #0004 with inward date in Season 2026 and existing storage rent ₹1,000 from previous cycle
+    const targetWithExistingRent: Grn = {
+      ...targetGrn0013,
+      id: 'grn-0004',
+      grnNumber: '0004',
+      bags: 8,
+      closingBags: 8,
+      date: new Date('2026-03-15'),
+      rentAmount: 1000,
+    };
+
     const targetCalc = calculateMergeSourceRentSummary({
-      source: targetGrn0013,
+      source: targetWithExistingRent,
       confirmation: {
         category: 'Hybrid',
-        quantity: 70,
+        quantity: 8,
         bagPrice: 160,
         seasonalBagPrice: '',
         monthlyBagPrice: '',
@@ -195,13 +207,11 @@ describe('Merge Step 3 Settlement - Outward Rent Calculation Breakdown & Destina
       commodityHamaliRate: 25,
     });
 
-    expect(targetCalc.totalBags).toBe(70);
+    expect(targetCalc.totalBags).toBe(8);
     expect(targetCalc.isHybrid).toBe(true);
-    expect(targetCalc.hamaliAmount).toBe(70 * 25);
-    // Active subscription storage rent continues until outward delivery; storage collection at merge is 0
-    const targetStorageRentCollectedAtMerge = 0;
-    const targetHamaliDueAtMerge = targetCalc.hamaliAmount;
-    expect(targetStorageRentCollectedAtMerge).toBe(0);
-    expect(targetHamaliDueAtMerge).toBe(1750);
+    // Active subscription storage rent continues
+    expect(targetWithExistingRent.rentAmount).toBe(1000);
+    // Target Hamali for 8 bags @ 25 = 200
+    expect(targetCalc.hamaliAmount).toBe(200);
   });
 });

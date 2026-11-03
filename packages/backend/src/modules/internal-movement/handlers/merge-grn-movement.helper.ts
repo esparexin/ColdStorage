@@ -9,7 +9,7 @@ export interface CreateMergePutawayTransactionParams {
   facilityId: string;
   movementId: string;
   moveDate: Date;
-  targetGrn: { id: string; grnNumber: string; chamber: string; commodityId: string };
+  targetGrn: { id: string; grnNumber: string; chamber: string; commodityId: string; bagType?: BagType };
   resultingBagType: BagType;
   sourceGrns: Array<{ grnNumber: string }>;
   totalMovedSmall: number;
@@ -17,6 +17,7 @@ export interface CreateMergePutawayTransactionParams {
   remarks: string;
   userId: string;
   session: mongoose.ClientSession;
+  isRepackSelected?: boolean;
 }
 
 export async function createMergePutawayTransaction(
@@ -34,6 +35,7 @@ export async function createMergePutawayTransaction(
     remarks,
     userId,
     session,
+    isRepackSelected,
   } = params;
 
   await InventoryTransactionModel.create(
@@ -51,7 +53,9 @@ export async function createMergePutawayTransaction(
         bigQuantity: totalMovedBig,
         referenceType: 'PUT_AWAY',
         referenceId: movementId,
-        notes: `Merged from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')}: ${remarks.trim()}`,
+        notes: isRepackSelected
+          ? `Merged and repacked from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')}: ${remarks.trim()}`
+          : `Merged from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')}: ${remarks.trim()}`,
         createdBy: userId,
         createdAt: moveDate,
       },

@@ -9,7 +9,7 @@ import {
 } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { DEFAULT_BAG_CONFIRMATION, deriveAutoInheritedBagComposition, type BagConfirmationValue } from './bagConfirmation.helper';
-import { calculateMergeGrandTotal } from './mergeRentAssessment.helper';
+import { calculateMergeSettlementBill } from './mergeRentAssessment.helper';
 import {
   filterEligibleTargetGrns, findForwardMergeTarget, partitionMergeSources,
   resolveInitialMergeState, resolveNextSelectedSources,
@@ -37,6 +37,7 @@ export interface UseInternalMovementMergeTabProps {
     targetSmallBags?: number, targetBigBags?: number, targetBagCategory?: OutwardBagCategory,
     targetQuantity?: number, targetBagPrice?: number, targetSeasonalBagPrice?: number,
     targetMonthlyBagPrice?: number,
+    partyMark?: string, storageMark?: string,
   ) => Promise<void>;
 }
 
@@ -124,29 +125,26 @@ export function useInternalMovementMergeTab({
     return (targetCommodity.isHamaliApplicable ?? (targetCommodity.hamaliRate ?? 0) > 0) ? (targetCommodity.hamaliRate ?? 0) : 0;
   }, [targetCommodity]);
 
-  const totalSourcePendingRent = useMemo(() => calculateMergeGrandTotal({
+  const totalSettlementBill = useMemo(() => calculateMergeSettlementBill({
     selectedSources,
     sourceConfirmations,
     movementDate,
     commodityHamaliRate,
-    targetGrnDate: targetGrn.date,
+    targetGrn,
     sourceRentSummaries,
     commodities,
-  }), [selectedSources, sourceConfirmations, movementDate, commodityHamaliRate, targetGrn.date, sourceRentSummaries, commodities]);
+  }), [selectedSources, sourceConfirmations, movementDate, commodityHamaliRate, targetGrn, sourceRentSummaries, commodities]);
 
   const { isTargetDiff, isRepackRequired, isRepackFilled, actualRepackedBags } =
     deriveRepackCompositionStatus({ targetGrn, selectedSources, repackMode, repackBagType, repackQuantity, repackSmall, repackBig });
 
   const repackHamaliCharge = useMemo(() => {
     if (!repackMode || actualRepackedBags <= 0 || commodityHamaliRate <= 0) return 0;
-    const hamaliBags = actualRepackedBags > totalSourceBags ? totalSourceBags : actualRepackedBags;
-    return calculateHamaliAmount(hamaliBags, commodityHamaliRate);
-  }, [repackMode, actualRepackedBags, totalSourceBags, commodityHamaliRate]);
+    return calculateHamaliAmount(actualRepackedBags, commodityHamaliRate);
+  }, [repackMode, actualRepackedBags, commodityHamaliRate]);
 
-  const targetSmall = typeof targetConfirmation.smallBags === 'number' ? targetConfirmation.smallBags : (targetGrn.smallBags ?? 0);
-  const targetBig = typeof targetConfirmation.bigBags === 'number' ? targetConfirmation.bigBags : (targetGrn.bigBags ?? 0);
   const { movedSmall, movedBig, addedBagsToTarget, targetNewRemaining, effectiveIsHybrid } =
-    deriveMovedAndTargetBags({ selectedSources, sourceConfirmations, repackMode, repackBagType, isRepackFilled, repackSmall, repackBig, repackQuantity, totalSourceBags, targetCurrentRemaining, targetBagType: targetGrn.bagType, actualRepackedBags, targetSmall, targetBig });
+    deriveMovedAndTargetBags({ selectedSources, sourceConfirmations, repackMode, repackBagType, isRepackFilled, repackSmall, repackBig, repackQuantity, totalSourceBags, targetCurrentRemaining, targetBagType: targetGrn.bagType, actualRepackedBags });
 
   const resultingBagType = useMemo(() => resolveMergedBagType({
     targetBagType: targetGrn.bagType,
@@ -213,6 +211,7 @@ export function useInternalMovementMergeTab({
       undefined, undefined, resolvedCategory,
       effQuantity, effBagPrice, effSeasonalPrice, effMonthlyPrice, repackMode, effRepackedBagCount,
       effectiveChamber, tSmall, tBig, tCat, tQty, tPrice, tSeasonalPrice, tMonthlyPrice,
+      repack.partyMark.trim() || undefined, repack.storageMark.trim() || undefined,
     );
   };
 
@@ -222,10 +221,10 @@ export function useInternalMovementMergeTab({
     targetConfirmation, setTargetConfirmation, updateTargetConfirmation,
     sourceConfirmations, setSourceConfirmations, updateSourceConfirmation, sourceRentSummaries,
     settlementDecision, setSettlementDecision, settleAmount, setSettleAmount, paymentMode, setPaymentMode,
-    ...repack, validationError, openGrns, targetGrn, targetSeason,
+    ...repack, validationError, setValidationError, openGrns, targetGrn, targetSeason,
     eligibleSources, futureSeasonCount, recommendedSwitchGrn, targetOptions, handleTargetChange, handleToggleSource, handleSwitchTarget: handleTargetChange,
     selectedSources, totalSourceBags, targetCurrentRemaining, isTargetLoanHold,
-    totalSourcePendingRent, isTargetDiff, isRepackFilled, commodityHamaliRate, actualRepackedBags,
+    totalSourcePendingRent: totalSettlementBill, totalSettlementBill, isTargetDiff, isRepackFilled, commodityHamaliRate, actualRepackedBags,
     repackHamaliCharge, movedSmall, movedBig, addedBagsToTarget, targetNewRemaining,
     resultingBagType, handleProceedToStep2, handleProceedToStep3, handleProceedToStep4, handleMergeSubmit,
   };
