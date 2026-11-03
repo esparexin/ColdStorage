@@ -92,10 +92,8 @@ export async function getGrnMovementHistory(
     if (t.referenceType === 'DELIVERY') {
       const c = challanMap.get(t.referenceId);
       if (c?.date) return new Date(c.date).getTime();
-      const m = movRefMap.get(getMovId(t.referenceId));
-      if (m?.movementDate) return new Date(m.movementDate).getTime();
     }
-    const m = movRefMap.get(t.referenceId);
+    const m = movRefMap.get(t.referenceId) ?? movRefMap.get(getMovId(t.referenceId));
     if (m?.movementDate) return new Date(m.movementDate).getTime();
     return new Date(t.createdAt).getTime();
   };
@@ -104,15 +102,24 @@ export async function getGrnMovementHistory(
     t.transactionType === 'OUTWARD_DELIVERY' &&
     (!challanMap.has(t.referenceId) && Boolean(t.notes?.toLowerCase().includes('repack')));
 
+  const getOpTime = (item: TimelineItem): number => {
+    if (item.kind === 'OWNERSHIP') return new Date(item.movement.createdAt ?? item.movement.movementDate).getTime();
+    const t = item.tx;
+    const m = movRefMap.get(t.referenceId) ?? movRefMap.get(getMovId(t.referenceId));
+    if (m?.createdAt) return new Date(m.createdAt).getTime();
+    const ref = challanMap.get(t.referenceId) ?? reversalMap.get(t.referenceId);
+    if (ref?.createdAt) return new Date(ref.createdAt).getTime();
+    const d = new Date(t.createdAt).getTime();
+    return d % 86400000 !== 0 ? d : (t as { _id?: { getTimestamp?: () => Date } })._id?.getTimestamp?.()?.getTime() ?? d;
+  };
+
   timeline.sort((a, b) => {
-    const diff = getEventTime(a) - getEventTime(b);
-    if (diff !== 0) return diff;
-    const prio = (i: TimelineItem) => {
-      if (i.kind === 'OWNERSHIP') return 2;
-      if (isRepackAdjustment(i.tx)) return 0;
-      if (i.tx.transactionType === 'INWARD_PUTAWAY') return 1;
-      return 3;
-    };
+    const dayDiff = getEventTime(a) - getEventTime(b);
+    if (dayDiff !== 0) return dayDiff;
+    const opDiff = getOpTime(a) - getOpTime(b);
+    if (opDiff !== 0) return opDiff;
+    const prio = (i: TimelineItem) =>
+      i.kind === 'OWNERSHIP' ? 2 : isRepackAdjustment(i.tx) ? 0 : i.tx.transactionType === 'INWARD_PUTAWAY' ? 1 : 3;
     return prio(a) - prio(b);
   });
 
