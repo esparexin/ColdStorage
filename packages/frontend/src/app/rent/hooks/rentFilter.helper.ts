@@ -51,6 +51,20 @@ export function getRentStatusCategory(
   return 'UNPAID';
 }
 
+/**
+ * Returns true if the account has an active bill generated, pending dues, or a payment record.
+ * Unbilled active stock lots awaiting outward dispatch return false.
+ */
+export function isBilledRentAccount(
+  acc: Pick<RentSummaryDto, 'totalPaid' | 'remainingBalance' | 'paymentStatus'> & {
+    rentAmount?: number | null;
+    totalDue?: number | null;
+    rentState?: string | null;
+  },
+): boolean {
+  return getRentStatusCategory(acc) !== 'NO_DUES';
+}
+
 export function isMergedRentAccount(
   acc: Pick<RentSummaryDto, 'mergedIntoGrnNumber' | 'mergedIntoGrnId' | 'remarks'> & {
     mergedConsignment?: { isMergedTarget?: boolean } | null;
