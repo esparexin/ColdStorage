@@ -1,5 +1,4 @@
 import {
-  calculateHamaliAmount,
   type ExtensionPeriod,
 } from '@cold-storage/contracts';
 
@@ -49,8 +48,10 @@ export function computeFirstSeasonHamali(
   storedHamaliRate?: number | null,
   storedHamaliAmount?: number | null,
 ): number {
-  if (storedHamaliAmount !== null && storedHamaliAmount !== undefined && storedHamaliAmount >= 0) {
+  // Do not generate default Hamali charges merely because a GRN exists or commodity has a rate (Issue #191).
+  // Hamali is assessed only when an eligible operational transaction has occurred.
+  if (storedHamaliAmount !== null && storedHamaliAmount !== undefined && storedHamaliAmount > 0) {
     return storedHamaliAmount;
   }
-  return calculateHamaliAmount(grnBags, resolveEffectiveHamaliRate(storedHamaliRate, commodity));
+  return 0;
 }

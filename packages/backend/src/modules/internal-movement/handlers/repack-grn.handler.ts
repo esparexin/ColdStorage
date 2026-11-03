@@ -141,10 +141,8 @@ export async function executeRepackGrn(
         // Update GRN document
         grn.chamber = destinationChamber;
         grn.bagType = input.resultingBagType;
-        if (grn.hamaliAmount == null) {
-          const effectiveIntakeRate = resolveEffectiveHamaliRate(grn.hamaliRate, commodity);
-          grn.hamaliRate = effectiveIntakeRate;
-          grn.hamaliAmount = calculateHamaliAmount(grn.bags, effectiveIntakeRate);
+        if (grn.hamaliRate == null) {
+          grn.hamaliRate = resolveEffectiveHamaliRate(grn.hamaliRate, commodity);
         }
         grn.bags = grn.bags + repackVariance;
         grn.smallBags = delivered.smallBags + inSmall;

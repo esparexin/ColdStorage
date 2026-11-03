@@ -3,7 +3,6 @@
 import React, { useMemo } from 'react';
 import { DollarSign } from 'lucide-react';
 import {
-  calculateHamaliAmount,
   seasonYearForInwardDate,
   type Commodity,
   type Grn,
@@ -79,35 +78,24 @@ export function MergeStep3Settlement({
       {/* Outward Rent Calculation Breakdown for Each Participating GRN Profile */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
         {/* Surviving Target GRN Profile (Active Subscription Preserved) */}
-        {(() => {
-          const tSummary = sourceRentSummaries?.[targetGrn.id];
-          const tBags = targetGrn.closingBags ?? targetGrn.bags;
-          const tHamali = calculateHamaliAmount(tBags, commodityHamaliRate);
-          const tPaid = tSummary?.totalPaid ?? 0;
-          const tDueNow = Math.max(0, tHamali - tPaid);
-          const isSettled = tDueNow === 0;
-
-          return (
-            <div className={styles.compactCard} style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>Target GRN #{targetGrn.grnNumber} (Surviving Lot)</span>
-                  {targetGrn.customerName && <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>— {targetGrn.customerName}</span>}
-                  <Badge variant="primary">Active Subscription</Badge>
-                  <Badge variant="neutral">Season {targetSeason}</Badge>
-                </div>
-                <Badge variant={isSettled ? 'success' : 'neutral'}>{isSettled ? 'Hamali Settled (₹0 Due)' : `Hamali Bill: ₹${tDueNow.toLocaleString('en-IN')}`}</Badge>
-              </div>
-
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px', background: 'var(--color-surface-1)', padding: 'var(--space-1-5)', borderRadius: 'var(--radius-sm)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Hamali Charge ({tBags} bags @ ₹{commodityHamaliRate}/bag):</span>
-                  <span style={{ fontWeight: 'var(--font-semibold)' }}>₹{tHamali.toLocaleString('en-IN')}</span>
-                </div>
-              </div>
+        <div className={styles.compactCard} style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>Target GRN #{targetGrn.grnNumber} (Surviving Lot)</span>
+              {targetGrn.customerName && <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>— {targetGrn.customerName}</span>}
+              <Badge variant="primary">Active Subscription</Badge>
+              <Badge variant="neutral">Season {targetSeason}</Badge>
             </div>
-          );
-        })()}
+            <Badge variant="success">Preserved Active Subscription (₹0 Merge Dues)</Badge>
+          </div>
+
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px', background: 'var(--color-surface-1)', padding: 'var(--space-1-5)', borderRadius: 'var(--radius-sm)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>Existing Target Stock ({targetGrn.closingBags ?? targetGrn.bags} bags):</span>
+              <span style={{ fontWeight: 'var(--font-semibold)' }}>Preserved under active {targetGrn.rentType} subscription</span>
+            </div>
+          </div>
+        </div>
 
         {/* Source Closing GRN Profiles */}
         {selectedSources.map((source) => {

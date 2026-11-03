@@ -1,9 +1,7 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { calculateHamaliAmount, isHybridBagCategory, type MergeGrnInput } from '@cold-storage/contracts';
-import { CommodityModel } from '../../../database/models/commodity.model.js';
+import { isHybridBagCategory, type MergeGrnInput } from '@cold-storage/contracts';
 import { rentRepository } from '../../rent/rent.repository.js';
-import { counterService } from '../../common/counter.service.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { resolveSourceRentObligation, closeSourceGrnOnMerge, type MergeSourceGrn } from './merge-grn.helper.js';
 import { validateMergeRepackedCounts } from './merge-grn-validation.helper.js';
@@ -100,36 +98,3 @@ export async function processMergeSource(params: {
   return { movedTotal: bal.total, movedSmall: bal.smallBags, movedBig: bal.bigBags, summary, pendingRent: rentResolution.rentBal.remainingBalance, paidAmount: rentResolution.paidAmount };
 }
 
-/** Settles pending Target GRN inward handling Hamali from merge payment pool. */
-export async function settleTargetHamaliPayment(params: {
-  facilityId: string;
-  targetGrn: MergeSourceGrn & { id: string; grnNumber: string; bags: number; commodityId: string; customerId?: string; customerName: string };
-  moveDate: Date;
-  allocatedPayment: number;
-  paymentMode?: string | null;
-  userId: string;
-  session: mongoose.ClientSession;
-}): Promise<{ paidAmount: number }> {
-  const { facilityId, targetGrn, moveDate, allocatedPayment, paymentMode, userId, session } = params;
-  if (allocatedPayment <= 0.01) return { paidAmount: 0 };
-
-  const targetPaid = (await rentRepository.findPaymentsByGrnId(facilityId, targetGrn.id, session))
-    .reduce((sum, p) => sum + p.amountPaid, 0);
-  const commodity = await CommodityModel.findOne({ id: targetGrn.commodityId }, null, { session }).lean().exec();
-  const rate = (commodity?.isHamaliApplicable ?? (commodity?.hamaliRate ?? 0) > 0) ? (commodity?.hamaliRate ?? 0) : 0;
-  const targetHamaliAmount = calculateHamaliAmount(targetGrn.bags, rate);
-  const targetDue = Math.max(0, targetHamaliAmount - targetPaid);
-  const payAmount = Math.min(allocatedPayment, targetDue);
-
-  if (payAmount > 0) {
-    const receiptNumber = await counterService.generateRentReceiptNumber(facilityId, moveDate, session);
-    await rentRepository.createPayment({
-      id: `rent-pay-${randomUUID()}`, facilityId, grnId: targetGrn.id, grnNumber: targetGrn.grnNumber,
-      customerId: targetGrn.customerId, customerName: targetGrn.customerName,
-      receiptNumber, amountPaid: payAmount, paymentMode: (paymentMode ?? 'Cash') as 'Cash' | 'UPI',
-      paymentDate: moveDate, notes: `Merge settlement: Target GRN ${targetGrn.grnNumber} Hamali handling`, createdBy: userId,
-    }, session);
-    return { paidAmount: payAmount };
-  }
-  return { paidAmount: 0 };
-}

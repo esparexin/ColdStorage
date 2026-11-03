@@ -98,9 +98,8 @@ export async function executeSortGrn(
         const extensions = await RentExtensionModel.find({ facilityId, grnId: grn.id }, null, { session }).lean().exec();
         const commodity = await CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec();
         const hamaliShare = computeFirstSeasonHamali(grn.bags, commodity, extensions, grn.hamaliRate, grn.hamaliAmount);
-        if (grn.hamaliAmount == null) {
+        if (grn.hamaliRate == null) {
           grn.hamaliRate = resolveEffectiveHamaliRate(grn.hamaliRate, commodity);
-          grn.hamaliAmount = hamaliShare;
         }
 
         const payments = await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session);

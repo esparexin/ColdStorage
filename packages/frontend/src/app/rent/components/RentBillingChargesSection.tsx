@@ -112,7 +112,7 @@ export function RentBillingChargesSection({
                 <Badge variant="neutral">Handling</Badge>
               </div>
               <span className={styles.paymentMeta}>
-                Physical inward handling labor charge recorded on account
+                Operational handling labor charge recorded on account
               </span>
             </div>
             <strong className={styles.paymentAmount}>
