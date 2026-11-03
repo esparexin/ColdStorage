@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import {
   buildInwardReceiptNumber,
-  calculateHamaliAmount,
   getFinancialYearKey,
   isBagCompositionVerified,
   normalizeBagComposition,
@@ -116,7 +115,9 @@ export async function createGrn(
   // and rent derivation occurs at Outward delivery / billing settlement time.
   const finalRentAmount = input.rentAmount != null && input.rentAmount > 0 ? input.rentAmount : 0;
   const hamaliRate = resolveEffectiveHamaliRate(null, commodity);
-  const hamaliAmount = calculateHamaliAmount(input.bags, hamaliRate);
+  // Do not generate default Hamali charges merely because a GRN is created (Issue #191).
+  // hamaliRate is snapshotted for future operational events, but intake charges remain 0.
+  const hamaliAmount = 0;
 
   const id = `grn-${randomUUID()}`;
 

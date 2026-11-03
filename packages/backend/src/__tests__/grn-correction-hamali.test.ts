@@ -93,7 +93,7 @@ describe('GRN Correction Hamali Applicability (Phase 2: Finding 1)', () => {
       });
     expect(createRes.status).toBe(201);
     expect(createRes.body.grn.hamaliRate).toBe(4);
-    expect(createRes.body.grn.hamaliAmount).toBe(400);
+    expect(createRes.body.grn.hamaliAmount).toBe(0);
 
     await CommodityModel.updateOne({ id: cmd.id }, { $set: { hamaliRate: 10 } });
 
@@ -103,7 +103,7 @@ describe('GRN Correction Hamali Applicability (Phase 2: Finding 1)', () => {
       .send({ bags: 150, reason: 'Adjusting bag count' });
     expect(correctRes.status).toBe(200);
     expect(correctRes.body.grn.hamaliRate).toBe(4);
-    expect(correctRes.body.grn.hamaliAmount).toBe(600);
+    expect(correctRes.body.grn.hamaliAmount).toBe(0);
   });
 
   it('recalculates Hamali from new commodity config when commodity changes', async () => {
@@ -127,7 +127,7 @@ describe('GRN Correction Hamali Applicability (Phase 2: Finding 1)', () => {
       });
     expect(createRes.status).toBe(201);
     expect(createRes.body.grn.hamaliRate).toBe(3);
-    expect(createRes.body.grn.hamaliAmount).toBe(300);
+    expect(createRes.body.grn.hamaliAmount).toBe(0);
 
     const correctRes = await request(app)
       .patch(`/api/facilities/${facilityId}/grns/${createRes.body.grn.id}`)
@@ -135,6 +135,6 @@ describe('GRN Correction Hamali Applicability (Phase 2: Finding 1)', () => {
       .send({ commodityId: cmdB.id, bagPrice: 10, reason: 'Mistyped commodity on intake' });
     expect(correctRes.status).toBe(200);
     expect(correctRes.body.grn.hamaliRate).toBe(6);
-    expect(correctRes.body.grn.hamaliAmount).toBe(600);
+    expect(correctRes.body.grn.hamaliAmount).toBe(0);
   });
 });
