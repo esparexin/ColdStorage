@@ -187,7 +187,12 @@ export default function RentPage() {
           account={historyAccount}
           selectedFacilityId={selectedFacilityId}
           canPrint={canPrint}
+          canCollect={canCollect}
           onClose={() => setHistoryAccount(null)}
+          onOpenCollect={(acc) => {
+            setHistoryAccount(null);
+            setCollectAccount(acc);
+          }}
         />
       )}
 

@@ -113,9 +113,14 @@ export function formatBillingPeriodSubtitle(params: {
   totalBags: number;
   rates?: string | null;
   rentMonths?: number | null;
+  rentAmount?: number | null;
 }): string {
-  const { rentType, seasonYear, totalBags, rates, rentMonths } = params;
-  const ratePart = rates ? ` · ${rates}` : '';
+  const { rentType, seasonYear, totalBags, rates, rentMonths, rentAmount } = params;
+  let resolvedRates = rates;
+  if (!resolvedRates && rentAmount != null && rentAmount > 0 && totalBags > 0) {
+    resolvedRates = `₹${(rentAmount / totalBags).toFixed(2)}/bag`;
+  }
+  const ratePart = resolvedRates ? ` · ${resolvedRates}` : '';
   if (rentType === 'Seasonal') {
     return `March ${seasonYear} – December ${seasonYear} (10 months) · ${totalBags.toLocaleString('en-IN')} bags${ratePart}`;
   }
@@ -143,6 +148,19 @@ export function formatExtensionPeriodSubtitle(params: {
   }
   const monthName = period === 'JANUARY' ? 'January' : 'February';
   return `${monthName} ${seasonYear + 1} (1 month extension) · Snapshot ${snapshotBags.toLocaleString('en-IN')} bags · ₹${bagRate.toFixed(2)}/bag`;
+}
+
+/** Formats structured operational handling breakdown for Hamali charges. */
+export function formatHamaliCalculationSubtitle(params: {
+  hamaliDue: number;
+  totalBags: number;
+}): string {
+  const { hamaliDue, totalBags } = params;
+  if (totalBags > 0 && hamaliDue > 0) {
+    const perBag = Number((hamaliDue / totalBags).toFixed(2));
+    return `Operational handling labor · ${totalBags.toLocaleString('en-IN')} bags @ ₹${perBag.toFixed(2)}/bag`;
+  }
+  return 'Operational handling labor charge recorded on account';
 }
 
 /** Derives any applicable Hamali handling charge included in totalDue. */
