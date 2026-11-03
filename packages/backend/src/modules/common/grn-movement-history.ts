@@ -100,10 +100,19 @@ export async function getGrnMovementHistory(
     return new Date(t.createdAt).getTime();
   };
 
+  const isRepackAdjustment = (t: (typeof txs)[0]) =>
+    t.transactionType === 'OUTWARD_DELIVERY' &&
+    (!challanMap.has(t.referenceId) && Boolean(t.notes?.toLowerCase().includes('repack')));
+
   timeline.sort((a, b) => {
     const diff = getEventTime(a) - getEventTime(b);
     if (diff !== 0) return diff;
-    const prio = (i: TimelineItem) => (i.kind === 'OWNERSHIP' ? 2 : i.tx.transactionType === 'OUTWARD_DELIVERY' ? 1 : 3);
+    const prio = (i: TimelineItem) => {
+      if (i.kind === 'OWNERSHIP') return 2;
+      if (isRepackAdjustment(i.tx)) return 0;
+      if (i.tx.transactionType === 'INWARD_PUTAWAY') return 1;
+      return 3;
+    };
     return prio(a) - prio(b);
   });
 
