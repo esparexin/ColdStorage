@@ -103,7 +103,7 @@ export async function getGrnMovementHistory(
   timeline.sort((a, b) => {
     const diff = getEventTime(a) - getEventTime(b);
     if (diff !== 0) return diff;
-    const prio = (i: TimelineItem) => (i.kind === 'OWNERSHIP' ? 2 : i.tx.transactionType === 'INWARD_PUTAWAY' ? 1 : 3);
+    const prio = (i: TimelineItem) => (i.kind === 'OWNERSHIP' ? 2 : i.tx.transactionType === 'OUTWARD_DELIVERY' ? 1 : 3);
     return prio(a) - prio(b);
   });
 

@@ -85,7 +85,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
       bigBags: 0,
       remarks: 'Merged from GRNs 0011: Rebagging as per customer request',
     });
-    expect(res.typeLabel).toBe('MERGE IN');
+    expect(res.typeLabel).toBe('MERGE_IN');
     expect(res.badgeType).toBe('mergeIn');
     expect(res.refNumber).toBe('From GRN 0011');
     expect(res.totalDisplay).toBe('631');
@@ -102,7 +102,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
       closingBags: 0,
       remarks: 'Merged into GRN 0015: Merged for customer Kalyan',
     });
-    expect(res.typeLabel).toBe('MERGE OUT');
+    expect(res.typeLabel).toBe('MERGE_OUT');
     expect(res.badgeType).toBe('mergeOut');
     expect(res.refNumber).toBe('To GRN 0015');
     expect(res.totalDisplay).toBe('631');
@@ -169,7 +169,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
     expect(res.notes).toBe('Truck breakdown');
   });
 
-  it('correctly parses INTERNAL_REPACK in and out entries', () => {
+  it('correctly parses INTERNAL_REPACK in and out entries as INTERNAL_SORTING', () => {
     const outRes = parseMovementRow({
       ...baseEntry,
       type: 'INTERNAL_REPACK',
@@ -179,9 +179,9 @@ describe('grnMovementView.helper parseMovementRow', () => {
       closingBags: 0,
       remarks: 'Stock adjustment for repacking',
     });
-    expect(outRes.typeLabel).toBe('REPACK OUT');
+    expect(outRes.typeLabel).toBe('INTERNAL_SORTING');
     expect(outRes.badgeType).toBe('mergeOut');
-    expect(outRes.refNumber).toBe('Internal Repack');
+    expect(outRes.refNumber).toBe('Internal Sorting');
     expect(outRes.totalDisplay).toBe('100');
     expect(outRes.isReceived).toBe(false);
 
@@ -194,9 +194,9 @@ describe('grnMovementView.helper parseMovementRow', () => {
       closingBags: 95,
       remarks: 'Repacked stock putaway',
     });
-    expect(inRes.typeLabel).toBe('REPACK IN');
+    expect(inRes.typeLabel).toBe('INTERNAL_SORTING');
     expect(inRes.badgeType).toBe('mergeIn');
-    expect(inRes.refNumber).toBe('Internal Repack');
+    expect(inRes.refNumber).toBe('Internal Sorting');
     expect(inRes.totalDisplay).toBe('95');
     expect(inRes.isReceived).toBe(true);
   });
@@ -230,7 +230,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
       closingBags: 30,
       remarks: 'Merged and repacked from GRNs 0008: 30 Hybrid bags',
     });
-    expect(res.typeLabel).toBe('MERGE IN');
+    expect(res.typeLabel).toBe('MERGE_IN');
     expect(res.smallDisplay).toBe('—');
     expect(res.bigDisplay).toBe('—');
     expect(res.hybridDisplay).toBe('30');

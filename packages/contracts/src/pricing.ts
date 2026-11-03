@@ -245,7 +245,7 @@ export function calculateMonthlyOccupancy(input: OccupancyCalculationInput) {
     let endOfCycleRemaining = currentOpening;
 
     for (const m of movementsInCycle) {
-      if (m.type === 'PARTIAL_OUTWARD' || m.type === 'FINAL_OUTWARD') {
+      if (m.type === 'OUTWARD' || m.type === 'PARTIAL_OUTWARD' || m.type === 'FINAL_OUTWARD') {
         deliveredInCycle += m.deliveredBags;
         endOfCycleRemaining = Math.max(0, endOfCycleRemaining - m.deliveredBags);
         periodOutwardDate = new Date(m.date);

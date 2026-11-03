@@ -32,8 +32,9 @@ export function parseMovementRow(
       notes = entry.remarks && !entry.remarks.startsWith('[') ? entry.remarks : 'Genesis Inward';
       break;
 
+    case 'MERGE_IN':
     case 'INTERNAL_MERGE_IN': {
-      typeLabel = 'MERGE IN';
+      typeLabel = 'MERGE_IN';
       badgeType = 'mergeIn';
       totalDisplay = (entry.receivedBags ?? entry.closingBags).toLocaleString('en-IN');
       isReceived = true;
@@ -45,8 +46,9 @@ export function parseMovementRow(
       break;
     }
 
+    case 'MERGE_OUT':
     case 'INTERNAL_MERGE_OUT': {
-      typeLabel = 'MERGE OUT';
+      typeLabel = 'MERGE_OUT';
       badgeType = 'mergeOut';
       totalDisplay = entry.deliveredBags.toLocaleString('en-IN');
       const match = entry.remarks?.match(/^Merged into GRN\s*([^:]+)(?::\s*(.*))?$/);
@@ -57,6 +59,7 @@ export function parseMovementRow(
       break;
     }
 
+    case 'TRANSFER_OWNERSHIP':
     case 'OWNERSHIP_TRANSFER': {
       typeLabel = 'TRANSFER';
       badgeType = 'transfer';
@@ -76,17 +79,19 @@ export function parseMovementRow(
       isReceived = true;
       break;
 
+    case 'INTERNAL_SORTING':
     case 'INTERNAL_REPACK': {
       const isRepackIn = (entry.receivedBags ?? 0) > 0;
-      typeLabel = isRepackIn ? 'REPACK IN' : 'REPACK OUT';
+      typeLabel = 'INTERNAL_SORTING';
       badgeType = isRepackIn ? 'mergeIn' : 'mergeOut';
       totalDisplay = (isRepackIn ? (entry.receivedBags ?? 0) : entry.deliveredBags).toLocaleString('en-IN');
       isReceived = isRepackIn;
-      refNumber = 'Internal Repack';
-      notes = entry.remarks || 'Stock repacking adjustment';
+      refNumber = 'Internal Sorting';
+      notes = entry.remarks || 'Stock sorting/repacking adjustment';
       break;
     }
 
+    case 'OUTWARD':
     case 'PARTIAL_OUTWARD':
     case 'FINAL_OUTWARD':
     default:

@@ -4,12 +4,17 @@ import { grnStatusSchema, loanStatusSchema } from './grn.js';
 
 export const grnMovementTypeSchema = z.enum([
   'INWARD',
+  'OUTWARD',
   'PARTIAL_OUTWARD',
   'FINAL_OUTWARD',
   'DELIVERY_REVERSAL',
+  'MERGE_IN',
+  'MERGE_OUT',
   'INTERNAL_MERGE_IN',
   'INTERNAL_MERGE_OUT',
+  'TRANSFER_OWNERSHIP',
   'OWNERSHIP_TRANSFER',
+  'INTERNAL_SORTING',
   'INTERNAL_REPACK',
 ]);
 export type GrnMovementType = z.infer<typeof grnMovementTypeSchema>;
