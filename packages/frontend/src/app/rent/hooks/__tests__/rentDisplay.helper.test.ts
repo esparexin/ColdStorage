@@ -52,10 +52,10 @@ describe('rentDisplay.helper', () => {
       ).toBe('Dynamic (Per Cycle)');
     });
 
-    it('returns "₹0 (No Dues)" for zero rent and zero balance', () => {
+    it('returns "₹0 (Unbilled)" for zero rent and zero balance', () => {
       expect(
         formatRemainingDue({ rentType: 'Seasonal', rentAmount: 0, remainingBalance: 0 }),
-      ).toBe('₹0 (No Dues)');
+      ).toBe('₹0 (Unbilled)');
     });
 
     it('returns formatted INR currency string for positive remaining balance', () => {
@@ -66,10 +66,10 @@ describe('rentDisplay.helper', () => {
   });
 
   describe('formatPaymentStatus', () => {
-    it('returns "No Dues" with success variant when settled with 0 paid and 0 rent', () => {
+    it('returns "Unbilled" with neutral variant when settled with 0 paid and 0 rent', () => {
       const res = formatPaymentStatus({ paymentStatus: 'Settled', totalPaid: 0, rentAmount: 0, rentType: 'Seasonal' });
-      expect(res.label).toBe('No Dues');
-      expect(res.variant).toBe('success');
+      expect(res.label).toBe('Unbilled');
+      expect(res.variant).toBe('neutral');
     });
 
     it('returns "Settled" with success variant when settled after payment', () => {

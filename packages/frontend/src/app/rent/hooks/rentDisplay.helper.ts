@@ -53,7 +53,7 @@ export function formatRemainingDue(input: RentAccountDisplayInput): string {
     return 'Dynamic (Per Cycle)';
   }
   if (input.rentAmount === 0 && balance === 0) {
-    return '₹0 (No Dues)';
+    return '₹0 (Unbilled)';
   }
   if (balance === 0) {
     return '₹0 (Settled)';
@@ -76,7 +76,7 @@ export function formatPaymentStatus(input: RentAccountDisplayInput): {
 
   if (isSettled) {
     if (totalPaid === 0 && input.rentAmount === 0) {
-      return { label: 'No Dues', variant: 'success' };
+      return { label: 'Unbilled', variant: 'neutral' };
     }
     return { label: 'Settled', variant: 'success' };
   }

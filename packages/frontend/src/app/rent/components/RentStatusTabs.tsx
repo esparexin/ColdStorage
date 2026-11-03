@@ -97,7 +97,7 @@ export function RentStatusTabs({
         className={`${styles.statusTab} ${statusFilter === 'NO_DUES' ? styles.statusTabActive : ''}`}
         onClick={() => onStatusChange('NO_DUES')}
       >
-        No Dues{' '}
+        Unbilled{' '}
         <span className={`${styles.tabBadge} ${statusFilter === 'NO_DUES' ? styles.tabBadgeActive : ''}`}>
           {counts.noDues ?? 0}
         </span>
