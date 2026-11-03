@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { bagTypeSchema } from './bags.js';
 import { chamberTextSchema, rentalAmountSchema } from './common.js';
 import { grnStatusSchema, rentTypeSchema } from './grn.js';
 import { rentReceiptNumberSchema } from './identifiers.js';
@@ -68,6 +69,9 @@ export const rentSummaryDtoSchema = z.object({
   chamber: chamberTextSchema,
   inwardDate: z.coerce.date(),
   totalBags: z.number().int().min(1),
+  bagType: bagTypeSchema.optional(),
+  smallBags: z.number().int().min(0).nullish(),
+  bigBags: z.number().int().min(0).nullish(),
   deliveredBags: z.number().int().min(0).optional(),
   remainingBags: z.number().int().min(0).optional(),
   bagPrice: z.number().nullish(),

@@ -72,7 +72,23 @@ export function RentBillingChargesSection({
     }
 
     let formula = '';
-    if (account.smallBagPrice != null || account.bigBagPrice != null) {
+    const numSmall = typeof account.smallBags === 'number' ? account.smallBags : 0;
+    const numBig = typeof account.bigBags === 'number' ? account.bigBags : 0;
+    const hasSmall = numSmall > 0;
+    const hasBig = numBig > 0;
+    const sRate = account.smallBagPrice ?? (hasSmall && !hasBig && account.rentAmount > 0 ? account.rentAmount / numSmall : null);
+    const bRate = account.bigBagPrice ?? (hasBig && !hasSmall && account.rentAmount > 0 ? account.rentAmount / numBig : null);
+
+    if (hasSmall && hasBig && sRate != null && bRate != null) {
+      formula = `${numSmall} Small × ₹${sRate.toFixed(2)} + ${numBig} Big × ₹${bRate.toFixed(2)}`;
+    } else if (hasSmall && !hasBig && sRate != null) {
+      formula = `${numSmall} Small × ₹${sRate.toFixed(2)} (₹${account.rentAmount.toLocaleString('en-IN')})`;
+    } else if (hasBig && !hasSmall && bRate != null) {
+      formula = `${numBig} Big × ₹${bRate.toFixed(2)} (₹${account.rentAmount.toLocaleString('en-IN')})`;
+    } else if (account.bagType === 'Hybrid' && account.rentAmount > 0) {
+      const perBag = (account.rentAmount / account.totalBags).toFixed(2);
+      formula = `${account.totalBags} Hybrid × ₹${perBag} (₹${account.rentAmount.toLocaleString('en-IN')})`;
+    } else if (account.smallBagPrice != null || account.bigBagPrice != null) {
       formula = agreedRates ? `${account.totalBags} bags (${agreedRates})` : `${account.totalBags} bags`;
     } else if (account.bagPrice != null && account.bagPrice > 0) {
       formula = `${account.totalBags} bags × ₹${account.bagPrice.toFixed(2)} (₹${account.rentAmount.toLocaleString('en-IN')})`;
