@@ -102,4 +102,25 @@ describe('Outward Rent Regression: screenshot 50k vs 48k + mismatch guard', () =
     );
     expect(del.delivery.rentCharge).toBe(4800);
   });
+
+  it('Option A Path 2: derives net storage rent (10,200) from inclusive commodity rates (125/205) with hamali (25)', async () => {
+    await CommodityModel.updateOne({ id: 'cmd-wheat' }, { $set: { hamaliRate: 25, isHamaliApplicable: true } });
+    await CommodityRateModel.updateOne({ id: 'crt-cmd-wheat-s' }, { $set: { smallRate: 125, bigRate: 205 } });
+    const { grn } = await createGrn('9004', {
+      smallBagPrice: null,
+      bigBagPrice: null,
+      bagPrice: null,
+      hamaliRate: 25,
+      smallBags: 70,
+      bigBags: 70,
+      bags: 140,
+    });
+
+    const del = await deliveryService.createDelivery(
+      facilityId,
+      { grnId: grn.id, smallBags: 30, bigBags: 40, bagCategory: 'Small & Big', rentCharge: 10200 },
+      USER_ID,
+    );
+    expect(del.delivery.rentCharge).toBe(11950);
+  });
 });
