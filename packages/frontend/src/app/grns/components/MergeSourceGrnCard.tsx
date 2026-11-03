@@ -2,12 +2,10 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Package } from 'lucide-react';
-import {
-  calculateHamaliAmount,
-  seasonYearForInwardDate,
-  type Commodity,
-  type Grn,
-  type RentSummaryDto,
+import type {
+  Commodity,
+  Grn,
+  RentSummaryDto,
 } from '@cold-storage/contracts';
 import { Badge, Button } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
@@ -63,7 +61,6 @@ export function MergeSourceGrnCard({
 
   const summary = propSummary ?? fetchedSummary;
   const sourceBags = source.closingBags ?? source.bags;
-  const sourceHamali = calculateHamaliAmount(sourceBags, commodityHamaliRate);
   const { seasonalRates: rates } = useMemo(
     () => resolveTransferRates(source, commodity),
     [source, commodity],
@@ -78,10 +75,6 @@ export function MergeSourceGrnCard({
   );
 
   const isConfirmed = rentCalc.isConfirmed;
-  const paid = summary?.totalPaid ?? 0;
-  const totalObligation = Math.max(summary?.totalDue ?? 0, rentCalc.totalAmountToPay);
-  const pendingDues = Math.max(0, totalObligation - paid);
-  const isSettled = totalObligation === 0 || (paid >= totalObligation && totalObligation > 0);
 
   return (
     <div className={styles.compactCard} id={`source-card-${source.id}`}>

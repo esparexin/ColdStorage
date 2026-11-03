@@ -36,7 +36,7 @@ export interface MergeStep3SettlementProps {
 export function MergeStep3Settlement({
   totalSourcePendingRent: _totalSourcePendingRent,
   targetGrn,
-  targetConfirmation,
+  targetConfirmation: _targetConfirmation,
   selectedSources,
   sourceConfirmations,
   sourceRentSummaries,

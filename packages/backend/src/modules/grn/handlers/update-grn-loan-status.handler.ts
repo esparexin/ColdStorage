@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import type { Grn, UpdateGrnLoanStatusInput } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { auditService } from '../../audit/audit.service.js';
-import { readLedgerNetDelivered } from '../../inventory/ledger-balance.js';
+import { readLedgerBalance, readLedgerNetDelivered } from '../../inventory/ledger-balance.js';
 import { toGrnEntity } from '../grn.mappers.js';
 
 export async function updateGrnLoanStatus(
@@ -81,7 +81,10 @@ export async function updateGrnLoanStatus(
       ...(input.settlement ? { settlement: input.settlement } : {}),
     },
   });
-  const netDelivered = await readLedgerNetDelivered(facilityId, savedId);
-  const closing = Math.max(0, (latest.bags as number) - netDelivered.total);
+  const [netDelivered, balance] = await Promise.all([
+    readLedgerNetDelivered(facilityId, savedId),
+    readLedgerBalance(facilityId, savedId),
+  ]);
+  const closing = balance.total > 0 || latest.bags === 0 ? balance.total : Math.max(0, (latest.bags as number) - netDelivered.total);
   return toGrnEntity(latest, { netDeliveredBags: netDelivered.total, closingBags: closing });
 }

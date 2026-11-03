@@ -85,7 +85,6 @@ export function validateMergeSubmit(params: MergeSubmitValidationParams): string
     selectedSourceIds, reason, isTargetLoanHold, targetGrnNumber,
     destinationChamber, repackMode, repackBagType, isRepackFilled, repackSmall, repackBig,
     repackQuantity, repackBagPrice, repackSeasonalBagPrice, repackMonthlyBagPrice,
-    totalConsolidatedBags,
   } = params;
 
   if (selectedSourceIds.length === 0) return 'Select at least one source GRN to merge.';

@@ -55,7 +55,6 @@ export function MergeStep2BagType({
   onNext,
   sourceRentSummaries,
 }: MergeStep2BagTypeProps) {
-  const participatingGrnCount = 1 + selectedSources.length;
   const totalConsolidatedBags = targetCurrentRemaining + totalSourceBags;
   const targetCommodity = commodities?.find((c) => c.id === targetGrn.commodityId);
   const { seasonalRates: targetRates } = useMemo(
@@ -79,8 +78,6 @@ export function MergeStep2BagType({
 
   const targetHamaliAmount = calculateHamaliAmount(targetCurrentRemaining, commodityHamaliRate);
   const targetPaid = sourceRentSummaries?.[targetGrn.id]?.totalPaid ?? 0;
-  const targetPendingDues = Math.max(0, targetHamaliAmount - targetPaid);
-  const isTargetSettled = targetPendingDues === 0;
 
   const targetConfirmedSmall = typeof targetConfirmation?.smallBags === 'number'
     ? targetConfirmation.smallBags

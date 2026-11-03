@@ -23,7 +23,7 @@ export function buildMergeExecutionPayload(params: MergeExecutionPayloadParams) 
   const {
     repackMode, repackBagType, repackSmall, repackBig, repackQuantity,
     repackBagPrice, repackSeasonalBagPrice, repackMonthlyBagPrice,
-    isRepackFilled, isRepackRequired, movedSmall, movedBig, totalSourceBags, primaryConf,
+    isRepackFilled, isRepackRequired, totalSourceBags, primaryConf,
   } = params;
 
   const isSb =

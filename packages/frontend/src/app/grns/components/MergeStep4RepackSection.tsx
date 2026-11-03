@@ -32,8 +32,8 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
     repackMode, onRepackModeChange, repackBagType, onRepackBagTypeChange,
     repackSmall, onRepackSmallChange, repackBig, onRepackBigChange,
     repackQuantity, onRepackQuantityChange, repackSeasonalBagPrice, onRepackSeasonalBagPriceChange,
-    repackMonthlyBagPrice, onRepackMonthlyBagPriceChange, repackBagPrice: _repackBagPrice, onRepackBagPriceChange: _onRepackBagPriceChange,
-    totalSourceBags: _totalSourceBags, referenceWeight, onReferenceWeightChange, repackHamaliCharge,
+    repackMonthlyBagPrice, onRepackMonthlyBagPriceChange,
+    referenceWeight, onReferenceWeightChange, repackHamaliCharge,
     actualRepackedBags, commodityHamaliRate, movementDate, targetSmallRate,
     targetBigRate, submitting, targetGrnRentType,
   } = props;

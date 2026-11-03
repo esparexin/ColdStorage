@@ -149,8 +149,6 @@ describe('mergeRepackComposition.helper', () => {
         targetCurrentRemaining: 8,
         targetBagType: 'S/B',
         actualRepackedBags: 38,
-        targetSmall: 4,
-        targetBig: 4,
       });
 
       expect(res.movedSmall).toBe(24);
