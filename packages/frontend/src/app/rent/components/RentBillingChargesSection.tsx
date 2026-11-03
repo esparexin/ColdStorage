@@ -106,8 +106,23 @@ export function RentBillingChargesSection({
       amount: account.rentAmount,
     });
 
-    // 2. Finalized Extensions Rows
-    for (const ext of account.extensions) {
+    // 2. Finalized Extensions Rows (sorted chronologically: Jan before Feb)
+    const extBagLabel =
+      hasSmall && !hasBig
+        ? 'Small'
+        : hasBig && !hasSmall
+        ? 'Big'
+        : account.bagType === 'Hybrid'
+        ? 'Hybrid'
+        : 'bags';
+
+    const sortedExtensions = [...account.extensions].sort((a, b) => {
+      if (a.seasonYear !== b.seasonYear) return a.seasonYear - b.seasonYear;
+      const order: Record<string, number> = { JANUARY: 1, FEBRUARY: 2, SEASON: 3 };
+      return (order[a.period] ?? 99) - (order[b.period] ?? 99);
+    });
+
+    for (const ext of sortedExtensions) {
       let extDateLabel = periodLabel(ext);
       if (ext.period === 'SEASON') {
         extDateLabel = `(${ext.seasonYear}) Season Renewal`;
@@ -119,7 +134,7 @@ export function RentBillingChargesSection({
       list.push({
         id: ext.id,
         dates: extDateLabel,
-        details: `${ext.snapshotBags} bags × ₹${ext.bagRate.toFixed(2)} (₹${ext.finalAmount.toLocaleString('en-IN')})`,
+        details: `${ext.snapshotBags} ${extBagLabel} × ₹${ext.bagRate.toFixed(2)} (₹${ext.finalAmount.toLocaleString('en-IN')})`,
         amount: ext.finalAmount,
       });
     }
