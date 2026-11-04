@@ -1,7 +1,5 @@
 import mongoose from 'mongoose';
-import { randomUUID } from 'node:crypto';
 import { isHybridBagCategory, type MergeGrnInput } from '@cold-storage/contracts';
-import { rentRepository } from '../../rent/rent.repository.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { resolveSourceRentObligation, closeSourceGrnOnMerge, type MergeSourceGrn } from './merge-grn.helper.js';
 import { validateMergeRepackedCounts } from './merge-grn-validation.helper.js';

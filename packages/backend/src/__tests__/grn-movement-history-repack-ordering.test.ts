@@ -136,28 +136,28 @@ describe('GRN Movement History Repack Ordering (Unit)', () => {
 
     vi.spyOn(GrnModel, 'findOne').mockReturnValue({
       lean: () => ({ exec: async () => grnDoc }),
-    } as any);
+    } as never);
 
     vi.spyOn(InventoryTransactionModel, 'find').mockReturnValue({
       sort: () => ({ lean: () => ({ exec: async () => txList }) }),
-    } as any);
+    } as never);
 
-    vi.spyOn(InternalMovementModel, 'find').mockImplementation(((filter: any) => ({
+    vi.spyOn(InternalMovementModel, 'find').mockImplementation(((filter?: { movementType?: string }) => ({
       lean: () => ({
         exec: async () => {
           if (filter?.movementType === 'TRANSFER_OWNERSHIP') return [];
           return [mov0008, mov0011];
         },
       }),
-    })) as any);
+    })) as never);
 
     vi.spyOn(DeliveryChallanModel, 'find').mockReturnValue({
       lean: () => ({ exec: async () => [] }),
-    } as any);
+    } as never);
 
     vi.spyOn(DeliveryReversalModel, 'find').mockReturnValue({
       lean: () => ({ exec: async () => [] }),
-    } as any);
+    } as never);
 
     const history = await getGrnMovementHistory(facilityId, grnId);
     expect(history).not.toBeNull();
