@@ -112,7 +112,6 @@ export async function computeExpectedDeliveryRent(
         seasonalRates: { small: sRate, big: sRate },
         monthlyRates: { small: mRate, big: mRate },
         excludePeriodKeys: params.excludePeriodKeys ?? undefined,
-        hamaliRate: grn.hamaliRate ?? null,
       });
       return { expectedRentCharge: breakdown.totalRent, effectiveRates: { small: sRate, big: sRate } };
     }
@@ -191,7 +190,6 @@ export async function computeExpectedDeliveryRent(
       seasonalRates,
       monthlyRates,
       excludePeriodKeys: params.excludePeriodKeys ?? undefined,
-      hamaliRate: grn.hamaliRate ?? null,
     });
 
     return { expectedRentCharge: breakdown.totalRent, effectiveRates: seasonalRates };
