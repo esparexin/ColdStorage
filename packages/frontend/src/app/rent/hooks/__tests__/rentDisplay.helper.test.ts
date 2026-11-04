@@ -217,6 +217,14 @@ describe('rentDisplay.helper', () => {
     it('returns 0 when difference is negative or zero', () => {
       expect(deriveHamaliChargeFromSummary(3000, 3250, [])).toBe(0);
     });
+
+    it('returns explicit hamaliShare when provided', () => {
+      expect(deriveHamaliChargeFromSummary(5000, 3250, [], 500)).toBe(500);
+    });
+
+    it('returns 0 when explicit hamaliShare is 0, avoiding outward rent misclassification', () => {
+      expect(deriveHamaliChargeFromSummary(5000, 0, [], 0)).toBe(0);
+    });
   });
 });
 

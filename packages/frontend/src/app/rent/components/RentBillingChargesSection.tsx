@@ -25,10 +25,18 @@ export function RentBillingChargesSection({
   periodLabel,
 }: RentBillingChargesSectionProps) {
   const agreedRates = formatAgreedRates(account);
-  const hamaliDue = deriveHamaliChargeFromSummary(account.totalDue, account.rentAmount, account.extensions);
+  const hamaliDue = deriveHamaliChargeFromSummary(
+    account.totalDue,
+    account.rentAmount,
+    account.extensions,
+    account.hamaliShare,
+  );
   const breakdown =
     account.mergedConsignment ??
     parseMergedConsignmentBreakdown(account.remarks, account.totalBags, account.customerName);
+  const outwardCharges = account.outwardRentCharges ?? 0;
+  const isBilledAtOutward = account.rentAmount === 0 && outwardCharges > 0;
+  const effectiveStorageAmount = isBilledAtOutward ? outwardCharges : account.rentAmount;
 
   const totalEntries = 1 + account.extensions.length + (hamaliDue > 0 ? 1 : 0);
 
@@ -56,7 +64,9 @@ export function RentBillingChargesSection({
           <div>
             <div className={styles.paymentHead}>
               <strong className={styles.receiptNumber}>
-                Season {originSeason} — {account.rentType === 'Seasonal' ? 'Storage Rent' : `${account.rentType} Storage`}
+                {isBilledAtOutward
+                  ? 'Storage Rent (Outward Dispatches)'
+                  : `Season ${originSeason} — ${account.rentType === 'Seasonal' ? 'Storage Rent' : `${account.rentType} Storage`}`}
               </strong>
               <Badge variant="primary">{account.rentType}</Badge>
               <Badge variant={account.remainingBalance === 0 ? 'success' : 'warning'}>
@@ -64,17 +74,24 @@ export function RentBillingChargesSection({
               </Badge>
             </div>
             <span className={styles.paymentMeta}>
-              {formatBillingPeriodSubtitle({
-                rentType: account.rentType,
-                seasonYear: originSeason,
-                totalBags: account.totalBags,
-                rates: agreedRates,
-                rentMonths: account.rentMonths,
-              })}
+              {isBilledAtOutward
+                ? `Accrued from ${(account.deliveredBags ?? 0).toLocaleString('en-IN')} dispatched bags across outward challans${agreedRates ? ` · ${agreedRates}` : ''}`
+                : formatBillingPeriodSubtitle({
+                    rentType: account.rentType,
+                    seasonYear: originSeason,
+                    totalBags: account.totalBags,
+                    rates: agreedRates,
+                    rentMonths: account.rentMonths,
+                  })}
             </span>
+            {account.rentAmount > 0 && outwardCharges > 0 && (
+              <span className={styles.paymentNotes}>
+                Outward Dispatches: {(account.deliveredBags ?? 0).toLocaleString('en-IN')} bags dispatched · ₹{outwardCharges.toLocaleString('en-IN')} accrued{account.rentType === 'Seasonal' && account.rentAmount >= outwardCharges ? ' (covered under seasonal commitment)' : ''}
+              </span>
+            )}
           </div>
           <strong className={styles.paymentAmount}>
-            {account.rentAmount > 0 ? `₹${account.rentAmount.toLocaleString('en-IN')}` : '₹0 (At Outward)'}
+            {effectiveStorageAmount > 0 ? `₹${effectiveStorageAmount.toLocaleString('en-IN')}` : '₹0 (At Outward)'}
           </strong>
         </div>
         {account.extensions.map((ext) => (

@@ -146,7 +146,15 @@ export function formatExtensionPeriodSubtitle(params: {
 }
 
 /** Derives any applicable Hamali handling charge included in totalDue. */
-export function deriveHamaliChargeFromSummary(totalDue: number, rentAmount: number, extensions: { finalAmount: number }[]): number {
+export function deriveHamaliChargeFromSummary(
+  totalDue: number,
+  rentAmount: number,
+  extensions: { finalAmount: number }[],
+  explicitHamaliShare?: number | null,
+): number {
+  if (typeof explicitHamaliShare === 'number' && Number.isFinite(explicitHamaliShare)) {
+    return explicitHamaliShare > 0 ? Number(explicitHamaliShare.toFixed(2)) : 0;
+  }
   const sumExt = extensions.reduce((acc, e) => acc + e.finalAmount, 0);
   const diff = totalDue - (rentAmount + sumExt);
   return diff > 0 ? Number(diff.toFixed(2)) : 0;
