@@ -86,15 +86,17 @@ export function RentBillingChargesSection({
     } else if (hasBig && !hasSmall && bRate != null) {
       formula = `${numBig} Big × ₹${bRate.toFixed(2)} (₹${account.rentAmount.toLocaleString('en-IN')})`;
     } else if (account.bagType === 'Hybrid' && account.rentAmount > 0) {
-      const perBag = (account.rentAmount / account.totalBags).toFixed(2);
-      formula = `${account.totalBags} Hybrid × ₹${perBag} (₹${account.rentAmount.toLocaleString('en-IN')})`;
+      formula = `${account.totalBags} Hybrid (₹${account.rentAmount.toLocaleString('en-IN')})`;
     } else if (account.smallBagPrice != null || account.bigBagPrice != null) {
       formula = agreedRates ? `${account.totalBags} bags (${agreedRates})` : `${account.totalBags} bags`;
     } else if (account.bagPrice != null && account.bagPrice > 0) {
       formula = `${account.totalBags} bags × ₹${account.bagPrice.toFixed(2)} (₹${account.rentAmount.toLocaleString('en-IN')})`;
     } else if (account.rentAmount > 0 && account.totalBags > 0) {
-      const perBag = (account.rentAmount / account.totalBags).toFixed(2);
-      formula = `${account.totalBags} bags × ₹${perBag} (₹${account.rentAmount.toLocaleString('en-IN')})`;
+      if (account.deliveredBags && account.deliveredBags > 0) {
+        formula = `${account.deliveredBags} bags dispatched (Outward delivery assessment)`;
+      } else {
+        formula = `${account.totalBags} bags (Contract Rent: ₹${account.rentAmount.toLocaleString('en-IN')})`;
+      }
     } else {
       formula = 'Assessed at outward delivery dispatch';
     }
