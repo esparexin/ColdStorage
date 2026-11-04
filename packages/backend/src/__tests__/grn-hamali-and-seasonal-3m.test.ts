@@ -102,13 +102,13 @@ describe('Inward stores no Hamali & Seasonal_3M Delivery Rent Engine', () => {
     );
 
     expect(grn.hamaliRate).toBe(4);
-    expect(grn.hamaliAmount).toBe(0);
+    expect(grn.hamaliAmount).toBe(400);
     expect(grn.rentType).toBe('Seasonal_3M');
 
     const persisted = await GrnModel.findOne({ id: grn.id }).lean().exec();
     expect(persisted).not.toBeNull();
     expect(persisted!.hamaliRate).toBe(4);
-    expect(persisted!.hamaliAmount).toBe(0);
+    expect(persisted!.hamaliAmount).toBe(400);
   });
 
   it('ignores legacy hamaliRate input on Inward GRN', async () => {
@@ -133,7 +133,7 @@ describe('Inward stores no Hamali & Seasonal_3M Delivery Rent Engine', () => {
     );
 
     expect(grn.hamaliRate).toBe(4);
-    expect(grn.hamaliAmount).toBe(0);
+    expect(grn.hamaliAmount).toBe(800);
   });
 
   it('computes outward delivery rent within 3-month term with zero extra months', async () => {

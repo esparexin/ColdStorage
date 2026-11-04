@@ -33,7 +33,7 @@ export async function resolveFirstSeasonOutwardShare(input: {
   ]);
   const hamaliRate = resolveEffectiveHamaliRate(input.grn.hamaliRate, commodity);
   const full =
-    input.grn.hamaliAmount != null && input.grn.hamaliAmount > 0
+    input.grn.hamaliAmount != null && input.grn.hamaliAmount >= 0
       ? input.grn.hamaliAmount
       : calculateHamaliAmount(input.grn.bags, hamaliRate);
   if (full <= 0 || input.grn.bags <= 0) return { share: 0, hamaliRate };

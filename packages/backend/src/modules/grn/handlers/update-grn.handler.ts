@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { type CorrectGrnInput, type Grn } from '@cold-storage/contracts';
+import { calculateHamaliAmount, type CorrectGrnInput, type Grn } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
@@ -165,10 +165,7 @@ export async function correctGrn(
         const commodityChanged = input.commodityId !== undefined && input.commodityId !== grn.commodityId;
         const rate = resolveEffectiveHamaliRate(commodityChanged ? null : grn.hamaliRate, comm);
         update.hamaliRate = rate;
-        // Do not generate default Hamali charges merely because a GRN is edited (Issue #191)
-        if (grn.hamaliAmount == null || grn.hamaliAmount === 0) {
-          update.hamaliAmount = 0;
-        }
+        update.hamaliAmount = calculateHamaliAmount(bagEdit.finalBags, rate);
       }
 
       applyDescriptiveEdits(input, update, inwardUpdate);
