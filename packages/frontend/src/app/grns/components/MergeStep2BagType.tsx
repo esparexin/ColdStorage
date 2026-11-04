@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Package, ShieldCheck } from 'lucide-react';
-import { calculateHamaliAmount, formatDisplayBagType, type Commodity, type Grn, type RentSummaryDto } from '@cold-storage/contracts';
+import { formatDisplayBagType, type Commodity, type Grn, type RentSummaryDto } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
 import { calculateMergeGrandTotal } from './mergeRentAssessment.helper';
@@ -76,9 +76,6 @@ export function MergeStep2BagType({
     (typeof targetConfirmation?.smallBags === 'number' && targetConfirmation.smallBags === targetCurrentRemaining) ||
     (typeof targetConfirmation?.bigBags === 'number' && targetConfirmation.bigBags === targetCurrentRemaining);
 
-  const targetHamaliAmount = calculateHamaliAmount(targetCurrentRemaining, commodityHamaliRate);
-  const targetPaid = sourceRentSummaries?.[targetGrn.id]?.totalPaid ?? 0;
-
   const targetConfirmedSmall = typeof targetConfirmation?.smallBags === 'number'
     ? targetConfirmation.smallBags
     : (targetGrn.smallBags ?? targetCurrentRemaining);
@@ -114,8 +111,8 @@ export function MergeStep2BagType({
     () => selectedSources.reduce((sum, s) => sum + (sourceRentSummaries?.[s.id]?.totalPaid ?? 0), 0),
     [selectedSources, sourceRentSummaries],
   );
-  const grossCharges = grandTotalRent + targetHamaliAmount;
-  const netDue = Math.max(0, grossCharges - (targetPaid + sourcePaid));
+  const grossCharges = grandTotalRent;
+  const netDue = Math.max(0, grossCharges - sourcePaid);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
@@ -152,7 +149,6 @@ export function MergeStep2BagType({
               <Badge variant="primary">Receiving Lot (Surviving)</Badge>
               <Badge variant="neutral">Season {targetSeason}</Badge>
               <Badge variant="neutral">{targetCurrentRemaining} Bags</Badge>
-              <Badge variant="neutral">Hamali Charge: ₹{targetHamaliAmount.toLocaleString('en-IN')} ({targetCurrentRemaining} bags @ ₹{commodityHamaliRate}/bag)</Badge>
               {!isTargetConfirmed && <Badge variant="warning">Awaiting Bag Confirmation</Badge>}
             </div>
           </div>
@@ -183,8 +179,8 @@ export function MergeStep2BagType({
               <span style={{ fontWeight: 'var(--font-medium)' }}>{targetGrn.rentType} (Preserved)</span>
             </div>
             <div>
-              <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>Hamali Charge</span>
-              <span style={{ fontWeight: 'var(--font-medium)' }}>₹{targetHamaliAmount.toLocaleString('en-IN')} ({targetCurrentRemaining} bags @ ₹{commodityHamaliRate}/bag)</span>
+              <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>Hamali Rate</span>
+              <span style={{ fontWeight: 'var(--font-medium)' }}>{commodityHamaliRate > 0 ? `₹${commodityHamaliRate}/bag` : '—'}</span>
             </div>
           </div>
 

@@ -18,7 +18,7 @@ import { RentHistoryModal } from './components/RentHistoryModal';
 import { RentKpiCards } from './components/RentKpiCards';
 import { RentStatusTabs } from './components/RentStatusTabs';
 import { RentTable } from './components/RentTable';
-import { getRentStatusCategory, isClosedWithDuesRentAccount, isMergedRentAccount } from './hooks/rentFilter.helper';
+import { getRentStatusCategory } from './hooks/rentFilter.helper';
 import { useRentData } from './hooks/useRentData';
 import styles from './page.module.css';
 
@@ -56,22 +56,12 @@ export default function RentPage() {
     let unpaid = 0;
     let partiallyPaid = 0;
     let settled = 0;
-    let noDues = 0;
-    let merged = 0;
-    let closedWithDues = 0;
 
     for (const acc of rentSummaries) {
-      if (isMergedRentAccount(acc)) {
-        merged++;
-      }
-      if (isClosedWithDuesRentAccount(acc)) {
-        closedWithDues++;
-      }
       const cat = getRentStatusCategory(acc);
       if (cat === 'UNPAID') unpaid++;
       else if (cat === 'PARTIALLY_PAID') partiallyPaid++;
       else if (cat === 'SETTLED') settled++;
-      else if (cat === 'NO_DUES') noDues++;
     }
 
     return {
@@ -79,9 +69,6 @@ export default function RentPage() {
       unpaid,
       partiallyPaid,
       settled,
-      noDues,
-      merged,
-      closedWithDues,
     };
   }, [rentSummaries]);
 
@@ -187,7 +174,12 @@ export default function RentPage() {
           account={historyAccount}
           selectedFacilityId={selectedFacilityId}
           canPrint={canPrint}
+          canCollect={canCollect}
           onClose={() => setHistoryAccount(null)}
+          onOpenCollect={(acc) => {
+            setHistoryAccount(null);
+            setCollectAccount(acc);
+          }}
         />
       )}
 

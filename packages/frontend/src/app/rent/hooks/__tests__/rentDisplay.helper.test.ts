@@ -7,6 +7,7 @@ import {
   getRentCollectionNotice,
   formatBillingPeriodSubtitle,
   formatExtensionPeriodSubtitle,
+  formatHamaliCalculationSubtitle,
   deriveHamaliChargeFromSummary,
 } from '../rentDisplay.helper';
 
@@ -51,10 +52,10 @@ describe('rentDisplay.helper', () => {
       ).toBe('Dynamic (Per Cycle)');
     });
 
-    it('returns "₹0 (No Dues)" for zero rent and zero balance', () => {
+    it('returns "₹0 (Unbilled)" for zero rent and zero balance', () => {
       expect(
         formatRemainingDue({ rentType: 'Seasonal', rentAmount: 0, remainingBalance: 0 }),
-      ).toBe('₹0 (No Dues)');
+      ).toBe('₹0 (Unbilled)');
     });
 
     it('returns formatted INR currency string for positive remaining balance', () => {
@@ -65,10 +66,10 @@ describe('rentDisplay.helper', () => {
   });
 
   describe('formatPaymentStatus', () => {
-    it('returns "No Dues" with success variant when settled with 0 paid and 0 rent', () => {
+    it('returns "Unbilled" with neutral variant when settled with 0 paid and 0 rent', () => {
       const res = formatPaymentStatus({ paymentStatus: 'Settled', totalPaid: 0, rentAmount: 0, rentType: 'Seasonal' });
-      expect(res.label).toBe('No Dues');
-      expect(res.variant).toBe('success');
+      expect(res.label).toBe('Unbilled');
+      expect(res.variant).toBe('neutral');
     });
 
     it('returns "Settled" with success variant when settled after payment', () => {
@@ -177,26 +178,44 @@ describe('rentDisplay.helper', () => {
       });
       expect(res).toBe('Monthly Storage (3 months) · 50 bags');
     });
+
+    it('derives effective rate from rentAmount and totalBags when rates are not provided', () => {
+      const res = formatBillingPeriodSubtitle({
+        rentType: 'Seasonal',
+        seasonYear: 2025,
+        totalBags: 2,
+        rentAmount: 430,
+      });
+      expect(res).toBe('March 2025 – December 2025 (10 months) · 2 bags · ₹215.00/bag');
+    });
+  });
+
+  describe('formatHamaliCalculationSubtitle', () => {
+    it('formats operational handling with per-bag rate', () => {
+      const res = formatHamaliCalculationSubtitle({
+        hamaliDue: 50,
+        totalBags: 2,
+      });
+      expect(res).toBe('Operational handling labor · 2 bags @ ₹25.00/bag');
+    });
+
+    it('falls back to default note when bags or hamali are zero', () => {
+      const res = formatHamaliCalculationSubtitle({
+        hamaliDue: 0,
+        totalBags: 0,
+      });
+      expect(res).toBe('Operational handling labor charge recorded on account');
+    });
   });
 
   describe('formatExtensionPeriodSubtitle', () => {
     it('formats January extension with 1 month and snapshot rate', () => {
-      const res = formatExtensionPeriodSubtitle({
-        period: 'JANUARY',
-        seasonYear: 2026,
-        snapshotBags: 25,
-        bagRate: 28,
-      });
+      const res = formatExtensionPeriodSubtitle({ period: 'JANUARY', seasonYear: 2026, snapshotBags: 25, bagRate: 28 });
       expect(res).toBe('January 2027 (1 month extension) · Snapshot 25 bags · ₹28.00/bag');
     });
 
     it('formats SEASON renewal with 10 months', () => {
-      const res = formatExtensionPeriodSubtitle({
-        period: 'SEASON',
-        seasonYear: 2027,
-        snapshotBags: 20,
-        bagRate: 150,
-      });
+      const res = formatExtensionPeriodSubtitle({ period: 'SEASON', seasonYear: 2027, snapshotBags: 20, bagRate: 150 });
       expect(res).toBe('March 2027 – December 2027 (10 months renewal) · Snapshot 20 bags · ₹150.00/bag');
     });
   });

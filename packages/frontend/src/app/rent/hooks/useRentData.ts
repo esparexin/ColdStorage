@@ -7,6 +7,7 @@ import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
 import {
   filterRentAccounts,
+  isBilledRentAccount,
   type RentStatusFilter,
   type RentTypeFilter,
 } from './rentFilter.helper';
@@ -65,8 +66,9 @@ export function useRentData() {
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
       const data = (await res.json()) as { summaries?: RentSummaryDto[] };
-            if (!isCurrent()) return;
-setRentSummaries(data.summaries ?? []);
+      if (!isCurrent()) return;
+      const allSummaries = data.summaries ?? [];
+      setRentSummaries(allSummaries.filter(isBilledRentAccount));
     } catch (e) {
       if (!isCurrent()) return;
       setError(e instanceof Error ? e.message : 'Failed to load rent billing accounts');

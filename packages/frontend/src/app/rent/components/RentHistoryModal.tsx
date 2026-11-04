@@ -18,14 +18,18 @@ interface RentHistoryModalProps {
   account: RentSummaryDto;
   selectedFacilityId: string;
   canPrint: boolean;
+  canCollect?: boolean;
   onClose: () => void;
+  onOpenCollect?: (account: RentSummaryDto) => void;
 }
 
 export function RentHistoryModal({
   account,
   selectedFacilityId,
   canPrint,
+  canCollect,
   onClose,
+  onOpenCollect,
 }: RentHistoryModalProps) {
   const [activeTab, setActiveTab] = useState<'cash-memos' | 'outward-history'>('cash-memos');
   const [printingReceiptNum, setPrintingReceiptNum] = useState<string | null>(null);
@@ -62,9 +66,31 @@ export function RentHistoryModal({
       subtitle={`${account.customerName} · Inward: ${account.totalBags.toLocaleString('en-IN')} bags · Delivered: ${(account.deliveredBags ?? 0).toLocaleString('en-IN')} bags · Stock Balance: ${(account.remainingBags ?? Math.max(0, account.totalBags - (account.deliveredBags ?? 0))).toLocaleString('en-IN')} bags`}
       size="lg"
       footer={
-        <Button variant="outline" onClick={onClose}>
-          Close
-        </Button>
+        <div className={styles.modalFooterContent}>
+          <div>
+            {canCollect && account.remainingBalance > 0 && (
+              <span className={styles.outstandingBadge}>
+                Balance Due: <strong>₹{account.remainingBalance.toLocaleString('en-IN')}</strong>
+              </span>
+            )}
+          </div>
+          <div className={styles.footerActions}>
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+            {canCollect && account.remainingBalance > 0 && onOpenCollect && (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  onClose();
+                  onOpenCollect(account);
+                }}
+              >
+                Pay ₹{account.remainingBalance.toLocaleString('en-IN')}
+              </Button>
+            )}
+          </div>
+        </div>
       }
     >
       <div className={styles.modalBody}>
@@ -91,22 +117,24 @@ export function RentHistoryModal({
           </Button>
         </nav>
 
-        <StatGrid label={`Rent summary for ${account.grnNumber}`}>
-          <StatCard
-            label={account.rentType === 'Monthly' && account.rentAmount === 0 ? 'Rent Status' : 'Total Billed'}
-            value={formatRentStructure(account)}
-          />
-          <StatCard
-            label="Total Paid"
-            value={`₹${account.totalPaid.toLocaleString('en-IN')}`}
-            accent="success"
-          />
-          <StatCard
-            label="Remaining Due"
-            value={formatRemainingDue(account)}
-            accent="warning"
-          />
-        </StatGrid>
+        <div className={styles.compactStats}>
+          <StatGrid label={`Rent summary for ${account.grnNumber}`}>
+            <StatCard
+              label={account.rentType === 'Monthly' && account.rentAmount === 0 ? 'Rent Status' : 'Total Billed'}
+              value={formatRentStructure(account)}
+            />
+            <StatCard
+              label="Total Paid"
+              value={`₹${account.totalPaid.toLocaleString('en-IN')}`}
+              accent="success"
+            />
+            <StatCard
+              label="Remaining Due"
+              value={formatRemainingDue(account)}
+              accent="warning"
+            />
+          </StatGrid>
+        </div>
 
         {activeTab === 'cash-memos' ? (
           <RentCashMemosTab

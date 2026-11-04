@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { bagTypeSchema } from './bags.js';
 import { chamberTextSchema, rentalAmountSchema } from './common.js';
 import { grnStatusSchema, rentTypeSchema } from './grn.js';
 import { rentReceiptNumberSchema } from './identifiers.js';
@@ -16,23 +17,14 @@ export type RentState = z.infer<typeof rentStateSchema>;
 export const recordRentPaymentInputSchema = z
   .object({
     grnId: z.string().trim().min(1, 'GRN ID is required'),
-    amountPaid: z
-      .number({ invalid_type_error: 'Amount paid must be a number' })
-      .min(0, 'Amount paid cannot be negative'),
+    amountPaid: z.number({ invalid_type_error: 'Amount paid must be a number' }).min(0, 'Amount paid cannot be negative'),
     paymentMode: paymentModeSchema,
     paymentDate: z.coerce.date().default(() => new Date()),
     notes: z.string().trim().max(500, 'Notes cannot exceed 500 characters').nullish(),
   })
   .refine(
-    (data) => {
-      // 5-minute future tolerance for clock skew
-      const maxAllowed = new Date(Date.now() + 5 * 60 * 1000);
-      return data.paymentDate <= maxAllowed;
-    },
-    {
-      message: 'Payment date cannot be in the future',
-      path: ['paymentDate'],
-    },
+    (data) => data.paymentDate <= new Date(Date.now() + 5 * 60 * 1000), // 5-minute future tolerance for clock skew
+    { message: 'Payment date cannot be in the future', path: ['paymentDate'] },
   );
 
 export type RecordRentPaymentInput = z.infer<typeof recordRentPaymentInputSchema>;
@@ -69,6 +61,9 @@ export const rentSummaryDtoSchema = z.object({
   chamber: chamberTextSchema,
   inwardDate: z.coerce.date(),
   totalBags: z.number().int().min(1),
+  bagType: bagTypeSchema.optional(),
+  smallBags: z.number().int().min(0).nullish(),
+  bigBags: z.number().int().min(0).nullish(),
   deliveredBags: z.number().int().min(0).optional(),
   remainingBags: z.number().int().min(0).optional(),
   bagPrice: z.number().nullish(),

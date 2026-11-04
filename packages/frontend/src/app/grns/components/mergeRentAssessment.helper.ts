@@ -229,9 +229,6 @@ export function calculateMergeSettlementBill(params: {
     return acc + Math.max(0, calc.totalAmountToPay - (summary?.totalPaid ?? 0));
   }, 0);
 
-  const tBags = targetGrn.closingBags ?? targetGrn.bags;
-  const tHamali = calculateHamaliAmount(tBags, commodityHamaliRate);
-  const tPaid = sourceRentSummaries?.[targetGrn.id]?.totalPaid ?? 0;
-  return sourcesTotal + Math.max(0, tHamali - tPaid);
+  return sourcesTotal;
 }
 
