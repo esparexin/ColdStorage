@@ -1,9 +1,14 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import type { RentSummaryDto } from '@cold-storage/contracts';
-import { Badge, FeedbackStates, StatCard, StatGrid } from '@/components/ui';
+import React, { useMemo, useState } from 'react';
+import {
+  resolveOutwardRates,
+  toExcludedPeriodKeys,
+  type RentSummaryDto,
+} from '@cold-storage/contracts';
+import { Badge, Button, FeedbackStates, StatCard, StatGrid } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
+import { OutwardRentBreakdown } from '@/app/deliveries/components/OutwardRentBreakdown';
 import {
   categorizeOutwardBags,
   deriveOutwardPeriodLabel,
@@ -21,6 +26,22 @@ interface RentOutwardHistoryTabProps {
 export function RentOutwardHistoryTab({ facilityId, account }: RentOutwardHistoryTabProps) {
   const { deliveries, loading, error, metrics } = useGrnDeliveries(facilityId, account.grnId);
   const mergedNotes = useMemo(() => parseMergedGrnNotes(account.remarks), [account.remarks]);
+  const [expandedChallanId, setExpandedChallanId] = useState<string | null>(null);
+
+  const agreedRates = useMemo(
+    () =>
+      resolveOutwardRates(account.rentType, {
+        smallBagPrice: account.smallBagPrice,
+        bigBagPrice: account.bigBagPrice,
+        bagPrice: account.bagPrice,
+      }),
+    [account.rentType, account.smallBagPrice, account.bigBagPrice, account.bagPrice],
+  );
+
+  const excludePeriodKeys = useMemo(
+    () => toExcludedPeriodKeys(account.extensions ?? []),
+    [account.extensions],
+  );
 
   if (loading) {
     return <FeedbackStates.Loading label="Loading outward rent records..." />;
@@ -110,45 +131,83 @@ export function RentOutwardHistoryTab({ facilityId, account }: RentOutwardHistor
             const periodLabel = deriveOutwardPeriodLabel(account.inwardDate, d.date);
             const isReversed = d.status === 'REVERSED';
 
+            const isExpanded = expandedChallanId === d.id;
+
             return (
               <div key={d.id} className={styles.outwardCard}>
-                <div className={styles.cardLeft}>
-                  <div className={styles.cardHead}>
-                    <strong className={styles.challanRef}>{d.challanNumber}</strong>
-                    {d.gpNumber && <span className={styles.gpTag}>Gate Pass: {d.gpNumber}</span>}
-                    <Badge variant={category === 'Small' ? 'primary' : category === 'Big' ? 'warning' : 'neutral'}>
-                      {category} Bags
-                    </Badge>
-                    <Badge variant="neutral">{periodLabel}</Badge>
-                    <Badge variant={isReversed ? 'danger' : 'success'}>
-                      {d.status}
-                    </Badge>
+                <div className={styles.cardMain}>
+                  <div className={styles.cardLeft}>
+                    <div className={styles.cardHead}>
+                      <strong className={styles.challanRef}>{d.challanNumber}</strong>
+                      {d.gpNumber && <span className={styles.gpTag}>Gate Pass: {d.gpNumber}</span>}
+                      <Badge variant={category === 'Small' ? 'primary' : category === 'Big' ? 'warning' : 'neutral'}>
+                        {category} Bags
+                      </Badge>
+                      <Badge variant="neutral">{periodLabel}</Badge>
+                      <Badge variant={isReversed ? 'danger' : 'success'}>
+                        {d.status}
+                      </Badge>
+                    </div>
+
+                    <span className={styles.cardMeta}>
+                      <span>{formatOutwardBagBreakdown(d.smallBags, d.bigBags)}</span>
+                      <span>•</span>
+                      <span>Dispatched on {new Date(d.date).toLocaleDateString('en-IN')}</span>
+                      {d.issuedBy && <span>• by {d.issuedBy}</span>}
+                    </span>
+
+                    {(d.remarks || d.vehicleNumber) && (
+                      <span className={styles.cardNotes}>
+                        {d.vehicleNumber ? `Vehicle: ${d.vehicleNumber}` : ''}
+                        {d.vehicleNumber && d.remarks ? ' · ' : ''}
+                        {d.remarks ? `Remarks: ${d.remarks}` : ''}
+                      </span>
+                    )}
                   </div>
 
-                  <span className={styles.cardMeta}>
-                    <span>{formatOutwardBagBreakdown(d.smallBags, d.bigBags)}</span>
-                    <span>•</span>
-                    <span>Dispatched on {new Date(d.date).toLocaleDateString('en-IN')}</span>
-                    {d.issuedBy && <span>• by {d.issuedBy}</span>}
-                  </span>
-
-                  {(d.remarks || d.vehicleNumber) && (
-                    <span className={styles.cardNotes}>
-                      {d.vehicleNumber ? `Vehicle: ${d.vehicleNumber}` : ''}
-                      {d.vehicleNumber && d.remarks ? ' · ' : ''}
-                      {d.remarks ? `Remarks: ${d.remarks}` : ''}
+                  <div className={styles.cardRight}>
+                    <strong className={styles.rentAmount}>
+                      ₹{(d.rentCharge ?? 0).toLocaleString('en-IN')}
+                    </strong>
+                    <span className={styles.rentFormula}>
+                      {isReversed ? 'Reversed / Voided' : 'Calculated at Outward'}
                     </span>
-                  )}
+                    {!isReversed && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setExpandedChallanId(isExpanded ? null : d.id)}
+                        aria-expanded={isExpanded}
+                      >
+                        {isExpanded ? 'Hide Breakdown' : 'View Breakdown'}
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
-                <div className={styles.cardRight}>
-                  <strong className={styles.rentAmount}>
-                    ₹{(d.rentCharge ?? 0).toLocaleString('en-IN')}
-                  </strong>
-                  <span className={styles.rentFormula}>
-                    {isReversed ? 'Reversed / Voided' : 'Calculated at Outward'}
-                  </span>
-                </div>
+                {isExpanded && !isReversed && (
+                  <div className={styles.breakdownContainer}>
+                    <OutwardRentBreakdown
+                      hideHeader
+                      rentType={account.rentType}
+                      inwardDate={account.inwardDate}
+                      deliveryDate={d.date}
+                      smallBags={d.smallBags}
+                      bigBags={d.bigBags}
+                      bagType={d.bagType}
+                      bagCategory={d.bagCategory}
+                      bagPrice={d.bagPrice}
+                      seasonalBagPrice={d.seasonalBagPrice}
+                      monthlyBagPrice={d.monthlyBagPrice}
+                      seasonalRates={agreedRates}
+                      monthlyRates={agreedRates}
+                      totalRent={d.rentCharge ?? 0}
+                      excludePeriodKeys={excludePeriodKeys}
+                      grnNumber={account.grnNumber}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}

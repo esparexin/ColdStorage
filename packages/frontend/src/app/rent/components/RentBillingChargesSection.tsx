@@ -51,24 +51,36 @@ export function RentBillingChargesSection({
   originSeason,
   periodLabel,
 }: RentBillingChargesSectionProps) {
-  const hamaliDue = deriveHamaliChargeFromSummary(account.totalDue, account.rentAmount, account.extensions);
+  const hamaliDue = deriveHamaliChargeFromSummary(
+    account.totalDue,
+    account.rentAmount,
+    account.extensions,
+    account.hamaliShare,
+  );
   const breakdown =
     account.mergedConsignment ??
     parseMergedConsignmentBreakdown(account.remarks, account.totalBags, account.customerName);
+  const outwardCharges = account.outwardRentCharges ?? 0;
+  const isBilledAtOutward = account.rentAmount === 0 && outwardCharges > 0;
+  const effectiveStorageAmount = isBilledAtOutward ? outwardCharges : account.rentAmount;
 
   const storageRentTotal =
-    account.rentAmount + account.extensions.reduce((sum, e) => sum + e.finalAmount, 0);
+    effectiveStorageAmount + account.extensions.reduce((sum, e) => sum + e.finalAmount, 0);
 
   const rows: RentCalculationRow[] = useMemo(() => {
     const list: RentCalculationRow[] = [];
     const agreedRates = formatAgreedRates(account);
 
     // 1. Storage Rent Period Row
-    let datesLabel = `(${originSeason}) Mar - Dec`;
-    if (account.rentType === 'Seasonal_3M') {
-      datesLabel = `(${originSeason}) 3M Seasonal`;
-    } else if (account.rentType === 'Monthly') {
-      datesLabel = `Monthly (${account.rentMonths ?? 1} mo)`;
+    let datesLabel = isBilledAtOutward
+      ? 'Outward Dispatches'
+      : `(${originSeason}) Mar - Dec`;
+    if (!isBilledAtOutward) {
+      if (account.rentType === 'Seasonal_3M') {
+        datesLabel = `(${originSeason}) 3M Seasonal`;
+      } else if (account.rentType === 'Monthly') {
+        datesLabel = `Monthly (${account.rentMonths ?? 1} mo)`;
+      }
     }
 
     let formula = '';
@@ -97,6 +109,8 @@ export function RentBillingChargesSection({
       } else {
         formula = `${account.totalBags} bags (Contract Rent: ₹${account.rentAmount.toLocaleString('en-IN')})`;
       }
+    } else if (isBilledAtOutward) {
+      formula = `${account.deliveredBags ?? 0} bags dispatched (Outward delivery assessment: ₹${outwardCharges.toLocaleString('en-IN')})`;
     } else {
       formula = 'Assessed at outward delivery dispatch';
     }
@@ -105,7 +119,7 @@ export function RentBillingChargesSection({
       id: 'storage-rent',
       dates: datesLabel,
       details: formula,
-      amount: account.rentAmount,
+      amount: effectiveStorageAmount,
     });
 
     // 2. Finalized Extensions Rows (sorted chronologically: Jan before Feb)

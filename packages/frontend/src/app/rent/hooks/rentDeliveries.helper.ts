@@ -1,4 +1,5 @@
 import {
+  resolveSeasonalElapsedPeriods,
   seasonYearForInwardDate,
   type DeliveryChallan,
   type OutwardBagCategory,
@@ -33,22 +34,19 @@ export function deriveOutwardPeriodLabel(
   inwardDate: Date | string,
   deliveryDate: Date | string,
 ): string {
-  const inD = new Date(inwardDate);
-  const delD = new Date(deliveryDate);
-  const originSeason = seasonYearForInwardDate(inD);
-  const delMonth = delD.getMonth(); // 0 = Jan, 1 = Feb
-  const delYear = delD.getFullYear();
-
-  if (delYear === originSeason + 1 && delMonth === 0) {
-    return `January ${delYear} Extension`;
+  const periods = resolveSeasonalElapsedPeriods(inwardDate, deliveryDate);
+  if (periods.length === 0) {
+    const originSeason = seasonYearForInwardDate(new Date(inwardDate));
+    return `Season ${originSeason}`;
   }
-  if (delYear === originSeason + 1 && delMonth === 1) {
-    return `February ${delYear} Extension`;
+  const last = periods[periods.length - 1];
+  if (last.period === 'JANUARY' || last.period === 'FEBRUARY') {
+    return `${last.label} Extension`;
   }
-  if (delYear > originSeason) {
-    return `Season ${delYear} Renewal`;
+  if (periods.length > 1 && last.period === 'SEASON') {
+    return `${last.label} Renewal`;
   }
-  return `Season ${originSeason}`;
+  return last.label;
 }
 
 export interface OutwardRentSummaryMetrics {

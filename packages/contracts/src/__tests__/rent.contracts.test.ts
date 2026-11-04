@@ -99,31 +99,24 @@ describe('Phase 12: Rent Collection & Billing Contracts', () => {
       facilityId: 'fac-alpha',
       customerId: 'cust-1',
       customerName: 'Ramesh Patel',
+      commodityId: 'cmd-potatoes',
       commodityName: 'Potatoes',
       chamber: 'CH-1',
       inwardDate: new Date('2026-05-10'),
       totalBags: 500,
       rentType: 'Seasonal',
       rentAmount: 25000,
+      outwardRentCharges: 4500,
+      hamaliShare: 500,
       rentMonths: 10,
       totalPaid: 15000,
       remainingBalance: 10000,
       paymentStatus: 'Not Settled',
-      payments: [
-        {
-          id: 'rp-1',
-          facilityId: 'fac-alpha',
-          grnId: 'grn-101',
-          grnNumber: 'GRN-26-27-0001',
-          receiptNumber: 'RCPT-26-27-0001',
-          amountPaid: 15000,
-          paymentMode: 'Cash',
-          paymentDate: new Date('2026-05-10'),
-          notes: null,
-          createdBy: 'usr-operator-1',
-          createdAt: new Date('2026-05-10'),
-        },
-      ],
+      payments: [{
+        id: 'rp-1', facilityId: 'fac-alpha', grnId: 'grn-101', grnNumber: 'GRN-26-27-0001',
+        receiptNumber: 'RCPT-26-27-0001', amountPaid: 15000, paymentMode: 'Cash',
+        paymentDate: new Date('2026-05-10'), notes: null, createdBy: 'usr-operator-1', createdAt: new Date('2026-05-10'),
+      }],
     };
 
     expect(rentSummaryDtoSchema.safeParse(validSummary).success).toBe(true);
@@ -136,7 +129,11 @@ describe('Phase 12: Rent Collection & Billing Contracts', () => {
     expect(rentStateSchema.safeParse('UNBILLED').success).toBe(true);
     expect(rentStateSchema.safeParse('PENDING_VERIFICATION').success).toBe(true);
     expect(rentStateSchema.safeParse('UNKNOWN').success).toBe(false);
-    expect(rentSummaryDtoSchema.parse(validSummary).rentState).toBe('UNBILLED');
+    const parsed = rentSummaryDtoSchema.parse(validSummary);
+    expect(parsed.rentState).toBe('UNBILLED');
+    expect(parsed.commodityId).toBe('cmd-potatoes');
+    expect(parsed.outwardRentCharges).toBe(4500);
+    expect(parsed.hamaliShare).toBe(500);
   });
 
   it('6. validates RentReceiptDocumentDto schema', () => {
