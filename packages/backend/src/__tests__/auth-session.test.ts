@@ -144,6 +144,33 @@ describe('Auth & Session Integration', () => {
     expect(postLogoutRefresh.status).toBe(401);
   });
 
+  it('absorbs concurrent refresh race within grace window without nuking sibling session', async () => {
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username: TEST_ADMIN_USERNAME, password: TEST_ADMIN_PASSWORD });
+
+    const cookieHeader = loginRes.headers['set-cookie'][0];
+    const refreshToken = cookieHeader.split(';')[0].replace('refreshToken=', '');
+
+    const firstRefresh = await request(app)
+      .post('/api/auth/refresh')
+      .set('Cookie', [`refreshToken=${refreshToken}`]);
+    expect(firstRefresh.status).toBe(200);
+
+    const newCookieHeader = firstRefresh.headers['set-cookie'][0];
+    const newRefreshToken = newCookieHeader.split(';')[0].replace('refreshToken=', '');
+
+    const concurrentRes = await request(app)
+      .post('/api/auth/refresh')
+      .set('Cookie', [`refreshToken=${refreshToken}`]);
+    expect(concurrentRes.status).toBe(401);
+
+    const validCheck = await request(app)
+      .post('/api/auth/refresh')
+      .set('Cookie', [`refreshToken=${newRefreshToken}`]);
+    expect(validCheck.status).toBe(200);
+  });
+
   it('rejects invalid credentials and unauthenticated requests', async () => {
     const res = await request(app)
       .post('/api/auth/login')

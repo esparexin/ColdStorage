@@ -121,36 +121,33 @@ export class AuthService {
     }
 
     const opStart = Date.now();
-    let s = Date.now();
-    const session = await this.sessionRepo.findActiveSession(currentRefreshToken);
-    const findSessionMs = Date.now() - s;
-    if (!session) {
-      throw new Error('Invalid, expired, or revoked refresh token');
-    }
-    s = Date.now();
-    const user = await this.userRepo.findById(session.userId);
-    const findUserMs = Date.now() - s;
-    if (!user || user.status !== 'ACTIVE') {
-      throw new Error('User account is inactive or not found');
-    }
     const newRefreshToken = generateOpaqueToken(32);
-    s = Date.now();
-    const rotated = await this.sessionRepo.rotateSession(
+    let s = Date.now();
+    const session = await this.sessionRepo.rotateSession(
       currentRefreshToken,
       newRefreshToken,
       config.refreshTokenExpiryDays,
     );
     const rotateMs = Date.now() - s;
     // Governance F01: REFRESH_TOKEN_REUSE_OR_RACE guard (rotateSession null path) lives in login-guard.helper.
-    if (!rotated) {
-      await handleRefreshReuse(this.sessionRepo, currentRefreshToken, user);
+    if (!session) {
+      await handleRefreshReuse(this.sessionRepo, currentRefreshToken);
+      throw new Error('Invalid, expired, or revoked refresh token');
+    }
+
+    s = Date.now();
+    const user = await this.userRepo.findById(session.userId);
+    const findUserMs = Date.now() - s;
+    if (!user || user.status !== 'ACTIVE') {
+      await this.sessionRepo.revokeSession(newRefreshToken);
+      throw new Error('User account is inactive or not found');
     }
 
     const permissions = await resolveUserPermissions(user);
     const accessToken = mintAccessToken(user, permissions);
 
     const totalMs = Date.now() - opStart;
-    if (totalMs > 1000) logger.warn('auth.refresh slow', { findSessionMs, findUserMs, rotateMs, totalMs });
+    if (totalMs > 1000) logger.warn('auth.refresh slow', { rotateMs, findUserMs, totalMs });
 
     return {
       accessToken,
