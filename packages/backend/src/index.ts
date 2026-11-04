@@ -17,7 +17,7 @@ if (process.env.NODE_ENV !== 'test') {
   await connectToDatabase();
   await roleService.seedSystemRoles();
   await userRepository.bootstrapSuperAdminFromEnv();
-  const { startBackupScheduler } = await import('./modules/backup/backup.scheduler.js');
+  const { startBackupScheduler, stopBackupScheduler } = await import('./modules/backup/backup.scheduler.js');
   startBackupScheduler();
   const server = app.listen(config.port, () => {
     logger.info('Backend server listening', { port: config.port });
@@ -44,11 +44,20 @@ if (process.env.NODE_ENV !== 'test') {
   // Graceful shutdown (F28): drain in-flight transactions on rolling deploys.
   const shutdown = (signal: string): void => {
     logger.info('Backend shutdown received', { signal });
+    if (typeof server.closeIdleConnections === 'function') {
+      server.closeIdleConnections();
+    }
     server.close(() => {
       void disconnectDatabase().finally(() => process.exit(0));
     });
     void stopMemoryStoreSweep();
-    setTimeout(() => process.exit(1), 10000).unref();
+    stopBackupScheduler();
+    setTimeout(() => {
+      if (typeof server.closeAllConnections === 'function') {
+        server.closeAllConnections();
+      }
+      process.exit(1);
+    }, 10000).unref();
   };
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));

@@ -41,20 +41,40 @@ export async function recordInvalidPassword(
   throw new Error('Invalid credentials');
 }
 
+/** Grace window (10s) to absorb concurrent sibling refreshes (e.g. dual browser tabs). */
+export const REFRESH_REUSE_GRACE_WINDOW_MS = 10000;
+
 export async function handleRefreshReuse(
   sessionRepo: SessionRepository,
   presentedToken: string,
-  user: UserEntity,
+  user?: UserEntity | null,
 ): Promise<never> {
   const reused = await sessionRepo.findByPreviousHash(presentedToken);
   if (reused) {
-    await sessionRepo.revokeAllUserSessions(user.id);
+    const isWithinGrace =
+      reused.updatedAt &&
+      Date.now() - new Date(reused.updatedAt).getTime() < REFRESH_REUSE_GRACE_WINDOW_MS;
+
+    if (isWithinGrace) {
+      await auditService.log({
+        eventType: 'AUTH_LOGIN_FAILED',
+        severity: 'INFO',
+        userId: reused.userId,
+        resource: 'auth',
+        resourceId: reused.id,
+        details: { reason: 'CONCURRENT_REFRESH_RACE_ABSORBED' },
+      });
+      throw new Error('Invalid, expired, or revoked refresh token');
+    }
+
+    const targetUserId = user?.id ?? reused.userId;
+    await sessionRepo.revokeAllUserSessions(targetUserId);
     await auditService.log({
       eventType: 'AUTH_LOGIN_FAILED',
       severity: 'SECURITY',
-      userId: user.id,
-      username: user.username,
-      userRole: user.role,
+      userId: targetUserId,
+      username: user?.username ?? 'unknown',
+      userRole: user?.role ?? 'ANONYMOUS',
       resource: 'auth',
       details: { reason: 'REFRESH_TOKEN_REUSE_DETECTED', sessionId: reused.id },
     });
@@ -62,9 +82,9 @@ export async function handleRefreshReuse(
     await auditService.log({
       eventType: 'AUTH_LOGIN_FAILED',
       severity: 'SECURITY',
-      userId: user.id,
-      username: user.username,
-      userRole: user.role,
+      userId: user?.id,
+      username: user?.username,
+      userRole: user?.role,
       resource: 'auth',
       details: { reason: 'REFRESH_TOKEN_REUSE_OR_RACE' },
     });

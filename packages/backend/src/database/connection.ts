@@ -23,6 +23,9 @@ export const MONGO_CONNECT_TIMEOUT_MS = 5000;
 export const MONGO_SOCKET_TIMEOUT_MS = 10000;
 export const MONGO_MAX_POOL_SIZE = 50;
 export const MONGO_MIN_POOL_SIZE = process.env.NODE_ENV === 'test' ? 1 : 5;
+export const MONGO_MAX_IDLE_TIME_MS = 45000;
+export const MONGO_WAIT_QUEUE_TIMEOUT_MS = 5000;
+export const MONGO_MAX_CONNECTING = 5;
 
 /** Database names that hold live customer and financial data. */
 export const LIVE_DATABASE_NAME = 'cold_storage';
@@ -153,11 +156,19 @@ export async function connectToDatabase(uri?: string): Promise<boolean> {
     socketTimeoutMS: MONGO_SOCKET_TIMEOUT_MS,
     maxPoolSize: MONGO_MAX_POOL_SIZE,
     minPoolSize: MONGO_MIN_POOL_SIZE,
-    // Fail fast instead of buffering auth ops while disconnected. Per-request
-    // ops then reject with a MongooseError rather than hanging the Express
-    // handler indefinitely.
+    maxIdleTimeMS: MONGO_MAX_IDLE_TIME_MS,
+    waitQueueTimeoutMS: MONGO_WAIT_QUEUE_TIMEOUT_MS,
+    maxConnecting: MONGO_MAX_CONNECTING,
     bufferCommands: false,
   };
+
+  if (mongoUri.startsWith('mongodb+srv://')) {
+    try {
+      dns.setServers(['8.8.8.8', '1.1.1.1']);
+    } catch {
+      // Ignore if setServers fails in custom environments
+    }
+  }
 
   try {
     await mongoose.connect(mongoUri, connectionOptions);
@@ -170,10 +181,6 @@ export async function connectToDatabase(uri?: string): Promise<boolean> {
         (err as { syscall?: string }).syscall === 'querySrv');
 
     if (isSrvDnsError) {
-      logger.warn(
-        'MongoDB SRV DNS resolution failed with local system DNS resolver. Retrying with public DNS resolvers (8.8.8.8, 1.1.1.1)...',
-        { error: (err as Error).message },
-      );
       dns.setServers(['8.8.8.8', '1.1.1.1']);
       await mongoose.connect(mongoUri, connectionOptions);
     } else {
