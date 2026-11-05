@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import type { Grn, OutwardBagCategory, RentSummaryDto } from '@cold-storage/contracts';
 import { Button, ConfirmDialog, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
@@ -25,6 +25,7 @@ export interface IssueDeliveryChallanModalProps {
   onClearLoan?: (grn: Grn) => void;
   canClearLoan?: boolean;
   onChangeGrn?: () => void;
+  /** @deprecated Modal now provides a single Cancel action. Kept optional for backward compatibility. */
   onBackToGrn?: () => void;
 }
 
@@ -37,7 +38,6 @@ export function IssueDeliveryChallanModal({
   onClearLoan,
   canClearLoan = false,
   onChangeGrn,
-  onBackToGrn,
 }: IssueDeliveryChallanModalProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -71,17 +71,6 @@ export function IssueDeliveryChallanModal({
   const modalFooter = (
     <div className={styles.footerContainer}>
       <div className={styles.footerLeftActions}>
-        {onBackToGrn && (
-          <Button
-            id="issue-modal-back-btn"
-            variant="outline"
-            onClick={() => handleGuardedExit(onBackToGrn)}
-            disabled={form.submitting}
-            leftIcon={<ArrowLeft size={14} aria-hidden="true" />}
-          >
-            Back to Inward
-          </Button>
-        )}
         <Button id="issue-modal-cancel-btn" variant="outline" onClick={() => handleGuardedExit(onClose)} disabled={form.submitting}>
           Cancel
         </Button>
@@ -96,7 +85,7 @@ export function IssueDeliveryChallanModal({
           leftIcon={!form.submitting ? <Plus size={15} aria-hidden="true" /> : undefined}
           onClick={() => handleAttemptSubmit()}
         >
-          {form.isLoanHoldActive ? 'Outward Blocked (Loan Active)' : '+ Delivery Challan'}
+          {form.isLoanHoldActive ? 'Outward Blocked (Loan Active)' : 'Delivery Challan'}
         </Button>
       </div>
     </div>
