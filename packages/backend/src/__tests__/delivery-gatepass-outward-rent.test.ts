@@ -6,6 +6,7 @@ import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
 import { rentService } from '../modules/rent/rent.service.js';
 import { seedCustomer, seedFacility } from './helpers/master-data-fixtures.js';
+import { seedOrganizationSettings } from './helpers/rent-fixtures.js';
 import { connectToTestDatabase, disconnectTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
 import { useHistoricalTestingDates } from './helpers/historical-dates-env.js';
 
@@ -23,6 +24,7 @@ describe('Independent Outward Rent Per Gate Pass (delivery-gatepass-outward-rent
 
   beforeEach(async () => {
     await resetStockCollections();
+    await seedOrganizationSettings();
     await CommodityRateModel.deleteMany({});
     facilityId = await seedFacility({ name: 'Sri Sai Bala Cold Storage' });
     customerId = await seedCustomer({ facilityId, name: 'Kalyan' });
