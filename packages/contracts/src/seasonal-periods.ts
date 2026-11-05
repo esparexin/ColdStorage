@@ -243,41 +243,11 @@ export function toExcludedPeriodKeys(extensions: Array<{ seasonYear: number; per
   return extensions.map((e) => extensionPeriodKey(e.seasonYear, e.period));
 }
 
-/**
- * Determines the visibility of manual pricing fields for Hybrid outward deliveries.
- * - Monthly Rent: Only Monthly Rate is shown (Scenario C).
- * - Seasonal Rent:
- *   - Same Year (within Mar-Dec): Only Seasonal Rate is shown (Scenario B).
- *   - Multi-Year / Extended (incurring Jan/Feb extensions): Both Seasonal Rate and Monthly Rate are shown (Scenario A).
- */
-export function deriveHybridRateVisibility(params: {
-  rentType?: RentType | null;
-  inwardDate?: Date | string | null;
-  deliveryDate?: Date | string | null;
-  hasSeasonalRates?: boolean;
-}): HybridRateVisibility {
-  const isSeasonal = shouldEvaluateSeasonalBreakdown(params);
-  if (!isSeasonal && params.rentType === 'Monthly') {
-    return {
-      showSeasonalRate: false,
-      showMonthlyRate: true,
-    };
-  }
+export {
+  resolveActiveSubscriptionPeriodKey,
+  resolveUncompletedPeriodKeys,
+  resolveMergeExcludedPeriodKeys,
+  deriveHybridRateVisibility,
+} from './merge-periods.js';
 
-  if (!params.inwardDate || !params.deliveryDate) {
-    return {
-      showSeasonalRate: true,
-      showMonthlyRate: false,
-    };
-  }
-
-  const elapsed = resolveSeasonalElapsedPeriods(params.inwardDate, params.deliveryDate);
-  const hasSeason = elapsed.some((p) => p.period === 'SEASON');
-  const hasExtension = elapsed.some((p) => p.period === 'JANUARY' || p.period === 'FEBRUARY');
-
-  return {
-    showSeasonalRate: hasSeason || !hasExtension,
-    showMonthlyRate: hasExtension,
-  };
-}
 
