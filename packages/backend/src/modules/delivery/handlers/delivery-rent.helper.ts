@@ -5,7 +5,9 @@ import {
   shouldEvaluateSeasonalBreakdown,
   type BagComposition, type RentType,
 } from '@cold-storage/contracts';
+import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CommodityRateModel } from '../../../database/models/commodity-rate.model.js';
+import { resolveEffectiveHamaliRate } from '../../common/hamali-resolution.js';
 
 export interface ComputeDeliveryRentParams {
   grn: {
@@ -58,6 +60,12 @@ export async function computeExpectedDeliveryRent(
     inwardDate: grn.date,
     deliveryDate,
   });
+
+  let effectiveHamaliRate: number | null = typeof grn.hamaliRate === 'number' ? grn.hamaliRate : null;
+  if (effectiveHamaliRate === null && grn.commodityId && (isSeasonalEval || grn.rentType === 'Seasonal_3M')) {
+    const commodityDoc = await CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec();
+    effectiveHamaliRate = resolveEffectiveHamaliRate(null, commodityDoc);
+  }
 
   if (isHybrid) {
     let sRate = params.seasonalBagPrice ?? params.bagPrice ?? grn.bagPrice ?? 0;
@@ -112,6 +120,7 @@ export async function computeExpectedDeliveryRent(
         seasonalRates: { small: sRate, big: sRate },
         monthlyRates: { small: mRate, big: mRate },
         excludePeriodKeys: params.excludePeriodKeys ?? undefined,
+        hamaliRate: effectiveHamaliRate,
       });
       return { expectedRentCharge: breakdown.totalRent, effectiveRates: { small: sRate, big: sRate } };
     }
@@ -190,6 +199,7 @@ export async function computeExpectedDeliveryRent(
       seasonalRates,
       monthlyRates,
       excludePeriodKeys: params.excludePeriodKeys ?? undefined,
+      hamaliRate: effectiveHamaliRate,
     });
 
     return { expectedRentCharge: breakdown.totalRent, effectiveRates: seasonalRates };

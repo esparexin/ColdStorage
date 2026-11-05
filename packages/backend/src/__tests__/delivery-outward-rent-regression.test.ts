@@ -4,6 +4,8 @@ import { CommodityRateModel } from '../database/models/commodity-rate.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
 import { seedCustomer, seedFacility } from './helpers/master-data-fixtures.js';
+import { seedOrganizationSettings } from './helpers/rent-fixtures.js';
+import { useHistoricalTestingDates } from './helpers/historical-dates-env.js';
 import {
   connectToTestDatabase,
   disconnectTestDatabase,
@@ -13,6 +15,8 @@ import {
 const USER_ID = 'usr-outward-rent-regression';
 
 describe('Outward Rent Regression: screenshot 50k vs 48k + mismatch guard', () => {
+  useHistoricalTestingDates();
+
   let facilityId: string;
   let customerId: string;
 
@@ -24,6 +28,7 @@ describe('Outward Rent Regression: screenshot 50k vs 48k + mismatch guard', () =
 
   beforeEach(async () => {
     await resetStockCollections();
+    await seedOrganizationSettings();
     await CommodityRateModel.deleteMany({});
     await CommodityRateModel.create([{ id: 'crt-cmd-wheat-s', commodityId: 'cmd-wheat', rentType: 'Seasonal', smallRate: 10, bigRate: 15, isActive: true }, { id: 'crt-cmd-wheat-m', commodityId: 'cmd-wheat', rentType: 'Monthly', smallRate: 10, bigRate: 15, isActive: true }]);
     facilityId = await seedFacility({ name: 'Outward Regression Facility' });
@@ -101,5 +106,34 @@ describe('Outward Rent Regression: screenshot 50k vs 48k + mismatch guard', () =
       USER_ID,
     );
     expect(del.delivery.rentCharge).toBe(4800);
+  });
+
+  it('Option A Path 2: derives net storage rent (1,280) from inclusive rates (125/205) with hamali (25)', async () => {
+    await CommodityModel.updateOne({ id: 'cmd-wheat' }, { $set: { hamaliRate: 25, isHamaliApplicable: true } });
+    await CommodityRateModel.updateOne({ id: 'crt-cmd-wheat-s' }, { $set: { smallRate: 125, bigRate: 205 } });
+    await CommodityRateModel.updateOne({ id: 'crt-cmd-wheat-m' }, { $set: { smallRate: 45, bigRate: 65 } });
+    const { grn } = await createGrn('9004', {
+      smallBagPrice: 125,
+      bigBagPrice: 205,
+      hamaliRate: 25,
+      smallBags: 10,
+      bigBags: 10,
+      bags: 20,
+      date: new Date('2024-03-02'),
+    });
+
+    const del = await deliveryService.createDelivery(
+      facilityId,
+      {
+        grnId: grn.id,
+        smallBags: 1,
+        bigBags: 1,
+        bagCategory: 'Small & Big',
+        date: new Date('2026-11-05'),
+        rentCharge: 1280,
+      },
+      USER_ID,
+    );
+    expect(del.delivery.rentCharge).toBe(1330);
   });
 });
