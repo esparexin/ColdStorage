@@ -81,7 +81,7 @@ describe('Option A Path 2 - Outward Rent Calculation Breakdown (User Screenshot 
     expect(rows[0].amount).toBe(245);
 
     // Jan-Feb 2025 row
-    expect(rows[1].title).toBe('Jan - Feb');
+    expect(rows[1].title).toBe('(2025) Jan - Feb');
     expect(rows[1].details).toBe('1 Small × ₹60.00 (₹60) + 1 Big × ₹80.00 (₹80) (2 months)');
     expect(rows[1].amount).toBe(140);
 
@@ -91,7 +91,7 @@ describe('Option A Path 2 - Outward Rent Calculation Breakdown (User Screenshot 
     expect(rows[2].amount).toBe(245);
 
     // Jan-Feb 2026 row
-    expect(rows[3].title).toBe('Jan - Feb');
+    expect(rows[3].title).toBe('(2026) Jan - Feb');
     expect(rows[3].details).toBe('1 Small × ₹60.00 (₹60) + 1 Big × ₹80.00 (₹80) (2 months)');
     expect(rows[3].amount).toBe(140);
 

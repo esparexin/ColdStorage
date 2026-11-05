@@ -120,7 +120,7 @@ describe('outwardRentBreakdown.helper', () => {
       // Season + Combined Jan-Feb + Hamali = 3 rows
       expect(rows).toHaveLength(3);
       expect(rows[0].title).toBe('(2024) Mar - Dec');
-      expect(rows[1].title).toBe('Jan - Feb');
+      expect(rows[1].title).toBe('(2025) Jan - Feb');
       expect(rows[1].periodMeta).toBe('');
       expect(rows[1].amount).toBe(40);
       expect(rows[1].details).toContain('(2 months)');
@@ -193,9 +193,9 @@ describe('outwardRentBreakdown.helper', () => {
       expect(rows).toHaveLength(6);
       expect(rows.map((r) => r.title)).toEqual([
         '(2024) Mar - Dec',
-        'Jan - Feb',
+        '(2025) Jan - Feb',
         '(2025) Mar - Dec',
-        'Jan - Feb',
+        '(2026) Jan - Feb',
         '(2026) Mar - Dec',
         'Hamali Charges',
       ]);

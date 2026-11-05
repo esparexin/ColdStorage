@@ -143,7 +143,7 @@ describe('Consumer 4: Gate Pass-Based Rent Billing Breakdown (GRN #0007 Scenario
     // Season 2025 + Combined Jan-Feb 2026
     const combinedRow = rows.find((r) => r.title.includes('Jan - Feb'));
     expect(combinedRow).toBeDefined();
-    expect(combinedRow?.title).toBe('Jan - Feb');
+    expect(combinedRow?.title).toBe('(2026) Jan - Feb');
     expect(combinedRow?.details).toContain('(2 months)');
   });
 });

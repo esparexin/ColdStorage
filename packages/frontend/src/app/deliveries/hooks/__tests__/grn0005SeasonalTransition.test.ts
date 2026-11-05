@@ -85,7 +85,7 @@ describe('GRN 0005 Seasonal Transition Remediation', () => {
     });
 
     expect(rows).toHaveLength(3);
-    expect(rows[0].title).toBe('Jan - Feb');
+    expect(rows[0].title).toBe('(2026) Jan - Feb');
     expect(rows[0].details).toContain('(2 months)');
     expect(rows[0].amount).toBe(220);
 

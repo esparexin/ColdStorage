@@ -35,7 +35,7 @@ describe('Outward Rent Breakdown - Audit Reproduction Cases', () => {
     });
     expect(rows[1]).toEqual({
       id: 'JANUARY_2025_FEBRUARY_2025',
-      title: 'Jan - Feb',
+      title: '(2025) Jan - Feb',
       periodMeta: '',
       details: '10 Small × ₹60.00 (₹600) + 8 Big × ₹80.00 (₹640) (2 months)',
       amount: 1240,
@@ -49,7 +49,7 @@ describe('Outward Rent Breakdown - Audit Reproduction Cases', () => {
     });
     expect(rows[3]).toEqual({
       id: 'JANUARY_2026_FEBRUARY_2026',
-      title: 'Jan - Feb',
+      title: '(2026) Jan - Feb',
       periodMeta: '',
       details: '10 Small × ₹60.00 (₹600) + 8 Big × ₹80.00 (₹640) (2 months)',
       amount: 1240,
