@@ -1,6 +1,7 @@
 import type { RentDeliveryBill } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
 import type { RentPaymentDoc } from '../../database/models/rent-payment.model.js';
+import { reconcileDeliveriesWithPayments } from '../delivery/handlers/delivery-settlement-reconciliation.helper.js';
 
 /**
  * Resolves issued delivery challans for a set of GRNs and computes per-delivery
@@ -21,34 +22,44 @@ export async function findDeliveryBillsForGrns(
 
   const result = new Map<string, RentDeliveryBill[]>();
 
+  const challansByGrn = new Map<string, typeof challans>();
   for (const c of challans) {
-    const grnPayments = paymentsByGrn.get(c.grnId) ?? [];
-    const delPaid = grnPayments
-      .filter((p) => p.deliveryId === c.id)
-      .reduce((sum, p) => sum + p.amountPaid, 0);
+    const list = challansByGrn.get(c.grnId);
+    if (list) list.push(c);
+    else challansByGrn.set(c.grnId, [c]);
+  }
 
-    const charge = c.rentCharge ?? 0;
-    const remaining = Math.max(0, Number((charge - delPaid).toFixed(2)));
-    const status: 'Settled' | 'Not Settled' =
-      charge > 0 && remaining === 0 ? 'Settled' : 'Not Settled';
+  for (const grnId of grnIds) {
+    const grnChallans = challansByGrn.get(grnId) ?? [];
+    if (grnChallans.length === 0) continue;
 
-    const bill: RentDeliveryBill = {
-      deliveryId: c.id,
-      challanNumber: c.challanNumber,
-      gpNumber: c.gpNumber ?? null,
-      date: c.date,
-      totalBags: (c.smallBags ?? 0) + (c.bigBags ?? 0),
-      smallBags: c.smallBags ?? 0,
-      bigBags: c.bigBags ?? 0,
-      rentCharge: charge,
-      rentTotalPaid: delPaid,
-      rentRemainingBalance: remaining,
-      rentPaymentStatus: status,
-    };
+    const grnPayments = paymentsByGrn.get(grnId) ?? [];
+    const reconciliationMap = reconcileDeliveriesWithPayments(grnChallans, grnPayments);
 
-    const list = result.get(c.grnId);
-    if (list) list.push(bill);
-    else result.set(c.grnId, [bill]);
+    const bills: RentDeliveryBill[] = grnChallans.map((c) => {
+      const recon = reconciliationMap.get(c.id);
+      const charge = c.rentCharge ?? 0;
+      const delPaid = recon?.rentTotalPaid ?? 0;
+      const remaining = recon?.rentRemainingBalance ?? charge;
+      const status: 'Settled' | 'Not Settled' =
+        recon?.rentPaymentStatus ?? (charge > 0 && remaining === 0 ? 'Settled' : 'Not Settled');
+
+      return {
+        deliveryId: c.id,
+        challanNumber: c.challanNumber,
+        gpNumber: c.gpNumber ?? null,
+        date: c.date,
+        totalBags: (c.smallBags ?? 0) + (c.bigBags ?? 0),
+        smallBags: c.smallBags ?? 0,
+        bigBags: c.bigBags ?? 0,
+        rentCharge: charge,
+        rentTotalPaid: delPaid,
+        rentRemainingBalance: remaining,
+        rentPaymentStatus: status,
+      };
+    });
+
+    result.set(grnId, bills);
   }
 
   return result;

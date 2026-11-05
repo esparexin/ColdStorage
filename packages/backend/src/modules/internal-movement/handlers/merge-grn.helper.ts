@@ -8,7 +8,7 @@ import { computeRentBalance, type RentBalance } from '../../common/rent-balance.
 import { calculateGrnMonthlyOccupancyRent } from '../../common/occupancy-rent.js';
 import { counterService } from '../../common/counter.service.js';
 import {
-  canCalculateAuthoritativeRent, isHybridBagCategory, resolveSeasonalElapsedPeriods,
+  canCalculateAuthoritativeRent, isHybridBagCategory, resolveMergeExcludedPeriodKeys, resolveSeasonalElapsedPeriods,
   resolveStoredCompositionVerified, seasonYearForInwardDate, toExcludedPeriodKeys,
   type BagType, type PaymentMode, type RentType,
 } from '@cold-storage/contracts';
@@ -57,17 +57,12 @@ export async function resolveSourceRentObligation(
     CommodityModel.findOne({ id: sourceGrn.commodityId }, null, { session }).lean().exec(),
     rentExtensionRepository.findExtensionsByGrn(facilityId, sourceGrn.id, session),
   ]);
-  const excludedKeys = toExcludedPeriodKeys(extensions);
-  if (targetSeason > sourceSeason && new Date(sourceGrn.date).getFullYear() < new Date(targetGrnDate).getFullYear()) {
-    const elapsed = resolveSeasonalElapsedPeriods(sourceGrn.date, movementDate);
-    for (const p of elapsed) {
-      if (p.period === 'SEASON' && p.seasonYear >= targetSeason) {
-        if (!excludedKeys.includes(p.key)) {
-          excludedKeys.push(p.key);
-        }
-      }
-    }
-  }
+  const excludedKeys = resolveMergeExcludedPeriodKeys({
+    inwardDate: sourceGrn.date,
+    movementDate,
+    targetGrnDate,
+    billedExtensionKeys: toExcludedPeriodKeys(extensions),
+  });
   if (sourceGrn.rentType === 'Monthly' && effectiveRentAmount === 0 && !isHybrid) {
     const occupancySummary = await calculateGrnMonthlyOccupancyRent(facilityId, sourceGrn.id, {
       asOfDate: movementDate,
