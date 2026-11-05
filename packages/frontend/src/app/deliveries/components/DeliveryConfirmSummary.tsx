@@ -2,6 +2,7 @@
 
 import React from 'react';
 import {
+  calculateProRataHamali,
   formatBagCompositionText,
   formatCurrencyAmount,
   formatProRataHamaliText,
@@ -44,11 +45,17 @@ export function DeliveryConfirmSummary({
   totalHamaliAmount,
 }: DeliveryConfirmSummaryProps) {
   const compositionText = formatBagCompositionText(bagType, totalBags, smallBags, bigBags);
+  const hamaliCharge = calculateProRataHamali(totalBags, hamaliRate, {
+    originalBags,
+    priorDeliveredBags,
+    totalHamaliAmount,
+  });
   const hamaliText = formatProRataHamaliText(totalBags, hamaliRate, {
     originalBags,
     priorDeliveredBags,
     totalHamaliAmount,
   });
+  const totalAmountToPay = Number((outwardRent + hamaliCharge).toFixed(2));
 
   return (
     <div className={styles.container}>
@@ -83,19 +90,26 @@ export function DeliveryConfirmSummary({
             <span className={styles.highlightValue}>{totalBags} Bags</span>
           </div>
           <div className={styles.item}>
-            <span className={styles.label}>Composition</span>
+            <span className={styles.label}>Bags Breakdown</span>
             <span className={styles.value}>{compositionText}</span>
           </div>
 
           <div className={styles.item}>
-            <span className={styles.label}>Outward Rent</span>
-            <span className={styles.highlightValue}>
+            <span className={styles.label}>Storage Rent</span>
+            <span className={styles.value}>
               {formatCurrencyAmount(outwardRent)}
             </span>
           </div>
           <div className={styles.item}>
             <span className={styles.label}>Pro-Rata Hamali</span>
             <span className={styles.value}>{hamaliText}</span>
+          </div>
+
+          <div className={styles.totalRow}>
+            <span className={styles.label}>Total Amount to Pay</span>
+            <span className={styles.totalPayableValue}>
+              {formatCurrencyAmount(totalAmountToPay)}
+            </span>
           </div>
 
           {vehicleNumber && (

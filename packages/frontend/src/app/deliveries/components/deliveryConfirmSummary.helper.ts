@@ -31,7 +31,7 @@ export function calculateProRataHamali(
   if (totalBags <= 0) return 0;
 
   const full =
-    context?.totalHamaliAmount != null && context.totalHamaliAmount >= 0
+    context?.totalHamaliAmount != null && context.totalHamaliAmount > 0
       ? context.totalHamaliAmount
       : calculateHamaliAmount(totalBags, hamaliRate);
 
