@@ -101,7 +101,7 @@ export function DeliveryConfirmSummary({
             </span>
           </div>
           <div className={styles.item}>
-            <span className={styles.label}>Pro-Rata Hamali</span>
+            <span className={styles.label}>Hamali Charges</span>
             <span className={styles.value}>{hamaliText}</span>
           </div>
 
