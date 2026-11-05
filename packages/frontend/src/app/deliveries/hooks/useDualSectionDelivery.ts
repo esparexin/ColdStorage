@@ -29,6 +29,7 @@ function computePoolRent(params: {
   rentType: RentType; bagType: OperationalBagType; small: number; big: number; qty?: number;
   seasonalPrice: number | ''; monthlyPrice: number | ''; months: number;
   grn: Grn | null; date: string; sRates: { small: number; big: number } | null; mRates: { small: number; big: number } | null;
+  hamaliRate?: number | null;
 }) {
   const isHybrid = params.bagType === 'Hybrid';
   return computeOutwardRentCharge({
@@ -40,7 +41,7 @@ function computePoolRent(params: {
     smallBagPrice: params.grn?.smallBagPrice ?? (params.rentType === 'Monthly' ? params.mRates?.small : params.sRates?.small),
     bigBagPrice: params.grn?.bigBagPrice ?? (params.rentType === 'Monthly' ? params.mRates?.big : params.sRates?.big),
     bagPrice: params.grn?.bagPrice,
-    hamaliRate: params.grn?.hamaliRate,
+    hamaliRate: params.grn?.hamaliRate ?? params.hamaliRate,
   });
 }
 

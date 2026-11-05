@@ -75,7 +75,7 @@ export function formatSeasonalBreakdownRows(params: {
         }
         rows.push({
           id: `${p.periodKey}_${next.periodKey}`,
-          title: 'Jan - Feb',
+          title: yr ? `(${yr}) Jan - Feb` : 'Jan - Feb',
           periodMeta: '',
           details: `${formula} (2 months)`,
           amount: combinedAmt,

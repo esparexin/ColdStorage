@@ -3,6 +3,7 @@ import {
   calculateMonthlyElapsedCycles,
   calculateOutwardSeasonalBreakdown,
   calculateRentAmount,
+  deriveNetStorageRate,
   isHybridBagCategory,
   resolveOutwardRates,
   shouldEvaluateSeasonalBreakdown,
@@ -32,6 +33,7 @@ export interface ComputeOutwardRentParams {
   excludePeriodKeys?: string[];
   hamaliRate?: number | null;
   hasSeasonalRates?: boolean;
+  isRatesInclusiveOfHamali?: boolean;
 }
 
 export function resolveOutwardBillableMonths(params: {
@@ -101,6 +103,7 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
         monthlyRates: { small: mRate, big: mRate },
         excludePeriodKeys: params.excludePeriodKeys,
         hamaliRate: params.hamaliRate,
+        isRatesInclusiveOfHamali: params.isRatesInclusiveOfHamali,
       });
       return breakdown.totalRent;
     }
@@ -115,7 +118,7 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
       rentType,
       bags: qty,
       bagCategory,
-      bagPrice: rentType === 'Monthly' ? mRate : sRate,
+      bagPrice: deriveNetStorageRate(rentType === 'Monthly' ? mRate : sRate, params.hamaliRate),
       rentMonths: months,
     });
   }
@@ -176,6 +179,7 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
       monthlyRates: { small: monthlySmall, big: monthlyBig },
       excludePeriodKeys: params.excludePeriodKeys,
       hamaliRate: params.hamaliRate,
+      isRatesInclusiveOfHamali: params.isRatesInclusiveOfHamali,
     });
     return breakdown.totalRent;
   }
@@ -193,8 +197,8 @@ export function computeOutwardRentCharge(params: ComputeOutwardRentParams): numb
     bagType: 'S+B',
     smallBags: effectiveSmall,
     bigBags: effectiveBig,
-    smallBagPrice: smallRate,
-    bigBagPrice: bigRate,
+    smallBagPrice: deriveNetStorageRate(smallRate, params.hamaliRate),
+    bigBagPrice: deriveNetStorageRate(bigRate, params.hamaliRate),
     rentMonths: billableMonths,
   });
 }

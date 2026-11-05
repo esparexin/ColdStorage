@@ -8,7 +8,7 @@ import { computeRentBalance, type RentBalance } from '../../common/rent-balance.
 import { calculateGrnMonthlyOccupancyRent } from '../../common/occupancy-rent.js';
 import { counterService } from '../../common/counter.service.js';
 import {
-  canCalculateAuthoritativeRent, isHybridBagCategory, resolveSeasonalElapsedPeriods,
+  canCalculateAuthoritativeRent, isHybridBagCategory, resolveMergeExcludedPeriodKeys,
   resolveStoredCompositionVerified, seasonYearForInwardDate, toExcludedPeriodKeys,
   type BagType, type PaymentMode, type RentType,
 } from '@cold-storage/contracts';
@@ -59,13 +59,14 @@ export async function resolveSourceRentObligation(
   ]);
   const excludedKeys = toExcludedPeriodKeys(extensions);
   if (targetSeason > sourceSeason && new Date(sourceGrn.date).getFullYear() < new Date(targetGrnDate).getFullYear()) {
-    const elapsed = resolveSeasonalElapsedPeriods(sourceGrn.date, movementDate);
-    for (const p of elapsed) {
-      if (p.period === 'SEASON' && p.seasonYear >= targetSeason) {
-        if (!excludedKeys.includes(p.key)) {
-          excludedKeys.push(p.key);
-        }
-      }
+    const mergeExcluded = resolveMergeExcludedPeriodKeys({
+      inwardDate: sourceGrn.date,
+      movementDate,
+      targetGrnDate,
+      billedExtensionKeys: excludedKeys,
+    });
+    for (const k of mergeExcluded) {
+      if (!excludedKeys.includes(k)) excludedKeys.push(k);
     }
   }
   if (sourceGrn.rentType === 'Monthly' && effectiveRentAmount === 0 && !isHybrid) {

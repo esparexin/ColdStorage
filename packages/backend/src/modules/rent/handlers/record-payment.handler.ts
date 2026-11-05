@@ -7,7 +7,8 @@ import {
   type RentSummaryDto,
 } from '@cold-storage/contracts';
 import { GrnModel, type GrnDoc } from '../../../database/models/grn.model.js';
-import type { RentPaymentDoc } from '../../../database/models/rent-payment.model.js';
+import { DeliveryChallanModel, type DeliveryChallanDoc } from '../../../database/models/delivery-challan.model.js';
+import { RentPaymentModel, type RentPaymentDoc } from '../../../database/models/rent-payment.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
 import { counterService } from '../../common/counter.service.js';
@@ -27,6 +28,9 @@ export function toPaymentEntity(doc: RentPaymentDoc): RentPayment {
     grnNumber: doc.grnNumber,
     customerId: doc.customerId ?? null,
     customerName: doc.customerName ?? null,
+    deliveryId: doc.deliveryId ?? null,
+    challanNumber: doc.challanNumber ?? null,
+    gpNumber: doc.gpNumber ?? null,
     receiptNumber: doc.receiptNumber,
     amountPaid: doc.amountPaid,
     paymentMode: doc.paymentMode,
@@ -110,6 +114,37 @@ export async function executeRecordPayment(
               const balanceBefore = computeRentBalance(totalDue, totalPaidBefore);
               const remainingBalance = balanceBefore.remainingBalance;
 
+              let targetDelivery: DeliveryChallanDoc | null = null;
+              if (input.deliveryId) {
+                targetDelivery = await DeliveryChallanModel.findOne(
+                  { id: input.deliveryId, facilityId, grnId: grn.id, status: 'ISSUED' },
+                  null,
+                  { session },
+                );
+                if (!targetDelivery) {
+                  throw new Error(
+                    `Delivery challan '${input.deliveryId}' not found for GRN '${grn.grnNumber}'`,
+                  );
+                }
+                const deliveryPaidDocs = await RentPaymentModel.find(
+                  { facilityId, deliveryId: targetDelivery.id },
+                  null,
+                  { session },
+                ).lean();
+                const deliveryPaidBefore = deliveryPaidDocs.reduce((sum, p) => sum + p.amountPaid, 0);
+                const deliveryRentCharge = targetDelivery.rentCharge ?? 0;
+                const deliveryRemaining = Math.max(
+                  0,
+                  Number((deliveryRentCharge - deliveryPaidBefore).toFixed(2)),
+                );
+
+                if (input.amountPaid > deliveryRemaining) {
+                  throw new Error(
+                    `Requested payment ₹${input.amountPaid} exceeds remaining rent balance of ₹${deliveryRemaining} for Delivery Challan '${targetDelivery.challanNumber}'`,
+                  );
+                }
+              }
+
               // 3. Strict Overpayment Guard (Zero negative balance permitted per P0-Decision 9)
               if (input.amountPaid > remainingBalance) {
                 throw new Error(
@@ -143,6 +178,9 @@ export async function executeRecordPayment(
                   grnNumber: grn.grnNumber,
                   customerId: grn.customerId,
                   customerName: grn.customerName,
+                  deliveryId: targetDelivery?.id ?? null,
+                  challanNumber: targetDelivery?.challanNumber ?? input.challanNumber ?? null,
+                  gpNumber: targetDelivery?.gpNumber ?? null,
                   receiptNumber,
                   amountPaid: input.amountPaid,
                   paymentMode: input.paymentMode,

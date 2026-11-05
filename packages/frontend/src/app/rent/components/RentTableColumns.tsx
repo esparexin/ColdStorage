@@ -1,29 +1,28 @@
 import React from 'react';
 import { CheckCircle2, Clock, Eye, Plus } from 'lucide-react';
-import type { RentSummaryDto } from '@cold-storage/contracts';
+import type { RentDeliveryBill, RentSummaryDto } from '@cold-storage/contracts';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { Badge, Button } from '@/components/ui';
 import { formatDisplayDate } from '@/lib/date-format';
 import {
-  formatPaymentStatus,
   formatRentStructure,
   formatAgreedRates,
-  formatRemainingDue,
   parseOwnershipTransferDisplayInfo,
 } from '../hooks/rentDisplay.helper';
+import type { RentBillTableRow } from '../hooks/rentTableRows.helper';
 import styles from '../page.module.css';
 
 export interface CreateRentColumnsParams {
   canCollect: boolean;
-  onOpenCollect: (acc: RentSummaryDto) => void;
-  onOpenHistory: (acc: RentSummaryDto) => void;
+  onOpenCollect: (acc: RentSummaryDto, del?: RentDeliveryBill | null) => void;
+  onOpenHistory: (acc: RentSummaryDto, deliveryId?: string) => void;
 }
 
 export function createRentColumns({
   canCollect,
   onOpenCollect,
   onOpenHistory,
-}: CreateRentColumnsParams): DataTableColumn<RentSummaryDto>[] {
+}: CreateRentColumnsParams): DataTableColumn<RentBillTableRow>[] {
   return [
     {
       key: 'customer',
@@ -71,12 +70,17 @@ export function createRentColumns({
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span className={styles.tableMono}>{row.grnNumber}</span>
             <span className={styles.tableSubtext}>{formatDisplayDate(row.inwardDate)}</span>
+            {row.challanNumber && (
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary-text)', fontWeight: 'var(--font-medium)' }}>
+                {`GP: ${row.challanNumber}${row.gpNumber ? ` (${row.gpNumber})` : ''}`}
+              </span>
+            )}
             {isMergedSource && row.mergedIntoGrnNumber && (
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary-text)', fontWeight: 'var(--font-medium)' }}>
                 Merged into #{row.mergedIntoGrnNumber}
               </span>
             )}
-            {isMergedTarget && (
+            {isMergedTarget && !row.challanNumber && (
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 'var(--font-medium)' }}>
                 Merged Consignment
               </span>
@@ -90,21 +94,25 @@ export function createRentColumns({
       key: 'structure',
       header: 'Rent Structure',
       render: (row) => {
-        const agreedRates = formatAgreedRates(row);
+        const agreedRates = formatAgreedRates(row.account);
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-0-5)' }}>
             <span style={{ fontSize: 'var(--text-xs)' }}>
               {row.rentType}
-              {row.rentType === 'Monthly' && row.rentMonths ? ` (${row.rentMonths}m)` : ''}
+              {row.rentType === 'Monthly' && row.account.rentMonths ? ` (${row.account.rentMonths}m)` : ''}
             </span>
             <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)' }}>
-              {formatRentStructure(row)}
+              {row.challanNumber ? `₹${row.totalDue.toLocaleString('en-IN')}` : formatRentStructure(row.account)}
             </span>
-            {agreedRates && (
+            {row.challanNumber ? (
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                {`${row.totalBags} bags (${row.smallBags ?? 0} Small / ${row.bigBags ?? 0} Big)`}
+              </span>
+            ) : agreedRates ? (
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
                 {agreedRates}
               </span>
-            )}
+            ) : null}
           </div>
         );
       },
@@ -115,10 +123,10 @@ export function createRentColumns({
       sortable: true,
       sortType: 'date',
       sortAccessor: (row) =>
-        row.rentGeneratedDate ? new Date(row.rentGeneratedDate).getTime() : 0,
+        row.date ? new Date(row.date).getTime() : 0,
       render: (row) => (
         <span className={styles.tableSubtext}>
-          {formatDisplayDate(row.rentGeneratedDate, { fallback: '—' })}
+          {formatDisplayDate(row.date, { fallback: '—' })}
         </span>
       ),
     },
@@ -130,16 +138,14 @@ export function createRentColumns({
       sortType: 'number',
       sortAccessor: (row) => row.remainingBalance,
       render: (row) => {
-        const lastP = row.payments?.length ? row.payments[row.payments.length - 1] : null;
         return (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--space-0-5)' }}>
             <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-success-text)' }}>
               Paid: ₹{row.totalPaid.toLocaleString('en-IN')}
             </span>
             <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: row.remainingBalance > 0 ? 'var(--color-warning-text)' : 'var(--color-text-muted)' }}>
-              Due: {formatRemainingDue(row)}
+              Due: ₹{row.remainingBalance.toLocaleString('en-IN')}
             </span>
-            {lastP && <span className={styles.tableSubtext}>Paid: {formatDisplayDate(lastP.paymentDate)}</span>}
           </div>
         );
       },
@@ -150,13 +156,16 @@ export function createRentColumns({
       align: 'center',
       sortable: true,
       sortType: 'text',
-      sortAccessor: (row) => formatPaymentStatus(row).label,
+      sortAccessor: (row) => row.paymentStatus,
       render: (row) => {
-        const status = formatPaymentStatus(row);
-        const Icon = status.variant === 'success' ? CheckCircle2 : Clock;
+        const isSettled = row.remainingBalance === 0 && row.totalPaid > 0;
+        const isPartial = row.remainingBalance > 0 && row.totalPaid > 0;
+        const label = isSettled ? 'Settled' : isPartial ? 'Partially Paid' : 'Pending';
+        const variant = isSettled ? 'success' : isPartial ? 'warning' : 'neutral';
+        const Icon = isSettled ? CheckCircle2 : Clock;
         return (
-          <Badge variant={status.variant} icon={<Icon size={12} aria-hidden="true" />}>
-            {status.label}
+          <Badge variant={variant} icon={<Icon size={12} aria-hidden="true" />}>
+            {label}
           </Badge>
         );
       },
@@ -166,13 +175,14 @@ export function createRentColumns({
       header: 'Actions',
       align: 'right',
       render: (row) => {
+        const isSettled = row.remainingBalance === 0 && row.totalPaid > 0;
         return (
           <div className={styles.actionGroup}>
-            {row.paymentStatus !== 'Settled' && canCollect && (
+            {!isSettled && canCollect && (
               <Button
                 variant="primary"
                 size="sm"
-                onClick={() => onOpenCollect(row)}
+                onClick={() => onOpenCollect(row.account, row.deliveryBill)}
                 title="Collect rent payment"
                 aria-label={`Collect rent payment for ${row.grnNumber}`}
                 leftIcon={<Plus size={12} aria-hidden="true" />}
@@ -184,12 +194,12 @@ export function createRentColumns({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onOpenHistory(row)}
+              onClick={() => onOpenHistory(row.account, row.deliveryId)}
               title="View payment cash memos history"
               aria-label={`View cash memos history for ${row.grnNumber}`}
               leftIcon={<Eye size={12} aria-hidden="true" />}
             >
-              Cash Memos ({row.payments.length})
+              Cash Memos ({row.account.payments.length})
             </Button>
           </div>
         );

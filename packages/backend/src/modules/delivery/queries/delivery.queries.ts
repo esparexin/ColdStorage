@@ -1,15 +1,42 @@
 import type { DeliveryChallan, DeliveryQuery, DeliverySummary } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
+import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
 import { readLedgerBalance, readLedgerBalanceMany, readLedgerNetDelivered } from '../../inventory/ledger-balance.js';
 import { toChallanEntity } from '../delivery.mappers.js';
+import {
+  reconcileDeliveriesWithPayments,
+  type ReconciledDeliveryPayment,
+} from '../handlers/delivery-settlement-reconciliation.helper.js';
 
 export async function getDeliveryById(
   facilityId: string,
   deliveryId: string,
 ): Promise<DeliveryChallan | null> {
   const doc = await DeliveryChallanModel.findOne({ id: deliveryId, facilityId }).lean().exec();
-  return doc ? toChallanEntity(doc) : null;
+  if (!doc) return null;
+  const entity = toChallanEntity(doc);
+  const [allChallans, paymentDocs] = await Promise.all([
+    DeliveryChallanModel.find({ facilityId, grnId: doc.grnId }).lean().exec(),
+    RentPaymentModel.find({ facilityId, grnId: doc.grnId }, null, { lean: true })
+      .sort({ paymentDate: 1, createdAt: 1 })
+      .exec(),
+  ]);
+  const reconciliationMap = reconcileDeliveriesWithPayments(allChallans, paymentDocs);
+  const recon = reconciliationMap.get(doc.id);
+  const deliveryCharge = doc.rentCharge ?? 0;
+  const deliveryPaid = recon?.rentTotalPaid ?? 0;
+  const deliveryRemaining = recon?.rentRemainingBalance ?? deliveryCharge;
+  const deliveryPaymentStatus: 'Settled' | 'Not Settled' =
+    recon?.rentPaymentStatus ?? (deliveryCharge > 0 && deliveryRemaining === 0 ? 'Settled' : 'Not Settled');
+
+  return {
+    ...entity,
+    rentPaymentStatus: deliveryPaymentStatus,
+    rentRemainingBalance: deliveryRemaining,
+    rentTotalAmount: deliveryCharge,
+    rentTotalPaid: deliveryPaid,
+  };
 }
 
 export async function listDeliveries(
@@ -37,18 +64,44 @@ export async function listDeliveries(
   // Batched rent summaries fix N+1 (F10) and lazy import breaks the
   // delivery->rent static cycle; rentService is loaded only on this path.
   const { rentService } = await import('../../rent/rent.service.js');
-  const [grnDocs, balanceMap, allRentSummaries] = await Promise.all([
+  const [grnDocs, balanceMap, allRentSummaries, paymentDocs, allGrnChallans] = await Promise.all([
     GrnModel.find({ id: { $in: grnIds }, facilityId }).lean().exec(),
     readLedgerBalanceMany(facilityId, grnIds),
-    // Scoped to the GRNs on this page. Previously this fetched every GRN,
-    // payment, extension and ledger aggregate for the facility and then threw
-    // all but the page away, so page 1 and page 999 cost the same. The
-    // `.catch(() => [])` that used to swallow a failure is also gone: it
-    // silently blanked the rent columns on the delivery table with no log and
-    // no error, which reads as "no rent due" rather than "could not load".
     rentService.getRentSummariesForFacility(facilityId, grnIds),
+    RentPaymentModel.find(
+      { facilityId, grnId: { $in: grnIds } },
+      null,
+      { lean: true },
+    )
+      .sort({ paymentDate: 1, createdAt: 1 })
+      .exec(),
+    DeliveryChallanModel.find({ facilityId, grnId: { $in: grnIds } }).lean().exec(),
   ]);
   const wanted = new Set(grnIds);
+
+  const paymentsByGrn = new Map<string, typeof paymentDocs>();
+  for (const p of paymentDocs) {
+    const list = paymentsByGrn.get(p.grnId);
+    if (list) list.push(p);
+    else paymentsByGrn.set(p.grnId, [p]);
+  }
+
+  const challansByGrn = new Map<string, typeof allGrnChallans>();
+  for (const c of allGrnChallans) {
+    const list = challansByGrn.get(c.grnId);
+    if (list) list.push(c);
+    else challansByGrn.set(c.grnId, [c]);
+  }
+
+  const reconciliationMap = new Map<string, ReconciledDeliveryPayment>();
+  for (const grnId of grnIds) {
+    const grnChallans = challansByGrn.get(grnId) ?? [];
+    const grnPayments = paymentsByGrn.get(grnId) ?? [];
+    const recon = reconcileDeliveriesWithPayments(grnChallans, grnPayments);
+    for (const [delId, val] of recon.entries()) {
+      reconciliationMap.set(delId, val);
+    }
+  }
 
   const grnMap = new Map(grnDocs.map((g) => [g.id, g]));
   const rentMap = new Map(
@@ -61,6 +114,18 @@ export async function listDeliveries(
       const grn = grnMap.get(d.grnId);
       const bal = balanceMap.get(d.grnId);
       const rent = rentMap.get(d.grnId);
+      const recon = reconciliationMap.get(d.id);
+
+      const deliveryCharge = d.rentCharge ?? 0;
+      const deliveryPaid = recon?.rentTotalPaid ?? 0;
+      const deliveryRemaining = recon?.rentRemainingBalance ?? Math.max(0, Number((deliveryCharge - deliveryPaid).toFixed(2)));
+      const deliveryPaymentStatus: 'Settled' | 'Not Settled' =
+        recon?.rentPaymentStatus ??
+        (deliveryCharge > 0 && deliveryRemaining === 0
+          ? 'Settled'
+          : deliveryCharge === 0 && rent && rent.paymentStatus === 'Settled'
+            ? 'Settled'
+            : 'Not Settled');
 
       return {
         ...entity,
@@ -68,10 +133,10 @@ export async function listDeliveries(
         remainingSmallBags: bal ? bal.smallBags : undefined,
         remainingBigBags: bal ? bal.bigBags : undefined,
         remainingTotalBags: bal ? bal.total : undefined,
-        rentPaymentStatus: rent ? rent.paymentStatus : undefined,
-        rentRemainingBalance: rent ? rent.remainingBalance : undefined,
-        rentTotalAmount: rent ? rent.rentAmount : undefined,
-        rentTotalPaid: rent ? rent.totalPaid : undefined,
+        rentPaymentStatus: deliveryPaymentStatus,
+        rentRemainingBalance: deliveryRemaining,
+        rentTotalAmount: deliveryCharge,
+        rentTotalPaid: deliveryPaid,
       };
     }),
     total,
@@ -84,11 +149,35 @@ export async function listDeliveriesForGrn(
   facilityId: string,
   grnId: string,
 ): Promise<DeliveryChallan[]> {
-  const docs = await DeliveryChallanModel.find({ facilityId, grnId })
-    .sort({ date: -1, createdAt: -1 })
-    .lean()
-    .exec();
-  return docs.map((d) => toChallanEntity(d));
+  const [docs, paymentDocs] = await Promise.all([
+    DeliveryChallanModel.find({ facilityId, grnId })
+      .sort({ date: -1, createdAt: -1 })
+      .lean()
+      .exec(),
+    RentPaymentModel.find({ facilityId, grnId }, null, { lean: true })
+      .sort({ paymentDate: 1, createdAt: 1 })
+      .exec(),
+  ]);
+
+  const reconciliationMap = reconcileDeliveriesWithPayments(docs, paymentDocs);
+
+  return docs.map((d) => {
+    const entity = toChallanEntity(d);
+    const recon = reconciliationMap.get(d.id);
+    const deliveryCharge = d.rentCharge ?? 0;
+    const deliveryPaid = recon?.rentTotalPaid ?? 0;
+    const deliveryRemaining = recon?.rentRemainingBalance ?? deliveryCharge;
+    const deliveryPaymentStatus: 'Settled' | 'Not Settled' =
+      recon?.rentPaymentStatus ?? (deliveryCharge > 0 && deliveryRemaining === 0 ? 'Settled' : 'Not Settled');
+
+    return {
+      ...entity,
+      rentPaymentStatus: deliveryPaymentStatus,
+      rentRemainingBalance: deliveryRemaining,
+      rentTotalAmount: deliveryCharge,
+      rentTotalPaid: deliveryPaid,
+    };
+  });
 }
 
 export async function getDeliverySummary(

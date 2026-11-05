@@ -522,7 +522,6 @@ describe('mergeRentAssessment.helper', () => {
         targetGrnDate: new Date('2026-10-20'),
         commodityHamaliRate: 25,
       });
-
       // Storage Rent + Hamali = 26,350 + 13,350 = 39,700
       expect(grandTotal).toBe(39700);
     });

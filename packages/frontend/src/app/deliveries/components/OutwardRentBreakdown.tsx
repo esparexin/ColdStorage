@@ -42,13 +42,14 @@ export interface OutwardRentBreakdownProps {
   excludePeriodKeys?: string[];
   grnNumber?: string;
   hideHeader?: boolean;
+  isRatesInclusiveOfHamali?: boolean;
 }
 
 export function OutwardRentBreakdown({
   rentType, inwardDate, deliveryDate, smallBags, bigBags,
   bagType, bagCategory, bagPrice, seasonalBagPrice, monthlyBagPrice,
   seasonalRates, monthlyRates, rentMonths, totalRent, hamaliRate,
-  excludePeriodKeys, grnNumber, hideHeader,
+  excludePeriodKeys, grnNumber, hideHeader, isRatesInclusiveOfHamali,
 }: OutwardRentBreakdownProps) {
   const isSeasonalTransitioned = shouldEvaluateSeasonalBreakdown({
     rentType,
@@ -99,17 +100,10 @@ export function OutwardRentBreakdown({
             monthlyRates: resolved.effectiveMonthlyRates,
             excludePeriodKeys,
             hamaliRate,
+            isRatesInclusiveOfHamali,
           })
         : null,
-    [
-      isSeasonal,
-      inwardDate,
-      deliveryDate,
-      totalWithdrawing,
-      resolved,
-      excludePeriodKeys,
-      hamaliRate,
-    ],
+    [isSeasonal, inwardDate, deliveryDate, totalWithdrawing, resolved, excludePeriodKeys, hamaliRate, isRatesInclusiveOfHamali],
   );
 
   // Single calculation projection: authoritative storage rent derives directly from the breakdown SSOT

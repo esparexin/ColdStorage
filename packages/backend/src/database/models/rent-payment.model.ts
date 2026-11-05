@@ -8,6 +8,9 @@ export interface RentPaymentDoc extends Document {
   grnNumber: string;
   customerId?: string | null;
   customerName?: string | null;
+  deliveryId?: string | null;
+  challanNumber?: string | null;
+  gpNumber?: string | null;
   receiptNumber: string;
   amountPaid: number;
   paymentMode: PaymentMode;
@@ -26,6 +29,9 @@ const rentPaymentSchema = new Schema<RentPaymentDoc>(
     grnNumber: { type: String, required: true, index: true },
     customerId: { type: String, default: null, index: true },
     customerName: { type: String, trim: true, default: null },
+    deliveryId: { type: String, default: null, index: true },
+    challanNumber: { type: String, default: null, index: true },
+    gpNumber: { type: String, default: null, index: true },
     receiptNumber: { type: String, required: true, index: true },
     amountPaid: { type: Number, required: true, min: 0 },
     paymentMode: { type: String, required: true, enum: ['Cash', 'UPI'], index: true },
@@ -40,6 +46,7 @@ const rentPaymentSchema = new Schema<RentPaymentDoc>(
 
 // Compound indexes for fast ledger aggregation and deterministic sorting
 rentPaymentSchema.index({ grnId: 1, facilityId: 1 });
+rentPaymentSchema.index({ facilityId: 1, deliveryId: 1 });
 rentPaymentSchema.index({ facilityId: 1, receiptNumber: 1 }, { unique: true });
 rentPaymentSchema.index({ facilityId: 1, paymentDate: -1, _id: -1 });
 

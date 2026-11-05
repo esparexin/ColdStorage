@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import type { PaymentMode, RentSummaryDto } from '@cold-storage/contracts';
+import { useEffect, useMemo, useState } from 'react';
+import type { DeliveryChallan, PaymentMode, RentSummaryDto } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { formatApiErrorMessage, parseApiResponse } from '@/lib/api-response';
 
 interface UseCollectPaymentFormProps {
   account: RentSummaryDto;
+  delivery?: DeliveryChallan | null;
   selectedFacilityId: string;
   onPaymentSuccess: (summary?: RentSummaryDto) => void;
 }
@@ -27,10 +28,16 @@ export {
 
 export function useCollectPaymentForm({
   account,
+  delivery,
   selectedFacilityId,
   onPaymentSuccess,
 }: UseCollectPaymentFormProps) {
-  const initialAmount = account.remainingBalance > 0 ? account.remainingBalance : '';
+  const targetRemainingBalance = useMemo(
+    () => (delivery ? (delivery.rentRemainingBalance ?? delivery.rentCharge ?? 0) : account.remainingBalance),
+    [delivery, account.remainingBalance],
+  );
+
+  const initialAmount = targetRemainingBalance > 0 ? targetRemainingBalance : '';
   const initialDate = useMemo(() => new Date().toISOString().split('T')[0], []);
 
   const [collectAmount, setCollectAmount] = useState<number | ''>(initialAmount);
@@ -41,9 +48,14 @@ export function useCollectPaymentForm({
   const [collectError, setCollectError] = useState<string | null>(null);
   const [collectSubmitting, setCollectSubmitting] = useState(false);
 
+  // Sync amount when target delivery changes
+  useEffect(() => {
+    setCollectAmount(targetRemainingBalance > 0 ? targetRemainingBalance : '');
+  }, [targetRemainingBalance, delivery?.id]);
+
   const pendingAfterPayment = useMemo(
-    () => calculatePendingAfterPayment(account.remainingBalance, collectAmount),
-    [account.remainingBalance, collectAmount],
+    () => calculatePendingAfterPayment(targetRemainingBalance, collectAmount),
+    [targetRemainingBalance, collectAmount],
   );
 
   const isDirty = useMemo(
@@ -73,7 +85,7 @@ export function useCollectPaymentForm({
 
     const validationError = validateCollectPayment(
       collectAmount,
-      account.remainingBalance,
+      targetRemainingBalance,
       collectMode,
       upiReference,
     );
@@ -101,6 +113,8 @@ export function useCollectPaymentForm({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             grnId: account.grnId,
+            deliveryId: delivery?.id ?? undefined,
+            challanNumber: delivery?.challanNumber ?? undefined,
             amountPaid: collectAmount,
             paymentMode: collectMode,
             paymentDate: new Date(collectDate),
@@ -127,6 +141,7 @@ export function useCollectPaymentForm({
   };
 
   return {
+    targetRemainingBalance,
     pendingAfterPayment,
     collectAmount,
     setCollectAmount,
