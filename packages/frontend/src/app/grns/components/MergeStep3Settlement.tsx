@@ -9,11 +9,13 @@ import {
   type RentSummaryDto,
 } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
+import { formatDisplayDate } from '@/lib/date-format';
 import { OutwardRentBreakdown } from '@/app/deliveries/components/OutwardRentBreakdown';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
 import { calculateMergeSettlementBill, calculateMergeSourceRentSummary } from './mergeRentAssessment.helper';
 import { resolveTransferRates } from './transferRentRates.helper';
 import { formatGrnSeasonLabel } from './mergeSeasonDisplay.helper';
+import { MergeTargetSettlementCard } from './MergeTargetSettlementCard';
 import { WizardStepActions } from './WizardStepActions';
 import styles from './InternalMovementModal.module.css';
 
@@ -35,7 +37,7 @@ export interface MergeStep3SettlementProps {
 export function MergeStep3Settlement({
   totalSourcePendingRent: _totalSourcePendingRent,
   targetGrn,
-  targetConfirmation: _targetConfirmation,
+  targetConfirmation,
   selectedSources,
   sourceConfirmations,
   sourceRentSummaries,
@@ -48,6 +50,35 @@ export function MergeStep3Settlement({
 }: MergeStep3SettlementProps) {
   const targetSeason = useMemo(() => seasonYearForInwardDate(targetGrn.date), [targetGrn.date]);
 
+  const targetCommodity = useMemo(
+    () => commodities?.find((c) => c.id === targetGrn.commodityId),
+    [commodities, targetGrn.commodityId],
+  );
+  const targetSummary = sourceRentSummaries?.[targetGrn.id];
+  const { seasonalRates: targetSeasonalRates, monthlyRates: targetMonthlyRates } = useMemo(
+    () => resolveTransferRates(targetGrn, targetCommodity),
+    [targetGrn, targetCommodity],
+  );
+  const targetCalc = useMemo(
+    () =>
+      calculateMergeSourceRentSummary({
+        source: targetGrn,
+        confirmation: targetConfirmation,
+        movementDate,
+        commodityHamaliRate,
+        targetGrnDate: targetGrn.date,
+        summary: targetSummary,
+        commodity: targetCommodity,
+      }),
+    [targetGrn, targetConfirmation, movementDate, commodityHamaliRate, targetSummary, targetCommodity],
+  );
+
+  const targetPaid = targetSummary?.totalPaid ?? 0;
+  const isTargetSettled =
+    targetCalc.totalAmountToPay === 0 ||
+    (targetPaid >= targetCalc.totalAmountToPay && targetCalc.totalAmountToPay > 0);
+  const hasTargetHistoricalRent = targetCalc.totalRent > 0;
+
   const totalSettlementBill = useMemo(() => {
     return calculateMergeSettlementBill({
       selectedSources,
@@ -55,10 +86,20 @@ export function MergeStep3Settlement({
       movementDate,
       commodityHamaliRate,
       targetGrn,
+      targetConfirmation,
       sourceRentSummaries,
       commodities,
     });
-  }, [selectedSources, sourceConfirmations, sourceRentSummaries, commodities, movementDate, commodityHamaliRate, targetGrn]);
+  }, [
+    selectedSources,
+    sourceConfirmations,
+    sourceRentSummaries,
+    commodities,
+    movementDate,
+    commodityHamaliRate,
+    targetGrn,
+    targetConfirmation,
+  ]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
@@ -77,25 +118,19 @@ export function MergeStep3Settlement({
 
       {/* Outward Rent Calculation Breakdown for Each Participating GRN Profile */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-        {/* Surviving Target GRN Profile (Active Subscription Preserved) */}
-        <div className={styles.compactCard} style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>Target GRN #{targetGrn.grnNumber} (Surviving Lot)</span>
-              {targetGrn.customerName && <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)' }}>— {targetGrn.customerName}</span>}
-              <Badge variant="primary">Active Subscription</Badge>
-              <Badge variant="neutral">Season {targetSeason}</Badge>
-            </div>
-            <Badge variant="success">Preserved Active Subscription (₹0 Merge Dues)</Badge>
-          </div>
-
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px', background: 'var(--color-surface-1)', padding: 'var(--space-1-5)', borderRadius: 'var(--radius-sm)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Existing Target Stock ({targetGrn.closingBags ?? targetGrn.bags} bags):</span>
-              <span style={{ fontWeight: 'var(--font-semibold)' }}>Preserved under active {targetGrn.rentType} subscription</span>
-            </div>
-          </div>
-        </div>
+        {/* Surviving Target GRN Profile */}
+        <MergeTargetSettlementCard
+          targetGrn={targetGrn}
+          targetSeason={targetSeason}
+          hasTargetHistoricalRent={hasTargetHistoricalRent}
+          isTargetSettled={isTargetSettled}
+          targetCalc={targetCalc}
+          targetConfirmation={targetConfirmation}
+          targetSeasonalRates={targetSeasonalRates}
+          targetMonthlyRates={targetMonthlyRates}
+          commodityHamaliRate={commodityHamaliRate}
+          movementDate={movementDate}
+        />
 
         {/* Source Closing GRN Profiles */}
         {selectedSources.map((source) => {
@@ -122,14 +157,18 @@ export function MergeStep3Settlement({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>Source GRN #{source.grnNumber}</span>
                   <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-                  <span style={{ fontWeight: 'var(--font-medium)', color: 'var(--color-text-primary)', fontSize: 'var(--text-xs)' }}>{source.customerName || 'CUSTOMER'}</span>
+                  <span style={{ fontWeight: 'var(--font-semibold)', textTransform: 'uppercase', color: 'var(--color-text-primary)', fontSize: 'var(--text-xs)' }}>{source.customerName || 'CUSTOMER'}</span>
                   <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-                  <Badge variant="neutral">{formatGrnSeasonLabel(source.date)}</Badge>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <span>Inward:</span>
+                    <strong style={{ color: 'var(--color-text-primary)' }}>{formatDisplayDate(source.date)}</strong>
+                  </span>
                   <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-                  <Badge variant={isSettled ? 'success' : 'neutral'}>{isSettled ? 'Settled (₹0 Due)' : 'Pending Settlement'}</Badge>
+                  <Badge variant="primary">{source.closingBags ?? source.bags} Bags</Badge>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-text-secondary)' }}>Outward Rent Calculation ({source.rentType})</span>
+                  <Badge variant="neutral">{formatGrnSeasonLabel(source.date)}</Badge>
+                  <Badge variant={isSettled ? 'success' : 'neutral'}>{isSettled ? 'Settled (₹0 Due)' : 'Pending Settlement'}</Badge>
                 </div>
               </div>
 

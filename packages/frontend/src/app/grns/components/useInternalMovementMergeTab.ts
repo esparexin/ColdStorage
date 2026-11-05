@@ -131,9 +131,10 @@ export function useInternalMovementMergeTab({
     movementDate,
     commodityHamaliRate,
     targetGrn,
+    targetConfirmation,
     sourceRentSummaries,
     commodities,
-  }), [selectedSources, sourceConfirmations, movementDate, commodityHamaliRate, targetGrn, sourceRentSummaries, commodities]);
+  }), [selectedSources, sourceConfirmations, movementDate, commodityHamaliRate, targetGrn, targetConfirmation, sourceRentSummaries, commodities]);
 
   const { isTargetDiff, isRepackRequired, isRepackFilled, actualRepackedBags } =
     deriveRepackCompositionStatus({ targetGrn, selectedSources, repackMode, repackBagType, repackQuantity, repackSmall, repackBig });

@@ -29,11 +29,22 @@ export function GrnDetailAttributesGrid({ grn, allGrns = [] }: GrnDetailAttribut
   return (
     <div className={styles.detailGrid}>
       <div className={styles.detailItem}>
-        <span className={styles.detailLabel}>Inward Date</span>
+        <span className={styles.detailLabel}>{grn.mergedAt ? 'Original Inward Date' : 'Inward Date'}</span>
         <span className={styles.detailValue}>
           {new Date(grn.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
         </span>
       </div>
+
+      {grn.mergedAt && (
+        <div className={styles.detailItem}>
+          <span className={styles.detailLabel}>Latest Merged Inward Date</span>
+          <span className={styles.detailValue}>
+            <strong style={{ color: 'var(--color-primary-text)' }}>
+              {new Date(grn.mergedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
+            </strong>
+          </span>
+        </div>
+      )}
 
       <div className={styles.detailItem}>
         <span className={styles.detailLabel}>Physical Status</span>

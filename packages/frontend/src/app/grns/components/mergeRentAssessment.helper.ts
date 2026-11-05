@@ -1,6 +1,7 @@
 import {
   calculateHamaliAmount,
   isHybridBagCategory,
+  resolveMergeExcludedPeriodKeys,
   resolveSeasonalElapsedPeriods,
   seasonYearForInwardDate,
   type Commodity,
@@ -73,18 +74,17 @@ export function calculateMergeSourceRentSummary(params: {
   const bigBags = isHybrid ? 0 : confirmedBig;
   const bagCategory = (isHybrid ? 'Hybrid' : (confirmation?.category || 'S/B')) as OutwardBagCategory;
 
-  const targetSeason = targetGrnDate ? seasonYearForInwardDate(targetGrnDate) : null;
-  const sourceSeason = source.date ? seasonYearForInwardDate(source.date) : null;
-  const isPriorYear = Boolean(source.date && targetGrnDate && new Date(source.date).getFullYear() < new Date(targetGrnDate).getFullYear());
-  const excludePeriodKeys: string[] = [];
-  if (targetSeason !== null && sourceSeason !== null && targetSeason > sourceSeason && isPriorYear && source.date) {
-    const elapsed = resolveSeasonalElapsedPeriods(source.date, movementDate);
-    for (const p of elapsed) {
-      if (p.period === 'SEASON' && p.seasonYear >= targetSeason) {
-        excludePeriodKeys.push(p.key);
-      }
-    }
-  }
+  const excludePeriodKeys = source.date
+    ? resolveMergeExcludedPeriodKeys({
+        inwardDate: source.date,
+        movementDate,
+        targetGrnDate,
+      })
+    : [];
+
+  const elapsed = source.date ? resolveSeasonalElapsedPeriods(source.date, movementDate) : [];
+  const completedPeriods = elapsed.filter((p) => !excludePeriodKeys.includes(p.key));
+  const hasCompletedPeriods = completedPeriods.length > 0;
 
   const manualBagPrice = typeof confirmation?.bagPrice === 'number' && confirmation.bagPrice > 0
     ? confirmation.bagPrice
@@ -136,9 +136,10 @@ export function calculateMergeSourceRentSummary(params: {
     (typeof confirmation?.monthlyBagPrice === 'number' && confirmation.monthlyBagPrice > 0);
 
   let totalRent: number;
-  if (resetRentState) {
-    totalRent = calculatedRent;
-  } else if (hasManualRateOverride) {
+  if (!hasCompletedPeriods) {
+    // When all elapsed periods are uncompleted/active, storage rent is strictly ₹0 for pre-merge settlement.
+    totalRent = 0;
+  } else if (resetRentState || hasManualRateOverride) {
     totalRent = calculatedRent;
   } else if (storedRent > 0) {
     totalRent = Math.max(storedRent, calculatedRent);
@@ -211,12 +212,13 @@ export function calculateMergeSettlementBill(params: {
   movementDate: string;
   commodityHamaliRate?: number;
   targetGrn: Grn;
+  targetConfirmation?: BagConfirmationValue;
   sourceRentSummaries?: Record<string, RentSummaryDto>;
   commodities?: Commodity[];
 }): number {
   const {
     selectedSources, sourceConfirmations = {}, movementDate,
-    commodityHamaliRate = 0, targetGrn, sourceRentSummaries, commodities,
+    commodityHamaliRate = 0, targetGrn, targetConfirmation, sourceRentSummaries, commodities,
   } = params;
 
   const sourcesTotal = selectedSources.reduce((acc, source) => {
@@ -229,6 +231,19 @@ export function calculateMergeSettlementBill(params: {
     return acc + Math.max(0, calc.totalAmountToPay - (summary?.totalPaid ?? 0));
   }, 0);
 
-  return sourcesTotal;
+  const targetCommodity = commodities?.find((c) => c.id === targetGrn.commodityId);
+  const targetSummary = sourceRentSummaries?.[targetGrn.id];
+  const targetCalc = calculateMergeSourceRentSummary({
+    source: targetGrn,
+    confirmation: targetConfirmation,
+    movementDate,
+    commodityHamaliRate,
+    targetGrnDate: targetGrn.date,
+    summary: targetSummary,
+    commodity: targetCommodity,
+  });
+  const targetDue = Math.max(0, targetCalc.totalAmountToPay - (targetSummary?.totalPaid ?? 0));
+
+  return sourcesTotal + targetDue;
 }
 

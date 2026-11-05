@@ -8,6 +8,7 @@ import type {
   RentSummaryDto,
 } from '@cold-storage/contracts';
 import { Badge, Button } from '@/components/ui';
+import { formatDisplayDate } from '@/lib/date-format';
 import { requestWithAuth } from '@/lib/api-client';
 import { MergeBagTypeFields } from './MergeBagTypeFields';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
@@ -102,52 +103,29 @@ export function MergeSourceGrnCard({
           </Button>
           <Package size={14} aria-hidden="true" />
           <span style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-text-primary)' }}>
-            GRN #{source.grnNumber}
+            Source GRN #{source.grnNumber}
           </span>
           <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
           <span style={{ fontWeight: 'var(--font-semibold)', textTransform: 'uppercase', color: 'var(--color-text-primary)', fontSize: 'var(--text-xs)' }}>
             {source.customerName || 'CUSTOMER'}
           </span>
           <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span>Inward:</span>
+            <strong style={{ color: 'var(--color-text-primary)' }}>{formatDisplayDate(source.date)}</strong>
+          </span>
+          <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
           <Badge variant="primary">{sourceBags} Bags</Badge>
-          {!isConfirmed && (
-            <>
-              <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-              <Badge variant="warning">Awaiting Bag Confirmation</Badge>
-            </>
-          )}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Badge variant="neutral">{formatGrnSeasonLabel(source.date)}</Badge>
+          {!isConfirmed && <Badge variant="warning">Awaiting Bag Confirmation</Badge>}
         </div>
       </div>
 
       {isCardExpanded && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginTop: 'var(--space-1)' }}>
-          {isConfirmed && (
-            <div
-              style={{
-                display: 'flex',
-                gap: 'var(--space-2)',
-                fontSize: 'var(--text-xs)',
-                color: 'var(--color-text-secondary)',
-                background: 'var(--color-surface-2)',
-                padding: 'var(--space-1) var(--space-2)',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--color-border)',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-              }}
-            >
-              <span>Rent Charge: <strong>₹{rentCalc.totalRent.toLocaleString('en-IN')}</strong></span>
-              <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-              <span>Hamali Charge ({sourceBags} bags @ ₹{commodityHamaliRate}/bag): <strong>₹{rentCalc.hamaliAmount.toLocaleString('en-IN')}</strong></span>
-              <span style={{ color: 'var(--color-border)', userSelect: 'none' }}>|</span>
-              <span>Total Calculated Charges: <strong>₹{rentCalc.totalAmountToPay.toLocaleString('en-IN')}</strong></span>
-            </div>
-          )}
-
           {/* Section 1: Bag Type Configuration */}
           <div
             style={{
@@ -196,7 +174,6 @@ export function MergeSourceGrnCard({
                   Bag Configuration
                 </span>
               </div>
-              <Badge variant="neutral">Bag Confirmation</Badge>
             </div>
             {isBagTypeExpanded && (
               <div style={{ marginTop: 'var(--space-1-5)' }}>

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { Grn, RentSummaryDto } from '@cold-storage/contracts';
+import type { Commodity, Grn, RentSummaryDto } from '@cold-storage/contracts';
 import {
   calculateMergeGrandTotal,
+  calculateMergeSettlementBill,
   calculateMergeSourceRentSummary,
   deriveMergeRentAssessment,
 } from '../mergeRentAssessment.helper';
@@ -522,7 +523,6 @@ describe('mergeRentAssessment.helper', () => {
         targetGrnDate: new Date('2026-10-20'),
         commodityHamaliRate: 25,
       });
-
       // Storage Rent + Hamali = 26,350 + 13,350 = 39,700
       expect(grandTotal).toBe(39700);
     });
