@@ -7,10 +7,9 @@ import {
   type RentExtension,
   type RentSummaryDto,
 } from '@cold-storage/contracts';
-import { Badge, DataTable, FeedbackStates, type DataTableColumn } from '@/components/ui';
+import { DataTable, FeedbackStates, type DataTableColumn } from '@/components/ui';
 import { useCommodityRates } from '@/app/commodities/hooks/useCommodityRates';
 import { deriveHamaliChargeFromSummary } from '../hooks/rentDisplay.helper';
-import { parseMergedConsignmentBreakdown } from '../hooks/mergedConsignmentBilling.helper';
 import { useGrnDeliveries } from '../hooks/useGrnDeliveries';
 import {
   buildRentCalculationRows,
@@ -23,10 +22,14 @@ import styles from '../page.module.css';
 
 export interface RentBillingChargesSectionProps {
   account: RentSummaryDto;
+  selectedDeliveryId?: string;
   originSeason: number;
   periodLabel: (ext: RentExtension) => string;
   canCollect?: boolean;
   onCollectDelivery?: (delivery: DeliveryChallan) => void;
+  canPrint?: boolean;
+  printingReceiptNum?: string | null;
+  onPrintReceipt?: (receiptNumber: string) => void;
 }
 
 const calculationColumns: DataTableColumn<RentCalculationRow>[] = [
@@ -54,19 +57,27 @@ const calculationColumns: DataTableColumn<RentCalculationRow>[] = [
 
 export function RentBillingChargesSection({
   account,
+  selectedDeliveryId,
   originSeason,
   periodLabel: _periodLabel,
   canCollect,
   onCollectDelivery,
+  canPrint,
+  printingReceiptNum,
+  onPrintReceipt,
 }: RentBillingChargesSectionProps) {
   const { deliveries, loading } = useGrnDeliveries(account.facilityId, account.grnId);
-  const activeDeliveries = useMemo(
-    () =>
-      deliveries
-        .filter((d) => d.status !== 'REVERSED')
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-    [deliveries],
-  );
+  const activeDeliveries = useMemo(() => {
+    const valid = deliveries
+      .filter((d) => d.status !== 'REVERSED')
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    if (selectedDeliveryId) {
+      const match = valid.filter((d) => d.id === selectedDeliveryId);
+      if (match.length > 0) return match;
+    }
+    // Always show exactly ONE bill card for the outward delivery
+    return valid.length > 0 ? [valid[valid.length - 1]] : [];
+  }, [deliveries, selectedDeliveryId]);
 
   const { rates: commodityRates, hamaliRate: commodityHamaliRate } = useCommodityRates(account.commodityId ?? null);
   const activeCommodityRate = useMemo(() => {
@@ -110,9 +121,6 @@ export function RentBillingChargesSection({
     account.extensions,
     account.hamaliShare,
   );
-  const breakdown =
-    account.mergedConsignment ??
-    parseMergedConsignmentBreakdown(account.remarks, account.totalBags, account.customerName);
   const outwardCharges = account.outwardRentCharges ?? 0;
   const isBilledAtOutward =
     outwardCharges > 0 || activeDeliveries.length > 0 || (account.deliveredBags ?? 0) > 0;
@@ -134,28 +142,6 @@ export function RentBillingChargesSection({
 
   return (
     <>
-      {breakdown && (
-        <div className={styles.mergedConsignmentCard}>
-          <div className={styles.mergedConsignmentHeader}>
-            <span className={styles.mergedConsignmentTitle}>
-              Consolidated Consignment Breakdown
-            </span>
-            <Badge variant="primary">
-              {breakdown.sources.length} Source Lot{breakdown.sources.length === 1 ? '' : 's'}
-            </Badge>
-          </div>
-          <div className={styles.mergedConsignmentText}>
-            {breakdown.genesisCustomerName ? `Original customer: ${breakdown.genesisCustomerName}. ` : ''}
-            {breakdown.sources
-              .map(
-                (s) =>
-                  `GRN #${s.grnNumber}: ${s.bags} bags${s.customerName ? ` (${s.customerName})` : ''}`,
-              )
-              .join(' · ')}
-          </div>
-        </div>
-      )}
-
       {isBilledAtOutward ? (
         <div className={styles.billingSection}>
           {loading ? (
@@ -176,6 +162,9 @@ export function RentBillingChargesSection({
                   excludePeriodKeys={excludePeriodKeys}
                   canCollect={canCollect}
                   onCollectDelivery={onCollectDelivery}
+                  canPrint={canPrint}
+                  printingReceiptNum={printingReceiptNum}
+                  onPrintReceipt={onPrintReceipt}
                 />
               ))}
             </div>
@@ -200,38 +189,6 @@ export function RentBillingChargesSection({
             <span className={styles.billingTotalAmount}>
               ₹{storageRentTotal.toLocaleString('en-IN')}
             </span>
-          </div>
-        </div>
-      )}
-
-      {breakdown && breakdown.sources.some((s) => (s.remainingBalance ?? 0) > 0) && (
-        <div className={styles.sourceTraceabilityCard}>
-          <div className={styles.sourceTraceabilityHeader}>
-            <span className={styles.sourceTraceabilityTitle}>
-              Source GRN Traceability (Separate Pending Bills)
-            </span>
-            <span className={styles.sourceTraceabilityBadge}>Independent Bills</span>
-          </div>
-          <div className={styles.sourceTraceabilityList}>
-            {breakdown.sources
-              .filter((s) => (s.remainingBalance ?? 0) > 0)
-              .map((s) => (
-                <div key={s.grnNumber} className={styles.sourceTraceabilityRow}>
-                  <div className={styles.sourceTraceabilityInfo}>
-                    <strong>GRN #{s.grnNumber}</strong>
-                    <span>
-                      {s.customerName ? ` · ${s.customerName}` : ''} · {s.bags} bags
-                      {s.seasonYear ? ` · Season ${s.seasonYear}` : ''}
-                    </span>
-                  </div>
-                  <div className={styles.sourceTraceabilityDues}>
-                    Pending:{' '}
-                    <strong>
-                      ₹{(s.remainingBalance ?? 0).toLocaleString('en-IN')}
-                    </strong>
-                  </div>
-                </div>
-              ))}
           </div>
         </div>
       )}

@@ -15,7 +15,7 @@ import styles from '../page.module.css';
 export interface CreateRentColumnsParams {
   canCollect: boolean;
   onOpenCollect: (acc: RentSummaryDto, del?: RentDeliveryBill | null) => void;
-  onOpenHistory: (acc: RentSummaryDto) => void;
+  onOpenHistory: (acc: RentSummaryDto, deliveryId?: string) => void;
 }
 
 export function createRentColumns({
@@ -194,7 +194,7 @@ export function createRentColumns({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onOpenHistory(row.account)}
+              onClick={() => onOpenHistory(row.account, row.deliveryId)}
               title="View payment cash memos history"
               aria-label={`View cash memos history for ${row.grnNumber}`}
               leftIcon={<Eye size={12} aria-hidden="true" />}

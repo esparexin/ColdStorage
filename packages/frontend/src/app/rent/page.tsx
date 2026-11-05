@@ -49,6 +49,7 @@ export default function RentPage() {
   const [collectAccount, setCollectAccount] = useState<RentSummaryDto | null>(null);
   const [collectDelivery, setCollectDelivery] = useState<DeliveryChallan | null>(null);
   const [historyAccount, setHistoryAccount] = useState<RentSummaryDto | null>(null);
+  const [historyDeliveryId, setHistoryDeliveryId] = useState<string | null>(null);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const canCollect = hasPermission('rent:collect');
   const canPrint = hasPermission('rent:print');
@@ -163,7 +164,10 @@ export default function RentPage() {
                     : null,
                 );
               }}
-              onOpenHistory={setHistoryAccount}
+              onOpenHistory={(acc, delId) => {
+                setHistoryAccount(acc);
+                setHistoryDeliveryId(delId ?? null);
+              }}
             />
           )}
         </>
@@ -186,12 +190,17 @@ export default function RentPage() {
       {historyAccount && selectedFacilityId && (
         <RentHistoryModal
           account={historyAccount}
+          selectedDeliveryId={historyDeliveryId ?? undefined}
           selectedFacilityId={selectedFacilityId}
           canPrint={canPrint}
           canCollect={canCollect}
-          onClose={() => setHistoryAccount(null)}
+          onClose={() => {
+            setHistoryAccount(null);
+            setHistoryDeliveryId(null);
+          }}
           onOpenCollect={(acc, del) => {
             setHistoryAccount(null);
+            setHistoryDeliveryId(null);
             setCollectDelivery(del ?? null);
             setCollectAccount(acc);
           }}

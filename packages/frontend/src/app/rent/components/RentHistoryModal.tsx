@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { FileText, History } from 'lucide-react';
 import { seasonYearForInwardDate, type DeliveryChallan, type RentExtension, type RentSummaryDto } from '@cold-storage/contracts';
 import { Button, Modal, StatCard, StatGrid } from '@/components/ui';
@@ -10,12 +10,14 @@ import {
   formatRemainingDue,
   formatRentStructure,
 } from '../hooks/rentDisplay.helper';
+import { useGrnDeliveries } from '../hooks/useGrnDeliveries';
 import { RentCashMemosTab } from './RentCashMemosTab';
 import { RentOutwardHistoryTab } from './RentOutwardHistoryTab';
 import styles from '../page.module.css';
 
 interface RentHistoryModalProps {
   account: RentSummaryDto;
+  selectedDeliveryId?: string;
   selectedFacilityId: string;
   canPrint: boolean;
   canCollect?: boolean;
@@ -25,6 +27,7 @@ interface RentHistoryModalProps {
 
 export function RentHistoryModal({
   account,
+  selectedDeliveryId,
   selectedFacilityId,
   canPrint,
   canCollect,
@@ -34,6 +37,15 @@ export function RentHistoryModal({
   const [activeTab, setActiveTab] = useState<'cash-memos' | 'outward-history'>('cash-memos');
   const [printingReceiptNum, setPrintingReceiptNum] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const { deliveries } = useGrnDeliveries(selectedFacilityId, account.grnId);
+  const selectedDelivery = useMemo(() => {
+    const valid = deliveries.filter((d) => d.status !== 'REVERSED');
+    if (selectedDeliveryId) {
+      return valid.find((d) => d.id === selectedDeliveryId);
+    }
+    return valid.length > 0 ? valid[valid.length - 1] : undefined;
+  }, [deliveries, selectedDeliveryId]);
 
   const originSeason = seasonYearForInwardDate(new Date(account.inwardDate));
   const isOutwardAssessed =
@@ -60,12 +72,35 @@ export function RentHistoryModal({
     }
   };
 
+  const statTotalRent = selectedDelivery
+    ? `₹${(selectedDelivery.rentCharge ?? 0).toLocaleString('en-IN')}`
+    : formatRentStructure(account);
+  const isSettledDelivery =
+    account.remainingBalance <= 0 ||
+    ((selectedDelivery?.rentRemainingBalance ?? 0) === 0 && (selectedDelivery?.rentTotalPaid ?? 0) > 0);
+  const statPaid = selectedDelivery
+    ? `₹${(isSettledDelivery ? selectedDelivery.rentCharge ?? 0 : selectedDelivery.rentTotalPaid ?? 0).toLocaleString('en-IN')}`
+    : `₹${account.totalPaid.toLocaleString('en-IN')}`;
+  const statRemaining = selectedDelivery
+    ? isSettledDelivery
+      ? '₹0 (Settled)'
+      : `₹${(selectedDelivery.rentRemainingBalance ?? 0).toLocaleString('en-IN')}`
+    : formatRemainingDue(account);
+
   return (
     <Modal
       isOpen
       onClose={onClose}
-      title={`Cash Memos & Rent History: ${account.grnNumber}`}
-      subtitle={`${account.customerName} · Inward: ${account.totalBags.toLocaleString('en-IN')} bags · Delivered: ${(account.deliveredBags ?? 0).toLocaleString('en-IN')} bags · Stock Balance: ${(account.remainingBags ?? Math.max(0, account.totalBags - (account.deliveredBags ?? 0))).toLocaleString('en-IN')} bags`}
+      title={
+        selectedDelivery
+          ? `Cash Memos & Rent Bill: Gate Pass ${selectedDelivery.challanNumber}${selectedDelivery.gpNumber ? ` (${selectedDelivery.gpNumber})` : ''}`
+          : `Cash Memos & Rent History: ${account.grnNumber}`
+      }
+      subtitle={
+        selectedDelivery
+          ? `${account.customerName} · GRN: ${account.grnNumber}`
+          : account.customerName
+      }
       size="lg"
       footer={
         <div className={styles.modalFooterContent}>
@@ -123,23 +158,25 @@ export function RentHistoryModal({
           <StatGrid label={`Rent summary for ${account.grnNumber}`}>
             <StatCard
               label={
-                isOutwardAssessed
+                selectedDelivery
+                  ? 'Total Outward Rent'
+                  : isOutwardAssessed
                   ? 'Total Outward Rent'
                   : account.rentType === 'Monthly' && account.rentAmount === 0
                   ? 'Rent Status'
                   : 'Total Billed'
               }
-              value={formatRentStructure(account)}
+              value={statTotalRent}
             />
             <StatCard
               label="Total Paid"
-              value={`₹${account.totalPaid.toLocaleString('en-IN')}`}
+              value={statPaid}
               accent="success"
             />
             <StatCard
               label="Remaining Due"
-              value={formatRemainingDue(account)}
-              accent="warning"
+              value={statRemaining}
+              accent={statRemaining.includes('Settled') ? 'success' : 'warning'}
             />
           </StatGrid>
         </div>
@@ -147,6 +184,8 @@ export function RentHistoryModal({
         {activeTab === 'cash-memos' ? (
           <RentCashMemosTab
             account={account}
+            selectedDeliveryId={selectedDelivery?.id}
+            selectedDeliveryChallanNumber={selectedDelivery?.challanNumber}
             originSeason={originSeason}
             canPrint={canPrint}
             canCollect={canCollect}

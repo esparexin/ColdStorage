@@ -213,4 +213,17 @@ export function parseOwnershipTransferDisplayInfo(remarks?: string | null): Owne
   };
 }
 
+/**
+ * Formats createdBy operator identifier into human-readable label.
+ * Avoids exposing raw database UUIDs (e.g. 'usr-a0db2252-85e0-4ec9-8446-4db6d0c5b0ab')
+ * on customer-facing cash memos and receipts.
+ */
+export function formatReceivedBy(val?: string | null): string {
+  if (!val) return 'Admin';
+  if (/^usr-[a-f0-9-]{10,}$/i.test(val)) {
+    return 'Admin';
+  }
+  return val;
+}
+
 

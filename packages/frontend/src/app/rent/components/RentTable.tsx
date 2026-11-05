@@ -16,7 +16,7 @@ interface RentTableProps {
   totalAccounts: number;
   onPageChange: (page: number) => void;
   onOpenCollect: (acc: RentSummaryDto, del?: RentDeliveryBill | null) => void;
-  onOpenHistory: (acc: RentSummaryDto) => void;
+  onOpenHistory: (acc: RentSummaryDto, deliveryId?: string) => void;
 }
 
 export function RentTable({
@@ -42,7 +42,7 @@ export function RentTable({
       columns={columns}
       rows={rows}
       rowKey={(r) => r.id}
-      onRowClick={(r) => onOpenHistory(r.account)}
+      onRowClick={(r) => onOpenHistory(r.account, r.deliveryId)}
       pagination={{ page, pageSize, totalPages, totalRecords: totalAccounts, onPageChange }}
     />
   );
