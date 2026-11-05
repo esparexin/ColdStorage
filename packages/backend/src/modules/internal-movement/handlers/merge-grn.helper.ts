@@ -57,12 +57,18 @@ export async function resolveSourceRentObligation(
     CommodityModel.findOne({ id: sourceGrn.commodityId }, null, { session }).lean().exec(),
     rentExtensionRepository.findExtensionsByGrn(facilityId, sourceGrn.id, session),
   ]);
-  const excludedKeys = resolveMergeExcludedPeriodKeys({
-    inwardDate: sourceGrn.date,
-    movementDate,
-    targetGrnDate,
-    billedExtensionKeys: toExcludedPeriodKeys(extensions),
-  });
+  const excludedKeys = toExcludedPeriodKeys(extensions);
+  if (targetSeason > sourceSeason && new Date(sourceGrn.date).getFullYear() < new Date(targetGrnDate).getFullYear()) {
+    const mergeExcluded = resolveMergeExcludedPeriodKeys({
+      inwardDate: sourceGrn.date,
+      movementDate,
+      targetGrnDate,
+      billedExtensionKeys: excludedKeys,
+    });
+    for (const k of mergeExcluded) {
+      if (!excludedKeys.includes(k)) excludedKeys.push(k);
+    }
+  }
   if (sourceGrn.rentType === 'Monthly' && effectiveRentAmount === 0 && !isHybrid) {
     const occupancySummary = await calculateGrnMonthlyOccupancyRent(facilityId, sourceGrn.id, {
       asOfDate: movementDate,

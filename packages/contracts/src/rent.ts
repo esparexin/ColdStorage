@@ -75,7 +75,6 @@ export const rentSummaryDtoSchema = z.object({
   rentType: rentTypeSchema,
   rentAmount: rentalAmountSchema,
   outwardRentCharges: z.number().min(0).optional(),
-  hamaliRate: z.number().min(0).nullish(),
   hamaliShare: z.number().min(0).optional(),
   rentMonths: z.number().int().nullable().optional(),
   totalPaid: z.number().min(0),

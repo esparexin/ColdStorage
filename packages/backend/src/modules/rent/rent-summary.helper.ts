@@ -169,7 +169,6 @@ export function buildRentSummary(
     rentType: grn.rentType,
     rentAmount: effectiveBaseRent,
     outwardRentCharges,
-    hamaliRate: grn.hamaliRate ?? rateFallback?.hamaliRate ?? null,
     hamaliShare,
     rentMonths: grn.rentMonths ?? null,
     totalPaid: balance.totalPaid,
