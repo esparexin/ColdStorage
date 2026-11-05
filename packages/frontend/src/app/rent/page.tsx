@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { type RentSummaryDto } from '@cold-storage/contracts';
+import { type DeliveryChallan, type RentSummaryDto } from '@cold-storage/contracts';
 import { Button } from '@/components/ui';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
 import {
@@ -18,7 +18,6 @@ import { RentHistoryModal } from './components/RentHistoryModal';
 import { RentKpiCards } from './components/RentKpiCards';
 import { RentStatusTabs } from './components/RentStatusTabs';
 import { RentTable } from './components/RentTable';
-import { getRentStatusCategory } from './hooks/rentFilter.helper';
 import { useRentData } from './hooks/useRentData';
 import styles from './page.module.css';
 
@@ -28,6 +27,7 @@ export default function RentPage() {
     selectedFacilityId,
     currentFacilityName,
     rentSummaries,
+    allBillRows,
     loading,
     error,
     searchTerm,
@@ -37,8 +37,8 @@ export default function RentPage() {
     typeFilter,
     setTypeFilter,
     metrics,
-    pagedAccounts,
-    totalAccounts,
+    pagedBillRows,
+    totalRecords,
     totalPages,
     page,
     setPage,
@@ -47,6 +47,7 @@ export default function RentPage() {
   } = useRentData();
 
   const [collectAccount, setCollectAccount] = useState<RentSummaryDto | null>(null);
+  const [collectDelivery, setCollectDelivery] = useState<DeliveryChallan | null>(null);
   const [historyAccount, setHistoryAccount] = useState<RentSummaryDto | null>(null);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const canCollect = hasPermission('rent:collect');
@@ -57,20 +58,19 @@ export default function RentPage() {
     let partiallyPaid = 0;
     let settled = 0;
 
-    for (const acc of rentSummaries) {
-      const cat = getRentStatusCategory(acc);
-      if (cat === 'UNPAID') unpaid++;
-      else if (cat === 'PARTIALLY_PAID') partiallyPaid++;
-      else if (cat === 'SETTLED') settled++;
+    for (const r of allBillRows) {
+      if (r.remainingBalance === 0 && r.totalPaid > 0) settled++;
+      else if (r.remainingBalance > 0 && r.totalPaid > 0) partiallyPaid++;
+      else if (r.totalPaid === 0 && r.remainingBalance > 0) unpaid++;
     }
 
     return {
-      all: rentSummaries.length,
+      all: allBillRows.length,
       unpaid,
       partiallyPaid,
       settled,
     };
-  }, [rentSummaries]);
+  }, [allBillRows]);
 
   const handlePaymentSuccess = (summary?: RentSummaryDto) => {
     setCollectAccount(null);
@@ -134,7 +134,7 @@ export default function RentPage() {
             />
           ) : rentSummaries.length === 0 ? (
             <FeedbackStates.Empty message={emptyForFacility(currentFacilityName, 'rent')} />
-          ) : pagedAccounts.length === 0 ? (
+          ) : pagedBillRows.length === 0 ? (
             <FeedbackStates.Empty
               message={
                 searchTerm || statusFilter || typeFilter
@@ -144,15 +144,25 @@ export default function RentPage() {
             />
           ) : (
             <RentTable
-              accounts={pagedAccounts}
+              rows={pagedBillRows}
               facilityName={currentFacilityName ?? ''}
               canCollect={canCollect}
               page={page}
               pageSize={pageSize}
               totalPages={totalPages}
-              totalAccounts={totalAccounts}
+              totalAccounts={totalRecords}
               onPageChange={setPage}
-              onOpenCollect={setCollectAccount}
+              onOpenCollect={(acc, del) => {
+                setCollectAccount(acc);
+                setCollectDelivery(
+                  del
+                    ? ({
+                        ...del,
+                        id: del.deliveryId,
+                      } as unknown as DeliveryChallan)
+                    : null,
+                );
+              }}
               onOpenHistory={setHistoryAccount}
             />
           )}
@@ -162,9 +172,13 @@ export default function RentPage() {
       {collectAccount && selectedFacilityId && (
         <CollectPaymentModal
           account={collectAccount}
+          delivery={collectDelivery}
           selectedFacilityId={selectedFacilityId}
           canPrint={canPrint}
-          onClose={() => setCollectAccount(null)}
+          onClose={() => {
+            setCollectAccount(null);
+            setCollectDelivery(null);
+          }}
           onPaymentSuccess={handlePaymentSuccess}
         />
       )}
@@ -176,8 +190,9 @@ export default function RentPage() {
           canPrint={canPrint}
           canCollect={canCollect}
           onClose={() => setHistoryAccount(null)}
-          onOpenCollect={(acc) => {
+          onOpenCollect={(acc, del) => {
             setHistoryAccount(null);
+            setCollectDelivery(del ?? null);
             setCollectAccount(acc);
           }}
         />

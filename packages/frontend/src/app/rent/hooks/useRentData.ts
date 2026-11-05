@@ -6,11 +6,14 @@ import { useFacility } from '@/context/FacilityContext';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { requestWithAuth } from '@/lib/api-client';
 import {
-  filterRentAccounts,
   isBilledRentAccount,
   type RentStatusFilter,
   type RentTypeFilter,
 } from './rentFilter.helper';
+import {
+  filterRentBillRows,
+  projectRentBillRows,
+} from './rentTableRows.helper';
 
 export const RENT_PAGE_SIZE = 20;
 
@@ -81,13 +84,17 @@ export function useRentData() {
     void fetchRentAccounts();
   }, [fetchRentAccounts]);
 
-  const filteredAccounts = useMemo(() => {
-    return filterRentAccounts(rentSummaries, {
+  const allBillRows = useMemo(() => {
+    return projectRentBillRows(rentSummaries);
+  }, [rentSummaries]);
+
+  const filteredBillRows = useMemo(() => {
+    return filterRentBillRows(allBillRows, {
       searchTerm,
       statusFilter,
       typeFilter,
     });
-  }, [rentSummaries, searchTerm, statusFilter, typeFilter]);
+  }, [allBillRows, searchTerm, statusFilter, typeFilter]);
 
   // Derived from the filtered set so the totals always describe exactly the
   // rows in the table below them, rather than the unfiltered facility totals.
@@ -96,18 +103,18 @@ export function useRentData() {
     let totalCollected = 0;
     let totalOutstanding = 0;
 
-    for (const acc of filteredAccounts) {
-      totalBilled += acc.totalDue ?? acc.rentAmount;
-      totalCollected += acc.totalPaid;
-      totalOutstanding += acc.remainingBalance;
+    for (const r of filteredBillRows) {
+      totalBilled += r.totalDue;
+      totalCollected += r.totalPaid;
+      totalOutstanding += r.remainingBalance;
     }
 
     return { totalBilled, totalCollected, totalOutstanding };
-  }, [filteredAccounts]);
+  }, [filteredBillRows]);
 
-  const totalPages = Math.ceil(filteredAccounts.length / RENT_PAGE_SIZE);
+  const totalPages = Math.ceil(filteredBillRows.length / RENT_PAGE_SIZE);
 
-  const pagedAccounts = filteredAccounts.slice(
+  const pagedBillRows = filteredBillRows.slice(
     (page - 1) * RENT_PAGE_SIZE,
     page * RENT_PAGE_SIZE,
   );
@@ -120,6 +127,7 @@ export function useRentData() {
     selectedFacilityId,
     currentFacilityName,
     rentSummaries,
+    allBillRows,
     loading,
     error,
     searchTerm,
@@ -129,9 +137,9 @@ export function useRentData() {
     typeFilter,
     setTypeFilter,
     metrics,
-    filteredAccounts,
-    pagedAccounts,
-    totalAccounts: filteredAccounts.length,
+    filteredBillRows,
+    pagedBillRows,
+    totalRecords: filteredBillRows.length,
     totalPages,
     page,
     setPage,

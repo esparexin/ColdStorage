@@ -1,18 +1,20 @@
 'use client';
 
-import React from 'react';
-import { CreditCard, Wallet } from 'lucide-react';
-import type { RentSummaryDto } from '@cold-storage/contracts';
-import { Button, ConfirmDialog, Modal } from '@/components/ui';
+import React, { useState } from 'react';
+import type { DeliveryChallan, RentSummaryDto } from '@cold-storage/contracts';
+import { Button, ConfirmDialog, Modal, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { RentSummaryOverview } from './RentSummaryOverview';
+import { CollectPaymentModeInputs } from './CollectPaymentModeInputs';
 import { useCollectPaymentForm } from '../hooks/useCollectPaymentForm';
 import { getRentCollectionNotice } from '../hooks/rentDisplay.helper';
+import { useGrnDeliveries } from '../hooks/useGrnDeliveries';
 import styles from '../page.module.css';
 
 interface CollectPaymentModalProps {
   account: RentSummaryDto;
+  delivery?: DeliveryChallan | null;
   selectedFacilityId: string;
   canPrint: boolean;
   onClose: () => void;
@@ -21,12 +23,23 @@ interface CollectPaymentModalProps {
 
 export function CollectPaymentModal({
   account,
+  delivery: initialDelivery,
   selectedFacilityId,
   canPrint: _canPrint,
   onClose,
   onPaymentSuccess,
 }: CollectPaymentModalProps) {
+  const { deliveries } = useGrnDeliveries(selectedFacilityId, account.grnId);
+  const unsettledDeliveries = deliveries.filter(
+    (d) => d.status !== 'REVERSED' && (d.rentRemainingBalance ?? d.rentCharge ?? 0) > 0,
+  );
+
+  const [selectedDeliveryId, setSelectedDeliveryId] = useState<string>(initialDelivery?.id ?? '');
+  const activeDelivery =
+    unsettledDeliveries.find((d) => d.id === selectedDeliveryId) ?? initialDelivery ?? null;
+
   const {
+    targetRemainingBalance,
     pendingAfterPayment,
     collectAmount,
     setCollectAmount,
@@ -44,6 +57,7 @@ export function CollectPaymentModal({
     handleSubmit,
   } = useCollectPaymentForm({
     account,
+    delivery: activeDelivery,
     selectedFacilityId,
     onPaymentSuccess,
   });
@@ -60,14 +74,41 @@ export function CollectPaymentModal({
       <Modal
         isOpen
         onClose={handleRequestClose}
-        title="Collect Rent & Issue Cash Memo"
-        subtitle={`${account.customerName} · ${account.grnNumber}`}
+        title={
+          activeDelivery
+            ? `Collect Rent · Challan ${activeDelivery.challanNumber}`
+            : 'Collect Rent & Issue Cash Memo'
+        }
+        subtitle={`${account.customerName} · ${account.grnNumber}${
+          activeDelivery?.gpNumber ? ` · Gate Pass: ${activeDelivery.gpNumber}` : ''
+        }`}
         size="md"
       >
         <form onSubmit={handleSubmit}>
           <div className={styles.modalBody}>
             {collectError && <Banner message={collectError} id="collect-error" />}
-            <RentSummaryOverview account={account} />
+            <RentSummaryOverview account={account} delivery={activeDelivery} />
+
+            {unsettledDeliveries.length > 0 && !initialDelivery && (
+              <Select
+                id="collect-delivery-select"
+                label="Allocate to Gate Pass / Delivery Challan"
+                value={selectedDeliveryId}
+                onChange={(e) => setSelectedDeliveryId(e.target.value)}
+              >
+                <option value="">
+                  Consolidated GRN Balance (₹{account.remainingBalance.toLocaleString('en-IN')})
+                </option>
+                {unsettledDeliveries.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.challanNumber}
+                    {d.gpNumber ? ` (${d.gpNumber})` : ''} · {d.totalBags} bags · ₹
+                    {(d.rentRemainingBalance ?? d.rentCharge ?? 0).toLocaleString('en-IN')} Due
+                  </option>
+                ))}
+              </Select>
+            )}
+
             {notice && (
               <div
                 style={{
@@ -88,7 +129,7 @@ export function CollectPaymentModal({
                 <label htmlFor="collect-amount" className={styles.fieldLabel}>
                   Payment Amount (₹) *
                 </label>
-                {account.remainingBalance > 0 && (
+                {targetRemainingBalance > 0 && (
                   <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
                     Pending After Payment: ₹{pendingAfterPayment.toLocaleString('en-IN')}
                   </span>
@@ -98,12 +139,14 @@ export function CollectPaymentModal({
                 id="collect-amount"
                 type="number"
                 min={0}
-                max={account.remainingBalance > 0 ? account.remainingBalance : undefined}
+                max={targetRemainingBalance > 0 ? targetRemainingBalance : undefined}
                 step="0.01"
                 required
-                disabled={account.remainingBalance === 0}
+                disabled={targetRemainingBalance === 0}
                 className={styles.fieldInput}
-                placeholder={account.remainingBalance === 0 ? 'No outstanding dues' : 'Enter amount received'}
+                placeholder={
+                  targetRemainingBalance === 0 ? 'No outstanding dues' : 'Enter amount received'
+                }
                 value={collectAmount}
                 aria-invalid={Boolean(collectError)}
                 aria-describedby={collectError ? 'collect-error' : undefined}
@@ -118,86 +161,16 @@ export function CollectPaymentModal({
               />
             </div>
 
-            <div className={styles.fieldGroup}>
-              <span className={styles.fieldLabel} id="payment-mode-label">
-                Payment Mode *
-              </span>
-              <div
-                className={styles.modeToggleGroup}
-                role="radiogroup"
-                aria-labelledby="payment-mode-label"
-              >
-                <Button
-                  type="button"
-                  role="radio"
-                  aria-checked={collectMode === 'Cash'}
-                  variant={collectMode === 'Cash' ? 'primary' : 'outline'}
-                  className={`${styles.modeOption} ${collectMode === 'Cash' ? styles.modeOptionActive : ''}`}
-                  onClick={() => setCollectMode('Cash')}
-                  leftIcon={<Wallet size={16} aria-hidden="true" />}
-                >
-                  Cash
-                </Button>
-                <Button
-                  type="button"
-                  role="radio"
-                  aria-checked={collectMode === 'UPI'}
-                  variant={collectMode === 'UPI' ? 'primary' : 'outline'}
-                  className={`${styles.modeOption} ${collectMode === 'UPI' ? styles.modeOptionActive : ''}`}
-                  onClick={() => setCollectMode('UPI')}
-                  leftIcon={<CreditCard size={16} aria-hidden="true" />}
-                >
-                  UPI
-                </Button>
-              </div>
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label htmlFor="collect-date" className={styles.fieldLabel}>
-                Payment Date *
-              </label>
-              <input
-                id="collect-date"
-                type="date"
-                required
-                className={styles.fieldInput}
-                value={collectDate}
-                onChange={(e) => setCollectDate(e.target.value)}
-              />
-            </div>
-
-            {collectMode === 'UPI' && (
-              <div className={styles.fieldGroup}>
-                <label htmlFor="collect-upi-ref" className={styles.fieldLabel}>
-                  UPI Transaction ID / Reference *
-                </label>
-                <input
-                  id="collect-upi-ref"
-                  type="text"
-                  required
-                  maxLength={100}
-                  className={styles.fieldInput}
-                  placeholder="e.g. UPI1234567890 or Bank Ref"
-                  value={upiReference}
-                  onChange={(e) => setUpiReference(e.target.value)}
-                />
-              </div>
-            )}
-
-            <div className={styles.fieldGroup}>
-              <label htmlFor="collect-notes" className={styles.fieldLabel}>
-                Payment Notes (Optional)
-              </label>
-              <input
-                id="collect-notes"
-                type="text"
-                maxLength={400}
-                className={styles.fieldInput}
-                placeholder="Optional notes"
-                value={collectNotes}
-                onChange={(e) => setCollectNotes(e.target.value)}
-              />
-            </div>
+            <CollectPaymentModeInputs
+              collectMode={collectMode}
+              setCollectMode={setCollectMode}
+              collectDate={collectDate}
+              setCollectDate={setCollectDate}
+              upiReference={upiReference}
+              setUpiReference={setUpiReference}
+              collectNotes={collectNotes}
+              setCollectNotes={setCollectNotes}
+            />
           </div>
 
           <div className={styles.modalFooter}>

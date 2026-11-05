@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Printer } from 'lucide-react';
-import { type RentExtension, type RentSummaryDto } from '@cold-storage/contracts';
+import { type DeliveryChallan, type RentExtension, type RentSummaryDto } from '@cold-storage/contracts';
 import { Badge, Button, FeedbackStates } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { RentBillingChargesSection } from './RentBillingChargesSection';
@@ -12,9 +12,11 @@ export interface RentCashMemosTabProps {
   account: RentSummaryDto;
   originSeason: number;
   canPrint: boolean;
+  canCollect?: boolean;
   printingReceiptNum: string | null;
   error: string | null;
   onPrintReceipt: (receiptNumber: string) => void;
+  onCollectDelivery?: (delivery: DeliveryChallan) => void;
   periodLabel: (ext: RentExtension) => string;
 }
 
@@ -22,9 +24,11 @@ export function RentCashMemosTab({
   account,
   originSeason,
   canPrint,
+  canCollect,
   printingReceiptNum,
   error,
   onPrintReceipt,
+  onCollectDelivery,
   periodLabel,
 }: RentCashMemosTabProps) {
   return (
@@ -33,6 +37,8 @@ export function RentCashMemosTab({
         account={account}
         originSeason={originSeason}
         periodLabel={periodLabel}
+        canCollect={canCollect}
+        onCollectDelivery={onCollectDelivery}
       />
 
       <p className={styles.sectionLabel}>
@@ -57,6 +63,12 @@ export function RentCashMemosTab({
                 <span className={styles.paymentMeta}>
                   {new Date(p.paymentDate).toLocaleDateString('en-IN')} • Received by{' '}
                   {p.createdBy}
+                  {p.challanNumber && (
+                    <>
+                      {' '}• Challan: <strong>{p.challanNumber}</strong>
+                      {p.gpNumber ? ` (GP: ${p.gpNumber})` : ''}
+                    </>
+                  )}
                 </span>
                 {p.notes && <span className={styles.paymentNotes}>Notes: {p.notes}</span>}
               </div>

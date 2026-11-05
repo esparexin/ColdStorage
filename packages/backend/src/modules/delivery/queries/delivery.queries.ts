@@ -1,6 +1,7 @@
 import type { DeliveryChallan, DeliveryQuery, DeliverySummary } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
+import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
 import { readLedgerBalance, readLedgerBalanceMany, readLedgerNetDelivered } from '../../inventory/ledger-balance.js';
 import { toChallanEntity } from '../delivery.mappers.js';
 
@@ -9,7 +10,22 @@ export async function getDeliveryById(
   deliveryId: string,
 ): Promise<DeliveryChallan | null> {
   const doc = await DeliveryChallanModel.findOne({ id: deliveryId, facilityId }).lean().exec();
-  return doc ? toChallanEntity(doc) : null;
+  if (!doc) return null;
+  const entity = toChallanEntity(doc);
+  const payments = await RentPaymentModel.find({ facilityId, deliveryId }, null, { lean: true }).exec();
+  const deliveryPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
+  const deliveryCharge = doc.rentCharge ?? 0;
+  const deliveryRemaining = Math.max(0, Number((deliveryCharge - deliveryPaid).toFixed(2)));
+  const deliveryPaymentStatus: 'Settled' | 'Not Settled' =
+    deliveryCharge > 0 && deliveryRemaining === 0 ? 'Settled' : 'Not Settled';
+
+  return {
+    ...entity,
+    rentPaymentStatus: deliveryPaymentStatus,
+    rentRemainingBalance: deliveryRemaining,
+    rentTotalAmount: deliveryCharge,
+    rentTotalPaid: deliveryPaid,
+  };
 }
 
 export async function listDeliveries(
@@ -34,21 +50,28 @@ export async function listDeliveries(
   ]);
 
   const grnIds = Array.from(new Set(docs.map((d) => d.grnId)));
+  const deliveryIds = docs.map((d) => d.id);
   // Batched rent summaries fix N+1 (F10) and lazy import breaks the
   // delivery->rent static cycle; rentService is loaded only on this path.
   const { rentService } = await import('../../rent/rent.service.js');
-  const [grnDocs, balanceMap, allRentSummaries] = await Promise.all([
+  const [grnDocs, balanceMap, allRentSummaries, paymentDocs] = await Promise.all([
     GrnModel.find({ id: { $in: grnIds }, facilityId }).lean().exec(),
     readLedgerBalanceMany(facilityId, grnIds),
-    // Scoped to the GRNs on this page. Previously this fetched every GRN,
-    // payment, extension and ledger aggregate for the facility and then threw
-    // all but the page away, so page 1 and page 999 cost the same. The
-    // `.catch(() => [])` that used to swallow a failure is also gone: it
-    // silently blanked the rent columns on the delivery table with no log and
-    // no error, which reads as "no rent due" rather than "could not load".
     rentService.getRentSummariesForFacility(facilityId, grnIds),
+    RentPaymentModel.find(
+      { facilityId, deliveryId: { $in: deliveryIds } },
+      null,
+      { lean: true },
+    ).exec(),
   ]);
   const wanted = new Set(grnIds);
+
+  const deliveryPaidMap = new Map<string, number>();
+  for (const p of paymentDocs) {
+    if (p.deliveryId) {
+      deliveryPaidMap.set(p.deliveryId, (deliveryPaidMap.get(p.deliveryId) ?? 0) + p.amountPaid);
+    }
+  }
 
   const grnMap = new Map(grnDocs.map((g) => [g.id, g]));
   const rentMap = new Map(
@@ -62,16 +85,26 @@ export async function listDeliveries(
       const bal = balanceMap.get(d.grnId);
       const rent = rentMap.get(d.grnId);
 
+      const deliveryCharge = d.rentCharge ?? 0;
+      const deliveryPaid = Number((deliveryPaidMap.get(d.id) ?? 0).toFixed(2));
+      const deliveryRemaining = Math.max(0, Number((deliveryCharge - deliveryPaid).toFixed(2)));
+      const deliveryPaymentStatus: 'Settled' | 'Not Settled' =
+        deliveryCharge > 0 && deliveryRemaining === 0
+          ? 'Settled'
+          : deliveryCharge === 0 && rent && rent.paymentStatus === 'Settled'
+            ? 'Settled'
+            : 'Not Settled';
+
       return {
         ...entity,
         originalBags: grn ? grn.bags : undefined,
         remainingSmallBags: bal ? bal.smallBags : undefined,
         remainingBigBags: bal ? bal.bigBags : undefined,
         remainingTotalBags: bal ? bal.total : undefined,
-        rentPaymentStatus: rent ? rent.paymentStatus : undefined,
-        rentRemainingBalance: rent ? rent.remainingBalance : undefined,
-        rentTotalAmount: rent ? rent.rentAmount : undefined,
-        rentTotalPaid: rent ? rent.totalPaid : undefined,
+        rentPaymentStatus: deliveryPaymentStatus,
+        rentRemainingBalance: deliveryRemaining,
+        rentTotalAmount: deliveryCharge,
+        rentTotalPaid: deliveryPaid,
       };
     }),
     total,
@@ -88,7 +121,35 @@ export async function listDeliveriesForGrn(
     .sort({ date: -1, createdAt: -1 })
     .lean()
     .exec();
-  return docs.map((d) => toChallanEntity(d));
+  const deliveryIds = docs.map((d) => d.id);
+  const paymentDocs = await RentPaymentModel.find(
+    { facilityId, deliveryId: { $in: deliveryIds } },
+    null,
+    { lean: true },
+  ).exec();
+  const deliveryPaidMap = new Map<string, number>();
+  for (const p of paymentDocs) {
+    if (p.deliveryId) {
+      deliveryPaidMap.set(p.deliveryId, (deliveryPaidMap.get(p.deliveryId) ?? 0) + p.amountPaid);
+    }
+  }
+
+  return docs.map((d) => {
+    const entity = toChallanEntity(d);
+    const deliveryCharge = d.rentCharge ?? 0;
+    const deliveryPaid = Number((deliveryPaidMap.get(d.id) ?? 0).toFixed(2));
+    const deliveryRemaining = Math.max(0, Number((deliveryCharge - deliveryPaid).toFixed(2)));
+    const deliveryPaymentStatus: 'Settled' | 'Not Settled' =
+      deliveryCharge > 0 && deliveryRemaining === 0 ? 'Settled' : 'Not Settled';
+
+    return {
+      ...entity,
+      rentPaymentStatus: deliveryPaymentStatus,
+      rentRemainingBalance: deliveryRemaining,
+      rentTotalAmount: deliveryCharge,
+      rentTotalPaid: deliveryPaid,
+    };
+  });
 }
 
 export async function getDeliverySummary(

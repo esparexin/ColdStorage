@@ -14,6 +14,7 @@ import type { RateUpsertPayload } from '../components/commodityRates.helper';
  */
 export function useCommodityRates(commodityId: string | null) {
   const [rates, setRates] = useState<CommodityRate[]>([]);
+  const [hamaliRate, setHamaliRate] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -25,6 +26,7 @@ export function useCommodityRates(commodityId: string | null) {
   const fetchRates = useCallback(async () => {
     if (!commodityId) {
       setRates([]);
+      setHamaliRate(null);
       return;
     }
     setLoading(true);
@@ -36,12 +38,14 @@ export function useCommodityRates(commodityId: string | null) {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
-      const data = (await res.json()) as { items?: CommodityRate[] };
+      const data = (await res.json()) as { items?: CommodityRate[]; hamaliRate?: number };
       if (!isCurrent()) return;
       setRates(data.items ?? []);
+      setHamaliRate(typeof data.hamaliRate === 'number' ? data.hamaliRate : null);
     } catch (e) {
       if (!isCurrent()) return;
       setRates([]);
+      setHamaliRate(null);
       setError(e instanceof Error ? e.message : 'Failed to load rates');
     } finally {
       if (isCurrent()) setLoading(false);
@@ -97,5 +101,5 @@ export function useCommodityRates(commodityId: string | null) {
     [commodityId, fetchRates],
   );
 
-  return { rates, loading, error, retry, saving, saveRates };
+  return { rates, hamaliRate, loading, error, retry, saving, saveRates };
 }

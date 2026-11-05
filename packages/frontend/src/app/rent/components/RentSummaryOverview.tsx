@@ -1,5 +1,5 @@
 import React from 'react';
-import type { RentSummaryDto } from '@cold-storage/contracts';
+import type { DeliveryChallan, RentSummaryDto } from '@cold-storage/contracts';
 import {
   formatAgreedRates,
   formatRemainingDue,
@@ -9,9 +9,10 @@ import styles from '../page.module.css';
 
 interface RentSummaryOverviewProps {
   account: RentSummaryDto;
+  delivery?: DeliveryChallan | null;
 }
 
-export function RentSummaryOverview({ account }: RentSummaryOverviewProps) {
+export function RentSummaryOverview({ account, delivery }: RentSummaryOverviewProps) {
   const stockBalance = account.remainingBags ?? Math.max(0, account.totalBags - (account.deliveredBags ?? 0));
   const agreedRates = formatAgreedRates(account);
 
@@ -51,7 +52,9 @@ export function RentSummaryOverview({ account }: RentSummaryOverviewProps) {
         </div>
 
         <div className={styles.infoBlock}>
-          <span className={styles.infoBlockTitle}>Rent Obligation</span>
+          <span className={styles.infoBlockTitle}>
+            Rent Obligation {delivery ? `(${delivery.challanNumber})` : ''}
+          </span>
           <div className={styles.infoRow}>
             <span style={{ color: 'var(--color-text-muted)' }}>Structure</span>
             <span>
@@ -59,34 +62,80 @@ export function RentSummaryOverview({ account }: RentSummaryOverviewProps) {
               {account.rentType === 'Monthly' && account.rentMonths ? ` (${account.rentMonths}m)` : ''}
             </span>
           </div>
-          {agreedRates && (
-            <div className={styles.infoRow}>
-              <span style={{ color: 'var(--color-text-muted)' }}>Agreed Rates</span>
-              <span style={{ fontWeight: 'var(--font-medium)' }}>{agreedRates}</span>
-            </div>
+          {delivery ? (
+            <>
+              {delivery.gpNumber && (
+                <div className={styles.infoRow}>
+                  <span style={{ color: 'var(--color-text-muted)' }}>Gate Pass</span>
+                  <span style={{ fontWeight: 'var(--font-medium)' }}>{delivery.gpNumber}</span>
+                </div>
+              )}
+              <div className={styles.infoRow}>
+                <span style={{ color: 'var(--color-text-muted)' }}>Dispatched</span>
+                <span>
+                  {delivery.totalBags} bags
+                  {delivery.smallBags > 0 || delivery.bigBags > 0
+                    ? ` (${delivery.smallBags}S / ${delivery.bigBags}B)`
+                    : ''}
+                </span>
+              </div>
+              <div className={styles.infoRow}>
+                <span style={{ color: 'var(--color-text-muted)' }}>Challan Rent</span>
+                <span>₹{(delivery.rentCharge ?? 0).toLocaleString('en-IN')}</span>
+              </div>
+              <div className={styles.infoRow}>
+                <span style={{ color: 'var(--color-text-muted)' }}>Paid for Challan</span>
+                <span style={{ color: 'var(--color-success-text)' }}>
+                  ₹{(delivery.rentTotalPaid ?? 0).toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div
+                className={styles.infoRow}
+                style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-1)' }}
+              >
+                <span style={{ fontWeight: 'var(--font-semibold)' }}>Challan Balance</span>
+                <strong style={{ color: 'var(--color-warning-text)' }}>
+                  ₹{(delivery.rentRemainingBalance ?? delivery.rentCharge ?? 0).toLocaleString('en-IN')}
+                </strong>
+              </div>
+            </>
+          ) : (
+            <>
+              {agreedRates && (
+                <div className={styles.infoRow}>
+                  <span style={{ color: 'var(--color-text-muted)' }}>Agreed Rates</span>
+                  <span style={{ fontWeight: 'var(--font-medium)' }}>{agreedRates}</span>
+                </div>
+              )}
+              <div className={styles.infoRow}>
+                <span style={{ color: 'var(--color-text-muted)' }}>
+                  {account.rentType === 'Monthly' && account.rentAmount === 0
+                    ? 'Rent Status'
+                    : 'Contract Rent'}
+                </span>
+                <span>
+                  {account.rentType === 'Monthly' && account.rentAmount === 0
+                    ? 'Dynamic (Cycle Billing)'
+                    : formatRentStructure(account)}
+                </span>
+              </div>
+              <div className={styles.infoRow}>
+                <span style={{ color: 'var(--color-text-muted)' }}>Already Paid</span>
+                <span style={{ color: 'var(--color-success-text)' }}>
+                  ₹{account.totalPaid.toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div
+                className={styles.infoRow}
+                style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-1)' }}
+              >
+                <span style={{ fontWeight: 'var(--font-semibold)' }}>Remaining Due</span>
+                <strong style={{ color: 'var(--color-warning-text)' }}>
+                  {formatRemainingDue(account)}
+                </strong>
+              </div>
+            </>
           )}
-          <div className={styles.infoRow}>
-            <span style={{ color: 'var(--color-text-muted)' }}>
-              {account.rentType === 'Monthly' && account.rentAmount === 0 ? 'Rent Status' : 'Contract Rent'}
-            </span>
-            <span>
-              {account.rentType === 'Monthly' && account.rentAmount === 0
-                ? 'Dynamic (Cycle Billing)'
-                : formatRentStructure(account)}
-            </span>
-          </div>
-          <div className={styles.infoRow}>
-            <span style={{ color: 'var(--color-text-muted)' }}>Already Paid</span>
-            <span style={{ color: 'var(--color-success-text)' }}>
-              ₹{account.totalPaid.toLocaleString('en-IN')}
-            </span>
-          </div>
-          <div className={styles.infoRow} style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-1)' }}>
-            <span style={{ fontWeight: 'var(--font-semibold)' }}>Remaining Due</span>
-            <strong style={{ color: 'var(--color-warning-text)' }}>
-              {formatRemainingDue(account)}
-            </strong>
-          </div>
         </div>
       </div>
     </div>

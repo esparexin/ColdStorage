@@ -30,7 +30,9 @@ export default function DeliveriesPage() {
   const [activeView, setActiveView] = useState<DeliveryViewTab>('listing');
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryChallan | null>(null);
   const [printingId, setPrintingId] = useState<string | null>(null); const [printError, setPrintError] = useState<string | null>(null);
-  const [rentPayAccount, setRentPayAccount] = useState<RentSummaryDto | null>(null); const [rentPaidTick, setRentPaidTick] = useState(0);
+  const [rentPayAccount, setRentPayAccount] = useState<RentSummaryDto | null>(null);
+  const [rentPayDelivery, setRentPayDelivery] = useState<DeliveryChallan | null>(null);
+  const [rentPaidTick, setRentPaidTick] = useState(0);
   const [loanClearGrn, setLoanClearGrn] = useState<Grn | null>(null); const [loanClearedTick, setLoanClearedTick] = useState(0);
   const [initialGrnId, setInitialGrnId] = useState<string | undefined>(undefined);
   const [rentPromptDelivery, setRentPromptDelivery] = useState<DeliveryChallan | null>(null);
@@ -101,7 +103,12 @@ export default function DeliveriesPage() {
     }
   };
 
-  const handleRentPaidFromDelivery = () => { setRentPayAccount(null); setRentPaidTick((t) => t + 1); void deliveryData.fetchDeliveries(); };
+  const handleRentPaidFromDelivery = () => {
+    setRentPayAccount(null);
+    setRentPayDelivery(null);
+    setRentPaidTick((t) => t + 1);
+    void deliveryData.fetchDeliveries();
+  };
   const handleLoanClearedFromDelivery = () => { setLoanClearGrn(null); setLoanClearedTick((t) => t + 1); void deliveryData.fetchDeliveries(); };
 
   const handleCollectRent = async (delivery: DeliveryChallan) => {
@@ -109,6 +116,7 @@ export default function DeliveriesPage() {
     try {
       const res = await requestWithAuth(`/api/facilities/${encodeURIComponent(selectedFacilityId)}/rent/grn/${encodeURIComponent(delivery.grnId)}`);
       if (!res.ok) throw new Error('Failed to load rent details for this GRN');
+      setRentPayDelivery(delivery);
       setRentPayAccount(await res.json());
     } catch (err: unknown) {
       setPrintError(err instanceof Error ? err.message : 'Failed to load rent details');
@@ -206,9 +214,13 @@ export default function DeliveriesPage() {
 
       <DeliveryPageModals
         selectedFacilityId={selectedFacilityId} selectedDelivery={selectedDelivery} loanClearGrn={loanClearGrn}
-        rentPayAccount={rentPayAccount} canPrint={canPrint} printingId={printingId}
+        rentPayAccount={rentPayAccount} rentPayDelivery={rentPayDelivery} canPrint={canPrint} printingId={printingId}
         onCloseDetail={() => setSelectedDelivery(null)} onCloseLoanClear={() => setLoanClearGrn(null)}
-        onLoanCleared={handleLoanClearedFromDelivery} onCloseRentPay={() => setRentPayAccount(null)}
+        onLoanCleared={handleLoanClearedFromDelivery}
+        onCloseRentPay={() => {
+          setRentPayAccount(null);
+          setRentPayDelivery(null);
+        }}
         onRentPaid={handleRentPaidFromDelivery} onPrintChallan={handlePrintChallan}
         rentPromptDelivery={rentPromptDelivery}
         onConfirmRentPrompt={(del) => { setRentPromptDelivery(null); void handleCollectRent(del); }}

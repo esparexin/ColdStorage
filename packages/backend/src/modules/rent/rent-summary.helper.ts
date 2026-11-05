@@ -3,6 +3,7 @@ import {
   parseMergedConsignmentBreakdown,
   resolveStoredCompositionVerified,
   splitRentObligation,
+  type RentDeliveryBill,
   type RentExtension,
   type RentSummaryDto,
 } from '@cold-storage/contracts';
@@ -82,6 +83,8 @@ export function buildRentSummary(
   outwardRentCharges = 0,
   hamaliShare = 0,
   earliestOutwardCreatedAt?: Date | null,
+  rateFallback?: { smallRate: number; bigRate: number; hamaliRate?: number | null } | null,
+  deliveryBills: RentDeliveryBill[] = [],
 ): RentSummaryDto {
   const { baseRent, total: totalDue } = splitRentObligation({
     rentType: grn.rentType,
@@ -160,12 +163,13 @@ export function buildRentSummary(
     deliveredBags,
     remainingBags,
     bagPrice: grn.bagPrice ?? null,
-    smallBagPrice: grn.smallBagPrice ?? null,
-    bigBagPrice: grn.bigBagPrice ?? null,
+    smallBagPrice: grn.smallBagPrice ?? rateFallback?.smallRate ?? null,
+    bigBagPrice: grn.bigBagPrice ?? rateFallback?.bigRate ?? null,
     totalBagsWeight: grn.totalBagsWeight ?? null,
     rentType: grn.rentType,
     rentAmount: effectiveBaseRent,
     outwardRentCharges,
+    hamaliRate: grn.hamaliRate ?? rateFallback?.hamaliRate ?? null,
     hamaliShare,
     rentMonths: grn.rentMonths ?? null,
     totalPaid: balance.totalPaid,
@@ -185,5 +189,6 @@ export function buildRentSummary(
     mergedIntoGrnId: grn.mergedIntoGrnId ?? null,
     mergedIntoGrnNumber: grn.mergedIntoGrnNumber ?? null,
     mergedConsignment: mergedConsignment ?? null,
+    deliveryBills,
   };
 }

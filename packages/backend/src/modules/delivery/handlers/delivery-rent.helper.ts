@@ -1,11 +1,13 @@
 import type mongoose from 'mongoose';
 import {
   calculate3MAdditionalMonths, calculateMonthlyElapsedCycles, calculateOutwardSeasonalBreakdown,
-  calculateRentAmount, isHybridBagCategory, resolveOutwardRates, resolveSeasonalElapsedPeriods,
+  calculateRentAmount, deriveNetStorageRate, isHybridBagCategory, resolveOutwardRates, resolveSeasonalElapsedPeriods,
   shouldEvaluateSeasonalBreakdown,
   type BagComposition, type RentType,
 } from '@cold-storage/contracts';
 import { CommodityRateModel } from '../../../database/models/commodity-rate.model.js';
+import { CommodityModel } from '../../../database/models/commodity.model.js';
+import { resolveEffectiveHamaliRate } from '../../common/hamali-resolution.js';
 
 export interface ComputeDeliveryRentParams {
   grn: {
@@ -59,6 +61,9 @@ export async function computeExpectedDeliveryRent(
     deliveryDate,
   });
 
+  const commodityDoc = await CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec();
+  const effectiveHamaliRate = resolveEffectiveHamaliRate(grn.hamaliRate, commodityDoc);
+
   if (isHybrid) {
     let sRate = params.seasonalBagPrice ?? params.bagPrice ?? grn.bagPrice ?? 0;
     let mRate = params.monthlyBagPrice ?? params.bagPrice ?? grn.bagPrice ?? 0;
@@ -90,7 +95,7 @@ export async function computeExpectedDeliveryRent(
         rentType: 'Seasonal_3M',
         bags: withdrawnTotal,
         bagCategory: params.bagCategory,
-        bagPrice: sRate,
+        bagPrice: deriveNetStorageRate(sRate, effectiveHamaliRate),
         rentMonths: 1,
       });
       const extraRent = extraMonths > 0 ? calculateRentAmount({
@@ -112,6 +117,7 @@ export async function computeExpectedDeliveryRent(
         seasonalRates: { small: sRate, big: sRate },
         monthlyRates: { small: mRate, big: mRate },
         excludePeriodKeys: params.excludePeriodKeys ?? undefined,
+        hamaliRate: effectiveHamaliRate,
       });
       return { expectedRentCharge: breakdown.totalRent, effectiveRates: { small: sRate, big: sRate } };
     }
@@ -120,7 +126,7 @@ export async function computeExpectedDeliveryRent(
       rentType: 'Monthly',
       bags: withdrawnTotal,
       bagCategory: params.bagCategory,
-      bagPrice: mRate,
+      bagPrice: deriveNetStorageRate(mRate, effectiveHamaliRate),
       rentMonths: billableMonths,
     });
     return { expectedRentCharge, effectiveRates: { small: mRate, big: mRate } };
@@ -165,8 +171,8 @@ export async function computeExpectedDeliveryRent(
         bagType: 'S+B',
         smallBags: withdrawal.smallBags,
         bigBags: withdrawal.bigBags,
-        smallBagPrice: seasonalRates.small,
-        bigBagPrice: seasonalRates.big,
+        smallBagPrice: deriveNetStorageRate(seasonalRates.small, effectiveHamaliRate),
+        bigBagPrice: deriveNetStorageRate(seasonalRates.big, effectiveHamaliRate),
         rentMonths: 1,
       });
       const extraRent = extraMonths > 0 ? calculateRentAmount({
@@ -190,6 +196,7 @@ export async function computeExpectedDeliveryRent(
       seasonalRates,
       monthlyRates,
       excludePeriodKeys: params.excludePeriodKeys ?? undefined,
+      hamaliRate: effectiveHamaliRate,
     });
 
     return { expectedRentCharge: breakdown.totalRent, effectiveRates: seasonalRates };
@@ -216,8 +223,8 @@ export async function computeExpectedDeliveryRent(
     bagType: 'S+B',
     smallBags: withdrawal.smallBags,
     bigBags: withdrawal.bigBags,
-    smallBagPrice: monthlyEffectiveRates.small,
-    bigBagPrice: monthlyEffectiveRates.big,
+    smallBagPrice: deriveNetStorageRate(monthlyEffectiveRates.small, effectiveHamaliRate),
+    bigBagPrice: deriveNetStorageRate(monthlyEffectiveRates.big, effectiveHamaliRate),
     rentMonths: billableMonths,
   });
 

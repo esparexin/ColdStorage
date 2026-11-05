@@ -1,12 +1,13 @@
 'use client';
 
 import React from 'react';
-import type { RentSummaryDto } from '@cold-storage/contracts';
+import type { RentDeliveryBill, RentSummaryDto } from '@cold-storage/contracts';
 import { DataTable } from '@/components/ui/DataTable';
 import { createRentColumns } from './RentTableColumns';
+import type { RentBillTableRow } from '../hooks/rentTableRows.helper';
 
 interface RentTableProps {
-  accounts: RentSummaryDto[];
+  rows: RentBillTableRow[];
   facilityName: string;
   canCollect: boolean;
   page: number;
@@ -14,12 +15,12 @@ interface RentTableProps {
   totalPages: number;
   totalAccounts: number;
   onPageChange: (page: number) => void;
-  onOpenCollect: (acc: RentSummaryDto) => void;
+  onOpenCollect: (acc: RentSummaryDto, del?: RentDeliveryBill | null) => void;
   onOpenHistory: (acc: RentSummaryDto) => void;
 }
 
 export function RentTable({
-  accounts,
+  rows,
   facilityName: _facilityName,
   canCollect,
   page,
@@ -39,9 +40,9 @@ export function RentTable({
   return (
     <DataTable
       columns={columns}
-      rows={accounts}
-      rowKey={(r) => r.grnId}
-      onRowClick={onOpenHistory}
+      rows={rows}
+      rowKey={(r) => r.id}
+      onRowClick={(r) => onOpenHistory(r.account)}
       pagination={{ page, pageSize, totalPages, totalRecords: totalAccounts, onPageChange }}
     />
   );

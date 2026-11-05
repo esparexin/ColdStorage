@@ -1,38 +1,28 @@
 import type mongoose from 'mongoose';
 import {
   deriveBillingCycle,
-  type RecordBatchRentPaymentInput,
-  type RecordBatchRentPaymentResult,
-  type RecordRentPaymentInput,
-  type RecordRentPaymentResult,
-  type RentReceiptDocumentDto,
-  type RentSummaryDto,
-  type StorageOccupancyFilter,
+  type RecordBatchRentPaymentInput, type RecordBatchRentPaymentResult,
+  type RecordRentPaymentInput, type RecordRentPaymentResult,
+  type RentReceiptDocumentDto, type RentSummaryDto, type StorageOccupancyFilter,
 } from '@cold-storage/contracts';
 import { GrnModel, type GrnDoc } from '../../database/models/grn.model.js';
 import {
-  readLedgerBalance,
-  readLedgerBalanceMany,
-  readLedgerNetDelivered,
-  readLedgerNetDeliveredMany,
+  readLedgerBalance, readLedgerBalanceMany, readLedgerNetDelivered, readLedgerNetDeliveredMany,
 } from '../inventory/ledger-balance.js';
-import {
-  calculateGrnMonthlyOccupancyRent,
-  calculateGrnSeasonalOccupancyRent,
-} from '../common/occupancy-rent.js';
+import { calculateGrnMonthlyOccupancyRent, calculateGrnSeasonalOccupancyRent } from '../common/occupancy-rent.js';
 import { generateStorageOccupancyReport } from '../common/storage-audit-report.js';
 import { renderRentReceiptTemplate } from '../documents/templates/rent-receipt.template.js';
-import {
-  getFacilitySubHeader,
-  getVerifiedOrganization,
-} from '../documents/document-headers.helper.js';
+import { getFacilitySubHeader, getVerifiedOrganization } from '../documents/document-headers.helper.js';
 import { executeRecordPayment } from './handlers/record-payment.handler.js';
 import { executeRecordBatchPayment } from './handlers/record-batch-payment.handler.js';
 import { rentExtensionRepository } from './rent-extension.repository.js';
 import { rentRepository } from './rent.repository.js';
 import { buildRentSummary } from './rent-summary.helper.js';
 import { CommodityModel } from '../../database/models/commodity.model.js';
+import { CommodityRateModel } from '../../database/models/commodity-rate.model.js';
+import { resolveReceiptDeliveryInfo } from './handlers/rent-receipt-delivery.helper.js';
 import { computeFirstSeasonHamali } from '../common/hamali-resolution.js';
+import { findDeliveryBillsForGrns } from './delivery-bills.helper.js';
 
 export class RentService {
   /**
@@ -76,9 +66,23 @@ export class RentService {
     ]);
     const delivered = netDelivered?.total ?? 0;
     const remaining = balance?.total ?? Math.max(0, grn.bags - delivered);
-    const commodity = await CommodityModel.findOne({ id: grn.commodityId }).lean().exec();
+    const [commodity, delBillsMap] = await Promise.all([
+      CommodityModel.findOne({ id: grn.commodityId }).lean().exec(),
+      findDeliveryBillsForGrns(facilityId, [grn.id], new Map([[grn.id, payments]])),
+    ]);
     const hamaliShare = computeFirstSeasonHamali(grn.bags, commodity, extensions, grn.hamaliRate, grn.hamaliAmount);
-    return buildRentSummary(grn, payments, extensions, delivered, remaining, outwardInfo.total, hamaliShare, outwardInfo.earliestCreatedAt);
+    const hasNoAgreedRates = grn.smallBagPrice == null && grn.bigBagPrice == null && grn.bagPrice == null;
+    const controllerType = grn.rentType === 'Monthly' ? 'Monthly' : 'Seasonal';
+    const rateDoc = hasNoAgreedRates
+      ? await CommodityRateModel.findOne({ commodityId: grn.commodityId, rentType: controllerType, isActive: true }).lean().exec()
+      : null;
+    const effectiveHamali = grn.hamaliRate ?? (commodity?.isHamaliApplicable ? commodity.hamaliRate : null) ?? null;
+    return buildRentSummary(
+      grn, payments, extensions, delivered, remaining,
+      outwardInfo.total, hamaliShare, outwardInfo.earliestCreatedAt,
+      { smallRate: rateDoc?.smallRate ?? 0, bigRate: rateDoc?.bigRate ?? 0, hamaliRate: effectiveHamali },
+      delBillsMap.get(grn.id) ?? [],
+    );
   }
 
   /**
@@ -109,26 +113,32 @@ export class RentService {
         : rentRepository.getOutwardRentInfoByFacilityGrouped(facilityId),
     ]);
     const commodityIds = Array.from(new Set(grns.map((g) => g.commodityId)));
-    const commodityDocs = await CommodityModel.find({ id: { $in: commodityIds } }).lean().exec();
+    const [commodityDocs, rateDocs, delBillsMap] = await Promise.all([
+      CommodityModel.find({ id: { $in: commodityIds } }).lean().exec(),
+      CommodityRateModel.find({ commodityId: { $in: commodityIds }, isActive: true }).lean().exec(),
+      findDeliveryBillsForGrns(facilityId, grnIds, paymentsByGrn),
+    ]);
     const commodityMap = new Map(commodityDocs.map((c) => [c.id, c]));
+    const rateMap = new Map(rateDocs.map((r) => [`${r.commodityId}:${r.rentType}`, r]));
 
     return grns.map((grn) => {
       const delivered = deliveredMap.get(grn.id)?.total ?? 0;
       const remaining = balanceMap.get(grn.id)?.total ?? Math.max(0, grn.bags - delivered);
       const extensions = extensionsByGrn.get(grn.id) ?? [];
+      const comm = commodityMap.get(grn.commodityId);
       const hamaliShare = computeFirstSeasonHamali(
-        grn.bags, commodityMap.get(grn.commodityId) ?? null, extensions, grn.hamaliRate, grn.hamaliAmount,
+        grn.bags, comm ?? null, extensions, grn.hamaliRate, grn.hamaliAmount,
       );
       const outwardInfo = outwardRentMap.get(grn.id);
+      const controllerType = grn.rentType === 'Monthly' ? 'Monthly' : 'Seasonal';
+      const hasNoAgreedRates = grn.smallBagPrice == null && grn.bigBagPrice == null && grn.bagPrice == null;
+      const rateDoc = hasNoAgreedRates ? rateMap.get(`${grn.commodityId}:${controllerType}`) ?? null : null;
+      const effectiveHamali = grn.hamaliRate ?? (comm?.isHamaliApplicable ? comm.hamaliRate : null) ?? null;
       return buildRentSummary(
-        grn,
-        paymentsByGrn.get(grn.id) ?? [],
-        extensions,
-        delivered,
-        remaining,
-        outwardInfo?.total ?? 0,
-        hamaliShare,
-        outwardInfo?.earliestCreatedAt ?? null,
+        grn, paymentsByGrn.get(grn.id) ?? [], extensions, delivered, remaining,
+        outwardInfo?.total ?? 0, hamaliShare, outwardInfo?.earliestCreatedAt ?? null,
+        { smallRate: rateDoc?.smallRate ?? 0, bigRate: rateDoc?.bigRate ?? 0, hamaliRate: effectiveHamali },
+        delBillsMap.get(grn.id) ?? [],
       );
     });
   }
@@ -176,37 +186,27 @@ export class RentService {
     const billingCyclePeriod = deriveBillingCycle(grn.date, grn.rentType, payment.paymentDate);
     const previousPaidAmount = Math.max(0, summary.totalPaid - payment.amountPaid);
 
+    const delInfo = await resolveReceiptDeliveryInfo(
+      facilityId,
+      payment.deliveryId,
+      payment.challanNumber,
+      payment.gpNumber,
+    );
+
     const docDto: RentReceiptDocumentDto = {
-      organization,
-      facility,
-      receiptNumber: payment.receiptNumber,
-      grnNumber: grn.grnNumber,
-      inwardReceiptNumber: grn.inwardReceiptNumber,
-      inwardDate: grn.date,
-      date: payment.paymentDate,
-      customerName: payment.customerName || grn.customerName,
-      commodityName: grn.commodityName,
-      chamber: grn.chamber,
-      bagType: grn.bagType,
-      inwardBags: grn.bags,
-      deliveredBags: netDeliveredBags,
-      remainingBags,
-      bagPrice: grn.bagPrice ?? null,
-      smallBagPrice: grn.smallBagPrice ?? null,
-      bigBagPrice: grn.bigBagPrice ?? null,
-      rentType: grn.rentType,
-      rentMonths: grn.rentMonths ?? null,
-      billingCyclePeriod,
-      totalRentObligation: summary.totalDue,
-      previousPaidAmount,
-      amountPaid: payment.amountPaid,
-      paymentMode: payment.paymentMode,
-      remainingBalance: summary.remainingBalance,
-      paymentStatus: summary.paymentStatus,
-      isPreview: false,
-      notes: payment.notes,
-      generatedAt: new Date(),
-      generatedBy: payment.createdBy,
+      organization, facility, receiptNumber: payment.receiptNumber,
+      grnNumber: grn.grnNumber, inwardReceiptNumber: grn.inwardReceiptNumber, inwardDate: grn.date,
+      deliveryId: payment.deliveryId ?? undefined, challanNumber: delInfo.challanNumber, gpNumber: delInfo.gpNumber,
+      deliveryDate: delInfo.deliveryDate, deliveryBags: delInfo.deliveryBags, date: payment.paymentDate,
+      customerName: payment.customerName || grn.customerName, commodityName: grn.commodityName,
+      chamber: grn.chamber, bagType: grn.bagType, inwardBags: grn.bags, deliveredBags: netDeliveredBags,
+      remainingBags, bagPrice: grn.bagPrice ?? null, smallBagPrice: grn.smallBagPrice ?? null,
+      bigBagPrice: grn.bigBagPrice ?? null, rentType: grn.rentType, rentMonths: grn.rentMonths ?? null,
+      billingCyclePeriod, totalRentObligation: delInfo.deliveryObligation ?? summary.totalDue,
+      previousPaidAmount, amountPaid: payment.amountPaid, paymentMode: payment.paymentMode,
+      remainingBalance: delInfo.deliveryRemaining ?? summary.remainingBalance,
+      paymentStatus: summary.paymentStatus, isPreview: false, notes: payment.notes,
+      generatedAt: new Date(), generatedBy: payment.createdBy,
     };
 
     return renderRentReceiptTemplate(docDto);

@@ -1,26 +1,32 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { type RentExtension, type RentSummaryDto } from '@cold-storage/contracts';
-import { Badge, DataTable, type DataTableColumn } from '@/components/ui';
 import {
-  deriveHamaliChargeFromSummary,
-  formatAgreedRates,
-} from '../hooks/rentDisplay.helper';
+  toExcludedPeriodKeys,
+  type DeliveryChallan,
+  type RentExtension,
+  type RentSummaryDto,
+} from '@cold-storage/contracts';
+import { Badge, DataTable, FeedbackStates, type DataTableColumn } from '@/components/ui';
+import { useCommodityRates } from '@/app/commodities/hooks/useCommodityRates';
+import { deriveHamaliChargeFromSummary } from '../hooks/rentDisplay.helper';
 import { parseMergedConsignmentBreakdown } from '../hooks/mergedConsignmentBilling.helper';
+import { useGrnDeliveries } from '../hooks/useGrnDeliveries';
+import {
+  buildRentCalculationRows,
+  resolveBillingHamaliRate,
+  resolveBillingOutwardRates,
+  type RentCalculationRow,
+} from '../hooks/rentBillingCharges.helper';
+import { GatePassRentBillCard } from './GatePassRentBillCard';
 import styles from '../page.module.css';
 
 export interface RentBillingChargesSectionProps {
   account: RentSummaryDto;
   originSeason: number;
   periodLabel: (ext: RentExtension) => string;
-}
-
-interface RentCalculationRow {
-  id: string;
-  dates: string;
-  details: string;
-  amount: number;
+  canCollect?: boolean;
+  onCollectDelivery?: (delivery: DeliveryChallan) => void;
 }
 
 const calculationColumns: DataTableColumn<RentCalculationRow>[] = [
@@ -49,8 +55,55 @@ const calculationColumns: DataTableColumn<RentCalculationRow>[] = [
 export function RentBillingChargesSection({
   account,
   originSeason,
-  periodLabel,
+  periodLabel: _periodLabel,
+  canCollect,
+  onCollectDelivery,
 }: RentBillingChargesSectionProps) {
+  const { deliveries, loading } = useGrnDeliveries(account.facilityId, account.grnId);
+  const activeDeliveries = useMemo(
+    () =>
+      deliveries
+        .filter((d) => d.status !== 'REVERSED')
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    [deliveries],
+  );
+
+  const { rates: commodityRates, hamaliRate: commodityHamaliRate } = useCommodityRates(account.commodityId ?? null);
+  const activeCommodityRate = useMemo(() => {
+    const targetType = account.rentType === 'Monthly' ? 'Monthly' : 'Seasonal';
+    return (
+      commodityRates.find((r) => r.rentType === targetType && r.isActive) ??
+      commodityRates.find((r) => r.isActive) ??
+      commodityRates[0] ??
+      null
+    );
+  }, [commodityRates, account.rentType]);
+
+  const monthlyCommodityRate = useMemo(
+    () => commodityRates.find((r) => r.rentType === 'Monthly' && r.isActive) ?? activeCommodityRate,
+    [commodityRates, activeCommodityRate],
+  );
+
+  const excludePeriodKeys = useMemo(
+    () => toExcludedPeriodKeys(account.extensions ?? []),
+    [account.extensions],
+  );
+
+  const agreedRates = useMemo(
+    () => resolveBillingOutwardRates(account, activeCommodityRate),
+    [account, activeCommodityRate],
+  );
+
+  const monthlyRates = useMemo(
+    () => (monthlyCommodityRate ? { small: monthlyCommodityRate.smallRate, big: monthlyCommodityRate.bigRate } : agreedRates),
+    [monthlyCommodityRate, agreedRates],
+  );
+
+  const hamaliRate = useMemo(
+    () => resolveBillingHamaliRate(account, { hamaliRate: commodityHamaliRate ?? activeCommodityRate?.hamaliRate }),
+    [account, commodityHamaliRate, activeCommodityRate],
+  );
+
   const hamaliDue = deriveHamaliChargeFromSummary(
     account.totalDue,
     account.rentAmount,
@@ -61,187 +114,124 @@ export function RentBillingChargesSection({
     account.mergedConsignment ??
     parseMergedConsignmentBreakdown(account.remarks, account.totalBags, account.customerName);
   const outwardCharges = account.outwardRentCharges ?? 0;
-  const isBilledAtOutward = account.rentAmount === 0 && outwardCharges > 0;
+  const isBilledAtOutward =
+    outwardCharges > 0 || activeDeliveries.length > 0 || (account.deliveredBags ?? 0) > 0;
   const effectiveStorageAmount = isBilledAtOutward ? outwardCharges : account.rentAmount;
 
   const storageRentTotal =
     effectiveStorageAmount + account.extensions.reduce((sum, e) => sum + e.finalAmount, 0);
 
   const rows: RentCalculationRow[] = useMemo(() => {
-    const list: RentCalculationRow[] = [];
-    const agreedRates = formatAgreedRates(account);
-
-    // 1. Storage Rent Period Row
-    let datesLabel = isBilledAtOutward
-      ? 'Outward Dispatches'
-      : `(${originSeason}) Mar - Dec`;
-    if (!isBilledAtOutward) {
-      if (account.rentType === 'Seasonal_3M') {
-        datesLabel = `(${originSeason}) 3M Seasonal`;
-      } else if (account.rentType === 'Monthly') {
-        datesLabel = `Monthly (${account.rentMonths ?? 1} mo)`;
-      }
-    }
-
-    let formula = '';
-    const numSmall = typeof account.smallBags === 'number' ? account.smallBags : 0;
-    const numBig = typeof account.bigBags === 'number' ? account.bigBags : 0;
-    const hasSmall = numSmall > 0;
-    const hasBig = numBig > 0;
-    const sRate = account.smallBagPrice ?? (hasSmall && !hasBig && account.rentAmount > 0 ? account.rentAmount / numSmall : null);
-    const bRate = account.bigBagPrice ?? (hasBig && !hasSmall && account.rentAmount > 0 ? account.rentAmount / numBig : null);
-
-    if (hasSmall && hasBig && sRate != null && bRate != null) {
-      formula = `${numSmall} Small × ₹${sRate.toFixed(2)} + ${numBig} Big × ₹${bRate.toFixed(2)}`;
-    } else if (hasSmall && !hasBig && sRate != null) {
-      formula = `${numSmall} Small × ₹${sRate.toFixed(2)} (₹${account.rentAmount.toLocaleString('en-IN')})`;
-    } else if (hasBig && !hasSmall && bRate != null) {
-      formula = `${numBig} Big × ₹${bRate.toFixed(2)} (₹${account.rentAmount.toLocaleString('en-IN')})`;
-    } else if (account.bagType === 'Hybrid' && account.rentAmount > 0) {
-      formula = `${account.totalBags} Hybrid (₹${account.rentAmount.toLocaleString('en-IN')})`;
-    } else if (account.smallBagPrice != null || account.bigBagPrice != null) {
-      formula = agreedRates ? `${account.totalBags} bags (${agreedRates})` : `${account.totalBags} bags`;
-    } else if (account.bagPrice != null && account.bagPrice > 0) {
-      formula = `${account.totalBags} bags × ₹${account.bagPrice.toFixed(2)} (₹${account.rentAmount.toLocaleString('en-IN')})`;
-    } else if (account.rentAmount > 0 && account.totalBags > 0) {
-      if (account.deliveredBags && account.deliveredBags > 0) {
-        formula = `${account.deliveredBags} bags dispatched (Outward delivery assessment)`;
-      } else {
-        formula = `${account.totalBags} bags (Contract Rent: ₹${account.rentAmount.toLocaleString('en-IN')})`;
-      }
-    } else if (isBilledAtOutward) {
-      formula = `${account.deliveredBags ?? 0} bags dispatched (Outward delivery assessment: ₹${outwardCharges.toLocaleString('en-IN')})`;
-    } else {
-      formula = 'Assessed at outward delivery dispatch';
-    }
-
-    list.push({
-      id: 'storage-rent',
-      dates: datesLabel,
-      details: formula,
-      amount: effectiveStorageAmount,
+    if (isBilledAtOutward) return [];
+    return buildRentCalculationRows({
+      account,
+      originSeason,
+      effectiveStorageAmount,
+      excludePeriodKeys,
+      hamaliDue,
     });
-
-    // 2. Finalized Extensions Rows (sorted chronologically: Jan before Feb)
-    const extBagLabel =
-      hasSmall && !hasBig
-        ? 'Small'
-        : hasBig && !hasSmall
-        ? 'Big'
-        : account.bagType === 'Hybrid'
-        ? 'Hybrid'
-        : 'bags';
-
-    const sortedExtensions = [...account.extensions].sort((a, b) => {
-      if (a.seasonYear !== b.seasonYear) return a.seasonYear - b.seasonYear;
-      const order: Record<string, number> = { JANUARY: 1, FEBRUARY: 2, SEASON: 3 };
-      return (order[a.period] ?? 99) - (order[b.period] ?? 99);
-    });
-
-    for (const ext of sortedExtensions) {
-      let extDateLabel = periodLabel(ext);
-      if (ext.period === 'SEASON') {
-        extDateLabel = `(${ext.seasonYear}) Season Renewal`;
-      } else if (ext.period === 'JANUARY') {
-        extDateLabel = `(${ext.seasonYear + 1}) Jan`;
-      } else if (ext.period === 'FEBRUARY') {
-        extDateLabel = `(${ext.seasonYear + 1}) Feb`;
-      }
-      list.push({
-        id: ext.id,
-        dates: extDateLabel,
-        details: `${ext.snapshotBags} ${extBagLabel} × ₹${ext.bagRate.toFixed(2)} (₹${ext.finalAmount.toLocaleString('en-IN')})`,
-        amount: ext.finalAmount,
-      });
-    }
-
-    // 3. Hamali Charges Row (only when confirmed eligible hamali exists)
-    if (hamaliDue > 0) {
-      const hamaliRate = account.totalBags > 0 ? (hamaliDue / account.totalBags).toFixed(2) : '0';
-      list.push({
-        id: 'hamali-charges',
-        dates: 'Hamali Charges',
-        details: `${account.totalBags} bags × ₹${hamaliRate} / bag`,
-        amount: hamaliDue,
-      });
-    }
-
-    return list;
-  }, [account, originSeason, periodLabel, hamaliDue]);
+  }, [isBilledAtOutward, account, originSeason, effectiveStorageAmount, excludePeriodKeys, hamaliDue]);
 
   return (
     <>
-      {account.mergedIntoGrnNumber && (
-        <div className={styles.compactNotice}>
-          <span>Merged into <strong>GRN #{account.mergedIntoGrnNumber}</strong> · Independent bill preserved</span>
-          <Badge variant="neutral">Separate Bill</Badge>
-        </div>
-      )}
       {breakdown && (
-        <div className={styles.compactNotice}>
-          <span>Consolidated consignment (+{breakdown.totalMergedAddedBags} bags from GRN {breakdown.sources.map((s) => s.grnNumber).join(', ')})</span>
-          <Badge variant="neutral">Source Dues Separate</Badge>
+        <div className={styles.mergedConsignmentCard}>
+          <div className={styles.mergedConsignmentHeader}>
+            <span className={styles.mergedConsignmentTitle}>
+              Consolidated Consignment Breakdown
+            </span>
+            <Badge variant="primary">
+              {breakdown.sources.length} Source Lot{breakdown.sources.length === 1 ? '' : 's'}
+            </Badge>
+          </div>
+          <div className={styles.mergedConsignmentText}>
+            {breakdown.genesisCustomerName ? `Original customer: ${breakdown.genesisCustomerName}. ` : ''}
+            {breakdown.sources
+              .map(
+                (s) =>
+                  `GRN #${s.grnNumber}: ${s.bags} bags${s.customerName ? ` (${s.customerName})` : ''}`,
+              )
+              .join(' · ')}
+          </div>
         </div>
       )}
 
-      <div className={styles.breakdownCard}>
-        <div className={styles.cardHeader}>
-          <div className={styles.titleGroup}>
-            <span className={styles.title}>Rent Calculation Breakdown</span>
-            <Badge variant="neutral">{account.rentType}</Badge>
+      {isBilledAtOutward ? (
+        <div className={styles.billingSection}>
+          {loading ? (
+            <FeedbackStates.Loading label="Loading outward rent bills..." />
+          ) : activeDeliveries.length === 0 ? (
+            <FeedbackStates.Empty message="No outward transactions recorded for this lot yet. Each outward gate pass will generate an independent rent bill upon dispatch." />
+          ) : (
+            <div className={styles.gatePassBillsList}>
+              {activeDeliveries.map((d, idx) => (
+                <GatePassRentBillCard
+                  key={d.id}
+                  delivery={d}
+                  index={idx}
+                  account={account}
+                  agreedRates={agreedRates}
+                  monthlyRates={monthlyRates}
+                  hamaliRate={hamaliRate}
+                  excludePeriodKeys={excludePeriodKeys}
+                  canCollect={canCollect}
+                  onCollectDelivery={onCollectDelivery}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className={styles.billingSection}>
+          <div className={styles.billingHeader}>
+            <span className={styles.billingTitle}>Rent Calculation Breakdown</span>
+            <span className={styles.billingStructureBadge}>{account.rentType}</span>
+          </div>
+
+          <DataTable<RentCalculationRow>
+            columns={calculationColumns}
+            rows={rows}
+            rowKey={(r) => r.id}
+            caption="Itemized storage rent and extensions calculation"
+          />
+
+          <div className={styles.billingTotalRow}>
+            <span className={styles.billingTotalLabel}>Total Rent Payable</span>
+            <span className={styles.billingTotalAmount}>
+              ₹{storageRentTotal.toLocaleString('en-IN')}
+            </span>
           </div>
         </div>
+      )}
 
-        <DataTable
-          columns={calculationColumns}
-          rows={rows}
-          rowKey={(r) => r.id}
-          caption="Rent Calculation Breakdown"
-          footer={
-            <>
-              <tr className={styles.totalRow}>
-                <td colSpan={2} style={{ textAlign: 'left' }}>
-                  {hamaliDue > 0 ? 'Total Storage Rent' : 'Total Rent Payable'}
-                </td>
-                <td style={{ textAlign: 'right' }} className={styles.totalAmount}>
-                  ₹{storageRentTotal.toLocaleString('en-IN')}
-                </td>
-              </tr>
-              {hamaliDue > 0 && (
-                <tr className={styles.totalRow}>
-                  <td colSpan={2} style={{ textAlign: 'left' }}>
-                    Total Amount to Pay
-                  </td>
-                  <td style={{ textAlign: 'right' }} className={styles.totalAmount}>
-                    ₹{account.totalDue.toLocaleString('en-IN')}
-                  </td>
-                </tr>
-              )}
-            </>
-          }
-        />
-      </div>
-
-      {breakdown && breakdown.sources.length > 0 && (
-        <div style={{ padding: 'var(--space-2)', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-1-5)' }}>
-            <strong style={{ fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-secondary)' }}>
+      {breakdown && breakdown.sources.some((s) => (s.remainingBalance ?? 0) > 0) && (
+        <div className={styles.sourceTraceabilityCard}>
+          <div className={styles.sourceTraceabilityHeader}>
+            <span className={styles.sourceTraceabilityTitle}>
               Source GRN Traceability (Separate Pending Bills)
-            </strong>
-            <Badge variant="neutral">Independent Bills</Badge>
+            </span>
+            <span className={styles.sourceTraceabilityBadge}>Independent Bills</span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-            {breakdown.sources.map((s) => (
-              <div key={s.grnNumber} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-xs)', padding: 'var(--space-1) var(--space-2)', background: 'var(--color-surface-1)', borderRadius: 'var(--radius-sm)' }}>
-                <span>
-                  <strong>GRN #{s.grnNumber}</strong> · {s.customerName || 'Consignor'} · {s.bags} bags
-                  {s.seasonYear ? ` · Season ${s.seasonYear}` : ''}
-                </span>
-                <span style={{ fontWeight: 'var(--font-semibold)' }}>
-                  Pending: ₹{(s.remainingBalance > 0 ? s.remainingBalance : s.rentAmount).toLocaleString('en-IN')}
-                </span>
-              </div>
-            ))}
+          <div className={styles.sourceTraceabilityList}>
+            {breakdown.sources
+              .filter((s) => (s.remainingBalance ?? 0) > 0)
+              .map((s) => (
+                <div key={s.grnNumber} className={styles.sourceTraceabilityRow}>
+                  <div className={styles.sourceTraceabilityInfo}>
+                    <strong>GRN #{s.grnNumber}</strong>
+                    <span>
+                      {s.customerName ? ` · ${s.customerName}` : ''} · {s.bags} bags
+                      {s.seasonYear ? ` · Season ${s.seasonYear}` : ''}
+                    </span>
+                  </div>
+                  <div className={styles.sourceTraceabilityDues}>
+                    Pending:{' '}
+                    <strong>
+                      ₹{(s.remainingBalance ?? 0).toLocaleString('en-IN')}
+                    </strong>
+                  </div>
+                </div>
+              ))}
           </div>
         </div>
       )}

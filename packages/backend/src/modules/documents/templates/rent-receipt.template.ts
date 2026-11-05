@@ -27,6 +27,16 @@ export function renderRentReceiptTemplate(
         <th>Commodity &amp; Bag Type</th>
         <td>${escapeHtml(dto.commodityName)} (${escapeHtml(formatDisplayBagType({ bagType: dto.bagType }))})</td>
       </tr>
+      ${
+        dto.challanNumber
+          ? `<tr>
+        <th>Delivery Challan / Gate Pass</th>
+        <td><strong>${escapeHtml(dto.challanNumber)}${dto.gpNumber ? ` (${escapeHtml(dto.gpNumber)})` : ''}</strong></td>
+        <th>Dispatched Bags</th>
+        <td><strong>${(dto.deliveryBags ?? 0).toLocaleString('en-IN')} bags</strong>${dto.deliveryDate ? ` · ${new Date(dto.deliveryDate).toLocaleDateString('en-IN')}` : ''}</td>
+      </tr>`
+          : ''
+      }
       <tr>
         <th>Inward Bags</th>
         <td><strong>${(dto.inwardBags ?? 0) > 0 ? (dto.inwardBags ?? 0).toLocaleString('en-IN') : '—'}</strong></td>

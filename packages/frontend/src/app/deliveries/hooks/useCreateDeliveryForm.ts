@@ -150,7 +150,8 @@ export function useCreateDeliveryForm(
       ? (seasonalCommodityRates?.big ?? selectedGrn?.bigBagPrice)
       : (selectedGrn?.bigBagPrice ?? (selectedGrn?.rentType === 'Monthly' ? monthlyCommodityRates?.big : seasonalCommodityRates?.big)),
     bagPrice: selectedGrn?.bagPrice, monthlySmallBagPrice: monthlyCommodityRates?.small ?? selectedGrn?.smallBagPrice, monthlyBigBagPrice: monthlyCommodityRates?.big ?? selectedGrn?.bigBagPrice, excludePeriodKeys,
-    hamaliRate: selectedGrn?.hamaliRate ?? hamaliRate, hasSeasonalRates,
+    hamaliRate: selectedGrn?.hamaliRate ?? hamaliRate,
+    hasSeasonalRates,
   });
 
   const handleBagCategoryChange = (cat: OutwardBagCategory) => {

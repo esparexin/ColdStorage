@@ -187,6 +187,9 @@ export class RentRepository {
       grnNumber: string;
       customerId?: string | null;
       customerName?: string | null;
+      deliveryId?: string | null;
+      challanNumber?: string | null;
+      gpNumber?: string | null;
       receiptNumber: string;
       amountPaid: number;
       paymentMode: 'Cash' | 'UPI';

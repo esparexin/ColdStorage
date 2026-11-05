@@ -29,6 +29,7 @@ function computePoolRent(params: {
   rentType: RentType; bagType: OperationalBagType; small: number; big: number; qty?: number;
   seasonalPrice: number | ''; monthlyPrice: number | ''; months: number;
   grn: Grn | null; date: string; sRates: { small: number; big: number } | null; mRates: { small: number; big: number } | null;
+  hamaliRate?: number | null;
 }) {
   const isHybrid = params.bagType === 'Hybrid';
   return computeOutwardRentCharge({
@@ -40,7 +41,7 @@ function computePoolRent(params: {
     smallBagPrice: params.grn?.smallBagPrice ?? (params.rentType === 'Monthly' ? params.mRates?.small : params.sRates?.small),
     bigBagPrice: params.grn?.bigBagPrice ?? (params.rentType === 'Monthly' ? params.mRates?.big : params.sRates?.big),
     bagPrice: params.grn?.bagPrice,
-    hamaliRate: params.grn?.hamaliRate,
+    hamaliRate: params.grn?.hamaliRate ?? params.hamaliRate,
   });
 }
 
@@ -145,8 +146,9 @@ export function useDualSectionDelivery(params: UseDualSectionDeliveryParams) {
       small: uSmallNum, big: uBigNum, qty: uQtyNum, seasonalPrice: unclassifiedSeasonalPrice,
       monthlyPrice: unclassifiedMonthlyPrice, months: billableRentMonths, grn: selectedGrn,
       date: createDate, sRates: seasonalCommodityRates, mRates: monthlyCommodityRates,
+      hamaliRate: rentSummary?.hamaliRate,
     });
-  }, [effectiveUnclassifiedBags, unclassifiedBagType, rentType, uSmallNum, uBigNum, uQtyNum, unclassifiedSeasonalPrice, unclassifiedMonthlyPrice, billableRentMonths, selectedGrn, createDate, seasonalCommodityRates, monthlyCommodityRates]);
+  }, [effectiveUnclassifiedBags, unclassifiedBagType, rentType, uSmallNum, uBigNum, uQtyNum, unclassifiedSeasonalPrice, unclassifiedMonthlyPrice, billableRentMonths, selectedGrn, createDate, seasonalCommodityRates, monthlyCommodityRates, rentSummary]);
 
   const confirmedRent = useMemo(() => {
     if (effectiveConfirmedBags <= 0 || !pools) return 0;
@@ -155,8 +157,9 @@ export function useDualSectionDelivery(params: UseDualSectionDeliveryParams) {
       seasonalPrice: confirmedSeasonalPrice, monthlyPrice: confirmedMonthlyPrice,
       months: billableRentMonths, grn: selectedGrn, date: createDate,
       sRates: seasonalCommodityRates, mRates: monthlyCommodityRates,
+      hamaliRate: rentSummary?.hamaliRate,
     });
-  }, [effectiveConfirmedBags, pools, rentType, cSmallNum, cBigNum, cQtyNum, confirmedSeasonalPrice, confirmedMonthlyPrice, billableRentMonths, selectedGrn, createDate, seasonalCommodityRates, monthlyCommodityRates]);
+  }, [effectiveConfirmedBags, pools, rentType, cSmallNum, cBigNum, cQtyNum, confirmedSeasonalPrice, confirmedMonthlyPrice, billableRentMonths, selectedGrn, createDate, seasonalCommodityRates, monthlyCommodityRates, rentSummary]);
 
   const totalWithdrawingBags = activeSection === 'A' ? effectiveUnclassifiedBags : effectiveConfirmedBags;
   const totalOutwardRent = activeSection === 'A' ? unclassifiedRent : confirmedRent;

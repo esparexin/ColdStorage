@@ -21,6 +21,8 @@ export const recordRentPaymentInputSchema = z
     paymentMode: paymentModeSchema,
     paymentDate: z.coerce.date().default(() => new Date()),
     notes: z.string().trim().max(500, 'Notes cannot exceed 500 characters').nullish(),
+    deliveryId: z.string().trim().min(1).nullish(),
+    challanNumber: z.string().trim().min(1).nullish(),
   })
   .refine(
     (data) => data.paymentDate <= new Date(Date.now() + 5 * 60 * 1000), // 5-minute future tolerance for clock skew
@@ -30,22 +32,22 @@ export const recordRentPaymentInputSchema = z
 export type RecordRentPaymentInput = z.infer<typeof recordRentPaymentInputSchema>;
 
 export const rentPaymentSchema = z.object({
-  id: z.string().min(1),
-  facilityId: z.string().min(1),
-  grnId: z.string().min(1),
-  grnNumber: z.string().min(1),
-  customerId: z.string().nullable().optional(),
-  customerName: z.string().nullable().optional(),
-  receiptNumber: rentReceiptNumberSchema,
-  amountPaid: z.number().min(0),
-  paymentMode: paymentModeSchema,
-  paymentDate: z.coerce.date(),
-  notes: z.string().nullable().optional(),
-  createdBy: z.string().min(1),
-  createdAt: z.coerce.date(),
+  id: z.string().min(1), facilityId: z.string().min(1), grnId: z.string().min(1), grnNumber: z.string().min(1),
+  customerId: z.string().nullable().optional(), customerName: z.string().nullable().optional(),
+  deliveryId: z.string().nullable().optional(), challanNumber: z.string().nullable().optional(),
+  gpNumber: z.string().nullable().optional(), receiptNumber: rentReceiptNumberSchema, amountPaid: z.number().min(0),
+  paymentMode: paymentModeSchema, paymentDate: z.coerce.date(), notes: z.string().nullable().optional(),
+  createdBy: z.string().min(1), createdAt: z.coerce.date(),
 });
-
 export type RentPayment = z.infer<typeof rentPaymentSchema>;
+
+export const rentDeliveryBillSchema = z.object({
+  deliveryId: z.string().min(1), challanNumber: z.string().min(1), gpNumber: z.string().nullable().optional(),
+  date: z.coerce.date(), totalBags: z.number().int().min(0), smallBags: z.number().int().min(0),
+  bigBags: z.number().int().min(0), rentCharge: z.number().min(0), rentTotalPaid: z.number().min(0),
+  rentRemainingBalance: z.number().min(0), rentPaymentStatus: paymentStatusSchema,
+});
+export type RentDeliveryBill = z.infer<typeof rentDeliveryBillSchema>;
 
 export * from './merged-consignment.js';
 import { mergedConsignmentBreakdownSchema } from './merged-consignment.js';
@@ -73,6 +75,7 @@ export const rentSummaryDtoSchema = z.object({
   rentType: rentTypeSchema,
   rentAmount: rentalAmountSchema,
   outwardRentCharges: z.number().min(0).optional(),
+  hamaliRate: z.number().min(0).nullish(),
   hamaliShare: z.number().min(0).optional(),
   rentMonths: z.number().int().nullable().optional(),
   totalPaid: z.number().min(0),
@@ -96,6 +99,7 @@ export const rentSummaryDtoSchema = z.object({
   mergedIntoGrnId: z.string().nullable().optional(),
   mergedIntoGrnNumber: z.string().nullable().optional(),
   mergedConsignment: mergedConsignmentBreakdownSchema.nullable().optional(),
+  deliveryBills: z.array(rentDeliveryBillSchema).optional(),
 });
 
 export type RentSummaryDto = z.infer<typeof rentSummaryDtoSchema>;

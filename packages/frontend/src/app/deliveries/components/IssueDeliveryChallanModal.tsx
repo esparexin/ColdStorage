@@ -40,6 +40,26 @@ export function IssueDeliveryChallanModal({
   onBackToGrn,
 }: IssueDeliveryChallanModalProps) {
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [pendingExitAction, setPendingExitAction] = useState<(() => void) | null>(null);
+
+  const hasUnsavedChanges = Boolean(
+    form.totalWithdrawingBags > 0 || form.withdrawal.smallBags !== '' ||
+    form.withdrawal.bigBags !== '' || form.withdrawal.quantity !== '' ||
+    form.createVehicleNumber.trim() || form.createDriverName.trim() ||
+    form.createWeight !== '' || form.createRemarks.trim() ||
+    (form.manualBagPrice !== '' && form.manualBagPrice !== form.selectedGrn?.bagPrice),
+  );
+
+  const handleGuardedExit = (action?: () => void) => {
+    if (!action) return;
+    if (hasUnsavedChanges) {
+      setPendingExitAction(() => action);
+      setShowExitConfirm(true);
+    } else {
+      action();
+    }
+  };
 
   const handleAttemptSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -55,14 +75,14 @@ export function IssueDeliveryChallanModal({
           <Button
             id="issue-modal-back-btn"
             variant="outline"
-            onClick={onBackToGrn}
+            onClick={() => handleGuardedExit(onBackToGrn)}
             disabled={form.submitting}
             leftIcon={<ArrowLeft size={14} aria-hidden="true" />}
           >
             Back to Inward
           </Button>
         )}
-        <Button id="issue-modal-cancel-btn" variant="outline" onClick={onClose} disabled={form.submitting}>
+        <Button id="issue-modal-cancel-btn" variant="outline" onClick={() => handleGuardedExit(onClose)} disabled={form.submitting}>
           Cancel
         </Button>
       </div>
@@ -85,7 +105,7 @@ export function IssueDeliveryChallanModal({
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => handleGuardedExit(onClose)}
       title="Issue Outward Delivery Challan"
       size="xl"
       footer={modalFooter}
@@ -146,46 +166,26 @@ export function IssueDeliveryChallanModal({
               <DeliveryBagCompositionFields
                 summary={form.grnSummary}
                 bagType={form.bagCategory === 'Hybrid' ? 'Hybrid' : (form.selectedGrn.bagType === 'Hybrid' ? 'S/B' : form.selectedGrn.bagType)}
-                rentType={form.selectedGrn.rentType}
-                rentMonths={form.billableRentMonths}
+                rentType={form.selectedGrn.rentType} rentMonths={form.billableRentMonths}
                 smallBagPrice={form.selectedGrn.smallBagPrice ?? (form.selectedGrn.rentType === 'Monthly' ? form.monthlyCommodityRates?.small : form.seasonalCommodityRates?.small)}
                 bigBagPrice={form.selectedGrn.bigBagPrice ?? (form.selectedGrn.rentType === 'Monthly' ? form.monthlyCommodityRates?.big : form.seasonalCommodityRates?.big)}
-                bagPrice={form.selectedGrn.bagPrice}
-                inwardDate={form.selectedGrn.date}
-                deliveryDate={form.createDate}
-                seasonalRates={form.seasonalCommodityRates}
-                monthlyRates={form.monthlyCommodityRates}
-                bagCategory={form.bagCategory}
-                manualBagPrice={form.manualBagPrice}
-                onManualBagPriceChange={form.setManualBagPrice}
-                seasonalBagPrice={form.seasonalBagPrice}
-                monthlyBagPrice={form.monthlyBagPrice}
-                onSeasonalBagPriceChange={form.setSeasonalBagPrice}
-                onMonthlyBagPriceChange={form.setMonthlyBagPrice}
-                showSeasonalRate={form.rateVisibility.showSeasonalRate}
-                showMonthlyRate={form.rateVisibility.showMonthlyRate}
-                outwardRent={form.outwardRent}
-                withdrawal={form.withdrawal}
-                onQuantityChange={form.setWithdrawalQuantity}
-                onSmallBagsChange={form.setWithdrawalSmallBags}
-                onBigBagsChange={form.setWithdrawalBigBags}
-                fieldErrors={form.fieldErrors}
-                rentSummary={form.rentSummary}
-                hamaliRate={form.hamaliRate}
+                bagPrice={form.selectedGrn.bagPrice} inwardDate={form.selectedGrn.date} deliveryDate={form.createDate}
+                seasonalRates={form.seasonalCommodityRates} monthlyRates={form.monthlyCommodityRates} bagCategory={form.bagCategory}
+                manualBagPrice={form.manualBagPrice} onManualBagPriceChange={form.setManualBagPrice}
+                seasonalBagPrice={form.seasonalBagPrice} monthlyBagPrice={form.monthlyBagPrice}
+                onSeasonalBagPriceChange={form.setSeasonalBagPrice} onMonthlyBagPriceChange={form.setMonthlyBagPrice}
+                showSeasonalRate={form.rateVisibility.showSeasonalRate} showMonthlyRate={form.rateVisibility.showMonthlyRate}
+                outwardRent={form.outwardRent} withdrawal={form.withdrawal}
+                onQuantityChange={form.setWithdrawalQuantity} onSmallBagsChange={form.setWithdrawalSmallBags} onBigBagsChange={form.setWithdrawalBigBags}
+                fieldErrors={form.fieldErrors} rentSummary={form.rentSummary} hamaliRate={form.hamaliRate}
               />
               <DeliveryTransportFields
-                createDate={form.createDate}
-                setCreateDate={form.setCreateDate}
-                createVehicleNumber={form.createVehicleNumber}
-                setCreateVehicleNumber={form.setCreateVehicleNumber}
-                createGpNumber={form.createGpNumber}
-                setCreateGpNumber={form.setCreateGpNumber}
-                createDriverName={form.createDriverName}
-                setCreateDriverName={form.setCreateDriverName}
-                createWeight={form.createWeight}
-                setCreateWeight={form.setCreateWeight}
-                createRemarks={form.createRemarks}
-                setCreateRemarks={form.setCreateRemarks}
+                createDate={form.createDate} setCreateDate={form.setCreateDate}
+                createVehicleNumber={form.createVehicleNumber} setCreateVehicleNumber={form.setCreateVehicleNumber}
+                createGpNumber={form.createGpNumber} setCreateGpNumber={form.setCreateGpNumber}
+                createDriverName={form.createDriverName} setCreateDriverName={form.setCreateDriverName}
+                createWeight={form.createWeight} setCreateWeight={form.setCreateWeight}
+                createRemarks={form.createRemarks} setCreateRemarks={form.setCreateRemarks}
                 fieldErrors={form.fieldErrors}
               />
             </>
@@ -199,25 +199,19 @@ export function IssueDeliveryChallanModal({
           size="md"
           message={
             <DeliveryConfirmSummary
-              customerName={form.selectedGrn.customerName}
-              grnNumber={form.selectedGrn.grnNumber}
-              chamber={form.selectedGrn.chamber}
-              commodityName={form.selectedGrn.commodityName}
+              customerName={form.selectedGrn.customerName} grnNumber={form.selectedGrn.grnNumber}
+              chamber={form.selectedGrn.chamber} commodityName={form.selectedGrn.commodityName}
               bagType={form.bagCategory === 'Hybrid' ? 'Hybrid' : form.selectedGrn.bagType}
               totalBags={form.totalWithdrawingBags}
-              smallBags={Number(form.withdrawal.smallBags || 0)}
-              bigBags={Number(form.withdrawal.bigBags || 0)}
-              outwardRent={form.outwardRent}
-              hamaliRate={form.hamaliRate}
-              vehicleNumber={form.createVehicleNumber}
-              gpNumber={form.createGpNumber}
-              originalBags={form.selectedGrn.bags}
+              smallBags={Number(form.withdrawal.smallBags || 0)} bigBags={Number(form.withdrawal.bigBags || 0)}
+              outwardRent={form.outwardRent} hamaliRate={form.hamaliRate}
+              vehicleNumber={form.createVehicleNumber} gpNumber={form.createGpNumber}
+              originalBags={form.selectedGrn.bags} totalHamaliAmount={form.selectedGrn.hamaliAmount}
               priorDeliveredBags={
                 form.grnSummary
                   ? Math.max(0, form.selectedGrn.bags - (form.grnSummary.availableSmallBags + form.grnSummary.availableBigBags))
                   : undefined
               }
-              totalHamaliAmount={form.selectedGrn.hamaliAmount}
             />
           }
           confirmLabel="Yes, Issue Delivery"
@@ -230,6 +224,22 @@ export function IssueDeliveryChallanModal({
             } finally {
               setShowConfirm(false);
             }
+          }}
+        />
+      )}
+      {showExitConfirm && (
+        <ConfirmDialog
+          isOpen={showExitConfirm}
+          title="Unsaved Changes"
+          message="Are you sure you want to go back? Any unsaved changes will be lost."
+          cancelLabel="Stay on This Screen" confirmLabel="Yes, Go Back"
+          confirmVariant="danger" confirmId="confirm-back-inward-btn" cancelId="cancel-back-inward-btn"
+          onCancel={() => { setShowExitConfirm(false); setPendingExitAction(null); }}
+          onConfirm={() => {
+            setShowExitConfirm(false);
+            const act = pendingExitAction;
+            setPendingExitAction(null);
+            act?.();
           }}
         />
       )}

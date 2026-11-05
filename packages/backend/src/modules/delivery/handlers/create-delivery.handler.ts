@@ -174,6 +174,7 @@ async function executeDeliveryTransaction(
       const { paidAmount } = await recordDeliveryInlinePayment({
         facilityId, grnId: grn.id, grnNumber: grn.grnNumber,
         customerId: grn.customerId, customerName: grn.customerName,
+        deliveryId, challanNumber, gpNumber,
         deliveryDate,
         paymentAmount: input.paymentAmount, paymentMode: input.paymentMode, paymentReference: input.paymentReference,
         remainingLiability, userId, session,

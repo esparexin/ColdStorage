@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { FileText, History } from 'lucide-react';
-import { seasonYearForInwardDate, type RentExtension, type RentSummaryDto } from '@cold-storage/contracts';
+import { seasonYearForInwardDate, type DeliveryChallan, type RentExtension, type RentSummaryDto } from '@cold-storage/contracts';
 import { Button, Modal, StatCard, StatGrid } from '@/components/ui';
 import { PRINT_MESSAGES } from '@/components/ui/stateCopy';
 import { printHtmlDocument } from '@/lib/print-document';
@@ -20,7 +20,7 @@ interface RentHistoryModalProps {
   canPrint: boolean;
   canCollect?: boolean;
   onClose: () => void;
-  onOpenCollect?: (account: RentSummaryDto) => void;
+  onOpenCollect?: (account: RentSummaryDto, delivery?: DeliveryChallan) => void;
 }
 
 export function RentHistoryModal({
@@ -36,6 +36,8 @@ export function RentHistoryModal({
   const [error, setError] = useState<string | null>(null);
 
   const originSeason = seasonYearForInwardDate(new Date(account.inwardDate));
+  const isOutwardAssessed =
+    (account.outwardRentCharges ?? 0) > 0 || (account.deliveredBags ?? 0) > 0;
 
   function periodLabel(ext: RentExtension): string {
     if (ext.period === 'SEASON') return `Season ${ext.seasonYear} renewal`;
@@ -78,7 +80,7 @@ export function RentHistoryModal({
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
-            {canCollect && account.remainingBalance > 0 && onOpenCollect && (
+            {!isOutwardAssessed && canCollect && account.remainingBalance > 0 && onOpenCollect && (
               <Button
                 variant="primary"
                 onClick={() => {
@@ -120,7 +122,13 @@ export function RentHistoryModal({
         <div className={styles.compactStats}>
           <StatGrid label={`Rent summary for ${account.grnNumber}`}>
             <StatCard
-              label={account.rentType === 'Monthly' && account.rentAmount === 0 ? 'Rent Status' : 'Total Billed'}
+              label={
+                isOutwardAssessed
+                  ? 'Total Outward Rent'
+                  : account.rentType === 'Monthly' && account.rentAmount === 0
+                  ? 'Rent Status'
+                  : 'Total Billed'
+              }
               value={formatRentStructure(account)}
             />
             <StatCard
@@ -141,9 +149,14 @@ export function RentHistoryModal({
             account={account}
             originSeason={originSeason}
             canPrint={canPrint}
+            canCollect={canCollect}
             printingReceiptNum={printingReceiptNum}
             error={error}
             onPrintReceipt={(num) => void handlePrintReceipt(num)}
+            onCollectDelivery={(delivery) => {
+              onClose();
+              onOpenCollect?.(account, delivery);
+            }}
             periodLabel={periodLabel}
           />
         ) : (

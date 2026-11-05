@@ -12,6 +12,7 @@ interface DeliveryPageModalsProps {
   selectedDelivery: DeliveryChallan | null;
   loanClearGrn: Grn | null;
   rentPayAccount: RentSummaryDto | null;
+  rentPayDelivery?: DeliveryChallan | null;
   canPrint: boolean;
   printingId: string | null;
   onCloseDetail: () => void;
@@ -30,6 +31,7 @@ export function DeliveryPageModals({
   selectedDelivery,
   loanClearGrn,
   rentPayAccount,
+  rentPayDelivery,
   canPrint,
   printingId,
   onCloseDetail,
@@ -99,6 +101,7 @@ export function DeliveryPageModals({
       {rentPayAccount && (
         <CollectPaymentModal
           account={rentPayAccount}
+          delivery={rentPayDelivery}
           selectedFacilityId={selectedFacilityId}
           canPrint={canPrint}
           onClose={onCloseRentPay}
