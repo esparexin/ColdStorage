@@ -8,7 +8,7 @@ import { computeRentBalance, type RentBalance } from '../../common/rent-balance.
 import { calculateGrnMonthlyOccupancyRent } from '../../common/occupancy-rent.js';
 import { counterService } from '../../common/counter.service.js';
 import {
-  canCalculateAuthoritativeRent, isHybridBagCategory, resolveMergeExcludedPeriodKeys, resolveSeasonalElapsedPeriods,
+  canCalculateAuthoritativeRent, isHybridBagCategory, resolveMergeExcludedPeriodKeys,
   resolveStoredCompositionVerified, seasonYearForInwardDate, toExcludedPeriodKeys,
   type BagType, type PaymentMode, type RentType,
 } from '@cold-storage/contracts';

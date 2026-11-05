@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Commodity, Grn, RentSummaryDto } from '@cold-storage/contracts';
+import type { Grn, RentSummaryDto } from '@cold-storage/contracts';
 import {
   calculateMergeGrandTotal,
-  calculateMergeSettlementBill,
   calculateMergeSourceRentSummary,
   deriveMergeRentAssessment,
 } from '../mergeRentAssessment.helper';

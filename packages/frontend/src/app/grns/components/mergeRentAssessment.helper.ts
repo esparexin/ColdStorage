@@ -3,7 +3,6 @@ import {
   isHybridBagCategory,
   resolveMergeExcludedPeriodKeys,
   resolveSeasonalElapsedPeriods,
-  seasonYearForInwardDate,
   type Commodity,
   type Grn,
   type OutwardBagCategory,

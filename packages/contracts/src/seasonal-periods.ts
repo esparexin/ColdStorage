@@ -1,5 +1,4 @@
 import { SEASON_START_MONTH_INDEX, type ExtensionPeriod } from './rent-extension.js';
-import type { RentType } from './grn-rent.js';
 import { calculateHamaliAmount, deriveNetStorageRate } from './hamali.js';
 import { shouldEvaluateSeasonalBreakdown } from './outward-seasonal-transition.js';
 export { shouldEvaluateSeasonalBreakdown };
