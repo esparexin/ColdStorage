@@ -37,9 +37,6 @@ export function resolveBillingHamaliRate(
   account: RentSummaryDto,
   activeCommodityRate?: { hamaliRate?: number | null } | null,
 ): number | undefined {
-  if (typeof account.hamaliRate === 'number' && account.hamaliRate > 0) {
-    return account.hamaliRate;
-  }
   if (typeof account.hamaliShare === 'number') {
     if (account.hamaliShare > 0 && account.totalBags > 0) {
       return Number((account.hamaliShare / account.totalBags).toFixed(2));

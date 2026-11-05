@@ -146,9 +146,8 @@ export function useDualSectionDelivery(params: UseDualSectionDeliveryParams) {
       small: uSmallNum, big: uBigNum, qty: uQtyNum, seasonalPrice: unclassifiedSeasonalPrice,
       monthlyPrice: unclassifiedMonthlyPrice, months: billableRentMonths, grn: selectedGrn,
       date: createDate, sRates: seasonalCommodityRates, mRates: monthlyCommodityRates,
-      hamaliRate: rentSummary?.hamaliRate,
     });
-  }, [effectiveUnclassifiedBags, unclassifiedBagType, rentType, uSmallNum, uBigNum, uQtyNum, unclassifiedSeasonalPrice, unclassifiedMonthlyPrice, billableRentMonths, selectedGrn, createDate, seasonalCommodityRates, monthlyCommodityRates, rentSummary]);
+  }, [effectiveUnclassifiedBags, unclassifiedBagType, rentType, uSmallNum, uBigNum, uQtyNum, unclassifiedSeasonalPrice, unclassifiedMonthlyPrice, billableRentMonths, selectedGrn, createDate, seasonalCommodityRates, monthlyCommodityRates]);
 
   const confirmedRent = useMemo(() => {
     if (effectiveConfirmedBags <= 0 || !pools) return 0;
@@ -157,9 +156,8 @@ export function useDualSectionDelivery(params: UseDualSectionDeliveryParams) {
       seasonalPrice: confirmedSeasonalPrice, monthlyPrice: confirmedMonthlyPrice,
       months: billableRentMonths, grn: selectedGrn, date: createDate,
       sRates: seasonalCommodityRates, mRates: monthlyCommodityRates,
-      hamaliRate: rentSummary?.hamaliRate,
     });
-  }, [effectiveConfirmedBags, pools, rentType, cSmallNum, cBigNum, cQtyNum, confirmedSeasonalPrice, confirmedMonthlyPrice, billableRentMonths, selectedGrn, createDate, seasonalCommodityRates, monthlyCommodityRates, rentSummary]);
+  }, [effectiveConfirmedBags, pools, rentType, cSmallNum, cBigNum, cQtyNum, confirmedSeasonalPrice, confirmedMonthlyPrice, billableRentMonths, selectedGrn, createDate, seasonalCommodityRates, monthlyCommodityRates]);
 
   const totalWithdrawingBags = activeSection === 'A' ? effectiveUnclassifiedBags : effectiveConfirmedBags;
   const totalOutwardRent = activeSection === 'A' ? unclassifiedRent : confirmedRent;

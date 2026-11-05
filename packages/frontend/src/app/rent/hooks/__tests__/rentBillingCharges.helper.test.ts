@@ -67,9 +67,9 @@ describe('rentBillingCharges.helper', () => {
   });
 
   describe('resolveBillingHamaliRate', () => {
-    it('uses account.hamaliRate when present and positive', () => {
-      const account = makeMockAccount({ totalBags: 100, hamaliRate: 25, hamaliShare: 0 });
-      expect(resolveBillingHamaliRate(account, null)).toBe(25);
+    it('uses commodity hamaliRate when account has no hamaliShare', () => {
+      const account = makeMockAccount({ totalBags: 100, hamaliShare: undefined });
+      expect(resolveBillingHamaliRate(account, { hamaliRate: 25 })).toBe(25);
     });
 
     it('derives hamali rate from account hamaliShare / totalBags', () => {
