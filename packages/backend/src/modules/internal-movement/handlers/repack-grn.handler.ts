@@ -71,14 +71,13 @@ export async function executeRepackGrn(
         previousStock = { total: bal.total, smallBags: bal.smallBags, bigBags: bal.bigBags };
 
         const isHybrid = input.resultingBagType === 'Hybrid';
-        if (isHybrid && (!input.repackedQuantity || input.repackedQuantity <= 0)) {
-          throw new Error('Repacked Hybrid quantity must be a positive whole number');
+        const actualRepackedBags = isHybrid
+          ? (input.repackedQuantity ?? 0)
+          : (input.repackedSmallBags ?? 0) + (input.repackedBigBags ?? 0);
+
+        if (actualRepackedBags <= 0) {
+          throw new Error('Repacked bag count must be greater than zero');
         }
-        if (!isHybrid && (input.repackedSmallBags == null || input.repackedBigBags == null || input.repackedSmallBags < 0 || input.repackedBigBags < 0)) {
-          throw new Error('Repacked Small and Big bag counts must be non-negative whole numbers');
-        }
-        const actualRepackedBags = isHybrid ? input.repackedQuantity! : input.repackedSmallBags! + input.repackedBigBags!;
-        if (actualRepackedBags <= 0) throw new Error('Repacked bag count must be greater than zero');
 
         repackVariance = actualRepackedBags - bal.total;
 

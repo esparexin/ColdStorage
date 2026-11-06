@@ -70,8 +70,8 @@ export async function transferOwnership(
 
       const movementDate = new Date(input.movementDate);
       const isHybrid = input.sourceBagType === 'Hybrid' || grn.bagType === 'Hybrid' || isHybridBagCategory(input.sourceBagCategory);
-      const confSmall = isHybrid ? bal.total : (input.confirmedSmallBags as number);
-      const confBig = isHybrid ? 0 : (input.confirmedBigBags as number);
+      const confSmall = isHybrid ? bal.total : (typeof input.confirmedSmallBags === 'number' ? input.confirmedSmallBags : bal.smallBags);
+      const confBig = isHybrid ? 0 : (typeof input.confirmedBigBags === 'number' ? input.confirmedBigBags : bal.bigBags);
       const transferExtensions = await rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session);
       const billedKeys = toExcludedPeriodKeys(transferExtensions);
       // 1. Authoritative outward-style rent assessment for all remaining bags being transferred

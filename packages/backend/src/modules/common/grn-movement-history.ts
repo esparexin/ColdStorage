@@ -153,12 +153,15 @@ export async function getGrnMovementHistory(
         runningSmall = t.smallQuantity;
         runningBig = t.bigQuantity;
       }
+      const trfInNotes = isTransferIn && mov?.movementType === 'TRANSFER_OWNERSHIP'
+        ? `Ownership transferred: ${mov.fromCustomerName} → ${mov.toCustomerName}: ${t.notes || ''}`
+        : t.notes;
       entries.push({
         date: mov?.movementDate ?? t.createdAt, grnId: grn.id, grnNumber: grn.grnNumber,
         type: isRepack ? 'INTERNAL_REPACK' : isTransferIn ? 'OWNERSHIP_TRANSFER' : 'INTERNAL_MERGE_IN',
         openingBags: opening, receivedBags: deltaTotal, deliveredBags: 0, closingBags: runningBalance,
         smallBags: t.smallQuantity, bigBags: t.bigQuantity, remainingSmallBags: runningSmall, remainingBigBags: runningBig,
-        remarks: t.notes, performedBy: mov?.performedBy ?? t.createdBy,
+        remarks: trfInNotes, performedBy: mov?.performedBy ?? t.createdBy,
       });
     } else if (t.transactionType === 'OUTWARD_DELIVERY') {
       const isMergeOut = t.notes?.startsWith('Merged into');
@@ -180,13 +183,16 @@ export async function getGrnMovementHistory(
       if (!isRepack && !isMergeOut && !isTransferOut) netDelivered += deltaTotal;
 
       if (isMergeOut || isRepack || isTransferOut) {
+        const trfOutNotes = isTransferOut && mov?.movementType === 'TRANSFER_OWNERSHIP'
+          ? `Ownership transferred: ${mov.fromCustomerName} → ${mov.toCustomerName}: ${t.notes || ''}`
+          : t.notes;
         entries.push({
           date: mov?.movementDate ?? t.createdAt, grnId: grn.id, grnNumber: grn.grnNumber,
           type: isMergeOut ? 'INTERNAL_MERGE_OUT' : isRepack ? 'INTERNAL_REPACK' : 'OWNERSHIP_TRANSFER',
           openingBags: opening, receivedBags: 0, deliveredBags: deltaTotal, closingBags: isMergeOut || isTransferOut || isRepack ? 0 : closing,
           smallBags: t.smallQuantity, bigBags: t.bigQuantity,
           remainingSmallBags: isMergeOut || isTransferOut || isRepack ? 0 : closingSmall, remainingBigBags: isMergeOut || isTransferOut || isRepack ? 0 : closingBig,
-          remarks: t.notes, performedBy: mov?.performedBy ?? t.createdBy,
+          remarks: trfOutNotes, performedBy: mov?.performedBy ?? t.createdBy,
         });
       } else {
         const challan = challanMap.get(t.referenceId);

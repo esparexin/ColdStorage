@@ -6,7 +6,7 @@ import {
 
 describe('Transfer Ownership Validation (Unit)', () => {
   describe('validateTransferBagConfirmation', () => {
-    it('requires explicit confirmed Small and Big counts for S/B lots', () => {
+    it('requires explicit confirmed Small and Big counts for unverified S/B lots', () => {
       expect(() =>
         validateTransferBagConfirmation(
           {
@@ -16,9 +16,9 @@ describe('Transfer Ownership Validation (Unit)', () => {
           } as never,
           100,
           '1001',
-          true,
+          false,
         ),
-      ).toThrow('Confirmed bag composition is required for transfer of GRN \'1001\' (100 bags)');
+      ).toThrow("Confirmed bag composition is required for transfer of GRN '1001' with unverified composition (100 bags)");
     });
 
     it('rejects S/B confirmation when sum of small and big does not reconcile to ledger stock', () => {

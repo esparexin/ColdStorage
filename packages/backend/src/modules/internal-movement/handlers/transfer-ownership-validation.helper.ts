@@ -49,17 +49,18 @@ export function validateTransferBagConfirmation(
   input: TransferOwnershipInput,
   ledgerTotal: number,
   grnNumber: string,
-  _isVerified?: boolean,
+  isVerified: boolean,
 ): void {
   const category = input.sourceBagType ?? input.sourceBagCategory ?? null;
   const quantity = input.sourceQuantity ?? null;
-  const cSmall = input.confirmedSmallBags ?? null;
-  const cBig = input.confirmedBigBags ?? null;
+  const cSmall = input.confirmedSmallBags;
+  const cBig = input.confirmedBigBags;
 
   if (category === 'Small' || category === 'Big' || category === 'S' || category === 'B') {
     throw new Error('Small-only and Big-only confirmation uses the Small & Big split (enter 0 for the unused side)');
   }
   const hasHybrid = category != null && (category === 'Hybrid' || isHybridBagCategory(category));
+  const hasSplit = cSmall != null || cBig != null;
 
   if (hasHybrid) {
     assertQty(quantity, ledgerTotal, grnNumber);
@@ -73,20 +74,24 @@ export function validateTransferBagConfirmation(
     return;
   }
 
-  if (cSmall == null || cBig == null) {
-    throw new Error(
-      `Confirmed bag composition is required for transfer of GRN '${grnNumber}' (${ledgerTotal} bags). Confirm Small + Big counts reconciling to the available stock.`,
-    );
+  if (!isVerified) {
+    if (cSmall == null || cBig == null) {
+      throw new Error(
+        `Confirmed bag composition is required for transfer of GRN '${grnNumber}' with unverified composition (${ledgerTotal} bags). Confirm Small + Big counts reconciling to the available stock.`,
+      );
+    }
   }
-  const s = cSmall;
-  const b = cBig;
-  if (!Number.isInteger(s) || !Number.isInteger(b) || s < 0 || b < 0) {
-    throw new Error('Confirmed bag counts must be whole non-negative numbers');
-  }
-  if (s + b !== ledgerTotal) {
-    throw new Error(
-      `Confirmed transfer counts (${s} small + ${b} big = ${s + b}) must reconcile with available stock of ${ledgerTotal} bags for GRN '${grnNumber}'`,
-    );
+  if (hasSplit) {
+    const s = cSmall ?? 0;
+    const b = cBig ?? 0;
+    if (!Number.isInteger(s) || !Number.isInteger(b) || s < 0 || b < 0) {
+      throw new Error('Confirmed bag counts must be whole non-negative numbers');
+    }
+    if (s + b !== ledgerTotal) {
+      throw new Error(
+        `Confirmed transfer counts (${s} small + ${b} big = ${s + b}) must reconcile with available stock of ${ledgerTotal} bags for GRN '${grnNumber}'`,
+      );
+    }
   }
 }
 
