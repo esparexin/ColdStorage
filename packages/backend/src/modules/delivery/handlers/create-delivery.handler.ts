@@ -171,7 +171,7 @@ async function executeDeliveryTransaction(
       const effectiveObligation = await resolveEffectiveDeliveryObligation(facilityId, grn, session);
       const remainingLiability = Math.max(0, Number((effectiveObligation - rentBalance.totalPaid).toFixed(2)));
 
-      const { paidAmount } = await recordDeliveryInlinePayment({
+      await recordDeliveryInlinePayment({
         facilityId, grnId: grn.id, grnNumber: grn.grnNumber,
         customerId: grn.customerId, customerName: grn.customerName,
         deliveryId, challanNumber, gpNumber,
@@ -181,12 +181,9 @@ async function executeDeliveryTransaction(
       });
 
       const closingTotal = available.total - withdrawnTotal;
-      const totalPaidAfterDelivery = rentBalance.totalPaid + paidAmount;
-      const effectiveRemaining = Math.max(0, Number((effectiveObligation - totalPaidAfterDelivery).toFixed(2)));
 
-      // Closure invariant: A GRN is CLOSED only when both remainingBags === 0 AND remainingBalance === 0.
-      // If bags reach 0 but rent balance remains, the GRN remains OPEN so outstanding dues are tracked.
-      if (closingTotal === 0 && effectiveRemaining === 0) {
+      // Closure invariant: A GRN transitions to CLOSED as soon as remaining bags reach 0.
+      if (closingTotal === 0) {
         await GrnModel.updateOne({ id: grn.id }, { $set: { status: 'CLOSED' } }, { session });
       }
     });

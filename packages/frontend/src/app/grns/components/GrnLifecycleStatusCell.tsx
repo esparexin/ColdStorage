@@ -4,6 +4,7 @@ import React from 'react';
 import { AlertCircle, Check, CheckCircle2, Clock, GitMerge } from 'lucide-react';
 import type { Grn } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui/Badge';
+import { resolveGrnLifecycleStatus } from './grnLifecycleStatus.helper';
 import styles from './GrnTable.module.css';
 
 interface GrnLifecycleStatusCellProps {
@@ -11,70 +12,29 @@ interface GrnLifecycleStatusCellProps {
 }
 
 export function GrnLifecycleStatusCell({ row }: GrnLifecycleStatusCellProps) {
-  const isMergedSource = Boolean(row.mergedIntoGrnNumber || row.mergedIntoGrnId);
-  const isMergedTarget = Boolean(row.remarks && row.remarks.includes('[MERGE RECEIVED'));
-
-  if (row.status === 'CLOSED') {
-    return (
-      <div className={styles.statusGroup}>
-        <Badge
-          variant="neutral"
-          icon={isMergedSource ? <GitMerge size={11} aria-hidden="true" /> : <Check size={11} aria-hidden="true" />}
-        >
-          Closed
-        </Badge>
-        {row.mergedIntoGrnNumber && (
-          <span className={styles.mergedReference}>Merged → {row.mergedIntoGrnNumber}</span>
-        )}
-        {isMergedTarget && <span className={styles.mergedReference}>Merged Lot</span>}
-      </div>
+  const status = resolveGrnLifecycleStatus(row);
+  const icon =
+    status.icon === 'GitMerge' ? (
+      <GitMerge size={11} aria-hidden="true" />
+    ) : status.icon === 'CheckCircle2' ? (
+      <CheckCircle2 size={11} aria-hidden="true" />
+    ) : status.icon === 'Clock' ? (
+      <Clock size={11} aria-hidden="true" />
+    ) : status.icon === 'AlertCircle' ? (
+      <AlertCircle size={11} aria-hidden="true" />
+    ) : (
+      <Check size={11} aria-hidden="true" />
     );
-  }
-
-  if (isMergedSource) {
-    return (
-      <div className={styles.statusGroup}>
-        <Badge variant="neutral" icon={<GitMerge size={11} aria-hidden="true" />}>
-          Merged
-        </Badge>
-        {row.mergedIntoGrnNumber && (
-          <span className={styles.mergedReference}>Merged → {row.mergedIntoGrnNumber}</span>
-        )}
-      </div>
-    );
-  }
-
-  const delivered = row.netDeliveredBags ?? 0;
-  const remaining = row.closingBags ?? Math.max(0, row.bags - delivered);
-
-  if (delivered === 0 && remaining > 0) {
-    return (
-      <div className={styles.statusGroup}>
-        <Badge variant="success" icon={<CheckCircle2 size={11} aria-hidden="true" />}>
-          Active
-        </Badge>
-        {isMergedTarget && <span className={styles.mergedReference}>Merged Lot</span>}
-      </div>
-    );
-  }
-
-  if (remaining > 0) {
-    return (
-      <div className={styles.statusGroup}>
-        <Badge variant="warning" icon={<Clock size={11} aria-hidden="true" />}>
-          Partial
-        </Badge>
-        {isMergedTarget && <span className={styles.mergedReference}>Merged Lot</span>}
-      </div>
-    );
-  }
 
   return (
     <div className={styles.statusGroup}>
-      <Badge variant="danger" icon={<AlertCircle size={11} aria-hidden="true" />}>
-        Pending Payment
+      <Badge variant={status.variant} icon={icon}>
+        {status.badge}
       </Badge>
-      {isMergedTarget && <span className={styles.mergedReference}>Merged Lot</span>}
+      {status.mergedReference && (
+        <span className={styles.mergedReference}>{status.mergedReference}</span>
+      )}
+      {status.isMergedLot && <span className={styles.mergedReference}>Merged Lot</span>}
     </div>
   );
 }

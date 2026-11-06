@@ -60,7 +60,11 @@ export function toGrnEntity(doc: {
   // Both figures are derived at read time from the ledger-sourced extras the caller passes.
   // There is no stored snapshot to fall back to: the model no longer carries either field.
   const netDelivered = extras?.netDeliveredBags ?? 0;
-  const closing = extras?.closingBags ?? Math.max(0, doc.bags - netDelivered);
+  const isMergedSource = Boolean(
+    (doc as Record<string, unknown>).mergedIntoGrnId ||
+    (doc as Record<string, unknown>).mergedIntoGrnNumber,
+  );
+  const closing = extras?.closingBags ?? (isMergedSource ? 0 : Math.max(0, doc.bags - netDelivered));
   return {
     id: doc.id,
     facilityId: doc.facilityId,
@@ -106,7 +110,7 @@ export function toGrnEntity(doc: {
     marks: doc.marks ?? null,
     vehicleNumber: doc.vehicleNumber ?? null,
     remarks: doc.remarks ?? null,
-    status: doc.status as Grn['status'],
+    status: (closing === 0 || doc.status === 'CLOSED') ? 'CLOSED' : 'OPEN',
     bondNumber: ((doc as Record<string, unknown>).bondNumber as string | null) ?? null,
     isBondForLoan: (doc as Record<string, unknown>).isBondForLoan === true,
     loanStatus: ((doc as Record<string, unknown>).loanStatus as Grn['loanStatus']) || 'NONE',
