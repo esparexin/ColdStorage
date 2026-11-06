@@ -80,8 +80,6 @@ export function useInternalMovementTransferTab({
 
   const isUnverified = currentGrn.isCompositionVerified === false;
   const isHybrid = isHybridBagCategory(sourceBagCategory);
-  const smallBags = isHybrid ? remainingBags : (typeof confirmedSmallBags === 'number' ? confirmedSmallBags : currentGrn.smallBags ?? 0);
-  const bigBags = isHybrid ? 0 : (typeof confirmedBigBags === 'number' ? confirmedBigBags : currentGrn.bigBags ?? 0);
 
   const commodity = useMemo(() => commodities?.find((c) => c.id === currentGrn.commodityId), [commodities, currentGrn.commodityId]);
   const { seasonalRates, monthlyRates } = useMemo(() => resolveTransferRates(currentGrn, commodity), [currentGrn, commodity]);

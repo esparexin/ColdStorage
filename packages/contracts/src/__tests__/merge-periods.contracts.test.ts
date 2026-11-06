@@ -4,7 +4,6 @@ import {
   deriveHybridRateVisibility,
   resolveActiveSubscriptionPeriodKey,
   resolveMergeExcludedPeriodKeys,
-  resolveTransferExcludedPeriodKeys,
 } from '../seasonal-periods.js';
 
 describe('merge-periods & active period SSOT contracts', () => {
