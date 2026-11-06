@@ -117,20 +117,3 @@ export function resolveMergeExcludedPeriodKeys(params: {
 
   return Array.from(excluded);
 }
-
-/**
- * SSOT for deriving excluded period keys during Ownership Transfer rent assessment.
- * Excludes already billed extensions and active uncompleted periods at movementDate.
- */
-export function resolveTransferExcludedPeriodKeys(params: {
-  inwardDate: Date | string;
-  movementDate: Date | string;
-  billedExtensionKeys?: string[];
-}): string[] {
-  const excluded = new Set<string>(params.billedExtensionKeys ?? []);
-  const uncompleted = resolveUncompletedPeriodKeys(params.inwardDate, params.movementDate);
-  for (const k of uncompleted) {
-    excluded.add(k);
-  }
-  return Array.from(excluded);
-}

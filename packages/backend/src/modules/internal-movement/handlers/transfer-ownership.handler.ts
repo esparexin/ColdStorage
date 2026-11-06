@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import {
   appendGrnRemarks, isHybridBagCategory,
-  resolveStoredCompositionVerified, resolveTransferExcludedPeriodKeys, toExcludedPeriodKeys,
+  resolveStoredCompositionVerified, toExcludedPeriodKeys,
   type TransferOwnershipInput, type Grn, type InternalMovementRecord, type RentPayment,
 } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
@@ -72,9 +72,6 @@ export async function transferOwnership(
       const confBig = isHybrid ? 0 : (typeof input.confirmedBigBags === 'number' ? input.confirmedBigBags : bal.bigBags);
       const transferExtensions = await rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session);
       const billedKeys = toExcludedPeriodKeys(transferExtensions);
-      const transferExcludedKeys = resolveTransferExcludedPeriodKeys({
-        inwardDate: grn.date, movementDate, billedExtensionKeys: billedKeys,
-      });
       // 1. Authoritative outward-style rent assessment for all remaining bags being transferred
       const { expectedRentCharge } = await computeExpectedDeliveryRent({
         grn: {
@@ -82,7 +79,7 @@ export async function transferOwnership(
           smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, bagPrice: grn.bagPrice,
         },
         withdrawal: { smallBags: confSmall, bigBags: confBig }, quantity: isHybrid ? (input.sourceQuantity ?? bal.total) : undefined,
-        deliveryDate: movementDate, session, excludePeriodKeys: transferExcludedKeys,
+        deliveryDate: movementDate, session, excludePeriodKeys: billedKeys,
         bagCategory: input.sourceBagCategory, bagPrice: input.sourceBagPrice, seasonalBagPrice: input.sourceSeasonalBagPrice, monthlyBagPrice: input.sourceMonthlyBagPrice,
         isRatesInclusiveOfHamali: false,
       });
