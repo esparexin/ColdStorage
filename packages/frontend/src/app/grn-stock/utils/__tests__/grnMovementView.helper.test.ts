@@ -85,7 +85,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
       bigBags: 0,
       remarks: 'Merged from GRNs 0011: Rebagging as per customer request',
     });
-    expect(res.typeLabel).toBe('MERGE_IN');
+    expect(res.typeLabel).toBe('MERGE_INTO_IN');
     expect(res.badgeType).toBe('mergeIn');
     expect(res.refNumber).toBe('From GRN 0011');
     expect(res.totalDisplay).toBe('631');
@@ -102,7 +102,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
       closingBags: 0,
       remarks: 'Merged into GRN 0015: Merged for customer Kalyan',
     });
-    expect(res.typeLabel).toBe('MERGE_OUT');
+    expect(res.typeLabel).toBe('MERGE_INTO_OUT');
     expect(res.badgeType).toBe('mergeOut');
     expect(res.refNumber).toBe('To GRN 0015');
     expect(res.totalDisplay).toBe('631');
@@ -230,7 +230,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
       closingBags: 30,
       remarks: 'Merged and repacked from GRNs 0008: 30 Hybrid bags',
     });
-    expect(res.typeLabel).toBe('MERGE_IN');
+    expect(res.typeLabel).toBe('MERGE_INTO_IN');
     expect(res.smallDisplay).toBe('—');
     expect(res.bigDisplay).toBe('—');
     expect(res.hybridDisplay).toBe('30');

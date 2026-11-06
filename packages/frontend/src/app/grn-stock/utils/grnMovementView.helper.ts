@@ -34,7 +34,7 @@ export function parseMovementRow(
 
     case 'MERGE_IN':
     case 'INTERNAL_MERGE_IN': {
-      typeLabel = 'MERGE_IN';
+      typeLabel = 'MERGE_INTO_IN';
       badgeType = 'mergeIn';
       totalDisplay = (entry.receivedBags ?? entry.closingBags).toLocaleString('en-IN');
       isReceived = true;
@@ -48,7 +48,7 @@ export function parseMovementRow(
 
     case 'MERGE_OUT':
     case 'INTERNAL_MERGE_OUT': {
-      typeLabel = 'MERGE_OUT';
+      typeLabel = 'MERGE_INTO_OUT';
       badgeType = 'mergeOut';
       totalDisplay = entry.deliveredBags.toLocaleString('en-IN');
       const match = entry.remarks?.match(/^Merged into GRN\s*([^:]+)(?::\s*(.*))?$/);
