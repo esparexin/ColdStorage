@@ -64,9 +64,9 @@ export function useInternalMovementTransferTab({
   const [sourceMonthlyBagPrice, setSourceMonthlyBagPrice] = useState<number | ''>('');
   const [destinationChamber, setDestinationChamber] = useState<string>(currentGrn.chamber || '');
   const [resultingBagType, setResultingBagType] = useState<OperationalBagType>(toOperationalBagType(currentGrn.bagType));
-  const [repackedSmallBags, setRepackedSmallBags] = useState<number | ''>(initialSb ? (currentGrn.smallBags ?? 0) : '');
-  const [repackedBigBags, setRepackedBigBags] = useState<number | ''>(initialSb ? (currentGrn.bigBags ?? 0) : '');
-  const [repackedQuantity, setRepackedQuantity] = useState<number | ''>(remainingBags);
+  const [repackedSmallBags, setRepackedSmallBags] = useState<number | ''>('');
+  const [repackedBigBags, setRepackedBigBags] = useState<number | ''>('');
+  const [repackedQuantity, setRepackedQuantity] = useState<number | ''>('');
   const [referenceWeight, setReferenceWeight] = useState<number | ''>(currentGrn.totalBagsWeight != null ? currentGrn.totalBagsWeight : '');
 
   const { rentSummary, rentLoading, refreshRentGate } = useRentGate();
@@ -144,8 +144,6 @@ export function useInternalMovementTransferTab({
       sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice,
     });
     if (confirmErr) return setValidationError(confirmErr);
-    if (repackedSmallBags === '' && typeof confirmedSmallBags === 'number') setRepackedSmallBags(confirmedSmallBags);
-    if (repackedBigBags === '' && typeof confirmedBigBags === 'number') setRepackedBigBags(confirmedBigBags);
     setStep(3);
   };
 

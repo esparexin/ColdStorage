@@ -148,10 +148,10 @@ export function deriveMovedAndTargetBags(params: MovedAndTargetBagsParams) {
 
   const addedBagsToTarget = repackMode
     ? isRepackFilled
-      ? Math.max(0, actualRepackedBags - targetCurrentRemaining)
+      ? actualRepackedBags
       : 0
     : totalSourceBags;
-  const targetNewRemaining = repackMode && isRepackFilled ? actualRepackedBags : targetCurrentRemaining + totalSourceBags;
+  const targetNewRemaining = targetCurrentRemaining + addedBagsToTarget;
 
   const anySourceHybrid = selectedSources.some((s) => isHybridBagCategory(sourceConfirmations[s.id]?.category));
   const effectiveIsHybrid = repackMode

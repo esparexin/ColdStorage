@@ -8,7 +8,6 @@ import {
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
-import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { computeRentBalance } from '../../common/rent-balance.js';
 import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
@@ -19,7 +18,9 @@ import { rentRepository } from '../../rent/rent.repository.js';
 import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
 import { resolveMovementObligation } from './resolve-movement-obligation.js';
-import { alignTransferLedger, formatTransferAuditNote, settleTransferRent } from './transfer-ownership.helper.js';
+import {
+  alignTransferLedger, createTransferMovement, formatTransferAuditNote, settleTransferRent,
+} from './transfer-ownership.helper.js';
 import { validateTransferBagConfirmation, validateTransferRepack } from './transfer-ownership-validation.helper.js';
 
 export async function transferOwnership(
@@ -175,36 +176,12 @@ export async function transferOwnership(
       resultGrnDoc = updatedGrn;
       resultPayment = paymentRecord;
 
-      const movementDocs = await InternalMovementModel.create(
-        [
-          {
-            id: movementId, facilityId, movementType: 'TRANSFER_OWNERSHIP',
-            movementDate: input.movementDate, grnId: grn.id, grnNumber: grn.grnNumber,
-            fromCustomerId: grn.customerId, fromCustomerName: grn.customerName,
-            toCustomerId: newCustomer.id, toCustomerName: newCustomer.name,
-            totalBagsMoved: bal.total, smallBagsMoved: finalSmall, bigBagsMoved: finalBig,
-            destinationChamber: finalChamber, resultingBagType,
-            referenceWeight: input.referenceWeight ?? null,
-            sourceBagType: input.sourceBagType ?? resultingBagType,
-            sourceBagCategory: input.sourceBagCategory ?? resultingBagType,
-            sourceQuantity: input.sourceQuantity ?? null,
-            sourceBagPrice: input.sourceBagPrice ?? null,
-            sourceSeasonalBagPrice: input.sourceSeasonalBagPrice ?? null,
-            sourceMonthlyBagPrice: input.sourceMonthlyBagPrice ?? null,
-            financialSnapshot: {
-              rentAmount: effectiveRentBal.rentAmount,
-              totalPaid: effectiveRentBal.totalPaid,
-              remainingBalance: effectiveRentBal.remainingBalance,
-              paymentStatus: effectiveRentBal.paymentStatus,
-              rentState: effectiveRentBal.rentState,
-            },
-            remarks: input.remarks.trim(), performedBy: userId, createdAt: new Date(),
-          },
-        ],
-        { session, ordered: true },
-      );
-
-      resultMovementDoc = movementDocs[0].toObject();
+      resultMovementDoc = await createTransferMovement({
+        movementId, facilityId, input, grn, newCustomer, bal,
+        finalSmall, finalBig, finalChamber, resultingBagType,
+        isRepackedHybrid, transferCommodity, effectiveRentBal,
+        userId, session,
+      });
     }),
     );
   } finally {
@@ -234,7 +211,7 @@ export async function transferOwnership(
       previousStock,
       confirmedBagComposition: { smallBags: input.confirmedSmallBags ?? null, bigBags: input.confirmedBigBags ?? null, quantity: input.sourceQuantity ?? null },
       newStockComposition: { total: movementRecord.totalBagsMoved, smallBags: movementRecord.smallBagsMoved, bigBags: movementRecord.bigBagsMoved, bagType: movementRecord.resultingBagType },
-      billReferences: { receiptNumber: resultPayment?.receiptNumber ?? null, amountPaid: resultPayment?.amountPaid ?? 0, paymentDecision: input.paymentDecision },
+      billReferences: { receiptNumber: resultPayment?.receiptNumber ?? null, amountPaid: resultPayment?.amountPaid ?? 0, paymentDecision: input.paymentDecision, hamaliCharge: movementRecord.hamaliCharge ?? 0 },
       pendingRent: movementRecord.financialSnapshot.remainingBalance, paymentDecision: input.paymentDecision,
       receiptNumber: resultPayment?.receiptNumber ?? null, amountPaidAtTransfer: resultPayment?.amountPaid ?? 0,
       remarks: input.remarks,

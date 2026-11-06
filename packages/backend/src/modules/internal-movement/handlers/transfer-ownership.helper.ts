@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import type { TransferOwnershipInput, RentPayment } from '@cold-storage/contracts';
+import { calculateHamaliAmount, type TransferOwnershipInput, type RentPayment, type InternalMovementRecord } from '@cold-storage/contracts';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
+import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { computeRentBalance, type RentBalance } from '../../common/rent-balance.js';
 import { counterService } from '../../common/counter.service.js';
 import { rentRepository } from '../../rent/rent.repository.js';
@@ -164,4 +165,73 @@ export async function alignTransferLedger(params: {
     ],
     { session, ordered: true },
   );
+}
+
+export interface CreateTransferMovementParams {
+  movementId: string; facilityId: string; input: TransferOwnershipInput;
+  grn: { id: string; grnNumber: string; customerId: string; customerName: string };
+  newCustomer: { id: string; name: string };
+  bal: { total: number }; finalSmall: number; finalBig: number;
+  finalChamber: string; resultingBagType: string; isRepackedHybrid: boolean;
+  transferCommodity?: { isHamaliApplicable?: boolean; hamaliRate?: number } | null;
+  effectiveRentBal: RentBalance; userId: string; session: mongoose.ClientSession;
+}
+
+export async function createTransferMovement(
+  params: CreateTransferMovementParams,
+): Promise<InternalMovementRecord> {
+  const {
+    movementId, facilityId, input, grn, newCustomer, bal,
+    finalSmall, finalBig, finalChamber, resultingBagType,
+    isRepackedHybrid, transferCommodity, effectiveRentBal,
+    userId, session,
+  } = params;
+
+  const isExplicitRepack =
+    typeof input.repackedSmallBags === 'number' ||
+    typeof input.repackedBigBags === 'number' ||
+    typeof input.repackedQuantity === 'number';
+  const isHamaliApp =
+    transferCommodity?.isHamaliApplicable ?? ((transferCommodity?.hamaliRate ?? 0) > 0);
+  const repackHamaliRate = isHamaliApp ? (transferCommodity?.hamaliRate ?? 0) : 0;
+  const repackedCount = isRepackedHybrid
+    ? (input.repackedQuantity ?? (finalSmall + finalBig))
+    : (finalSmall + finalBig);
+  const repackHamaliCharge =
+    isExplicitRepack && repackHamaliRate > 0 ? calculateHamaliAmount(repackedCount, repackHamaliRate) : 0;
+
+  const docs = await InternalMovementModel.create(
+    [
+      {
+        id: movementId, facilityId, movementType: 'TRANSFER_OWNERSHIP',
+        movementDate: input.movementDate, grnId: grn.id, grnNumber: grn.grnNumber,
+        fromCustomerId: grn.customerId, fromCustomerName: grn.customerName,
+        toCustomerId: newCustomer.id, toCustomerName: newCustomer.name,
+        totalBagsMoved: bal.total, smallBagsMoved: finalSmall, bigBagsMoved: finalBig,
+        destinationChamber: finalChamber, resultingBagType,
+        hamaliBags: isExplicitRepack ? repackedCount : undefined,
+        hamaliRate: isExplicitRepack ? repackHamaliRate : undefined,
+        hamaliCharge: isExplicitRepack ? repackHamaliCharge : undefined,
+        referenceWeight: input.referenceWeight ?? null,
+        sourceBagType: input.sourceBagType ?? resultingBagType,
+        sourceBagCategory: input.sourceBagCategory ?? resultingBagType,
+        sourceQuantity: input.sourceQuantity ?? null,
+        sourceBagPrice: input.sourceBagPrice ?? null,
+        sourceSeasonalBagPrice: input.sourceSeasonalBagPrice ?? null,
+        sourceMonthlyBagPrice: input.sourceMonthlyBagPrice ?? null,
+        financialSnapshot: {
+          rentAmount: effectiveRentBal.rentAmount,
+          totalPaid: effectiveRentBal.totalPaid,
+          remainingBalance: effectiveRentBal.remainingBalance,
+          paymentStatus: effectiveRentBal.paymentStatus,
+          rentState: effectiveRentBal.rentState,
+          hamaliAmount: repackHamaliCharge,
+        },
+        remarks: input.remarks.trim(), performedBy: userId, createdAt: new Date(),
+      },
+    ],
+    { session, ordered: true },
+  );
+
+  return docs[0].toObject() as InternalMovementRecord;
 }

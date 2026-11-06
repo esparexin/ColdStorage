@@ -131,7 +131,7 @@ export async function mergeGrn(
         repackedSmallBags: input.repackedSmallBags,
         repackedBigBags: input.repackedBigBags,
         repackedBagCount: input.repackedBagCount,
-        totalMovedBags: targetGrn.bags + actualMovedBags,
+        totalMovedBags: actualMovedBags,
         session,
       });
       repackHamaliCharge = repackHamali.repackHamaliCharge;
