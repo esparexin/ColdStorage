@@ -147,7 +147,7 @@ export async function executeRepackGrn(
         if (input.remarks) grn.remarks = grn.remarks ? `${grn.remarks} | ${input.remarks}` : input.remarks;
         grn.updatedAt = movementDate;
 
-        // Prospective subscription recalculation: Season 1 lots update rentAmount for continuing subscription
+        // Prospective subscription recalculation: Continue ONLY newly repacked quantity into live running subscription
         if (
           seasonYearForInwardDate(grn.date) === seasonYearForInwardDate(movementDate) &&
           (grn.rentType === 'Seasonal' || grn.rentType === 'Seasonal_3M')
@@ -157,8 +157,8 @@ export async function executeRepackGrn(
             smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice,
           });
           grn.rentAmount = calculateRentAmount({
-            rentType: grn.rentType, bags: grn.bags, bagType: grn.bagType,
-            smallBags: grn.smallBags, bigBags: grn.bigBags, bagPrice: effectiveBagPrice,
+            rentType: grn.rentType, bags: actualRepackedBags, bagType: grn.bagType,
+            smallBags: inSmall, bigBags: inBig, bagPrice: effectiveBagPrice,
             smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, rentAmount: grn.rentAmount,
           });
         }

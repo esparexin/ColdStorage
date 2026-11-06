@@ -32,10 +32,10 @@ export function GrnSortingStep2Repack({
   const [resultingBagType, setResultingBagType] = useState<OperationalBagType>(toOperationalBagType(grn.bagType));
   // Chamber must be explicitly entered by the operator — do not pre-fill with old chamber
   const [destinationChamber, setDestinationChamber] = useState<string>('');
-  const hasMatchingComposition = grn.smallBags != null && grn.bigBags != null && grn.smallBags + grn.bigBags === originalBags;
-  const [repackedSmallBags, setRepackedSmallBags] = useState<string>(hasMatchingComposition ? String(grn.smallBags) : String(originalBags));
-  const [repackedBigBags, setRepackedBigBags] = useState<string>(hasMatchingComposition ? String(grn.bigBags) : '0');
-  const [repackedQuantity, setRepackedQuantity] = useState<string>(String(originalBags));
+  // Repacked bag quantities must not be auto-inherited from existing profiles; explicit confirmation required
+  const [repackedSmallBags, setRepackedSmallBags] = useState<string>('');
+  const [repackedBigBags, setRepackedBigBags] = useState<string>('');
+  const [repackedQuantity, setRepackedQuantity] = useState<string>('');
   const [referenceWeight, setReferenceWeight] = useState<string>(grn.totalBagsWeight != null ? String(grn.totalBagsWeight) : '');
   const [varianceReason, setVarianceReason] = useState<string>('');
   const [remarks, setRemarks] = useState<string>('');
@@ -58,9 +58,9 @@ export function GrnSortingStep2Repack({
     const error = validateRepackOperation(
       {
         resultingBagType, destinationChamber: destinationChamber.trim(),
-        repackedSmallBags: isHybrid ? null : Number(repackedSmallBags),
-        repackedBigBags: isHybrid ? null : Number(repackedBigBags),
-        repackedQuantity: isHybrid ? Number(repackedQuantity) : null,
+        repackedSmallBags: isHybrid ? null : (repackedSmallBags.trim() === '' ? null : Number(repackedSmallBags)),
+        repackedBigBags: isHybrid ? null : (repackedBigBags.trim() === '' ? null : Number(repackedBigBags)),
+        repackedQuantity: isHybrid ? (repackedQuantity.trim() === '' ? null : Number(repackedQuantity)) : null,
         repackVarianceReason: varianceReason.trim() || undefined,
         remarks: remarks.trim(),
       },
