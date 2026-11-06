@@ -1,9 +1,11 @@
 import type mongoose from 'mongoose';
 import {
   deriveBillingCycle,
+  resolveEffectiveGrnRentType,
   type RecordBatchRentPaymentInput, type RecordBatchRentPaymentResult,
   type RecordRentPaymentInput, type RecordRentPaymentResult,
   type RentReceiptDocumentDto, type RentSummaryDto, type StorageOccupancyFilter,
+  type RentType,
 } from '@cold-storage/contracts';
 import { GrnModel, type GrnDoc } from '../../database/models/grn.model.js';
 import {
@@ -72,9 +74,9 @@ export class RentService {
     ]);
     const hamaliShare = computeFirstSeasonHamali(grn.bags, commodity, extensions, grn.hamaliRate, grn.hamaliAmount);
     const hasNoAgreedRates = grn.smallBagPrice == null && grn.bigBagPrice == null && grn.bagPrice == null;
-    const controllerType = grn.rentType === 'Monthly' ? 'Monthly' : 'Seasonal';
+    const ctrlType = resolveEffectiveGrnRentType({ rentType: grn.rentType as RentType, inwardDate: grn.date }) === 'Monthly' ? 'Monthly' : 'Seasonal';
     const rateDoc = hasNoAgreedRates
-      ? await CommodityRateModel.findOne({ commodityId: grn.commodityId, rentType: controllerType, isActive: true }).lean().exec()
+      ? await CommodityRateModel.findOne({ commodityId: grn.commodityId, rentType: ctrlType, isActive: true }).lean().exec()
       : null;
     const effectiveHamali = grn.hamaliRate ?? (commodity?.isHamaliApplicable ? commodity.hamaliRate : null) ?? null;
     return buildRentSummary(
@@ -130,9 +132,9 @@ export class RentService {
         grn.bags, comm ?? null, extensions, grn.hamaliRate, grn.hamaliAmount,
       );
       const outwardInfo = outwardRentMap.get(grn.id);
-      const controllerType = grn.rentType === 'Monthly' ? 'Monthly' : 'Seasonal';
+      const ctrlType = resolveEffectiveGrnRentType({ rentType: grn.rentType as RentType, inwardDate: grn.date }) === 'Monthly' ? 'Monthly' : 'Seasonal';
       const hasNoAgreedRates = grn.smallBagPrice == null && grn.bigBagPrice == null && grn.bagPrice == null;
-      const rateDoc = hasNoAgreedRates ? rateMap.get(`${grn.commodityId}:${controllerType}`) ?? null : null;
+      const rateDoc = hasNoAgreedRates ? rateMap.get(`${grn.commodityId}:${ctrlType}`) ?? null : null;
       const effectiveHamali = grn.hamaliRate ?? (comm?.isHamaliApplicable ? comm.hamaliRate : null) ?? null;
       return buildRentSummary(
         grn, paymentsByGrn.get(grn.id) ?? [], extensions, delivered, remaining,

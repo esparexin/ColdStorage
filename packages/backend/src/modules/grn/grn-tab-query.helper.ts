@@ -65,17 +65,11 @@ export async function resolveGrnFacilityTabSummaries(
   for (const grn of facilityGrns) {
     const isMergedSource = Boolean(grn.mergedIntoGrnId);
     const isMergedTarget = Boolean(grn.remarks && grn.remarks.includes('[MERGE RECEIVED'));
-
-    if (isMergedSource) {
-      mergedIds.push(grn.id);
-      continue;
-    }
-    if (isMergedTarget) {
-      mergedIds.push(grn.id);
-    }
+    const isMerged = isMergedSource || isMergedTarget;
 
     const delivered = deliveredMap.get(grn.id) ?? 0;
-    const remaining = Math.max(0, grn.bags - delivered);
+    const closing = isMergedSource ? 0 : Math.max(0, grn.bags - delivered);
+
     const outwardRent = rentChargeMap.get(grn.id) ?? 0;
     const totalPaid = paymentMap.get(grn.id) ?? 0;
 
@@ -88,19 +82,26 @@ export async function resolveGrnFacilityTabSummaries(
     const paymentStatus: 'Settled' | 'Not Settled' = remainingLiability === 0 ? 'Settled' : 'Not Settled';
     rentBalanceMap.set(grn.id, { remainingBalance: remainingLiability, paymentStatus });
 
-    if (grn.status === 'CLOSED') {
+    // Merged tab: displays merged consignments with remaining active stock (> 0 bags).
+    // Zero-balance GRNs (whether merged source lots or outwarded lots) must never appear in the Merged tab.
+    if (isMerged && closing > 0 && grn.status !== 'CLOSED') {
+      mergedIds.push(grn.id);
+    }
+
+    // Closed tab: once balance reaches 0 bags and status is CLOSED (or settled), it belongs in Closed.
+    if (grn.status === 'CLOSED' || (closing === 0 && (isMergedSource || remainingLiability === 0))) {
       closedIds.push(grn.id);
       continue;
     }
 
-    // Status is 'OPEN'
-    if (delivered === 0) {
+    // Status is 'OPEN' and stock is remaining or dues are pending
+    if (delivered === 0 && closing > 0) {
       activeIds.push(grn.id);
     } else {
-      if (remaining > 0) {
+      if (closing > 0) {
         partialIds.push(grn.id);
       }
-      if (remainingLiability > 0 || remaining === 0) {
+      if (remainingLiability > 0 || closing === 0) {
         pendingPaymentIds.push(grn.id);
       }
     }

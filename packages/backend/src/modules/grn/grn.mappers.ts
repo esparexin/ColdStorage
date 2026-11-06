@@ -1,4 +1,4 @@
-import type { Grn, GrnAcknowledgement } from '@cold-storage/contracts';
+import { resolveEffectiveGrnRentType, type Grn, type GrnAcknowledgement, type RentType } from '@cold-storage/contracts';
 
 export function toGrnEntity(doc: {
   id: string;
@@ -81,7 +81,10 @@ export function toGrnEntity(doc: {
     smallBagWeight: doc.smallBagWeight ?? null,
     bigBagWeight: doc.bigBagWeight ?? null,
     totalBagsWeight: doc.totalBagsWeight ?? null,
-    rentType: doc.rentType as Grn['rentType'],
+    rentType: resolveEffectiveGrnRentType({
+      rentType: doc.rentType as RentType,
+      inwardDate: doc.date,
+    }),
     rentMonths: doc.rentMonths ?? null,
     rentAmount: doc.rentAmount,
     bagPrice: doc.bagPrice ?? null,
