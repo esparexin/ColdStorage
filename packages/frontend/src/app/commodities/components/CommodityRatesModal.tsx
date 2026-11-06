@@ -129,6 +129,11 @@ export function CommodityRatesModal({ commodity, onClose, onSaved }: CommodityRa
       ) : (
         <form onSubmit={handleSubmit} className={styles.modalForm}>
           {modalError && <Banner message={modalError} id="rates-modal-error" />}
+          <Banner
+            variant="info"
+            id="rates-applicability-notice"
+            message="Rate updates apply to newly inwarded lots and future/next-season renewals. Current live/running seasons for already-inwarded lots remain locked at their agreed inward rate."
+          />
           <div className={styles.matrixContainer}>
             <DataTable
               columns={[
