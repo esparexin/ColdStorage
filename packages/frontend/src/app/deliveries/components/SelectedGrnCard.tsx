@@ -3,7 +3,7 @@
 import React from 'react';
 import { GitMerge } from 'lucide-react';
 import type { BagType, Grn, GrnInventorySummary, OutwardBagCategory, RentSummaryDto } from '@cold-storage/contracts';
-import { formatDisplayBagType, isHybridBagCategory, parseMergedConsignmentBreakdown } from '@cold-storage/contracts';
+import { formatDisplayBagType, isHybridBagCategory, parseMergedConsignmentBreakdown, toOperationalBagType } from '@cold-storage/contracts';
 import { Badge, Button, Select } from '@/components/ui';
 import {
   parseMergedDate,
@@ -41,12 +41,12 @@ export function SelectedGrnCard({
     parseMergedConsignmentBreakdown(grn.remarks, grn.bags, grn.customerName);
   const isAlreadyConfirmed = Boolean(grn.isCompositionVerified === true);
   const hasTypeSelection = !isAlreadyConfirmed && Boolean(onBagTypeChange || onBagCategoryChange);
-  const selectedBagCategory = bagCategory ?? (bagType ? (bagType === 'Hybrid' ? 'Hybrid' : 'S/B') : undefined);
+  const selectedBagCategory = bagCategory ?? (bagType ? toOperationalBagType(bagType) : undefined);
   const isHybrid = isAlreadyConfirmed
-    ? (grn.bagType === 'Hybrid' || isHybridBagCategory(grn.bagType))
+    ? isHybridBagCategory(grn.bagType)
     : (selectedBagCategory
       ? isHybridBagCategory(selectedBagCategory)
-      : (bagType === 'Hybrid' || isHybridBagCategory(grn.bagType)));
+      : (bagType ? isHybridBagCategory(bagType) : isHybridBagCategory(grn.bagType)));
   const mergedFrom = breakdown && breakdown.sources.length > 0
     ? Array.from(new Set(breakdown.sources.map((s) => s.grnNumber))).join(', ')
     : parseMergedSourceGrns(grn.remarks);

@@ -3,6 +3,7 @@
 import React from 'react';
 import { UserCheck } from 'lucide-react';
 import type { Customer, Grn, OutwardBagCategory, TransferPaymentDecision } from '@cold-storage/contracts';
+import { isHybridBagCategory } from '@cold-storage/contracts';
 import { Badge, Input } from '@/components/ui';
 import { WizardStepActions } from './WizardStepActions';
 import {
@@ -61,7 +62,7 @@ export function TransferStep3Confirm({
   submitting,
   onBack,
 }: TransferStep3ConfirmProps) {
-  const isHybrid = sourceBagCategory === 'Hybrid' || currentGrn.bagType === 'Hybrid';
+  const isHybrid = isHybridBagCategory(sourceBagCategory) || isHybridBagCategory(currentGrn.bagType);
   const totalLabor = hamaliAmount ?? 0;
   const totalApplicableRent = assessedRent + totalLabor;
 

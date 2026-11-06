@@ -1,9 +1,10 @@
 import mongoose, { Schema, type Document, type Model } from 'mongoose';
+import type { CommodityRentType } from '@cold-storage/contracts';
 
 export interface CommodityRateDoc extends Document {
   id: string;
   commodityId: string;
-  rentType: 'Monthly' | 'Seasonal';
+  rentType: CommodityRentType;
   smallRate: number;
   bigRate: number;
   /**

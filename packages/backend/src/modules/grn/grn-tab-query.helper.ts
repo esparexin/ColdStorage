@@ -1,4 +1,4 @@
-import { type GrnProfileTab, resolveTotalRentObligation } from '@cold-storage/contracts';
+import { type GrnProfileTab, type RentType, resolveTotalRentObligation } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
 import { RentPaymentModel } from '../../database/models/rent-payment.model.js';
 import { GrnModel } from '../../database/models/grn.model.js';
@@ -80,7 +80,7 @@ export async function resolveGrnFacilityTabSummaries(
     const totalPaid = paymentMap.get(grn.id) ?? 0;
 
     const effectiveLiability = resolveTotalRentObligation({
-      rentType: (grn.rentType ?? 'Seasonal') as 'Monthly' | 'Seasonal' | 'Seasonal_3M',
+      rentType: (grn.rentType ?? 'Seasonal') as RentType,
       rentAmount: grn.rentAmount,
       outwardRentCharges: outwardRent,
     });

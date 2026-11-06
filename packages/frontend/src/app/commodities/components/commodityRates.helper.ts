@@ -1,3 +1,5 @@
+import type { CommodityRate, CommodityRentType } from '@cold-storage/contracts';
+
 export interface CommodityRatesFormState {
   seasonalSmall: number | '';
   seasonalBig: number | '';
@@ -39,16 +41,12 @@ export function validateRatesForm(state: CommodityRatesFormState, hamaliRate?: n
 }
 
 export interface RateUpsertPayload {
-  rentType: 'Seasonal' | 'Monthly';
+  rentType: CommodityRentType;
   smallRate: number;
   bigRate: number;
 }
 
-export interface StoredCommodityRate {
-  rentType: 'Seasonal' | 'Monthly';
-  smallRate: number;
-  bigRate: number;
-}
+export type StoredCommodityRate = Pick<CommodityRate, 'rentType' | 'smallRate' | 'bigRate'>;
 
 /** Maps fetched controller rows onto the form; null when nothing is configured yet. */
 export function hydrateRatesForm(rates: StoredCommodityRate[]): CommodityRatesFormState | null {

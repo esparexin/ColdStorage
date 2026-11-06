@@ -1,10 +1,11 @@
 import mongoose, { Schema, type Document, type Model } from 'mongoose';
+import type { SeasonDuration } from '@cold-storage/contracts';
 
 export interface CommodityDoc extends Document {
   id: string;
   name: string;
   normalizedName: string;
-  seasonDuration?: 'Seasonal' | 'Seasonal_3M';
+  seasonDuration?: SeasonDuration;
   isHamaliApplicable?: boolean;
   hamaliRate?: number;
   isActive: boolean;

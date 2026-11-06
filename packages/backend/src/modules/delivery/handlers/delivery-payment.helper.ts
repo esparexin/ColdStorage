@@ -1,6 +1,6 @@
 import type mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { resolveTotalRentObligation, type PaymentMode } from '@cold-storage/contracts';
+import { resolveTotalRentObligation, type PaymentMode, type RentType } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
@@ -127,7 +127,7 @@ export async function resolveEffectiveDeliveryObligation(
   );
 
   return resolveTotalRentObligation({
-    rentType: grn.rentType as 'Monthly' | 'Seasonal' | 'Seasonal_3M',
+    rentType: grn.rentType as RentType,
     rentAmount: grn.rentAmount,
     outwardRentCharges: totalOutward,
     extensionAmounts: extensions.map((e) => e.finalAmount),
