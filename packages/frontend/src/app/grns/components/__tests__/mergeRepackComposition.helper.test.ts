@@ -135,24 +135,24 @@ describe('mergeRepackComposition.helper', () => {
       expect(res.effectiveIsHybrid).toBe(false);
     });
 
-    it('derives moved and target bags for 38-bag consolidated pool (8 target + 30 sources)', () => {
+    it('isolates newly repacked source bags (30) from existing target stock (8) resulting in 38 total', () => {
       const res = deriveMovedAndTargetBags({
         selectedSources: [sampleSourceGrn],
         sourceConfirmations: {},
         repackMode: true,
         repackBagType: 'S/B',
         isRepackFilled: true,
-        repackSmall: 24,
-        repackBig: 14,
+        repackSmall: 20,
+        repackBig: 10,
         repackQuantity: '',
         totalSourceBags: 30,
         targetCurrentRemaining: 8,
         targetBagType: 'S/B',
-        actualRepackedBags: 38,
+        actualRepackedBags: 30,
       });
 
-      expect(res.movedSmall).toBe(24);
-      expect(res.movedBig).toBe(14);
+      expect(res.movedSmall).toBe(20);
+      expect(res.movedBig).toBe(10);
       expect(res.addedBagsToTarget).toBe(30);
       expect(res.targetNewRemaining).toBe(38);
     });
