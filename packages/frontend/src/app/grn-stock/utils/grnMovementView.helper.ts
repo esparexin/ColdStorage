@@ -112,11 +112,16 @@ export function parseMovementRow(
       break;
   }
 
+  const isPureMetadataTransfer =
+    entry.type === 'OWNERSHIP_TRANSFER' &&
+    entry.smallBags == null &&
+    entry.bigBags == null;
+
   const isHybrid =
     grnBagType === 'Hybrid' ||
     entry.remarks?.toLowerCase().includes('hybrid') === true ||
     (entry as { bagType?: string }).bagType === 'Hybrid' ||
-    (entry.type !== 'OWNERSHIP_TRANSFER' &&
+    (!isPureMetadataTransfer &&
       entry.smallBags == null &&
       entry.bigBags == null &&
       (entry.receivedBags ?? entry.deliveredBags ?? entry.closingBags ?? 0) > 0 &&
@@ -134,21 +139,21 @@ export function parseMovementRow(
       (entry.smallBags === 0 && entry.bigBags === 0 && (entry.receivedBags ?? entry.closingBags ?? 0) > 0));
 
   const smallDisplay =
-    entry.type === 'OWNERSHIP_TRANSFER' || isUnclassifiedInward || isHybrid
+    isPureMetadataTransfer || isUnclassifiedInward || isHybrid
       ? '—'
       : entry.smallBags != null
         ? entry.smallBags.toLocaleString('en-IN')
         : '—';
 
   const bigDisplay =
-    entry.type === 'OWNERSHIP_TRANSFER' || isUnclassifiedInward || isHybrid
+    isPureMetadataTransfer || isUnclassifiedInward || isHybrid
       ? '—'
       : entry.bigBags != null
         ? entry.bigBags.toLocaleString('en-IN')
         : '—';
 
   const hybridDisplay =
-    entry.type === 'OWNERSHIP_TRANSFER' || isUnclassifiedInward || !isHybrid
+    isPureMetadataTransfer || isUnclassifiedInward || !isHybrid
       ? '—'
       : totalDisplay;
 

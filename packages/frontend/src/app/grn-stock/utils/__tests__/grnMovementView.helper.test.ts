@@ -29,35 +29,15 @@ describe('grnMovementView.helper parseMovementRow', () => {
     expect(res.notes).toBe('Genesis Inward');
   });
 
-  it('renders unclassified genesis INWARD (null small/big bags) with dashes', () => {
-    const res = parseMovementRow({
-      ...baseEntry,
-      smallBags: null,
-      bigBags: null,
-      receivedBags: 10,
-      closingBags: 10,
-    });
-    expect(res.typeLabel).toBe('INWARD');
-    expect(res.totalDisplay).toBe('10');
-    expect(res.smallDisplay).toBe('—');
-    expect(res.bigDisplay).toBe('—');
-    expect(res.isReceived).toBe(true);
-    expect(res.notes).toBe('Genesis Inward');
-  });
-
-  it('renders unclassified genesis INWARD (0/0 placeholder bags) with dashes', () => {
-    const res = parseMovementRow({
-      ...baseEntry,
-      smallBags: 0,
-      bigBags: 0,
-      receivedBags: 10,
-      closingBags: 10,
-    });
-    expect(res.typeLabel).toBe('INWARD');
-    expect(res.totalDisplay).toBe('10');
-    expect(res.smallDisplay).toBe('—');
-    expect(res.bigDisplay).toBe('—');
-    expect(res.isReceived).toBe(true);
+  it('renders unclassified genesis INWARD with dashes for null or zero placeholder bags', () => {
+    for (const [sb, bb] of [[null, null], [0, 0]] as const) {
+      const res = parseMovementRow({ ...baseEntry, smallBags: sb, bigBags: bb, receivedBags: 10, closingBags: 10 });
+      expect(res.typeLabel).toBe('INWARD');
+      expect(res.totalDisplay).toBe('10');
+      expect(res.smallDisplay).toBe('—');
+      expect(res.bigDisplay).toBe('—');
+      expect(res.isReceived).toBe(true);
+    }
   });
 
   it('renders verified genesis INWARD with confirmed small and big bags', () => {
@@ -128,6 +108,30 @@ describe('grnMovementView.helper parseMovementRow', () => {
     expect(res.bigDisplay).toBe('—');
     expect(res.totalDisplay).toBe('—');
     expect(res.notes).toBe('Transferred as requested');
+  });
+
+  it('correctly parses TRANSFER_OUT and TRANSFER_IN entries with small and big bags', () => {
+    const outRes = parseMovementRow({
+      ...baseEntry,
+      type: 'OWNERSHIP_TRANSFER',
+      openingBags: 67, receivedBags: 0, deliveredBags: 67, closingBags: 0, smallBags: 30, bigBags: 37,
+      remarks: 'Ownership transferred: Penchaliah → NITISH: Transferred stock',
+    });
+    expect(outRes.typeLabel).toBe('TRANSFER_OUT');
+    expect(outRes.smallDisplay).toBe('30');
+    expect(outRes.bigDisplay).toBe('37');
+    expect(outRes.totalDisplay).toBe('67');
+
+    const inRes = parseMovementRow({
+      ...baseEntry,
+      type: 'OWNERSHIP_TRANSFER',
+      openingBags: 0, receivedBags: 333, deliveredBags: 0, closingBags: 333, smallBags: 0, bigBags: 333,
+      remarks: 'Ownership transferred: Penchaliah → NITISH: Transferred stock',
+    });
+    expect(inRes.typeLabel).toBe('TRANSFER_IN');
+    expect(inRes.smallDisplay).toBe('0');
+    expect(inRes.bigDisplay).toBe('333');
+    expect(inRes.totalDisplay).toBe('333');
   });
 
   it('correctly parses OUTWARD delivery with GP and challan numbers', () => {
