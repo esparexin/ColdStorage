@@ -61,8 +61,9 @@ export function parseMovementRow(
 
     case 'TRANSFER_OWNERSHIP':
     case 'OWNERSHIP_TRANSFER': {
-      const isTransferIn = (entry.receivedBags ?? 0) > 0;
-      const isTransferOut = entry.deliveredBags > 0;
+      const isPureMetadata = Boolean(entry.remarks?.startsWith('Ownership transferred:')) && entry.smallBags == null && entry.bigBags == null;
+      const isTransferIn = !isPureMetadata && (entry.receivedBags ?? 0) > 0;
+      const isTransferOut = !isPureMetadata && entry.deliveredBags > 0;
       typeLabel = isTransferIn ? 'TRANSFER_IN' : isTransferOut ? 'TRANSFER_OUT' : 'TRANSFER';
       badgeType = isTransferIn ? 'mergeIn' : isTransferOut ? 'mergeOut' : 'transfer';
       totalDisplay = isTransferIn

@@ -183,9 +183,9 @@ export async function getGrnMovementHistory(
         entries.push({
           date: mov?.movementDate ?? t.createdAt, grnId: grn.id, grnNumber: grn.grnNumber,
           type: isMergeOut ? 'INTERNAL_MERGE_OUT' : isRepack ? 'INTERNAL_REPACK' : 'OWNERSHIP_TRANSFER',
-          openingBags: opening, receivedBags: 0, deliveredBags: deltaTotal, closingBags: isMergeOut || isTransferOut ? 0 : closing,
+          openingBags: opening, receivedBags: 0, deliveredBags: deltaTotal, closingBags: isMergeOut || isTransferOut || isRepack ? 0 : closing,
           smallBags: t.smallQuantity, bigBags: t.bigQuantity,
-          remainingSmallBags: isMergeOut || isTransferOut ? 0 : closingSmall, remainingBigBags: isMergeOut || isTransferOut ? 0 : closingBig,
+          remainingSmallBags: isMergeOut || isTransferOut || isRepack ? 0 : closingSmall, remainingBigBags: isMergeOut || isTransferOut || isRepack ? 0 : closingBig,
           remarks: t.notes, performedBy: mov?.performedBy ?? t.createdBy,
         });
       } else {
