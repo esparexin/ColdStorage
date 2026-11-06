@@ -1,4 +1,5 @@
 import type { ClientSession } from 'mongoose';
+import type { RentType } from '@cold-storage/contracts';
 import { computeRentBalance, type RentBalance } from './rent-balance.js';
 import { RentPaymentModel } from '../../database/models/rent-payment.model.js';
 import { rentRepository } from '../rent/rent.repository.js';
@@ -13,7 +14,7 @@ export interface RentGateGrn {
   id: string;
   grnNumber: string;
   rentAmount: number | null;
-  rentType: 'Monthly' | 'Seasonal' | 'Seasonal_3M';
+  rentType: RentType;
   commodityId: string;
   bags: number;
   hamaliRate?: number | null;

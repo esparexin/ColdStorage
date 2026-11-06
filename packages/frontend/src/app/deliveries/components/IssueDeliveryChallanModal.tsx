@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import type { Grn, OutwardBagCategory, RentSummaryDto } from '@cold-storage/contracts';
+import { isHybridBagCategory, toOperationalBagType } from '@cold-storage/contracts';
 import { Button, ConfirmDialog, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { FeedbackStates } from '@/components/ui/FeedbackStates';
@@ -120,7 +121,7 @@ export function IssueDeliveryChallanModal({
             summary={form.grnSummary}
             rentSummary={form.rentSummary}
             onChangeGrn={onChangeGrn ? onChangeGrn : () => void form.handleSelectGrn('')}
-            bagType={form.bagCategory === 'Hybrid' ? 'Hybrid' : 'S/B'}
+            bagType={toOperationalBagType(form.bagCategory)}
             bagCategory={form.bagCategory}
             onBagTypeChange={(bt) => form.setBagCategory(bt as OutwardBagCategory)}
             onBagCategoryChange={form.setBagCategory}
@@ -154,7 +155,7 @@ export function IssueDeliveryChallanModal({
             <>
               <DeliveryBagCompositionFields
                 summary={form.grnSummary}
-                bagType={form.bagCategory === 'Hybrid' ? 'Hybrid' : (form.selectedGrn.bagType === 'Hybrid' ? 'S/B' : form.selectedGrn.bagType)}
+                bagType={isHybridBagCategory(form.bagCategory) ? 'Hybrid' : (isHybridBagCategory(form.selectedGrn.bagType) ? 'S/B' : form.selectedGrn.bagType)}
                 rentType={form.selectedGrn.rentType} rentMonths={form.billableRentMonths}
                 smallBagPrice={form.selectedGrn.smallBagPrice ?? (form.selectedGrn.rentType === 'Monthly' ? form.monthlyCommodityRates?.small : form.seasonalCommodityRates?.small)}
                 bigBagPrice={form.selectedGrn.bigBagPrice ?? (form.selectedGrn.rentType === 'Monthly' ? form.monthlyCommodityRates?.big : form.seasonalCommodityRates?.big)}
@@ -190,7 +191,7 @@ export function IssueDeliveryChallanModal({
             <DeliveryConfirmSummary
               customerName={form.selectedGrn.customerName} grnNumber={form.selectedGrn.grnNumber}
               chamber={form.selectedGrn.chamber} commodityName={form.selectedGrn.commodityName}
-              bagType={form.bagCategory === 'Hybrid' ? 'Hybrid' : form.selectedGrn.bagType}
+              bagType={isHybridBagCategory(form.bagCategory) ? 'Hybrid' : form.selectedGrn.bagType}
               totalBags={form.totalWithdrawingBags}
               smallBags={Number(form.withdrawal.smallBags || 0)} bigBags={Number(form.withdrawal.bigBags || 0)}
               outwardRent={form.outwardRent} hamaliRate={form.hamaliRate}

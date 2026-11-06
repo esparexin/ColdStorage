@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Layers } from 'lucide-react';
-import { type OperationalBagType, type RentType } from '@cold-storage/contracts';
+import { toOperationalBagType, type OperationalBagType, type RentType } from '@cold-storage/contracts';
 import { Input, Select } from '@/components/ui';
 import styles from './InternalMovementModal.module.css';
 
@@ -66,7 +66,7 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
             <Select
               id="repack-bag-type-select"
               label="Bag Type"
-              value={repackBagType === 'Hybrid' ? 'Hybrid' : 'S/B'}
+              value={toOperationalBagType(repackBagType)}
               onChange={(e) => onRepackBagTypeChange(e.target.value as OperationalBagType)}
               disabled={submitting}
             >

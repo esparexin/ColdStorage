@@ -10,7 +10,7 @@ import type {
   RentType,
   UnclassifiedDispatchAllocation,
 } from '@cold-storage/contracts';
-import { deriveHybridRateVisibility, parseMergedConsignmentBreakdown } from '@cold-storage/contracts';
+import { deriveHybridRateVisibility, parseMergedConsignmentBreakdown, toOperationalBagType } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { calculateRemainingMergedStockPools, type MergedStockPools } from './mergedStockPools.helper';
 import { computeOutwardRentCharge } from './deliveryRent.helper';
@@ -142,7 +142,7 @@ export function useDualSectionDelivery(params: UseDualSectionDeliveryParams) {
   const unclassifiedRent = useMemo(() => {
     if (effectiveUnclassifiedBags <= 0 || !unclassifiedBagType) return 0;
     return computePoolRent({
-      rentType, bagType: unclassifiedBagType === 'Hybrid' ? 'Hybrid' : 'S/B',
+      rentType, bagType: toOperationalBagType(unclassifiedBagType),
       small: uSmallNum, big: uBigNum, qty: uQtyNum, seasonalPrice: unclassifiedSeasonalPrice,
       monthlyPrice: unclassifiedMonthlyPrice, months: billableRentMonths, grn: selectedGrn,
       date: createDate, sRates: seasonalCommodityRates, mRates: monthlyCommodityRates,

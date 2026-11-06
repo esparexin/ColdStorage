@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   calculateHamaliAmount,
-  isHybridBagCategory, resolveTotalRentObligation,
+  isHybridBagCategory, resolveTotalRentObligation, toOperationalBagType,
   type Commodity, type Customer, type Grn, type OperationalBagType, type OutwardBagCategory, type PaymentMode,
   type TransferPaymentDecision, type TransferSettlementDetails,
 } from '@cold-storage/contracts';
@@ -52,18 +52,18 @@ export function useInternalMovementTransferTab({
 
   const remainingBags = currentGrn.closingBags ?? currentGrn.bags;
   const initialSb = currentGrn.isCompositionVerified === true &&
-    currentGrn.bagType !== 'Hybrid' &&
+    !isHybridBagCategory(currentGrn.bagType) &&
     ((currentGrn.smallBags ?? 0) + (currentGrn.bigBags ?? 0) === remainingBags);
   const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>(initialSb ? (currentGrn.smallBags ?? 0) : '');
   const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>(initialSb ? (currentGrn.bigBags ?? 0) : '');
   const [sourceBagCategory, setSourceBagCategory] = useState<OutwardBagCategory>(
-    isHybridBagCategory(currentGrn.bagType) ? 'Hybrid' : 'S/B',
+    toOperationalBagType(currentGrn.bagType),
   );
   const [sourceBagPrice, setSourceBagPrice] = useState<number | ''>('');
   const [sourceSeasonalBagPrice, setSourceSeasonalBagPrice] = useState<number | ''>('');
   const [sourceMonthlyBagPrice, setSourceMonthlyBagPrice] = useState<number | ''>('');
   const [destinationChamber, setDestinationChamber] = useState<string>(currentGrn.chamber || '');
-  const [resultingBagType, setResultingBagType] = useState<OperationalBagType>(currentGrn.bagType === 'Hybrid' ? 'Hybrid' : 'S/B');
+  const [resultingBagType, setResultingBagType] = useState<OperationalBagType>(toOperationalBagType(currentGrn.bagType));
   const [repackedSmallBags, setRepackedSmallBags] = useState<number | ''>(initialSb ? (currentGrn.smallBags ?? 0) : '');
   const [repackedBigBags, setRepackedBigBags] = useState<number | ''>(initialSb ? (currentGrn.bigBags ?? 0) : '');
   const [repackedQuantity, setRepackedQuantity] = useState<number | ''>(remainingBags);

@@ -3,8 +3,10 @@ import {
   calculatePeriodRent,
   commodityRateQuerySchema,
   commodityRateSchema,
+  commodityRentTypeSchema,
   pickRateForBags,
   resolvePeriodEffectiveRate,
+  seasonDurationSchema,
   upsertCommodityRateSchema,
 } from '../index.js';
 
@@ -137,5 +139,17 @@ describe('Price Controller commodity rates', () => {
     expect(
       commodityRateQuerySchema.safeParse({ commodityId: '', rentType: 'Seasonal' }).success,
     ).toBe(false);
+  });
+
+  it('strictly validates commodityRentTypeSchema and seasonDurationSchema SSOT', () => {
+    expect(commodityRentTypeSchema.safeParse('Seasonal').success).toBe(true);
+    expect(commodityRentTypeSchema.safeParse('Monthly').success).toBe(true);
+    expect(commodityRentTypeSchema.safeParse('Yearly').success).toBe(false);
+    expect(commodityRentTypeSchema.safeParse('Seasonal_3M').success).toBe(false);
+
+    expect(seasonDurationSchema.safeParse('Seasonal').success).toBe(true);
+    expect(seasonDurationSchema.safeParse('Seasonal_3M').success).toBe(true);
+    expect(seasonDurationSchema.safeParse('Monthly').success).toBe(false);
+    expect(seasonDurationSchema.safeParse('').success).toBe(false);
   });
 });
