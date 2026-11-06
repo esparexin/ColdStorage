@@ -145,11 +145,11 @@ describe('GRN Sorting & Repacking with Partial Deliveries (Phase 2)', () => {
     expect(movement?.repackSourceBags).toBe(80);
     expect(movement?.repackVariance).toBe(-4);
 
-    // 5. Verify GRN and Ledger State
+    // 5. Verify GRN and Ledger State: old inward calculation starts from ZERO, recording only newly repacked counts
     const grn = await GrnModel.findOne({ id: grnId }).lean().exec();
-    expect(grn?.bags).toBe(96); // 100 + (-4)
-    expect(grn?.smallBags).toBe(60);
-    expect(grn?.bigBags).toBe(36);
+    expect(grn?.bags).toBe(76);
+    expect(grn?.smallBags).toBe(50);
+    expect(grn?.bigBags).toBe(26);
 
     const balAfter = await readLedgerBalance(facilityId, grnId);
     expect(balAfter.total).toBe(76);
@@ -157,7 +157,7 @@ describe('GRN Sorting & Repacking with Partial Deliveries (Phase 2)', () => {
     expect(balAfter.bigBags).toBe(26);
 
     const grnEntity = await grnService.getGrnById(grnId);
-    expect(grnEntity?.bags).toBe(96);
+    expect(grnEntity?.bags).toBe(76);
     expect(grnEntity?.netDeliveredBags).toBe(20);
     expect(grnEntity?.closingBags).toBe(76);
 

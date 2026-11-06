@@ -1,11 +1,13 @@
 import {
   canCalculateAuthoritativeRent,
   parseMergedConsignmentBreakdown,
+  resolveEffectiveGrnRentType,
   resolveStoredCompositionVerified,
   splitRentObligation,
   type RentDeliveryBill,
   type RentExtension,
   type RentSummaryDto,
+  type RentType,
 } from '@cold-storage/contracts';
 import type { GrnDoc } from '../../database/models/grn.model.js';
 import type { RentPaymentDoc } from '../../database/models/rent-payment.model.js';
@@ -86,8 +88,13 @@ export function buildRentSummary(
   rateFallback?: { smallRate: number; bigRate: number; hamaliRate?: number | null } | null,
   deliveryBills: RentDeliveryBill[] = [],
 ): RentSummaryDto {
+  const effectiveRentType = resolveEffectiveGrnRentType({
+    rentType: grn.rentType as RentType,
+    inwardDate: grn.date,
+  });
+
   const { baseRent, total: totalDue } = splitRentObligation({
-    rentType: grn.rentType,
+    rentType: effectiveRentType,
     rentAmount: grn.rentAmount,
     outwardRentCharges,
     hamaliShare,
@@ -166,7 +173,7 @@ export function buildRentSummary(
     smallBagPrice: grn.smallBagPrice ?? rateFallback?.smallRate ?? null,
     bigBagPrice: grn.bigBagPrice ?? rateFallback?.bigRate ?? null,
     totalBagsWeight: grn.totalBagsWeight ?? null,
-    rentType: grn.rentType,
+    rentType: effectiveRentType,
     rentAmount: effectiveBaseRent,
     outwardRentCharges,
     hamaliShare,

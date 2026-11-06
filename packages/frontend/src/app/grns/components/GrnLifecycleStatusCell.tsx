@@ -11,7 +11,27 @@ interface GrnLifecycleStatusCellProps {
 }
 
 export function GrnLifecycleStatusCell({ row }: GrnLifecycleStatusCellProps) {
-  if (row.mergedIntoGrnNumber || row.mergedIntoGrnId) {
+  const isMergedSource = Boolean(row.mergedIntoGrnNumber || row.mergedIntoGrnId);
+  const isMergedTarget = Boolean(row.remarks && row.remarks.includes('[MERGE RECEIVED'));
+
+  if (row.status === 'CLOSED') {
+    return (
+      <div className={styles.statusGroup}>
+        <Badge
+          variant="neutral"
+          icon={isMergedSource ? <GitMerge size={11} aria-hidden="true" /> : <Check size={11} aria-hidden="true" />}
+        >
+          Closed
+        </Badge>
+        {row.mergedIntoGrnNumber && (
+          <span className={styles.mergedReference}>Merged → {row.mergedIntoGrnNumber}</span>
+        )}
+        {isMergedTarget && <span className={styles.mergedReference}>Merged Lot</span>}
+      </div>
+    );
+  }
+
+  if (isMergedSource) {
     return (
       <div className={styles.statusGroup}>
         <Badge variant="neutral" icon={<GitMerge size={11} aria-hidden="true" />}>
@@ -24,23 +44,10 @@ export function GrnLifecycleStatusCell({ row }: GrnLifecycleStatusCellProps) {
     );
   }
 
-  const isMergedTarget = Boolean(row.remarks && row.remarks.includes('[MERGE RECEIVED'));
-
-  if (row.status === 'CLOSED') {
-    return (
-      <div className={styles.statusGroup}>
-        <Badge variant="neutral" icon={<Check size={11} aria-hidden="true" />}>
-          Outward
-        </Badge>
-        {isMergedTarget && <span className={styles.mergedReference}>Merged Lot</span>}
-      </div>
-    );
-  }
-
   const delivered = row.netDeliveredBags ?? 0;
   const remaining = row.closingBags ?? Math.max(0, row.bags - delivered);
 
-  if (delivered === 0) {
+  if (delivered === 0 && remaining > 0) {
     return (
       <div className={styles.statusGroup}>
         <Badge variant="success" icon={<CheckCircle2 size={11} aria-hidden="true" />}>

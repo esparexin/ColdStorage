@@ -207,7 +207,7 @@ describe('Internal Movement Workflows (Merge & Transfer Ownership)', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.grn).toMatchObject({ customerId: customerB, customerName: 'Trader Suresh', bags: 100 });
+    expect(res.body.grn).toMatchObject({ customerId: customerB, customerName: 'Trader Suresh', bags: 80 });
     expect(res.body.movement).toMatchObject({ totalBagsMoved: 80, smallBagsMoved: 80, bigBagsMoved: 0 });
 
     const updated = await GrnModel.findOne({ id: grn38 }).lean().exec();

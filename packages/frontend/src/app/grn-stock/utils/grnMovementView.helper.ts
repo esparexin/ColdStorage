@@ -34,7 +34,7 @@ export function parseMovementRow(
 
     case 'MERGE_IN':
     case 'INTERNAL_MERGE_IN': {
-      typeLabel = 'MERGE_IN';
+      typeLabel = 'MERGE_INTO_IN';
       badgeType = 'mergeIn';
       totalDisplay = (entry.receivedBags ?? entry.closingBags).toLocaleString('en-IN');
       isReceived = true;
@@ -48,7 +48,7 @@ export function parseMovementRow(
 
     case 'MERGE_OUT':
     case 'INTERNAL_MERGE_OUT': {
-      typeLabel = 'MERGE_OUT';
+      typeLabel = 'MERGE_INTO_OUT';
       badgeType = 'mergeOut';
       totalDisplay = entry.deliveredBags.toLocaleString('en-IN');
       const match = entry.remarks?.match(/^Merged into GRN\s*([^:]+)(?::\s*(.*))?$/);
@@ -93,7 +93,7 @@ export function parseMovementRow(
     case 'INTERNAL_SORTING':
     case 'INTERNAL_REPACK': {
       const isRepackIn = (entry.receivedBags ?? 0) > 0;
-      typeLabel = 'INTERNAL_SORTING';
+      typeLabel = isRepackIn ? 'SORT_IN' : 'SORT_OUT';
       badgeType = isRepackIn ? 'mergeIn' : 'mergeOut';
       totalDisplay = (isRepackIn ? (entry.receivedBags ?? 0) : entry.deliveredBags).toLocaleString('en-IN');
       isReceived = isRepackIn;
@@ -112,11 +112,16 @@ export function parseMovementRow(
       break;
   }
 
+  const isPureMetadataTransfer =
+    entry.type === 'OWNERSHIP_TRANSFER' &&
+    entry.smallBags == null &&
+    entry.bigBags == null;
+
   const isHybrid =
     grnBagType === 'Hybrid' ||
     entry.remarks?.toLowerCase().includes('hybrid') === true ||
     (entry as { bagType?: string }).bagType === 'Hybrid' ||
-    (entry.type !== 'OWNERSHIP_TRANSFER' &&
+    (!isPureMetadataTransfer &&
       entry.smallBags == null &&
       entry.bigBags == null &&
       (entry.receivedBags ?? entry.deliveredBags ?? entry.closingBags ?? 0) > 0 &&
@@ -134,21 +139,21 @@ export function parseMovementRow(
       (entry.smallBags === 0 && entry.bigBags === 0 && (entry.receivedBags ?? entry.closingBags ?? 0) > 0));
 
   const smallDisplay =
-    entry.type === 'OWNERSHIP_TRANSFER' || isUnclassifiedInward || isHybrid
+    isPureMetadataTransfer || isUnclassifiedInward || isHybrid
       ? '—'
       : entry.smallBags != null
         ? entry.smallBags.toLocaleString('en-IN')
         : '—';
 
   const bigDisplay =
-    entry.type === 'OWNERSHIP_TRANSFER' || isUnclassifiedInward || isHybrid
+    isPureMetadataTransfer || isUnclassifiedInward || isHybrid
       ? '—'
       : entry.bigBags != null
         ? entry.bigBags.toLocaleString('en-IN')
         : '—';
 
   const hybridDisplay =
-    entry.type === 'OWNERSHIP_TRANSFER' || isUnclassifiedInward || !isHybrid
+    isPureMetadataTransfer || isUnclassifiedInward || !isHybrid
       ? '—'
       : totalDisplay;
 

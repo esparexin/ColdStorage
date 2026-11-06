@@ -151,6 +151,7 @@ export async function transferOwnership(
         customerName: newCustomer.name,
         chamber: finalChamber,
         bagType: resultingBagType,
+        bags: finalSmall + finalBig,
         smallBags: finalSmall,
         bigBags: finalBig,
         isCompositionVerified: true,

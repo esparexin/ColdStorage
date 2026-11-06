@@ -29,35 +29,15 @@ describe('grnMovementView.helper parseMovementRow', () => {
     expect(res.notes).toBe('Genesis Inward');
   });
 
-  it('renders unclassified genesis INWARD (null small/big bags) with dashes', () => {
-    const res = parseMovementRow({
-      ...baseEntry,
-      smallBags: null,
-      bigBags: null,
-      receivedBags: 10,
-      closingBags: 10,
-    });
-    expect(res.typeLabel).toBe('INWARD');
-    expect(res.totalDisplay).toBe('10');
-    expect(res.smallDisplay).toBe('—');
-    expect(res.bigDisplay).toBe('—');
-    expect(res.isReceived).toBe(true);
-    expect(res.notes).toBe('Genesis Inward');
-  });
-
-  it('renders unclassified genesis INWARD (0/0 placeholder bags) with dashes', () => {
-    const res = parseMovementRow({
-      ...baseEntry,
-      smallBags: 0,
-      bigBags: 0,
-      receivedBags: 10,
-      closingBags: 10,
-    });
-    expect(res.typeLabel).toBe('INWARD');
-    expect(res.totalDisplay).toBe('10');
-    expect(res.smallDisplay).toBe('—');
-    expect(res.bigDisplay).toBe('—');
-    expect(res.isReceived).toBe(true);
+  it('renders unclassified genesis INWARD with dashes for null or zero placeholder bags', () => {
+    for (const [sb, bb] of [[null, null], [0, 0]] as const) {
+      const res = parseMovementRow({ ...baseEntry, smallBags: sb, bigBags: bb, receivedBags: 10, closingBags: 10 });
+      expect(res.typeLabel).toBe('INWARD');
+      expect(res.totalDisplay).toBe('10');
+      expect(res.smallDisplay).toBe('—');
+      expect(res.bigDisplay).toBe('—');
+      expect(res.isReceived).toBe(true);
+    }
   });
 
   it('renders verified genesis INWARD with confirmed small and big bags', () => {
@@ -85,7 +65,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
       bigBags: 0,
       remarks: 'Merged from GRNs 0011: Rebagging as per customer request',
     });
-    expect(res.typeLabel).toBe('MERGE_IN');
+    expect(res.typeLabel).toBe('MERGE_INTO_IN');
     expect(res.badgeType).toBe('mergeIn');
     expect(res.refNumber).toBe('From GRN 0011');
     expect(res.totalDisplay).toBe('631');
@@ -102,7 +82,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
       closingBags: 0,
       remarks: 'Merged into GRN 0015: Merged for customer Kalyan',
     });
-    expect(res.typeLabel).toBe('MERGE_OUT');
+    expect(res.typeLabel).toBe('MERGE_INTO_OUT');
     expect(res.badgeType).toBe('mergeOut');
     expect(res.refNumber).toBe('To GRN 0015');
     expect(res.totalDisplay).toBe('631');
@@ -128,6 +108,30 @@ describe('grnMovementView.helper parseMovementRow', () => {
     expect(res.bigDisplay).toBe('—');
     expect(res.totalDisplay).toBe('—');
     expect(res.notes).toBe('Transferred as requested');
+  });
+
+  it('correctly parses TRANSFER_OUT and TRANSFER_IN entries with small and big bags', () => {
+    const outRes = parseMovementRow({
+      ...baseEntry,
+      type: 'OWNERSHIP_TRANSFER',
+      openingBags: 67, receivedBags: 0, deliveredBags: 67, closingBags: 0, smallBags: 30, bigBags: 37,
+      remarks: 'Ownership transferred: Penchaliah → NITISH: Transferred stock',
+    });
+    expect(outRes.typeLabel).toBe('TRANSFER_OUT');
+    expect(outRes.smallDisplay).toBe('30');
+    expect(outRes.bigDisplay).toBe('37');
+    expect(outRes.totalDisplay).toBe('67');
+
+    const inRes = parseMovementRow({
+      ...baseEntry,
+      type: 'OWNERSHIP_TRANSFER',
+      openingBags: 0, receivedBags: 333, deliveredBags: 0, closingBags: 333, smallBags: 0, bigBags: 333,
+      remarks: 'Ownership transferred: Penchaliah → NITISH: Transferred stock',
+    });
+    expect(inRes.typeLabel).toBe('TRANSFER_IN');
+    expect(inRes.smallDisplay).toBe('0');
+    expect(inRes.bigDisplay).toBe('333');
+    expect(inRes.totalDisplay).toBe('333');
   });
 
   it('correctly parses OUTWARD delivery with GP and challan numbers', () => {
@@ -169,7 +173,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
     expect(res.notes).toBe('Truck breakdown');
   });
 
-  it('correctly parses INTERNAL_REPACK in and out entries as INTERNAL_SORTING', () => {
+  it('correctly parses INTERNAL_REPACK in and out entries as SORT_OUT and SORT_IN', () => {
     const outRes = parseMovementRow({
       ...baseEntry,
       type: 'INTERNAL_REPACK',
@@ -179,7 +183,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
       closingBags: 0,
       remarks: 'Stock adjustment for repacking',
     });
-    expect(outRes.typeLabel).toBe('INTERNAL_SORTING');
+    expect(outRes.typeLabel).toBe('SORT_OUT');
     expect(outRes.badgeType).toBe('mergeOut');
     expect(outRes.refNumber).toBe('Internal Sorting');
     expect(outRes.totalDisplay).toBe('100');
@@ -194,7 +198,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
       closingBags: 95,
       remarks: 'Repacked stock putaway',
     });
-    expect(inRes.typeLabel).toBe('INTERNAL_SORTING');
+    expect(inRes.typeLabel).toBe('SORT_IN');
     expect(inRes.badgeType).toBe('mergeIn');
     expect(inRes.refNumber).toBe('Internal Sorting');
     expect(inRes.totalDisplay).toBe('95');
@@ -230,7 +234,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
       closingBags: 30,
       remarks: 'Merged and repacked from GRNs 0008: 30 Hybrid bags',
     });
-    expect(res.typeLabel).toBe('MERGE_IN');
+    expect(res.typeLabel).toBe('MERGE_INTO_IN');
     expect(res.smallDisplay).toBe('—');
     expect(res.bigDisplay).toBe('—');
     expect(res.hybridDisplay).toBe('30');

@@ -145,7 +145,7 @@ describe('Inward GRN Profile Tabs & Server Filtering', { timeout: 30000 }, () =>
     await recordTestDelivery(grnClosed.id, 100, 15000);
     await recordTestPayment(grnClosed.id, 15000);
 
-    // 6. Merged source lot (status CLOSED, mergedIntoGrnId set)
+    // 6. Merged source lot (status CLOSED, mergedIntoGrnId set, 0 balance bags)
     const grnMergedSource = await createTestGrn({
       bags: 50,
       status: 'CLOSED',
@@ -153,22 +153,31 @@ describe('Inward GRN Profile Tabs & Server Filtering', { timeout: 30000 }, () =>
       mergedIntoGrnNumber: grnActive.grnNumber,
     });
 
+    // 7. Surviving merged consignment target with active remaining stock (> 0 balance bags)
+    const grnMergedTarget = await createTestGrn({
+      bags: 150,
+      status: 'OPEN',
+      remarks: '[MERGE RECEIVED from GRN-0006 on 2026-05-01: 50 bags]',
+    });
+
     // Test tab: ALL
     const resAll = await grnService.listGrns(facilityId, { page: 1, limit: 20 });
-    expect(resAll.total).toBe(6);
+    expect(resAll.total).toBe(7);
     expect(resAll.counts).toEqual({
-      all: 6,
-      active: 1,
+      all: 7,
+      active: 2,
       partial: 2,
       pendingPayment: 2,
-      closed: 1,
+      closed: 2,
       merged: 1,
     });
 
     // Test tab: ACTIVE
     const resActive = await grnService.listGrns(facilityId, { tab: 'ACTIVE', page: 1, limit: 20 });
-    expect(resActive.total).toBe(1);
-    expect(resActive.items[0].id).toBe(grnActive.id);
+    expect(resActive.total).toBe(2);
+    const activeIds = resActive.items.map((g) => g.id);
+    expect(activeIds).toContain(grnActive.id);
+    expect(activeIds).toContain(grnMergedTarget.id);
 
     // Test tab: PARTIAL
     const resPartial = await grnService.listGrns(facilityId, { tab: 'PARTIAL', page: 1, limit: 20 });
@@ -184,17 +193,19 @@ describe('Inward GRN Profile Tabs & Server Filtering', { timeout: 30000 }, () =>
     expect(pendingIds).toContain(grnPartialPending.id);
     expect(pendingIds).toContain(grnFullyOutUnpaid.id);
 
-    // Test tab: CLOSED
+    // Test tab: CLOSED (includes both outwarded closed lots and zero-balance merged source lots)
     const resClosed = await grnService.listGrns(facilityId, { tab: 'CLOSED', page: 1, limit: 20 });
-    expect(resClosed.total).toBe(1);
-    expect(resClosed.items[0].id).toBe(grnClosed.id);
-    expect(resClosed.items[0].id).not.toBe(grnFullyOutUnpaid.id);
+    expect(resClosed.total).toBe(2);
+    const closedIds = resClosed.items.map((g) => g.id);
+    expect(closedIds).toContain(grnClosed.id);
+    expect(closedIds).toContain(grnMergedSource.id);
+    expect(closedIds).not.toContain(grnFullyOutUnpaid.id);
 
-    // Test tab: MERGED
+    // Test tab: MERGED (strictly displays merged lots with remaining stock > 0; zero-balance lots excluded)
     const resMerged = await grnService.listGrns(facilityId, { tab: 'MERGED', page: 1, limit: 20 });
     expect(resMerged.total).toBe(1);
-    expect(resMerged.items[0].id).toBe(grnMergedSource.id);
-    expect(resMerged.items[0].mergedIntoGrnNumber).toBe(grnActive.grnNumber);
+    expect(resMerged.items[0].id).toBe(grnMergedTarget.id);
+    expect(resMerged.items[0].remarks).toContain('[MERGE RECEIVED');
 
     // Test tab combined with search filtering
     const resSearch = await grnService.listGrns(facilityId, {

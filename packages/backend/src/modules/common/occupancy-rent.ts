@@ -50,6 +50,19 @@ export async function calculateGrnMonthlyOccupancyRent(
       closingBags: e.closingBags,
     }));
 
+  const inD = new Date(grn.date);
+  const inMonth = inD.getMonth();
+  const marchFirst = new Date(inD.getFullYear(), 2, 1);
+  const targetAsOf = options?.asOfDate ?? new Date();
+  const isTransitioned =
+    grn.rentType === 'Monthly' && (inMonth === 0 || inMonth === 1) && targetAsOf >= marchFirst;
+
+  const effectiveAsOf = isTransitioned
+    ? options?.asOfDate && options.asOfDate < marchFirst
+      ? options.asOfDate
+      : marchFirst
+    : options?.asOfDate;
+
   const periods = calculateMonthlyOccupancy({
     grnId: grn.id,
     grnNumber: grn.grnNumber,
@@ -57,7 +70,7 @@ export async function calculateGrnMonthlyOccupancyRent(
     totalBags: grn.bags,
     bagRate: effectiveBagRate,
     movements: movementSnapshots,
-    asOfDate: options?.asOfDate,
+    asOfDate: effectiveAsOf,
   });
 
   const totalOccupancyCharge = Number(
@@ -68,7 +81,7 @@ export async function calculateGrnMonthlyOccupancyRent(
     grnId: grn.id,
     facilityId: grn.facilityId,
     grnNumber: grn.grnNumber,
-    rentType: grn.rentType,
+    rentType: isTransitioned ? 'Seasonal' : grn.rentType,
     totalInwardBags: grn.bags,
     currentRemainingBags: history.currentClosingBags,
     bagRate: effectiveBagRate,

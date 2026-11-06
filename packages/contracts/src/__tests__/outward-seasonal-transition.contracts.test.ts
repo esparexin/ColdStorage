@@ -3,9 +3,46 @@ import {
   deriveHybridRateVisibility,
   shouldEvaluateSeasonalBreakdown,
   calculateOutwardSeasonalBreakdown,
+  resolveEffectiveGrnRentType,
 } from '../index.js';
 
 describe('Outward Seasonal Transition SSOT Contracts Tests', () => {
+  describe('resolveEffectiveGrnRentType', () => {
+    it('resolves Seasonal lot as Seasonal', () => {
+      expect(resolveEffectiveGrnRentType({ rentType: 'Seasonal' })).toBe('Seasonal');
+      expect(resolveEffectiveGrnRentType({ rentType: 'Seasonal_3M' })).toBe('Seasonal_3M');
+    });
+
+    it('resolves Jan Monthly lot before March 1 as Monthly', () => {
+      const rentType = resolveEffectiveGrnRentType({
+        rentType: 'Monthly',
+        inwardDate: '2026-01-01',
+        asOfDate: '2026-02-15',
+        hasSeasonalRates: true,
+      });
+      expect(rentType).toBe('Monthly');
+    });
+
+    it('resolves GRN 0005 (Jan 01 Monthly) on/after March 1 as Seasonal', () => {
+      const rentType = resolveEffectiveGrnRentType({
+        rentType: 'Monthly',
+        inwardDate: '2026-01-01',
+        asOfDate: '2026-11-06',
+        hasSeasonalRates: true,
+      });
+      expect(rentType).toBe('Seasonal');
+    });
+
+    it('resolves summer Monthly lot (June inward) as Monthly', () => {
+      const rentType = resolveEffectiveGrnRentType({
+        rentType: 'Monthly',
+        inwardDate: '2026-06-01',
+        asOfDate: '2026-09-01',
+        hasSeasonalRates: true,
+      });
+      expect(rentType).toBe('Monthly');
+    });
+  });
   describe('shouldEvaluateSeasonalBreakdown', () => {
     it('always evaluates seasonal breakdown for Seasonal and Seasonal_3M', () => {
       expect(shouldEvaluateSeasonalBreakdown({ rentType: 'Seasonal' })).toBe(true);
