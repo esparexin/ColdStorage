@@ -143,10 +143,10 @@ export function useCreateDeliveryForm(
     seasonalBagPrice: isHybrid && typeof seasonalBagPrice === 'number' ? seasonalBagPrice : undefined,
     monthlyBagPrice: isHybrid && typeof monthlyBagPrice === 'number' ? monthlyBagPrice : undefined,
     rentMonths: billableRentMonths, inwardDate: selectedGrn?.date, deliveryDate: deliveryDateVal,
-    smallBagPrice: isSeasonalTransitioned
+    smallBagPrice: selectedGrn?.rentType === 'Monthly' && isSeasonalTransitioned
       ? (seasonalCommodityRates?.small ?? selectedGrn?.smallBagPrice)
       : (selectedGrn?.smallBagPrice ?? (selectedGrn?.rentType === 'Monthly' ? monthlyCommodityRates?.small : seasonalCommodityRates?.small)),
-    bigBagPrice: isSeasonalTransitioned
+    bigBagPrice: selectedGrn?.rentType === 'Monthly' && isSeasonalTransitioned
       ? (seasonalCommodityRates?.big ?? selectedGrn?.bigBagPrice)
       : (selectedGrn?.bigBagPrice ?? (selectedGrn?.rentType === 'Monthly' ? monthlyCommodityRates?.big : seasonalCommodityRates?.big)),
     bagPrice: selectedGrn?.bagPrice, monthlySmallBagPrice: monthlyCommodityRates?.small ?? selectedGrn?.smallBagPrice, monthlyBigBagPrice: monthlyCommodityRates?.big ?? selectedGrn?.bigBagPrice, excludePeriodKeys,
