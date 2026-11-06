@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import type { Grn } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
+import { extractOwnershipTransferDate, parseOwnershipTransferDisplayInfo } from '@/app/rent/hooks/rentDisplay.helper';
 import {
   cleanRemarks,
   deriveMergedAttributes,
@@ -19,6 +20,8 @@ interface GrnDetailAttributesGridProps {
 export function GrnDetailAttributesGrid({ grn, allGrns = [] }: GrnDetailAttributesGridProps) {
   const mergedDetails = useMemo(() => extractMergedDetails(grn, allGrns), [grn, allGrns]);
   const hasMerged = mergedDetails.length > 0;
+  const transferInfo = useMemo(() => parseOwnershipTransferDisplayInfo(grn.remarks), [grn.remarks]);
+  const transferDate = useMemo(() => extractOwnershipTransferDate(grn.remarks), [grn.remarks]);
   const loanInfo = useMemo(() => getLoanBadgeInfo(grn, hasMerged), [grn, hasMerged]);
   const cleanedRemarks = useMemo(() => cleanRemarks(grn.remarks), [grn.remarks]);
   const { mergedChambers, mergedStorageMarks, mergedPartyMarks, bagsBreakdown } = useMemo(
@@ -29,7 +32,9 @@ export function GrnDetailAttributesGrid({ grn, allGrns = [] }: GrnDetailAttribut
   return (
     <div className={styles.detailGrid}>
       <div className={styles.detailItem}>
-        <span className={styles.detailLabel}>{grn.mergedAt ? 'Original Inward Date' : 'Inward Date'}</span>
+        <span className={styles.detailLabel}>
+          {grn.mergedAt || transferInfo?.isTransferred ? 'Original Inward Date' : 'Inward Date'}
+        </span>
         <span className={styles.detailValue}>
           {new Date(grn.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
         </span>
@@ -41,6 +46,17 @@ export function GrnDetailAttributesGrid({ grn, allGrns = [] }: GrnDetailAttribut
           <span className={styles.detailValue}>
             <strong style={{ color: 'var(--color-primary-text)' }}>
               {new Date(grn.mergedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
+            </strong>
+          </span>
+        </div>
+      )}
+
+      {transferDate && (
+        <div className={styles.detailItem}>
+          <span className={styles.detailLabel}>Ownership Transfer Inward Date</span>
+          <span className={styles.detailValue}>
+            <strong style={{ color: 'var(--color-primary-text)' }}>
+              {new Date(transferDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
             </strong>
           </span>
         </div>

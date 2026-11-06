@@ -1,6 +1,10 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { appendGrnRemarks, isHybridBagCategory, resolveStoredCompositionVerified, toExcludedPeriodKeys, type TransferOwnershipInput, type Grn, type InternalMovementRecord, type RentPayment } from '@cold-storage/contracts';
+import {
+  appendGrnRemarks, isHybridBagCategory,
+  resolveStoredCompositionVerified, toExcludedPeriodKeys,
+  type TransferOwnershipInput, type Grn, type InternalMovementRecord, type RentPayment,
+} from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
@@ -14,6 +18,7 @@ import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
+import { resolveMovementObligation } from './resolve-movement-obligation.js';
 import { alignTransferLedger, formatTransferAuditNote, settleTransferRent } from './transfer-ownership.helper.js';
 import { validateTransferBagConfirmation, validateTransferRepack } from './transfer-ownership-validation.helper.js';
 
@@ -66,6 +71,7 @@ export async function transferOwnership(
       const confSmall = isHybrid ? bal.total : (typeof input.confirmedSmallBags === 'number' ? input.confirmedSmallBags : bal.smallBags);
       const confBig = isHybrid ? 0 : (typeof input.confirmedBigBags === 'number' ? input.confirmedBigBags : bal.bigBags);
       const transferExtensions = await rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session);
+      const billedKeys = toExcludedPeriodKeys(transferExtensions);
       // 1. Authoritative outward-style rent assessment for all remaining bags being transferred
       const { expectedRentCharge } = await computeExpectedDeliveryRent({
         grn: {
@@ -73,25 +79,28 @@ export async function transferOwnership(
           smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, bagPrice: grn.bagPrice,
         },
         withdrawal: { smallBags: confSmall, bigBags: confBig }, quantity: isHybrid ? (input.sourceQuantity ?? bal.total) : undefined,
-        deliveryDate: movementDate, session, excludePeriodKeys: toExcludedPeriodKeys(transferExtensions),
+        deliveryDate: movementDate, session, excludePeriodKeys: billedKeys,
         bagCategory: input.sourceBagCategory, bagPrice: input.sourceBagPrice, seasonalBagPrice: input.sourceSeasonalBagPrice, monthlyBagPrice: input.sourceMonthlyBagPrice,
         isRatesInclusiveOfHamali: false,
       });
 
       const storedRent = grn.rentAmount ?? 0;
-      const effectiveObligation = storedRent > 0 ? (storedRent > expectedRentCharge ? storedRent : expectedRentCharge) : expectedRentCharge;
-      const totalPaid = (await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session)).reduce((sum, p) => sum + p.amountPaid, 0);
+      let effectiveObligation = storedRent > 0
+        ? Math.max(storedRent, expectedRentCharge)
+        : expectedRentCharge;
 
       const transferCommodity = await CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec();
       const transferHamaliShare = computeFirstSeasonHamali(grn.bags, transferCommodity, transferExtensions, grn.hamaliRate, grn.hamaliAmount);
 
-      const totalDue = await rentExtensionRepository.resolveTotalDue(
+      const existingPayments = await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session);
+      const totalPaid = existingPayments.reduce((sum, p) => sum + p.amountPaid, 0);
+      if (totalPaid > effectiveObligation + transferHamaliShare) {
+        effectiveObligation = Math.max(0, totalPaid - transferHamaliShare);
+      }
+
+      const totalDue = await resolveMovementObligation(
         facilityId,
-        {
-          id: grn.id, rentAmount: effectiveObligation, rentType: grn.rentType,
-          outwardRentCharges: await rentRepository.getOutwardRentChargesForGrn(facilityId, grn.id, session),
-          hamaliShare: transferHamaliShare,
-        },
+        { id: grn.id, rentAmount: effectiveObligation, rentType: grn.rentType, hamaliShare: transferHamaliShare },
         session,
       );
       const rentBal = computeRentBalance(totalDue, totalPaid);
@@ -167,21 +176,12 @@ export async function transferOwnership(
       const movementDocs = await InternalMovementModel.create(
         [
           {
-            id: movementId,
-            facilityId,
-            movementType: 'TRANSFER_OWNERSHIP',
-            movementDate: input.movementDate,
-            grnId: grn.id,
-            grnNumber: grn.grnNumber,
-            fromCustomerId: grn.customerId,
-            fromCustomerName: grn.customerName,
-            toCustomerId: newCustomer.id,
-            toCustomerName: newCustomer.name,
-            totalBagsMoved: bal.total,
-            smallBagsMoved: finalSmall,
-            bigBagsMoved: finalBig,
-            destinationChamber: finalChamber,
-            resultingBagType,
+            id: movementId, facilityId, movementType: 'TRANSFER_OWNERSHIP',
+            movementDate: input.movementDate, grnId: grn.id, grnNumber: grn.grnNumber,
+            fromCustomerId: grn.customerId, fromCustomerName: grn.customerName,
+            toCustomerId: newCustomer.id, toCustomerName: newCustomer.name,
+            totalBagsMoved: bal.total, smallBagsMoved: finalSmall, bigBagsMoved: finalBig,
+            destinationChamber: finalChamber, resultingBagType,
             referenceWeight: input.referenceWeight ?? null,
             sourceBagType: input.sourceBagType ?? resultingBagType,
             sourceBagCategory: input.sourceBagCategory ?? resultingBagType,
@@ -196,9 +196,7 @@ export async function transferOwnership(
               paymentStatus: effectiveRentBal.paymentStatus,
               rentState: effectiveRentBal.rentState,
             },
-            remarks: input.remarks.trim(),
-            performedBy: userId,
-            createdAt: new Date(),
+            remarks: input.remarks.trim(), performedBy: userId, createdAt: new Date(),
           },
         ],
         { session, ordered: true },
