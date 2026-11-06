@@ -11,7 +11,7 @@ import { InternalMovementModel } from '../../../database/models/internal-movemen
 import { RentExtensionModel } from '../../../database/models/rent-extension.model.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
-import { readLedgerBalance, readLedgerNetDelivered } from '../../inventory/ledger-balance.js';
+import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { computeRentBalance } from '../../common/rent-balance.js';
 import { computeFirstSeasonHamali, resolveEffectiveHamaliRate } from '../../common/hamali-resolution.js';
@@ -129,9 +129,7 @@ export async function executeRepackGrn(
           },
         ], { session, ordered: true });
 
-        const delivered = await readLedgerNetDelivered(facilityId, grn.id, session);
-
-        // Update GRN document
+        // Update GRN document: isolate newly confirmed repacked quantity (zero old inward rule)
         grn.chamber = destinationChamber;
         grn.bagType = input.resultingBagType;
         if (grn.hamaliAmount == null) {
@@ -139,9 +137,9 @@ export async function executeRepackGrn(
           grn.hamaliRate = effectiveIntakeRate;
           grn.hamaliAmount = calculateHamaliAmount(grn.bags, effectiveIntakeRate);
         }
-        grn.bags = grn.bags + repackVariance;
-        grn.smallBags = delivered.smallBags + inSmall;
-        grn.bigBags = delivered.bigBags + inBig;
+        grn.bags = actualRepackedBags;
+        grn.smallBags = inSmall;
+        grn.bigBags = inBig;
         grn.isCompositionVerified = true;
         grn.isSorted = false;
         if (input.remarks) grn.remarks = grn.remarks ? `${grn.remarks} | ${input.remarks}` : input.remarks;

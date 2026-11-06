@@ -93,7 +93,7 @@ export function parseMovementRow(
     case 'INTERNAL_SORTING':
     case 'INTERNAL_REPACK': {
       const isRepackIn = (entry.receivedBags ?? 0) > 0;
-      typeLabel = 'INTERNAL_SORTING';
+      typeLabel = isRepackIn ? 'SORT_IN' : 'SORT_OUT';
       badgeType = isRepackIn ? 'mergeIn' : 'mergeOut';
       totalDisplay = (isRepackIn ? (entry.receivedBags ?? 0) : entry.deliveredBags).toLocaleString('en-IN');
       isReceived = isRepackIn;

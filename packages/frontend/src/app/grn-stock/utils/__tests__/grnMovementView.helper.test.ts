@@ -169,7 +169,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
     expect(res.notes).toBe('Truck breakdown');
   });
 
-  it('correctly parses INTERNAL_REPACK in and out entries as INTERNAL_SORTING', () => {
+  it('correctly parses INTERNAL_REPACK in and out entries as SORT_OUT and SORT_IN', () => {
     const outRes = parseMovementRow({
       ...baseEntry,
       type: 'INTERNAL_REPACK',
@@ -179,7 +179,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
       closingBags: 0,
       remarks: 'Stock adjustment for repacking',
     });
-    expect(outRes.typeLabel).toBe('INTERNAL_SORTING');
+    expect(outRes.typeLabel).toBe('SORT_OUT');
     expect(outRes.badgeType).toBe('mergeOut');
     expect(outRes.refNumber).toBe('Internal Sorting');
     expect(outRes.totalDisplay).toBe('100');
@@ -194,7 +194,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
       closingBags: 95,
       remarks: 'Repacked stock putaway',
     });
-    expect(inRes.typeLabel).toBe('INTERNAL_SORTING');
+    expect(inRes.typeLabel).toBe('SORT_IN');
     expect(inRes.badgeType).toBe('mergeIn');
     expect(inRes.refNumber).toBe('Internal Sorting');
     expect(inRes.totalDisplay).toBe('95');
