@@ -213,6 +213,12 @@ export function parseOwnershipTransferDisplayInfo(remarks?: string | null): Owne
   };
 }
 
+export function extractOwnershipTransferDate(remarks?: string | null): string | null {
+  if (!remarks || !remarks.includes('[OWNERSHIP TRANSFERRED')) return null;
+  const match = remarks.match(/\[OWNERSHIP TRANSFERRED on ([^:]+):/i);
+  return match ? match[1].trim() : null;
+}
+
 /**
  * Formats createdBy operator identifier into human-readable label.
  * Avoids exposing raw database UUIDs (e.g. 'usr-a0db2252-85e0-4ec9-8446-4db6d0c5b0ab')

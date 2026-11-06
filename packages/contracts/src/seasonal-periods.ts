@@ -230,9 +230,7 @@ export interface HybridRateVisibility {
 }
 
 /**
- * Maps a finalized rent extension to the elapsed-period key it already covers,
- * so outward/merge/transfer recomputes can skip billed periods instead of
- * double-counting them (period-dedup SSOT).
+ * Maps a finalized rent extension to the elapsed-period key it already covers (period-dedup SSOT).
  */
 export function extensionPeriodKey(seasonYear: number, period: ExtensionPeriod): string {
   return period === 'SEASON' ? `SEASON_${seasonYear}` : `${period}_${seasonYear + 1}`;
@@ -246,7 +244,7 @@ export {
   resolveActiveSubscriptionPeriodKey,
   resolveUncompletedPeriodKeys,
   resolveMergeExcludedPeriodKeys,
+  resolveTransferExcludedPeriodKeys,
   deriveHybridRateVisibility,
 } from './merge-periods.js';
-
 
