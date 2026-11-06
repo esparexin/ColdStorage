@@ -32,7 +32,9 @@ export async function mergeGrn(
   let resultMovementDoc!: unknown;
   let finalCarriedRent = 0;
   let repackHamaliCharge = 0;
+  let totalSourcePendingRent = 0;
   let idempotentHit = false;
+  let previousStock = { targetStock: 0, targetSmallBags: 0, targetBigBags: 0, totalSourceBags: 0 };
 
   try {
     await withMongoRetry(() =>
@@ -56,6 +58,9 @@ export async function mergeGrn(
       if (targetGrn.loanStatus === 'TAKEN') throw new Error(`Target GRN '${targetGrn.grnNumber}' has an active loan hold`);
       const targetBal = await readLedgerBalance(facilityId, targetGrn.id, session);
       if (targetBal.total <= 0) throw new Error(`Cannot merge into Target GRN '${targetGrn.grnNumber}' with zero remaining stock`);
+      previousStock.targetStock = targetBal.total;
+      previousStock.targetSmallBags = targetBal.smallBags;
+      previousStock.targetBigBags = targetBal.bigBags;
 
       const sourceGrns = await GrnModel.find({ id: { $in: input.sourceGrnIds }, facilityId }, null, { session }).lean().exec();
       if (sourceGrns.length !== input.sourceGrnIds.length) {
@@ -66,7 +71,7 @@ export async function mergeGrn(
       let totalMovedBags = 0;
       let totalMovedSmall = 0;
       let totalMovedBig = 0;
-      let totalSourcePendingRent = 0;
+      totalSourcePendingRent = 0;
       const sourceSummaries: string[] = [];
       const moveDate = validateOperationalDate(input.movementDate, { label: 'Merge' });
       const confirmed = await validateProspectiveMergeMove({
@@ -85,6 +90,7 @@ export async function mergeGrn(
         totalMovedBig += step.movedBig;
         sourceSummaries.push(step.summary);
       }
+      previousStock.totalSourceBags = totalMovedBags;
       if (remainingPaymentPool > 0.01) {
         const targetSettlement = await settleTargetHamaliPayment({
           facilityId, targetGrn, moveDate, allocatedPayment: remainingPaymentPool,
@@ -223,6 +229,10 @@ export async function mergeGrn(
           : String(movementRecord.movementDate).split('T')[0],
         targetGrnNumber: targetEntity.grnNumber, customerId: targetEntity.customerId, customerName: targetEntity.customerName,
         sourceGrnNumbers: movementRecord.sourceGrnNumbers, totalBagsMoved: movementRecord.totalBagsMoved,
+        transactionType: 'MERGE', previousStock,
+        confirmedBagComposition: { totalMovedBags: movementRecord.totalBagsMoved, smallBagsMoved: movementRecord.smallBagsMoved, bigBagsMoved: movementRecord.bigBagsMoved, category: movementRecord.sourceBagCategory ?? null },
+        newStockComposition: { totalBags: targetEntity.bags, smallBags: targetEntity.smallBags, bigBags: targetEntity.bigBags, bagType: targetEntity.bagType },
+        billReferences: { movementId: movementRecord.id, carriedRent: finalCarriedRent, repackHamaliCharge, sourcePendingRent: totalSourcePendingRent },
         smallBagsMoved: movementRecord.smallBagsMoved, bigBagsMoved: movementRecord.bigBagsMoved,
         isCompositionVerified: targetEntity.isCompositionVerified, repackVariance: movementRecord.repackVariance ?? 0,
         carriedRent: finalCarriedRent, repackHamaliCharge, newRentAmount: movementRecord.financialSnapshot.rentAmount,

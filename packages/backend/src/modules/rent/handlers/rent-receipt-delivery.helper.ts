@@ -40,3 +40,35 @@ export async function resolveReceiptDeliveryInfo(
   return { challanNumber, gpNumber, deliveryDate, deliveryBags, deliveryObligation, deliveryRemaining };
 }
 
+export interface ResolvedReceiptOperationInfo {
+  movementType?: string;
+  operationDescription?: string;
+  traceDetails?: string;
+}
+
+export function resolveReceiptOperationInfo(notes?: string | null, grnNumber?: string): ResolvedReceiptOperationInfo {
+  const n = (notes || '').toLowerCase();
+  if (n.includes('transfer')) {
+    return {
+      movementType: 'TRANSFER_OWNERSHIP',
+      operationDescription: notes || 'Ownership Transfer Settlement',
+      traceDetails: `Audit Trace: Op=TRANSFER_OWNERSHIP | Lot=${grnNumber || '—'}`,
+    };
+  }
+  if (n.includes('sorting') || n.includes('repack')) {
+    return {
+      movementType: 'SORTING_REPACKING',
+      operationDescription: notes || 'Sorting & Repacking Settlement',
+      traceDetails: `Audit Trace: Op=SORTING_REPACKING | Lot=${grnNumber || '—'}`,
+    };
+  }
+  if (n.includes('merge')) {
+    return {
+      movementType: 'MERGE',
+      operationDescription: notes || 'Merge Settlement',
+      traceDetails: `Audit Trace: Op=MERGE | Lot=${grnNumber || '—'}`,
+    };
+  }
+  return {};
+}
+

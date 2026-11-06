@@ -20,7 +20,7 @@ import { rentRepository } from './rent.repository.js';
 import { buildRentSummary } from './rent-summary.helper.js';
 import { CommodityModel } from '../../database/models/commodity.model.js';
 import { CommodityRateModel } from '../../database/models/commodity-rate.model.js';
-import { resolveReceiptDeliveryInfo } from './handlers/rent-receipt-delivery.helper.js';
+import { resolveReceiptDeliveryInfo, resolveReceiptOperationInfo } from './handlers/rent-receipt-delivery.helper.js';
 import { computeFirstSeasonHamali } from '../common/hamali-resolution.js';
 import { findDeliveryBillsForGrns } from './delivery-bills.helper.js';
 
@@ -193,6 +193,7 @@ export class RentService {
       payment.gpNumber,
     );
 
+    const opInfo = resolveReceiptOperationInfo(payment.notes, grn.grnNumber);
     const docDto: RentReceiptDocumentDto = {
       organization, facility, receiptNumber: payment.receiptNumber,
       grnNumber: grn.grnNumber, inwardReceiptNumber: grn.inwardReceiptNumber, inwardDate: grn.date,
@@ -206,6 +207,10 @@ export class RentService {
       previousPaidAmount, amountPaid: payment.amountPaid, paymentMode: payment.paymentMode,
       remainingBalance: delInfo.deliveryRemaining ?? summary.remainingBalance,
       paymentStatus: summary.paymentStatus, isPreview: false, notes: payment.notes,
+      movementType: opInfo.movementType, operationDescription: opInfo.operationDescription,
+      previousStockBags: grn.bags,
+      confirmedComposition: grn.bagType ? `${grn.bagType} (${grn.smallBags ?? 0}S / ${grn.bigBags ?? 0}B)` : undefined,
+      traceDetails: opInfo.traceDetails || (delInfo.challanNumber ? `Audit Trace: Challan=${delInfo.challanNumber} | Lot=${grn.grnNumber}` : undefined),
       generatedAt: new Date(), generatedBy: payment.createdBy,
     };
 

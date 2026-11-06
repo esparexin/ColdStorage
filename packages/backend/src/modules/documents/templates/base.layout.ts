@@ -13,6 +13,7 @@ export interface BaseLayoutOptions {
   generatedBy: string;
   bodyContent: string;
   watermarkNotice?: string | null;
+  traceDetails?: string | null;
   orientation?: 'portrait' | 'landscape';
 }
 
@@ -187,7 +188,7 @@ export function renderBaseLayout(opts: BaseLayoutOptions): string {
         <div class="sig-box">Authorized Signatory</div>
       </div>
       <div style="margin-top: 16px; font-size: 10px; color: #777; text-align: right;">
-        Generated: ${escapeHtml(opts.generatedAt)} | User: ${escapeHtml(opts.generatedBy)}
+        Generated: ${escapeHtml(opts.generatedAt)} | User: ${escapeHtml(opts.generatedBy)}${opts.traceDetails ? ` | ${escapeHtml(opts.traceDetails)}` : ''}
       </div>
     </div>
   </div>
