@@ -31,6 +31,7 @@ export async function transferOwnership(
   let resultGrnDoc!: unknown;
   let resultMovementDoc!: unknown;
   let resultPayment: RentPayment | undefined;
+  let previousStock = { total: 0, smallBags: 0, bigBags: 0 };
 
   try {
     await withMongoRetry(() =>
@@ -54,6 +55,7 @@ export async function transferOwnership(
       if (bal.total <= 0) {
         throw new Error(`Cannot transfer ownership: No stock remaining in GRN '${grn.grnNumber}'`);
       }
+      previousStock = { total: bal.total, smallBags: bal.smallBags, bigBags: bal.bigBags };
 
       // Unverified lots must not transfer silently; verified lots stay compatible.
       const isVerified = resolveStoredCompositionVerified({
@@ -224,10 +226,15 @@ export async function transferOwnership(
         ? movementRecord.movementDate.toISOString().split('T')[0]
         : String(movementRecord.movementDate).split('T')[0],
       grnNumber: grnEntity.grnNumber,
+      transactionType: 'TRANSFER_OWNERSHIP',
       fromCustomerId: movementRecord.fromCustomerId ?? null, fromCustomer: movementRecord.fromCustomerName,
       toCustomerId: movementRecord.toCustomerId ?? input.newCustomerId, toCustomer: movementRecord.toCustomerName,
       confirmedSmallBags: input.confirmedSmallBags ?? null, confirmedBigBags: input.confirmedBigBags ?? null,
       sourceBagCategory: input.sourceBagCategory ?? null, sourceQuantity: input.sourceQuantity ?? null,
+      previousStock,
+      confirmedBagComposition: { smallBags: input.confirmedSmallBags ?? null, bigBags: input.confirmedBigBags ?? null, quantity: input.sourceQuantity ?? null },
+      newStockComposition: { total: movementRecord.totalBagsMoved, smallBags: movementRecord.smallBagsMoved, bigBags: movementRecord.bigBagsMoved, bagType: movementRecord.resultingBagType },
+      billReferences: { receiptNumber: resultPayment?.receiptNumber ?? null, amountPaid: resultPayment?.amountPaid ?? 0, paymentDecision: input.paymentDecision },
       pendingRent: movementRecord.financialSnapshot.remainingBalance, paymentDecision: input.paymentDecision,
       receiptNumber: resultPayment?.receiptNumber ?? null, amountPaidAtTransfer: resultPayment?.amountPaid ?? 0,
       remarks: input.remarks,

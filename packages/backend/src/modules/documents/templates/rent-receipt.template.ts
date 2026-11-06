@@ -37,6 +37,14 @@ export function renderRentReceiptTemplate(
       </tr>`
           : ''
       }
+      ${
+        dto.operationDescription || dto.movementType
+          ? `<tr>
+        <th>Operation / Movement</th>
+        <td colspan="3"><strong>${escapeHtml(dto.operationDescription || dto.movementType)}</strong>${dto.confirmedComposition ? ` · Composition: ${escapeHtml(dto.confirmedComposition)}` : ''}${dto.previousStockBags != null ? ` · Prev Stock: ${dto.previousStockBags} bags` : ''}</td>
+      </tr>`
+          : ''
+      }
       <tr>
         <th>Inward Bags</th>
         <td><strong>${(dto.inwardBags ?? 0) > 0 ? (dto.inwardBags ?? 0).toLocaleString('en-IN') : '—'}</strong></td>
@@ -101,6 +109,7 @@ export function renderRentReceiptTemplate(
       dto.generatedAt instanceof Date ? dto.generatedAt.toISOString() : String(dto.generatedAt),
     generatedBy: dto.generatedBy,
     bodyContent,
+    traceDetails: dto.traceDetails || (dto.movementType ? `Operation: ${dto.movementType} | Lot: ${dto.grnNumber}` : undefined),
     watermarkNotice: isPreview
       ? 'PREVIEW ONLY — UNCOMMITTED'
       : undefined,

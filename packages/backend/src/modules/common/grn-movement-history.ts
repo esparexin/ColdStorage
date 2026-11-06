@@ -18,18 +18,15 @@ export async function getGrnMovementHistory(
 
   const [txs, ownershipMovements] = await Promise.all([
     InventoryTransactionModel.find({ facilityId, grnId }).sort({ createdAt: 1 }).lean().exec(),
-    InternalMovementModel.find({ facilityId, grnId, movementType: 'TRANSFER_OWNERSHIP' })
-      .lean()
-      .exec(),
+    InternalMovementModel.find({ facilityId, grnId, movementType: 'TRANSFER_OWNERSHIP' }).lean().exec(),
   ]);
 
   const challanIds = txs.filter((t) => t.referenceType === 'DELIVERY').map((t) => t.referenceId);
   const reversalIds = txs.filter((t) => t.referenceType === 'DELIVERY_REVERSAL').map((t) => t.referenceId);
   const getMovId = (refId: string) => refId.replace(new RegExp(`-${grn.id}$`), '');
-  const internalMovIds = txs.filter((t) => t.referenceId.startsWith('mov-')).map((t) => getMovId(t.referenceId));
   const movRefIds = [
     ...txs.filter((t) => t.referenceType === 'PUT_AWAY' && t.referenceId !== grn.id && !t.referenceId.startsWith('mov-')).map((t) => t.referenceId),
-    ...internalMovIds,
+    ...txs.filter((t) => t.referenceId.startsWith('mov-')).map((t) => getMovId(t.referenceId)),
   ];
 
   const [challans, reversals, referencedMovs] = await Promise.all([
@@ -42,16 +39,11 @@ export async function getGrnMovementHistory(
   const reversalMap = new Map(reversals.map((r) => [r.id, r]));
   const movRefMap = new Map(referencedMovs.map((m) => [m.id, m]));
 
-  // The initial INWARD transaction is the genesis record for this GRN.
   const genesisTx = txs.find((t) => t.referenceType === 'PUT_AWAY' && t.referenceId === grn.id);
   const subsequentTxs = txs.filter((t) => t !== genesisTx);
-
   const isGenesisVerified = resolveStoredCompositionVerified({
-    isCompositionVerified: grn.isCompositionVerified,
-    bagType: grn.bagType,
-    bags: grn.bags,
-    smallBags: grn.smallBags,
-    bigBags: grn.bigBags,
+    isCompositionVerified: grn.isCompositionVerified, bagType: grn.bagType,
+    bags: grn.bags, smallBags: grn.smallBags, bigBags: grn.bigBags,
   });
 
   const initialTotal = genesisTx ? genesisTx.smallQuantity + genesisTx.bigQuantity : grn.bags;
@@ -81,9 +73,11 @@ export async function getGrnMovementHistory(
     | { kind: 'TX'; tx: (typeof txs)[0] }
     | { kind: 'OWNERSHIP'; movement: (typeof ownershipMovements)[0] };
 
+  const referencedMovIdSet = new Set(txs.map((t) => getMovId(t.referenceId)));
+  const unrepresentedOwnershipMovements = ownershipMovements.filter((m) => !referencedMovIdSet.has(m.id));
   const timeline: TimelineItem[] = [
     ...subsequentTxs.map((tx) => ({ kind: 'TX' as const, tx })),
-    ...ownershipMovements.map((movement) => ({ kind: 'OWNERSHIP' as const, movement })),
+    ...unrepresentedOwnershipMovements.map((movement) => ({ kind: 'OWNERSHIP' as const, movement })),
   ];
 
   const getEventTime = (item: TimelineItem): number => {
@@ -94,13 +88,16 @@ export async function getGrnMovementHistory(
       if (c?.date) return new Date(c.date).getTime();
     }
     const m = movRefMap.get(t.referenceId) ?? movRefMap.get(getMovId(t.referenceId));
-    if (m?.movementDate) return new Date(m.movementDate).getTime();
-    return new Date(t.createdAt).getTime();
+    return m?.movementDate ? new Date(m.movementDate).getTime() : new Date(t.createdAt).getTime();
   };
 
-  const isRepackAdjustment = (t: (typeof txs)[0]) =>
+  const isInternalAdjustmentOut = (t: (typeof txs)[0]) =>
     t.transactionType === 'OUTWARD_DELIVERY' &&
-    (!challanMap.has(t.referenceId) && Boolean(t.notes?.toLowerCase().includes('repack')));
+    !challanMap.has(t.referenceId) &&
+    (Boolean(t.notes?.toLowerCase().includes('repack')) ||
+      Boolean(t.notes?.toLowerCase().includes('ownership transfer')) ||
+      movRefMap.get(getMovId(t.referenceId))?.movementType === 'REPACK' ||
+      movRefMap.get(getMovId(t.referenceId))?.movementType === 'TRANSFER_OWNERSHIP');
 
   const getOpTime = (item: TimelineItem): number => {
     if (item.kind === 'OWNERSHIP') return new Date(item.movement.createdAt ?? item.movement.movementDate).getTime();
@@ -119,7 +116,7 @@ export async function getGrnMovementHistory(
     const opDiff = getOpTime(a) - getOpTime(b);
     if (opDiff !== 0) return opDiff;
     const prio = (i: TimelineItem) =>
-      i.kind === 'OWNERSHIP' ? 2 : isRepackAdjustment(i.tx) ? 0 : i.tx.transactionType === 'INWARD_PUTAWAY' ? 1 : 3;
+      i.kind === 'OWNERSHIP' ? 2 : isInternalAdjustmentOut(i.tx) ? 0 : i.tx.transactionType === 'INWARD_PUTAWAY' ? 1 : 3;
     return prio(a) - prio(b);
   });
 
@@ -148,49 +145,54 @@ export async function getGrnMovementHistory(
 
       const mov = movRefMap.get(t.referenceId);
       const isMergeIn = mov?.movementType === 'MERGE' || Boolean(t.notes?.startsWith('Merged'));
-      const isRepack = !isMergeIn && (mov?.movementType === 'REPACK' || (!challanMap.has(t.referenceId) && Boolean(t.notes?.toLowerCase().includes('repack'))));
-      if (isRepack) {
+      const isTransferIn = mov?.movementType === 'TRANSFER_OWNERSHIP' ||
+        (!challanMap.has(t.referenceId) && Boolean(t.notes?.toLowerCase().includes('ownership transfer')));
+      const isRepack = !isMergeIn && !isTransferIn &&
+        (mov?.movementType === 'REPACK' || (!challanMap.has(t.referenceId) && Boolean(t.notes?.toLowerCase().includes('repack'))));
+      if (isRepack || isTransferIn) {
         runningSmall = t.smallQuantity;
         runningBig = t.bigQuantity;
       }
+      const trfInNotes = isTransferIn && mov?.movementType === 'TRANSFER_OWNERSHIP'
+        ? `Ownership transferred: ${mov.fromCustomerName} → ${mov.toCustomerName}: ${t.notes || ''}`
+        : t.notes;
       entries.push({
         date: mov?.movementDate ?? t.createdAt, grnId: grn.id, grnNumber: grn.grnNumber,
-        type: isRepack ? 'INTERNAL_REPACK' : 'INTERNAL_MERGE_IN',
+        type: isRepack ? 'INTERNAL_REPACK' : isTransferIn ? 'OWNERSHIP_TRANSFER' : 'INTERNAL_MERGE_IN',
         openingBags: opening, receivedBags: deltaTotal, deliveredBags: 0, closingBags: runningBalance,
         smallBags: t.smallQuantity, bigBags: t.bigQuantity, remainingSmallBags: runningSmall, remainingBigBags: runningBig,
-        remarks: t.notes, performedBy: mov?.performedBy ?? t.createdBy,
+        remarks: trfInNotes, performedBy: mov?.performedBy ?? t.createdBy,
       });
     } else if (t.transactionType === 'OUTWARD_DELIVERY') {
       const isMergeOut = t.notes?.startsWith('Merged into');
       const mov = movRefMap.get(getMovId(t.referenceId));
-      const isRepack = mov?.movementType === 'REPACK' || (!challanMap.has(t.referenceId) && Boolean(t.notes?.includes('repack')));
+      const isTransferOut = mov?.movementType === 'TRANSFER_OWNERSHIP' ||
+        (!challanMap.has(t.referenceId) && Boolean(t.notes?.toLowerCase().includes('ownership transfer')));
+      const isRepack = !isTransferOut &&
+        (mov?.movementType === 'REPACK' || (!challanMap.has(t.referenceId) && Boolean(t.notes?.includes('repack'))));
       const closing = Math.max(0, runningBalance - deltaTotal);
       let closingSmall: number | null = null;
       let closingBig: number | null = null;
       if (closing === 0) {
-        closingSmall = 0;
-        closingBig = 0;
-        runningSmall = 0;
-        runningBig = 0;
+        closingSmall = closingBig = runningSmall = runningBig = 0;
       } else if (runningSmall != null && runningBig != null) {
-        closingSmall = Math.max(0, runningSmall - t.smallQuantity);
-        closingBig = Math.max(0, runningBig - t.bigQuantity);
-        runningSmall = closingSmall;
-        runningBig = closingBig;
+        closingSmall = runningSmall = Math.max(0, runningSmall - t.smallQuantity);
+        closingBig = runningBig = Math.max(0, runningBig - t.bigQuantity);
       }
       runningBalance = closing;
-      if (!isRepack && !isMergeOut) {
-        netDelivered += deltaTotal;
-      }
+      if (!isRepack && !isMergeOut && !isTransferOut) netDelivered += deltaTotal;
 
-      if (isMergeOut || isRepack) {
+      if (isMergeOut || isRepack || isTransferOut) {
+        const trfOutNotes = isTransferOut && mov?.movementType === 'TRANSFER_OWNERSHIP'
+          ? `Ownership transferred: ${mov.fromCustomerName} → ${mov.toCustomerName}: ${t.notes || ''}`
+          : t.notes;
         entries.push({
           date: mov?.movementDate ?? t.createdAt, grnId: grn.id, grnNumber: grn.grnNumber,
-          type: isMergeOut ? 'INTERNAL_MERGE_OUT' : 'INTERNAL_REPACK',
-          openingBags: opening, receivedBags: 0, deliveredBags: deltaTotal, closingBags: isMergeOut ? 0 : closing,
+          type: isMergeOut ? 'INTERNAL_MERGE_OUT' : isRepack ? 'INTERNAL_REPACK' : 'OWNERSHIP_TRANSFER',
+          openingBags: opening, receivedBags: 0, deliveredBags: deltaTotal, closingBags: isMergeOut || isTransferOut || isRepack ? 0 : closing,
           smallBags: t.smallQuantity, bigBags: t.bigQuantity,
-          remainingSmallBags: isMergeOut ? 0 : closingSmall, remainingBigBags: isMergeOut ? 0 : closingBig,
-          remarks: t.notes, performedBy: mov?.performedBy ?? t.createdBy,
+          remainingSmallBags: isMergeOut || isTransferOut || isRepack ? 0 : closingSmall, remainingBigBags: isMergeOut || isTransferOut || isRepack ? 0 : closingBig,
+          remarks: trfOutNotes, performedBy: mov?.performedBy ?? t.createdBy,
         });
       } else {
         const challan = challanMap.get(t.referenceId);
@@ -212,10 +214,8 @@ export async function getGrnMovementHistory(
       let closingSmall: number | null = null;
       let closingBig: number | null = null;
       if (runningSmall != null && runningBig != null) {
-        closingSmall = runningSmall + t.smallQuantity;
-        closingBig = runningBig + t.bigQuantity;
-        runningSmall = closingSmall;
-        runningBig = closingBig;
+        closingSmall = runningSmall = runningSmall + t.smallQuantity;
+        closingBig = runningBig = runningBig + t.bigQuantity;
       }
       runningBalance = closing;
       netDelivered = Math.max(0, netDelivered - deltaTotal);

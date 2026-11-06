@@ -61,13 +61,24 @@ export function parseMovementRow(
 
     case 'TRANSFER_OWNERSHIP':
     case 'OWNERSHIP_TRANSFER': {
-      typeLabel = 'TRANSFER';
-      badgeType = 'transfer';
-      totalDisplay = '—';
+      const isPureMetadata = Boolean(entry.remarks?.startsWith('Ownership transferred:')) && entry.smallBags == null && entry.bigBags == null;
+      const isTransferIn = !isPureMetadata && (entry.receivedBags ?? 0) > 0;
+      const isTransferOut = !isPureMetadata && entry.deliveredBags > 0;
+      typeLabel = isTransferIn ? 'TRANSFER_IN' : isTransferOut ? 'TRANSFER_OUT' : 'TRANSFER';
+      badgeType = isTransferIn ? 'mergeIn' : isTransferOut ? 'mergeOut' : 'transfer';
+      totalDisplay = isTransferIn
+        ? (entry.receivedBags ?? 0).toLocaleString('en-IN')
+        : isTransferOut
+          ? entry.deliveredBags.toLocaleString('en-IN')
+          : '—';
+      isReceived = isTransferIn;
       const match = entry.remarks?.match(/^Ownership transferred:\s*([^:]+)(?::\s*(.*))?$/);
       if (match) {
         refNumber = match[1].trim();
         notes = match[2]?.trim() || '—';
+      } else {
+        refNumber = isTransferIn ? 'Transfer In' : isTransferOut ? 'Transfer Out' : 'Ownership Transfer';
+        notes = entry.remarks || 'Ownership transfer';
       }
       break;
     }

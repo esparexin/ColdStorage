@@ -35,6 +35,7 @@ export async function executeSortGrn(
   let resultPayment: RentPayment | undefined = undefined;
   let resultReceiptNumber: string | undefined = undefined;
   let billedAmount = 0;
+  let previousStock = { total: 0, smallBags: 0, bigBags: 0 };
 
   try {
     await withMongoRetry(() =>
@@ -59,6 +60,7 @@ export async function executeSortGrn(
         if (bal.total <= 0) {
           throw new Error(`Cannot perform sorting: No stock remaining in GRN '${grn.grnNumber}'`);
         }
+        previousStock = { total: bal.total, smallBags: bal.smallBags, bigBags: bal.bigBags };
         if (input.confirmedBags !== bal.total) {
           throw new Error(
             `CONFIRMATION_MISMATCH: Confirmed bags (${input.confirmedBags}) does not match existing stock (${bal.total})`,
@@ -175,28 +177,13 @@ export async function executeSortGrn(
         billedAmount = outstandingHistoricalDue;
 
         if (outstandingHistoricalDue > 0) {
-          const receiptNumber = await counterService.generateRentReceiptNumber(
-            facilityId,
-            new Date(),
-            session,
-          );
-          const paymentDoc = await rentRepository.createPayment(
-            {
-              id: `rp-${randomUUID()}`,
-              facilityId,
-              grnId: grn.id,
-              grnNumber: grn.grnNumber,
-              customerId: grn.customerId,
-              customerName: grn.customerName,
-              receiptNumber,
-              amountPaid: outstandingHistoricalDue,
-              paymentMode: input.paymentMode ?? 'Cash',
-              paymentDate: new Date(),
-              notes: input.paymentNotes?.trim() || `Settled prior to sorting & repacking (Lot ${grn.grnNumber})`,
-              createdBy: userId,
-            },
-            session,
-          );
+          const receiptNumber = await counterService.generateRentReceiptNumber(facilityId, new Date(), session);
+          const paymentDoc = await rentRepository.createPayment({
+            id: `rp-${randomUUID()}`, facilityId, grnId: grn.id, grnNumber: grn.grnNumber,
+            customerId: grn.customerId, customerName: grn.customerName, receiptNumber,
+            amountPaid: outstandingHistoricalDue, paymentMode: input.paymentMode ?? 'Cash', paymentDate: new Date(),
+            notes: input.paymentNotes?.trim() || `Settled prior to sorting & repacking (Lot ${grn.grnNumber})`, createdBy: userId,
+          }, session);
           resultPayment = toPaymentEntity(paymentDoc);
           resultReceiptNumber = receiptNumber;
         }
@@ -223,6 +210,16 @@ export async function executeSortGrn(
     resourceId: resultGrn.id,
     details: {
       grnNumber: resultGrn.grnNumber,
+      transactionType: 'SORTING',
+      previousStock,
+      confirmedBagComposition: {
+        bagType: input.confirmedBagType, totalBags: input.confirmedBags,
+        smallBags: input.confirmedSmallBags ?? null, bigBags: input.confirmedBigBags ?? null,
+      },
+      newStockComposition: {
+        totalBags: resultGrn.bags, smallBags: resultGrn.smallBags, bigBags: resultGrn.bigBags, bagType: resultGrn.bagType,
+      },
+      billReferences: { receiptNumber: resultReceiptNumber, billedAmount, paymentMode: input.paymentMode },
       confirmedBagType: input.confirmedBagType,
       confirmedBags: input.confirmedBags,
       totalBagsWeight: resultGrn.totalBagsWeight,

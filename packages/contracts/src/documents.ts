@@ -188,6 +188,11 @@ export const rentReceiptDocumentDtoSchema = z.object({
   paymentStatus: paymentStatusSchema,
   isPreview: z.boolean().default(false),
   notes: z.string().nullable().optional(),
+  movementType: z.string().optional(),
+  operationDescription: z.string().optional(),
+  previousStockBags: z.number().int().optional(),
+  confirmedComposition: z.string().optional(),
+  traceDetails: z.string().optional(),
   generatedAt: z.coerce.date(),
   generatedBy: z.string(),
 });
