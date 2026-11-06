@@ -75,6 +75,7 @@ export async function transferOwnership(
         withdrawal: { smallBags: confSmall, bigBags: confBig }, quantity: isHybrid ? (input.sourceQuantity ?? bal.total) : undefined,
         deliveryDate: movementDate, session, excludePeriodKeys: toExcludedPeriodKeys(transferExtensions),
         bagCategory: input.sourceBagCategory, bagPrice: input.sourceBagPrice, seasonalBagPrice: input.sourceSeasonalBagPrice, monthlyBagPrice: input.sourceMonthlyBagPrice,
+        isRatesInclusiveOfHamali: false,
       });
 
       const storedRent = grn.rentAmount ?? 0;

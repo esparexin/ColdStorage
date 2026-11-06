@@ -108,6 +108,7 @@ export async function resolveSourceRentObligation(
         deliveryDate: movementDate, session, excludePeriodKeys: excludedKeys,
         bagCategory: params.sourceBagCategory, bagPrice: params.sourceBagPrice,
         seasonalBagPrice: params.sourceSeasonalBagPrice, monthlyBagPrice: params.sourceMonthlyBagPrice,
+        isRatesInclusiveOfHamali: false,
       });
 
       if (expectedRentCharge > effectiveRentAmount) {
