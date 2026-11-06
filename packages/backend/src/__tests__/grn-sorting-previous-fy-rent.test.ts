@@ -80,15 +80,16 @@ describe('GRN Sorting & Repacking — Previous FY Rent Treatment', () => {
     expect(sortRes.status).toBe(200);
     expect(sortRes.body.success).toBe(true);
     expect(sortRes.body.isSortingComplete).toBe(true);
-    // Billed amount covers eligible completed subscriptions (Season 2025: 4500 + Inward Hamali: 400 = 4900)
+    // Billed amount covers eligible completed subscriptions:
+    // Season 2025 (4500) + Jan 2026 extension (4500) + Feb 2026 extension (4500) + Inward Hamali (400) = 13900
     // Active running subscription (Season 2026) is strictly excluded!
-    expect(sortRes.body.billedAmount).toBe(4900);
+    expect(sortRes.body.billedAmount).toBe(13900);
     expect(sortRes.body.receiptNumber).toBeDefined();
 
     // Verify completed subscription rent obligation is settled
     const rentSummary = await rentService.getRentSummary(facilityId, grnId);
     expect(rentSummary.rentAmount).toBe(4500);
-    expect(rentSummary.totalPaid).toBe(4900);
+    expect(rentSummary.totalPaid).toBe(13900);
     expect(rentSummary.remainingBalance).toBe(0);
     expect(rentSummary.paymentStatus).toBe('Settled');
 
@@ -99,6 +100,7 @@ describe('GRN Sorting & Repacking — Previous FY Rent Treatment', () => {
       .send({
         grnId,
         resultingBagType: 'S/B',
+        destinationChamber: 'CH-01',
         repackedSmallBags: 50,
         repackedBigBags: 40,
         repackVarianceReason: 'Culling damaged produce during rebagging',
@@ -115,8 +117,8 @@ describe('GRN Sorting & Repacking — Previous FY Rent Treatment', () => {
     // Verify movement financialSnapshot captures truthful settled balance
     const movement = await InternalMovementModel.findOne({ targetGrnId: grnId, movementType: 'REPACK' }).lean().exec();
     expect(movement?.financialSnapshot.remainingBalance).toBe(0);
-    expect(movement?.financialSnapshot.totalPaid).toBe(4900);
-    expect(movement?.financialSnapshot.paymentStatus).toBe('PAID');
+    expect(movement?.financialSnapshot.totalPaid).toBe(13900);
+    expect(movement?.financialSnapshot.paymentStatus).toBe('Settled');
     expect(movement?.financialSnapshot.hamaliAmount).toBe(360);
   });
 });
