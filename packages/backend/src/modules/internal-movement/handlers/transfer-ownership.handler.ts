@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import {
-  appendGrnRemarks, isHybridBagCategory, resolveSeasonalElapsedPeriods,
+  appendGrnRemarks, isHybridBagCategory,
   resolveStoredCompositionVerified, resolveTransferExcludedPeriodKeys, toExcludedPeriodKeys,
   type TransferOwnershipInput, type Grn, type InternalMovementRecord, type RentPayment,
 } from '@cold-storage/contracts';
@@ -75,10 +75,6 @@ export async function transferOwnership(
       const transferExcludedKeys = resolveTransferExcludedPeriodKeys({
         inwardDate: grn.date, movementDate, billedExtensionKeys: billedKeys,
       });
-      const isSeasonal = grn.rentType === 'Seasonal' || grn.rentType === 'Seasonal_3M';
-      const elapsed = isSeasonal ? resolveSeasonalElapsedPeriods(grn.date, movementDate) : [];
-      const hasCompletedPeriods = elapsed.some((p) => !transferExcludedKeys.includes(p.key));
-
       // 1. Authoritative outward-style rent assessment for all remaining bags being transferred
       const { expectedRentCharge } = await computeExpectedDeliveryRent({
         grn: {
@@ -92,9 +88,9 @@ export async function transferOwnership(
       });
 
       const storedRent = grn.rentAmount ?? 0;
-      let effectiveObligation = !isSeasonal
-        ? (storedRent > 0 ? Math.max(storedRent, expectedRentCharge) : expectedRentCharge)
-        : (hasCompletedPeriods ? (expectedRentCharge > 0 ? expectedRentCharge : storedRent) : 0);
+      let effectiveObligation = storedRent > 0
+        ? Math.max(storedRent, expectedRentCharge)
+        : expectedRentCharge;
 
       const transferCommodity = await CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec();
       const transferHamaliShare = computeFirstSeasonHamali(grn.bags, transferCommodity, transferExtensions, grn.hamaliRate, grn.hamaliAmount);
