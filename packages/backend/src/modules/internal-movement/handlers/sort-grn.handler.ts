@@ -72,13 +72,13 @@ export async function executeSortGrn(
           );
         }
 
-        // Validate and apply confirmed small and big bags composition for S/B lots when supplied
-        if (
-          input.confirmedBagType === 'S/B' &&
-          (input.confirmedSmallBags != null || input.confirmedBigBags != null)
-        ) {
-          const small = input.confirmedSmallBags ?? 0;
-          const big = input.confirmedBigBags ?? 0;
+        // Validate and apply mandatory confirmed composition before billing
+        if (input.confirmedBagType === 'S/B') {
+          if (input.confirmedSmallBags == null || input.confirmedBigBags == null) {
+            throw new Error(`Confirmed Small and Big bag counts are required for S/B sorting of GRN '${grn.grnNumber}'`);
+          }
+          const small = input.confirmedSmallBags;
+          const big = input.confirmedBigBags;
           if (small < 0 || big < 0 || !Number.isInteger(small) || !Number.isInteger(big)) {
             throw new Error('Confirmed small and big bags must be non-negative whole numbers');
           }
@@ -122,8 +122,8 @@ export async function executeSortGrn(
         const hasCompletedPeriods = elapsed.some((p) => !sortingExcludedKeys.includes(p.key));
 
         const isHybrid = input.confirmedBagType === 'Hybrid';
-        const confSmall = isHybrid ? bal.total : (input.confirmedSmallBags ?? grn.smallBags ?? bal.smallBags);
-        const confBig = isHybrid ? 0 : (input.confirmedBigBags ?? grn.bigBags ?? bal.bigBags);
+        const confSmall = isHybrid ? bal.total : (input.confirmedSmallBags as number);
+        const confBig = isHybrid ? 0 : (input.confirmedBigBags as number);
 
         let historicalRentAmount = 0;
         if (isSeasonal && hasCompletedPeriods) {

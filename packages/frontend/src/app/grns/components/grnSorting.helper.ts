@@ -108,12 +108,22 @@ export function validateRepackOperation(
     return 'Repacked bag count must be greater than zero.';
   }
 
-  if (!isHybrid) {
-    if (fields.repackedSmallBags != null && fields.repackedSmallBags < 0) {
-      return 'Repacked small bags cannot be negative.';
+  if (isHybrid) {
+    if (fields.repackedQuantity == null || isNaN(fields.repackedQuantity) || !Number.isInteger(fields.repackedQuantity) || fields.repackedQuantity <= 0) {
+      return 'Repacked hybrid quantity must be a positive whole number greater than zero.';
     }
-    if (fields.repackedBigBags != null && fields.repackedBigBags < 0) {
-      return 'Repacked big bags cannot be negative.';
+  } else {
+    if (
+      fields.repackedSmallBags == null ||
+      fields.repackedBigBags == null ||
+      isNaN(fields.repackedSmallBags) ||
+      isNaN(fields.repackedBigBags) ||
+      !Number.isInteger(fields.repackedSmallBags) ||
+      !Number.isInteger(fields.repackedBigBags) ||
+      fields.repackedSmallBags < 0 ||
+      fields.repackedBigBags < 0
+    ) {
+      return 'Repacked small and big bags must be non-negative whole numbers.';
     }
   }
 

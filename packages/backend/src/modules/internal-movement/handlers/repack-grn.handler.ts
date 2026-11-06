@@ -71,13 +71,14 @@ export async function executeRepackGrn(
         }
 
         const isHybrid = input.resultingBagType === 'Hybrid';
-        const actualRepackedBags = isHybrid
-          ? (input.repackedQuantity ?? 0)
-          : (input.repackedSmallBags ?? 0) + (input.repackedBigBags ?? 0);
-
-        if (actualRepackedBags <= 0) {
-          throw new Error('Repacked bag count must be greater than zero');
+        if (isHybrid && (!input.repackedQuantity || input.repackedQuantity <= 0)) {
+          throw new Error('Repacked Hybrid quantity must be a positive whole number');
         }
+        if (!isHybrid && (input.repackedSmallBags == null || input.repackedBigBags == null || input.repackedSmallBags < 0 || input.repackedBigBags < 0)) {
+          throw new Error('Repacked Small and Big bag counts must be non-negative whole numbers');
+        }
+        const actualRepackedBags = isHybrid ? input.repackedQuantity! : input.repackedSmallBags! + input.repackedBigBags!;
+        if (actualRepackedBags <= 0) throw new Error('Repacked bag count must be greater than zero');
 
         repackVariance = actualRepackedBags - bal.total;
 
@@ -97,9 +98,7 @@ export async function executeRepackGrn(
         if (typeof input.referenceWeight === 'number' && input.referenceWeight > 0) {
           grn.totalBagsWeight = input.referenceWeight;
         } else if (grn.smallBagWeight != null && grn.bigBagWeight != null && !isHybrid) {
-          grn.totalBagsWeight =
-            (input.repackedSmallBags ?? 0) * grn.smallBagWeight +
-            (input.repackedBigBags ?? 0) * grn.bigBagWeight;
+          grn.totalBagsWeight = (input.repackedSmallBags ?? 0) * grn.smallBagWeight + (input.repackedBigBags ?? 0) * grn.bigBagWeight;
         }
 
         const outSmall = bal.smallBags, outBig = bal.bigBags;
@@ -176,11 +175,8 @@ export async function executeRepackGrn(
         const extensions = await RentExtensionModel.find({ facilityId, grnId: grn.id }, null, { session }).lean().exec();
         const hamaliShare = computeFirstSeasonHamali(grn.bags, commodity, extensions, grn.hamaliRate, grn.hamaliAmount);
         const totalDue = resolveTotalRentObligation({
-          rentType: grn.rentType,
-          rentAmount: grn.rentAmount,
-          outwardRentCharges: outwardInfo.total,
-          extensionAmounts: extensions.map((e) => e.finalAmount),
-          hamaliShare,
+          rentType: grn.rentType, rentAmount: grn.rentAmount, outwardRentCharges: outwardInfo.total,
+          extensionAmounts: extensions.map((e) => e.finalAmount), hamaliShare,
         });
         const payments = await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session);
         const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);

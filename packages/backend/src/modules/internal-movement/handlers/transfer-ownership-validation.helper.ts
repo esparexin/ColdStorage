@@ -49,7 +49,7 @@ export function validateTransferBagConfirmation(
   input: TransferOwnershipInput,
   ledgerTotal: number,
   grnNumber: string,
-  isVerified: boolean,
+  _isVerified?: boolean,
 ): void {
   const category = input.sourceBagType ?? input.sourceBagCategory ?? null;
   const quantity = input.sourceQuantity ?? null;
@@ -60,43 +60,33 @@ export function validateTransferBagConfirmation(
     throw new Error('Small-only and Big-only confirmation uses the Small & Big split (enter 0 for the unused side)');
   }
   const hasHybrid = category != null && (category === 'Hybrid' || isHybridBagCategory(category));
-  const hasSplit = cSmall != null || cBig != null;
 
-  if (!isVerified) {
-    if (hasHybrid) {
-      assertQty(quantity, ledgerTotal, grnNumber);
-      if (!hasPositiveHybridRate({
-        bagPrice: input.sourceBagPrice,
-        seasonalBagPrice: input.sourceSeasonalBagPrice,
-        monthlyBagPrice: input.sourceMonthlyBagPrice,
-      })) {
-        throw new Error('Confirmed Hybrid lots require a per-bag rate (Each Bag Price, or Seasonal/Monthly rates)');
-      }
-      return;
+  if (hasHybrid) {
+    assertQty(quantity, ledgerTotal, grnNumber);
+    if (!hasPositiveHybridRate({
+      bagPrice: input.sourceBagPrice,
+      seasonalBagPrice: input.sourceSeasonalBagPrice,
+      monthlyBagPrice: input.sourceMonthlyBagPrice,
+    })) {
+      throw new Error('Confirmed Hybrid lots require a per-bag rate (Each Bag Price, or Seasonal/Monthly rates)');
     }
-    if (cSmall == null || cBig == null) {
-      throw new Error(
-        `Confirmed bag composition is required for transfer of GRN '${grnNumber}' with unverified composition (${ledgerTotal} bags). Confirm Small + Big counts reconciling to the available stock.`,
-      );
-    }
+    return;
   }
-  if (hasHybrid && quantity != null) assertQty(quantity, ledgerTotal, grnNumber);
-  if (hasSplit) {
-    const s = cSmall ?? 0;
-    const b = cBig ?? 0;
-    if (!Number.isInteger(s) || !Number.isInteger(b) || s < 0 || b < 0) {
-      throw new Error('Confirmed bag counts must be whole non-negative numbers');
-    }
-    if (s + b > ledgerTotal) {
-      throw new Error(
-        `Confirmed transfer counts (${s} small + ${b} big = ${s + b}) cannot exceed available stock of ${ledgerTotal} bags for GRN '${grnNumber}'`,
-      );
-    }
-    if (s + b !== ledgerTotal) {
-      throw new Error(
-        `Confirmed transfer counts (${s} small + ${b} big = ${s + b}) must reconcile with available stock of ${ledgerTotal} bags for GRN '${grnNumber}'`,
-      );
-    }
+
+  if (cSmall == null || cBig == null) {
+    throw new Error(
+      `Confirmed bag composition is required for transfer of GRN '${grnNumber}' (${ledgerTotal} bags). Confirm Small + Big counts reconciling to the available stock.`,
+    );
+  }
+  const s = cSmall;
+  const b = cBig;
+  if (!Number.isInteger(s) || !Number.isInteger(b) || s < 0 || b < 0) {
+    throw new Error('Confirmed bag counts must be whole non-negative numbers');
+  }
+  if (s + b !== ledgerTotal) {
+    throw new Error(
+      `Confirmed transfer counts (${s} small + ${b} big = ${s + b}) must reconcile with available stock of ${ledgerTotal} bags for GRN '${grnNumber}'`,
+    );
   }
 }
 
