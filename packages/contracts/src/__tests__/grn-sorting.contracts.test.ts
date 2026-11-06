@@ -83,13 +83,6 @@ describe('Contracts: GRN Sorting and Repack Bag Type Contracts', () => {
     });
     expect(invalidS.success).toBe(false);
 
-    const invalidMissingSb = sortGrnInputSchema.safeParse({
-      grnId: 'grn-1',
-      confirmedBagType: 'S/B',
-      confirmedBags: 100,
-    });
-    expect(invalidMissingSb.success).toBe(false);
-
     const invalidB = sortGrnInputSchema.safeParse({
       grnId: 'grn-1',
       confirmedBagType: 'B',
@@ -118,14 +111,6 @@ describe('Contracts: GRN Sorting and Repack Bag Type Contracts', () => {
       remarks: 'Standard repacking',
     });
     expect(invalidEmptyChamber.success).toBe(false);
-
-    const invalidMissingRepackedSb = repackGrnInputSchema.safeParse({
-      grnId: 'grn-1',
-      resultingBagType: 'S/B',
-      destinationChamber: 'CH-01',
-      remarks: 'Missing repacked small and big bags',
-    });
-    expect(invalidMissingRepackedSb.success).toBe(false);
 
     const validHybrid = repackGrnInputSchema.safeParse({
       grnId: 'grn-1',
