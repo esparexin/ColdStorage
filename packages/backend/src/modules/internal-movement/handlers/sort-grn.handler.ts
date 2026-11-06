@@ -127,25 +127,29 @@ export async function executeSortGrn(
 
         let historicalRentAmount = 0;
         if (isSeasonal && hasCompletedPeriods) {
-          const { expectedRentCharge } = await computeExpectedDeliveryRent({
-            grn: {
-              id: grn.id,
-              grnNumber: grn.grnNumber,
-              date: grn.date,
-              rentType: grn.rentType,
-              commodityId: grn.commodityId,
-              smallBagPrice: grn.smallBagPrice,
-              bigBagPrice: grn.bigBagPrice,
-              bagPrice: grn.bagPrice,
-            },
-            withdrawal: { smallBags: confSmall, bigBags: confBig },
-            quantity: isHybrid ? bal.total : undefined,
-            deliveryDate: new Date(),
-            session,
-            excludePeriodKeys: sortingExcludedKeys,
-            isRatesInclusiveOfHamali: false,
-          });
-          historicalRentAmount = expectedRentCharge;
+          try {
+            const { expectedRentCharge } = await computeExpectedDeliveryRent({
+              grn: {
+                id: grn.id,
+                grnNumber: grn.grnNumber,
+                date: grn.date,
+                rentType: grn.rentType,
+                commodityId: grn.commodityId,
+                smallBagPrice: grn.smallBagPrice,
+                bigBagPrice: grn.bigBagPrice,
+                bagPrice: grn.bagPrice,
+              },
+              withdrawal: { smallBags: confSmall, bigBags: confBig },
+              quantity: isHybrid ? bal.total : undefined,
+              deliveryDate: new Date(),
+              session,
+              excludePeriodKeys: sortingExcludedKeys,
+              isRatesInclusiveOfHamali: false,
+            });
+            historicalRentAmount = expectedRentCharge > 0 ? expectedRentCharge : (grn.rentAmount ?? 0);
+          } catch {
+            historicalRentAmount = grn.rentAmount ?? 0;
+          }
         } else if (!isSeasonal) {
           historicalRentAmount = grn.rentAmount ?? 0;
         }

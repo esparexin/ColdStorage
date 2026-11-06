@@ -52,17 +52,18 @@ describe('GRN Sorting & Repacking — Previous FY Rent Treatment', () => {
     commodityId = cmd.id;
   });
 
-  it('preserves historical rent as pending when GRN belongs to previous financial year and records truthful snapshot on repack', async () => {
-    // GRN from previous financial year (2025-05-15 in FY 25-26) with unpaid rent
+  it('calculates and settles eligible completed subscriptions while excluding active season upon sorting', async () => {
+    // GRN from previous season (2025-05-15 in Season 2025)
     const prevYearDate = new Date('2025-05-15T10:00:00.000Z');
     const grnId = await seedGrn({
       facilityId, customerId, customerName: 'Farmer Gopal', commodityId,
       commodityName: 'Potato', chamber: 'CH-01', bags: 100, bagType: 'S/B',
+      smallBags: 60, bigBags: 40, smallBagPrice: 45, bigBagPrice: 45,
       rentType: 'Seasonal', rentAmount: 4500, grnNumber: 'GRN-25-26-0045',
       date: prevYearDate, inwardReceiptNumber: 'RCPT-25-26-0045',
     });
 
-    // 1. Sorting Step: confirm lot details
+    // 1. Sorting Step: confirm lot details and settle completed season dues
     const sortRes = await request(app)
       .post(`/api/facilities/${facilityId}/internal-movements/sort`)
       .set('Authorization', `Bearer ${adminToken}`)
@@ -70,6 +71,8 @@ describe('GRN Sorting & Repacking — Previous FY Rent Treatment', () => {
         grnId,
         confirmedBagType: 'S/B',
         confirmedBags: 100,
+        confirmedSmallBags: 60,
+        confirmedBigBags: 40,
         totalBagsWeight: 5000,
         paymentMode: 'Cash',
       });
@@ -77,16 +80,17 @@ describe('GRN Sorting & Repacking — Previous FY Rent Treatment', () => {
     expect(sortRes.status).toBe(200);
     expect(sortRes.body.success).toBe(true);
     expect(sortRes.body.isSortingComplete).toBe(true);
-    // Billed amount must be 0: previous FY rent is NOT auto-paid or settled into current FY!
-    expect(sortRes.body.billedAmount).toBe(0);
-    expect(sortRes.body.receiptNumber).toBeUndefined();
+    // Billed amount covers eligible completed subscriptions (Season 2025: 4500 + Inward Hamali: 400 = 4900)
+    // Active running subscription (Season 2026) is strictly excluded!
+    expect(sortRes.body.billedAmount).toBe(4900);
+    expect(sortRes.body.receiptNumber).toBeDefined();
 
-    // Verify historical rent remains untouched and unpaid
+    // Verify completed subscription rent obligation is settled
     const rentSummary = await rentService.getRentSummary(facilityId, grnId);
     expect(rentSummary.rentAmount).toBe(4500);
-    expect(rentSummary.totalPaid).toBe(0);
-    expect(rentSummary.remainingBalance).toBe(4900); // 4500 base + 400 inward hamali (100 * 4)
-    expect(rentSummary.paymentStatus).toBe('Not Settled');
+    expect(rentSummary.totalPaid).toBe(4900);
+    expect(rentSummary.remainingBalance).toBe(0);
+    expect(rentSummary.paymentStatus).toBe('Settled');
 
     // 2. Repacking Step: repack into 90 bags (50 small + 40 big)
     const repackRes = await request(app)
@@ -105,14 +109,14 @@ describe('GRN Sorting & Repacking — Previous FY Rent Treatment', () => {
     expect(repackRes.status).toBe(200);
     expect(repackRes.body.success).toBe(true);
     expect(repackRes.body.repackVariance).toBe(-10);
-    // New Hamali charges calculated for current FY repacking activity: 90 repacked bags * 4 = 360
+    // New Hamali charges calculated for current repacking activity: 90 repacked bags * 4 = 360
     expect(repackRes.body.hamaliCharge).toBe(360);
 
-    // Verify movement financialSnapshot captures truthful pending balance and does not fabricate 'SETTLED'
+    // Verify movement financialSnapshot captures truthful settled balance
     const movement = await InternalMovementModel.findOne({ targetGrnId: grnId, movementType: 'REPACK' }).lean().exec();
-    expect(movement?.financialSnapshot.remainingBalance).toBe(4900);
-    expect(movement?.financialSnapshot.totalPaid).toBe(0);
-    expect(movement?.financialSnapshot.paymentStatus).toBe('Not Settled');
+    expect(movement?.financialSnapshot.remainingBalance).toBe(0);
+    expect(movement?.financialSnapshot.totalPaid).toBe(4900);
+    expect(movement?.financialSnapshot.paymentStatus).toBe('PAID');
     expect(movement?.financialSnapshot.hamaliAmount).toBe(360);
   });
 });
