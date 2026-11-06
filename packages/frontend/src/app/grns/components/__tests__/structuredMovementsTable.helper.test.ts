@@ -175,4 +175,45 @@ describe('structuredMovementsTable.helper', () => {
     expect(rows[0].partyName).toBe('Ramesh Patel → Suresh Kumar');
     expect(rows[0].reason).toBe('Transfer on contract clearance');
   });
+
+  it('maps structured REPACK record cleanly with variance', () => {
+    const structuredRepack: InternalMovementRecord = {
+      id: 'mov-4',
+      facilityId: 'fac-1',
+      movementType: 'REPACK',
+      movementDate: new Date('2026-10-14'),
+      targetGrnId: 'grn-1',
+      targetGrnNumber: 'GRN-0100',
+      sourceGrnIds: ['grn-1'],
+      sourceGrnNumbers: ['GRN-0100'],
+      totalBagsMoved: 290,
+      smallBagsMoved: 150,
+      bigBagsMoved: 140,
+      hamaliBags: 290,
+      hamaliRate: 4,
+      hamaliCharge: 1160,
+      repackVariance: -10,
+      repackSourceBags: 300,
+      financialSnapshot: {
+        rentAmount: 30000,
+        totalPaid: 30000,
+        remainingBalance: 0,
+        paymentStatus: 'PAID',
+        hamaliAmount: 1160,
+      },
+      remarks: 'Sorted and repacked with culls removed',
+      performedBy: 'user-admin',
+      createdAt: new Date('2026-10-14'),
+    };
+
+    const rows = mapStructuredMovementsToTableRows([structuredRepack], sampleGrn);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].badgeLabel).toBe('🔄 Repack');
+    expect(rows[0].badgeVariant).toBe('neutral');
+    expect(rows[0].grnLabel).toBe('GRN-0100');
+    expect(rows[0].refSub).toBe('Sorting & Repacking');
+    expect(rows[0].totalBags).toBe('290 bags (Variance: -10 bags)');
+    expect(rows[0].sbDetail).toBe('S: 150 • B: 140 (S+B) • Hamali: ₹1160 (@₹4/bag)');
+    expect(rows[0].reason).toBe('Sorted and repacked with culls removed');
+  });
 });

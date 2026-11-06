@@ -71,6 +71,29 @@ export function mapStructuredMovementsToTableRows(
       }
     }
 
+    if (rec.movementType === 'REPACK') {
+      const varianceStr =
+        typeof rec.repackVariance === 'number' && rec.repackVariance !== 0
+          ? ` (Variance: ${rec.repackVariance > 0 ? `+${rec.repackVariance}` : rec.repackVariance} bags)`
+          : '';
+      return {
+        id: rec.id,
+        badgeLabel: '🔄 Repack',
+        badgeVariant: 'neutral',
+        date: dateStr,
+        grnLabel: currentGrn.grnNumber,
+        refSub: 'Sorting & Repacking',
+        partyName: currentGrn.customerName || 'N/A',
+        partyMark: currentGrn.partyMark ? `PM: ${currentGrn.partyMark}` : 'PM: N/A',
+        commodity: currentGrn.commodityName || 'N/A',
+        chamber: currentGrn.chamber ? `Chamber: ${currentGrn.chamber}` : 'Chamber: N/A',
+        storageMark: currentGrn.storageMark ? `SM: ${currentGrn.storageMark}` : `SM: ${currentGrn.grnNumber}`,
+        totalBags: `${rec.totalBagsMoved.toLocaleString('en-IN')} bags${varianceStr}`,
+        sbDetail,
+        reason: rec.remarks?.trim() || 'Sorted & Repacked Lot',
+      };
+    }
+
     return {
       id: rec.id,
       badgeLabel: '👤 Transfer',

@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
 import {
   toOperationalBagType,
+  type Commodity,
   type Grn,
   type OperationalBagType,
   type SortGrnInput,
@@ -11,11 +11,14 @@ import {
 } from '@cold-storage/contracts';
 import { Button, Input, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
+import { GrnSortingStep1Breakdown } from './GrnSortingStep1Breakdown';
+import { GrnSortingStep1Success } from './GrnSortingStep1Success';
 import { clampSortBagAllocation, validateSortConfirmation } from './grnSorting.helper';
 import styles from './GrnSortingModal.module.css';
 
 interface GrnSortingStep1ConfirmProps {
   grn: Grn;
+  commodity?: Commodity | null;
   submitting: boolean;
   onConfirmAndBill: (input: SortGrnInput) => Promise<void>;
   sortingResult: SortGrnResult | null;
@@ -23,7 +26,7 @@ interface GrnSortingStep1ConfirmProps {
 }
 
 export function GrnSortingStep1Confirm(props: GrnSortingStep1ConfirmProps) {
-  const { grn, submitting, onConfirmAndBill, sortingResult, onProceedToRepack } = props;
+  const { grn, commodity, submitting, onConfirmAndBill, sortingResult, onProceedToRepack } = props;
   const availableBags = grn.closingBags ?? grn.bags;
   const isAlreadyVerified = grn.isCompositionVerified === true;
   const [confirmedBagType, setConfirmedBagType] = useState<OperationalBagType>(
@@ -105,30 +108,10 @@ export function GrnSortingStep1Confirm(props: GrnSortingStep1ConfirmProps) {
       )}
 
       {sortingResult?.isSortingComplete ? (
-        <div className={styles.billSuccessNotice}>
-          <div className={styles.billTitle}>
-            <CheckCircle2 size={16} aria-hidden="true" />
-            <span>Sorting Confirmed &amp; Rent Obligation Settled</span>
-          </div>
-          <div className={styles.billDetailRow}>
-            <span>Receipt Number:</span>
-            <strong>{sortingResult.receiptNumber || 'N/A (Zero dues)'}</strong>
-          </div>
-          <div className={styles.billDetailRow}>
-            <span>Billed Amount:</span>
-            <strong>₹{sortingResult.billedAmount.toFixed(2)}</strong>
-          </div>
-          <div style={{ marginTop: 'var(--space-2)', display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              id="proceed-to-repack-btn"
-              variant="primary"
-              size="sm"
-              onClick={onProceedToRepack}
-            >
-              Continue to Repacking/Rebagging →
-            </Button>
-          </div>
-        </div>
+        <GrnSortingStep1Success
+          sortingResult={sortingResult}
+          onProceedToRepack={onProceedToRepack}
+        />
       ) : (
         <form onSubmit={handleSubmit} className={styles.formCard}>
           <div className={styles.formCardTitle}>Step 1: Confirm Existing Lot &amp; Generate Rent Bill</div>
@@ -228,6 +211,16 @@ export function GrnSortingStep1Confirm(props: GrnSortingStep1ConfirmProps) {
               placeholder="e.g. Verified by operator prior to rebagging"
             />
           </div>
+
+          {isFormValid && (
+            <GrnSortingStep1Breakdown
+              grn={grn}
+              commodity={commodity}
+              confirmedBagType={confirmedBagType}
+              smallBags={isHybrid ? availableBags : (parsedSmall ?? 0)}
+              bigBags={isHybrid ? 0 : (parsedBig ?? 0)}
+            />
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-1)' }}>
             <Button

@@ -1,8 +1,11 @@
 import mongoose from 'mongoose';
+import { randomUUID } from 'node:crypto';
 import {
-  getFinancialYearKey,
+  extensionPeriodKey,
+  resolveSeasonalElapsedPeriods,
   resolveTotalRentObligation,
-  seasonYearForInwardDate,
+  resolveUncompletedPeriodKeys,
+  toExcludedPeriodKeys,
   toOperationalBagType,
   type Grn,
   type RentPayment,
@@ -14,9 +17,12 @@ import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { RentExtensionModel } from '../../../database/models/rent-extension.model.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { auditService } from '../../audit/audit.service.js';
+import { counterService } from '../../common/counter.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
+import { toPaymentEntity } from '../../rent/handlers/record-payment.handler.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { computeFirstSeasonHamali, resolveEffectiveHamaliRate } from '../../common/hamali-resolution.js';
+import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 
 export async function executeSortGrn(
@@ -26,8 +32,8 @@ export async function executeSortGrn(
 ): Promise<SortGrnResult> {
   const session = await mongoose.startSession();
   let resultGrn!: Grn;
-  const resultPayment: RentPayment | undefined = undefined;
-  const resultReceiptNumber: string | undefined = undefined;
+  let resultPayment: RentPayment | undefined = undefined;
+  let resultReceiptNumber: string | undefined = undefined;
   let billedAmount = 0;
 
   try {
@@ -106,39 +112,90 @@ export async function executeSortGrn(
         const payments = await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session);
         const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
 
-        const currentSeasonYear = seasonYearForInwardDate(new Date());
-        const grnSeasonYear = seasonYearForInwardDate(grn.date);
-        const isCurrentSeasonLot = grnSeasonYear === currentSeasonYear;
+        // Derive excluded period keys: already billed extensions + active uncompleted periods at sorting date
+        const billedKeys = toExcludedPeriodKeys(extensions);
+        const uncompletedKeys = resolveUncompletedPeriodKeys(grn.date, new Date());
+        const sortingExcludedKeys = Array.from(new Set([...billedKeys, ...uncompletedKeys]));
+
+        const isSeasonal = grn.rentType === 'Seasonal' || grn.rentType === 'Seasonal_3M';
+        const elapsed = isSeasonal ? resolveSeasonalElapsedPeriods(grn.date, new Date()) : [];
+        const hasCompletedPeriods = elapsed.some((p) => !sortingExcludedKeys.includes(p.key));
+
+        const isHybrid = input.confirmedBagType === 'Hybrid';
+        const confSmall = isHybrid ? bal.total : (input.confirmedSmallBags ?? grn.smallBags ?? bal.smallBags);
+        const confBig = isHybrid ? 0 : (input.confirmedBigBags ?? grn.bigBags ?? bal.bigBags);
+
+        let historicalRentAmount = 0;
+        if (isSeasonal && hasCompletedPeriods) {
+          const { expectedRentCharge } = await computeExpectedDeliveryRent({
+            grn: {
+              id: grn.id,
+              grnNumber: grn.grnNumber,
+              date: grn.date,
+              rentType: grn.rentType,
+              commodityId: grn.commodityId,
+              smallBagPrice: grn.smallBagPrice,
+              bigBagPrice: grn.bigBagPrice,
+              bagPrice: grn.bagPrice,
+            },
+            withdrawal: { smallBags: confSmall, bigBags: confBig },
+            quantity: isHybrid ? bal.total : undefined,
+            deliveryDate: new Date(),
+            session,
+            excludePeriodKeys: sortingExcludedKeys,
+            isRatesInclusiveOfHamali: false,
+          });
+          historicalRentAmount = expectedRentCharge;
+        } else if (!isSeasonal) {
+          historicalRentAmount = grn.rentAmount ?? 0;
+        }
 
         // Current active subscription is strictly excluded from Step 1 settlement.
-        // For current-season lots (e.g. GRN 0021), Season 1 is active, so historical dues prior to it are ₹0.
-        // For multi-season lots, Season 1 and prior extensions are historical obligations.
-        const historicalRentAmount = isCurrentSeasonLot ? 0 : grn.rentAmount;
-        const historicalExtensions = isCurrentSeasonLot
-          ? []
-          : extensions
-              .filter((e) => !(e.seasonYear === currentSeasonYear && e.period === 'SEASON'))
-              .map((e) => e.finalAmount);
+        // For same-season lots, Season 1 is active, so historical storage rent and inward hamali prior to it are ₹0.
+        // For multi-season lots, Season 1 and completed extensions up to the active subscription boundary are obligations.
+        const historicalExtensions = extensions
+          .filter((e) => !uncompletedKeys.includes(extensionPeriodKey(e.seasonYear, e.period)))
+          .map((e) => e.finalAmount);
+
+        const historicalHamaliShare = hasCompletedPeriods || !isSeasonal ? hamaliShare : 0;
 
         const historicalTotalDue = resolveTotalRentObligation({
           rentType: grn.rentType,
           rentAmount: historicalRentAmount,
           outwardRentCharges: outwardInfo.total,
           extensionAmounts: historicalExtensions,
-          hamaliShare: isCurrentSeasonLot ? 0 : hamaliShare,
+          hamaliShare: historicalHamaliShare,
         });
 
-        const currentFy = getFinancialYearKey(new Date());
-        const grnFy = getFinancialYearKey(new Date(grn.date));
-        const isPreviousFinancialYear = grnFy !== currentFy;
-
-        // When GRN belongs to a previous financial year, preserve historical rent as pending
-        // against the original bill, customer, and GRN profile. Do not auto-settle or fabricate
-        // current-year payments against historical debt.
-        const outstandingHistoricalDue = isPreviousFinancialYear
-          ? 0
-          : Math.max(0, Number((historicalTotalDue - totalPaid).toFixed(2)));
+        const outstandingHistoricalDue = Math.max(0, Number((historicalTotalDue - totalPaid).toFixed(2)));
         billedAmount = outstandingHistoricalDue;
+
+        if (outstandingHistoricalDue > 0) {
+          const receiptNumber = await counterService.generateRentReceiptNumber(
+            facilityId,
+            new Date(),
+            session,
+          );
+          const paymentDoc = await rentRepository.createPayment(
+            {
+              id: `rp-${randomUUID()}`,
+              facilityId,
+              grnId: grn.id,
+              grnNumber: grn.grnNumber,
+              customerId: grn.customerId,
+              customerName: grn.customerName,
+              receiptNumber,
+              amountPaid: outstandingHistoricalDue,
+              paymentMode: input.paymentMode ?? 'Cash',
+              paymentDate: new Date(),
+              notes: input.paymentNotes?.trim() || `Settled prior to sorting & repacking (Lot ${grn.grnNumber})`,
+              createdBy: userId,
+            },
+            session,
+          );
+          resultPayment = toPaymentEntity(paymentDoc);
+          resultReceiptNumber = receiptNumber;
+        }
 
         // 3. Mark sorting confirmation complete (active subscription continues post-repack)
         grn.isSorted = true;

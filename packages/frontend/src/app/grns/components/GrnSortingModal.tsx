@@ -193,6 +193,7 @@ export function GrnSortingModal({
         {activeStep === 1 ? (
           <GrnSortingStep1Confirm
             grn={currentGrn}
+            commodity={commodity}
             submitting={submitting}
             onConfirmAndBill={handleConfirmAndBill}
             sortingResult={sortingResult}
