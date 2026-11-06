@@ -6,6 +6,7 @@ import {
   type BagComposition, type RentType,
 } from '@cold-storage/contracts';
 import { CommodityRateModel } from '../../../database/models/commodity-rate.model.js';
+import { GrnModel } from '../../../database/models/grn.model.js';
 
 export interface ComputeDeliveryRentParams {
   grn: {
@@ -29,6 +30,7 @@ export interface ComputeDeliveryRentParams {
   monthlyBagPrice?: number | null;
   /** Elapsed-period keys already billed via finalized extensions; skipped to prevent double-count. */
   excludePeriodKeys?: string[] | null;
+  isRatesInclusiveOfHamali?: boolean;
 }
 
 /**
@@ -58,6 +60,14 @@ export async function computeExpectedDeliveryRent(
     inwardDate: grn.date,
     deliveryDate,
   });
+
+  let effectiveHamaliRate: number | null = typeof grn.hamaliRate === 'number' ? grn.hamaliRate : null;
+  if (effectiveHamaliRate === null && grn.id) {
+    const grnDoc = await GrnModel.findOne({ id: grn.id }, { hamaliRate: 1 }, { session }).lean().exec();
+    if (typeof grnDoc?.hamaliRate === 'number') {
+      effectiveHamaliRate = grnDoc.hamaliRate;
+    }
+  }
 
   if (isHybrid) {
     let sRate = params.seasonalBagPrice ?? params.bagPrice ?? grn.bagPrice ?? 0;
@@ -104,6 +114,9 @@ export async function computeExpectedDeliveryRent(
     }
 
     if (isSeasonalEval) {
+      const isHybridInclusive = params.isRatesInclusiveOfHamali ?? (
+        typeof effectiveHamaliRate === 'number' && effectiveHamaliRate > 0 && sRate > effectiveHamaliRate
+      );
       const breakdown = calculateOutwardSeasonalBreakdown({
         inwardDate: grn.date,
         deliveryDate,
@@ -112,6 +125,8 @@ export async function computeExpectedDeliveryRent(
         seasonalRates: { small: sRate, big: sRate },
         monthlyRates: { small: mRate, big: mRate },
         excludePeriodKeys: params.excludePeriodKeys ?? undefined,
+        hamaliRate: isHybridInclusive ? effectiveHamaliRate : undefined,
+        isRatesInclusiveOfHamali: isHybridInclusive,
       });
       return { expectedRentCharge: breakdown.totalRent, effectiveRates: { small: sRate, big: sRate } };
     }
@@ -182,6 +197,10 @@ export async function computeExpectedDeliveryRent(
       return { expectedRentCharge: baseRent + extraRent, effectiveRates: seasonalRates };
     }
 
+    const isInclusive = params.isRatesInclusiveOfHamali ?? (
+      typeof effectiveHamaliRate === 'number' && effectiveHamaliRate > 0
+      && (seasonalRates.small > effectiveHamaliRate || seasonalRates.big > effectiveHamaliRate)
+    );
     const breakdown = calculateOutwardSeasonalBreakdown({
       inwardDate: grn.date,
       deliveryDate,
@@ -190,6 +209,8 @@ export async function computeExpectedDeliveryRent(
       seasonalRates,
       monthlyRates,
       excludePeriodKeys: params.excludePeriodKeys ?? undefined,
+      hamaliRate: isInclusive ? effectiveHamaliRate : undefined,
+      isRatesInclusiveOfHamali: isInclusive,
     });
 
     return { expectedRentCharge: breakdown.totalRent, effectiveRates: seasonalRates };

@@ -75,6 +75,17 @@ describe('deliveryConfirmSummary.helper', () => {
       });
       expect(share2).toBe(225);
     });
+
+    it('falls back to calculateHamaliAmount when totalHamaliAmount is 0 on GRN', () => {
+      // 12 bags with ₹25 hamaliRate, totalHamaliAmount 0 stored on GRN
+      // 2 bags withdrawn => 2 * 25 = ₹50
+      const share = calculateProRataHamali(2, 25, {
+        originalBags: 12,
+        priorDeliveredBags: 4,
+        totalHamaliAmount: 0,
+      });
+      expect(share).toBe(50);
+    });
   });
 
   describe('formatProRataHamaliText', () => {

@@ -12,7 +12,7 @@ import {
   type OutwardBagCategory,
   type RentType,
 } from '@cold-storage/contracts';
-import { Badge, DataTable } from '@/components/ui';
+import { DataTable } from '@/components/ui';
 import {
   breakdownColumns,
   formatSeasonalBreakdownRows,
@@ -200,16 +200,6 @@ export function OutwardRentBreakdown({
 
   return (
     <div className={hideHeader ? styles.embeddedCard : styles.card} id="outward-rent-breakdown-card">
-      {!hideHeader && (
-        <div className={styles.header}>
-          <div className={styles.titleGroup}>
-            <span className={styles.title}>Outward Rent Calculation</span>
-            <Badge variant="neutral">{isSeasonalTransitioned ? 'Seasonal' : rentType}</Badge>
-            {grnNumber && <Badge variant="primary">GRN #{grnNumber}</Badge>}
-          </div>
-        </div>
-      )}
-
       <DataTable
         columns={breakdownColumns}
         rows={rows}
