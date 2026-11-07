@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import type { Grn } from '@cold-storage/contracts';
+import { formatDisplayBagType, type Grn } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import { extractOwnershipTransferDate, parseOwnershipTransferDisplayInfo } from '@/app/rent/hooks/rentDisplay.helper';
 import {
@@ -138,6 +138,20 @@ export function GrnDetailAttributesGrid({ grn, allGrns = [] }: GrnDetailAttribut
               • {grn.netDeliveredBags.toLocaleString('en-IN')} Outward •{' '}
               {(grn.closingBags ?? (grn.bags - grn.netDeliveredBags)).toLocaleString('en-IN')} Bal
             </>
+          ) : null}
+        </span>
+      </div>
+
+      <div className={styles.detailItem}>
+        <span className={styles.detailLabel}>Bag Type</span>
+        <span className={styles.detailValue}>
+          <strong style={{ color: 'var(--color-primary-text)' }}>
+            {formatDisplayBagType(grn)}
+          </strong>
+          {formatDisplayBagType(grn) !== 'Hybrid' && grn.isCompositionVerified && grn.smallBags != null && grn.bigBags != null && (grn.smallBags > 0 || grn.bigBags > 0) ? (
+            <span className={styles.mergedSubValue}>
+              {' '}(S: {grn.smallBags.toLocaleString('en-IN')} • B: {grn.bigBags.toLocaleString('en-IN')})
+            </span>
           ) : null}
         </span>
       </div>

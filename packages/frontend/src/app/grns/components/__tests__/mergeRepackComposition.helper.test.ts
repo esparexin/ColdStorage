@@ -135,7 +135,7 @@ describe('mergeRepackComposition.helper', () => {
       expect(res.effectiveIsHybrid).toBe(false);
     });
 
-    it('isolates newly repacked source bags (30) from existing target stock (8) resulting in 38 total', () => {
+    it('isolates newly repacked bags (30) as confirmed resulting target stock', () => {
       const res = deriveMovedAndTargetBags({
         selectedSources: [sampleSourceGrn],
         sourceConfirmations: {},
@@ -154,7 +154,7 @@ describe('mergeRepackComposition.helper', () => {
       expect(res.movedSmall).toBe(20);
       expect(res.movedBig).toBe(10);
       expect(res.addedBagsToTarget).toBe(30);
-      expect(res.targetNewRemaining).toBe(38);
+      expect(res.targetNewRemaining).toBe(30);
     });
   });
 

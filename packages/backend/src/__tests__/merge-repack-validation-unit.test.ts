@@ -75,5 +75,21 @@ describe('validateMergeRepackedCounts (Unit)', () => {
     expect(result.repackVariance).toBe(-5);
     expect(result.explicitConfirmation).toBe(true);
   });
+
+  it('reconciles repacking source bags into Hybrid bag category with confirmed quantity', () => {
+    const result = validateMergeRepackedCounts({
+      targetGrn,
+      sourceGrns: [sourceGrn],
+      totalMovedBags: 96,
+      movementDate: new Date('2026-04-05'),
+      isRepackSelected: true,
+      sourceBagCategory: 'Hybrid',
+      sourceQuantity: 50,
+      sourceBagPrice: 25,
+      repackedBagCount: 50,
+    });
+    expect(result.actualMovedBags).toBe(50);
+    expect(result.explicitConfirmation).toBe(true);
+  });
 });
 

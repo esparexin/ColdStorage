@@ -88,8 +88,12 @@ export function projectRentBillRows(accounts: RentSummaryDto[]): RentBillTableRo
         });
       }
 
-      // If there is also inward storage rent not tied to deliveries, include it
-      if (acc.rentAmount > 0) {
+      // If there is also inward storage rent for remaining stock not yet outwarded, include it
+      const totalOutwardBilled = deliveryBills.reduce((s, b) => s + b.rentCharge, 0);
+      const netDiff = Number((acc.rentAmount - totalOutwardBilled).toFixed(2));
+      const remainingInwardRent = netDiff > 0 ? netDiff : 0;
+      const remBags = acc.remainingBags ?? 0;
+      if (remBags > 0 && remainingInwardRent > 0) {
         rows.push({
           id: `${acc.grnId}_inward`,
           grnId: acc.grnId,
@@ -103,13 +107,13 @@ export function projectRentBillRows(accounts: RentSummaryDto[]): RentBillTableRo
           inwardDate: acc.inwardDate,
           date: acc.rentGeneratedDate ?? acc.inwardDate,
           rentType: acc.rentType,
-          rentStructure: `${acc.rentType} Inward Storage · ₹${acc.rentAmount.toLocaleString('en-IN')}`,
-          totalBags: acc.totalBags,
+          rentStructure: `${acc.rentType} Inward Storage · ₹${remainingInwardRent.toLocaleString('en-IN')}`,
+          totalBags: remBags,
           smallBags: acc.smallBags,
           bigBags: acc.bigBags,
-          totalDue: acc.rentAmount,
+          totalDue: remainingInwardRent,
           totalPaid: 0,
-          remainingBalance: acc.rentAmount,
+          remainingBalance: remainingInwardRent,
           paymentStatus: 'Not Settled',
           rentState: acc.rentState,
           account: acc,

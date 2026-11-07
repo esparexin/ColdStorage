@@ -208,9 +208,9 @@ describe('Merge GRN: Rent Carry-Forward & Obligation Preservation (Phase 4)', ()
 
     expect(validRes.status).toBe(200);
     expect(validRes.body.success).toBe(true);
-    expect(validRes.body.targetGrn.bags).toBe(155); // 100 + 55
-    expect(validRes.body.targetGrn.smallBags).toBe(75); // 40 + 35
-    expect(validRes.body.targetGrn.bigBags).toBe(80); // 60 + 20
+    expect(validRes.body.targetGrn.bags).toBe(55); // 55 confirmed repacked bags (target old stock closed to 0 per zero-inward rule)
+    expect(validRes.body.targetGrn.smallBags).toBe(35);
+    expect(validRes.body.targetGrn.bigBags).toBe(20);
     expect(validRes.body.movement.smallBagsMoved).toBe(35);
     expect(validRes.body.movement.bigBagsMoved).toBe(20);
   });
