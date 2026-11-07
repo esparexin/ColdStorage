@@ -58,7 +58,6 @@ export async function createMergePutawayTransaction(
   const {
     facilityId,
     movementId,
-    moveDate,
     targetGrn,
     resultingBagType,
     sourceGrns,
@@ -90,7 +89,7 @@ export async function createMergePutawayTransaction(
       referenceId: movementId,
       notes: `Stock adjustment for repacking (Lot ${targetGrn.grnNumber})`,
       createdBy: userId,
-      createdAt: moveDate,
+      createdAt: new Date(),
     });
   }
 
@@ -111,7 +110,7 @@ export async function createMergePutawayTransaction(
       ? `Merged and repacked from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')}: ${remarks.trim()}`
       : `Merged from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')}: ${remarks.trim()}`,
     createdBy: userId,
-    createdAt: moveDate,
+    createdAt: new Date(),
   });
 
   await InventoryTransactionModel.create(txs, { session, ordered: true });
