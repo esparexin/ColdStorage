@@ -4,9 +4,36 @@ import {
   shouldEvaluateSeasonalBreakdown,
   calculateOutwardSeasonalBreakdown,
   resolveEffectiveGrnRentType,
+  toKolkataDateParts,
 } from '../index.js';
 
 describe('Outward Seasonal Transition SSOT Contracts Tests', () => {
+  describe('toKolkataDateParts', () => {
+    it('accurately parses UTC ISO midnight IST string (2025-12-31T18:30:00.000Z -> 2026-01-01)', () => {
+      const parts = toKolkataDateParts('2025-12-31T18:30:00.000Z');
+      expect(parts).not.toBeNull();
+      expect(parts?.year).toBe(2026);
+      expect(parts?.month).toBe(0); // January
+      expect(parts?.day).toBe(1);
+      expect(parts?.ymd).toBe('2026-01-01');
+    });
+
+    it('accurately parses calendar date string (2026-01-01)', () => {
+      const parts = toKolkataDateParts('2026-01-01');
+      expect(parts).not.toBeNull();
+      expect(parts?.year).toBe(2026);
+      expect(parts?.month).toBe(0);
+      expect(parts?.day).toBe(1);
+      expect(parts?.ymd).toBe('2026-01-01');
+    });
+
+    it('returns null for empty or invalid dates', () => {
+      expect(toKolkataDateParts(null)).toBeNull();
+      expect(toKolkataDateParts(undefined)).toBeNull();
+      expect(toKolkataDateParts('invalid-date')).toBeNull();
+    });
+  });
+
   describe('resolveEffectiveGrnRentType', () => {
     it('resolves Seasonal lot as Seasonal', () => {
       expect(resolveEffectiveGrnRentType({ rentType: 'Seasonal' })).toBe('Seasonal');
@@ -27,6 +54,16 @@ describe('Outward Seasonal Transition SSOT Contracts Tests', () => {
       const rentType = resolveEffectiveGrnRentType({
         rentType: 'Monthly',
         inwardDate: '2026-01-01',
+        asOfDate: '2026-11-06',
+        hasSeasonalRates: true,
+      });
+      expect(rentType).toBe('Seasonal');
+    });
+
+    it('resolves GRN 0005 with UTC database timestamp (2025-12-31T18:30:00.000Z) as Seasonal', () => {
+      const rentType = resolveEffectiveGrnRentType({
+        rentType: 'Monthly',
+        inwardDate: '2025-12-31T18:30:00.000Z',
         asOfDate: '2026-11-06',
         hasSeasonalRates: true,
       });
@@ -83,6 +120,16 @@ describe('Outward Seasonal Transition SSOT Contracts Tests', () => {
       const result = shouldEvaluateSeasonalBreakdown({
         rentType: 'Monthly',
         inwardDate: '2026-01-01',
+        deliveryDate: '2026-11-02',
+        hasSeasonalRates: true,
+      });
+      expect(result).toBe(true);
+    });
+
+    it('Scenario 3c: Jan inward UTC timestamp (2025-12-31T18:30:00.000Z) to Nov outward (GRN 0005) under Monthly transitions to seasonal breakdown', () => {
+      const result = shouldEvaluateSeasonalBreakdown({
+        rentType: 'Monthly',
+        inwardDate: '2025-12-31T18:30:00.000Z',
         deliveryDate: '2026-11-02',
         hasSeasonalRates: true,
       });

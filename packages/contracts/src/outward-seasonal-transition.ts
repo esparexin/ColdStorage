@@ -1,5 +1,5 @@
-import { SEASON_START_MONTH_INDEX } from './rent-extension.js';
 import type { RentType } from './grn-rent.js';
+import { toKolkataDateParts } from './date-kolkata.js';
 
 export interface SeasonalTransitionParams {
   rentType?: RentType | null;
@@ -22,13 +22,13 @@ export function shouldEvaluateSeasonalBreakdown(params: SeasonalTransitionParams
   if (params.rentType === 'Seasonal' || params.rentType === 'Seasonal_3M') return true;
   const targetDateVal = params.deliveryDate ?? params.asOfDate;
   if (params.rentType === 'Monthly' && params.inwardDate && targetDateVal && params.hasSeasonalRates !== false) {
-    const inD = new Date(params.inwardDate);
-    const targetD = new Date(targetDateVal);
-    if (!isNaN(inD.getTime()) && !isNaN(targetD.getTime())) {
-      const inYear = inD.getFullYear();
-      const inMonth = inD.getMonth();
-      const marchFirst = new Date(inYear, SEASON_START_MONTH_INDEX, 1);
-      if ((inMonth === 0 || inMonth === 1) && targetD >= marchFirst) {
+    const inParts = toKolkataDateParts(params.inwardDate);
+    const targetParts = toKolkataDateParts(targetDateVal);
+    if (inParts && targetParts) {
+      const inYear = inParts.year;
+      const inMonth = inParts.month;
+      const seasonStartYmd = `${inYear}-03-01`;
+      if ((inMonth === 0 || inMonth === 1) && targetParts.ymd >= seasonStartYmd) {
         return true;
       }
     }
