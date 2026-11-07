@@ -11,6 +11,7 @@ export function resolveGrnLifecycleStatus(row: {
   bags: number;
   closingBags?: number | null;
   netDeliveredBags?: number | null;
+  rentPaymentStatus?: 'Settled' | 'Not Settled' | null;
   mergedIntoGrnNumber?: string | null;
   mergedIntoGrnId?: string | null;
   remarks?: string | null;
@@ -22,6 +23,7 @@ export function resolveGrnLifecycleStatus(row: {
     row.closingBags !== undefined && row.closingBags !== null
       ? row.closingBags
       : (isMergedSource ? 0 : Math.max(0, row.bags - delivered));
+
   const isClosed = row.status === 'CLOSED' || remaining === 0;
 
   if (isClosed) {

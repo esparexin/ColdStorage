@@ -104,8 +104,8 @@ export async function resolveGrnFacilityTabSummaries(
     const paymentStatus: 'Settled' | 'Not Settled' = remainingLiability === 0 ? 'Settled' : 'Not Settled';
     rentBalanceMap.set(grn.id, { remainingBalance: remainingLiability, paymentStatus });
 
-    // Self-healing: if physical balance is zero but DB status is OPEN, schedule DB closure
-    if (closing === 0 && grn.status !== 'CLOSED') {
+    // Self-healing: merged source lots or settled zero-balance lots should be marked CLOSED in DB
+    if (((isMergedSource && closing === 0) || (closing === 0 && remainingLiability === 0)) && grn.status !== 'CLOSED') {
       zeroBalanceIdsToClose.push(grn.id);
     }
 
@@ -115,12 +115,14 @@ export async function resolveGrnFacilityTabSummaries(
       mergedIds.push(grn.id);
     }
 
-    // Closed tab: once balance reaches 0 bags or status is CLOSED, it belongs in Closed.
-    if (grn.status === 'CLOSED' || closing === 0) {
+    // Closed tab: once balance reaches 0 bags with no dues, or status is CLOSED, or merged source lot, it belongs in Closed.
+    if (grn.status === 'CLOSED' || (closing === 0 && remainingLiability === 0) || (isMergedSource && closing === 0)) {
       closedIds.push(grn.id);
-      if (remainingLiability > 0) {
-        pendingPaymentIds.push(grn.id);
-      }
+      continue;
+    }
+
+    if (closing === 0 && remainingLiability > 0) {
+      pendingPaymentIds.push(grn.id);
       continue;
     }
 

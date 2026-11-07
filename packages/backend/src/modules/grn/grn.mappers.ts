@@ -110,7 +110,13 @@ export function toGrnEntity(doc: {
     marks: doc.marks ?? null,
     vehicleNumber: doc.vehicleNumber ?? null,
     remarks: doc.remarks ?? null,
-    status: (closing === 0 || doc.status === 'CLOSED') ? 'CLOSED' : 'OPEN',
+    status: (
+      doc.status === 'CLOSED' ||
+      (isMergedSource && closing === 0) ||
+      (closing === 0 && extras?.rentRemainingBalance === 0)
+    )
+      ? 'CLOSED'
+      : (doc.status as Grn['status']),
     bondNumber: ((doc as Record<string, unknown>).bondNumber as string | null) ?? null,
     isBondForLoan: (doc as Record<string, unknown>).isBondForLoan === true,
     loanStatus: ((doc as Record<string, unknown>).loanStatus as Grn['loanStatus']) || 'NONE',
