@@ -14,7 +14,7 @@ import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
 import { validateProspectiveMergeMove, processMergeSource, settleTargetHamaliPayment } from './merge-source-move.helper.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
-import { createMergePutawayTransaction, createMergeMovementRecord } from './merge-grn-movement.helper.js';
+import { createMergePutawayTransaction, createMergeMovementRecord, resolveMergeTargetRentAmount } from './merge-grn-movement.helper.js';
 import { resolveMergeRepackHamali } from './merge-repack-hamali.helper.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
 
@@ -139,21 +139,22 @@ export async function mergeGrn(
       });
       repackHamaliCharge = repackHamali.repackHamaliCharge;
 
-      const newBags = targetGrn.bags + actualMovedBags;
       const baseTSmall = input.targetSmallBags != null ? input.targetSmallBags : (targetWasVerified ? targetGrn.smallBags : targetGrn.bags);
       const baseTBig = input.targetBigBags != null ? input.targetBigBags : (targetWasVerified ? targetGrn.bigBags : 0);
-      const newSmall = baseTSmall + totalMovedSmall;
-      const newBig = baseTBig + totalMovedBig;
-      const newRentAmount = Number((targetGrn.rentAmount + finalCarriedRent).toFixed(2));
+      const newBags = input.isRepackSelected ? actualMovedBags : targetGrn.bags + actualMovedBags;
+      const newSmall = input.isRepackSelected ? totalMovedSmall : baseTSmall + totalMovedSmall;
+      const newBig = input.isRepackSelected ? totalMovedBig : baseTBig + totalMovedBig;
       const effectiveSourceBagTypes =
         input.sourceBagCategory === 'Hybrid' || input.sourceBagType === 'Hybrid'
           ? ['Hybrid' as const]
           : sourceGrns.map((s) => s.bagType);
       const resultingBagType = resolveMergedBagType({
-        targetBagType: targetGrn.bagType,
-        sourceBagTypes: effectiveSourceBagTypes,
-        newSmallBags: newSmall,
-        newBigBags: newBig,
+        targetBagType: targetGrn.bagType, sourceBagTypes: effectiveSourceBagTypes,
+        newSmallBags: newSmall, newBigBags: newBig,
+      });
+      const newRentAmount = resolveMergeTargetRentAmount({
+        isRepackSelected: input.isRepackSelected, actualMovedBags, resultingBagType,
+        newSmall, newBig, targetGrn, finalCarriedRent,
       });
 
       const destinationChamber = input.destinationChamber?.trim() || targetGrn.chamber;
@@ -162,6 +163,8 @@ export async function mergeGrn(
         facilityId, movementId, moveDate, targetGrn: { ...targetGrn, chamber: destinationChamber },
         resultingBagType, sourceGrns, totalMovedSmall, totalMovedBig, remarks: input.remarks, userId, session,
         isRepackSelected: input.isRepackSelected,
+        decantSmall: input.isRepackSelected ? previousStock.targetSmallBags : undefined,
+        decantBig: input.isRepackSelected ? previousStock.targetBigBags : undefined,
       });
 
       const moveDateStr = moveDate.toISOString().split('T')[0];
@@ -186,10 +189,8 @@ export async function mergeGrn(
       };
       if (input.partyMark?.trim()) targetUpdateFields.partyMark = input.partyMark.trim();
       if (input.storageMark?.trim()) targetUpdateFields.storageMark = input.storageMark.trim();
-      if (input.partyMark?.trim() || input.storageMark?.trim()) {
-        const combined = [input.storageMark?.trim() || targetGrn.storageMark, input.partyMark?.trim() || targetGrn.partyMark].filter(Boolean).join(' / ');
-        if (combined) targetUpdateFields.marks = combined;
-      }
+      const combinedMarks = [input.storageMark?.trim() || targetGrn.storageMark, input.partyMark?.trim() || targetGrn.partyMark].filter(Boolean).join(' / ');
+      if (combinedMarks && (input.partyMark?.trim() || input.storageMark?.trim())) targetUpdateFields.marks = combinedMarks;
 
       const updatedTarget = await GrnModel.findOneAndUpdate(
         { id: targetGrn.id },

@@ -1,9 +1,39 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { isHybridBagCategory, type MergeGrnInput, type BagType } from '@cold-storage/contracts';
+import {
+  calculateRentAmount, isHybridBagCategory,
+  type BagType, type MergeGrnInput, type RentType,
+} from '@cold-storage/contracts';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import type { RentBalance } from '../../common/rent-balance.js';
+
+export function resolveMergeTargetRentAmount(params: {
+  isRepackSelected?: boolean;
+  actualMovedBags: number;
+  resultingBagType: BagType;
+  newSmall: number;
+  newBig: number;
+  targetGrn: {
+    rentType: RentType;
+    rentAmount: number;
+    bagPrice?: number | null;
+    smallBagPrice?: number | null;
+    bigBagPrice?: number | null;
+  };
+  finalCarriedRent: number;
+}): number {
+  const { isRepackSelected, actualMovedBags, resultingBagType, newSmall, newBig, targetGrn, finalCarriedRent } = params;
+  if (!isRepackSelected) {
+    return Number((targetGrn.rentAmount + finalCarriedRent).toFixed(2));
+  }
+  const repackedRent = calculateRentAmount({
+    rentType: targetGrn.rentType, bags: actualMovedBags, bagType: resultingBagType,
+    smallBags: newSmall, bigBags: newBig, bagPrice: targetGrn.bagPrice ?? undefined,
+    smallBagPrice: targetGrn.smallBagPrice, bigBagPrice: targetGrn.bigBagPrice, rentAmount: targetGrn.rentAmount,
+  });
+  return Number((repackedRent + finalCarriedRent).toFixed(2));
+}
 
 export interface CreateMergePutawayTransactionParams {
   facilityId: string;
@@ -18,6 +48,8 @@ export interface CreateMergePutawayTransactionParams {
   userId: string;
   session: mongoose.ClientSession;
   isRepackSelected?: boolean;
+  decantSmall?: number;
+  decantBig?: number;
 }
 
 export async function createMergePutawayTransaction(
@@ -36,32 +68,53 @@ export async function createMergePutawayTransaction(
     userId,
     session,
     isRepackSelected,
+    decantSmall = 0,
+    decantBig = 0,
   } = params;
 
-  await InventoryTransactionModel.create(
-    [
-      {
-        id: `tx-${randomUUID()}`,
-        facilityId,
-        grnId: targetGrn.id,
-        grnNumber: targetGrn.grnNumber,
-        chamber: targetGrn.chamber,
-        commodityId: targetGrn.commodityId,
-        bagType: resultingBagType,
-        transactionType: 'INWARD_PUTAWAY',
-        smallQuantity: totalMovedSmall,
-        bigQuantity: totalMovedBig,
-        referenceType: 'PUT_AWAY',
-        referenceId: movementId,
-        notes: isRepackSelected
-          ? `Merged and repacked from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')}: ${remarks.trim()}`
-          : `Merged from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')}: ${remarks.trim()}`,
-        createdBy: userId,
-        createdAt: moveDate,
-      },
-    ],
-    { session, ordered: true },
-  );
+  const txs: Array<Record<string, unknown>> = [];
+
+  if (isRepackSelected && (decantSmall > 0 || decantBig > 0)) {
+    txs.push({
+      id: `tx-out-${randomUUID()}`,
+      facilityId,
+      grnId: targetGrn.id,
+      grnNumber: targetGrn.grnNumber,
+      chamber: targetGrn.chamber,
+      commodityId: targetGrn.commodityId,
+      bagType: targetGrn.bagType ?? resultingBagType,
+      transactionType: 'OUTWARD_DELIVERY',
+      smallQuantity: decantSmall,
+      bigQuantity: decantBig,
+      referenceType: 'DELIVERY',
+      referenceId: movementId,
+      notes: `Stock adjustment for repacking (Lot ${targetGrn.grnNumber})`,
+      createdBy: userId,
+      createdAt: moveDate,
+    });
+  }
+
+  txs.push({
+    id: `tx-in-${randomUUID()}`,
+    facilityId,
+    grnId: targetGrn.id,
+    grnNumber: targetGrn.grnNumber,
+    chamber: targetGrn.chamber,
+    commodityId: targetGrn.commodityId,
+    bagType: resultingBagType,
+    transactionType: 'INWARD_PUTAWAY',
+    smallQuantity: totalMovedSmall,
+    bigQuantity: totalMovedBig,
+    referenceType: 'PUT_AWAY',
+    referenceId: movementId,
+    notes: isRepackSelected
+      ? `Merged and repacked from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')}: ${remarks.trim()}`
+      : `Merged from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')}: ${remarks.trim()}`,
+    createdBy: userId,
+    createdAt: moveDate,
+  });
+
+  await InventoryTransactionModel.create(txs, { session, ordered: true });
 }
 
 export interface CreateMergeMovementRecordParams {

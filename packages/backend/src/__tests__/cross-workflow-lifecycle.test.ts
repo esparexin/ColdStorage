@@ -205,9 +205,9 @@ describe('Cross-Workflow Lifecycle: Inward -> Internal Movement -> Subsequent Ou
 
     const targetAfterMerge = await GrnModel.findOne({ id: targetId }).lean();
     expect(targetAfterMerge?.chamber).toBe('CH-11');
-    expect(targetAfterMerge?.bags).toBe(100);
-    expect(targetAfterMerge?.smallBags).toBe(60);
-    expect(targetAfterMerge?.bigBags).toBe(40);
+    expect(targetAfterMerge?.bags).toBe(40);
+    expect(targetAfterMerge?.smallBags).toBe(25);
+    expect(targetAfterMerge?.bigBags).toBe(15);
     expect(targetAfterMerge?.isCompositionVerified).toBe(true);
 
     const sourceAfterMerge = await GrnModel.findOne({ id: sourceId }).lean();
@@ -218,7 +218,7 @@ describe('Cross-Workflow Lifecycle: Inward -> Internal Movement -> Subsequent Ou
       .post(`/api/facilities/${facilityId}/deliveries`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        grnId: targetId, date: delDate, smallBags: 60, bigBags: 40,
+        grnId: targetId, date: delDate, smallBags: 25, bigBags: 15,
         remarks: 'Full outward of merged lot',
         paymentAmount: 1200, paymentMode: 'Cash',
       });
@@ -241,7 +241,7 @@ describe('Cross-Workflow Lifecycle: Inward -> Internal Movement -> Subsequent Ou
     expect(new Date(mergeIn.date).toISOString()).toBe(mergeDate.toISOString());
 
     const outward = targetHistory!.entries.find((e) => e.type === 'FINAL_OUTWARD')!;
-    expect(outward.deliveredBags).toBe(100);
+    expect(outward.deliveredBags).toBe(40);
     expect(outward.closingBags).toBe(0);
   });
 });
