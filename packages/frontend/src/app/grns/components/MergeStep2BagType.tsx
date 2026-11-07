@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Package, ShieldCheck } from 'lucide-react';
-import { formatDisplayBagType, type Commodity, type Grn, type RentSummaryDto } from '@cold-storage/contracts';
+import { formatDisplayBagType, resolveEffectiveGrnRentType, type Commodity, type Grn, type RentSummaryDto } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import { formatDisplayDate } from '@/lib/date-format';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
@@ -57,6 +57,9 @@ export function MergeStep2BagType({
 }: MergeStep2BagTypeProps) {
   const totalConsolidatedBags = targetCurrentRemaining + totalSourceBags;
   const targetCommodity = commodities?.find((c) => c.id === targetGrn.commodityId);
+  const effectiveTargetRentType = resolveEffectiveGrnRentType({
+    rentType: targetGrn.rentType, inwardDate: targetGrn.date, asOfDate: movementDate,
+  });
   const { seasonalRates: targetRates } = useMemo(
     () => resolveTransferRates(targetGrn, targetCommodity),
     [targetGrn, targetCommodity],
@@ -157,7 +160,7 @@ export function MergeStep2BagType({
             </div>
             <div>
               <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>Active Subscription</span>
-              <span style={{ fontWeight: 'var(--font-medium)' }}>{targetGrn.rentType} (Preserved)</span>
+              <span style={{ fontWeight: 'var(--font-medium)' }}>{effectiveTargetRentType} (Preserved)</span>
             </div>
             <div>
               <span style={{ color: 'var(--color-text-muted)', display: 'block' }}>Hamali Rate</span>
@@ -170,7 +173,7 @@ export function MergeStep2BagType({
               <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', marginBottom: 'var(--space-1)', color: 'var(--color-primary-text)' }}>
                 Bag Type Configuration
               </div>
-              <MergeBagTypeFields value={targetConfirmation} onChange={onTargetConfirmationChange} totalMovedBags={targetCurrentRemaining} rentType={targetGrn.rentType} inwardDate={targetGrn.date} movementDate={movementDate} submitting={submitting} rates={targetRates} sourceBagType={targetGrn.bagType} />
+              <MergeBagTypeFields value={targetConfirmation} onChange={onTargetConfirmationChange} totalMovedBags={targetCurrentRemaining} rentType={effectiveTargetRentType} inwardDate={targetGrn.date} movementDate={movementDate} submitting={submitting} rates={targetRates} sourceBagType={targetGrn.bagType} />
             </div>
           )}
 

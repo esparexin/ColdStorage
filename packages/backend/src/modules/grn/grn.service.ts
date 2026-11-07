@@ -150,7 +150,13 @@ export class GrnService {
       items: docs.map((d) => {
         const netDelivered = tabResolution.deliveredMap.get(d.id) ?? 0;
         const bal = balances.get(d.id);
-        const closing = bal != null ? bal.total : Math.max(0, d.bags - netDelivered);
+        const isMergedSource = Boolean(
+          (d as Record<string, unknown>).mergedIntoGrnId ||
+          (d as Record<string, unknown>).mergedIntoGrnNumber,
+        );
+        const closing = isMergedSource
+          ? 0
+          : (bal != null ? bal.total : Math.max(0, d.bags - netDelivered));
         const rentBal = tabResolution.rentBalanceMap.get(d.id);
         return toGrnEntity(d, {
           netDeliveredBags: netDelivered,

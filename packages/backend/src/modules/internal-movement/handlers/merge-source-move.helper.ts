@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { calculateHamaliAmount, isHybridBagCategory, type MergeGrnInput } from '@cold-storage/contracts';
+import { calculateHamaliAmount, isHybridBagCategory, resolveEffectiveGrnRentType, type MergeGrnInput } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { counterService } from '../../common/counter.service.js';
@@ -31,7 +31,7 @@ export async function validateProspectiveMergeMove(params: {
   let prospectiveSmall = 0;
   let prospectiveBig = 0;
   for (const s of sourceGrns) {
-    assertSourceMergeable(s, targetGrn);
+    assertSourceMergeable(s, targetGrn, moveDate);
     const bal = await readLedgerBalance(facilityId, s.id, session);
     if (bal.total <= 0) throw new Error(`Source GRN '${s.grnNumber}' has zero remaining bags to merge`);
     prospectiveBags += bal.total;
@@ -59,13 +59,19 @@ export async function validateProspectiveMergeMove(params: {
 }
 
 /** Structural guards in stable precedence order (CLOSED before zero-balance). */
-export function assertSourceMergeable(sourceGrn: MergeSourceGrn, targetGrn: MergeSourceGrn): void {
+export function assertSourceMergeable(sourceGrn: MergeSourceGrn, targetGrn: MergeSourceGrn, moveDate?: Date): void {
   const s = sourceGrn;
   if (s.status === 'CLOSED') throw new Error(`Source GRN '${s.grnNumber}' is already CLOSED`);
   if (s.commodityId !== targetGrn.commodityId) throw new Error(`Commodity mismatch: Source GRN '${s.grnNumber}' does not match Target GRN '${targetGrn.grnNumber}'`);
   if (s.loanStatus === 'TAKEN') throw new Error(`Source GRN '${s.grnNumber}' has an active loan hold`);
-  if (s.rentType !== targetGrn.rentType) {
-    throw new Error(`Rent type mismatch: Source GRN '${s.grnNumber}' (${s.rentType}) cannot merge into Target '${targetGrn.grnNumber}' (${targetGrn.rentType}). Same rent type required.`);
+  const effectiveSourceRentType = resolveEffectiveGrnRentType({
+    rentType: s.rentType, inwardDate: s.date, asOfDate: moveDate ?? new Date(),
+  });
+  const effectiveTargetRentType = resolveEffectiveGrnRentType({
+    rentType: targetGrn.rentType, inwardDate: targetGrn.date, asOfDate: moveDate ?? new Date(),
+  });
+  if (effectiveSourceRentType !== effectiveTargetRentType) {
+    throw new Error(`Rent type mismatch: Source GRN '${s.grnNumber}' (${effectiveSourceRentType}) cannot merge into Target '${targetGrn.grnNumber}' (${effectiveTargetRentType}). Same rent type required.`);
   }
 }
 
@@ -76,7 +82,7 @@ export async function processMergeSource(params: {
   session: mongoose.ClientSession; allocatedPayment?: number;
 }): Promise<{ movedTotal: number; movedSmall: number; movedBig: number; summary: string; pendingRent: number; paidAmount: number }> {
   const { facilityId, sourceGrn: s, targetGrn, input, movementId, moveDate, userId, session, allocatedPayment } = params;
-  assertSourceMergeable(s, targetGrn);
+  assertSourceMergeable(s, targetGrn, moveDate);
   const bal = await readLedgerBalance(facilityId, s.id, session);
   if (bal.total <= 0) throw new Error(`Source GRN '${s.grnNumber}' has zero remaining bags to merge`);
   const effectivePayment = allocatedPayment !== undefined ? allocatedPayment : input.sourcePaymentAmount;

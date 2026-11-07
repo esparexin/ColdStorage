@@ -1,4 +1,4 @@
-import { seasonYearForInwardDate, type Grn, type RentType } from '@cold-storage/contracts';
+import { resolveEffectiveGrnRentType, seasonYearForInwardDate, type Grn, type RentType } from '@cold-storage/contracts';
 
 export interface MergeEligibility {
   eligibleSources: Grn[];
@@ -16,13 +16,19 @@ export function partitionMergeSources(
   targetSeason: number,
   targetCommodityId?: string,
   targetRentType?: RentType,
+  asOfDate?: Date | string | null,
+  targetInwardDate?: Date | string | null,
 ): MergeEligibility {
+  const effectiveTargetRentType = targetRentType
+    ? resolveEffectiveGrnRentType({ rentType: targetRentType, inwardDate: targetInwardDate, asOfDate })
+    : undefined;
   const eligibleSources: Grn[] = [];
   let futureSeasonCount = 0;
   for (const g of openGrns) {
     if (g.id === targetGrnId || (g.closingBags ?? g.bags) <= 0 || g.loanStatus === 'TAKEN') continue;
     if (targetCommodityId && g.commodityId !== targetCommodityId) continue;
-    if (targetRentType && g.rentType !== targetRentType) continue;
+    const effectiveSourceRentType = resolveEffectiveGrnRentType({ rentType: g.rentType, inwardDate: g.date, asOfDate });
+    if (effectiveTargetRentType && effectiveSourceRentType !== effectiveTargetRentType) continue;
     if (seasonYearForInwardDate(g.date) > targetSeason) { futureSeasonCount += 1; continue; }
     eligibleSources.push(g);
   }
@@ -36,12 +42,19 @@ export function partitionMergeSources(
 export function findForwardMergeTarget(
   targetGrn: Grn,
   openGrns: Grn[],
+  asOfDate?: Date | string | null,
 ): Grn | null {
   const targetSeason = seasonYearForInwardDate(targetGrn.date);
+  const effectiveTargetRentType = resolveEffectiveGrnRentType({
+    rentType: targetGrn.rentType, inwardDate: targetGrn.date, asOfDate,
+  });
   const newerCandidates = openGrns.filter((g) => {
     if (g.id === targetGrn.id || (g.closingBags ?? g.bags) <= 0 || g.loanStatus === 'TAKEN') return false;
     if (targetGrn.commodityId && g.commodityId !== targetGrn.commodityId) return false;
-    if (targetGrn.rentType && g.rentType !== targetGrn.rentType) return false;
+    const effectiveCandidateRentType = resolveEffectiveGrnRentType({
+      rentType: g.rentType, inwardDate: g.date, asOfDate,
+    });
+    if (effectiveTargetRentType && effectiveCandidateRentType !== effectiveTargetRentType) return false;
     return seasonYearForInwardDate(g.date) > targetSeason;
   });
 
@@ -68,16 +81,23 @@ export function filterEligibleTargetGrns(
   selectedSourceIds: string[] = [],
   currentTargetId?: string,
   initiatingGrnId?: string,
+  asOfDate?: Date | string | null,
 ): Grn[] {
   const initiatingGrn = initiatingGrnId ? openGrns.find((g) => g.id === initiatingGrnId) : undefined;
   const matchGrn = initiatingGrn ?? currentGrn;
   const minSeason = initiatingGrn ? seasonYearForInwardDate(initiatingGrn.date) : undefined;
+  const effectiveMatchRentType = resolveEffectiveGrnRentType({
+    rentType: matchGrn.rentType, inwardDate: matchGrn.date, asOfDate,
+  });
 
   return openGrns.filter((g) => {
     if ((g.closingBags ?? g.bags) <= 0 || g.loanStatus === 'TAKEN') return false;
     if (selectedSourceIds.includes(g.id) && g.id !== currentTargetId) return false;
     if (matchGrn.commodityId && g.commodityId !== matchGrn.commodityId) return false;
-    if (matchGrn.rentType && g.rentType !== matchGrn.rentType) return false;
+    const effectiveCandidateRentType = resolveEffectiveGrnRentType({
+      rentType: g.rentType, inwardDate: g.date, asOfDate,
+    });
+    if (effectiveMatchRentType && effectiveCandidateRentType !== effectiveMatchRentType) return false;
     if (minSeason != null && seasonYearForInwardDate(g.date) < minSeason) return false;
     return true;
   });

@@ -70,6 +70,20 @@ describe('partitionMergeSources (future-season ineligibility)', () => {
     );
     expect(eligibleSources.map((g) => g.id)).toEqual(['g-match']);
   });
+
+  it('includes Monthly source inwarded in January when merging post-March 1 into Seasonal target', () => {
+    const monthlyJan = grn({ id: 'g-jan-monthly', date: new Date('2026-01-01'), commodityId: 'cmd-1', rentType: 'Monthly' });
+    const { eligibleSources } = partitionMergeSources(
+      [monthlyJan],
+      'target',
+      2026,
+      'cmd-1',
+      'Seasonal',
+      '2026-11-07',
+      new Date('2026-04-10'),
+    );
+    expect(eligibleSources.map((g) => g.id)).toEqual(['g-jan-monthly']);
+  });
 });
 
 describe('findForwardMergeTarget', () => {

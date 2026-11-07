@@ -2,6 +2,7 @@
 
 import React from 'react';
 import {
+  resolveEffectiveGrnRentType,
   type Commodity,
   type Grn,
   type OperationalBagType,
@@ -48,8 +49,11 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
   } = props;
 
   const targetCommodity = commodities?.find((c) => c.id === targetGrn.commodityId);
+  const effectiveTargetRentType = resolveEffectiveGrnRentType({
+    rentType: targetGrn.rentType, inwardDate: targetGrn.date, asOfDate: movementDate,
+  });
   const { seasonalRates, monthlyRates } = resolveTransferRates(targetGrn, targetCommodity);
-  const effectiveRates = targetGrn.rentType === 'Monthly' ? monthlyRates : seasonalRates;
+  const effectiveRates = effectiveTargetRentType === 'Monthly' ? monthlyRates : seasonalRates;
   const targetSmallRate = effectiveRates.small;
   const targetBigRate = effectiveRates.big;
 
@@ -90,7 +94,7 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
           targetSmallRate={targetSmallRate}
           targetBigRate={targetBigRate}
           submitting={submitting}
-          targetGrnRentType={targetGrn.rentType}
+          targetGrnRentType={effectiveTargetRentType}
           targetGrnDate={targetGrn.date}
         />
 

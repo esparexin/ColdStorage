@@ -184,8 +184,8 @@ async function executeDeliveryTransaction(
       const totalPaidAfterDelivery = rentBalance.totalPaid + paidAmount;
       const effectiveRemaining = Math.max(0, Number((effectiveObligation - totalPaidAfterDelivery).toFixed(2)));
 
-      // Closure invariant: A GRN is CLOSED only when both remainingBags === 0 AND remainingBalance === 0.
-      // If bags reach 0 but rent balance remains, the GRN remains OPEN so outstanding dues are tracked.
+      // Closure invariant: A GRN transitions to CLOSED when remaining stock reaches 0 and liabilities are settled.
+      // If stock reaches 0 but liabilities remain, the GRN document stays OPEN under Pending Payment until settled.
       if (closingTotal === 0 && effectiveRemaining === 0) {
         await GrnModel.updateOne({ id: grn.id }, { $set: { status: 'CLOSED' } }, { session });
       }

@@ -1,6 +1,7 @@
 import { SEASON_START_MONTH_INDEX, type ExtensionPeriod } from './rent-extension.js';
 import { calculateHamaliAmount, deriveNetStorageRate } from './hamali.js';
 import { shouldEvaluateSeasonalBreakdown } from './outward-seasonal-transition.js';
+import { toKolkataDateParts } from './date-kolkata.js';
 export { shouldEvaluateSeasonalBreakdown };
 
 export interface SeasonalElapsedPeriod {
@@ -36,15 +37,14 @@ export function resolveSeasonalElapsedPeriods(
   inwardDate: Date | string,
   deliveryDate: Date | string,
 ): SeasonalElapsedPeriod[] {
-  const inD = new Date(inwardDate);
-  const delD = new Date(deliveryDate);
-  if (isNaN(inD.getTime()) || isNaN(delD.getTime())) return [];
-  const toDay = (v: Date | string) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : new Date(v).toISOString().slice(0, 10));
-  if (toDay(deliveryDate) < toDay(inwardDate)) return [];
+  const inParts = toKolkataDateParts(inwardDate);
+  const delParts = toKolkataDateParts(deliveryDate);
+  if (!inParts || !delParts) return [];
+  if (delParts.ymd < inParts.ymd) return [];
 
   const periods: SeasonalElapsedPeriod[] = [];
-  const inYear = inD.getFullYear();
-  const inMonth = inD.getMonth();
+  const inYear = inParts.year;
+  const inMonth = inParts.month;
 
   let currentSeasonYear = inMonth >= SEASON_START_MONTH_INDEX ? inYear : inYear - 1;
 
@@ -56,7 +56,7 @@ export function resolveSeasonalElapsedPeriods(
       seasonYear: currentSeasonYear,
       calendarYear: inYear,
     });
-    if (delD >= new Date(inYear, 1, 1)) {
+    if (delParts.ymd >= `${inYear}-02-01`) {
       periods.push({
         key: `FEBRUARY_${inYear}`,
         label: `February ${inYear}`,
@@ -66,7 +66,7 @@ export function resolveSeasonalElapsedPeriods(
       });
     }
     currentSeasonYear = inYear;
-    if (delD >= new Date(inYear, SEASON_START_MONTH_INDEX, 1)) {
+    if (delParts.ymd >= `${inYear}-03-01`) {
       periods.push({
         key: `SEASON_${currentSeasonYear}`,
         label: `Season ${currentSeasonYear}`,
@@ -84,7 +84,7 @@ export function resolveSeasonalElapsedPeriods(
       calendarYear: inYear,
     });
     currentSeasonYear = inYear;
-    if (delD >= new Date(inYear, SEASON_START_MONTH_INDEX, 1)) {
+    if (delParts.ymd >= `${inYear}-03-01`) {
       periods.push({
         key: `SEASON_${currentSeasonYear}`,
         label: `Season ${currentSeasonYear}`,
@@ -105,8 +105,7 @@ export function resolveSeasonalElapsedPeriods(
 
   let yearCursor = currentSeasonYear;
   while (true) {
-    const nextJanDate = new Date(yearCursor + 1, 0, 1);
-    if (delD < nextJanDate) break;
+    if (delParts.ymd < `${yearCursor + 1}-01-01`) break;
 
     periods.push({
       key: `JANUARY_${yearCursor + 1}`,
@@ -116,8 +115,7 @@ export function resolveSeasonalElapsedPeriods(
       calendarYear: yearCursor + 1,
     });
 
-    const nextFebDate = new Date(yearCursor + 1, 1, 1);
-    if (delD < nextFebDate) break;
+    if (delParts.ymd < `${yearCursor + 1}-02-01`) break;
 
     periods.push({
       key: `FEBRUARY_${yearCursor + 1}`,
@@ -127,8 +125,7 @@ export function resolveSeasonalElapsedPeriods(
       calendarYear: yearCursor + 1,
     });
 
-    const nextSeasonDate = new Date(yearCursor + 1, SEASON_START_MONTH_INDEX, 1);
-    if (delD < nextSeasonDate) break;
+    if (delParts.ymd < `${yearCursor + 1}-03-01`) break;
 
     yearCursor += 1;
     periods.push({

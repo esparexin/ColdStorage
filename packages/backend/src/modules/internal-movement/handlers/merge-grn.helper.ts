@@ -8,7 +8,7 @@ import { computeRentBalance, type RentBalance } from '../../common/rent-balance.
 import { calculateGrnMonthlyOccupancyRent } from '../../common/occupancy-rent.js';
 import { counterService } from '../../common/counter.service.js';
 import {
-  canCalculateAuthoritativeRent, isHybridBagCategory, resolveMergeExcludedPeriodKeys,
+  canCalculateAuthoritativeRent, isHybridBagCategory, resolveEffectiveGrnRentType, resolveMergeExcludedPeriodKeys,
   resolveStoredCompositionVerified, seasonYearForInwardDate, toExcludedPeriodKeys,
   type BagType, type PaymentMode, type RentType,
 } from '@cold-storage/contracts';
@@ -69,19 +69,16 @@ export async function resolveSourceRentObligation(
       if (!excludedKeys.includes(k)) excludedKeys.push(k);
     }
   }
-  if (sourceGrn.rentType === 'Monthly' && effectiveRentAmount === 0 && !isHybrid) {
-    const occupancySummary = await calculateGrnMonthlyOccupancyRent(facilityId, sourceGrn.id, {
-      asOfDate: movementDate,
-    });
+  const effectiveSourceRentType = resolveEffectiveGrnRentType({
+    rentType: sourceGrn.rentType, inwardDate: sourceGrn.date, asOfDate: movementDate,
+  });
+  if (effectiveSourceRentType === 'Monthly' && effectiveRentAmount === 0 && !isHybrid) {
+    const occupancySummary = await calculateGrnMonthlyOccupancyRent(facilityId, sourceGrn.id, { asOfDate: movementDate });
     if (occupancySummary && occupancySummary.totalOccupancyCharge > 0) {
       effectiveRentAmount = occupancySummary.totalOccupancyCharge;
-      await GrnModel.updateOne(
-        { id: sourceGrn.id },
-        { $set: { rentAmount: effectiveRentAmount, updatedAt: new Date() } },
-        { session },
-      );
+      await GrnModel.updateOne({ id: sourceGrn.id }, { $set: { rentAmount: effectiveRentAmount, updatedAt: new Date() } }, { session });
     }
-  } else if (sourceGrn.rentType === 'Seasonal' || sourceGrn.rentType === 'Seasonal_3M' || isHybrid) {
+  } else if (effectiveSourceRentType === 'Seasonal' || effectiveSourceRentType === 'Seasonal_3M' || isHybrid) {
     // Never bill an unverified placeholder split at differential rates.
     const diffSmall = sourceGrn.smallBagPrice ?? sourceGrn.bagPrice ?? 0;
     const diffBig = sourceGrn.bigBagPrice ?? sourceGrn.bagPrice ?? 0;
@@ -153,7 +150,7 @@ export async function resolveSourceRentObligation(
 
   const sourceTotalDue = await resolveMovementObligation(
     facilityId,
-    { id: sourceGrn.id, rentAmount: effectiveRentAmount, rentType: sourceGrn.rentType, hamaliShare: sourceHamaliShare },
+    { id: sourceGrn.id, rentAmount: effectiveRentAmount, rentType: effectiveSourceRentType, hamaliShare: sourceHamaliShare },
     session,
   );
 

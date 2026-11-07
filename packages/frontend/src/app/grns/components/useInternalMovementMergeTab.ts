@@ -77,20 +77,22 @@ export function useInternalMovementMergeTab({
   const targetGrn = useMemo(() => openGrns.find((g) => g.id === targetGrnId) ?? currentGrn, [openGrns, targetGrnId, currentGrn]);
   const targetSeason = useMemo(() => seasonYearForInwardDate(targetGrn.date), [targetGrn.date]);
   const { eligibleSources, futureSeasonCount } = useMemo(
-    () => partitionMergeSources(openGrns, targetGrnId, targetSeason, targetGrn.commodityId, targetGrn.rentType),
-    [openGrns, targetGrnId, targetSeason, targetGrn.commodityId, targetGrn.rentType],
+    () => partitionMergeSources(
+      openGrns, targetGrnId, targetSeason, targetGrn.commodityId, targetGrn.rentType, movementDate, targetGrn.date,
+    ),
+    [openGrns, targetGrnId, targetSeason, targetGrn.commodityId, targetGrn.rentType, movementDate, targetGrn.date],
   );
   const recommendedSwitchGrn = useMemo(
-    () => (futureSeasonCount > 0 ? findForwardMergeTarget(targetGrn, openGrns) : null),
-    [futureSeasonCount, targetGrn, openGrns],
+    () => (futureSeasonCount > 0 ? findForwardMergeTarget(targetGrn, openGrns, movementDate) : null),
+    [futureSeasonCount, targetGrn, openGrns, movementDate],
   );
   const handleTargetChange = (newTargetId: string) => {
     setTargetGrnId(newTargetId);
     setSelectedSourceIds((prev) => resolveNextSelectedSources(initiatingGrnId, newTargetId, prev, openGrns));
   };
   const targetOptions = useMemo(
-    () => filterEligibleTargetGrns(openGrns, targetGrn, selectedSourceIds, targetGrnId, initiatingGrnId),
-    [openGrns, targetGrn, selectedSourceIds, targetGrnId, initiatingGrnId],
+    () => filterEligibleTargetGrns(openGrns, targetGrn, selectedSourceIds, targetGrnId, initiatingGrnId, movementDate),
+    [openGrns, targetGrn, selectedSourceIds, targetGrnId, initiatingGrnId, movementDate],
   );
   const handleToggleSource = (id: string) => {
     if (initiatingGrnId && id === initiatingGrnId && targetGrnId !== initiatingGrnId) return;

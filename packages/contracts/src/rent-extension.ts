@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { rentalAmountSchema } from './common.js';
+import { toKolkataDateParts } from './date-kolkata.js';
 
 /**
  * Same-GRN recurring rent SSOT (approved business rules).
@@ -38,8 +39,12 @@ export const SEASON_END_MONTH_INDEX = 11; // December
  * January–February belong to the prior season (their extensions were already due).
  */
 export function seasonYearForInwardDate(inward: Date | string): number {
-  const d = new Date(inward);
-  return d.getMonth() >= SEASON_START_MONTH_INDEX ? d.getFullYear() : d.getFullYear() - 1;
+  const parts = toKolkataDateParts(inward);
+  if (!parts) {
+    const d = new Date(inward);
+    return d.getMonth() >= SEASON_START_MONTH_INDEX ? d.getFullYear() : d.getFullYear() - 1;
+  }
+  return parts.month >= SEASON_START_MONTH_INDEX ? parts.year : parts.year - 1;
 }
 
 /**

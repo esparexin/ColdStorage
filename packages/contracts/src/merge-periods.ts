@@ -3,6 +3,7 @@ import { resolveSeasonalElapsedPeriods } from './seasonal-periods.js';
 import { seasonYearForInwardDate } from './rent-extension.js';
 import type { RentType } from './grn-rent.js';
 import { shouldEvaluateSeasonalBreakdown } from './outward-seasonal-transition.js';
+import { toKolkataDateParts } from './date-kolkata.js';
 import type { HybridRateVisibility } from './seasonal-periods.js';
 
 /**
@@ -50,10 +51,9 @@ export function deriveHybridRateVisibility(params: {
  * - During February 1 – February 28/29 of year Y: The active period is `FEBRUARY_${Y}` (extension of season Y - 1).
  */
 export function resolveActiveSubscriptionPeriodKey(asOfDate: Date | string): string | null {
-  const d = new Date(asOfDate);
-  if (isNaN(d.getTime())) return null;
-  const month = d.getMonth();
-  const year = d.getFullYear();
+  const parts = toKolkataDateParts(asOfDate);
+  if (!parts) return null;
+  const { month, year } = parts;
   if (month >= SEASON_START_MONTH_INDEX) {
     return `SEASON_${year}`;
   } else if (month === 0) {

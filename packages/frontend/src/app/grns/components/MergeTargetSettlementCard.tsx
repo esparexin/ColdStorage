@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { Grn } from '@cold-storage/contracts';
+import { resolveEffectiveGrnRentType, type Grn } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import { formatDisplayDate } from '@/lib/date-format';
 import { OutwardRentBreakdown } from '@/app/deliveries/components/OutwardRentBreakdown';
@@ -34,6 +34,9 @@ export function MergeTargetSettlementCard({
   commodityHamaliRate,
   movementDate,
 }: MergeTargetSettlementCardProps) {
+  const effectiveRentType = resolveEffectiveGrnRentType({
+    rentType: targetGrn.rentType, inwardDate: targetGrn.date, asOfDate: movementDate,
+  });
   return (
     <div
       style={{
@@ -160,7 +163,7 @@ export function MergeTargetSettlementCard({
           <span style={{ fontWeight: 'var(--font-semibold)' }}>
             {hasTargetHistoricalRent
               ? `Active Season (${formatGrnSeasonLabel(movementDate)}) Preserved (Billed at Outward)`
-              : `Preserved under active ${targetGrn.rentType} subscription (₹0 Merge Dues)`}
+              : `Preserved under active ${effectiveRentType} subscription (₹0 Merge Dues)`}
           </span>
         </div>
       </div>
