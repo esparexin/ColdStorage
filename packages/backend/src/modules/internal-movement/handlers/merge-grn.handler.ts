@@ -1,6 +1,9 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { appendGrnRemarks, isHybridBagCategory, resolveMergedBagType, resolveStoredCompositionVerified, type Grn, type InternalMovementRecord, type MergeGrnInput } from '@cold-storage/contracts';
+import {
+  appendGrnRemarks, isHybridBagCategory, resolveEffectiveGrnRentType, resolveMergedBagType,
+  resolveStoredCompositionVerified, type Grn, type InternalMovementRecord, type MergeGrnInput,
+} from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import { rentRepository } from '../../rent/rent.repository.js';
@@ -198,7 +201,8 @@ export async function mergeGrn(
 
       const targetPaid = (await rentRepository.findPaymentsByGrnId(facilityId, targetGrn.id, session))
         .reduce((sum, p) => sum + p.amountPaid, 0);
-      const target = { id: targetGrn.id, rentAmount: newRentAmount, rentType: targetGrn.rentType };
+      const effectiveTargetRentType = resolveEffectiveGrnRentType({ rentType: targetGrn.rentType, inwardDate: targetGrn.date, asOfDate: moveDate });
+      const target = { id: targetGrn.id, rentAmount: newRentAmount, rentType: effectiveTargetRentType };
       const targetTotalDue = await resolveMovementObligation(facilityId, target, session);
       const targetRentBal = computeRentBalance(targetTotalDue, targetPaid);
 
