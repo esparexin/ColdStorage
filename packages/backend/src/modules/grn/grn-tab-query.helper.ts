@@ -115,26 +115,25 @@ export async function resolveGrnFacilityTabSummaries(
       mergedIds.push(grn.id);
     }
 
-    // Closed tab: once balance reaches 0 bags with no dues, or status is CLOSED, or merged source lot, it belongs in Closed.
-    if (grn.status === 'CLOSED' || (closing === 0 && remainingLiability === 0) || (isMergedSource && closing === 0)) {
+    // Closed tab: once balance reaches 0 bags, or status is CLOSED, or merged source lot, it belongs in Closed.
+    if (grn.status === 'CLOSED' || closing === 0 || isMergedSource) {
       closedIds.push(grn.id);
-      continue;
-    }
-
-    if (closing === 0 && remainingLiability > 0) {
-      pendingPaymentIds.push(grn.id);
+      if (remainingLiability > 0 && delivered > 0 && !isMergedSource) {
+        pendingPaymentIds.push(grn.id);
+      }
       continue;
     }
 
     // Status is 'OPEN' and stock is remaining (> 0 bags)
     if (delivered === 0 && closing > 0) {
       activeIds.push(grn.id);
-    } else if (closing > 0) {
-      partialIds.push(grn.id);
-    }
-
-    if (remainingLiability > 0) {
-      pendingPaymentIds.push(grn.id);
+    } else {
+      if (closing > 0) {
+        partialIds.push(grn.id);
+      }
+      if (remainingLiability > 0) {
+        pendingPaymentIds.push(grn.id);
+      }
     }
   }
 
