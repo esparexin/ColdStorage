@@ -144,11 +144,10 @@ export async function mergeGrn(
       const newBags = input.isRepackSelected ? actualMovedBags : targetGrn.bags + actualMovedBags;
       const newSmall = input.isRepackSelected ? totalMovedSmall : baseTSmall + totalMovedSmall;
       const newBig = input.isRepackSelected ? totalMovedBig : baseTBig + totalMovedBig;
-      const effectiveSourceBagTypes =
-        input.sourceBagCategory === 'Hybrid' || input.sourceBagType === 'Hybrid'
-          ? ['Hybrid' as const]
-          : sourceGrns.map((s) => s.bagType);
-      const resultingBagType = resolveMergedBagType({
+      const isRepackedHybrid = Boolean(input.isRepackSelected &&
+        (input.sourceBagCategory === 'Hybrid' || input.sourceBagType === 'Hybrid' || input.targetBagCategory === 'Hybrid' || input.targetBagType === 'Hybrid'));
+      const effectiveSourceBagTypes = isRepackedHybrid ? ['Hybrid' as const] : sourceGrns.map((s) => s.bagType);
+      const resultingBagType = isRepackedHybrid ? 'Hybrid' : resolveMergedBagType({
         targetBagType: targetGrn.bagType, sourceBagTypes: effectiveSourceBagTypes,
         newSmallBags: newSmall, newBigBags: newBig,
       });

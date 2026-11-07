@@ -1,4 +1,4 @@
-import type { Grn } from '@cold-storage/contracts';
+import { formatDisplayBagType, type Grn } from '@cold-storage/contracts';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { Badge } from '@/components/ui';
 import { formatDisplayDate } from '@/lib/date-format';
@@ -99,13 +99,24 @@ export function createGrnTableColumns({
       sortType: 'number',
       sortAccessor: (row) => row.bags,
       render: (row) => {
+        const displayType = formatDisplayBagType(row);
+        const isSb = displayType === 'Small & Big';
         return (
           <div className={styles.bagsCell}>
             <span className={styles.inwardLink}>{row.bags.toLocaleString('en-IN')} bags</span>
-            {row.isCompositionVerified && row.smallBags != null && row.bigBags != null && (row.smallBags > 0 || row.bigBags > 0) && (
+            {displayType === 'Hybrid' && (
+              <span className={styles.bagTypeSub}>Hybrid</span>
+            )}
+            {isSb && row.smallBags != null && row.bigBags != null && (
               <span className={styles.bagTypeSub}>
                 S: {row.smallBags.toLocaleString('en-IN')} • B: {row.bigBags.toLocaleString('en-IN')}
               </span>
+            )}
+            {(displayType === 'Small' || displayType === 'Big') && (
+              <span className={styles.bagTypeSub}>{displayType}</span>
+            )}
+            {displayType === 'Unconfirmed' && (
+              <span className={styles.bagTypeSub}>Unconfirmed</span>
             )}
             {row.netDeliveredBags != null && row.netDeliveredBags > 0 && (
               <span className={styles.deliveredSub}>
