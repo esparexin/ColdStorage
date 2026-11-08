@@ -92,12 +92,9 @@ export async function getGrnMovementHistory(
   };
 
   const isInternalAdjustmentOut = (t: (typeof txs)[0]) =>
-    t.transactionType === 'OUTWARD_DELIVERY' &&
-    !challanMap.has(t.referenceId) &&
-    (Boolean(t.notes?.toLowerCase().includes('repack')) ||
-      Boolean(t.notes?.toLowerCase().includes('ownership transfer')) ||
-      movRefMap.get(getMovId(t.referenceId))?.movementType === 'REPACK' ||
-      movRefMap.get(getMovId(t.referenceId))?.movementType === 'TRANSFER_OWNERSHIP');
+    t.transactionType === 'OUTWARD_DELIVERY' && !challanMap.has(t.referenceId) &&
+    (/(repack|ownership transfer|merged into)/i.test(t.notes || '') ||
+      ['REPACK', 'TRANSFER_OWNERSHIP', 'MERGE'].includes(movRefMap.get(getMovId(t.referenceId))?.movementType || ''));
 
   const getOpTime = (item: TimelineItem): number => {
     if (item.kind === 'OWNERSHIP') return new Date(item.movement.createdAt ?? item.movement.movementDate).getTime();
@@ -111,7 +108,9 @@ export async function getGrnMovementHistory(
   };
 
   timeline.sort((a, b) => {
-    const dayDiff = getEventTime(a) - getEventTime(b);
+    const dayA = new Date(getEventTime(a)).toISOString().slice(0, 10);
+    const dayB = new Date(getEventTime(b)).toISOString().slice(0, 10);
+    const dayDiff = dayA.localeCompare(dayB);
     if (dayDiff !== 0) return dayDiff;
     const opDiff = getOpTime(a) - getOpTime(b);
     if (opDiff !== 0) return opDiff;
@@ -164,12 +163,13 @@ export async function getGrnMovementHistory(
         remarks: trfInNotes, performedBy: mov?.performedBy ?? t.createdBy,
       });
     } else if (t.transactionType === 'OUTWARD_DELIVERY') {
-      const isMergeOut = t.notes?.startsWith('Merged into');
       const mov = movRefMap.get(getMovId(t.referenceId));
-      const isTransferOut = mov?.movementType === 'TRANSFER_OWNERSHIP' ||
-        (!challanMap.has(t.referenceId) && Boolean(t.notes?.toLowerCase().includes('ownership transfer')));
-      const isRepack = !isTransferOut &&
-        (mov?.movementType === 'REPACK' || (!challanMap.has(t.referenceId) && Boolean(t.notes?.includes('repack'))));
+      const isRepack = !challanMap.has(t.referenceId) &&
+        (mov?.movementType === 'REPACK' || Boolean(t.notes?.toLowerCase().includes('repack')));
+      const isTransferOut = !isRepack && (mov?.movementType === 'TRANSFER_OWNERSHIP' ||
+        (!challanMap.has(t.referenceId) && Boolean(t.notes?.toLowerCase().includes('ownership transfer'))));
+      const isMergeOut = !isRepack && !isTransferOut &&
+        (mov?.movementType === 'MERGE' || Boolean(t.notes?.toLowerCase().startsWith('merged into')));
       const closing = Math.max(0, runningBalance - deltaTotal);
       let closingSmall: number | null = null;
       let closingBig: number | null = null;
@@ -189,9 +189,9 @@ export async function getGrnMovementHistory(
         entries.push({
           date: mov?.movementDate ?? t.createdAt, grnId: grn.id, grnNumber: grn.grnNumber,
           type: isMergeOut ? 'INTERNAL_MERGE_OUT' : isRepack ? 'INTERNAL_REPACK' : 'OWNERSHIP_TRANSFER',
-          openingBags: opening, receivedBags: 0, deliveredBags: deltaTotal, closingBags: isMergeOut || isTransferOut || isRepack ? 0 : closing,
+          openingBags: opening, receivedBags: 0, deliveredBags: deltaTotal, closingBags: closing,
           smallBags: t.smallQuantity, bigBags: t.bigQuantity,
-          remainingSmallBags: isMergeOut || isTransferOut || isRepack ? 0 : closingSmall, remainingBigBags: isMergeOut || isTransferOut || isRepack ? 0 : closingBig,
+          remainingSmallBags: closingSmall, remainingBigBags: closingBig,
           remarks: trfOutNotes, performedBy: mov?.performedBy ?? t.createdBy,
         });
       } else {

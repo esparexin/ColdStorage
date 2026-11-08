@@ -85,9 +85,9 @@ describe('Integration: Internal Merge with Repacking Flow (GRN 23 = 150 bags, GR
     expect(res.body.success).toBe(true);
 
     const updatedTarget = await GrnModel.findOne({ id: targetGrnId }).lean();
-    expect(updatedTarget?.bags).toBe(200);
-    expect(updatedTarget?.smallBags).toBe(125);
-    expect(updatedTarget?.bigBags).toBe(75);
+    expect(updatedTarget?.bags).toBe(50);
+    expect(updatedTarget?.smallBags).toBe(35);
+    expect(updatedTarget?.bigBags).toBe(15);
     expect(updatedTarget?.isCompositionVerified).toBe(true);
     // Target retains 3000 initial storage rent (repacking Hamali decoupled from rentAmount per SSOT)
     expect(updatedTarget?.rentAmount).toBe(3000);
@@ -96,7 +96,7 @@ describe('Integration: Internal Merge with Repacking Flow (GRN 23 = 150 bags, GR
     expect(updatedSource?.status).toBe('CLOSED');
 
     const finalTargetBal = await readLedgerBalance(facilityId, targetGrnId);
-    expect(finalTargetBal.total).toBe(200);
+    expect(finalTargetBal.total).toBe(50);
     const finalSourceBal = await readLedgerBalance(facilityId, sourceGrnId);
     expect(finalSourceBal.total).toBe(0);
 
@@ -147,15 +147,15 @@ describe('Integration: Internal Merge with Repacking Flow (GRN 23 = 150 bags, GR
     expect(res.body.success).toBe(true);
 
     const updatedTarget = await GrnModel.findOne({ id: targetGrnId }).lean();
-    expect(updatedTarget?.bags).toBe(190);
-    expect(updatedTarget?.smallBags).toBe(110);
-    expect(updatedTarget?.bigBags).toBe(80);
+    expect(updatedTarget?.bags).toBe(40);
+    expect(updatedTarget?.smallBags).toBe(20);
+    expect(updatedTarget?.bigBags).toBe(20);
 
     const updatedSource = await GrnModel.findOne({ id: sourceGrnId }).lean();
     expect(updatedSource?.status).toBe('CLOSED');
 
     const targetBal = await readLedgerBalance(facilityId, targetGrnId);
-    expect(targetBal.total).toBe(190);
+    expect(targetBal.total).toBe(40);
     const sourceBal = await readLedgerBalance(facilityId, sourceGrnId);
     expect(sourceBal.total).toBe(0);
   });

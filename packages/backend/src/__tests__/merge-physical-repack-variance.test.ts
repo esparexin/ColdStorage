@@ -82,16 +82,16 @@ describe('Merge Physical Repack Variance & Consolidation', { timeout: 30000 }, (
       additionalRentAmount: 0,
     }, userId);
 
-    // Target stock must increase by exactly 350 bags: 200 original + 350 repacked = 550
-    expect(res.targetGrn.bags).toBe(550);
-    expect(res.targetGrn.smallBags).toBe(300); // 100 + 200
-    expect(res.targetGrn.bigBags).toBe(250);   // 100 + 150
+    // Target stock reconciles to the 350 repacked bags (target old stock closed to 0 per zero-inward rule)
+    expect(res.targetGrn.bags).toBe(350);
+    expect(res.targetGrn.smallBags).toBe(200);
+    expect(res.targetGrn.bigBags).toBe(150);
 
-    // Target ledger balance must reflect 550 bags
+    // Target ledger balance must reflect 350 bags
     const targetBal = await readLedgerBalance(facilityId, target.id);
-    expect(targetBal.total).toBe(550);
-    expect(targetBal.smallBags).toBe(300);
-    expect(targetBal.bigBags).toBe(250);
+    expect(targetBal.total).toBe(350);
+    expect(targetBal.smallBags).toBe(200);
+    expect(targetBal.bigBags).toBe(150);
 
     // All 4 source GRNs must be CLOSED with 0 remaining ledger balance, preserving their individual original rent
     const d1 = await GrnModel.findOne({ id: s1.id }).lean().exec();
@@ -122,7 +122,7 @@ describe('Merge Physical Repack Variance & Consolidation', { timeout: 30000 }, (
     expect(res.targetGrn.remarks).toContain('Repacked: 200 S + 150 B = 350 bags; Variance from 400 source bags: -50 bags');
 
     // Parsed breakdown must successfully extract variance
-    const breakdown = parseMergedConsignmentBreakdown(res.targetGrn.remarks, 550, 'Farmer Variance');
+    const breakdown = parseMergedConsignmentBreakdown(res.targetGrn.remarks, 350, 'Farmer Variance');
     expect(breakdown).not.toBeNull();
     expect(breakdown?.totalMergedAddedBags).toBe(350);
     expect(breakdown?.repackVariance).toBe(-50);
@@ -148,7 +148,7 @@ describe('Merge Physical Repack Variance & Consolidation', { timeout: 30000 }, (
       additionalRentAmount: 0,
     }, userId);
 
-    expect(res.targetGrn.bags).toBe(550); // 100 + 450
+    expect(res.targetGrn.bags).toBe(450);
     expect(res.movement.totalBagsMoved).toBe(450);
     expect(res.movement.repackVariance).toBe(50);
     expect(res.movement.repackSourceBags).toBe(400);

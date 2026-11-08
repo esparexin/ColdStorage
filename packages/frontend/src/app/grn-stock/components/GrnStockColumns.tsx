@@ -1,6 +1,6 @@
 import React from 'react';
 import { Eye, Trash2 } from 'lucide-react';
-import type { Grn } from '@cold-storage/contracts';
+import { formatDisplayBagType, type Grn } from '@cold-storage/contracts';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { Badge, Button } from '@/components/ui';
 import { formatDisplayDate } from '@/lib/date-format';
@@ -85,24 +85,22 @@ export function createGrnStockColumns({
       sortable: true,
       sortType: 'number',
       sortAccessor: (row) => row.bags,
-      render: (row) => (
-        <div style={{ textAlign: 'right' }}>
-          <span style={{ fontWeight: 'var(--font-semibold)', fontVariantNumeric: 'tabular-nums' }}>
-            {row.bags.toLocaleString('en-IN')}
-          </span>
-          {row.isCompositionVerified && row.smallBags != null && row.bigBags != null && (row.smallBags > 0 || row.bigBags > 0) ? (
-            <span
-              style={{
-                display: 'block',
-                fontSize: 'var(--text-xs)',
-                color: 'var(--color-text-muted)',
-              }}
-            >
-              S: {row.smallBags.toLocaleString('en-IN')} • B: {row.bigBags.toLocaleString('en-IN')}
+      render: (row) => {
+        const dType = formatDisplayBagType(row);
+        const sub = dType === 'Hybrid' ? 'Hybrid' : (row.isCompositionVerified && row.smallBags != null && row.bigBags != null && (row.smallBags > 0 || row.bigBags > 0)) ? `S: ${row.smallBags.toLocaleString('en-IN')} • B: ${row.bigBags.toLocaleString('en-IN')}` : null;
+        return (
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ fontWeight: 'var(--font-semibold)', fontVariantNumeric: 'tabular-nums' }}>
+              {row.bags.toLocaleString('en-IN')}
             </span>
-          ) : null}
-        </div>
-      ),
+            {sub ? (
+              <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                {sub}
+              </span>
+            ) : null}
+          </div>
+        );
+      },
     },
     {
       key: 'netDeliveredBags',

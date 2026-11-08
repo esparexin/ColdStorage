@@ -152,9 +152,9 @@ export function useInternalMovementMergeTab({
   const resultingBagType = useMemo(() => resolveMergedBagType({
     targetBagType: targetGrn.bagType,
     sourceBagTypes: effectiveIsHybrid ? ['Hybrid'] : selectedSources.map((s) => s.bagType),
-    newSmallBags: (targetGrn.smallBags ?? 0) + movedSmall,
-    newBigBags: (targetGrn.bigBags ?? 0) + movedBig,
-  }), [targetGrn.bagType, targetGrn.smallBags, targetGrn.bigBags, selectedSources, movedSmall, movedBig, effectiveIsHybrid]);
+    newSmallBags: repackMode ? movedSmall : (targetGrn.smallBags ?? 0) + movedSmall,
+    newBigBags: repackMode ? movedBig : (targetGrn.bigBags ?? 0) + movedBig,
+  }), [targetGrn.bagType, targetGrn.smallBags, targetGrn.bigBags, selectedSources, movedSmall, movedBig, effectiveIsHybrid, repackMode]);
 
   const handleProceedToStep2 = () => {
     setValidationError(null);

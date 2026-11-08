@@ -56,15 +56,6 @@ export function parseMergedSourceGrns(remarks?: string | null): string | null {
 }
 
 /**
- * Extracts merged added bag count from remarks (e.g. "+60 bags" in "[MERGE RECEIVED: +60 bags...]").
- */
-export function parseMergedAddedBags(remarks?: string | null): number | null {
-  if (!remarks) return null;
-  const match = remarks.match(/\+(\d+)\s+bags/i);
-  return match ? parseInt(match[1], 10) : null;
-}
-
-/**
  * Extracts repacked bag composition from remarks (e.g. "Repacked: 30 S + 30 B = 60 bags" -> "30 Small, 30 Big").
  */
 export function parseMergedRepackedDetail(remarks?: string | null): string | null {

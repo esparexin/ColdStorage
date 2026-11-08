@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { Grn } from '@cold-storage/contracts';
+import { parseMergedConsignmentBreakdown, type Grn } from '@cold-storage/contracts';
 import {
   filterEligibleGrns,
   getAvailableStockBags,
-  parseMergedAddedBags,
   parseMergedRepackedDetail,
   parseMergedSourceGrns,
 } from '../eligibleGrn.helper';
@@ -110,15 +109,14 @@ describe('Outward Workflow Scenarios: Inward & Internal Movement to Outward', ()
       const parsedSources = parseMergedSourceGrns(complexTargetGrn.remarks);
       expect(parsedSources).toBe('0010, 0012');
 
-      const parsedAddedBags = parseMergedAddedBags(complexTargetGrn.remarks);
-      expect(parsedAddedBags).toBe(60);
+      const breakdown = parseMergedConsignmentBreakdown(complexTargetGrn.remarks, complexTargetGrn.bags, complexTargetGrn.customerName);
+      expect(breakdown?.totalMergedAddedBags).toBe(60);
 
       const repackedDetail = parseMergedRepackedDetail(complexTargetGrn.remarks);
       expect(repackedDetail).toBe('30 Small, 30 Big');
 
-      // Verify stock differentiation calculations
-      const genesisInwardBags = complexTargetGrn.bags - parsedAddedBags!;
-      expect(genesisInwardBags).toBe(14);
+      // Verify stock differentiation calculations from SSOT contract breakdown
+      expect(breakdown?.genesisBags).toBe(14);
       expect(complexTargetGrn.bags).toBe(74);
 
       // Searching for either source GRN returns the surviving GRN

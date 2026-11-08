@@ -21,7 +21,7 @@ export interface MergeTableRow {
 export function parseMergedGrnNotes(remarks?: string | null): MergedGrnNote[] {
   if (!remarks) return [];
   const mergeRx =
-    /\[MERGE RECEIVED on ([^:]+):\s*\+?(\d+)\s*bags(.*?)\s+from\s+([\s\S]*?)(?:\.\s*Reason:|\s*Reason:)\s*([^\]]+)\]/gi;
+    /\[MERGE RECEIVED on ([^:]+):\s*\+?(\d+)\s*bags(.*?)\s+from\s+([\s\S]*?)(?:\.\s*Reason:|\s*Reason:)\s*([^\]\n]+)\]?/gi;
   const notes: MergedGrnNote[] = [];
   let match: RegExpExecArray | null;
   while ((match = mergeRx.exec(remarks)) !== null) {
@@ -57,7 +57,7 @@ export function parseRemarksToTableRows(currentGrn: Grn, allGrns: Grn[] = []): M
 
   // 1. Check if current GRN received merged stock
   const mergeRx =
-    /\[MERGE RECEIVED on ([^:]+):\s*\+?(\d+)\s*bags(.*?)\s+from\s+(?:GRN\s+)?([^\s(]+)(?:\s*\(([^)]+)\))?\.(?:[^.]*\.)?\s*Reason:\s*([^\]]+)\]/gi;
+    /\[MERGE RECEIVED on ([^:]+):\s*\+?(\d+)\s*bags(.*?)\s+from\s+(?:GRN\s+)?([^\s(]+)(?:\s*\(([^)]+)\))?\.(?:[^.]*\.)?\s*Reason:\s*([^\]\n]+)\]?/gi;
   let match: RegExpExecArray | null;
   while ((match = mergeRx.exec(remarks)) !== null) {
     const [, date, bagsStr, , sourceGrnNum, detailsStr, reason] = match;
@@ -72,12 +72,17 @@ export function parseRemarksToTableRows(currentGrn: Grn, allGrns: Grn[] = []): M
     const repackedMatch = match[0].match(/Repacked:\s*(\d+)\s*S\s*\+\s*(\d+)\s*B/i);
     const hamaliMatch = match[0].match(/Repacking Hamali:\s*₹?(\d+)(?:\s*\(([^)]+)\))?/i);
     const hamaliNote = hamaliMatch ? ` • Hamali: ₹${hamaliMatch[1]} (${hamaliMatch[2]})` : '';
-    const isSourceHybrid = sourceGrn && ((sourceGrn.bagPrice != null && sourceGrn.smallBagPrice == null && sourceGrn.bigBagPrice == null) || isHybridBagCategory(sourceGrn.bagType));
+    const isSourceHybrid =
+      (sourceGrn &&
+        ((sourceGrn.bagPrice != null && sourceGrn.smallBagPrice == null && sourceGrn.bigBagPrice == null) ||
+          isHybridBagCategory(sourceGrn.bagType))) ||
+      bagType === 'Hybrid' ||
+      isHybridBagCategory(bagType);
     let sbDetail: string;
     if (repackedMatch) {
       sbDetail = `Repacked: ${repackedMatch[1]} S • ${repackedMatch[2]} B (${bagType})${hamaliNote}`;
     } else if (isSourceHybrid) {
-      sbDetail = `Hybrid (${bagType})${hamaliNote}`;
+      sbDetail = `Hybrid${hamaliNote}`;
     } else if (sourceGrn && (sourceGrn.smallBags > 0 || sourceGrn.bigBags > 0)) {
       sbDetail = `S: ${sourceGrn.smallBags.toLocaleString('en-IN')} • B: ${sourceGrn.bigBags.toLocaleString('en-IN')} (${bagType})${hamaliNote}`;
     } else {
@@ -138,7 +143,7 @@ export function parseRemarksToTableRows(currentGrn: Grn, allGrns: Grn[] = []): M
         ? `SM: ${currentGrn.storageMark}`
         : `SM: ${currentGrn.storageMark || currentGrn.grnNumber}`,
       totalBags: `${currentGrn.bags.toLocaleString('en-IN')} bags`,
-      sbDetail: `S: ${smallBags} • B: ${bigBags} (${bagType})`,
+      sbDetail: bagType === 'Hybrid' ? 'Hybrid' : `S: ${smallBags} • B: ${bigBags} (${bagType})`,
       reason,
     });
   }
@@ -171,7 +176,7 @@ export function parseRemarksToTableRows(currentGrn: Grn, allGrns: Grn[] = []): M
         ? `SM: ${currentGrn.storageMark}`
         : `SM: ${currentGrn.storageMark || currentGrn.grnNumber}`,
       totalBags: `${currentGrn.bags.toLocaleString('en-IN')} bags`,
-      sbDetail: `S: ${smallBags} • B: ${bigBags} (${bagType})`,
+      sbDetail: bagType === 'Hybrid' ? 'Hybrid' : `S: ${smallBags} • B: ${bigBags} (${bagType})`,
       reason: reason?.trim() || 'N/A',
     });
   }

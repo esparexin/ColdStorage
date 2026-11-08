@@ -15,6 +15,21 @@ import { transferOwnership } from './handlers/transfer-ownership.handler.js';
 import { executeSortGrn } from './handlers/sort-grn.handler.js';
 import { executeRepackGrn } from './handlers/repack-grn.handler.js';
 
+function sortMovementsDesc(
+  a: { movementDate: Date | string; createdAt?: Date | string; _id?: unknown },
+  b: { movementDate: Date | string; createdAt?: Date | string; _id?: unknown },
+): number {
+  const dayA = new Date(a.movementDate).toISOString().slice(0, 10);
+  const dayB = new Date(b.movementDate).toISOString().slice(0, 10);
+  const dayDiff = dayB.localeCompare(dayA);
+  if (dayDiff !== 0) return dayDiff;
+  const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+  const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+  const timeDiff = timeB - timeA;
+  if (timeDiff !== 0) return timeDiff;
+  return String(b._id ?? '').localeCompare(String(a._id ?? ''));
+}
+
 export class InternalMovementService {
   public async sortGrn(
     facilityId: string,
@@ -53,6 +68,7 @@ export class InternalMovementService {
       .sort({ movementDate: -1, _id: -1 })
       .lean()
       .exec();
+    docs.sort(sortMovementsDesc);
     return docs.map((d) => ({
       ...d,
       id: d.id,
@@ -69,6 +85,7 @@ export class InternalMovementService {
       .sort({ movementDate: -1, _id: -1 })
       .lean()
       .exec();
+    docs.sort(sortMovementsDesc);
     return docs.map((d) => ({
       ...d,
       id: d.id,

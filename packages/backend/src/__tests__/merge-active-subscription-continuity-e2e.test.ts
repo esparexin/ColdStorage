@@ -122,9 +122,9 @@ describe('Merge into Existing GRN - Active Subscription Continuity E2E', () => {
     expect(updatedTarget?.rentAmount).toBe(1000); // Storage rent preserved as-is
     expect(updatedTarget?.date.toISOString()).toBe(new Date('2026-03-15T00:00:00Z').toISOString()); // Original inward date preserved
     expect(updatedTarget?.mergedAt).not.toBeNull(); // Audit timestamp recorded
-    expect(updatedTarget?.bags).toBe(38); // 8 initial + 30 moved = 38 total
-    expect(updatedTarget?.smallBags).toBe(24); // 4 + 20
-    expect(updatedTarget?.bigBags).toBe(14); // 4 + 10
+    expect(updatedTarget?.bags).toBe(30); // 30 confirmed repacked bags (target old stock closed to 0 per zero-inward rule)
+    expect(updatedTarget?.smallBags).toBe(20);
+    expect(updatedTarget?.bigBags).toBe(10);
 
     // Verification 3: Only applicable Hamali is collected for repacking (30 bags @ ₹25/bag = ₹750)
     expect(mergeRes.body.movement.hamaliCharge).toBe(750);
@@ -139,7 +139,7 @@ describe('Merge into Existing GRN - Active Subscription Continuity E2E', () => {
     // Post-merge rent summary for Target GRN #0004
     const targetSummaryAfter = await rentService.getRentSummary(facilityId, targetGrnId);
     expect(targetSummaryAfter.rentAmount).toBe(1000);
-    expect(targetSummaryAfter.remainingBags).toBe(38);
+    expect(targetSummaryAfter.remainingBags).toBe(30);
 
     // 5. Subsequent Outward Delivery: Deliver 10 repacked bags (6 small, 4 big) on 2026-11-01
     const { delivery } = await deliveryService.createDelivery(
@@ -158,9 +158,9 @@ describe('Merge into Existing GRN - Active Subscription Continuity E2E', () => {
     expect(delivery).not.toBeNull();
     expect(delivery.smallBags + delivery.bigBags).toBe(10);
 
-    // Verification 5 & 6: Outward delivery calculates rent under Season 2026 terms, closing bags = 28, no duplicate bills
+    // Verification 5 & 6: Outward delivery calculates rent under Season 2026 terms, closing bags = 20, no duplicate bills
     const postDeliverySummary = await rentService.getRentSummary(facilityId, targetGrnId);
-    expect(postDeliverySummary.remainingBags).toBe(28);
+    expect(postDeliverySummary.remainingBags).toBe(20);
     expect(postDeliverySummary.deliveredBags).toBe(10);
     // Base rent is preserved, delivery rent charge is integrated canonically
     expect(postDeliverySummary.rentAmount).toBe(1000);
