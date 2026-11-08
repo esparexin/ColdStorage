@@ -104,7 +104,7 @@ describe('structuredMovementsTable.helper', () => {
 
     const rows = mapStructuredMovementsToTableRows([structuredMergeIn], hybridGrn);
     expect(rows).toHaveLength(1);
-    expect(rows[0].sbDetail).toBe('Hybrid (Hybrid)');
+    expect(rows[0].sbDetail).toBe('Hybrid');
   });
 
   it('maps structured MERGE Out record when current GRN was merged into a surviving target', () => {

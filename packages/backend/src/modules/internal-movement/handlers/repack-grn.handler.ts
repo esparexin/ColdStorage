@@ -188,7 +188,9 @@ export async function executeRepackGrn(
             remainingBalance: rentBal.remainingBalance, paymentStatus: rentBal.paymentStatus,
             rentState: rentBal.rentState, hamaliAmount: repackHamaliCharge,
           },
-          remarks: input.repackVarianceReason ? `${input.remarks} (Variance: ${input.repackVarianceReason})` : input.remarks,
+          remarks: input.repackVarianceReason && !input.remarks.includes(input.repackVarianceReason)
+            ? `${input.remarks} (Variance: ${input.repackVarianceReason})`
+            : input.remarks,
           idempotencyKey: input.idempotencyKey ?? null, performedBy: userId,
         }], { session, ordered: true });
 

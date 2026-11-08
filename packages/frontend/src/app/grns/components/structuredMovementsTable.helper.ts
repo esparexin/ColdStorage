@@ -13,19 +13,20 @@ export function mapStructuredMovementsToTableRows(
 ): MergeTableRow[] {
   return movements.map((rec) => {
     const dateStr = rec.movementDate ? new Date(rec.movementDate).toISOString().slice(0, 10) : 'N/A';
-    const bagType = currentGrn.bagType ?? 'S/B';
+    const effectiveBagType = rec.resultingBagType ?? rec.sourceBagType ?? currentGrn.bagType ?? 'S/B';
     const isHybrid =
-      (currentGrn.bagPrice != null && currentGrn.smallBagPrice == null && currentGrn.bigBagPrice == null) ||
-      isHybridBagCategory(currentGrn.bagType);
+      isHybridBagCategory(effectiveBagType) ||
+      effectiveBagType === 'Hybrid' ||
+      (currentGrn.bagPrice != null && currentGrn.smallBagPrice == null && currentGrn.bigBagPrice == null);
     const hamaliSuffix =
       rec.hamaliCharge && rec.hamaliCharge > 0
         ? ` • Hamali: ₹${rec.hamaliCharge}${rec.hamaliRate ? ` (@₹${rec.hamaliRate}/bag)` : ''}`
         : '';
     const baseSb = isHybrid
-      ? `Hybrid (${bagType})`
+      ? 'Hybrid'
       : rec.smallBagsMoved > 0 || rec.bigBagsMoved > 0
-      ? `S: ${rec.smallBagsMoved.toLocaleString('en-IN')} • B: ${rec.bigBagsMoved.toLocaleString('en-IN')} (${bagType})`
-      : `${rec.totalBagsMoved.toLocaleString('en-IN')} bags (${bagType})`;
+      ? `S: ${rec.smallBagsMoved.toLocaleString('en-IN')} • B: ${rec.bigBagsMoved.toLocaleString('en-IN')} (${effectiveBagType})`
+      : `${rec.totalBagsMoved.toLocaleString('en-IN')} bags (${effectiveBagType})`;
     const sbDetail = `${baseSb}${hamaliSuffix}`;
 
     if (rec.movementType === 'MERGE') {

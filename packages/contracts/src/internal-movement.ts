@@ -178,11 +178,11 @@ export function validateHybridQuantityInput(
 }
 
 /**
- * Appends an audit note to GRN remarks without exceeding the 500-char max constraint.
- * If the resulting combined string exceeds maxLen (default 500), it safely trims the
- * earliest text so the latest audit note and total length remain strictly within bounds.
+ * Appends an audit note to GRN remarks without exceeding the maximum length constraint.
+ * Defaults to 4000 characters to safely preserve multi-event consignment merge and transfer
+ * history without corrupting or truncating earlier structured [MERGE RECEIVED] audit notes.
  */
-export function appendGrnRemarks(existing: string | null | undefined, newNote: string, maxLen = 500): string {
+export function appendGrnRemarks(existing: string | null | undefined, newNote: string, maxLen = 4000): string {
   const note = newNote.trim();
   if (!existing?.trim()) return note.slice(0, maxLen);
   const combined = `${existing.trim()}\n${note}`;
