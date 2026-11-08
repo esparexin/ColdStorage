@@ -75,8 +75,7 @@ export function RentBillingChargesSection({
       const match = valid.filter((d) => d.id === selectedDeliveryId);
       if (match.length > 0) return match;
     }
-    // Always show exactly ONE bill card for the outward delivery
-    return valid.length > 0 ? [valid[valid.length - 1]] : [];
+    return valid;
   }, [deliveries, selectedDeliveryId]);
 
   const { rates: commodityRates, hamaliRate: commodityHamaliRate } = useCommodityRates(account.commodityId ?? null);
