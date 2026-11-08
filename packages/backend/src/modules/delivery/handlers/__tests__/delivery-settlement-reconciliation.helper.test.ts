@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { reconcileDeliveriesWithPayments } from '../delivery-settlement-reconciliation.helper.js';
+import {
+  reconcileDeliveriesWithPayments,
+  resolveCreditedChallansForPayment,
+} from '../delivery-settlement-reconciliation.helper.js';
 
 describe('delivery-settlement-reconciliation.helper', () => {
   it('returns empty map when there are no challans', () => {
@@ -118,6 +121,65 @@ describe('delivery-settlement-reconciliation.helper', () => {
     expect(res.get('del-1')?.rentPaymentStatus).toBe('Not Settled');
     expect(res.get('del-2')?.rentPaymentStatus).toBe('Settled');
     expect(res.get('del-2')?.rentTotalPaid).toBe(3300);
+  });
+
+  describe('resolveCreditedChallansForPayment', () => {
+    const challans = [
+      { id: 'del-1', challanNumber: 'CHL-001', gpNumber: 'GP-001', rentCharge: 100, date: new Date('2026-11-01') },
+      { id: 'del-2', challanNumber: 'CHL-002', gpNumber: 'GP-002', rentCharge: 100, date: new Date('2026-11-02') },
+      { id: 'del-3', challanNumber: 'CHL-003', gpNumber: 'GP-003', rentCharge: 50, date: new Date('2026-11-03') },
+      { id: 'del-4', challanNumber: 'CHL-004', gpNumber: 'GP-004', rentCharge: 200, date: new Date('2026-11-04') },
+    ];
+
+    it('identifies all credited challans for a full consolidated payment', () => {
+      const payments = [{ id: 'p-all', amountPaid: 450, paymentDate: new Date('2026-11-05') }];
+      const credited = resolveCreditedChallansForPayment('p-all', challans, payments);
+
+      expect(credited).toHaveLength(4);
+      expect(credited.map((c) => ({ id: c.id, amount: c.amountCredited }))).toEqual([
+        { id: 'del-1', amount: 100 },
+        { id: 'del-2', amount: 100 },
+        { id: 'del-3', amount: 50 },
+        { id: 'del-4', amount: 200 },
+      ]);
+    });
+
+    it('identifies ONLY the actual challans credited by a partial consolidated payment', () => {
+      const payments = [{ id: 'p-part', amountPaid: 150, paymentDate: new Date('2026-11-05') }];
+      const credited = resolveCreditedChallansForPayment('p-part', challans, payments);
+
+      // del-1 gets 100, del-2 gets 50, del-3 & del-4 get 0 and are omitted
+      expect(credited).toHaveLength(2);
+      expect(credited.map((c) => ({ id: c.id, amount: c.amountCredited }))).toEqual([
+        { id: 'del-1', amount: 100 },
+        { id: 'del-2', amount: 50 },
+      ]);
+    });
+
+    it('correctly tracks sequential payments and excludes previously settled challans', () => {
+      const payments = [
+        { id: 'p-1', amountPaid: 150, paymentDate: new Date('2026-11-05') },
+        { id: 'p-2', amountPaid: 200, paymentDate: new Date('2026-11-06') },
+      ];
+      // p-2 should credit del-2 (remaining 50), del-3 (50), del-4 (100). del-1 is NOT credited by p-2
+      const creditedP2 = resolveCreditedChallansForPayment('p-2', challans, payments);
+
+      expect(creditedP2).toHaveLength(3);
+      expect(creditedP2.map((c) => ({ id: c.id, amount: c.amountCredited }))).toEqual([
+        { id: 'del-2', amount: 50 },
+        { id: 'del-3', amount: 50 },
+        { id: 'del-4', amount: 100 },
+      ]);
+    });
+
+    it('identifies direct payments matching deliveryId', () => {
+      const payments = [
+        { id: 'p-dir', deliveryId: 'del-3', amountPaid: 50, paymentDate: new Date('2026-11-05') },
+      ];
+      const credited = resolveCreditedChallansForPayment('p-dir', challans, payments);
+      expect(credited).toHaveLength(1);
+      expect(credited[0]).toMatchObject({ id: 'del-3', amountCredited: 50 });
+    });
   });
 });
 
