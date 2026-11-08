@@ -161,8 +161,7 @@ export async function transferOwnership(
       if (input.referenceWeight !== undefined && input.referenceWeight !== null) {
         updateFields.totalBagsWeight = input.referenceWeight;
       }
-      const transferredRent = expectedRentCharge > 0 ? expectedRentCharge : effectiveObligation;
-      if (transferredRent > 0) updateFields.rentAmount = transferredRent;
+      if (effectiveObligation > 0) updateFields.rentAmount = effectiveObligation;
       if (isHybrid) {
         if (typeof input.sourceBagPrice === 'number' && input.sourceBagPrice > 0) updateFields.bagPrice = input.sourceBagPrice;
         if (typeof input.sourceSeasonalBagPrice === 'number' && input.sourceSeasonalBagPrice > 0) updateFields.smallBagPrice = input.sourceSeasonalBagPrice;
