@@ -6,6 +6,7 @@ import { deliveryService } from '../modules/delivery/delivery.service.js';
 import { grnService } from '../modules/grn/grn.service.js';
 import { rentService } from '../modules/rent/rent.service.js';
 import { seedCustomer, seedFacility } from './helpers/master-data-fixtures.js';
+import { seedOrganizationSettings } from './helpers/rent-fixtures.js';
 import {
   connectToTestDatabase,
   disconnectTestDatabase,
@@ -26,6 +27,7 @@ describe('GRN-Wise Consolidated Rent Settlement (grn-consolidated-rent-settlemen
 
   beforeEach(async () => {
     await resetStockCollections();
+    await seedOrganizationSettings();
     await CommodityRateModel.deleteMany({});
     facilityId = await seedFacility({ name: 'Consolidated Rent Facility' });
     customerId = await seedCustomer({ facilityId, name: 'Consolidated Farmer' });
