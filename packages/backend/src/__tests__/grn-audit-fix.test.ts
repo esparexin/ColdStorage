@@ -8,6 +8,7 @@ import { GrnModel } from '../database/models/grn.model.js';
 import { RentExtensionModel } from '../database/models/rent-extension.model.js';
 import { InternalMovementModel } from '../database/models/internal-movement.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
+import { useHistoricalTestingDates } from './helpers/historical-dates-env.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import { seedControllerRates } from './helpers/lifecycle-testkit.js';
 import { connectToTestDatabase, disconnectTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
@@ -17,6 +18,8 @@ const seedAuth = createAuthSeeder(config.jwtSecret);
 const facilityId = 'fac-grn-audit-fix';
 
 describe('GRN Audit & Fix: Year-wise Rent, Merge, Payments, Bag-Type', () => {
+  useHistoricalTestingDates();
+
   let adminToken: string;
   let customerA: string;
   let commodityId: string;

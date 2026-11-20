@@ -7,6 +7,7 @@ import { CommodityModel } from '../database/models/commodity.model.js';
 import { GrnModel } from '../database/models/grn.model.js';
 import { RentPaymentModel } from '../database/models/rent-payment.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
+import { useHistoricalTestingDates } from './helpers/historical-dates-env.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import { seedControllerRates } from './helpers/lifecycle-testkit.js';
 import { connectToTestDatabase, disconnectTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
@@ -16,6 +17,8 @@ const seedAuth = createAuthSeeder(config.jwtSecret);
 const facilityId = 'fac-grn-audit-merge-settle';
 
 describe('GRN Audit: Bag Types, Payment Settlement, Hamali & Verification', () => {
+  useHistoricalTestingDates();
+
   let adminToken: string;
   let customerA: string;
   let commodityId: string;
