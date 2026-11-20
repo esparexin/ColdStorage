@@ -193,6 +193,7 @@ export class RentService {
       payment.deliveryId,
       payment.challanNumber,
       payment.gpNumber,
+      { paymentId: payment.id, grnId: grn.id },
     );
 
     const opInfo = resolveReceiptOperationInfo(payment.notes, grn.grnNumber);
@@ -212,7 +213,7 @@ export class RentService {
       movementType: opInfo.movementType, operationDescription: opInfo.operationDescription,
       previousStockBags: grn.bags,
       confirmedComposition: grn.bagType ? `${grn.bagType} (${grn.smallBags ?? 0}S / ${grn.bigBags ?? 0}B)` : undefined,
-      traceDetails: opInfo.traceDetails || (delInfo.challanNumber ? `Audit Trace: Challan=${delInfo.challanNumber} | Lot=${grn.grnNumber}` : undefined),
+      traceDetails: delInfo.traceDetails || opInfo.traceDetails || (delInfo.challanNumber ? `Audit Trace: Challan=${delInfo.challanNumber} | Lot=${grn.grnNumber}` : undefined),
       generatedAt: new Date(), generatedBy: payment.createdBy,
     };
 

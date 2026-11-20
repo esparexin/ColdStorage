@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import type { DeliveryChallan } from '@cold-storage/contracts';
 import {
+  calculateConsolidatedGrandTotal,
   calculatePendingAfterPayment,
+  getDeliveryRemainingDue,
   isCollectPaymentFormDirty,
   validateCollectPayment,
   type CollectPaymentFormValues,
@@ -109,6 +112,47 @@ describe('collectPayment.helper', () => {
     it('returns true when UPI reference is entered', () => {
       expect(isCollectPaymentFormDirty({ ...initial, upiReference: 'REF123' }, initial)).toBe(true);
       expect(isCollectPaymentFormDirty({ ...initial, upiReference: '   ' }, initial)).toBe(false);
+    });
+  });
+
+  describe('calculateConsolidatedGrandTotal', () => {
+    it('returns 0 for empty deliveries array', () => {
+      expect(calculateConsolidatedGrandTotal([])).toBe(0);
+    });
+
+    it('sums remaining balance across multiple active challans', () => {
+      const deliveries = [
+        { id: 'd-1', status: 'ISSUED', rentCharge: 100, rentRemainingBalance: 100 } as DeliveryChallan,
+        { id: 'd-2', status: 'ISSUED', rentCharge: 100, rentRemainingBalance: 50 } as DeliveryChallan,
+        { id: 'd-3', status: 'ISSUED', rentCharge: 50, rentRemainingBalance: 0 } as DeliveryChallan,
+        { id: 'd-4', status: 'ISSUED', rentCharge: 200 } as DeliveryChallan, // fallback to rentCharge
+      ];
+      expect(calculateConsolidatedGrandTotal(deliveries)).toBe(350);
+    });
+
+    it('ignores REVERSED deliveries', () => {
+      const deliveries = [
+        { id: 'd-1', status: 'ISSUED', rentCharge: 100, rentRemainingBalance: 100 } as DeliveryChallan,
+        { id: 'd-2', status: 'REVERSED', rentCharge: 500, rentRemainingBalance: 500 } as DeliveryChallan,
+      ];
+      expect(calculateConsolidatedGrandTotal(deliveries)).toBe(100);
+    });
+  });
+
+  describe('getDeliveryRemainingDue', () => {
+    it('returns rentRemainingBalance if present', () => {
+      const d = { id: 'd-1', status: 'ISSUED', rentCharge: 100, rentRemainingBalance: 40 } as DeliveryChallan;
+      expect(getDeliveryRemainingDue(d)).toBe(40);
+    });
+
+    it('falls back to rentCharge if rentRemainingBalance is undefined', () => {
+      const d = { id: 'd-1', status: 'ISSUED', rentCharge: 120 } as DeliveryChallan;
+      expect(getDeliveryRemainingDue(d)).toBe(120);
+    });
+
+    it('returns 0 if delivery is REVERSED', () => {
+      const d = { id: 'd-1', status: 'REVERSED', rentCharge: 100, rentRemainingBalance: 100 } as DeliveryChallan;
+      expect(getDeliveryRemainingDue(d)).toBe(0);
     });
   });
 });

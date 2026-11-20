@@ -38,10 +38,10 @@ export function renderRentReceiptTemplate(
           : ''
       }
       ${
-        dto.operationDescription || dto.movementType
+        dto.operationDescription || dto.movementType || dto.traceDetails
           ? `<tr>
         <th>Operation / Movement</th>
-        <td colspan="3"><strong>${escapeHtml(dto.operationDescription || dto.movementType)}</strong>${dto.confirmedComposition ? ` · Composition: ${escapeHtml(dto.confirmedComposition)}` : ''}${dto.previousStockBags != null ? ` · Prev Stock: ${dto.previousStockBags} bags` : ''}</td>
+        <td colspan="3"><strong>${escapeHtml(dto.operationDescription || dto.movementType || 'Consolidated Settlement')}</strong>${dto.traceDetails ? ` · ${escapeHtml(dto.traceDetails)}` : ''}${dto.confirmedComposition ? ` · Composition: ${escapeHtml(dto.confirmedComposition)}` : ''}${dto.previousStockBags != null ? ` · Prev Stock: ${dto.previousStockBags} bags` : ''}</td>
       </tr>`
           : ''
       }

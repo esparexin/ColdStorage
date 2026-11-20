@@ -52,6 +52,7 @@ export async function executeRecordPayment(
   let lockedGrn: GrnDoc;
   let computedRemainingBalance: number;
   let computedPaymentStatus: 'Settled' | 'Not Settled' = 'Not Settled';
+  let targetedDeliveryDoc: DeliveryChallanDoc | null = null;
 
   try {
     await withMongoRetry(() =>
@@ -114,25 +115,24 @@ export async function executeRecordPayment(
               const balanceBefore = computeRentBalance(totalDue, totalPaidBefore);
               const remainingBalance = balanceBefore.remainingBalance;
 
-              let targetDelivery: DeliveryChallanDoc | null = null;
               if (input.deliveryId) {
-                targetDelivery = await DeliveryChallanModel.findOne(
+                targetedDeliveryDoc = await DeliveryChallanModel.findOne(
                   { id: input.deliveryId, facilityId, grnId: grn.id, status: 'ISSUED' },
                   null,
                   { session },
                 );
-                if (!targetDelivery) {
+                if (!targetedDeliveryDoc) {
                   throw new Error(
                     `Delivery challan '${input.deliveryId}' not found for GRN '${grn.grnNumber}'`,
                   );
                 }
                 const deliveryPaidDocs = await RentPaymentModel.find(
-                  { facilityId, deliveryId: targetDelivery.id },
+                  { facilityId, deliveryId: targetedDeliveryDoc.id },
                   null,
                   { session },
                 ).lean();
                 const deliveryPaidBefore = deliveryPaidDocs.reduce((sum, p) => sum + p.amountPaid, 0);
-                const deliveryRentCharge = targetDelivery.rentCharge ?? 0;
+                const deliveryRentCharge = targetedDeliveryDoc.rentCharge ?? 0;
                 const deliveryRemaining = Math.max(
                   0,
                   Number((deliveryRentCharge - deliveryPaidBefore).toFixed(2)),
@@ -140,7 +140,7 @@ export async function executeRecordPayment(
 
                 if (input.amountPaid > deliveryRemaining) {
                   throw new Error(
-                    `Requested payment ₹${input.amountPaid} exceeds remaining rent balance of ₹${deliveryRemaining} for Delivery Challan '${targetDelivery.challanNumber}'`,
+                    `Requested payment ₹${input.amountPaid} exceeds remaining rent balance of ₹${deliveryRemaining} for Delivery Challan '${targetedDeliveryDoc.challanNumber}'`,
                   );
                 }
               }
@@ -178,9 +178,9 @@ export async function executeRecordPayment(
                   grnNumber: grn.grnNumber,
                   customerId: grn.customerId,
                   customerName: grn.customerName,
-                  deliveryId: targetDelivery?.id ?? null,
-                  challanNumber: targetDelivery?.challanNumber ?? input.challanNumber ?? null,
-                  gpNumber: targetDelivery?.gpNumber ?? null,
+                  deliveryId: targetedDeliveryDoc?.id ?? null,
+                  challanNumber: targetedDeliveryDoc?.challanNumber ?? input.challanNumber ?? null,
+                  gpNumber: targetedDeliveryDoc?.gpNumber ?? null,
                   receiptNumber,
                   amountPaid: input.amountPaid,
                   paymentMode: input.paymentMode,
@@ -231,6 +231,10 @@ export async function executeRecordPayment(
       paymentMode: paymentEntity.paymentMode,
       remainingBalance: computedRemainingBalance!,
       paymentStatus: computedPaymentStatus,
+      deliveryId: (targetedDeliveryDoc as DeliveryChallanDoc | null)?.id ?? null,
+      challanNumber: (targetedDeliveryDoc as DeliveryChallanDoc | null)?.challanNumber ?? null,
+      gpNumber: (targetedDeliveryDoc as DeliveryChallanDoc | null)?.gpNumber ?? null,
+      isConsolidated: !targetedDeliveryDoc,
     },
   });
 

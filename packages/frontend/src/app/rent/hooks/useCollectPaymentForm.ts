@@ -9,6 +9,7 @@ interface UseCollectPaymentFormProps {
   account: RentSummaryDto;
   delivery?: DeliveryChallan | null;
   selectedFacilityId: string;
+  consolidatedTotal?: number;
   onPaymentSuccess: (summary?: RentSummaryDto) => void;
 }
 
@@ -30,12 +31,18 @@ export function useCollectPaymentForm({
   account,
   delivery,
   selectedFacilityId,
+  consolidatedTotal,
   onPaymentSuccess,
 }: UseCollectPaymentFormProps) {
-  const targetRemainingBalance = useMemo(
-    () => (delivery ? (delivery.rentRemainingBalance ?? delivery.rentCharge ?? 0) : account.remainingBalance),
-    [delivery, account.remainingBalance],
-  );
+  const targetRemainingBalance = useMemo(() => {
+    if (delivery) {
+      return delivery.rentRemainingBalance ?? delivery.rentCharge ?? 0;
+    }
+    if (consolidatedTotal != null && consolidatedTotal > 0) {
+      return Math.min(consolidatedTotal, account.remainingBalance);
+    }
+    return account.remainingBalance;
+  }, [delivery, consolidatedTotal, account.remainingBalance]);
 
   const initialAmount = targetRemainingBalance > 0 ? targetRemainingBalance : '';
   const initialDate = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -48,10 +55,10 @@ export function useCollectPaymentForm({
   const [collectError, setCollectError] = useState<string | null>(null);
   const [collectSubmitting, setCollectSubmitting] = useState(false);
 
-  // Sync amount when target delivery changes
+  // Sync amount when target delivery or consolidatedTotal changes
   useEffect(() => {
     setCollectAmount(targetRemainingBalance > 0 ? targetRemainingBalance : '');
-  }, [targetRemainingBalance, delivery?.id]);
+  }, [targetRemainingBalance, delivery?.id, consolidatedTotal]);
 
   const pendingAfterPayment = useMemo(
     () => calculatePendingAfterPayment(targetRemainingBalance, collectAmount),

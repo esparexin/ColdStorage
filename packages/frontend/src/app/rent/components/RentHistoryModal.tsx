@@ -115,7 +115,7 @@ export function RentHistoryModal({
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
-            {!isOutwardAssessed && canCollect && account.remainingBalance > 0 && onOpenCollect && (
+            {canCollect && account.remainingBalance > 0 && onOpenCollect && (
               <Button
                 variant="primary"
                 onClick={() => {

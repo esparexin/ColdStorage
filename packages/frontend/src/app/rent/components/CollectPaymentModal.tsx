@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { DeliveryChallan, RentSummaryDto } from '@cold-storage/contracts';
 import { Button, ConfirmDialog, Modal, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { RentSummaryOverview } from './RentSummaryOverview';
+import { ConsolidatedBillsTable } from './ConsolidatedBillsTable';
 import { CollectPaymentModeInputs } from './CollectPaymentModeInputs';
 import { useCollectPaymentForm } from '../hooks/useCollectPaymentForm';
+import { calculateConsolidatedGrandTotal } from '../hooks/collectPayment.helper';
 import { getRentCollectionNotice } from '../hooks/rentDisplay.helper';
 import { useGrnDeliveries } from '../hooks/useGrnDeliveries';
 import styles from '../page.module.css';
@@ -30,13 +32,30 @@ export function CollectPaymentModal({
   onPaymentSuccess,
 }: CollectPaymentModalProps) {
   const { deliveries } = useGrnDeliveries(selectedFacilityId, account.grnId);
-  const unsettledDeliveries = deliveries.filter(
-    (d) => d.status !== 'REVERSED' && (d.rentRemainingBalance ?? d.rentCharge ?? 0) > 0,
+  const unsettledDeliveries = useMemo(
+    () =>
+      deliveries.filter(
+        (d) => d.status !== 'REVERSED' && (d.rentRemainingBalance ?? d.rentCharge ?? 0) > 0,
+      ),
+    [deliveries],
+  );
+  const consolidatedGrandTotal = useMemo(
+    () => calculateConsolidatedGrandTotal(unsettledDeliveries),
+    [unsettledDeliveries],
   );
 
   const [selectedDeliveryId, setSelectedDeliveryId] = useState<string>(initialDelivery?.id ?? '');
+  const [userSelected, setUserSelected] = useState<boolean>(Boolean(initialDelivery));
+
+  useEffect(() => {
+    if (!userSelected && !initialDelivery && unsettledDeliveries.length === 1) {
+      setSelectedDeliveryId(unsettledDeliveries[0].id);
+    }
+  }, [unsettledDeliveries, userSelected, initialDelivery]);
+
   const activeDelivery =
     unsettledDeliveries.find((d) => d.id === selectedDeliveryId) ?? initialDelivery ?? null;
+  const isConsolidated = !activeDelivery && unsettledDeliveries.length > 1;
 
   const {
     targetRemainingBalance,
@@ -59,6 +78,7 @@ export function CollectPaymentModal({
     account,
     delivery: activeDelivery,
     selectedFacilityId,
+    consolidatedTotal: isConsolidated ? consolidatedGrandTotal : undefined,
     onPaymentSuccess,
   });
 
@@ -69,19 +89,21 @@ export function CollectPaymentModal({
   const handleRequestClose = () => attemptExit(onClose);
   const notice = getRentCollectionNotice(account);
 
+  const modalTitle = activeDelivery
+    ? `Collect Rent · Challan ${activeDelivery.challanNumber}`
+    : isConsolidated ? 'Consolidated Rent Settlement · Grand Total' : 'Collect Rent & Issue Cash Memo';
+
+  const modalSubtitle = isConsolidated
+    ? `${account.customerName} · ${account.grnNumber} · ${unsettledDeliveries.length} Pending Bills`
+    : `${account.customerName} · ${account.grnNumber}${activeDelivery?.gpNumber ? ` · Gate Pass: ${activeDelivery.gpNumber}` : ''}`;
+
   return (
     <>
       <Modal
         isOpen
         onClose={handleRequestClose}
-        title={
-          activeDelivery
-            ? `Collect Rent · Challan ${activeDelivery.challanNumber}`
-            : 'Collect Rent & Issue Cash Memo'
-        }
-        subtitle={`${account.customerName} · ${account.grnNumber}${
-          activeDelivery?.gpNumber ? ` · Gate Pass: ${activeDelivery.gpNumber}` : ''
-        }`}
+        title={modalTitle}
+        subtitle={modalSubtitle}
         size="md"
       >
         <form onSubmit={handleSubmit}>
@@ -89,19 +111,31 @@ export function CollectPaymentModal({
             {collectError && <Banner message={collectError} id="collect-error" />}
             <RentSummaryOverview account={account} delivery={activeDelivery} />
 
+            {isConsolidated && (
+              <ConsolidatedBillsTable
+                deliveries={unsettledDeliveries}
+                grandTotal={consolidatedGrandTotal}
+              />
+            )}
+
             {unsettledDeliveries.length > 0 && !initialDelivery && (
               <Select
                 id="collect-delivery-select"
-                label="Allocate to Gate Pass / Delivery Challan"
+                label="Settlement Scope"
                 value={selectedDeliveryId}
-                onChange={(e) => setSelectedDeliveryId(e.target.value)}
+                onChange={(e) => {
+                  setUserSelected(true);
+                  setSelectedDeliveryId(e.target.value);
+                }}
               >
                 <option value="">
-                  Consolidated GRN Balance (₹{account.remainingBalance.toLocaleString('en-IN')})
+                  {unsettledDeliveries.length > 1
+                    ? `Consolidated Grand Total Settlement (₹${consolidatedGrandTotal.toLocaleString('en-IN')} across ${unsettledDeliveries.length} bills)`
+                    : `Consolidated GRN Balance (₹${account.remainingBalance.toLocaleString('en-IN')})`}
                 </option>
                 {unsettledDeliveries.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.challanNumber}
+                    Single Bill: {d.challanNumber}
                     {d.gpNumber ? ` (${d.gpNumber})` : ''} · {d.totalBags} bags · ₹
                     {(d.rentRemainingBalance ?? d.rentCharge ?? 0).toLocaleString('en-IN')} Due
                   </option>

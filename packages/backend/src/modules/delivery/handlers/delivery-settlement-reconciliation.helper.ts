@@ -124,3 +124,109 @@ export function reconcileDeliveriesWithPayments(
   return result;
 }
 
+export interface CreditedChallanResult {
+  id: string;
+  challanNumber?: string | null;
+  gpNumber?: string | null;
+  date: Date | string;
+  rentCharge: number;
+  amountCredited: number;
+}
+
+/**
+ * Resolves the exact subset of delivery challans credited by a specific payment transaction.
+ * Follows deterministic chronological FIFO attribution to ensure that a receipt identifies
+ * precisely which challans received funds from that payment.
+ */
+export function resolveCreditedChallansForPayment(
+  targetPaymentId: string,
+  challans: ReconcilableChallan[],
+  payments: ReconcilablePayment[],
+): CreditedChallanResult[] {
+  if (challans.length === 0 || payments.length === 0) return [];
+
+  const sortedChallans = [...challans].sort((a, b) => {
+    const timeA = new Date(a.date).getTime();
+    const timeB = new Date(b.date).getTime();
+    if (timeA !== timeB) return timeA - timeB;
+    return new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime();
+  });
+
+  const challanById = new Map<string, ReconcilableChallan>();
+  const challanByNumber = new Map<string, ReconcilableChallan>();
+  const challanByGp = new Map<string, ReconcilableChallan>();
+  const remainingNeedMap = new Map<string, number>();
+
+  for (const c of sortedChallans) {
+    challanById.set(c.id, c);
+    if (c.challanNumber) challanByNumber.set(c.challanNumber, c);
+    if (c.gpNumber) challanByGp.set(c.gpNumber, c);
+    remainingNeedMap.set(c.id, Math.max(0, Number(c.rentCharge ?? 0)));
+  }
+
+  const sortedPayments = [...payments].sort((a, b) => {
+    const timeA = new Date(a.paymentDate ?? 0).getTime();
+    const timeB = new Date(b.paymentDate ?? 0).getTime();
+    if (timeA !== timeB) return timeA - timeB;
+    return new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime();
+  });
+
+  const creditedMap = new Map<string, number>();
+
+  for (const p of sortedPayments) {
+    const amount = Number(p.amountPaid) || 0;
+    if (amount <= 0) continue;
+    const isTarget = p.id === targetPaymentId;
+
+    let matchedId: string | null = null;
+    if (p.deliveryId && challanById.has(p.deliveryId)) matchedId = p.deliveryId;
+    else if (p.challanNumber && challanByNumber.has(p.challanNumber)) matchedId = challanByNumber.get(p.challanNumber)!.id;
+    else if (p.gpNumber && challanByGp.has(p.gpNumber)) matchedId = challanByGp.get(p.gpNumber)!.id;
+
+    if (matchedId) {
+      const need = remainingNeedMap.get(matchedId) ?? 0;
+      const credit = Math.min(need, amount);
+      remainingNeedMap.set(matchedId, Number((need - credit).toFixed(2)));
+      if (isTarget && credit > 0) creditedMap.set(matchedId, (creditedMap.get(matchedId) ?? 0) + credit);
+
+      let excess = Number((amount - credit).toFixed(2));
+      if (excess > 0) {
+        for (const c of sortedChallans) {
+          if (excess <= 0) break;
+          const rem = remainingNeedMap.get(c.id) ?? 0;
+          if (rem <= 0) continue;
+          const roll = Math.min(rem, excess);
+          remainingNeedMap.set(c.id, Number((rem - roll).toFixed(2)));
+          excess = Number((excess - roll).toFixed(2));
+          if (isTarget && roll > 0) creditedMap.set(c.id, (creditedMap.get(c.id) ?? 0) + roll);
+        }
+      }
+    } else {
+      let unallocated = amount;
+      for (const c of sortedChallans) {
+        if (unallocated <= 0) break;
+        const need = remainingNeedMap.get(c.id) ?? 0;
+        if (need <= 0) continue;
+        const credit = Math.min(need, unallocated);
+        remainingNeedMap.set(c.id, Number((need - credit).toFixed(2)));
+        unallocated = Number((unallocated - credit).toFixed(2));
+        if (isTarget && credit > 0) creditedMap.set(c.id, (creditedMap.get(c.id) ?? 0) + credit);
+      }
+    }
+  }
+
+  const results: CreditedChallanResult[] = [];
+  for (const c of sortedChallans) {
+    const credited = creditedMap.get(c.id) ?? 0;
+    if (credited > 0) {
+      results.push({
+        id: c.id, challanNumber: c.challanNumber, gpNumber: c.gpNumber,
+        date: c.date, rentCharge: Number(c.rentCharge ?? 0),
+        amountCredited: Number(credited.toFixed(2)),
+      });
+    }
+  }
+  return results;
+}
+
+

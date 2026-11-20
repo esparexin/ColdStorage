@@ -1,4 +1,4 @@
-import type { PaymentMode } from '@cold-storage/contracts';
+import type { DeliveryChallan, PaymentMode } from '@cold-storage/contracts';
 
 export interface CollectPaymentFormValues {
   amount: number | '';
@@ -59,4 +59,23 @@ export function isCollectPaymentFormDirty(
     current.notes.trim() !== '' ||
     current.upiReference.trim() !== ''
   );
+}
+
+/**
+ * Calculates the consolidated grand total outstanding due across multiple delivery challans.
+ */
+export function calculateConsolidatedGrandTotal(deliveries: DeliveryChallan[]): number {
+  const sum = deliveries.reduce((acc, d) => {
+    if (d.status === 'REVERSED') return acc;
+    return acc + (d.rentRemainingBalance ?? d.rentCharge ?? 0);
+  }, 0);
+  return Number(sum.toFixed(2));
+}
+
+/**
+ * Resolves the remaining rent balance for an individual delivery challan.
+ */
+export function getDeliveryRemainingDue(delivery: DeliveryChallan): number {
+  if (delivery.status === 'REVERSED') return 0;
+  return Number((delivery.rentRemainingBalance ?? delivery.rentCharge ?? 0).toFixed(2));
 }
