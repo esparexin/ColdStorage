@@ -3,21 +3,18 @@ import { bagTypeSchema } from './bags.js';
 import { chamberTextSchema, rentalAmountSchema } from './common.js';
 import { rentTypeSchema } from './grn.js';
 import { paymentModeSchema, paymentStatusSchema } from './rent.js';
+import { creditedChallanItemSchema, type CreditedChallanItem } from './rent-settlement.js';
 
-/**
- * Query schema for document format.
- * Phase 9 strictly locks format to 'html' (browser-native print).
- * Any non-html format (e.g., pdf, docx) is rejected.
- */
+export { creditedChallanItemSchema, type CreditedChallanItem };
+
+/** Query schema for document format (Phase 9 locks to 'html'). */
 export const documentFormatQuerySchema = z.object({
   format: z.enum(['html']).default('html'),
 });
 
 export type DocumentFormatQuery = z.infer<typeof documentFormatQuerySchema>;
 
-/**
- * Organization header info injected from SystemSettings SSOT.
- */
+/** Organization header info injected from SystemSettings SSOT. */
 export const organizationHeaderSchema = z.object({
   orgName: z.string().min(1),
   address: z.string().min(1),
@@ -193,6 +190,7 @@ export const rentReceiptDocumentDtoSchema = z.object({
   previousStockBags: z.number().int().optional(),
   confirmedComposition: z.string().optional(),
   traceDetails: z.string().optional(),
+  creditedChallans: z.array(creditedChallanItemSchema).optional(),
   generatedAt: z.coerce.date(),
   generatedBy: z.string(),
 });
@@ -206,9 +204,7 @@ export const rentReceiptPreviewDtoSchema = rentReceiptDocumentDtoSchema.extend({
 
 export type RentReceiptPreviewDto = z.infer<typeof rentReceiptPreviewDtoSchema>;
 
-/**
- * 5. Ownership Transfer Deed & Settlement Invoice DTO
- */
+/** 5. Ownership Transfer Rent Receipt & Settlement Invoice DTO */
 export const transferDeedDocumentDtoSchema = z.object({
   organization: organizationHeaderSchema,
   facility: facilitySubHeaderSchema,

@@ -5,6 +5,7 @@ export function renderRentReceiptTemplate(
   dto: RentReceiptDocumentDto | RentReceiptPreviewDto,
 ): string {
   const isPreview = 'isPreview' in dto && Boolean(dto.isPreview);
+  const isMultiOutward = Boolean(dto.creditedChallans && dto.creditedChallans.length > 1);
 
   const priceStr =
     dto.smallBagPrice != null || dto.bigBagPrice != null
@@ -12,6 +13,42 @@ export function renderRentReceiptTemplate(
       : dto.bagPrice != null
         ? `₹${dto.bagPrice.toFixed(2)} / bag`
         : '—';
+
+  const itemizedDeliveriesSection =
+    dto.creditedChallans && dto.creditedChallans.length > 0
+      ? `
+    <div style="margin-top: 10px;">
+      <div style="font-size: 8px; font-weight: bold; margin-bottom: 4px; color: #1e293b;">
+        ${isMultiOutward ? 'Settled Outward Deliveries Breakdown (విడతల వారీ డెలివరీల వివరాలు):' : 'Outward Delivery Details:'}
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr style="background: #f8fafc;">
+            <th style="width: 25%;">Challan / Gate Pass</th>
+            <th style="width: 20%;">Date</th>
+            <th style="width: 15%; text-align: right;">Bags</th>
+            <th style="width: 20%; text-align: right;">Rent Billed</th>
+            <th style="width: 20%; text-align: right;">Credited / Paid</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${dto.creditedChallans
+            .map(
+              (c) => `
+            <tr>
+              <td><strong>${escapeHtml(c.challanNumber)}</strong>${c.gpNumber ? `<br/><small style="color: #64748b;">GP: ${escapeHtml(c.gpNumber)}</small>` : ''}</td>
+              <td>${new Date(c.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+              <td style="text-align: right;">${c.bags.toLocaleString('en-IN')}</td>
+              <td style="text-align: right;">₹${c.rentCharge.toFixed(2)}</td>
+              <td style="text-align: right; color: #166534;"><strong>₹${c.amountCredited.toFixed(2)}</strong></td>
+            </tr>
+          `,
+            )
+            .join('')}
+        </tbody>
+      </table>
+    </div>`
+      : '';
 
   const bodyContent = `
     <table class="data-table">
@@ -83,6 +120,8 @@ export function renderRentReceiptTemplate(
       }
     </table>
 
+    ${itemizedDeliveriesSection}
+
     ${
       isPreview
         ? `<div style="margin-top: 6px; font-size: 7.5px; line-height: 1.25; color: #856404; background: #fff3cd; border: 1px dashed #e0c878; padding: 4px 6px; border-radius: 3px;">
@@ -94,13 +133,13 @@ export function renderRentReceiptTemplate(
 
   return renderBaseLayout({
     title: isPreview
-      ? `Cash Memo / Rent Receipt [PREVIEW] - ${dto.receiptNumber}`
-      : `Cash Memo / Rent Receipt - ${dto.receiptNumber}`,
+      ? `${isMultiOutward ? 'Consolidated Rent Receipt' : 'Cash Memo / Rent Receipt'} [PREVIEW] - ${dto.receiptNumber}`
+      : `${isMultiOutward ? 'Consolidated Rent Receipt' : 'Cash Memo / Rent Receipt'} - ${dto.receiptNumber}`,
     organization: dto.organization,
     facility: dto.facility,
     documentTitle: isPreview
-      ? 'CASH MEMO / RENT PAYMENT RECEIPT [PREVIEW]'
-      : 'CASH MEMO / RENT PAYMENT RECEIPT',
+      ? isMultiOutward ? 'CONSOLIDATED RENT PAYMENT RECEIPT [PREVIEW]' : 'CASH MEMO / RENT PAYMENT RECEIPT [PREVIEW]'
+      : isMultiOutward ? 'CONSOLIDATED RENT PAYMENT RECEIPT' : 'CASH MEMO / RENT PAYMENT RECEIPT',
     documentNumber: dto.receiptNumber,
     documentNumberLabel: 'Receipt #',
     documentDate:

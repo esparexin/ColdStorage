@@ -143,7 +143,7 @@ export function TransferStep2Dues(props: TransferStep2DuesProps) {
         <div className={styles.cardHeader}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <FileText size={14} aria-hidden="true" />
-            <span>Transfer Service Fee &amp; Deed Invoicing</span>
+            <span>Transfer Service Fee &amp; Receipt Invoicing</span>
           </span>
           <Badge variant="neutral">Service Fee</Badge>
         </div>

@@ -212,6 +212,7 @@ export class RentService {
       previousStockBags: grn.bags,
       confirmedComposition: grn.bagType ? `${grn.bagType} (${grn.smallBags ?? 0}S / ${grn.bigBags ?? 0}B)` : undefined,
       traceDetails: delInfo.traceDetails || opInfo.traceDetails || (delInfo.challanNumber ? `Audit Trace: Challan=${delInfo.challanNumber} | Lot=${grn.grnNumber}` : undefined),
+      creditedChallans: delInfo.creditedChallans,
       generatedAt: new Date(), generatedBy: payment.createdBy,
     };
 

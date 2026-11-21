@@ -180,7 +180,7 @@ function MergeScreenContent() {
           </p>
           <div className={styles.successDetails}>
             {mergedMovement?.mergeInvoiceNumber && (
-              <div><span>Invoice / Deed #: </span><strong style={{ color: 'var(--color-primary)' }}>#{mergedMovement.mergeInvoiceNumber}</strong></div>
+              <div><span>Service Receipt / Invoice #: </span><strong style={{ color: 'var(--color-primary)' }}>#{mergedMovement.mergeInvoiceNumber}</strong></div>
             )}
             <div><span>Customer: </span><strong>{mergedTarget.customerName}</strong></div>
             <div><span>Commodity: </span><strong>{mergedTarget.commodityName} (Chamber {mergedTarget.chamber})</strong></div>

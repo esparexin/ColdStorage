@@ -41,4 +41,5 @@ export * from './merged-consignment.js';
 export * from './grn-sorting.js';
 export * from './sorting-invoice.js';
 export * from './merge-shifting-invoice.js';
+export * from './rent-settlement.js';
 export * from './date-kolkata.js';
