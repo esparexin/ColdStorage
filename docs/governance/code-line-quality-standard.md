@@ -1,14 +1,14 @@
 # Code File Quality Standard: 250-Line Limit & Ratchet Policy
 
 **Status**: ACTIVE & MANDATORY  
-**Target Scope**: All TypeScript/TSX source files across `packages/`  
-**Automated Enforcement**: `scripts/check-line-budget.sh`, ESLint, Pre-commit, CI
+**Target Scope**: All TypeScript/TSX and CSS source files across `packages/`  
+**Automated Enforcement**: `scripts/check-line-budget.sh`, Pre-commit, CI (`coldstorage-ci.yml`)
 
 ---
 
 ## 1. Core Principles
 
-1. **Maximum File Size**: Every `.ts` and `.tsx` source file must strictly remain $\le 250$ lines.
+1. **Maximum File Size**: Every `.ts`, `.tsx`, and `.css` source file must strictly remain $\le 250$ lines.
 2. **Architecture by Single Responsibility**:
    - `page.tsx`: Coordinator shell only ($\le 100$ lines target). Must not contain inline forms, complex table schemas, inline modals, or raw API handling.
    - Custom Hooks (`use*.ts`): State ownership, mutations, and async loading ($\le 150$ lines target).
@@ -26,9 +26,7 @@
 ## 2. Counting Rules & Exclusions
 
 ### What Is Counted:
-- All source files with `.ts`, `.tsx` **or `.css`** extensions located within `packages/*/src/`.
-- CSS module files are counted because the feature stylesheets were the largest remaining
-  source of unbounded growth; `scripts/check-line-budget.sh` scans all three extensions.
+- All source files with `.ts`, `.tsx`, or `.css` extensions located within `packages/*/src/`.
 - Total lines of code (`wc -l`) are evaluated deterministically.
 
 ### What Is Excluded:
@@ -40,10 +38,11 @@
 
 ---
 
-## 3. Ratchet Mechanism (The Burn-Down Policy)
+## 3. Permanent Zero-Baseline Enforcement Policy
 
-While the repository undergoes remediation of legacy oversized files:
-1. **Zero New Oversized Files**: Any newly introduced `.ts` or `.tsx` file that exceeds 250 lines immediately fails CI and pre-commit checks.
-2. **No Growth in Legacy Files**: Any file registered in `scripts/line-budget-baseline.json` is strictly prohibited from growing ($Lines_{current} \le Lines_{baseline}$).
-3. **Downward Ratchet**: Once a legacy file is decomposed below 250 lines, its entry is permanently graduated from the baseline.
-4. **Strict Final Lock**: Once all baseline entries are resolved, strict ESLint `max-lines: ['error', { max: 250 }]` is locked repository-wide with zero baseline exceptions.
+The legacy burn-down remediation is **100% complete**: all 29 historical oversized files (8 CSS + 21 TypeScript/TSX) have been permanently decomposed and graduated.
+
+1. **Zero Exceptions**: No grandfathered files exist (`scripts/line-budget-baseline.json` is strictly locked at `{}`).
+2. **Hard 250-Line Ceiling**: Every `.ts`, `.tsx`, and `.css` file across `packages/*/src/` must strictly remain $\le 250$ lines.
+3. **Automated CI / Pre-Commit Blocker**: `scripts/check-line-budget.sh` executes deterministically in `pre-commit`, `npm run hygiene`, and CI (`coldstorage-ci.yml`). Any file exceeding 250 lines or any re-introduction of baseline entries fails the build immediately.
+4. **Permanent Graduation**: Zero-baseline policy is locked repository-wide with zero exceptions.
