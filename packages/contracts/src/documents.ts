@@ -237,3 +237,7 @@ export const transferDeedDocumentDtoSchema = z.object({
 });
 
 export type TransferDeedDocumentDto = z.infer<typeof transferDeedDocumentDtoSchema>;
+
+/** Backward-compatible alias for standard cold storage terminology. */
+export const transferReceiptDocumentDtoSchema = transferDeedDocumentDtoSchema;
+export type TransferReceiptDocumentDto = TransferDeedDocumentDto;
