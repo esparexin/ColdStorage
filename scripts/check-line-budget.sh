@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Deterministic line-budget & ratchet audit for source files (.ts, .tsx)
+# Deterministic line-budget & ratchet audit for source files (.ts, .tsx, .css)
 # Standard: Max 250 lines per source file.
-# Ratchet: Baseline files cannot grow; all other files must be <= 250 lines.
+# Permanent Zero-Baseline: scripts/line-budget-baseline.json must remain empty ({}).
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -38,6 +38,13 @@ new_violations = []
 grew_violations = []
 remediated = []
 
+if len(baseline) > 0:
+    print(f"\n[FAIL] Baseline exceptions are permanently retired. Found {len(baseline)} unauthorized baseline entry/entries:")
+    for rel_path, allowed in baseline.items():
+        print(f"  - {rel_path}: {allowed} lines")
+    print("ColdStorage line-budget governance mandates 0 baseline entries. All files must strictly be <= 250 lines.")
+    exit_code = 1
+
 for s_dir in scan_dirs:
     if not os.path.exists(s_dir):
         continue
@@ -51,36 +58,18 @@ for s_dir in scan_dirs:
                 with open(full_path, 'r', encoding='utf-8', errors='ignore') as fp:
                     lines = sum(1 for _ in fp)
 
-                if rel_path in baseline:
-                    allowed = baseline[rel_path]
-                    if lines > allowed:
-                        grew_violations.append((rel_path, lines, allowed))
-                        exit_code = 1
-                    elif lines <= max_lines:
-                        remediated.append((rel_path, lines, allowed))
-                else:
-                    if lines > max_lines:
-                        new_violations.append((rel_path, lines, max_lines))
-                        exit_code = 1
+                if lines > max_lines:
+                    new_violations.append((rel_path, lines, max_lines))
+                    exit_code = 1
 
 print("=== LINE BUDGET AUDIT (Limit: 250 lines) ===")
-if grew_violations:
-    print(f"\n[FAIL] {len(grew_violations)} baseline file(s) grew beyond their locked baseline budget:")
-    for rel_path, lines, allowed in grew_violations:
-        print(f"  - {rel_path}: {lines} lines (baseline was {allowed})")
-
 if new_violations:
-    print(f"\n[FAIL] {len(new_violations)} non-baseline file(s) exceed 250 lines:")
+    print(f"\n[FAIL] {len(new_violations)} file(s) exceed 250 lines:")
     for rel_path, lines, max_limit in new_violations:
         print(f"  - {rel_path}: {lines} lines (max allowed: {max_limit})")
 
-if remediated:
-    print(f"\n[INFO] {len(remediated)} baseline file(s) successfully remediated <= 250 lines!")
-    for rel_path, lines, allowed in remediated:
-        print(f"  ✓ {rel_path}: now {lines} lines (was {allowed})")
-
 if exit_code == 0:
-    print(f"\n[PASS] All source files satisfy line budget constraints (Baseline entries: {len(baseline)}).")
+    print(f"\n[PASS] All source files satisfy line budget constraints (0 exceptions repository-wide).")
 
 sys.exit(exit_code)
 EOF

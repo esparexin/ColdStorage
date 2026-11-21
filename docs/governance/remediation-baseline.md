@@ -1,23 +1,21 @@
 # Remediation Baseline & Scope Lock (Phase 0)
 
 **Date**: 2026-10-03  
-**Status**: ACTIVE & LOCKED  
-**Dedicated Remediation Branch**: `fix/ui-ux-ssot-code-hygiene`  
+**Status**: 100% REMEDIATED & ZERO-BASELINE GRADUATED  
 **Base Commit**: `ad649d7351a493bbd41c450acf2b53705a2fae0a`  
 
 ---
 
-## 1. Verified Baseline Metrics
+## 1. Verified Baseline Metrics (At Inception vs. Final Graduation)
 
-| Gate | Status | Details |
-| :--- | :--- | :--- |
-| **Branch** | Verified | `fix/ui-ux-ssot-code-hygiene` branched from `main` |
-| **Repository Hygiene** | PASS | `scripts/hygiene-audit.sh` (zero placeholders, zero secrets) |
-| **Line Budget & Ratchet** | PASS | `scripts/check-line-budget.sh` (29 baseline entries — 21 TypeScript + 8 CSS — 0 new violations) |
-| **Type Check** | PASS | `npm run type-check` across `@cold-storage/contracts`, `@cold-storage/backend`, `@cold-storage/frontend` |
-| **ESLint** | PASS | `eslint . --max-warnings=0` (zero warnings) |
-| **Test Suites** | PASS | 38 test files, 373 total tests passing (Backend: 303, Contracts: 70) |
-| **Production Build** | PASS | `npm run build` (16 Next.js static pages generated) |
+| Gate | Inception Status (2026-10-03) | Final Status (November 2026) | Details |
+| :--- | :--- | :--- | :--- |
+| **Repository Hygiene** | PASS | **PASS** | `scripts/hygiene-audit.sh` (zero placeholders, zero secrets) |
+| **Line Budget & Ratchet** | 29 baseline entries (21 TS + 8 CSS) | **0 baseline entries (`{}`)** | 100% of files $\le 250$ lines; zero exceptions |
+| **Type Check** | PASS | **PASS** | `npm run type-check` across `@cold-storage/contracts`, `@cold-storage/backend`, `@cold-storage/frontend` |
+| **ESLint** | PASS | **PASS** | `eslint . --max-warnings=0` (zero warnings) |
+| **Test Suites** | 38 test files, 373 tests | **127+ test files, 1,000+ tests** | 100% passing across contracts, backend, and frontend |
+| **Production Build** | 16 static pages | **19 static pages** | `npm run build` optimized static generation |
 
 ---
 
@@ -60,3 +58,14 @@ The following are strictly prohibited throughout this remediation:
 - Parallel implementations or competing SSOT abstractions.
 - Temporary workaround code or disabling linter/type checks.
 - Bypassing existing `@cold-storage/contracts` schemas.
+
+---
+
+## 4. Graduation & Zero-Baseline Lock
+
+All 29 legacy oversized files (8 CSS modules + 21 TypeScript source & test files) have been systematically decomposed below the 250-line limit:
+- **CSS Decomposition**: All 8 oversized CSS files split into tokenized modular styles (0 CSS files > 250 lines).
+- **Production Source Decomposition ([PR #227](https://github.com/esparexin/ColdStorage/pull/227))**: `pricing.ts` decomposed into `pricing.ts` (216 lines) and `monthly-occupancy.ts` (89 lines). 100% of production source code across contracts, backend, and frontend is $\le 250$ lines.
+- **Contracts & Backend Tests Decomposition ([PR #228](https://github.com/esparexin/ColdStorage/pull/228))**: 3 oversized test suites partitioned into 6 focused test files $\le 235$ lines.
+- **Frontend Tests Decomposition ([PR #229](https://github.com/esparexin/ColdStorage/pull/229))**: `mergeRentAssessment.helper.test.ts` and `rentFilter.helper.test.ts` decomposed into 7 modular test and fixture files $\le 203$ lines.
+- **Permanent Lock**: `scripts/line-budget-baseline.json` emptied to `{}`. `scripts/check-line-budget.sh` permanently enforces 0 baseline entries repository-wide.
