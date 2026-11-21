@@ -17,6 +17,7 @@ export const DOCUMENT_PREFIXES = {
   gatePass: 'GP',
   transferInvoice: 'TRF-INV',
   sortingInvoice: 'SRT-INV',
+  mergeInvoice: 'MSH-INV',
 } as const;
 
 export class CounterService {
@@ -95,6 +96,22 @@ export class CounterService {
     const seq = await this.getNextSequence(facilityId, 'SORTING_INVOICE', fy, session);
     const padded = String(seq).padStart(padLength, '0');
     return `${DOCUMENT_PREFIXES.sortingInvoice}-${fy}-${padded}`;
+  }
+
+  /**
+   * Sequential Consignment Merge & Internal Shifting Service Invoice number generator in format MSH-INV-YYYY-####.
+   * Concurrency-safe via atomic findOneAndUpdate sequence tracking.
+   */
+  public async generateMergeInvoiceNumber(
+    facilityId: string,
+    date: Date,
+    session?: ClientSession,
+    padLength = 4,
+  ): Promise<string> {
+    const fy = getFinancialYearKey(date);
+    const seq = await this.getNextSequence(facilityId, 'MERGE_SHIFTING_INVOICE', fy, session);
+    const padded = String(seq).padStart(padLength, '0');
+    return `${DOCUMENT_PREFIXES.mergeInvoice}-${fy}-${padded}`;
   }
 
 /**

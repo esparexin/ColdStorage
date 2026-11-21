@@ -15,8 +15,10 @@ import { renderReceiptTemplate } from './templates/receipt.template.js';
 import { renderRentReceiptTemplate } from './templates/rent-receipt.template.js';
 import { renderTransferDeedTemplate } from './templates/transfer-deed.template.js';
 import { renderSortingInvoiceTemplate } from './templates/sorting-invoice.template.js';
+import { renderMergeShiftingInvoiceTemplate } from './templates/merge-shifting-invoice.template.js';
 import { buildTransferDeedDto } from './transfer-deed.builder.js';
 import { buildSortingInvoiceDto } from './sorting-invoice.builder.js';
+import { buildMergeShiftingInvoiceDto } from './merge-shifting-invoice.builder.js';
 import { buildGrnDocumentDto, buildReceiptDocumentDto } from './grn-document.builder.js';
 
 export class DocumentService {
@@ -171,6 +173,18 @@ export class DocumentService {
   ): Promise<string> {
     const dto = await buildSortingInvoiceDto(facilityId, movementId, userId);
     return renderSortingInvoiceTemplate(dto);
+  }
+
+  /**
+   * 7. Renders Consignment Merge & Internal Shifting Invoice HTML document.
+   */
+  public async renderMergeInvoiceDocument(
+    facilityId: string,
+    movementId: string,
+    userId: string,
+  ): Promise<string> {
+    const dto = await buildMergeShiftingInvoiceDto(facilityId, movementId, userId);
+    return renderMergeShiftingInvoiceTemplate(dto);
   }
 }
 
