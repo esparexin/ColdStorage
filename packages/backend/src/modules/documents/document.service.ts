@@ -1,7 +1,5 @@
 import type {
   ChallanDocumentDto,
-  GrnDocumentDto,
-  ReceiptDocumentDto,
   RentReceiptPreviewDto,
 } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../database/models/delivery-challan.model.js';
@@ -17,6 +15,7 @@ import { renderReceiptTemplate } from './templates/receipt.template.js';
 import { renderRentReceiptTemplate } from './templates/rent-receipt.template.js';
 import { renderTransferDeedTemplate } from './templates/transfer-deed.template.js';
 import { buildTransferDeedDto } from './transfer-deed.builder.js';
+import { buildGrnDocumentDto, buildReceiptDocumentDto } from './grn-document.builder.js';
 
 export class DocumentService {
 
@@ -29,48 +28,7 @@ export class DocumentService {
     grnId: string,
     userId: string,
   ): Promise<string> {
-    const organization = await getVerifiedOrganization();
-
-    const grn = await GrnModel.findOne({ id: grnId }).lean().exec();
-    if (!grn) {
-      throw new Error('GRN_NOT_FOUND: GRN record not found');
-    }
-
-    // Document-level facility ownership validation
-    if (grn.facilityId !== facilityId) {
-      throw new Error('FACILITY_MISMATCH: Document does not belong to the requested facility');
-    }
-
-    const facility = await getFacilitySubHeader(facilityId);
-
-    const dto: GrnDocumentDto = {
-      organization,
-      facility,
-      grnId: grn.id,
-      grnNumber: grn.grnNumber,
-      inwardReceiptNumber: grn.inwardReceiptNumber,
-      date: grn.date,
-      customerName: grn.customerName,
-      commodityName: grn.commodityName,
-      chamber: grn.chamber,
-      bags: grn.bags,
-      bagType: grn.bagType,
-      smallBags: grn.smallBags,
-      bigBags: grn.bigBags,
-      rentType: grn.rentType,
-      rentAmount: grn.rentAmount,
-      rentMonths: grn.rentMonths ?? null,
-      smallBagWeight: grn.smallBagWeight ?? null,
-      bigBagWeight: grn.bigBagWeight ?? null,
-      vehicleNumber: grn.vehicleNumber ?? null,
-      gpNumber: grn.gpNumber ?? null,
-      marks: grn.marks ?? null,
-      partyMark: grn.partyMark ?? null,
-      status: grn.status,
-      generatedAt: new Date(),
-      generatedBy: userId,
-    };
-
+    const dto = await buildGrnDocumentDto(facilityId, grnId, userId);
     return renderGrnTemplate(dto);
   }
 
@@ -82,48 +40,7 @@ export class DocumentService {
     grnId: string,
     userId: string,
   ): Promise<string> {
-    const organization = await getVerifiedOrganization();
-
-    const grn = await GrnModel.findOne({ id: grnId }).lean().exec();
-    if (!grn) {
-      throw new Error('GRN_NOT_FOUND: GRN record not found');
-    }
-
-    // Document-level facility ownership validation
-    if (grn.facilityId !== facilityId) {
-      throw new Error('FACILITY_MISMATCH: Document does not belong to the requested facility');
-    }
-
-    const facility = await getFacilitySubHeader(facilityId);
-
-    const dto: ReceiptDocumentDto = {
-      organization,
-      facility,
-      inwardReceiptNumber: grn.inwardReceiptNumber,
-      grnNumber: grn.grnNumber,
-      date: grn.date,
-      customerName: grn.customerName,
-      commodityName: grn.commodityName,
-      chamber: grn.chamber,
-      bags: grn.bags,
-      bagType: grn.bagType,
-      smallBags: grn.smallBags,
-      bigBags: grn.bigBags,
-      smallBagWeight: grn.smallBagWeight ?? null,
-      bigBagWeight: grn.bigBagWeight ?? null,
-      totalBagsWeight: grn.totalBagsWeight ?? null,
-      smallBagPrice: grn.smallBagPrice ?? null,
-      bigBagPrice: grn.bigBagPrice ?? null,
-      storageMark: grn.storageMark || grn.grnNumber,
-      rentType: grn.rentType,
-      rentAmount: grn.rentAmount,
-      rentMonths: grn.rentMonths ?? null,
-      partyMark: grn.partyMark ?? null,
-      vehicleNumber: grn.vehicleNumber ?? null,
-      generatedAt: new Date(),
-      generatedBy: userId,
-    };
-
+    const dto = await buildReceiptDocumentDto(facilityId, grnId, userId);
     return renderReceiptTemplate(dto);
   }
 

@@ -2,25 +2,23 @@ import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import {
   appendGrnRemarks, isHybridBagCategory,
-  resolveStoredCompositionVerified, toExcludedPeriodKeys,
+  resolveStoredCompositionVerified,
   type TransferOwnershipInput, type Grn, type InternalMovementRecord, type RentPayment,
 } from '@cold-storage/contracts';
-import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { CustomerModel } from '../../../database/models/customer.model.js';
 import { GrnModel } from '../../../database/models/grn.model.js';
-import { computeRentBalance } from '../../common/rent-balance.js';
-import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
-import { rentRepository } from '../../rent/rent.repository.js';
-import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
 import { counterService } from '../../common/counter.service.js';
-import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
-import { resolveMovementObligation } from './resolve-movement-obligation.js';
 import {
-  alignTransferLedger, buildTransferGrnUpdateFields, createTransferMovement, formatTransferAuditNote, settleTransferRent,
+  alignTransferLedger,
+  buildTransferGrnUpdateFields,
+  calculateTransferDues,
+  createTransferMovement,
+  formatTransferAuditNote,
+  settleTransferRent,
 } from './transfer-ownership.helper.js';
 import { validateTransferBagConfirmation, validateTransferRepack } from './transfer-ownership-validation.helper.js';
 
@@ -74,40 +72,11 @@ export async function transferOwnership(
       const isHybrid = input.sourceBagType === 'Hybrid' || grn.bagType === 'Hybrid' || isHybridBagCategory(input.sourceBagCategory);
       const confSmall = isHybrid ? bal.total : (typeof input.confirmedSmallBags === 'number' ? input.confirmedSmallBags : bal.smallBags);
       const confBig = isHybrid ? 0 : (typeof input.confirmedBigBags === 'number' ? input.confirmedBigBags : bal.bigBags);
-      const transferExtensions = await rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session);
-      const billedKeys = toExcludedPeriodKeys(transferExtensions);
-      // 1. Authoritative outward-style rent assessment for all remaining bags being transferred
-      const { expectedRentCharge } = await computeExpectedDeliveryRent({
-        grn: {
-          id: grn.id, grnNumber: grn.grnNumber, date: grn.date, rentType: grn.rentType, commodityId: grn.commodityId,
-          smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, bagPrice: grn.bagPrice,
-        },
-        withdrawal: { smallBags: confSmall, bigBags: confBig }, quantity: isHybrid ? (input.sourceQuantity ?? bal.total) : undefined,
-        deliveryDate: movementDate, session, excludePeriodKeys: billedKeys,
-        bagCategory: input.sourceBagCategory, bagPrice: input.sourceBagPrice, seasonalBagPrice: input.sourceSeasonalBagPrice, monthlyBagPrice: input.sourceMonthlyBagPrice,
-        isRatesInclusiveOfHamali: false,
-      });
 
-      const storedRent = grn.rentAmount ?? 0;
-      let effectiveObligation = storedRent > 0
-        ? Math.max(storedRent, expectedRentCharge)
-        : expectedRentCharge;
-
-      const transferCommodity = await CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec();
-      const transferHamaliShare = computeFirstSeasonHamali(grn.bags, transferCommodity, transferExtensions, grn.hamaliRate, grn.hamaliAmount);
-
-      const existingPayments = await rentRepository.findPaymentsByGrnId(facilityId, grn.id, session);
-      const totalPaid = existingPayments.reduce((sum, p) => sum + p.amountPaid, 0);
-      if (totalPaid > effectiveObligation + transferHamaliShare) {
-        effectiveObligation = Math.max(0, totalPaid - transferHamaliShare);
-      }
-
-      const totalDue = await resolveMovementObligation(
-        facilityId,
-        { id: grn.id, rentAmount: effectiveObligation, rentType: grn.rentType, hamaliShare: transferHamaliShare },
-        session,
-      );
-      const rentBal = computeRentBalance(totalDue, totalPaid);
+      const { effectiveObligation, transferCommodity, totalDue, totalPaid, rentBal } =
+        await calculateTransferDues({
+          facilityId, grn, bal, confSmall, confBig, isHybrid, movementDate, input, session,
+        });
 
       // 2. Settlement gate: Settles dues under SETTLE_NOW or carries forward under AGREED_PENDING
       const { paymentRecord, effectiveRentBal } = await settleTransferRent({

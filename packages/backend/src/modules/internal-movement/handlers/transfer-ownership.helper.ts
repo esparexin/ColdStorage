@@ -10,7 +10,12 @@ import {
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
 import type { RentBalance } from '../../common/rent-balance.js';
-export { settleTransferRent, type SettleTransferRentParams } from './transfer-ownership.rent.js';
+export {
+  calculateTransferDues,
+  type CalculateTransferDuesParams,
+  settleTransferRent,
+  type SettleTransferRentParams,
+} from './transfer-ownership.rent.js';
 
 export function formatTransferAuditNote(params: {
   transferDateStr: string;
