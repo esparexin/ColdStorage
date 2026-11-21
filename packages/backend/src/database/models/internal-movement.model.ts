@@ -53,6 +53,9 @@ export interface InternalMovementDoc extends Document {
   newBagsSupplied?: number;
   newBagRate?: number;
   totalServiceCharge?: number;
+  mergeInvoiceNumber?: string | null;
+  shiftingFeeCharged?: number;
+  carriedRentAmount?: number;
   financialSnapshot: {
     rentAmount: number;
     totalPaid: number;
@@ -113,6 +116,9 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
     newBagsSupplied: { type: Number, min: 0, default: 0 },
     newBagRate: { type: Number, min: 0, default: 0 },
     totalServiceCharge: { type: Number, min: 0, default: 0 },
+    mergeInvoiceNumber: { type: String, default: null, index: true },
+    shiftingFeeCharged: { type: Number, min: 0, default: 0 },
+    carriedRentAmount: { type: Number, min: 0, default: 0 },
     financialSnapshot: {
       rentAmount: { type: Number, required: true, min: 0 },
       totalPaid: { type: Number, required: true, min: 0 },

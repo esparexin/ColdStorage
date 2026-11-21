@@ -54,6 +54,28 @@ function handleDocumentError(err: unknown, res: Response): void {
   sendInternalError(res, err, 'Document rendering failed');
 }
 
+function documentHandler(
+  paramKey: string,
+  renderFn: (facilityId: string, resourceId: string, userId: string) => Promise<string>,
+) {
+  return async (req: Request, res: Response): Promise<void> => {
+    const formatParse = documentFormatQuerySchema.safeParse(req.query);
+    if (!formatParse.success) {
+      res.status(400).json({ error: 'Validation failed', details: formatParse.error.flatten() });
+      return;
+    }
+    const facilityId = getParamId(req.params.facilityId);
+    const resourceId = getParamId(req.params[paramKey]);
+    const userId = req.user?.username ?? req.user?.userId ?? 'SYSTEM';
+    try {
+      const html = await renderFn(facilityId, resourceId, userId);
+      sendHtmlDocument(res, html);
+    } catch (err: unknown) {
+      handleDocumentError(err, res);
+    }
+  };
+}
+
 /**
  * GET /facilities/:facilityId/documents/grn/:grnId
  * Renders HTML Goods Receipt Note with free-text chamber label (no positions).
@@ -62,24 +84,9 @@ documentRouter.get(
   '/facilities/:facilityId/documents/grn/:grnId',
   requirePermission('document:print'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
-    const formatParse = documentFormatQuerySchema.safeParse(req.query);
-    if (!formatParse.success) {
-      res.status(400).json({ error: 'Validation failed', details: formatParse.error.flatten() });
-      return;
-    }
-
-    const facilityId = getParamId(req.params.facilityId);
-    const grnId = getParamId(req.params.grnId);
-    const userId = req.user?.username ?? req.user?.userId ?? 'SYSTEM';
-
-    try {
-      const html = await documentService.renderGrnDocument(facilityId, grnId, userId);
-      sendHtmlDocument(res, html);
-    } catch (err: unknown) {
-      handleDocumentError(err, res);
-    }
-  },
+  documentHandler('grnId', (facilityId, grnId, userId) =>
+    documentService.renderGrnDocument(facilityId, grnId, userId),
+  ),
 );
 
 /**
@@ -90,24 +97,9 @@ documentRouter.get(
   '/facilities/:facilityId/documents/receipt/:grnId',
   requirePermission('document:print'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
-    const formatParse = documentFormatQuerySchema.safeParse(req.query);
-    if (!formatParse.success) {
-      res.status(400).json({ error: 'Validation failed', details: formatParse.error.flatten() });
-      return;
-    }
-
-    const facilityId = getParamId(req.params.facilityId);
-    const grnId = getParamId(req.params.grnId);
-    const userId = req.user?.username ?? req.user?.userId ?? 'SYSTEM';
-
-    try {
-      const html = await documentService.renderReceiptDocument(facilityId, grnId, userId);
-      sendHtmlDocument(res, html);
-    } catch (err: unknown) {
-      handleDocumentError(err, res);
-    }
-  },
+  documentHandler('grnId', (facilityId, grnId, userId) =>
+    documentService.renderReceiptDocument(facilityId, grnId, userId),
+  ),
 );
 
 /**
@@ -118,24 +110,9 @@ documentRouter.get(
   '/facilities/:facilityId/documents/challan/:challanId',
   requirePermission('document:print'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
-    const formatParse = documentFormatQuerySchema.safeParse(req.query);
-    if (!formatParse.success) {
-      res.status(400).json({ error: 'Validation failed', details: formatParse.error.flatten() });
-      return;
-    }
-
-    const facilityId = getParamId(req.params.facilityId);
-    const challanId = getParamId(req.params.challanId);
-    const userId = req.user?.username ?? req.user?.userId ?? 'SYSTEM';
-
-    try {
-      const html = await documentService.renderChallanDocument(facilityId, challanId, userId);
-      sendHtmlDocument(res, html);
-    } catch (err: unknown) {
-      handleDocumentError(err, res);
-    }
-  },
+  documentHandler('challanId', (facilityId, challanId, userId) =>
+    documentService.renderChallanDocument(facilityId, challanId, userId),
+  ),
 );
 
 /**
@@ -193,24 +170,9 @@ documentRouter.get(
   '/facilities/:facilityId/documents/transfer-deed/:movementId',
   requirePermission('document:print'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
-    const formatParse = documentFormatQuerySchema.safeParse(req.query);
-    if (!formatParse.success) {
-      res.status(400).json({ error: 'Validation failed', details: formatParse.error.flatten() });
-      return;
-    }
-
-    const facilityId = getParamId(req.params.facilityId);
-    const movementId = getParamId(req.params.movementId);
-    const userId = req.user?.username ?? req.user?.userId ?? 'SYSTEM';
-
-    try {
-      const html = await documentService.renderTransferDeedDocument(facilityId, movementId, userId);
-      sendHtmlDocument(res, html);
-    } catch (err: unknown) {
-      handleDocumentError(err, res);
-    }
-  },
+  documentHandler('movementId', (facilityId, movementId, userId) =>
+    documentService.renderTransferDeedDocument(facilityId, movementId, userId),
+  ),
 );
 
 /**
@@ -221,22 +183,20 @@ documentRouter.get(
   '/facilities/:facilityId/documents/sorting-invoice/:movementId',
   requirePermission('document:print'),
   requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
-    const formatParse = documentFormatQuerySchema.safeParse(req.query);
-    if (!formatParse.success) {
-      res.status(400).json({ error: 'Validation failed', details: formatParse.error.flatten() });
-      return;
-    }
+  documentHandler('movementId', (facilityId, movementId, userId) =>
+    documentService.renderSortingInvoiceDocument(facilityId, movementId, userId),
+  ),
+);
 
-    const facilityId = getParamId(req.params.facilityId);
-    const movementId = getParamId(req.params.movementId);
-    const userId = req.user?.username ?? req.user?.userId ?? 'SYSTEM';
-
-    try {
-      const html = await documentService.renderSortingInvoiceDocument(facilityId, movementId, userId);
-      sendHtmlDocument(res, html);
-    } catch (err: unknown) {
-      handleDocumentError(err, res);
-    }
-  },
+/**
+ * GET /facilities/:facilityId/documents/merge-shifting-invoice/:movementId
+ * Renders HTML Consignment Merge & Internal Shifting Service Invoice document.
+ */
+documentRouter.get(
+  '/facilities/:facilityId/documents/merge-shifting-invoice/:movementId',
+  requirePermission('document:print'),
+  requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  documentHandler('movementId', (facilityId, movementId, userId) =>
+    documentService.renderMergeInvoiceDocument(facilityId, movementId, userId),
+  ),
 );

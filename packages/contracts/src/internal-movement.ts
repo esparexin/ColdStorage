@@ -142,6 +142,9 @@ export const internalMovementRecordSchema = z.object({
   newBagsSupplied: z.number().int().min(0).optional(),
   newBagRate: z.number().min(0).optional(),
   totalServiceCharge: z.number().min(0).optional(),
+  mergeInvoiceNumber: z.string().nullable().optional(),
+  shiftingFeeCharged: z.number().min(0).optional(),
+  carriedRentAmount: z.number().min(0).optional(),
   financialSnapshot: z.object({
     rentAmount: z.number().min(0),
     totalPaid: z.number().min(0),

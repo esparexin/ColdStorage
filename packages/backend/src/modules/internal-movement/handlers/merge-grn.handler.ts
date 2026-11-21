@@ -1,11 +1,12 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import {
-  appendGrnRemarks, isHybridBagCategory, resolveEffectiveGrnRentType, resolveMergedBagType,
+  isHybridBagCategory, resolveEffectiveGrnRentType, resolveMergedBagType,
   resolveStoredCompositionVerified, type Grn, type InternalMovementRecord, type MergeGrnInput,
 } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
+import { counterService } from '../../common/counter.service.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { resolveMovementObligation } from './resolve-movement-obligation.js';
 import { computeRentBalance } from '../../common/rent-balance.js';
@@ -15,6 +16,7 @@ import { toGrnEntity } from '../../grn/grn.mappers.js';
 import { validateProspectiveMergeMove, processMergeSource, settleTargetHamaliPayment } from './merge-source-move.helper.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 import { createMergePutawayTransaction, createMergeMovementRecord, resolveMergeTargetRentAmount } from './merge-grn-movement.helper.js';
+import { buildMergeTargetUpdates } from './merge-grn-remarks.helper.js';
 import { resolveMergeRepackHamali } from './merge-repack-hamali.helper.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
 
@@ -166,30 +168,18 @@ export async function mergeGrn(
         decantBig: input.isRepackSelected ? previousStock.targetBigBags : undefined,
       });
 
-      const moveDateStr = moveDate.toISOString().split('T')[0];
-      const varianceNote = repackVariance !== 0
-        ? `; Variance from ${totalMovedBags} source bags: ${repackVariance > 0 ? `+${repackVariance}` : repackVariance} bags`
-        : '';
-      const repackedNote = input.repackedSmallBags != null ? ` (Repacked: ${totalMovedSmall} S + ${totalMovedBig} B = ${actualMovedBags} bags${varianceNote})` : '';
-      const repackHamaliNote = repackHamali.repackHamaliCharge > 0 ? `. Repacking Hamali: ₹${repackHamali.repackHamaliCharge} (${repackHamali.repackHamaliBags} bags @ ₹${repackHamali.repackHamaliRate}/bag)` : '';
-      const categoryNote = input.sourceBagCategory != null && isHybridBagCategory(input.sourceBagCategory) ? ` (Confirmed Hybrid: ${actualMovedBags} bags${varianceNote})` : '';
-      const carriedRentNote = finalCarriedRent > 0 ? `. Additional rent: ₹${finalCarriedRent}` : '';
-      const sourceBillsNote = totalSourcePendingRent > 0 ? `. Source pending rent: ₹${totalSourcePendingRent} kept as separate pending bills` : '';
-      const activeSubNote = `. Active subscription continued for consolidated stock`;
-      const inwardHistoryNote = `. Consolidated stock new inward date: ${moveDateStr}`;
-      const targetNote = `[MERGE RECEIVED on ${moveDateStr}: +${actualMovedBags} bags${repackedNote}${repackHamaliNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}${sourceBillsNote}${activeSubNote}${inwardHistoryNote}. Reason: ${input.remarks.trim()}]`;
-      const updatedTargetRemarks = appendGrnRemarks(targetGrn.remarks, targetNote);
+      const mergeInvoiceNumber = await counterService.generateMergeInvoiceNumber(facilityId, moveDate, session);
 
-      const targetUpdateFields: Record<string, unknown> = {
-        chamber: destinationChamber, bagType: resultingBagType, bags: newBags,
-        smallBags: newSmall, bigBags: newBig, isCompositionVerified: newIsCompositionVerified,
-        rentAmount: newRentAmount, mergedAt: moveDate,
-        remarks: updatedTargetRemarks, updatedAt: new Date(),
-      };
-      if (input.partyMark?.trim()) targetUpdateFields.partyMark = input.partyMark.trim();
-      if (input.storageMark?.trim()) targetUpdateFields.storageMark = input.storageMark.trim();
-      const combinedMarks = [input.storageMark?.trim() || targetGrn.storageMark, input.partyMark?.trim() || targetGrn.partyMark].filter(Boolean).join(' / ');
-      if (combinedMarks && (input.partyMark?.trim() || input.storageMark?.trim())) targetUpdateFields.marks = combinedMarks;
+      const { targetUpdateFields } = buildMergeTargetUpdates({
+        destinationChamber, resultingBagType, newBags, newSmall, newBig,
+        newIsCompositionVerified, newRentAmount, moveDate, actualMovedBags,
+        totalMovedBags, totalMovedSmall, totalMovedBig, repackVariance,
+        repackHamaliCharge: repackHamali.repackHamaliCharge,
+        repackHamaliBags: repackHamali.repackHamaliBags,
+        repackHamaliRate: repackHamali.repackHamaliRate,
+        finalCarriedRent, totalSourcePendingRent, sourceSummaries,
+        mergeInvoiceNumber, targetGrn, input,
+      });
 
       const updatedTarget = await GrnModel.findOneAndUpdate(
         { id: targetGrn.id },
@@ -211,7 +201,8 @@ export async function mergeGrn(
         totalMovedBags: actualMovedBags, totalMovedSmall, totalMovedBig, newRentAmount,
         targetPaid, targetRentBal,
         hamaliBags: repackHamali.repackHamaliBags, hamaliRate: repackHamali.repackHamaliRate, hamaliCharge: repackHamali.repackHamaliCharge,
-        repackVariance, repackSourceBags: totalMovedBags, input, userId, session,
+        repackVariance, repackSourceBags: totalMovedBags, mergeInvoiceNumber, carriedRentAmount: finalCarriedRent,
+        input, userId, session,
         idempotencyKey: input.idempotencyKey ?? null,
       });
     }),
@@ -236,7 +227,7 @@ export async function mergeGrn(
         transactionType: 'MERGE', previousStock,
         confirmedBagComposition: { totalMovedBags: movementRecord.totalBagsMoved, smallBagsMoved: movementRecord.smallBagsMoved, bigBagsMoved: movementRecord.bigBagsMoved, category: movementRecord.sourceBagCategory ?? null },
         newStockComposition: { totalBags: targetEntity.bags, smallBags: targetEntity.smallBags, bigBags: targetEntity.bigBags, bagType: targetEntity.bagType },
-        billReferences: { movementId: movementRecord.id, carriedRent: finalCarriedRent, repackHamaliCharge, sourcePendingRent: totalSourcePendingRent },
+        billReferences: { movementId: movementRecord.id, mergeInvoiceNumber: movementRecord.mergeInvoiceNumber, carriedRent: finalCarriedRent, repackHamaliCharge, sourcePendingRent: totalSourcePendingRent },
         smallBagsMoved: movementRecord.smallBagsMoved, bigBagsMoved: movementRecord.bigBagsMoved,
         isCompositionVerified: targetEntity.isCompositionVerified, repackVariance: movementRecord.repackVariance ?? 0,
         carriedRent: finalCarriedRent, repackHamaliCharge, newRentAmount: movementRecord.financialSnapshot.rentAmount,

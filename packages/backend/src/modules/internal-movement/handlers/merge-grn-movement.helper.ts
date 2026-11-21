@@ -133,6 +133,8 @@ export interface CreateMergeMovementRecordParams {
   hamaliCharge?: number;
   repackVariance?: number;
   repackSourceBags?: number;
+  mergeInvoiceNumber?: string | null;
+  carriedRentAmount?: number;
   input: MergeGrnInput;
   userId: string;
   session: mongoose.ClientSession;
@@ -159,6 +161,8 @@ export async function createMergeMovementRecord(
     hamaliCharge = 0,
     repackVariance = 0,
     repackSourceBags,
+    mergeInvoiceNumber = null,
+    carriedRentAmount = 0,
     input,
     userId,
     session,
@@ -174,6 +178,8 @@ export async function createMergeMovementRecord(
         movementDate: moveDate,
         targetGrnId: targetGrn.id,
         targetGrnNumber: targetGrn.grnNumber,
+        mergeInvoiceNumber,
+        carriedRentAmount,
         sourceGrnIds: sourceGrns.map((s) => s.id),
         sourceGrnNumbers: sourceGrns.map((s) => s.grnNumber),
         totalBagsMoved: totalMovedBags,
