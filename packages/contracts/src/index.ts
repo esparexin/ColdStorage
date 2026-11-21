@@ -26,6 +26,7 @@ export * from './rent.js';
 export * from './rent-extension.js';
 export * from './rent-obligation.js';
 export * from './pricing.js';
+export * from './monthly-occupancy.js';
 export * from './discriminated-pricing.js';
 export * from './health.js';
 export * from './movement.js';
