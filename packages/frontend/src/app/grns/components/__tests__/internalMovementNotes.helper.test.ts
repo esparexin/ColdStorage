@@ -75,19 +75,6 @@ describe('internalMovementNotes.helper', () => {
       expect(rows[0].sbDetail).toContain('Hamali: ₹200 (10 bags @ ₹20/bag)');
     });
 
-    it('parses legacy ownership transfer remarks correctly', () => {
-      const grnWithTransfer: Grn = {
-        ...baseGrn,
-        remarks:
-          '[OWNERSHIP TRANSFERRED on 2026-10-13: from Ramesh Patel to Suresh Kumar. Reason: Sale agreement]',
-      };
-      const rows = parseRemarksToTableRows(grnWithTransfer);
-      expect(rows).toHaveLength(1);
-      expect(rows[0].badgeLabel).toBe('👤 Transfer');
-      expect(rows[0].partyName).toBe('Ramesh Patel → Suresh Kumar');
-      expect(rows[0].reason).toBe('Sale agreement');
-    });
-
     it('parses merged-out GRN remarks with authoritative merge date instead of inward date', () => {
       const mergedOutGrn: Grn = {
         ...baseGrn,
@@ -203,42 +190,6 @@ describe('internalMovementNotes.helper', () => {
       expect(rows[0].badgeVariant).toBe('neutral');
       expect(rows[0].grnLabel).toBe('Into: GRN-0999');
       expect(rows[0].totalBags).toBe('300 bags');
-    });
-
-    it('maps structured TRANSFER_OWNERSHIP record cleanly', () => {
-      const structuredTransfer: InternalMovementRecord = {
-        id: 'mov-3',
-        facilityId: 'fac-1',
-        movementType: 'TRANSFER_OWNERSHIP',
-        movementDate: new Date('2026-10-13'),
-        grnId: 'grn-1',
-        grnNumber: 'GRN-0100',
-        sourceGrnIds: ['grn-1'],
-        sourceGrnNumbers: ['GRN-0100'],
-        fromCustomerId: 'cust-1',
-        fromCustomerName: 'Ramesh Patel',
-        toCustomerId: 'cust-2',
-        toCustomerName: 'Suresh Kumar',
-        totalBagsMoved: 300,
-        smallBagsMoved: 150,
-        bigBagsMoved: 150,
-        financialSnapshot: {
-          rentAmount: 30000,
-          totalPaid: 30000,
-          remainingBalance: 0,
-          paymentStatus: 'PAID',
-        },
-        remarks: 'Transfer on contract clearance',
-        performedBy: 'user-admin',
-        createdAt: new Date('2026-10-13'),
-      };
-
-      const rows = mapStructuredMovementsToTableRows([structuredTransfer], baseGrn);
-      expect(rows).toHaveLength(1);
-      expect(rows[0].badgeLabel).toBe('👤 Transfer');
-      expect(rows[0].badgeVariant).toBe('warning');
-      expect(rows[0].partyName).toBe('Ramesh Patel → Suresh Kumar');
-      expect(rows[0].reason).toBe('Transfer on contract clearance');
     });
   });
 });

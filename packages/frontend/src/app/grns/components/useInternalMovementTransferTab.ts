@@ -32,6 +32,12 @@ export interface UseInternalMovementTransferTabProps {
       repackedSmallBags?: number; repackedBigBags?: number;
       repackedQuantity?: number; referenceWeight?: number;
     },
+    fee?: {
+      transferFeePerBag?: number;
+      totalTransferFee?: number;
+      feePaymentMode?: import('@cold-storage/contracts').PaymentMode;
+      feePaidBy?: 'BUYER' | 'SELLER';
+    },
   ) => Promise<void>;
 }
 
@@ -48,6 +54,8 @@ export function useInternalMovementTransferTab({
   const [decision, setDecision] = useState<TransferPaymentDecision>('AGREED_PENDING');
   const [settleAmount, setSettleAmount] = useState<number>(0);
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('Cash');
+  const [transferFeePerBag, setTransferFeePerBag] = useState<number | ''>('');
+  const [feePaidBy, setFeePaidBy] = useState<'BUYER' | 'SELLER'>('BUYER');
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const remainingBags = currentGrn.closingBags ?? currentGrn.bags;
@@ -166,6 +174,10 @@ export function useInternalMovementTransferTab({
     setShowConfirm(true);
   };
 
+  const transferFeeCharged = typeof transferFeePerBag === 'number' && transferFeePerBag > 0
+    ? transferFeePerBag * remainingBags
+    : 0;
+
   const doExecuteTransfer = async () => {
     const conf = isHybrid ? {
       sourceBagCategory: sourceBagCategory || undefined, sourceQuantity: remainingBags,
@@ -188,6 +200,12 @@ export function useInternalMovementTransferTab({
         repackedQuantity: resultingBagType === 'Hybrid' ? (typeof repackedQuantity === 'number' ? repackedQuantity : undefined) : undefined,
         referenceWeight: typeof referenceWeight === 'number' && referenceWeight > 0 ? referenceWeight : undefined,
       },
+      typeof transferFeePerBag === 'number' && transferFeePerBag > 0 ? {
+        transferFeePerBag,
+        totalTransferFee: transferFeeCharged,
+        feePaymentMode: paymentMode,
+        feePaidBy,
+      } : undefined,
     );
   };
 
@@ -195,6 +213,7 @@ export function useInternalMovementTransferTab({
     step, setStep, showConfirm, setShowConfirm, newCustomerId, setNewCustomerId,
     setCreatedCustomers, movementDate, reason, setReason, remarks, setRemarks,
     decision, setDecision, settleAmount, setSettleAmount, paymentMode, setPaymentMode,
+    transferFeePerBag, setTransferFeePerBag, feePaidBy, setFeePaidBy, transferFeeCharged,
     validationError, remainingBags, confirmedSmallBags, setConfirmedSmallBags,
     confirmedBigBags, setConfirmedBigBags, sourceBagCategory, setSourceBagCategory,
     sourceBagPrice, setSourceBagPrice, sourceSeasonalBagPrice, setSourceSeasonalBagPrice,

@@ -205,3 +205,39 @@ export const rentReceiptPreviewDtoSchema = rentReceiptDocumentDtoSchema.extend({
 });
 
 export type RentReceiptPreviewDto = z.infer<typeof rentReceiptPreviewDtoSchema>;
+
+/**
+ * 5. Ownership Transfer Deed & Settlement Invoice DTO
+ */
+export const transferDeedDocumentDtoSchema = z.object({
+  organization: organizationHeaderSchema,
+  facility: facilitySubHeaderSchema,
+  transferInvoiceNumber: z.string(),
+  movementDate: z.coerce.date(),
+  grnNumber: z.string(),
+  commodityName: z.string(),
+  chamber: chamberTextSchema,
+  storageMark: z.string(),
+  partyMark: z.string().nullable().optional(),
+  sellerId: z.string(),
+  sellerName: z.string(),
+  buyerId: z.string(),
+  buyerName: z.string(),
+  transferredBags: z.number().int().min(1),
+  smallBags: z.number().int().min(0),
+  bigBags: z.number().int().min(0),
+  bagType: bagTypeSchema,
+  isHybrid: z.boolean().default(false),
+  transferFeeCharged: z.number().min(0).default(0),
+  feePayer: z.enum(['BUYER', 'SELLER']).nullable().optional(),
+  paymentDecision: z.enum(['SETTLE_NOW', 'AGREED_PENDING']),
+  settledAmount: rentalAmountSchema.default(0),
+  rentReceiptNumber: z.string().nullable().optional(),
+  carriedRentAmount: rentalAmountSchema.default(0),
+  totalRentObligation: rentalAmountSchema.default(0),
+  remarks: z.string().nullable().optional(),
+  generatedAt: z.coerce.date(),
+  generatedBy: z.string(),
+});
+
+export type TransferDeedDocumentDto = z.infer<typeof transferDeedDocumentDtoSchema>;

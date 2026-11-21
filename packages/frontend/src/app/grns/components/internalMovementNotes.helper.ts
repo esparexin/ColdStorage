@@ -150,24 +150,39 @@ export function parseRemarksToTableRows(currentGrn: Grn, allGrns: Grn[] = []): M
 
   // 3. Check ownership transfer events
   const ownRx =
-    /\[OWNERSHIP TRANSFERRED on ([^:]+):\s*from\s+([^(]+)(?:\s*\([^)]*\))?\s+to\s+([^(]+)(?:\s*\([^)]*\))?\.\s*(?:[^.]*\.\s*)?Reason:\s*([^\]]+)\]/gi;
+    /\[OWNERSHIP TRANSFERRED on ([^:]+):\s*([\s\S]*?)from\s+([^(]+)(?:\s*\([^)]*\))?\s+to\s+([^(]+)(?:\s*\([^)]*\))?\.\s*(?:[^.]*\.\s*)?Reason:\s*([^\]\n]+)\]?/gi;
   let ownMatch: RegExpExecArray | null;
   while ((ownMatch = ownRx.exec(remarks)) !== null) {
-    const [, date, fromParty, toParty, reason] = ownMatch;
-    const smallBags = currentGrn.smallBags != null ? currentGrn.smallBags.toLocaleString('en-IN') : 'N/A';
-    const bigBags =
-      currentGrn.bigBags != null
-        ? currentGrn.bigBags.toLocaleString('en-IN')
-        : currentGrn.bags.toLocaleString('en-IN');
-    const bagType = currentGrn.bagType ?? 'S/B';
+    const [, date, qualifiers, fromParty, toParty, reason] = ownMatch;
+
+    const bagsMatch = qualifiers?.match(/\+(\d+)\s*bags/i);
+    const sbMatch = qualifiers?.match(/\(S:\s*(\d+)\s*•\s*B:\s*(\d+)(?:,\s*BagType:\s*([^)]+))?\)/i);
+    const hybridMatch = qualifiers?.match(/\(Hybrid\)/i);
+    const invoiceMatch = qualifiers?.match(/Invoice:\s*#([^\s]+)/i);
+    const feeMatch = qualifiers?.match(/Transfer Fee:\s*₹?(\d+(?:\.\d+)?)(?:\s*\(([^)]+)\))?/i);
+
+    const totalBags = bagsMatch ? `${Number(bagsMatch[1]).toLocaleString('en-IN')} bags` : 'Transferred bags';
+    const feeSuffix = feeMatch ? ` • Fee: ₹${feeMatch[1]}${feeMatch[2] ? ` (${feeMatch[2]})` : ''}` : '';
+
+    let sbDetail: string;
+    if (hybridMatch) {
+      sbDetail = `Hybrid${feeSuffix}`;
+    } else if (sbMatch) {
+      const bagTypeLabel = sbMatch[3] ? ` (${sbMatch[3].trim()})` : '';
+      sbDetail = `S: ${Number(sbMatch[1]).toLocaleString('en-IN')} • B: ${Number(sbMatch[2]).toLocaleString('en-IN')}${bagTypeLabel}${feeSuffix}`;
+    } else {
+      sbDetail = `Composition recorded in DB${feeSuffix}`;
+    }
+
+    const invoiceNumber = invoiceMatch ? invoiceMatch[1].trim() : null;
 
     list.push({
-      id: `own-transfer-${date}`,
+      id: `own-transfer-${date.trim()}`,
       badgeLabel: '👤 Transfer',
       badgeVariant: 'warning',
-      date,
-      grnLabel: currentGrn.grnNumber,
-      refSub: 'Ownership Change',
+      date: date.trim(),
+      grnLabel: invoiceNumber ? `#${invoiceNumber}` : currentGrn.grnNumber,
+      refSub: invoiceNumber ? currentGrn.grnNumber : 'Ownership Change',
       partyName: `${fromParty.trim()} → ${toParty.trim()}`,
       partyMark: currentGrn.partyMark ? `PM: ${currentGrn.partyMark}` : 'PM: N/A',
       commodity: currentGrn.commodityName || 'N/A',
@@ -175,9 +190,9 @@ export function parseRemarksToTableRows(currentGrn: Grn, allGrns: Grn[] = []): M
       storageMark: currentGrn.storageMark
         ? `SM: ${currentGrn.storageMark}`
         : `SM: ${currentGrn.storageMark || currentGrn.grnNumber}`,
-      totalBags: `${currentGrn.bags.toLocaleString('en-IN')} bags`,
-      sbDetail: bagType === 'Hybrid' ? 'Hybrid' : `S: ${smallBags} • B: ${bigBags} (${bagType})`,
-      reason: reason?.trim() || 'N/A',
+      totalBags,
+      sbDetail,
+      reason: reason?.trim() || 'Ownership Transfer',
     });
   }
 

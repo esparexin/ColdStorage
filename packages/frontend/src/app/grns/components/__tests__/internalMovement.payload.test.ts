@@ -173,5 +173,20 @@ describe('internalMovement payload helpers', () => {
     expect(payload.referenceWeight).toBe(4900);
     expect(transferOwnershipInputSchema.safeParse(payload).success).toBe(true);
   });
+
+  it('builds a transfer payload with transfer service fee satisfying contract', () => {
+    const payload = buildTransferPayload(
+      'grn-1', 'cust-2', 'Ownership sale', 'Deed executed', '2026-11-05', 'SETTLE_NOW',
+      { amountPaid: 15000, paymentMode: 'Cash' },
+      { confirmedSmallBags: 60, confirmedBigBags: 40 },
+      undefined,
+      { transferFeePerBag: 5, totalTransferFee: 500, feePaymentMode: 'Cash', feePaidBy: 'BUYER' },
+    );
+    expect(payload.transferFeePerBag).toBe(5);
+    expect(payload.totalTransferFee).toBe(500);
+    expect(payload.feePaymentMode).toBe('Cash');
+    expect(payload.feePaidBy).toBe('BUYER');
+    expect(transferOwnershipInputSchema.safeParse(payload).success).toBe(true);
+  });
 });
 
