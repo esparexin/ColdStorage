@@ -47,6 +47,12 @@ export interface InternalMovementDoc extends Document {
   transferFeeCharged?: number;
   transferInvoiceNumber?: string | null;
   feePayer?: 'BUYER' | 'SELLER' | null;
+  sortingInvoiceNumber?: string | null;
+  sortingLaborCharge?: number;
+  bardanaCharge?: number;
+  newBagsSupplied?: number;
+  newBagRate?: number;
+  totalServiceCharge?: number;
   financialSnapshot: {
     rentAmount: number;
     totalPaid: number;
@@ -101,6 +107,12 @@ const internalMovementSchema = new Schema<InternalMovementDoc>(
     transferFeeCharged: { type: Number, min: 0 },
     transferInvoiceNumber: { type: String, default: null, index: true },
     feePayer: { type: String, enum: ['BUYER', 'SELLER'], default: null },
+    sortingInvoiceNumber: { type: String, default: null, index: true },
+    sortingLaborCharge: { type: Number, min: 0, default: 0 },
+    bardanaCharge: { type: Number, min: 0, default: 0 },
+    newBagsSupplied: { type: Number, min: 0, default: 0 },
+    newBagRate: { type: Number, min: 0, default: 0 },
+    totalServiceCharge: { type: Number, min: 0, default: 0 },
     financialSnapshot: {
       rentAmount: { type: Number, required: true, min: 0 },
       totalPaid: { type: Number, required: true, min: 0 },

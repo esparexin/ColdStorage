@@ -212,3 +212,31 @@ documentRouter.get(
     }
   },
 );
+
+/**
+ * GET /facilities/:facilityId/documents/sorting-invoice/:movementId
+ * Renders HTML Sorting, Grading & Repacking Service Invoice document.
+ */
+documentRouter.get(
+  '/facilities/:facilityId/documents/sorting-invoice/:movementId',
+  requirePermission('document:print'),
+  requireFacilityScope((req) => getParamId(req.params.facilityId)),
+  async (req: Request, res: Response): Promise<void> => {
+    const formatParse = documentFormatQuerySchema.safeParse(req.query);
+    if (!formatParse.success) {
+      res.status(400).json({ error: 'Validation failed', details: formatParse.error.flatten() });
+      return;
+    }
+
+    const facilityId = getParamId(req.params.facilityId);
+    const movementId = getParamId(req.params.movementId);
+    const userId = req.user?.username ?? req.user?.userId ?? 'SYSTEM';
+
+    try {
+      const html = await documentService.renderSortingInvoiceDocument(facilityId, movementId, userId);
+      sendHtmlDocument(res, html);
+    } catch (err: unknown) {
+      handleDocumentError(err, res);
+    }
+  },
+);

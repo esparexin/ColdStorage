@@ -196,5 +196,46 @@ export function parseRemarksToTableRows(currentGrn: Grn, allGrns: Grn[] = []): M
     });
   }
 
+  // 4. Check sorting & repacking events
+  const repackRx =
+    /\[SORTED & REPACKED on ([^:]+):\s*(\d+)\s*➔\s*([\s\S]*?)Inv:\s*#([^\s|]+)(?:[\s\S]*?Service:\s*₹?(\d+(?:\.\d+)?))?(?:[\s\S]*?\|\s*([^\]]+))?\]/gi;
+  let repackMatch: RegExpExecArray | null;
+  while ((repackMatch = repackRx.exec(remarks)) !== null) {
+    const [, date, originalBagsStr, details, invoiceNum, serviceFee, customReason] = repackMatch;
+    const bagsMatch = details.match(/(\d+)\s*bags/i);
+    const repackedBags = bagsMatch ? Number(bagsMatch[1]) : Number(originalBagsStr);
+    const varianceMatch = details.match(/Variance:\s*([+-]?\d+)\s*bags/i);
+    const varianceStr = varianceMatch ? ` (Variance: ${varianceMatch[1]} bags)` : '';
+    const serviceSuffix = serviceFee ? ` • Service: ₹${serviceFee}` : '';
+    const sbMatch = details.match(/\(S:\s*(\d+)\s*•\s*B:\s*(\d+)(?:,\s*BagType:\s*([^)]+))?\)/i);
+    const isHybrid = details.includes('(Hybrid)');
+    let sbDetail: string;
+    if (isHybrid) {
+      sbDetail = `Hybrid${serviceSuffix}`;
+    } else if (sbMatch) {
+      const bagTypeLabel = sbMatch[3] ? ` (${sbMatch[3].trim()})` : '';
+      sbDetail = `S: ${Number(sbMatch[1]).toLocaleString('en-IN')} • B: ${Number(sbMatch[2]).toLocaleString('en-IN')}${bagTypeLabel}${serviceSuffix}`;
+    } else {
+      sbDetail = `Repacked stock${serviceSuffix}`;
+    }
+
+    list.push({
+      id: `repack-${date.trim()}-${invoiceNum.trim()}`,
+      badgeLabel: '🔄 Repack',
+      badgeVariant: 'neutral',
+      date: date.trim(),
+      grnLabel: `#${invoiceNum.trim()}`,
+      refSub: currentGrn.grnNumber,
+      partyName: currentGrn.customerName || 'N/A',
+      partyMark: currentGrn.partyMark ? `PM: ${currentGrn.partyMark}` : 'PM: N/A',
+      commodity: currentGrn.commodityName || 'N/A',
+      chamber: currentGrn.chamber ? `Chamber: ${currentGrn.chamber}` : 'Chamber: N/A',
+      storageMark: currentGrn.storageMark ? `SM: ${currentGrn.storageMark}` : `SM: ${currentGrn.grnNumber}`,
+      totalBags: `${repackedBags.toLocaleString('en-IN')} bags${varianceStr}`,
+      sbDetail,
+      reason: customReason?.trim() || 'Sorted & Repacked Lot',
+    });
+  }
+
   return list;
 }

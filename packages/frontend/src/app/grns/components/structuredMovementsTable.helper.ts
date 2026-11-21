@@ -25,12 +25,16 @@ export function mapStructuredMovementsToTableRows(
       typeof rec.transferFeeCharged === 'number' && rec.transferFeeCharged > 0
         ? ` • Fee: ₹${rec.transferFeeCharged}${rec.feePayer ? ` (${rec.feePayer})` : ''}`
         : '';
+    const serviceSuffix =
+      typeof rec.totalServiceCharge === 'number' && rec.totalServiceCharge > 0
+        ? ` • Service: ₹${rec.totalServiceCharge}`
+        : '';
     const baseSb = isHybrid
       ? 'Hybrid'
       : rec.smallBagsMoved > 0 || rec.bigBagsMoved > 0
       ? `S: ${rec.smallBagsMoved.toLocaleString('en-IN')} • B: ${rec.bigBagsMoved.toLocaleString('en-IN')} (${effectiveBagType})`
       : `${rec.totalBagsMoved.toLocaleString('en-IN')} bags (${effectiveBagType})`;
-    const sbDetail = `${baseSb}${hamaliSuffix}${feeSuffix}`;
+    const sbDetail = `${baseSb}${hamaliSuffix}${feeSuffix}${serviceSuffix}`;
 
     if (rec.movementType === 'MERGE') {
       const isTarget = rec.targetGrnId === currentGrn.id;
@@ -85,8 +89,8 @@ export function mapStructuredMovementsToTableRows(
         badgeLabel: '🔄 Repack',
         badgeVariant: 'neutral',
         date: dateStr,
-        grnLabel: currentGrn.grnNumber,
-        refSub: 'Sorting & Repacking',
+        grnLabel: rec.sortingInvoiceNumber ? `#${rec.sortingInvoiceNumber}` : currentGrn.grnNumber,
+        refSub: rec.sortingInvoiceNumber ? (rec.grnNumber || currentGrn.grnNumber) : 'Sorting & Repacking',
         partyName: currentGrn.customerName || 'N/A',
         partyMark: currentGrn.partyMark ? `PM: ${currentGrn.partyMark}` : 'PM: N/A',
         commodity: currentGrn.commodityName || 'N/A',
