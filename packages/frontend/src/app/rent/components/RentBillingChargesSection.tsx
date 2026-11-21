@@ -7,7 +7,7 @@ import {
   type RentExtension,
   type RentSummaryDto,
 } from '@cold-storage/contracts';
-import { DataTable, FeedbackStates, type DataTableColumn } from '@/components/ui';
+import { Button, DataTable, FeedbackStates, type DataTableColumn } from '@/components/ui';
 import { useCommodityRates } from '@/app/commodities/hooks/useCommodityRates';
 import { deriveHamaliChargeFromSummary } from '../hooks/rentDisplay.helper';
 import { useGrnDeliveries } from '../hooks/useGrnDeliveries';
@@ -128,6 +128,11 @@ export function RentBillingChargesSection({
   const storageRentTotal =
     effectiveStorageAmount + account.extensions.reduce((sum, e) => sum + e.finalAmount, 0);
 
+  const unsettledCount = useMemo(
+    () => activeDeliveries.filter((d) => (d.rentRemainingBalance ?? d.rentCharge ?? 0) > 0).length,
+    [activeDeliveries],
+  );
+
   const rows: RentCalculationRow[] = useMemo(() => {
     if (isBilledAtOutward) return [];
     return buildRentCalculationRows({
@@ -149,6 +154,25 @@ export function RentBillingChargesSection({
             <FeedbackStates.Empty message="No outward transactions recorded for this lot yet. Each outward gate pass will generate an independent rent bill upon dispatch." />
           ) : (
             <div className={styles.gatePassBillsList}>
+              {canCollect && account.remainingBalance > 0 && unsettledCount > 1 && onCollectDelivery && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) var(--space-3)', background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+                  <div>
+                    <strong style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-primary)' }}>
+                      Multiple Outward Bills Pending ({unsettledCount})
+                    </strong>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                      Pay all pending gate passes in one single payment with a consolidated receipt
+                    </div>
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => onCollectDelivery(activeDeliveries.find((d) => (d.rentRemainingBalance ?? d.rentCharge ?? 0) > 0) ?? activeDeliveries[0])}
+                  >
+                    Pay All Dues (₹{account.remainingBalance.toLocaleString('en-IN')})
+                  </Button>
+                </div>
+              )}
               {activeDeliveries.map((d, idx) => (
                 <GatePassRentBillCard
                   key={d.id}

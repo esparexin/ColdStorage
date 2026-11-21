@@ -61,7 +61,7 @@ export function renderTransferDeedTemplate(dto: TransferDeedDocumentDto): string
     </table>
 
     <div style="margin-top: 10px; padding: 6px 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 8px; line-height: 1.35; color: #475569;">
-      <strong>Tripartite Transfer Terms &amp; Conditions:</strong><br/>
+      <strong>Ownership Transfer Terms &amp; Conditions (యజమాన్య బదిలీ నిబంధనలు):</strong><br/>
       1. <strong>Transferor (Seller):</strong> Relinquishes all legal title, ownership, and claims over the stored consignment to the Transferee.<br/>
       2. <strong>Transferee (Buyer):</strong> Accepts custody of the agricultural produce as-is, along with any carried-forward rent obligations and storage rules.<br/>
       3. <strong>Facility Warehouse:</strong> Confirms physical balance transfer in facility books as of the recorded execution date.
@@ -81,12 +81,12 @@ export function renderTransferDeedTemplate(dto: TransferDeedDocumentDto): string
   `;
 
   return renderBaseLayout({
-    title: `Ownership Transfer Deed - ${dto.transferInvoiceNumber}`,
+    title: `Ownership Transfer Rent Receipt - ${dto.transferInvoiceNumber}`,
     organization: dto.organization,
     facility: dto.facility,
-    documentTitle: 'OWNERSHIP TRANSFER INVOICE & TRIPARTITE DEED',
+    documentTitle: 'OWNERSHIP TRANSFER RENT RECEIPT & INVOICE',
     documentNumber: dto.transferInvoiceNumber,
-    documentNumberLabel: 'Transfer Invoice / Deed #',
+    documentNumberLabel: 'Transfer Receipt / Invoice #',
     customerSignatureLabel: 'Buyer / Transferee Signature',
     documentDate: new Date(dto.movementDate).toLocaleDateString('en-IN', {
       day: '2-digit', month: 'short', year: 'numeric',

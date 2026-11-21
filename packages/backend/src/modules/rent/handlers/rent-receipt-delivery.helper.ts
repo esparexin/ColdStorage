@@ -1,3 +1,4 @@
+import type { CreditedChallanItem } from '@cold-storage/contracts';
 import { DeliveryChallanModel } from '../../../database/models/delivery-challan.model.js';
 import { RentPaymentModel } from '../../../database/models/rent-payment.model.js';
 import { resolveCreditedChallansForPayment } from '../../delivery/handlers/delivery-settlement-reconciliation.helper.js';
@@ -10,6 +11,7 @@ export interface ResolvedReceiptDeliveryInfo {
   deliveryObligation?: number;
   deliveryRemaining?: number;
   traceDetails?: string;
+  creditedChallans?: CreditedChallanItem[];
 }
 
 export interface PaymentDeliveryContext {
@@ -31,6 +33,7 @@ export async function resolveReceiptDeliveryInfo(
   let deliveryObligation: number | undefined;
   let deliveryRemaining: number | undefined;
   let traceDetails: string | undefined;
+  let creditedChallans: CreditedChallanItem[] | undefined;
 
   if (deliveryId) {
     const delDoc = await DeliveryChallanModel.findOne({ id: deliveryId, facilityId }).lean();
@@ -43,6 +46,17 @@ export async function resolveReceiptDeliveryInfo(
       const allDelPayments = await RentPaymentModel.find({ facilityId, deliveryId: delDoc.id }).lean();
       const delPaid = allDelPayments.reduce((s, p) => s + p.amountPaid, 0);
       deliveryRemaining = Math.max(0, Number(((delDoc.rentCharge ?? 0) - delPaid).toFixed(2)));
+      creditedChallans = [
+        {
+          challanNumber: delDoc.challanNumber,
+          gpNumber: delDoc.gpNumber ?? null,
+          date: delDoc.date,
+          bags: deliveryBags ?? 0,
+          rentCharge: delDoc.rentCharge ?? 0,
+          amountCredited: delPaid,
+          status: deliveryRemaining === 0 ? 'Settled' : 'Partially Paid',
+        },
+      ];
     }
   } else if (paymentContext?.grnId && paymentContext?.paymentId) {
     const [challanDocs, payments] = await Promise.all([
@@ -70,12 +84,25 @@ export async function resolveReceiptDeliveryInfo(
       deliveryBags = totalBags;
       deliveryObligation = Number(totalObligation.toFixed(2));
 
+      creditedChallans = credited.map((c) => {
+        const doc = challanDocMap.get(c.id);
+        return {
+          challanNumber: c.challanNumber || c.id,
+          gpNumber: c.gpNumber ?? null,
+          date: new Date(c.date),
+          bags: doc ? (doc.smallBags ?? 0) + (doc.bigBags ?? 0) : 0,
+          rentCharge: c.rentCharge,
+          amountCredited: c.amountCredited,
+          status: c.amountCredited >= c.rentCharge ? 'Settled' : 'Partially Paid',
+        };
+      });
+
       const breakdown = credited.map((c) => `${c.challanNumber || c.id}: ₹${c.amountCredited.toLocaleString('en-IN')}`).join(', ');
       traceDetails = `Consolidated Settlement: ${credited.length} Gate Pass${credited.length > 1 ? 'es' : ''} (${breakdown})`;
     }
   }
 
-  return { challanNumber, gpNumber, deliveryDate, deliveryBags, deliveryObligation, deliveryRemaining, traceDetails };
+  return { challanNumber, gpNumber, deliveryDate, deliveryBags, deliveryObligation, deliveryRemaining, traceDetails, creditedChallans };
 }
 
 export interface ResolvedReceiptOperationInfo {

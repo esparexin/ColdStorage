@@ -53,8 +53,9 @@ export function CollectPaymentModal({
     }
   }, [unsettledDeliveries, userSelected, initialDelivery]);
 
-  const activeDelivery =
-    unsettledDeliveries.find((d) => d.id === selectedDeliveryId) ?? initialDelivery ?? null;
+  const activeDelivery = selectedDeliveryId
+    ? (unsettledDeliveries.find((d) => d.id === selectedDeliveryId) ?? initialDelivery ?? null)
+    : null;
   const isConsolidated = !activeDelivery && unsettledDeliveries.length > 1;
 
   const {
@@ -118,7 +119,7 @@ export function CollectPaymentModal({
               />
             )}
 
-            {unsettledDeliveries.length > 0 && !initialDelivery && (
+            {unsettledDeliveries.length > 0 && (
               <Select
                 id="collect-delivery-select"
                 label="Settlement Scope"
@@ -130,7 +131,7 @@ export function CollectPaymentModal({
               >
                 <option value="">
                   {unsettledDeliveries.length > 1
-                    ? `Consolidated Grand Total Settlement (₹${consolidatedGrandTotal.toLocaleString('en-IN')} across ${unsettledDeliveries.length} bills)`
+                    ? `Consolidated Settlement: Settle All ${unsettledDeliveries.length} Pending Bills (₹${consolidatedGrandTotal.toLocaleString('en-IN')})`
                     : `Consolidated GRN Balance (₹${account.remainingBalance.toLocaleString('en-IN')})`}
                 </option>
                 {unsettledDeliveries.map((d) => (
@@ -188,9 +189,7 @@ export function CollectPaymentModal({
                   setCollectAmount(e.target.value !== '' ? parseFloat(e.target.value) : '')
                 }
                 onKeyDown={(e) => {
-                  if (e.key === 'Backspace' || e.key === 'Delete') {
-                    e.stopPropagation();
-                  }
+                  if (e.key === 'Backspace' || e.key === 'Delete') e.stopPropagation();
                 }}
               />
             </div>
