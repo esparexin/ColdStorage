@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import { UserCheck } from 'lucide-react';
-import type { Commodity, Customer, Grn, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
+import type { Commodity, Customer, Grn, InternalMovementRecord, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
 import { Banner, Button, Modal } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
 import { formatApiErrorMessage, parseApiResponse } from '@/lib/api-response';
 import { InternalMovementTransferTab } from './InternalMovementTransferTab';
+import { TransferStep4Success } from './TransferStep4Success';
 import { buildTransferPayload } from './internalMovementPayload.helper';
 import styles from './InternalMovementModal.module.css';
 
@@ -31,8 +32,20 @@ export function InternalMovementModal({
 }: InternalMovementModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [transferResult, setTransferResult] = useState<{
+    grn: Grn;
+    movement: InternalMovementRecord;
+  } | null>(null);
 
-  const handleRequestClose = () => { if (!submitting) onClose(); };
+  const handleRequestClose = () => {
+    if (!submitting) {
+      if (transferResult) {
+        onSuccess(transferResult.grn);
+      } else {
+        onClose();
+      }
+    }
+  };
 
   const handleExecuteTransfer = async (
     newCustomerId: string,
@@ -89,11 +102,21 @@ export function InternalMovementModal({
           ),
         },
       );
-      const parsed = await parseApiResponse<{ grn?: Grn }>(res);
+      const parsed = await parseApiResponse<{
+        grn?: Grn;
+        movement?: InternalMovementRecord;
+      }>(res);
       if (!parsed.ok || !parsed.data.grn) {
         throw new Error(parsed.ok ? 'Ownership transfer failed' : formatApiErrorMessage(parsed));
       }
-      onSuccess(parsed.data.grn);
+      if (parsed.data.movement) {
+        setTransferResult({
+          grn: parsed.data.grn,
+          movement: parsed.data.movement,
+        });
+      } else {
+        onSuccess(parsed.data.grn);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Ownership transfer failed');
     } finally {
@@ -114,24 +137,35 @@ export function InternalMovementModal({
       subtitle={`Customer: ${grn.customerName} • ${grn.commodityName} • Chamber ${grn.chamber}`}
       size="xl"
       footer={
-        <div className={styles.modalFooter}>
-          <Button variant="outline" size="sm" onClick={handleRequestClose} disabled={submitting}>
-            Cancel
-          </Button>
-        </div>
+        transferResult ? null : (
+          <div className={styles.modalFooter}>
+            <Button variant="outline" size="sm" onClick={handleRequestClose} disabled={submitting}>
+              Cancel
+            </Button>
+          </div>
+        )
       }
     >
       <div className={styles.modalContent}>
         {error && <Banner message={error} />}
-        <InternalMovementTransferTab
-          currentGrn={grn}
-          facilityId={facilityId}
-          customers={customers}
-          commodities={commodities}
-          submitting={submitting}
-          onExecuteTransfer={handleExecuteTransfer}
-          onCustomerAdded={onCustomerAdded}
-        />
+        {transferResult ? (
+          <TransferStep4Success
+            facilityId={facilityId}
+            grn={transferResult.grn}
+            movement={transferResult.movement}
+            onDone={handleRequestClose}
+          />
+        ) : (
+          <InternalMovementTransferTab
+            currentGrn={grn}
+            facilityId={facilityId}
+            customers={customers}
+            commodities={commodities}
+            submitting={submitting}
+            onExecuteTransfer={handleExecuteTransfer}
+            onCustomerAdded={onCustomerAdded}
+          />
+        )}
       </div>
     </Modal>
   );
