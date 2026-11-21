@@ -40,4 +40,5 @@ export * from './bag-display.js';
 export * from './merged-consignment.js';
 export * from './batch-rent.js';
 export * from './grn-sorting.js';
+export * from './sorting-invoice.js';
 export * from './date-kolkata.js';

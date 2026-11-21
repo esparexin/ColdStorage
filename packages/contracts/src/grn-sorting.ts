@@ -66,6 +66,12 @@ export const repackGrnInputSchema = z.object({
   referenceWeight: z.number().positive('Reference weight must be greater than zero').nullish(),
   repackVarianceReason: z.string().trim().max(500).nullish(),
   remarks: z.string().trim().min(3, 'Remarks must be at least 3 characters').max(500),
+  sortingLaborRatePerBag: z.number().min(0).nullish(),
+  totalSortingLaborCharge: z.number().min(0).nullish(),
+  newBagsSupplied: z.number().int().min(0).nullish(),
+  newBagRate: z.number().min(0).nullish(),
+  totalBardanaCharge: z.number().min(0).nullish(),
+  totalServiceCharge: z.number().min(0).nullish(),
   idempotencyKey: z.string().trim().min(1).max(100).nullish(),
 });
 export type RepackGrnInput = z.infer<typeof repackGrnInputSchema>;
@@ -75,5 +81,7 @@ export const repackGrnResultSchema = z.object({
   movement: internalMovementRecordSchema,
   repackVariance: z.number().int(),
   hamaliCharge: z.number(),
+  sortingInvoiceNumber: z.string().optional(),
+  totalServiceCharge: z.number().optional(),
 });
 export type RepackGrnResult = z.infer<typeof repackGrnResultSchema>;

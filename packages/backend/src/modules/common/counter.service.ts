@@ -16,6 +16,7 @@ export const DOCUMENT_PREFIXES = {
   rentReceipt: 'RRCPT',
   gatePass: 'GP',
   transferInvoice: 'TRF-INV',
+  sortingInvoice: 'SRT-INV',
 } as const;
 
 export class CounterService {
@@ -78,6 +79,22 @@ export class CounterService {
     const seq = await this.getNextSequence(facilityId, 'TRANSFER_INVOICE', fy, session);
     const padded = String(seq).padStart(padLength, '0');
     return `${DOCUMENT_PREFIXES.transferInvoice}-${fy}-${padded}`;
+  }
+
+  /**
+   * Sequential Sorting, Grading & Repacking Service Invoice number generator in format SRT-INV-YYYY-####.
+   * Concurrency-safe via atomic findOneAndUpdate sequence tracking.
+   */
+  public async generateSortingInvoiceNumber(
+    facilityId: string,
+    date: Date,
+    session?: ClientSession,
+    padLength = 4,
+  ): Promise<string> {
+    const fy = getFinancialYearKey(date);
+    const seq = await this.getNextSequence(facilityId, 'SORTING_INVOICE', fy, session);
+    const padded = String(seq).padStart(padLength, '0');
+    return `${DOCUMENT_PREFIXES.sortingInvoice}-${fy}-${padded}`;
   }
 
 /**

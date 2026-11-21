@@ -15,6 +15,7 @@ import { requestWithAuth } from '@/lib/api-client';
 import { formatDisplayDate } from '@/lib/date-format';
 import { GrnSortingStep1Confirm } from './GrnSortingStep1Confirm';
 import { GrnSortingStep2Repack } from './GrnSortingStep2Repack';
+import { GrnSortingStep2Success } from './GrnSortingStep2Success';
 import styles from './GrnSortingModal.module.css';
 
 export interface GrnSortingModalProps {
@@ -45,6 +46,7 @@ export function GrnSortingModal({
         }
       : null,
   );
+  const [repackResult, setRepackResult] = useState<RepackGrnResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -94,8 +96,9 @@ export function GrnSortingModal({
       if (!res.ok) {
         throw new Error(data.error || 'Failed to complete repacking operation');
       }
+      setRepackResult(data);
+      setCurrentGrn(data.grn);
       onSuccess(data.grn);
-      onClose();
     } catch (err: unknown) {
       setApiError(err instanceof Error ? err.message : 'An unexpected error occurred during repacking');
     } finally {
@@ -190,7 +193,13 @@ export function GrnSortingModal({
         </div>
 
         {/* Step Views */}
-        {activeStep === 1 ? (
+        {repackResult ? (
+          <GrnSortingStep2Success
+            facilityId={facilityId}
+            repackResult={repackResult}
+            onDone={onClose}
+          />
+        ) : activeStep === 1 ? (
           <GrnSortingStep1Confirm
             grn={currentGrn}
             commodity={commodity}

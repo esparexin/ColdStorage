@@ -14,7 +14,9 @@ import { renderGrnTemplate } from './templates/grn.template.js';
 import { renderReceiptTemplate } from './templates/receipt.template.js';
 import { renderRentReceiptTemplate } from './templates/rent-receipt.template.js';
 import { renderTransferDeedTemplate } from './templates/transfer-deed.template.js';
+import { renderSortingInvoiceTemplate } from './templates/sorting-invoice.template.js';
 import { buildTransferDeedDto } from './transfer-deed.builder.js';
+import { buildSortingInvoiceDto } from './sorting-invoice.builder.js';
 import { buildGrnDocumentDto, buildReceiptDocumentDto } from './grn-document.builder.js';
 
 export class DocumentService {
@@ -157,6 +159,18 @@ export class DocumentService {
   ): Promise<string> {
     const dto = await buildTransferDeedDto(facilityId, movementId, userId);
     return renderTransferDeedTemplate(dto);
+  }
+
+  /**
+   * 6. Renders Sorting, Grading & Repacking Service Invoice HTML document.
+   */
+  public async renderSortingInvoiceDocument(
+    facilityId: string,
+    movementId: string,
+    userId: string,
+  ): Promise<string> {
+    const dto = await buildSortingInvoiceDto(facilityId, movementId, userId);
+    return renderSortingInvoiceTemplate(dto);
   }
 }
 
