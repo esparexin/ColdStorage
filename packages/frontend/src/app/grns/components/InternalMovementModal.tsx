@@ -58,6 +58,12 @@ export function InternalMovementModal({
       repackedQuantity?: number;
       referenceWeight?: number;
     },
+    fee?: {
+      transferFeePerBag?: number;
+      totalTransferFee?: number;
+      feePaymentMode?: import('@cold-storage/contracts').PaymentMode;
+      feePaidBy?: 'BUYER' | 'SELLER';
+    },
   ) => {
     setSubmitting(true);
     setError(null);
@@ -78,6 +84,7 @@ export function InternalMovementModal({
               settlementDetails,
               confirmation,
               repack,
+              fee,
             ),
           ),
         },

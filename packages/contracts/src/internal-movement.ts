@@ -84,6 +84,10 @@ export const transferOwnershipInputSchema = z.object({
   repackedBigBags: z.number().int().min(0).max(100000).nullish(),
   repackedQuantity: z.number().int().min(1).max(100000).nullish(),
   referenceWeight: z.number().positive('Total weight must be positive').max(1000000).nullish(),
+  transferFeePerBag: z.number().min(0).nullish(),
+  totalTransferFee: z.number().min(0).nullish(),
+  feePaymentMode: paymentModeSchema.nullish(),
+  feePaidBy: z.enum(['BUYER', 'SELLER']).nullish(),
 });
 export type TransferOwnershipInput = z.infer<typeof transferOwnershipInputSchema>;
 
@@ -129,6 +133,9 @@ export const internalMovementRecordSchema = z.object({
   fromCustomerName: z.string().nullable().optional(),
   toCustomerId: z.string().nullable().optional(),
   toCustomerName: z.string().nullable().optional(),
+  transferFeeCharged: z.number().min(0).optional(),
+  transferInvoiceNumber: z.string().nullable().optional(),
+  feePayer: z.enum(['BUYER', 'SELLER']).nullable().optional(),
   financialSnapshot: z.object({
     rentAmount: z.number().min(0),
     totalPaid: z.number().min(0),

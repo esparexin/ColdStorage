@@ -16,18 +16,21 @@ export function mapStructuredMovementsToTableRows(
     const effectiveBagType = rec.resultingBagType ?? rec.sourceBagType ?? currentGrn.bagType ?? 'S/B';
     const isHybrid =
       isHybridBagCategory(effectiveBagType) ||
-      effectiveBagType === 'Hybrid' ||
-      (currentGrn.bagPrice != null && currentGrn.smallBagPrice == null && currentGrn.bigBagPrice == null);
+      effectiveBagType === 'Hybrid';
     const hamaliSuffix =
       rec.hamaliCharge && rec.hamaliCharge > 0
         ? ` • Hamali: ₹${rec.hamaliCharge}${rec.hamaliRate ? ` (@₹${rec.hamaliRate}/bag)` : ''}`
+        : '';
+    const feeSuffix =
+      typeof rec.transferFeeCharged === 'number' && rec.transferFeeCharged > 0
+        ? ` • Fee: ₹${rec.transferFeeCharged}${rec.feePayer ? ` (${rec.feePayer})` : ''}`
         : '';
     const baseSb = isHybrid
       ? 'Hybrid'
       : rec.smallBagsMoved > 0 || rec.bigBagsMoved > 0
       ? `S: ${rec.smallBagsMoved.toLocaleString('en-IN')} • B: ${rec.bigBagsMoved.toLocaleString('en-IN')} (${effectiveBagType})`
       : `${rec.totalBagsMoved.toLocaleString('en-IN')} bags (${effectiveBagType})`;
-    const sbDetail = `${baseSb}${hamaliSuffix}`;
+    const sbDetail = `${baseSb}${hamaliSuffix}${feeSuffix}`;
 
     if (rec.movementType === 'MERGE') {
       const isTarget = rec.targetGrnId === currentGrn.id;
@@ -100,8 +103,8 @@ export function mapStructuredMovementsToTableRows(
       badgeLabel: '👤 Transfer',
       badgeVariant: 'warning',
       date: dateStr,
-      grnLabel: rec.grnNumber || currentGrn.grnNumber,
-      refSub: 'Ownership Change',
+      grnLabel: rec.transferInvoiceNumber ? `#${rec.transferInvoiceNumber}` : (rec.grnNumber || currentGrn.grnNumber),
+      refSub: rec.transferInvoiceNumber ? (rec.grnNumber || currentGrn.grnNumber) : 'Ownership Change',
       partyName: `${rec.fromCustomerName || 'Previous Owner'} → ${rec.toCustomerName || 'New Owner'}`,
       partyMark: currentGrn.partyMark ? `PM: ${currentGrn.partyMark}` : 'PM: N/A',
       commodity: currentGrn.commodityName || 'N/A',

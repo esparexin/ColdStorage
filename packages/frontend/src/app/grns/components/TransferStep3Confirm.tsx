@@ -29,6 +29,8 @@ interface TransferStep3ConfirmProps {
   effectiveDue: number;
   decision: TransferPaymentDecision;
   settleAmount: number;
+  transferFeeCharged?: number;
+  feePayer?: 'BUYER' | 'SELLER';
   movementDate: string;
   reason: string;
   onReasonChange: (r: string) => void;
@@ -54,6 +56,8 @@ export function TransferStep3Confirm({
   effectiveDue,
   decision,
   settleAmount,
+  transferFeeCharged,
+  feePayer,
   movementDate,
   reason,
   onReasonChange,
@@ -150,6 +154,14 @@ export function TransferStep3Confirm({
               {formatTransferSettlement({ effectiveDue, decision, settleAmount, newCustomerName: selectedNewCustomer?.name })}
             </span>
           </div>
+          {typeof transferFeeCharged === 'number' && transferFeeCharged > 0 && (
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Transfer Service Fee:</span>
+              <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-bold)' }}>
+                ₹{transferFeeCharged.toLocaleString('en-IN')}{feePayer ? ` (Paid by ${feePayer})` : ''}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className={styles.compactCard}>

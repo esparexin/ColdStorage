@@ -37,6 +37,12 @@ interface InternalMovementTransferTabProps {
       repackedSmallBags?: number; repackedBigBags?: number;
       repackedQuantity?: number; referenceWeight?: number;
     },
+    fee?: {
+      transferFeePerBag?: number;
+      totalTransferFee?: number;
+      feePaymentMode?: import('@cold-storage/contracts').PaymentMode;
+      feePaidBy?: 'BUYER' | 'SELLER';
+    },
   ) => Promise<void>;
   onCustomerAdded?: () => void;
 }
@@ -77,6 +83,8 @@ export function InternalMovementTransferTab(props: InternalMovementTransferTabPr
           seasonalRates={tab.seasonalRates} monthlyRates={tab.monthlyRates}
           decision={tab.decision} onDecisionChange={tab.setDecision}
           settleAmount={tab.settleAmount} onSettleAmountChange={tab.setSettleAmount} paymentMode={tab.paymentMode} onPaymentModeChange={tab.setPaymentMode}
+          transferFeePerBag={tab.transferFeePerBag} onTransferFeePerBagChange={tab.setTransferFeePerBag}
+          feePaidBy={tab.feePaidBy} onFeePaidByChange={tab.setFeePaidBy}
           submitting={submitting} onBack={() => tab.setStep(1)} onNext={tab.handleProceedToStep3}
         />
       )}
@@ -103,7 +111,9 @@ export function InternalMovementTransferTab(props: InternalMovementTransferTabPr
           referenceWeight={tab.referenceWeight}
           hamaliRate={tab.effectiveHamaliRate} hamaliAmount={tab.hamaliAmount}
           assessedRent={tab.assessedRent} totalPaid={tab.totalPaid} effectiveDue={tab.effectiveDue}
-          decision={tab.decision} settleAmount={tab.settleAmount} movementDate={tab.movementDate}
+          decision={tab.decision} settleAmount={tab.settleAmount}
+          transferFeeCharged={tab.transferFeeCharged} feePayer={tab.feePaidBy}
+          movementDate={tab.movementDate}
           reason={tab.reason} onReasonChange={tab.setReason} remarks={tab.remarks} onRemarksChange={tab.setRemarks}
           submitting={submitting} onBack={() => tab.setStep(3)}
         />

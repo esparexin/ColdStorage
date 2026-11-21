@@ -16,10 +16,11 @@ import { toGrnEntity } from '../../grn/grn.mappers.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { rentExtensionRepository } from '../../rent/rent-extension.repository.js';
+import { counterService } from '../../common/counter.service.js';
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
 import { resolveMovementObligation } from './resolve-movement-obligation.js';
 import {
-  alignTransferLedger, createTransferMovement, formatTransferAuditNote, settleTransferRent,
+  alignTransferLedger, buildTransferGrnUpdateFields, createTransferMovement, formatTransferAuditNote, settleTransferRent,
 } from './transfer-ownership.helper.js';
 import { validateTransferBagConfirmation, validateTransferRepack } from './transfer-ownership-validation.helper.js';
 
@@ -133,6 +134,18 @@ export async function transferOwnership(
         destinationChamber: finalChamber, session,
       });
 
+      const transferInvoiceNumber = await counterService.generateTransferInvoiceNumber(
+        facilityId,
+        movementDate,
+        session,
+      );
+      const transferFeePerBag = input.transferFeePerBag ?? 0;
+      const transferFeeCharged =
+        input.totalTransferFee != null
+          ? input.totalTransferFee
+          : (transferFeePerBag > 0 ? transferFeePerBag * bal.total : 0);
+      const feePayer = input.feePaidBy ?? null;
+
       const transferDateStr = movementDate.toISOString().split('T')[0];
       const transferNote = formatTransferAuditNote({
         transferDateStr,
@@ -140,33 +153,25 @@ export async function transferOwnership(
         fromId: grn.customerId,
         toName: newCustomer.name,
         toId: newCustomer.id,
+        totalBags: finalSmall + finalBig,
+        smallBags: finalSmall,
+        bigBags: finalBig,
+        bagType: resultingBagType,
+        transferInvoiceNumber,
+        transferFeeCharged,
+        feePayer,
         paymentRecord,
         effectiveRentBal,
         remarks: input.remarks,
       });
       const updatedRemarks = appendGrnRemarks(grn.remarks, transferNote);
 
-      const updateFields: Record<string, unknown> = {
-        customerId: newCustomer.id,
-        customerName: newCustomer.name,
-        chamber: finalChamber,
-        bagType: resultingBagType,
-        bags: finalSmall + finalBig,
-        smallBags: finalSmall,
-        bigBags: finalBig,
-        isCompositionVerified: true,
-        remarks: updatedRemarks,
-        updatedAt: new Date(),
-      };
-      if (input.referenceWeight !== undefined && input.referenceWeight !== null) {
-        updateFields.totalBagsWeight = input.referenceWeight;
-      }
-      if (effectiveObligation > 0) updateFields.rentAmount = effectiveObligation;
-      if (isHybrid) {
-        if (typeof input.sourceBagPrice === 'number' && input.sourceBagPrice > 0) updateFields.bagPrice = input.sourceBagPrice;
-        if (typeof input.sourceSeasonalBagPrice === 'number' && input.sourceSeasonalBagPrice > 0) updateFields.smallBagPrice = input.sourceSeasonalBagPrice;
-        if (typeof input.sourceMonthlyBagPrice === 'number' && input.sourceMonthlyBagPrice > 0) updateFields.bigBagPrice = input.sourceMonthlyBagPrice;
-      }
+      const updateFields = buildTransferGrnUpdateFields({
+        newCustomer, finalChamber, resultingBagType,
+        finalBags: finalSmall + finalBig, finalSmall, finalBig,
+        updatedRemarks, referenceWeight: input.referenceWeight,
+        effectiveObligation, isHybrid, input,
+      });
 
       const updatedGrn = await GrnModel.findOneAndUpdate(
         { id: grn.id },
@@ -180,7 +185,9 @@ export async function transferOwnership(
       resultMovementDoc = await createTransferMovement({
         movementId, facilityId, input, grn, newCustomer, bal,
         finalSmall, finalBig, finalChamber, resultingBagType,
-        isRepackedHybrid, transferCommodity, effectiveRentBal,
+        isRepackedHybrid, transferCommodity,
+        transferInvoiceNumber, transferFeeCharged, feePayer,
+        effectiveRentBal,
         userId, session,
       });
     }),
@@ -212,7 +219,17 @@ export async function transferOwnership(
       previousStock,
       confirmedBagComposition: { smallBags: input.confirmedSmallBags ?? null, bigBags: input.confirmedBigBags ?? null, quantity: input.sourceQuantity ?? null },
       newStockComposition: { total: movementRecord.totalBagsMoved, smallBags: movementRecord.smallBagsMoved, bigBags: movementRecord.bigBagsMoved, bagType: movementRecord.resultingBagType },
-      billReferences: { receiptNumber: resultPayment?.receiptNumber ?? null, amountPaid: resultPayment?.amountPaid ?? 0, paymentDecision: input.paymentDecision, hamaliCharge: movementRecord.hamaliCharge ?? 0 },
+      transferInvoiceNumber: movementRecord.transferInvoiceNumber ?? null,
+      transferFeeCharged: movementRecord.transferFeeCharged ?? 0,
+      feePayer: movementRecord.feePayer ?? null,
+      billReferences: {
+        receiptNumber: resultPayment?.receiptNumber ?? null,
+        amountPaid: resultPayment?.amountPaid ?? 0,
+        paymentDecision: input.paymentDecision,
+        hamaliCharge: movementRecord.hamaliCharge ?? 0,
+        transferInvoiceNumber: movementRecord.transferInvoiceNumber ?? null,
+        transferFeeCharged: movementRecord.transferFeeCharged ?? 0,
+      },
       pendingRent: movementRecord.financialSnapshot.remainingBalance, paymentDecision: input.paymentDecision,
       receiptNumber: resultPayment?.receiptNumber ?? null, amountPaidAtTransfer: resultPayment?.amountPaid ?? 0,
       remarks: input.remarks,

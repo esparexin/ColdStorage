@@ -15,6 +15,8 @@ import { renderChallanTemplate } from './templates/challan.template.js';
 import { renderGrnTemplate } from './templates/grn.template.js';
 import { renderReceiptTemplate } from './templates/receipt.template.js';
 import { renderRentReceiptTemplate } from './templates/rent-receipt.template.js';
+import { renderTransferDeedTemplate } from './templates/transfer-deed.template.js';
+import { buildTransferDeedDto } from './transfer-deed.builder.js';
 
 export class DocumentService {
 
@@ -226,6 +228,18 @@ export class DocumentService {
     };
 
     return renderRentReceiptTemplate(dto);
+  }
+
+  /**
+   * 5. Renders Ownership Transfer Deed & Settlement Invoice HTML document.
+   */
+  public async renderTransferDeedDocument(
+    facilityId: string,
+    movementId: string,
+    userId: string,
+  ): Promise<string> {
+    const dto = await buildTransferDeedDto(facilityId, movementId, userId);
+    return renderTransferDeedTemplate(dto);
   }
 }
 

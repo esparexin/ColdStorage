@@ -15,6 +15,7 @@ export const DOCUMENT_PREFIXES = {
   challan: 'CHL',
   rentReceipt: 'RRCPT',
   gatePass: 'GP',
+  transferInvoice: 'TRF-INV',
 } as const;
 
 export class CounterService {
@@ -61,6 +62,22 @@ export class CounterService {
     const seq = await this.getNextSequence(facilityId, 'RENT_RECEIPT', fy, session);
     const padded = String(seq).padStart(padLength, '0');
     return `${DOCUMENT_PREFIXES.rentReceipt}-${fy}-${padded}`;
+  }
+
+  /**
+   * Sequential Ownership Transfer Deed & Settlement Invoice number generator.
+   * Concurrency-safe via atomic findOneAndUpdate sequence tracking per financial year.
+   */
+  public async generateTransferInvoiceNumber(
+    facilityId: string,
+    date: Date,
+    session?: ClientSession,
+    padLength = 4,
+  ): Promise<string> {
+    const fy = getFinancialYearKey(date);
+    const seq = await this.getNextSequence(facilityId, 'TRANSFER_INVOICE', fy, session);
+    const padded = String(seq).padStart(padLength, '0');
+    return `${DOCUMENT_PREFIXES.transferInvoice}-${fy}-${padded}`;
   }
 
 /**

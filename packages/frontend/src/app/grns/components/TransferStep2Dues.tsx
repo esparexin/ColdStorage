@@ -1,11 +1,11 @@
 'use client';
 
 import React from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { FileText, ShieldCheck } from 'lucide-react';
 import type {
   Customer, Grn, OutwardBagCategory, PaymentMode, TransferPaymentDecision,
 } from '@cold-storage/contracts';
-import { Badge } from '@/components/ui';
+import { Badge, Input, Select } from '@/components/ui';
 import { TransferOwnershipConfirmation } from './TransferOwnershipConfirmation';
 import { TransferRentAssessment } from './TransferRentAssessment';
 import { MovementSettlementDecisionSection } from './MovementSettlementDecisionSection';
@@ -43,6 +43,10 @@ interface TransferStep2DuesProps {
   onSettleAmountChange: (a: number) => void;
   paymentMode: PaymentMode;
   onPaymentModeChange: (m: PaymentMode) => void;
+  transferFeePerBag: number | '';
+  onTransferFeePerBagChange: (val: number | '') => void;
+  feePaidBy: 'BUYER' | 'SELLER';
+  onFeePaidByChange: (val: 'BUYER' | 'SELLER') => void;
   submitting: boolean;
   onBack: () => void;
   onNext: () => void;
@@ -57,7 +61,9 @@ export function TransferStep2Dues(props: TransferStep2DuesProps) {
     totalPaid, outstandingBalance, assessedRent, effectiveDue, hamaliRate,
     seasonalRates, monthlyRates,
     decision, onDecisionChange, settleAmount, onSettleAmountChange,
-    paymentMode, onPaymentModeChange, submitting, onBack, onNext,
+    paymentMode, onPaymentModeChange,
+    transferFeePerBag, onTransferFeePerBagChange, feePaidBy, onFeePaidByChange,
+    submitting, onBack, onNext,
   } = props;
 
   return (
@@ -131,6 +137,51 @@ export function TransferStep2Dues(props: TransferStep2DuesProps) {
         transfereeOrTargetName={selectedNewCustomer?.name}
         isTransfer
       />
+
+      {/* Transfer Service Fee & Invoicing Card */}
+      <div className={styles.compactCard}>
+        <div className={styles.cardHeader}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <FileText size={14} aria-hidden="true" />
+            <span>Transfer Service Fee &amp; Deed Invoicing</span>
+          </span>
+          <Badge variant="neutral">Service Fee</Badge>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-2)' }}>
+          <Input
+            id="transfer-fee-per-bag"
+            label="Transfer Fee (₹ / Bag)"
+            type="number"
+            min="0"
+            step="0.5"
+            placeholder="e.g. 2.00 (Optional)"
+            value={transferFeePerBag}
+            onChange={(e) => onTransferFeePerBagChange(e.target.value === '' ? '' : Number(e.target.value))}
+            disabled={submitting}
+          />
+
+          <Select
+            id="transfer-fee-payer"
+            label="Fee Payer"
+            value={feePaidBy}
+            onChange={(e) => onFeePaidByChange(e.target.value as 'BUYER' | 'SELLER')}
+            disabled={submitting}
+          >
+            <option value="BUYER">Transferee (Buyer: {selectedNewCustomer?.name || 'New Owner'})</option>
+            <option value="SELLER">Transferor (Seller: {currentGrn.customerName})</option>
+          </Select>
+
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>Total Transfer Fee</span>
+            <div style={{ padding: 'var(--space-2)', background: 'var(--color-surface-1)', borderRadius: 'var(--radius-sm)', fontWeight: 600, fontSize: 'var(--text-sm)', color: 'var(--color-primary)' }}>
+              {typeof transferFeePerBag === 'number' && transferFeePerBag > 0
+                ? `₹${(transferFeePerBag * remainingBags).toLocaleString('en-IN')} (${remainingBags} bags @ ₹${transferFeePerBag}/bag)`
+                : '₹0.00 (Waived)'}
+            </div>
+          </div>
+        </div>
+      </div>
 
       <WizardStepActions
         onBack={onBack}

@@ -65,6 +65,10 @@ export interface TransferPayload {
   repackedBigBags?: number;
   repackedQuantity?: number;
   referenceWeight?: number;
+  transferFeePerBag?: number;
+  totalTransferFee?: number;
+  feePaymentMode?: PaymentMode;
+  feePaidBy?: 'BUYER' | 'SELLER';
 }
 
 /** Single SSOT for the `reason. remarks` audit composition both flows share. */
@@ -158,6 +162,12 @@ export function buildTransferPayload(
     repackedQuantity?: number;
     referenceWeight?: number;
   },
+  fee?: {
+    transferFeePerBag?: number;
+    totalTransferFee?: number;
+    feePaymentMode?: PaymentMode;
+    feePaidBy?: 'BUYER' | 'SELLER';
+  },
 ): TransferPayload {
   return {
     grnId,
@@ -179,6 +189,10 @@ export function buildTransferPayload(
     repackedBigBags: repack?.repackedBigBags,
     repackedQuantity: repack?.repackedQuantity,
     referenceWeight: repack?.referenceWeight,
+    transferFeePerBag: fee?.transferFeePerBag,
+    totalTransferFee: fee?.totalTransferFee,
+    feePaymentMode: fee?.feePaymentMode,
+    feePaidBy: fee?.feePaidBy,
   };
 }
 

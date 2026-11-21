@@ -1,111 +1,16 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
-import { calculateHamaliAmount, type TransferOwnershipInput, type RentPayment, type InternalMovementRecord } from '@cold-storage/contracts';
+import {
+  calculateHamaliAmount,
+  isHybridBagCategory,
+  type TransferOwnershipInput,
+  type RentPayment,
+  type InternalMovementRecord,
+} from '@cold-storage/contracts';
 import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
-import { computeRentBalance, type RentBalance } from '../../common/rent-balance.js';
-import { counterService } from '../../common/counter.service.js';
-import { rentRepository } from '../../rent/rent.repository.js';
-import { toPaymentEntity } from '../../rent/handlers/record-payment.handler.js';
-
-export interface SettleTransferRentParams {
-  facilityId: string;
-  grnId: string;
-  grnNumber: string;
-  sourceCustomerId: string;
-  sourceCustomerName: string;
-  newCustomerName: string;
-  movementDate: Date;
-  totalDue: number;
-  totalPaid: number;
-  rentBal: RentBalance;
-  input: TransferOwnershipInput;
-  userId: string;
-  session: mongoose.ClientSession;
-}
-
-export async function settleTransferRent(params: SettleTransferRentParams): Promise<{
-  paymentRecord: RentPayment | undefined;
-  effectiveRentBal: RentBalance;
-}> {
-  const {
-    facilityId,
-    grnId,
-    grnNumber,
-    sourceCustomerId,
-    sourceCustomerName,
-    newCustomerName,
-    movementDate,
-    totalDue,
-    totalPaid,
-    rentBal,
-    input,
-    userId,
-    session,
-  } = params;
-
-  let effectiveRentBal = rentBal;
-  let paymentRecord: RentPayment | undefined;
-
-  if (rentBal.remainingBalance > 0) {
-    if (input.paymentDecision === 'AGREED_PENDING') {
-      return {
-        paymentRecord: undefined,
-        effectiveRentBal: rentBal,
-      };
-    }
-
-    if (
-      input.paymentDecision !== 'SETTLE_NOW' ||
-      !input.settlementDetails ||
-      input.settlementDetails.amountPaid < rentBal.remainingBalance
-    ) {
-      throw new Error(
-        `Cannot transfer ownership: Outstanding rent of ₹${rentBal.remainingBalance.toLocaleString('en-IN')} must be fully settled before transfer under SETTLE_NOW, or choose AGREED_PENDING to carry forward.`,
-      );
-    }
-
-    const { amountPaid, paymentMode, paymentNotes } = input.settlementDetails;
-    if (amountPaid > rentBal.remainingBalance) {
-      throw new Error(
-        `Requested settlement ₹${amountPaid} exceeds remaining rent balance of ₹${rentBal.remainingBalance}`,
-      );
-    }
-
-    const receiptNumber = await counterService.generateRentReceiptNumber(
-      facilityId,
-      movementDate,
-      session,
-    );
-    const paymentDoc = await rentRepository.createPayment(
-      {
-        id: `rp-${randomUUID()}`,
-        facilityId,
-        grnId,
-        grnNumber,
-        customerId: sourceCustomerId,
-        customerName: sourceCustomerName,
-        receiptNumber,
-        amountPaid,
-        paymentMode,
-        paymentDate: movementDate,
-        notes: paymentNotes?.trim() || `Settled upon ownership transfer to ${newCustomerName}`,
-        createdBy: userId,
-      },
-      session,
-    );
-    paymentRecord = toPaymentEntity(paymentDoc);
-    effectiveRentBal = computeRentBalance(totalDue, totalPaid + amountPaid);
-
-    if (effectiveRentBal.remainingBalance !== 0) {
-      throw new Error(
-        `Transfer aborted: Rent balance after settlement is ₹${effectiveRentBal.remainingBalance}, but full settlement (₹0) is required.`,
-      );
-    }
-  }
-
-  return { paymentRecord, effectiveRentBal };
-}
+import type { RentBalance } from '../../common/rent-balance.js';
+export { settleTransferRent, type SettleTransferRentParams } from './transfer-ownership.rent.js';
 
 export function formatTransferAuditNote(params: {
   transferDateStr: string;
@@ -113,12 +18,33 @@ export function formatTransferAuditNote(params: {
   fromId: string;
   toName: string;
   toId: string;
+  totalBags: number;
+  smallBags: number;
+  bigBags: number;
+  bagType: string;
+  transferInvoiceNumber?: string | null;
+  transferFeeCharged?: number;
+  feePayer?: 'BUYER' | 'SELLER' | null;
   paymentRecord?: RentPayment;
   effectiveRentBal: RentBalance;
   remarks: string;
 }): string {
-  const { transferDateStr, fromName, fromId, toName, toId, paymentRecord, effectiveRentBal, remarks } = params;
-  const prefix = `[OWNERSHIP TRANSFERRED on ${transferDateStr}: from ${fromName} (ID: ${fromId}) to ${toName} (ID: ${toId}).`;
+  const {
+    transferDateStr, fromName, fromId, toName, toId,
+    totalBags, smallBags, bigBags, bagType,
+    transferInvoiceNumber, transferFeeCharged, feePayer,
+    paymentRecord, effectiveRentBal, remarks,
+  } = params;
+  const isHybrid = bagType === 'Hybrid' || isHybridBagCategory(bagType);
+  const compositionDetail = isHybrid
+    ? `+${totalBags} bags (Hybrid)`
+    : `+${totalBags} bags (S: ${smallBags} • B: ${bigBags}, BagType: ${bagType})`;
+  const invoiceDetail = transferInvoiceNumber ? ` Invoice: #${transferInvoiceNumber}` : '';
+  const feeDetail =
+    typeof transferFeeCharged === 'number' && transferFeeCharged > 0
+      ? ` Transfer Fee: ₹${transferFeeCharged}${feePayer ? ` (Paid by ${feePayer})` : ''}`
+      : '';
+  const prefix = `[OWNERSHIP TRANSFERRED on ${transferDateStr}: ${compositionDetail}${invoiceDetail}${feeDetail} from ${fromName} (ID: ${fromId}) to ${toName} (ID: ${toId}).`;
   if (paymentRecord) {
     return `${prefix} Settled at transfer: ₹${paymentRecord.amountPaid} (Receipt #${paymentRecord.receiptNumber}). Rent obligation: ₹${effectiveRentBal.rentAmount} (Status: Settled). Reason: ${remarks.trim()}]`;
   }
@@ -174,6 +100,9 @@ export interface CreateTransferMovementParams {
   bal: { total: number }; finalSmall: number; finalBig: number;
   finalChamber: string; resultingBagType: string; isRepackedHybrid: boolean;
   transferCommodity?: { isHamaliApplicable?: boolean; hamaliRate?: number } | null;
+  transferInvoiceNumber?: string | null;
+  transferFeeCharged?: number;
+  feePayer?: 'BUYER' | 'SELLER' | null;
   effectiveRentBal: RentBalance; userId: string; session: mongoose.ClientSession;
 }
 
@@ -183,7 +112,8 @@ export async function createTransferMovement(
   const {
     movementId, facilityId, input, grn, newCustomer, bal,
     finalSmall, finalBig, finalChamber, resultingBagType,
-    isRepackedHybrid, transferCommodity, effectiveRentBal,
+    isRepackedHybrid, transferCommodity, transferInvoiceNumber,
+    transferFeeCharged, feePayer, effectiveRentBal,
     userId, session,
   } = params;
 
@@ -209,6 +139,9 @@ export async function createTransferMovement(
         toCustomerId: newCustomer.id, toCustomerName: newCustomer.name,
         totalBagsMoved: bal.total, smallBagsMoved: finalSmall, bigBagsMoved: finalBig,
         destinationChamber: finalChamber, resultingBagType,
+        transferInvoiceNumber: transferInvoiceNumber ?? null,
+        transferFeeCharged: transferFeeCharged ?? 0,
+        feePayer: feePayer ?? null,
         hamaliBags: isExplicitRepack ? repackedCount : undefined,
         hamaliRate: isExplicitRepack ? repackHamaliRate : undefined,
         hamaliCharge: isExplicitRepack ? repackHamaliCharge : undefined,
@@ -234,4 +167,47 @@ export async function createTransferMovement(
   );
 
   return docs[0].toObject() as InternalMovementRecord;
+}
+
+export function buildTransferGrnUpdateFields(params: {
+  newCustomer: { id: string; name: string };
+  finalChamber: string;
+  resultingBagType: string;
+  finalBags: number;
+  finalSmall: number;
+  finalBig: number;
+  updatedRemarks: string;
+  referenceWeight?: number | null;
+  effectiveObligation: number;
+  isHybrid: boolean;
+  input: TransferOwnershipInput;
+}): Record<string, unknown> {
+  const {
+    newCustomer, finalChamber, resultingBagType, finalBags,
+    finalSmall, finalBig, updatedRemarks, referenceWeight,
+    effectiveObligation, isHybrid, input,
+  } = params;
+
+  const updateFields: Record<string, unknown> = {
+    customerId: newCustomer.id,
+    customerName: newCustomer.name,
+    chamber: finalChamber,
+    bagType: resultingBagType,
+    bags: finalBags,
+    smallBags: finalSmall,
+    bigBags: finalBig,
+    isCompositionVerified: true,
+    remarks: updatedRemarks,
+    updatedAt: new Date(),
+  };
+  if (referenceWeight !== undefined && referenceWeight !== null) {
+    updateFields.totalBagsWeight = referenceWeight;
+  }
+  if (effectiveObligation > 0) updateFields.rentAmount = effectiveObligation;
+  if (isHybrid) {
+    if (typeof input.sourceBagPrice === 'number' && input.sourceBagPrice > 0) updateFields.bagPrice = input.sourceBagPrice;
+    if (typeof input.sourceSeasonalBagPrice === 'number' && input.sourceSeasonalBagPrice > 0) updateFields.smallBagPrice = input.sourceSeasonalBagPrice;
+    if (typeof input.sourceMonthlyBagPrice === 'number' && input.sourceMonthlyBagPrice > 0) updateFields.bigBagPrice = input.sourceMonthlyBagPrice;
+  }
+  return updateFields;
 }
