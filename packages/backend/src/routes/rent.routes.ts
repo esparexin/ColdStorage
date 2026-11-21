@@ -3,7 +3,6 @@ import { asyncRouter } from '../utils/async-handler.js';
 import {
   finalizeExtensionInputSchema,
   overrideExtensionInputSchema,
-  recordBatchRentPaymentInputSchema,
   recordRentPaymentInputSchema,
   storageOccupancyFilterSchema,
 } from '@cold-storage/contracts';
@@ -56,41 +55,7 @@ rentRouter.post(
   },
 );
 
-// 2. Record Batch Rent Payment across multiple GRNs for a single customer
-rentRouter.post(
-  '/facilities/:facilityId/rent/collect-batch',
-  requirePermission('rent:collect'),
-  requireFacilityScope((req) => getParamId(req.params.facilityId)),
-  async (req: Request, res: Response): Promise<void> => {
-    const facilityId = getParamId(req.params.facilityId);
-
-    if (req.body && typeof req.body.facilityId === 'string' && req.body.facilityId !== facilityId) {
-      res.status(400).json({
-        error: `Payload facilityId '${req.body.facilityId}' does not match route facilityId '${facilityId}'`,
-      });
-      return;
-    }
-
-    const parseResult = recordBatchRentPaymentInputSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      res.status(400).json({ error: 'Validation failed', details: parseResult.error.flatten() });
-      return;
-    }
-
-    try {
-      const result = await rentService.recordBatchPayment(
-        facilityId,
-        parseResult.data,
-        req.user!.userId,
-      );
-      res.status(201).json(result);
-    } catch (err: unknown) {
-      handleRentPaymentError(res, err, 'recordBatchRentPayment');
-    }
-  },
-);
-
-// 3. Batched Rent Summary List — one request for the whole facility
+// 2. Batched Rent Summary List — one request for the whole facility
 rentRouter.get(
   '/facilities/:facilityId/rent/summaries',
   requirePermission('rent:view'),

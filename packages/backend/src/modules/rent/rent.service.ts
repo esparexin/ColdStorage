@@ -2,7 +2,6 @@ import type mongoose from 'mongoose';
 import {
   deriveBillingCycle,
   resolveEffectiveGrnRentType,
-  type RecordBatchRentPaymentInput, type RecordBatchRentPaymentResult,
   type RecordRentPaymentInput, type RecordRentPaymentResult,
   type RentReceiptDocumentDto, type RentSummaryDto, type StorageOccupancyFilter,
   type RentType,
@@ -16,7 +15,6 @@ import { generateStorageOccupancyReport } from '../common/storage-audit-report.j
 import { renderRentReceiptTemplate } from '../documents/templates/rent-receipt.template.js';
 import { getFacilitySubHeader, getVerifiedOrganization } from '../documents/document-headers.helper.js';
 import { executeRecordPayment } from './handlers/record-payment.handler.js';
-import { executeRecordBatchPayment } from './handlers/record-batch-payment.handler.js';
 import { rentExtensionRepository } from './rent-extension.repository.js';
 import { rentRepository } from './rent.repository.js';
 import { buildRentSummary } from './rent-summary.helper.js';
@@ -218,14 +216,6 @@ export class RentService {
     };
 
     return renderRentReceiptTemplate(docDto);
-  }
-
-  public async recordBatchPayment(
-    facilityId: string,
-    input: RecordBatchRentPaymentInput,
-    userId: string,
-  ): Promise<RecordBatchRentPaymentResult> {
-    return executeRecordBatchPayment(facilityId, input, userId, (fId, gId) => this.getRentSummary(fId, gId));
   }
 
   public async getMonthlyOccupancyRent(facilityId: string, grnId: string, options?: { asOfDate?: Date }) {
