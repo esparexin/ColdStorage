@@ -101,7 +101,7 @@ export function renderMergeShiftingInvoiceTemplate(dto: MergeShiftingInvoiceDocu
       </tr>
       <tr>
         <th>Carried Rent Liability</th>
-        <td>₹${dto.carriedRentAmount.toFixed(2)}</td>
+        <td>${dto.carriedRentAmount > 0 ? `₹${dto.carriedRentAmount.toFixed(2)}` : '₹0.00 (Separate Source Bills)'}</td>
         <th>Outstanding Rent at Merge</th>
         <td><strong>₹${dto.totalDueAtMerge.toFixed(2)}</strong></td>
       </tr>

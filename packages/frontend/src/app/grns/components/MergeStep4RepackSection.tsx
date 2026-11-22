@@ -10,7 +10,7 @@ export interface MergeStep4RepackSectionProps {
   destinationChamber: string; onDestinationChamberChange: (val: string) => void;
   partyMark: string; onPartyMarkChange: (val: string) => void;
   storageMark: string; onStorageMarkChange: (val: string) => void;
-  repackMode: boolean; onRepackModeChange: (active: boolean) => void;
+  repackMode: boolean; onRepackModeChange?: (active: boolean) => void;
   repackBagType: OperationalBagType; onRepackBagTypeChange: (type: OperationalBagType) => void;
   repackSmall: number | ''; onRepackSmallChange: (val: number | '') => void;
   repackBig: number | ''; onRepackBigChange: (val: number | '') => void;
@@ -29,7 +29,7 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
   const {
     destinationChamber, onDestinationChamberChange,
     partyMark, onPartyMarkChange, storageMark, onStorageMarkChange,
-    repackMode, onRepackModeChange, repackBagType, onRepackBagTypeChange,
+    repackMode, repackBagType, onRepackBagTypeChange,
     repackSmall, onRepackSmallChange, repackBig, onRepackBigChange,
     repackQuantity, onRepackQuantityChange, repackSeasonalBagPrice, onRepackSeasonalBagPriceChange,
     repackMonthlyBagPrice, onRepackMonthlyBagPriceChange,
@@ -47,18 +47,19 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
         </span>
       </div>
 
-      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', cursor: 'pointer', padding: '4px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'var(--text-xs)', padding: '6px 8px', background: 'var(--color-surface-1)', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--color-primary)' }}>
         <input
           type="checkbox"
           id="repack-mode-step4"
           checked={repackMode}
-          onChange={(e) => onRepackModeChange(e.target.checked)}
-          disabled={submitting}
+          readOnly
+          disabled
+          aria-label="Physical Repacking &amp; Bag Confirmation (Chamber Exit Verification)"
         />
-        <span style={{ fontWeight: 'var(--font-semibold)' }}>
-          Physically Repack / Re-bag Stock (Enter actual resulting counts)
+        <span style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-primary-text)' }}>
+          Physical Repack &amp; Bag Confirmation (Mandatory on Chamber Exit)
         </span>
-      </label>
+      </div>
 
       {repackMode && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1-5)', marginTop: '4px' }}>

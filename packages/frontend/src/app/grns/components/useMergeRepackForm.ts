@@ -8,7 +8,7 @@ export function useMergeRepackForm() {
   const [destinationChamber, setDestinationChamber] = useState<string>('');
   const [partyMark, setPartyMark] = useState<string>('');
   const [storageMark, setStorageMark] = useState<string>('');
-  const [repackMode, setRepackMode] = useState(false);
+  const [repackMode, setRepackMode] = useState(true);
   const [repackBagType, setRepackBagType] = useState<OperationalBagType>('S/B');
   const [repackSmall, setRepackSmall] = useState<number | ''>('');
   const [repackBig, setRepackBig] = useState<number | ''>('');

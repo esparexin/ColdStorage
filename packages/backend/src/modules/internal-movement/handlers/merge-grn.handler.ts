@@ -126,9 +126,9 @@ export async function mergeGrn(
         isHybridBagCategory(input.targetBagCategory) || input.targetBagType === 'Hybrid';
       const newIsCompositionVerified = explicitConfirmation ? true : (targetWasVerified || targetConfirmed) && allSourcesVerified;
 
-      // Source GRN pending rent remains as separate pending bills and does not reflect on target GRN.
-      // Only explicit manual additionalRentAmount overrides add to the target GRN obligation.
-      finalCarriedRent = input.additionalRentAmount != null && input.additionalRentAmount > 0 ? input.additionalRentAmount : 0;
+      // Source GRN pending rent strictly remains as separate pending bills on source GRNs.
+      // Never carried forward to the surviving target GRN.
+      finalCarriedRent = 0;
 
       const repackHamali = await resolveMergeRepackHamali({
         commodityId: targetGrn.commodityId,
