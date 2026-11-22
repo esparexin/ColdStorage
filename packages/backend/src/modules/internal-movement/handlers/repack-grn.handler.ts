@@ -68,9 +68,6 @@ export async function executeRepackGrn(
         if (actualRepackedBags <= 0) throw new Error('Repacked bag count must be greater than zero');
 
         repackVariance = actualRepackedBags - bal.total;
-        if (repackVariance !== 0 && !input.repackVarianceReason?.trim()) {
-          throw new Error('Repack variance reason is required when repacked count differs from original bags');
-        }
 
         // Service Invoicing: Labor & Bardana calculation
         const commodity = await CommodityModel.findOne({ id: grn.commodityId }, null, { session }).lean().exec();

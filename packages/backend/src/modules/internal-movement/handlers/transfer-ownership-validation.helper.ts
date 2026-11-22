@@ -8,8 +8,8 @@ import {
 
 export function validateTransferRepack(
   input: TransferOwnershipInput,
-  ledgerTotal: number,
-  grnNumber: string,
+  _ledgerTotal: number,
+  _grnNumber: string,
 ): void {
   if (input.destinationChamber !== undefined && input.destinationChamber !== null) {
     const res = chamberTextSchema.safeParse(input.destinationChamber);
@@ -22,9 +22,6 @@ export function validateTransferRepack(
       if (!Number.isInteger(input.repackedQuantity) || input.repackedQuantity <= 0) {
         throw new Error('Repacked Hybrid quantity must be a positive whole number');
       }
-      if (input.repackedQuantity !== ledgerTotal) {
-        throw new Error(`Repacked quantity (${input.repackedQuantity}) must match total stock of ${ledgerTotal} bags for GRN '${grnNumber}'`);
-      }
     }
   } else if (input.resultingBagType === 'S/B' || input.repackedSmallBags != null || input.repackedBigBags != null) {
     if (input.repackedSmallBags != null || input.repackedBigBags != null) {
@@ -33,8 +30,8 @@ export function validateTransferRepack(
       if (!Number.isInteger(s) || !Number.isInteger(b) || s < 0 || b < 0) {
         throw new Error('Repacked bag counts must be whole non-negative numbers');
       }
-      if (s + b !== ledgerTotal) {
-        throw new Error(`Repacked counts (${s} small + ${b} big = ${s + b}) must match total stock of ${ledgerTotal} bags for GRN '${grnNumber}'`);
+      if (s + b <= 0) {
+        throw new Error('Repacked bag counts must be greater than zero');
       }
     }
   }

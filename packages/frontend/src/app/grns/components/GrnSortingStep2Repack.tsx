@@ -158,7 +158,7 @@ export function GrnSortingStep2Repack({
             Physical rebagging resulted in {totalRepacked} bags compared to original {originalBags} bags.
           </p>
           <div style={{ marginTop: 'var(--space-1-5)' }}>
-            <Input id="repack-variance-reason" label="Variance Reason *" type="text" maxLength={500} value={varianceReason} onChange={(e) => setVarianceReason(e.target.value)} placeholder="e.g. Damaged bags culled during grading" required />
+            <Input id="repack-variance-reason" label="Variance Reason (Optional)" type="text" maxLength={500} value={varianceReason} onChange={(e) => setVarianceReason(e.target.value)} placeholder="e.g. Damaged bags culled during grading" />
           </div>
         </div>
       )}

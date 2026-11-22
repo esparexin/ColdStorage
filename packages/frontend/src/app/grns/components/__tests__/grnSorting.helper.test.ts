@@ -167,9 +167,9 @@ describe('grnSorting.helper', () => {
       expect(err).toContain('greater than zero');
     });
 
-    it('requires variance reason when repacked count differs from original count', () => {
-      const errNoReason = validateRepackOperation({ resultingBagType: 'S/B', destinationChamber: 'CH-01', repackedSmallBags: 50, repackedBigBags: 45, remarks: 'Repacked lot' }, 100);
-      expect(errNoReason).toContain('Variance reason');
+    it('allows repacking without mandatory variance reason when repacked count differs', () => {
+      const validNoReason = validateRepackOperation({ resultingBagType: 'S/B', destinationChamber: 'CH-01', repackedSmallBags: 50, repackedBigBags: 45, remarks: 'Repacked lot' }, 100);
+      expect(validNoReason).toBeNull();
 
       const validWithReason = validateRepackOperation({ resultingBagType: 'S/B', destinationChamber: 'CH-01', repackedSmallBags: 50, repackedBigBags: 45, repackVarianceReason: 'Culled 5 rotten bags during sorting', remarks: 'Repacked lot' }, 100);
       expect(validWithReason).toBeNull();
@@ -193,12 +193,12 @@ describe('grnSorting.helper', () => {
       expect(validWithChamber).toBeNull();
     });
 
-    it('validates Hybrid repacking with quantity and variance', () => {
+    it('validates Hybrid repacking with quantity and optional variance', () => {
       const err = validateRepackOperation({ resultingBagType: 'Hybrid', destinationChamber: 'CH-01', repackedQuantity: 0, remarks: 'Repack hybrid' }, 100);
       expect(err).toContain('greater than zero');
 
-      const errVariance = validateRepackOperation({ resultingBagType: 'Hybrid', destinationChamber: 'CH-01', repackedQuantity: 90, remarks: 'Repack hybrid' }, 100);
-      expect(errVariance).toContain('Variance reason');
+      const validVariance = validateRepackOperation({ resultingBagType: 'Hybrid', destinationChamber: 'CH-01', repackedQuantity: 90, remarks: 'Repack hybrid' }, 100);
+      expect(validVariance).toBeNull();
 
       const valid = validateRepackOperation({ resultingBagType: 'Hybrid', destinationChamber: 'CH-01', repackedQuantity: 90, repackVarianceReason: 'Culled 10 bags', remarks: 'Repack hybrid' }, 100);
       expect(valid).toBeNull();

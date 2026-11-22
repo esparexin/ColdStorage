@@ -83,14 +83,15 @@ export function validateTransferRepack(params: {
   if (params.resultingBagType === 'Hybrid') {
     const qty = Number(params.repackedQuantity);
     if (!Number.isInteger(qty) || qty <= 0) return 'Repacked quantity must be a positive whole number';
-    if (qty !== params.totalBags) return `Repacked quantity (${qty}) must match total bags (${params.totalBags})`;
   } else {
     const s = Number(params.repackedSmallBags);
     const b = Number(params.repackedBigBags);
     if (!Number.isInteger(s) || !Number.isInteger(b) || s < 0 || b < 0) {
       return 'Repacked small and big bags must be non-negative whole numbers';
     }
-    if (s + b !== params.totalBags) return `Repacked bag total (${s + b}) must match total bags (${params.totalBags})`;
+    if (s + b <= 0) {
+      return 'Repacked bag total must be greater than zero';
+    }
   }
   if (params.referenceWeight !== '' && params.referenceWeight != null) {
     const w = Number(params.referenceWeight);
