@@ -35,28 +35,21 @@ export function GrnSortingStep2Repack({
   const [repackedBigBags, setRepackedBigBags] = useState<string>('');
   const [repackedQuantity, setRepackedQuantity] = useState<string>('');
   const [referenceWeight, setReferenceWeight] = useState<string>(grn.totalBagsWeight != null ? String(grn.totalBagsWeight) : '');
-  const [varianceReason, setVarianceReason] = useState<string>('');
   const [remarks, setRemarks] = useState<string>('');
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const defaultLaborRate = (commodity?.isHamaliApplicable || (commodity?.hamaliRate ?? 0) > 0)
     ? (commodity?.hamaliRate ?? 0) : 0;
   const [laborRate, setLaborRate] = useState<string>(defaultLaborRate > 0 ? String(defaultLaborRate) : '');
-  const [newBagsSupplied, setNewBagsSupplied] = useState<string>('');
-  const [newBagRate, setNewBagRate] = useState<string>('');
 
   const isHybrid = resultingBagType === 'Hybrid';
   const totalRepacked = isHybrid
     ? Number(repackedQuantity) || 0
     : (Number(repackedSmallBags) || 0) + (Number(repackedBigBags) || 0);
-  const variance = totalRepacked - originalBags;
 
   const parsedLaborRate = Number(laborRate) || 0;
   const sortingLaborCharge = parsedLaborRate > 0 ? totalRepacked * parsedLaborRate : 0;
-  const parsedNewBags = Number(newBagsSupplied) || 0;
-  const parsedBagRate = Number(newBagRate) || 0;
-  const bardanaCharge = parsedNewBags * parsedBagRate;
-  const totalServiceCharge = sortingLaborCharge + bardanaCharge;
+  const totalServiceCharge = sortingLaborCharge;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,11 +57,11 @@ export function GrnSortingStep2Repack({
 
     const error = validateRepackOperation(
       {
-        resultingBagType, destinationChamber: destinationChamber.trim(),
+        resultingBagType,
+        destinationChamber: destinationChamber.trim(),
         repackedSmallBags: isHybrid ? null : (repackedSmallBags.trim() === '' ? null : Number(repackedSmallBags)),
         repackedBigBags: isHybrid ? null : (repackedBigBags.trim() === '' ? null : Number(repackedBigBags)),
         repackedQuantity: isHybrid ? (repackedQuantity.trim() === '' ? null : Number(repackedQuantity)) : null,
-        repackVarianceReason: varianceReason.trim() || undefined,
         remarks: remarks.trim(),
       },
       originalBags,
@@ -80,18 +73,16 @@ export function GrnSortingStep2Repack({
     }
 
     await onExecuteRepack({
-      grnId: grn.id, resultingBagType, destinationChamber: destinationChamber.trim(),
+      grnId: grn.id,
+      resultingBagType,
+      destinationChamber: destinationChamber.trim(),
       repackedSmallBags: isHybrid ? undefined : Number(repackedSmallBags),
       repackedBigBags: isHybrid ? undefined : Number(repackedBigBags),
       repackedQuantity: isHybrid ? Number(repackedQuantity) : undefined,
       referenceWeight: referenceWeight.trim() ? Number(referenceWeight) : undefined,
-      repackVarianceReason: variance !== 0 ? varianceReason.trim() : undefined,
       remarks: remarks.trim(),
       sortingLaborRatePerBag: parsedLaborRate > 0 ? parsedLaborRate : undefined,
       totalSortingLaborCharge: sortingLaborCharge > 0 ? sortingLaborCharge : undefined,
-      newBagsSupplied: parsedNewBags > 0 ? parsedNewBags : undefined,
-      newBagRate: parsedBagRate > 0 ? parsedBagRate : undefined,
-      totalBardanaCharge: bardanaCharge > 0 ? bardanaCharge : undefined,
       totalServiceCharge: totalServiceCharge > 0 ? totalServiceCharge : undefined,
     });
   };
@@ -102,7 +93,7 @@ export function GrnSortingStep2Repack({
 
       <div className={styles.formCardTitle}>Step 2: Repacking &amp; Service Invoicing</div>
       <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', margin: 0 }}>
-        Specify resulting bag composition, physical variance, and service labor/bardana supplies.
+        Specify resulting bag composition, destination chamber, and sorting labor rate.
       </p>
 
       <div className={styles.formGrid}>
@@ -139,29 +130,7 @@ export function GrnSortingStep2Repack({
         <div className={styles.fieldGroup}>
           <Input id="repack-labor-rate" label="Sorting Labor Rate (₹/bag)" type="number" min={0} step={0.5} value={laborRate} onChange={(e) => setLaborRate(e.target.value)} placeholder="e.g. 5" />
         </div>
-
-        <div className={styles.fieldGroup}>
-          <Input id="repack-new-bags" label="New Bags Supplied (Bardana)" type="number" min={0} step={1} value={newBagsSupplied} onChange={(e) => setNewBagsSupplied(e.target.value)} placeholder="0" />
-        </div>
-
-        {parsedNewBags > 0 && (
-          <div className={styles.fieldGroup}>
-            <Input id="repack-new-bag-rate" label="New Bag Cost (₹/bag) *" type="number" min={0.1} step={0.5} value={newBagRate} onChange={(e) => setNewBagRate(e.target.value)} placeholder="e.g. 40" required />
-          </div>
-        )}
       </div>
-
-      {variance !== 0 && (
-        <div className={styles.varianceWarning}>
-          <strong>Repack Variance: {variance > 0 ? `+${variance}` : variance} bags</strong>
-          <p style={{ margin: 'var(--space-1) 0 0', fontSize: 'var(--text-xs)' }}>
-            Physical rebagging resulted in {totalRepacked} bags compared to original {originalBags} bags.
-          </p>
-          <div style={{ marginTop: 'var(--space-1-5)' }}>
-            <Input id="repack-variance-reason" label="Variance Reason (Optional)" type="text" maxLength={500} value={varianceReason} onChange={(e) => setVarianceReason(e.target.value)} placeholder="e.g. Damaged bags culled during grading" />
-          </div>
-        </div>
-      )}
 
       <div className={styles.fieldGroup}>
         <Input id="repack-remarks" label="Repacking Remarks *" type="text" maxLength={500} value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="e.g. Sorted, graded and rebagged" required />
@@ -181,12 +150,6 @@ export function GrnSortingStep2Repack({
             <span className={styles.summaryLabel}>Labor Charge</span>
             <span className={styles.summaryValue}>₹{sortingLaborCharge.toFixed(2)}{parsedLaborRate > 0 ? ` (@ ₹${parsedLaborRate}/bag)` : ''}</span>
           </div>
-          {bardanaCharge > 0 && (
-            <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>Bardana Cost</span>
-              <span className={styles.summaryValue}>₹{bardanaCharge.toFixed(2)}</span>
-            </div>
-          )}
           <div className={styles.summaryItem}>
             <span className={styles.summaryLabel}>Total Service Invoice</span>
             <span className={styles.summaryValue} style={{ color: 'var(--color-primary-text)', fontWeight: 'bold' }}>₹{totalServiceCharge.toFixed(2)}</span>
