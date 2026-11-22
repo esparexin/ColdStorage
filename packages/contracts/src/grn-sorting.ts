@@ -60,6 +60,7 @@ export const repackGrnInputSchema = z.object({
   grnId: z.string().trim().min(1, 'GRN ID is required'),
   resultingBagType: operationalBagTypeSchema,
   destinationChamber: chamberTextSchema.nullish(),
+  partyMark: z.string().trim().max(20, 'Party mark cannot exceed 20 characters').nullish(),
   repackedSmallBags: z.number().int().min(0).nullish(),
   repackedBigBags: z.number().int().min(0).nullish(),
   repackedQuantity: z.number().int().min(0).nullish(),

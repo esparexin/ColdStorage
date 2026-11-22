@@ -3,6 +3,7 @@ import {
   validateTransferBagConfirmation,
   validateTransferRepack,
 } from '../modules/internal-movement/handlers/transfer-ownership-validation.helper.js';
+import { buildTransferGrnUpdateFields } from '../modules/internal-movement/handlers/transfer-ownership.helper.js';
 
 describe('Transfer Ownership Validation (Unit)', () => {
   describe('validateTransferBagConfirmation', () => {
@@ -220,6 +221,27 @@ describe('Transfer Ownership Validation (Unit)', () => {
           '1001',
         ),
       ).not.toThrow();
+    });
+
+    it('sets partyMark when provided in TransferOwnershipInput', () => {
+      const fields = buildTransferGrnUpdateFields({
+        newCustomer: { id: 'c-2', name: 'Buyer' },
+        finalChamber: 'CH-02',
+        resultingBagType: 'S/B',
+        finalBags: 100,
+        finalSmall: 60,
+        finalBig: 40,
+        updatedRemarks: 'Note',
+        effectiveObligation: 0,
+        isHybrid: false,
+        input: {
+          grnId: 'grn-1',
+          newCustomerId: 'c-2',
+          remarks: 'transfer',
+          partyMark: 'NEW-STENCIL',
+        } as never,
+      });
+      expect(fields.partyMark).toBe('NEW-STENCIL');
     });
   });
 });

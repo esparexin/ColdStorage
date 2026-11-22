@@ -79,6 +79,7 @@ export const transferOwnershipInputSchema = z.object({
   sourceSeasonalBagPrice: bagPriceSchema.nullish(),
   sourceMonthlyBagPrice: bagPriceSchema.nullish(),
   destinationChamber: chamberTextSchema.nullish(),
+  partyMark: z.string().trim().max(20, 'Party mark cannot exceed 20 characters').nullish(),
   resultingBagType: bagTypeSchema.nullish(),
   repackedSmallBags: z.number().int().min(0).max(100000).nullish(),
   repackedBigBags: z.number().int().min(0).max(100000).nullish(),

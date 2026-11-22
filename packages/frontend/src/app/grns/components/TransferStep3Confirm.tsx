@@ -21,6 +21,7 @@ interface TransferStep3ConfirmProps {
   confirmedBigBags?: number | '';
   sourceBagCategory: OutwardBagCategory | '';
   destinationChamber?: string;
+  partyMark?: string;
   referenceWeight?: number | '';
   hamaliRate?: number | null;
   hamaliAmount?: number;
@@ -48,6 +49,7 @@ export function TransferStep3Confirm({
   confirmedBigBags,
   sourceBagCategory,
   destinationChamber,
+  partyMark,
   referenceWeight,
   hamaliRate,
   hamaliAmount,
@@ -105,6 +107,14 @@ export function TransferStep3Confirm({
             <span className={styles.detailValue} style={{ fontWeight: 'var(--font-bold)' }}>
               {destinationChamber || currentGrn.chamber}
             </span>
+          </div>
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>Storage Mark:</span>
+            <span className={styles.detailValue}>{currentGrn.storageMark || currentGrn.grnNumber}</span>
+          </div>
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>Party Mark:</span>
+            <span className={styles.detailValue}>{partyMark || currentGrn.partyMark || 'None'}</span>
           </div>
           {typeof referenceWeight === 'number' && referenceWeight > 0 && (
             <div className={styles.detailRow}>

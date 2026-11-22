@@ -96,6 +96,7 @@ describe('Contracts: GRN Sorting and Repack Bag Type Contracts', () => {
       grnId: 'grn-1',
       resultingBagType: 'S/B',
       destinationChamber: 'CH-01',
+      partyMark: 'PM-99',
       repackedSmallBags: 60,
       repackedBigBags: 40,
       remarks: 'Standard repacking',
