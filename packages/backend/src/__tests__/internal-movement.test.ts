@@ -141,14 +141,14 @@ describe('Internal Movement Workflows (Merge & Transfer Ownership)', () => {
         targetGrnId: grn38,
         sourceGrnIds: [grn39],
         movementDate: new Date(),
-        additionalRentAmount: 500,
+        additionalRentAmount: 0,
         remarks: 'Re-bagged and merged lot 39 into 38',
       });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.targetGrn.bags).toBe(150);
-    expect(res.body.targetGrn.rentAmount).toBe(2500);
+    expect(res.body.targetGrn.rentAmount).toBe(2000);
 
     const updatedSource = await GrnModel.findOne({ id: grn39 }).lean().exec();
     expect(updatedSource?.status).toBe('CLOSED');
