@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Users } from 'lucide-react';
 import type { Customer, Grn } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import { CustomerCombobox } from './CustomerCombobox';
 import { useCustomerCombobox } from '../hooks/useCustomerCombobox';
-import { CustomerFormModal } from '../../customers/components/CustomerFormModal';
 import { TransferSummaryStrip } from './TransferSummaryStrip';
 import { WizardStepActions } from './WizardStepActions';
 import styles from './InternalMovementModal.module.css';
@@ -26,6 +25,7 @@ interface TransferStep1CustomerProps {
   onNext: () => void;
   facilityId?: string;
   onCustomerAdded?: (customer?: Customer) => void;
+  onOpenAddCustomer?: () => void;
 }
 
 export function TransferStep1Customer({
@@ -41,16 +41,13 @@ export function TransferStep1Customer({
   selectedNewCustomer,
   submitting,
   onNext,
-  facilityId,
-  onCustomerAdded,
+  onOpenAddCustomer,
 }: TransferStep1CustomerProps) {
-  const [isAddingCustomer, setIsAddingCustomer] = useState(false);
-
   const customerBox = useCustomerCombobox(
     candidateCustomers,
     newCustomerId,
     onNewCustomerIdChange,
-    () => setIsAddingCustomer(true),
+    onOpenAddCustomer ?? (() => {}),
     { showAllByDefault: false },
   );
 
@@ -86,7 +83,7 @@ export function TransferStep1Customer({
           emptyPrompt="Type customer name to search…"
           isLoading={rentLoading}
           disabled={submitting}
-          onAddCustomer={() => setIsAddingCustomer(true)}
+          onAddCustomer={onOpenAddCustomer}
         />
 
         {selectedNewCustomer && (
@@ -106,22 +103,6 @@ export function TransferStep1Customer({
         disabled={!newCustomerId}
         submitting={submitting}
       />
-
-      {isAddingCustomer && (
-        <CustomerFormModal
-          customer={null}
-          selectedFacilityId={facilityId ?? null}
-          existingCustomers={candidateCustomers}
-          onClose={() => setIsAddingCustomer(false)}
-          onSuccess={(newCustomer) => {
-            setIsAddingCustomer(false);
-            if (newCustomer) {
-              onNewCustomerIdChange(newCustomer.id);
-            }
-            onCustomerAdded?.(newCustomer);
-          }}
-        />
-      )}
     </div>
   );
 }
