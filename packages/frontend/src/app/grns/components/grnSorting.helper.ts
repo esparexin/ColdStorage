@@ -87,7 +87,7 @@ export interface RepackFields {
 
 export function validateRepackOperation(
   fields: Partial<RepackFields>,
-  originalBags: number,
+  _originalBags?: number,
 ): string | null {
   if (!fields.resultingBagType) {
     return 'Please select the resulting bag type.';
@@ -127,7 +127,6 @@ export function validateRepackOperation(
     }
   }
 
-  const variance = totalRepacked - originalBags;
   if (fields.repackVarianceReason && fields.repackVarianceReason.trim().length > 0 && fields.repackVarianceReason.trim().length < 3) {
     return 'Variance reason (if provided) must be at least 3 characters.';
   }
