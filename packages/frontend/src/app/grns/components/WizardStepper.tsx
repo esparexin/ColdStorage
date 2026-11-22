@@ -10,7 +10,7 @@ export interface WizardStepDef {
 }
 
 interface WizardStepperProps {
-  steps: WizardStepDef[];
+  steps: readonly WizardStepDef[];
   currentStep: number;
   onStepClick: (stepNumber: number) => void;
   canNavigateToStep?: (stepNumber: number) => boolean;

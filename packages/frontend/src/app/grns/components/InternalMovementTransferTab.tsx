@@ -1,7 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { Commodity, Customer, Grn, OutwardBagCategory, TransferPaymentDecision, TransferSettlementDetails } from '@cold-storage/contracts';
+import {
+  TRANSFER_OWNERSHIP_STEPS,
+  type Commodity,
+  type Customer,
+  type Grn,
+  type OutwardBagCategory,
+  type TransferPaymentDecision,
+  type TransferSettlementDetails,
+} from '@cold-storage/contracts';
 import { ConfirmDialog } from '@/components/ui';
 import { CustomerFormModal } from '../../customers/components/CustomerFormModal';
 import { WizardStepper } from './WizardStepper';
@@ -11,13 +19,6 @@ import { TransferStep3Repack } from './TransferStep3Repack';
 import { TransferStep3Confirm } from './TransferStep3Confirm';
 import { useInternalMovementTransferTab } from './useInternalMovementTransferTab';
 import styles from './InternalMovementModal.module.css';
-
-const TRANSFER_STEPS = [
-  { number: 1, label: '1. Transferee' },
-  { number: 2, label: '2. Dues' },
-  { number: 3, label: '3. Repack & Chamber' },
-  { number: 4, label: '4. Confirm' },
-];
 
 interface InternalMovementTransferTabProps {
   currentGrn: Grn;
@@ -62,7 +63,7 @@ export function InternalMovementTransferTab(props: InternalMovementTransferTabPr
             {tab.validationError}
           </div>
         )}
-        <WizardStepper steps={TRANSFER_STEPS} currentStep={tab.step} onStepClick={(s) => tab.setStep(s as 1 | 2 | 3 | 4)} canNavigateToStep={(s) => (s === 1 || Boolean(tab.newCustomerId))} disabled={submitting} />
+        <WizardStepper steps={TRANSFER_OWNERSHIP_STEPS} currentStep={tab.step} onStepClick={(s) => tab.setStep(s as 1 | 2 | 3 | 4)} canNavigateToStep={(s) => (s === 1 || Boolean(tab.newCustomerId))} disabled={submitting} />
         {tab.step === 1 && (
           <TransferStep1Customer
             currentGrn={currentGrn} remainingBags={tab.remainingBags} totalPaid={tab.totalPaid} pendingAmount={tab.pendingAmount}

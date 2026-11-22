@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { isHybridBagCategory, type Commodity, type Grn, type OutwardBagCategory, type PaymentMode } from '@cold-storage/contracts';
+import {
+  MERGE_GRN_STEPS,
+  isHybridBagCategory,
+  type Commodity,
+  type Grn,
+  type OutwardBagCategory,
+  type PaymentMode,
+} from '@cold-storage/contracts';
 import { ConfirmDialog } from '@/components/ui';
 import { WizardStepper } from './WizardStepper';
 import { MergeStep1Batches } from './MergeStep1Batches';
@@ -11,13 +18,6 @@ import { MergeStep4RepackConfirm } from './MergeStep4RepackConfirm';
 import { MergeConfirmSummary } from './MergeConfirmSummary';
 import { useInternalMovementMergeTab } from './useInternalMovementMergeTab';
 import styles from './InternalMovementModal.module.css';
-
-const MERGE_STEPS = [
-  { number: 1, label: '1. Batches & Target GRN' },
-  { number: 2, label: '2. Bag Type & History' },
-  { number: 3, label: '3. Rent Settlement' },
-  { number: 4, label: '4. Repack & Confirm' },
-];
 
 interface InternalMovementMergeTabProps {
   currentGrn: Grn;
@@ -82,7 +82,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
           {validationError}
         </div>
       )}
-      <WizardStepper steps={MERGE_STEPS} currentStep={step} onStepClick={(s) => setStep(s as 1 | 2 | 3 | 4)} canNavigateToStep={(s) => (s === 1 || selectedSourceIds.length > 0)} disabled={submitting} />
+      <WizardStepper steps={MERGE_GRN_STEPS} currentStep={step} onStepClick={(s) => setStep(s as 1 | 2 | 3 | 4)} canNavigateToStep={(s) => (s === 1 || selectedSourceIds.length > 0)} disabled={submitting} />
 
       {step === 1 && (
         <MergeStep1Batches

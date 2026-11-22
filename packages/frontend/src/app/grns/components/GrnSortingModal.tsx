@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import type {
-  Commodity,
-  Grn,
-  RepackGrnInput,
-  RepackGrnResult,
-  SortGrnInput,
-  SortGrnResult,
+import {
+  SORTING_REPACK_STEP_LABELS,
+  type Commodity,
+  type Grn,
+  type RepackGrnInput,
+  type RepackGrnResult,
+  type SortGrnInput,
+  type SortGrnResult,
 } from '@cold-storage/contracts';
 import { Button, Modal } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
@@ -138,7 +139,7 @@ export function GrnSortingModal({
             >
               1
             </span>
-            <span>Step 1: Sorting Confirmation &amp; Rent Billing</span>
+            <span>{SORTING_REPACK_STEP_LABELS.step1}</span>
           </div>
 
           <span style={{ color: 'var(--color-text-muted)' }}>→</span>
@@ -151,7 +152,7 @@ export function GrnSortingModal({
             >
               2
             </span>
-            <span>Step 2: Repacking / Rebagging Operation</span>
+            <span>{SORTING_REPACK_STEP_LABELS.step2}</span>
           </div>
         </div>
 
