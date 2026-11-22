@@ -150,8 +150,8 @@ export function TransferStep3Repack(props: TransferStep3RepackProps) {
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', background: 'var(--color-surface-1)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
             <span>Repacked Composition Total:</span>
-            <strong style={{ color: totalRepacked === totalBags ? 'var(--color-primary-text)' : 'var(--color-warning-text)' }}>
-              {totalRepacked} Bags {totalRepacked !== totalBags ? `(Must match ${totalBags})` : '✓'}
+            <strong style={{ color: totalRepacked > 0 ? 'var(--color-primary-text)' : 'var(--color-text-secondary)' }}>
+              {totalRepacked > 0 ? `${totalRepacked} Bags ✓` : '—'}
             </strong>
           </div>
         </div>

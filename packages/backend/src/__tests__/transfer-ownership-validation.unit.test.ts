@@ -154,7 +154,7 @@ describe('Transfer Ownership Validation (Unit)', () => {
   });
 
   describe('validateTransferRepack', () => {
-    it('requires repacked counts to reconcile to total stock', () => {
+    it('allows repacked counts to differ from previous total stock without restriction', () => {
       expect(() =>
         validateTransferRepack(
           {
@@ -163,12 +163,29 @@ describe('Transfer Ownership Validation (Unit)', () => {
             remarks: 'Transfer test',
             resultingBagType: 'S/B',
             repackedSmallBags: 40,
-            repackedBigBags: 40, // 80 !== 100
+            repackedBigBags: 40, // 80 !== 100 (allowed)
           } as never,
           100,
           '1001',
         ),
-      ).toThrow("Repacked counts (40 small + 40 big = 80) must match total stock of 100 bags for GRN '1001'");
+      ).not.toThrow();
+    });
+
+    it('requires repacked bag count to be greater than zero', () => {
+      expect(() =>
+        validateTransferRepack(
+          {
+            grnId: 'grn-1',
+            newCustomerId: 'cust-2',
+            remarks: 'Transfer test',
+            resultingBagType: 'S/B',
+            repackedSmallBags: 0,
+            repackedBigBags: 0,
+          } as never,
+          100,
+          '1001',
+        ),
+      ).toThrow('Repacked bag counts must be greater than zero');
     });
 
     it('requires chamber text to be valid', () => {

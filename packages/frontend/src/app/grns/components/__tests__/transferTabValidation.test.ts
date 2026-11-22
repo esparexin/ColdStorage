@@ -201,15 +201,17 @@ describe('validateTransferConfirmation', () => {
       expect(validateTransferRepack({ resultingBagType: 'S/B', destinationChamber: '', totalBags: 100, repackedSmallBags: 60, repackedBigBags: 40 })).toBe('Chamber is required');
     });
 
-    it('validates S/B repacked small and big bags reconciling to total', () => {
-      expect(validateTransferRepack({ resultingBagType: 'S/B', destinationChamber: 'CH-02', totalBags: 100, repackedSmallBags: 60, repackedBigBags: 30 })).toContain('must match total bags');
+    it('validates S/B repacked small and big bags without forcing equality to previous total', () => {
+      expect(validateTransferRepack({ resultingBagType: 'S/B', destinationChamber: 'CH-02', totalBags: 100, repackedSmallBags: 60, repackedBigBags: 30 })).toBeNull();
       expect(validateTransferRepack({ resultingBagType: 'S/B', destinationChamber: 'CH-02', totalBags: 100, repackedSmallBags: -5, repackedBigBags: 105 })).toContain('non-negative whole numbers');
+      expect(validateTransferRepack({ resultingBagType: 'S/B', destinationChamber: 'CH-02', totalBags: 100, repackedSmallBags: 0, repackedBigBags: 0 })).toContain('must be greater than zero');
       expect(validateTransferRepack({ resultingBagType: 'S/B', destinationChamber: 'CH-02', totalBags: 100, repackedSmallBags: 60, repackedBigBags: 40 })).toBeNull();
     });
 
-    it('validates Hybrid repacked quantity reconciling to total', () => {
-      expect(validateTransferRepack({ resultingBagType: 'Hybrid', destinationChamber: 'CH-02', totalBags: 100, repackedQuantity: 90 })).toContain('must match total bags');
-      expect(validateTransferRepack({ resultingBagType: 'Hybrid', destinationChamber: 'CH-02', totalBags: 100, repackedQuantity: 100 })).toBeNull();
+    it('validates Hybrid repacked quantity without forcing equality to previous total', () => {
+      expect(validateTransferRepack({ resultingBagType: 'Hybrid', destinationChamber: 'CH-02', totalBags: 100, repackedQuantity: 90 })).toBeNull();
+      expect(validateTransferRepack({ resultingBagType: 'Hybrid', destinationChamber: 'CH-02', totalBags: 100, repackedQuantity: 120 })).toBeNull();
+      expect(validateTransferRepack({ resultingBagType: 'Hybrid', destinationChamber: 'CH-02', totalBags: 100, repackedQuantity: 0 })).toContain('positive whole number');
     });
 
     it('validates optional reference weight', () => {
