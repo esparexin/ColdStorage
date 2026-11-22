@@ -37,6 +37,7 @@ interface InternalMovementTransferTabProps {
       destinationChamber?: string; resultingBagType?: import('@cold-storage/contracts').BagType;
       repackedSmallBags?: number; repackedBigBags?: number;
       repackedQuantity?: number; referenceWeight?: number;
+      partyMark?: string;
     },
     fee?: {
       transferFeePerBag?: number;
@@ -92,6 +93,8 @@ export function InternalMovementTransferTab(props: InternalMovementTransferTabPr
           <TransferStep3Repack
             currentChamber={currentGrn.chamber || ''}
             destinationChamber={tab.destinationChamber} onDestinationChamberChange={tab.setDestinationChamber}
+            storageMark={currentGrn.storageMark || currentGrn.grnNumber}
+            partyMark={tab.partyMark} onPartyMarkChange={tab.setPartyMark}
             resultingBagType={tab.resultingBagType} onResultingBagTypeChange={tab.setResultingBagType}
             totalBags={tab.remainingBags}
             repackedSmallBags={tab.repackedSmallBags} onRepackedSmallChange={tab.setRepackedSmallBags}
@@ -108,6 +111,7 @@ export function InternalMovementTransferTab(props: InternalMovementTransferTabPr
             confirmedBigBags={tab.resultingBagType === 'Hybrid' ? undefined : (typeof tab.repackedBigBags === 'number' ? tab.repackedBigBags : tab.confirmedBigBags)}
             sourceBagCategory={tab.resultingBagType === 'Hybrid' ? 'Hybrid' : tab.sourceBagCategory}
             destinationChamber={tab.destinationChamber}
+            partyMark={tab.partyMark}
             referenceWeight={tab.referenceWeight}
             hamaliRate={tab.effectiveHamaliRate} hamaliAmount={tab.hamaliAmount}
             assessedRent={tab.assessedRent} totalPaid={tab.totalPaid} effectiveDue={tab.effectiveDue}

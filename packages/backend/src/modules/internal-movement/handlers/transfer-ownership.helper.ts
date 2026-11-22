@@ -208,6 +208,9 @@ export function buildTransferGrnUpdateFields(params: {
   if (referenceWeight !== undefined && referenceWeight !== null) {
     updateFields.totalBagsWeight = referenceWeight;
   }
+  if (input.partyMark !== undefined) {
+    updateFields.partyMark = input.partyMark?.trim() || null;
+  }
   if (effectiveObligation > 0) updateFields.rentAmount = effectiveObligation;
   if (isHybrid) {
     if (typeof input.sourceBagPrice === 'number' && input.sourceBagPrice > 0) updateFields.bagPrice = input.sourceBagPrice;

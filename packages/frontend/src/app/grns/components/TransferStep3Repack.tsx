@@ -11,6 +11,9 @@ interface TransferStep3RepackProps {
   currentChamber: string;
   destinationChamber: string;
   onDestinationChamberChange: (c: string) => void;
+  storageMark: string;
+  partyMark: string;
+  onPartyMarkChange: (pm: string) => void;
   resultingBagType: OperationalBagType;
   onResultingBagTypeChange: (t: OperationalBagType) => void;
   totalBags: number;
@@ -30,6 +33,7 @@ interface TransferStep3RepackProps {
 export function TransferStep3Repack(props: TransferStep3RepackProps) {
   const {
     currentChamber, destinationChamber, onDestinationChamberChange,
+    storageMark, partyMark, onPartyMarkChange,
     resultingBagType, onResultingBagTypeChange, totalBags,
     repackedSmallBags, onRepackedSmallChange, repackedBigBags, onRepackedBigChange,
     repackedQuantity, onRepackedQuantityChange, referenceWeight, onReferenceWeightChange,
@@ -77,9 +81,35 @@ export function TransferStep3Repack(props: TransferStep3RepackProps) {
                 type="text"
                 required
                 maxLength={20}
-                placeholder={`Current: ${currentChamber || 'CH-01'}`}
+                placeholder={currentChamber ? `Current: ${currentChamber}` : 'e.g. CH-01'}
                 value={destinationChamber}
                 onChange={(e) => onDestinationChamberChange(e.target.value)}
+                disabled={submitting}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            <div style={{ flex: 1 }}>
+              <label htmlFor="transfer-storage-mark" className={styles.inputLabel}>Storage Mark</label>
+              <Input
+                id="transfer-storage-mark"
+                type="text"
+                readOnly
+                tabIndex={-1}
+                value={storageMark}
+                aria-label="Storage Mark (GR Number)"
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label htmlFor="transfer-party-mark" className={styles.inputLabel}>Party Mark</label>
+              <Input
+                id="transfer-party-mark"
+                type="text"
+                maxLength={20}
+                placeholder="e.g. KSN-99 (max 20)"
+                value={partyMark}
+                onChange={(e) => onPartyMarkChange(e.target.value)}
                 disabled={submitting}
               />
             </div>

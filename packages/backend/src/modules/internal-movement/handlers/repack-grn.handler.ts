@@ -118,6 +118,9 @@ export async function executeRepackGrn(
         // Update GRN document
         grn.chamber = destinationChamber;
         grn.bagType = input.resultingBagType;
+        if (input.partyMark !== undefined) {
+          grn.partyMark = input.partyMark?.trim() || null;
+        }
         if (grn.hamaliAmount == null) {
           const effectiveIntakeRate = resolveEffectiveHamaliRate(grn.hamaliRate, commodity);
           grn.hamaliRate = effectiveIntakeRate;

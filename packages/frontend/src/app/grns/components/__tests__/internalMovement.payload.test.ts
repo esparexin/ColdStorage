@@ -58,6 +58,22 @@ describe('internalMovement payload helpers', () => {
     expect(transferOwnershipInputSchema.safeParse(payload).success).toBe(true);
   });
 
+  it('builds a transfer payload with partyMark satisfying the contract', () => {
+    const payload = buildTransferPayload(
+      'grn-1',
+      'cust-2',
+      'Ownership sale',
+      'Paid at counter',
+      '2026-10-10',
+      'AGREED_PENDING',
+      undefined,
+      undefined,
+      { destinationChamber: 'CH-02', resultingBagType: 'S/B', partyMark: 'NEW-PM-01' },
+    );
+    expect(payload.partyMark).toBe('NEW-PM-01');
+    expect(transferOwnershipInputSchema.safeParse(payload).success).toBe(true);
+  });
+
   it('defaults movementDate when omitted and still satisfies both contracts', () => {
     expect(mergeGrnInputSchema.safeParse(buildMergePayload('t', ['s'], 'Rebagging')).success).toBe(
       true,

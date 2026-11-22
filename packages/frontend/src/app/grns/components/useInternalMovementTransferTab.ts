@@ -31,6 +31,7 @@ export interface UseInternalMovementTransferTabProps {
       destinationChamber?: string; resultingBagType?: import('@cold-storage/contracts').BagType;
       repackedSmallBags?: number; repackedBigBags?: number;
       repackedQuantity?: number; referenceWeight?: number;
+      partyMark?: string;
     },
     fee?: {
       transferFeePerBag?: number;
@@ -71,6 +72,7 @@ export function useInternalMovementTransferTab({
   const [sourceSeasonalBagPrice, setSourceSeasonalBagPrice] = useState<number | ''>('');
   const [sourceMonthlyBagPrice, setSourceMonthlyBagPrice] = useState<number | ''>('');
   const [destinationChamber, setDestinationChamber] = useState<string>(currentGrn.chamber || '');
+  const [partyMark, setPartyMark] = useState<string>(currentGrn.partyMark || '');
   const [resultingBagType, setResultingBagType] = useState<OperationalBagType>(toOperationalBagType(currentGrn.bagType));
   const [repackedSmallBags, setRepackedSmallBags] = useState<number | ''>('');
   const [repackedBigBags, setRepackedBigBags] = useState<number | ''>('');
@@ -199,6 +201,7 @@ export function useInternalMovementTransferTab({
         repackedBigBags: resultingBagType === 'Hybrid' ? undefined : (typeof repackedBigBags === 'number' ? repackedBigBags : undefined),
         repackedQuantity: resultingBagType === 'Hybrid' ? (typeof repackedQuantity === 'number' ? repackedQuantity : undefined) : undefined,
         referenceWeight: typeof referenceWeight === 'number' && referenceWeight > 0 ? referenceWeight : undefined,
+        partyMark: partyMark.trim() || undefined,
       },
       typeof transferFeePerBag === 'number' && transferFeePerBag > 0 ? {
         transferFeePerBag,
@@ -218,6 +221,7 @@ export function useInternalMovementTransferTab({
     confirmedBigBags, setConfirmedBigBags, sourceBagCategory, setSourceBagCategory,
     sourceBagPrice, setSourceBagPrice, sourceSeasonalBagPrice, setSourceSeasonalBagPrice,
     sourceMonthlyBagPrice, setSourceMonthlyBagPrice, destinationChamber, setDestinationChamber,
+    partyMark, setPartyMark,
     resultingBagType, setResultingBagType, repackedSmallBags, setRepackedSmallBags,
     repackedBigBags, setRepackedBigBags, repackedQuantity, setRepackedQuantity,
     referenceWeight, setReferenceWeight, rentLoading, candidateCustomers, selectedNewCustomer,

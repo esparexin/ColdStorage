@@ -16,6 +16,7 @@ export interface TransferPayload {
   sourceSeasonalBagPrice?: number;
   sourceMonthlyBagPrice?: number;
   destinationChamber?: string;
+  partyMark?: string;
   resultingBagType?: BagType;
   repackedSmallBags?: number;
   repackedBigBags?: number;
@@ -58,6 +59,7 @@ export function buildTransferPayload(
     repackedBigBags?: number;
     repackedQuantity?: number;
     referenceWeight?: number;
+    partyMark?: string;
   },
   fee?: {
     transferFeePerBag?: number;
@@ -81,6 +83,7 @@ export function buildTransferPayload(
     sourceSeasonalBagPrice: confirmation?.sourceSeasonalBagPrice,
     sourceMonthlyBagPrice: confirmation?.sourceMonthlyBagPrice,
     destinationChamber: repack?.destinationChamber,
+    partyMark: repack?.partyMark?.trim() || undefined,
     resultingBagType: repack?.resultingBagType,
     repackedSmallBags: repack?.repackedSmallBags,
     repackedBigBags: repack?.repackedBigBags,

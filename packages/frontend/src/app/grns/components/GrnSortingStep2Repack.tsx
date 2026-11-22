@@ -30,7 +30,8 @@ export function GrnSortingStep2Repack({
 }: GrnSortingStep2RepackProps) {
   const originalBags = grn.closingBags ?? grn.bags;
   const [resultingBagType, setResultingBagType] = useState<OperationalBagType>(toOperationalBagType(grn.bagType));
-  const [destinationChamber, setDestinationChamber] = useState<string>('');
+  const [destinationChamber, setDestinationChamber] = useState<string>(grn.chamber || '');
+  const [partyMark, setPartyMark] = useState<string>(grn.partyMark || '');
   const [repackedSmallBags, setRepackedSmallBags] = useState<string>('');
   const [repackedBigBags, setRepackedBigBags] = useState<string>('');
   const [repackedQuantity, setRepackedQuantity] = useState<string>('');
@@ -76,6 +77,7 @@ export function GrnSortingStep2Repack({
       grnId: grn.id,
       resultingBagType,
       destinationChamber: destinationChamber.trim(),
+      partyMark: partyMark.trim() || undefined,
       repackedSmallBags: isHybrid ? undefined : Number(repackedSmallBags),
       repackedBigBags: isHybrid ? undefined : Number(repackedBigBags),
       repackedQuantity: isHybrid ? Number(repackedQuantity) : undefined,
@@ -105,7 +107,32 @@ export function GrnSortingStep2Repack({
         </div>
 
         <div className={styles.fieldGroup}>
-          <Input id="repack-destination-chamber" label="Destination Chamber *" type="text" required maxLength={20} value={destinationChamber} onChange={(e) => setDestinationChamber(e.target.value)} placeholder="e.g. A or CH-01" disabled={submitting} />
+          <Input id="repack-destination-chamber" label="Destination Chamber *" type="text" required maxLength={20} value={destinationChamber} onChange={(e) => setDestinationChamber(e.target.value)} placeholder={grn.chamber ? `Current: ${grn.chamber}` : 'e.g. A or CH-01'} disabled={submitting} />
+        </div>
+
+        <div className={styles.fieldGroup}>
+          <Input
+            id="repack-storage-mark"
+            label="Storage Mark"
+            type="text"
+            readOnly
+            tabIndex={-1}
+            value={grn.storageMark || grn.grnNumber}
+            aria-label="Storage Mark (GR Number)"
+          />
+        </div>
+
+        <div className={styles.fieldGroup}>
+          <Input
+            id="repack-party-mark"
+            label="Party Mark"
+            type="text"
+            maxLength={20}
+            value={partyMark}
+            onChange={(e) => setPartyMark(e.target.value)}
+            placeholder="e.g. KSN-99 (max 20)"
+            disabled={submitting}
+          />
         </div>
 
         {isHybrid ? (
