@@ -48,14 +48,14 @@ describe('P8 CsvSerializer', () => {
 
   // 8. Formula injection: +
   it("prepends ' to strings beginning with +", () => {
-    expect(CsvSerializer.serializeCell('+1234567890')).toBe('"\'+\\1234567890"'.replace('\\', ''));
-    expect(CsvSerializer.serializeCell('+cmd|')).toBe('"\'+\\cmd|"'.replace('\\', ''));
+    expect(CsvSerializer.serializeCell('+1234567890')).toBe('"\'+\\1234567890"'.replace(/\\/g, ''));
+    expect(CsvSerializer.serializeCell('+cmd|')).toBe('"\'+\\cmd|"'.replace(/\\/g, ''));
   });
 
   // 9. Formula injection: -
   it("prepends ' to strings beginning with -", () => {
-    expect(CsvSerializer.serializeCell('-5+2')).toBe('"\'-\\5+2"'.replace('\\', ''));
-    expect(CsvSerializer.serializeCell('-cmd')).toBe('"\'-\\cmd"'.replace('\\', ''));
+    expect(CsvSerializer.serializeCell('-5+2')).toBe('"\'-\\5+2"'.replace(/\\/g, ''));
+    expect(CsvSerializer.serializeCell('-cmd')).toBe('"\'-\\cmd"'.replace(/\\/g, ''));
   });
 
   // 10. Formula injection: @, \t, \r
