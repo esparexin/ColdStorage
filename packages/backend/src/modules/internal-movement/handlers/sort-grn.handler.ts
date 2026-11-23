@@ -24,6 +24,7 @@ import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { computeFirstSeasonHamali, resolveEffectiveHamaliRate } from '../../common/hamali-resolution.js';
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
+import { toEqId } from '../../../utils/query-sanitizer.js';
 
 export async function executeSortGrn(
   facilityId: string,
@@ -40,7 +41,7 @@ export async function executeSortGrn(
   try {
     await withMongoRetry(() =>
       session.withTransaction(async () => {
-        const grn = await GrnModel.findOne({ id: input.grnId, facilityId }, null, { session });
+        const grn = await GrnModel.findOne({ id: toEqId(input.grnId), facilityId: toEqId(facilityId) }, null, { session });
         if (!grn) {
           throw new Error(`GRN '${input.grnId}' not found in facility '${facilityId}'`);
         }

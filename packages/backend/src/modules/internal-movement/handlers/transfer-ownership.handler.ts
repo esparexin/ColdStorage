@@ -11,6 +11,7 @@ import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
+import { toEqId } from '../../../utils/query-sanitizer.js';
 import { counterService } from '../../common/counter.service.js';
 import {
   alignTransferLedger,
@@ -36,7 +37,7 @@ export async function transferOwnership(
   try {
     await withMongoRetry(() =>
       session.withTransaction(async () => {
-      const grn = await GrnModel.findOne({ id: input.grnId, facilityId }, null, { session })
+      const grn = await GrnModel.findOne({ id: toEqId(input.grnId), facilityId: toEqId(facilityId) }, null, { session })
         .lean()
         .exec();
       if (!grn) throw new Error(`GRN '${input.grnId}' not found in facility '${facilityId}'`);
@@ -44,7 +45,7 @@ export async function transferOwnership(
       if (grn.loanStatus === 'TAKEN') throw new Error(`Cannot transfer ownership: Active loan hold against GRN '${grn.grnNumber}'`);
       if (grn.customerId === input.newCustomerId) throw new Error('New customer must be different from current customer');
 
-      const newCustomer = await CustomerModel.findOne({ id: input.newCustomerId }, null, { session })
+      const newCustomer = await CustomerModel.findOne({ id: toEqId(input.newCustomerId) }, null, { session })
         .lean()
         .exec();
       if (!newCustomer) throw new Error(`Customer '${input.newCustomerId}' not found`);
