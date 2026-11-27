@@ -106,7 +106,7 @@ export function MergeStep1Batches({
             <span className={modalStyles.metaLabel}>Current Stock</span>
             <span className={modalStyles.metaValue} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <span>{targetCurrentRemaining} Bags</span>
-              {targetDisplayType !== 'Unconfirmed' && (
+              {targetDisplayType !== 'Unconfirmed' && targetDisplayType !== 'N/A' && (
                 <Badge variant="neutral">{targetDisplayType}</Badge>
               )}
             </span>

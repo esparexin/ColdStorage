@@ -120,7 +120,7 @@ export function parseMovementRow(
   const isHybrid =
     grnBagType === 'Hybrid' ||
     entry.remarks?.toLowerCase().includes('hybrid') === true ||
-    (entry as { bagType?: string }).bagType === 'Hybrid' ||
+    entry.bagType === 'Hybrid' ||
     (!isPureMetadataTransfer &&
       entry.smallBags == null &&
       entry.bigBags == null &&
@@ -130,32 +130,67 @@ export function parseMovementRow(
       grnBagType !== 'S/B' &&
       grnBagType !== 'S+B' &&
       grnBagType !== undefined &&
-      grnBagType !== null);
+      grnBagType !== null &&
+      grnBagType !== 'N/A' &&
+      grnBagType !== 'Unconfirmed');
+
+  const isConfirmedSingleSmallInward =
+    grnBagType === 'S' || grnBagType === 'Small' || entry.bagType === 'S' || entry.bagType === 'Small';
+
+  const isConfirmedSingleBigInward =
+    grnBagType === 'B' || grnBagType === 'Big' || entry.bagType === 'B' || entry.bagType === 'Big';
+
+  const isConfirmedSplitInward =
+    entry.smallBags != null &&
+    entry.bigBags != null &&
+    entry.smallBags > 0 &&
+    entry.bigBags > 0;
 
   const isUnclassifiedInward =
     !isHybrid &&
     entry.type === 'INWARD' &&
-    (entry.smallBags == null ||
-      (entry.smallBags === 0 && entry.bigBags === 0 && (entry.receivedBags ?? entry.closingBags ?? 0) > 0));
+    !isConfirmedSingleSmallInward &&
+    !isConfirmedSingleBigInward &&
+    !isConfirmedSplitInward;
+
+  const isBagTypeNotDefined =
+    !isHybrid &&
+    !isPureMetadataTransfer &&
+    (isUnclassifiedInward ||
+      entry.bagType === 'N/A' ||
+      entry.bagType === 'Unconfirmed' ||
+      entry.bagType === 'undefined' ||
+      (entry.bagType == null &&
+        entry.smallBags == null &&
+        entry.bigBags == null &&
+        (entry.receivedBags ?? entry.deliveredBags ?? entry.closingBags ?? 0) > 0));
 
   const smallDisplay =
-    isPureMetadataTransfer || isUnclassifiedInward || isHybrid
+    isPureMetadataTransfer || isHybrid
       ? '—'
-      : entry.smallBags != null
-        ? entry.smallBags.toLocaleString('en-IN')
-        : '—';
+      : isBagTypeNotDefined
+        ? 'N/A'
+        : entry.smallBags != null
+          ? entry.smallBags.toLocaleString('en-IN')
+          : '—';
 
   const bigDisplay =
-    isPureMetadataTransfer || isUnclassifiedInward || isHybrid
+    isPureMetadataTransfer || isHybrid
       ? '—'
-      : entry.bigBags != null
-        ? entry.bigBags.toLocaleString('en-IN')
-        : '—';
+      : isBagTypeNotDefined
+        ? 'N/A'
+        : entry.bigBags != null
+          ? entry.bigBags.toLocaleString('en-IN')
+          : '—';
 
   const hybridDisplay =
-    isPureMetadataTransfer || isUnclassifiedInward || !isHybrid
+    isPureMetadataTransfer
       ? '—'
-      : totalDisplay;
+      : isHybrid
+        ? totalDisplay
+        : isBagTypeNotDefined
+          ? 'N/A'
+          : '—';
 
   return {
     typeLabel,
