@@ -33,19 +33,27 @@ export function resolveBillingOutwardRates(
   return resolveOutwardRates(account.rentType, {});
 }
 
+/**
+ * Resolves the authoritative Hamali rate for itemized rent breakdown rows.
+ *
+ * Invariant (4 Lifecycle Billing Flows):
+ * - Hamali is NOT re-calculated on live resting chamber bags after a merge or repack.
+ * - Prioritizes the authoritative commodity master rate when configured.
+ * - Preserves explicit zero-hamali exemptions (`hamaliShare === 0`).
+ * - Only falls back to dividing `hamaliShare / totalBags` when no commodity rate is configured.
+ */
 export function resolveBillingHamaliRate(
   account: RentSummaryDto,
   activeCommodityRate?: { hamaliRate?: number | null } | null,
 ): number | undefined {
-  if (typeof account.hamaliShare === 'number') {
-    if (account.hamaliShare > 0 && account.totalBags > 0) {
-      return Number((account.hamaliShare / account.totalBags).toFixed(2));
-    }
-    // Explicit hamaliShare === 0: historical zero Hamali snapshot must be preserved
+  if (account.hamaliShare === 0) {
     return undefined;
   }
   if (typeof activeCommodityRate?.hamaliRate === 'number' && activeCommodityRate.hamaliRate > 0) {
     return activeCommodityRate.hamaliRate;
+  }
+  if (typeof account.hamaliShare === 'number' && account.hamaliShare > 0 && account.totalBags > 0) {
+    return Number((account.hamaliShare / account.totalBags).toFixed(2));
   }
   return undefined;
 }
@@ -159,12 +167,22 @@ export function buildRentCalculationRows(params: BuildRentCalculationRowsParams)
     }
   }
 
-  // 3. Hamali Charges Row (only when confirmed eligible hamali exists)
+  // 3. Hamali Charges Row:
+  // Reflects the frozen one-time inward intake obligation established on entry.
+  // When stock is merged/repacked (e.g. 2 bags inward -> 8 bags in chamber), obligationBags
+  // derives the original intake bags that incurred the charge (Math.round(hamaliDue / rate)),
+  // preventing artificial dilution or fictitious fractional rates across chamber bags.
   if (hamaliDue > 0) {
     const rate = hamaliRate ?? (account.totalBags > 0 ? Number((hamaliDue / account.totalBags).toFixed(2)) : undefined);
-    const details = rate != null && account.totalBags > 0
-      ? `${account.totalBags} bags × ₹${rate.toFixed(2)} / bag`
-      : 'Inward unloading handling assessment';
+    let details = 'Inward unloading handling assessment';
+    if (rate != null && rate > 0) {
+      const obligationBags = Math.round(hamaliDue / rate);
+      if (obligationBags > 0 && Math.abs(obligationBags * rate - hamaliDue) < 0.05) {
+        details = `${obligationBags} bags × ₹${rate.toFixed(2)} / bag`;
+      } else if (account.totalBags > 0) {
+        details = `${account.totalBags} bags × ₹${rate.toFixed(2)} / bag`;
+      }
+    }
 
     list.push({
       id: 'hamali-charges',

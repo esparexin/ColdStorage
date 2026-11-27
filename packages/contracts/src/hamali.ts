@@ -8,16 +8,26 @@ export const hamaliRateSchema = z
 export type HamaliRate = z.infer<typeof hamaliRateSchema>;
 
 /**
- * Authoritative Hamali labor charge calculation:
+ * Authoritative Hamali labor charge calculation & Lifecycle Invariant:
  * Total Bags × Hamali Rate per bag.
  * Bag-category agnostic: Small, Big, S+B, Hybrid, Mixed all calculate uniformly.
  *
- * Inward intake Hamali accounting:
+ * Core Cold Storage Billing Lifecycle Invariant (4 Events Only):
+ * Financial charges and invoices are ONLY assessed during four specific operational flows:
+ * 1. Outward (Fully / Partially): Gate Pass / Outward Challan (CHL-YYYY-#### / GP-YYYY-####)
+ * 2. Transfer Ownership: Transfer Out Invoice (TRN-INV-YYYY-####)
+ * 3. Sorting & Repacking: Sorting Out Invoice (SRT-INV-YYYY-####)
+ * 4. Merge into Existing GRN: GRN Merge Out Invoice (MRG-INV-YYYY-####)
+ *
+ * Inward Intake Hamali Accounting:
  * - Commodity-level `isHamaliApplicable` + `hamaliRate` is the master config.
  * - At inward intake, `hamaliRate` and `hamaliAmount` are snapshotted onto the GRN
  *   record to freeze the labor obligation against future master rate edits.
+ * - Stock sitting in cold chamber storage NEVER incurs ongoing or recomputed hamali.
+ * - When stock bag count changes after merge/repack (e.g., 2 bags -> 8 bags), the
+ *   inward hamali snapshot remains anchored strictly to the original intake bags.
+ * - Merging labor is billed under the Merge movement (MRG-INV), never as running GRN hamali.
  * - Outward delivery allocates a pro-rata share of this inward obligation.
- * - Internal movement merge records repacking labor on the movement record.
  * - One-time charge: never multiplied by rent months or season duration.
  */
 export function calculateHamaliAmount(bags: number, hamaliRate?: number | null): number {

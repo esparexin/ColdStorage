@@ -50,10 +50,20 @@ export interface RentObligationInput {
 /**
  * Derives the applicable Hamali component for the resolved obligation.
  *
- * Hamali applies in full when the base is the stored rent amount (which carries
- * no labor charges) or before any outward delivery has occurred. For zero-rent
- * intakes where outward charges are already accumulated, Hamali applies pro-rata
- * strictly to the uncollected remaining undelivered bags, preventing double-counting.
+ * Domain Invariant (4 Lifecycle Billing Flows):
+ * Bills/charges are strictly generated ONLY upon:
+ * 1. Outward (Gate Pass / Delivery Challan - CHL-YYYY-####)
+ * 2. Transfer Ownership (TRN-INV-YYYY-####)
+ * 3. Sorting & Repacking/Rebagging (SRT-INV-YYYY-####)
+ * 4. Merge into Existing GRN (MRG-INV-YYYY-####)
+ *
+ * When stock is resting in cold chamber storage with no outward delivery
+ * (outwardRentCharges === 0) and no stored rent obligation (rentAmount === 0),
+ * NO bill is generated. Hamali is unbilled until an operational activity occurs.
+ *
+ * For stored obligations (rentAmount > 0), Hamali applies alongside the base rent.
+ * For zero-rent intakes after outward deliveries occur, Hamali is carried on the
+ * issued challans and any uncollected share on remaining bags is preserved pro-rata.
  */
 function deriveHamaliComponent(
   baseRent: number,
@@ -65,7 +75,7 @@ function deriveHamaliComponent(
 ): number {
   if (!Number.isFinite(hamaliShare) || hamaliShare <= 0) return 0;
   if (baseRent === rentAmount && rentAmount > 0) return hamaliShare;
-  if (outwardRentCharges === 0) return hamaliShare;
+  if (outwardRentCharges === 0) return 0;
   if (remainingBags != null && totalBags > 0 && remainingBags > 0) {
     const ratio = Math.min(1, Math.max(0, remainingBags / totalBags));
     return Number((hamaliShare * ratio).toFixed(2));
