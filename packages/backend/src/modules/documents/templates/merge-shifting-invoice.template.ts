@@ -89,14 +89,8 @@ export function renderMergeShiftingInvoiceTemplate(dto: MergeShiftingInvoiceDocu
     </h3>
     <table class="data-table">
       <tr>
-        <th style="width: 25%;">Repacking Labor</th>
-        <td style="width: 25%;"><strong>${laborDetailStr}</strong></td>
-        <th style="width: 25%;">Carried Rent</th>
-        <td style="width: 25%;">${dto.carriedRentAmount > 0 ? `₹${dto.carriedRentAmount.toFixed(2)}` : '₹0.00'}</td>
-      </tr>
-      <tr>
-        <th>Outstanding Rent</th>
-        <td colspan="3"><strong>₹${dto.totalDueAtMerge.toFixed(2)}</strong></td>
+        <th style="width: 25%;">Hamali Charges</th>
+        <td style="width: 75%;" colspan="3"><strong>${laborDetailStr}</strong></td>
       </tr>
       ${dto.remarks ? `
       <tr>
@@ -110,14 +104,11 @@ export function renderMergeShiftingInvoiceTemplate(dto: MergeShiftingInvoiceDocu
     </div>
 
     <div style="display: flex; justify-content: space-between; margin-top: 35px; text-align: center; font-size: 10px;">
-      <div style="border-top: 1px solid #333; width: 28%; padding-top: 5px;">
+      <div style="border-top: 1px solid #333; width: 35%; padding-top: 5px;">
         <strong>Customer Signature</strong>
       </div>
-      <div style="border-top: 1px solid #333; width: 28%; padding-top: 5px;">
-        <strong>Labor Mukaddam</strong>
-      </div>
-      <div style="border-top: 1px solid #333; width: 28%; padding-top: 5px;">
-        <strong>Warehouse Manager</strong>
+      <div style="border-top: 1px solid #333; width: 35%; padding-top: 5px;">
+        <strong>Cold Storage Management</strong>
       </div>
     </div>
   `;

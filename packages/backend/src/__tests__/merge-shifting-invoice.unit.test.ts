@@ -178,11 +178,13 @@ describe('Consignment Merge & Internal Shifting Invoice (Unit)', () => {
       expect(html).toContain('Chamber 4');
       expect(html).toContain('GRN-4001');
       expect(html).toContain('GRN-4002');
+      expect(html).toContain('Hamali Charges');
       expect(html).toContain('₹750.00');
-      expect(html).toContain('₹2500.00');
       expect(html).toContain('Source consignments merged into target Lot');
-      expect(html).toContain('Warehouse Manager');
-      expect(html).toContain('Labor Mukaddam');
+      expect(html).toContain('Cold Storage Management');
+      expect(html).not.toContain('Labor Mukaddam');
+      expect(html).not.toContain('Carried Rent');
+      expect(html).not.toContain('Outstanding Rent');
       expect(html).not.toContain('Repack Physical Variance');
     });
   });
