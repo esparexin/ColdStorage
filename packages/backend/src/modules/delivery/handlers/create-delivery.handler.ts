@@ -22,6 +22,7 @@ import { resolveSafeLedgerDrawdown, validateDeliveryDate } from './delivery-vali
 import { resolveDeliveryPlan } from './delivery-plan.helper.js';
 import { resolveDeliveryConflict, checkPreTransactionReplay, resolveIdempotentDeliveryTx } from './delivery-idempotency.helper.js';
 import { resolveDeliveryGpNumber } from './delivery-gp.helper.js';
+import { formatOutwardDeliveryTxNote } from './delivery-note.helper.js';
 
 export async function createDeliveryWithRetry(
   facilityId: string,
@@ -145,6 +146,15 @@ async function executeDeliveryTransaction(
         isHybrid, grn.bagType, finalSmall, finalBig, available, hasUnclassifiedGenesis,
       );
 
+      const outwardNote = formatOutwardDeliveryTxNote({
+        withdrawnTotal,
+        finalSmall,
+        finalBig,
+        isHybrid,
+        challanNumber,
+        customRemarks: input.remarks,
+      });
+
       await InventoryTransactionModel.create(
         [
           {
@@ -160,7 +170,7 @@ async function executeDeliveryTransaction(
             bigQuantity: txBig,
             referenceType: 'DELIVERY' as const,
             referenceId: deliveryId,
-            notes: input.remarks?.trim() || null,
+            notes: outwardNote,
             createdBy: userId,
             createdAt: deliveryDate,
           },

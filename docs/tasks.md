@@ -49,16 +49,19 @@ Strictly adheres to:
 
 ---
 
-### ⏳ PR 3: Outward Delivery Notes & UI Formatting (PENDING)
-- **Status:** `PENDING`
+### ✅ PR 3: Outward Delivery Notes & UI Formatting (DONE)
+- **Status:** `DONE`
 - **Scope:**
+  - `packages/backend/src/modules/delivery/handlers/delivery-note.helper.ts`:
+    - Created `formatOutwardDeliveryTxNote` to cleanly record structured bag composition (`Small -<small>, Big -<big>` or `Hybrid -<total>`) along with challan number and optional custom remarks.
   - `packages/backend/src/modules/delivery/handlers/create-delivery.handler.ts`:
-    - Ensure `InventoryTransactionModel.create` notes default to clean structured note: `Outward Delivery: <total> bags (Small: <small>, Big: <big>) [or Hybrid: <total>] via Challan #<challanNumber>` when custom user remarks are omitted.
-  - `packages/frontend/src/app/grns/components/GrnOutwardDetailsTable.tsx`:
-    - Fix bag composition display for `Hybrid` lots so it renders `Hybrid - <total> bags` instead of `S: <total> • B: 0`.
+    - Integrated `formatOutwardDeliveryTxNote` into `InventoryTransactionModel.create` note.
+  - `packages/frontend/src/app/grns/components/grnOutwardDetails.helper.ts` & `GrnOutwardDetailsTable.tsx`:
+    - Formatted bag composition to render `Small - <small>, Big - <big>` or `Hybrid - <total> bags`.
   - **Verification:**
-    - Delivery unit tests in `create-delivery.handler.test.ts` and frontend testkit.
-    - `npm run build`
+    - Unit tests in `delivery-note.helper.test.ts` & `grnOutwardDetails.helper.test.ts`.
+    - Line budget check passed (`bash scripts/hygiene-audit.sh`).
+    - Full workspace `npm run build` verified.
 
 ---
 
