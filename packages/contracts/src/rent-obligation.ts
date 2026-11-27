@@ -50,20 +50,19 @@ export interface RentObligationInput {
 /**
  * Derives the applicable Hamali component for the resolved obligation.
  *
- * Domain Invariant (4 Lifecycle Billing Flows):
- * Bills/charges are strictly generated ONLY upon:
- * 1. Outward (Gate Pass / Delivery Challan - CHL-YYYY-####)
- * 2. Transfer Ownership (TRN-INV-YYYY-####)
- * 3. Sorting & Repacking/Rebagging (SRT-INV-YYYY-####)
- * 4. Merge into Existing GRN (MRG-INV-YYYY-####)
- *
- * When stock is resting in cold chamber storage with no outward delivery
- * (outwardRentCharges === 0) and no stored rent obligation (rentAmount === 0),
- * NO bill is generated. Hamali is unbilled until an operational activity occurs.
- *
- * For stored obligations (rentAmount > 0), Hamali applies alongside the base rent.
- * For zero-rent intakes after outward deliveries occur, Hamali is carried on the
- * issued challans and any uncollected share on remaining bags is preserved pro-rata.
+ * Cold Storage Lifecycle Billing Invariant (SSOT):
+ * - Bills/Invoices are generated ONLY upon confirmed operational activities:
+ *   1. Outward Delivery (CHL-YYYY-####)
+ *   2. Merge Out (MRG-INV-YYYY-####)
+ *   3. Ownership Transfer (TRN-INV-YYYY-####)
+ *   4. Sorting & Repacking (SRT-INV-YYYY-####)
+ * - Inward intake is a goods deposit acknowledgment (RCPT-YYYY-####), NEVER a cash bill.
+ * - Resting chamber stock with NO confirmed operational activity strictly incurs NO bill
+ *   (rentAmount === 0 && outwardRentCharges === 0 -> 0 billed obligation).
+ * - For stored obligations (rentAmount > 0, e.g. closed merge-out lot), Hamali applies
+ *   alongside the base rent.
+ * - For zero-rent intakes after outward deliveries occur, Hamali is carried on the
+ *   issued challans and any uncollected share on remaining bags is preserved pro-rata.
  */
 function deriveHamaliComponent(
   baseRent: number,
@@ -75,7 +74,7 @@ function deriveHamaliComponent(
 ): number {
   if (!Number.isFinite(hamaliShare) || hamaliShare <= 0) return 0;
   if (baseRent === rentAmount && rentAmount > 0) return hamaliShare;
-  if (outwardRentCharges === 0) return 0;
+  if (outwardRentCharges === 0 && rentAmount === 0) return 0;
   if (remainingBags != null && totalBags > 0 && remainingBags > 0) {
     const ratio = Math.min(1, Math.max(0, remainingBags / totalBags));
     return Number((hamaliShare * ratio).toFixed(2));
