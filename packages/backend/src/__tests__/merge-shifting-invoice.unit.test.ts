@@ -171,7 +171,7 @@ describe('Consignment Merge & Internal Shifting Invoice (Unit)', () => {
 
       const html = renderMergeShiftingInvoiceTemplate(dto);
 
-      expect(html).toContain('CONSIGNMENT MERGE &amp; INTERNAL SHIFTING INVOICE');
+      expect(html).toContain('CONSIGNMENT MERGE INVOICE');
       expect(html).toContain('MSH-INV-2026-0001');
       expect(html).toContain('GRN-5001');
       expect(html).toContain('Srinivasa Agro Exports');
@@ -180,7 +180,7 @@ describe('Consignment Merge & Internal Shifting Invoice (Unit)', () => {
       expect(html).toContain('GRN-4002');
       expect(html).toContain('₹750.00');
       expect(html).toContain('₹2500.00');
-      expect(html).toContain('CERTIFICATE OF CONSIGNMENT MERGE &amp; INTERNAL SHIFTING');
+      expect(html).toContain('Source consignments merged into target Lot');
       expect(html).toContain('Warehouse Manager');
       expect(html).toContain('Labor Mukaddam');
       expect(html).not.toContain('Repack Physical Variance');
