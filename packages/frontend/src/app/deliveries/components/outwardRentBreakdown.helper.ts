@@ -1,4 +1,5 @@
 import React from 'react';
+import { calculateHamaliAmount } from '@cold-storage/contracts';
 import type { DataTableColumn } from '@/components/ui';
 
 export interface RentBreakdownItem {
@@ -125,7 +126,7 @@ export function appendHamaliRowIfNeeded(
         title: 'Hamali Charges',
         periodMeta: '',
         details: `${totalWithdrawing} bags × ₹${hamaliRate.toFixed(2)} / bag`,
-        amount: Number((totalWithdrawing * hamaliRate).toFixed(2)),
+        amount: calculateHamaliAmount(totalWithdrawing, hamaliRate),
       },
     ];
   }

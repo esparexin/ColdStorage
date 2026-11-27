@@ -110,8 +110,8 @@ export function RentBillingChargesSection({
   );
 
   const hamaliRate = useMemo(
-    () => resolveBillingHamaliRate(account, { hamaliRate: commodityHamaliRate ?? activeCommodityRate?.hamaliRate }),
-    [account, commodityHamaliRate, activeCommodityRate],
+    () => resolveBillingHamaliRate(account, { hamaliRate: commodityHamaliRate }),
+    [account, commodityHamaliRate],
   );
 
   const hamaliDue = deriveHamaliChargeFromSummary(

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import {
+  CANONICAL_BAG_RATES,
   deriveHybridRateVisibility,
   isHybridBagCategory,
   type BagType,
@@ -39,8 +40,8 @@ export function MergeBagTypeFields({
   const isHybrid = value.category === 'Hybrid' || isHybridBagCategory(sourceBagType) || isHybridBagCategory(value.category);
   const visibility = deriveHybridRateVisibility({ rentType, inwardDate, deliveryDate: movementDate });
 
-  const smallRate = typeof rates?.small === 'number' && rates.small > 0 ? rates.small : 10;
-  const bigRate = typeof rates?.big === 'number' && rates.big > 0 ? rates.big : 15;
+  const smallRate = typeof rates?.small === 'number' && rates.small > 0 ? rates.small : CANONICAL_BAG_RATES.Seasonal.small;
+  const bigRate = typeof rates?.big === 'number' && rates.big > 0 ? rates.big : CANONICAL_BAG_RATES.Seasonal.big;
 
   const smallQty = typeof value.smallBags === 'number' ? value.smallBags : 0;
   const bigQty = typeof value.bigBags === 'number' ? value.bigBags : 0;
