@@ -51,10 +51,10 @@ export class CommodityRateService {
     }
 
     // Rent-vs-Hamali policy: when Hamali handling is enabled with a positive
-    // rate, per-bag rent rates must exceed it. Historical GRN obligations and
+    // rate, per-bag Seasonal rent rates must exceed it. Historical GRN obligations and
     // payments are never repriced by this check.
     const hamaliRate = commodity.isHamaliApplicable ? (commodity.hamaliRate ?? 0) : 0;
-    if (hamaliRate > 0 && (input.smallRate <= hamaliRate || input.bigRate <= hamaliRate)) {
+    if (input.rentType === 'Seasonal' && hamaliRate > 0 && (input.smallRate <= hamaliRate || input.bigRate <= hamaliRate)) {
       throw new Error(
         `Submitted ${input.rentType} rates (Small ₹${input.smallRate}, Big ₹${input.bigRate}) must exceed the Hamali rate of ₹${hamaliRate}/bag for commodity '${commodity.name}'`,
       );

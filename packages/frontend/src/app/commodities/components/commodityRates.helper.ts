@@ -35,8 +35,8 @@ export function validateRatesForm(state: CommodityRatesFormState, hamaliRate?: n
   const errors: Record<string, string> = {};
   checkRate(state.seasonalSmall, 'Seasonal small-bag rate', errors, 'seasonalSmall', hamaliRate);
   checkRate(state.seasonalBig, 'Seasonal big-bag rate', errors, 'seasonalBig', hamaliRate);
-  checkRate(state.monthlySmall, 'Monthly small-bag rate', errors, 'monthlySmall', hamaliRate);
-  checkRate(state.monthlyBig, 'Monthly big-bag rate', errors, 'monthlyBig', hamaliRate);
+  checkRate(state.monthlySmall, 'Monthly small-bag rate', errors, 'monthlySmall');
+  checkRate(state.monthlyBig, 'Monthly big-bag rate', errors, 'monthlyBig');
   return errors;
 }
 
