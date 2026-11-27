@@ -15,6 +15,7 @@ export interface BaseLayoutOptions {
   watermarkNotice?: string | null;
   traceDetails?: string | null;
   orientation?: 'portrait' | 'landscape';
+  hideDefaultSignatures?: boolean;
 }
 
 export function escapeHtml(str: string | number | null | undefined): string {
@@ -183,10 +184,11 @@ export function renderBaseLayout(opts: BaseLayoutOptions): string {
 
     <div class="footer-section">
       ${opts.organization.printFooter ? `<div class="org-detail text-center" style="margin-bottom: 12px;">${escapeHtml(opts.organization.printFooter)}</div>` : ''}
+      ${opts.hideDefaultSignatures ? '' : `
       <div class="signatures avoid-break">
         <div class="sig-box">${escapeHtml(opts.customerSignatureLabel || 'Customer / Driver Signature')}</div>
         <div class="sig-box">Authorized Signatory</div>
-      </div>
+      </div>`}
       <div style="margin-top: 16px; font-size: 10px; color: #777; text-align: right;">
         Generated: ${escapeHtml(opts.generatedAt)} | User: ${escapeHtml(opts.generatedBy)}${opts.traceDetails ? ` | ${escapeHtml(opts.traceDetails)}` : ''}
       </div>
