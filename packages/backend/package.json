@@ -11,7 +11,8 @@
     "test": "vitest run --fileParallelism=false",
     "migrate:free-text-chamber": "node --experimental-strip-types src/scripts/migrate-free-text-chamber.ts",
     "reset:orphaned-stock": "node --experimental-strip-types src/scripts/reset-orphaned-stock.ts",
-    "reconcile:grn-0007": "node --experimental-strip-types src/scripts/reconcile-grn-0007-repack.ts"
+    "reconcile:grn-0007": "node --experimental-strip-types src/scripts/reconcile-grn-0007-repack.ts",
+    "reconcile:historical-bags": "node --experimental-strip-types src/scripts/reconcile-historical-bag-types.ts"
   },
   "dependencies": {
     "@cold-storage/contracts": "*",
