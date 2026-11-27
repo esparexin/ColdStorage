@@ -126,7 +126,9 @@ export function RentBillingChargesSection({
   const effectiveStorageAmount = isBilledAtOutward ? outwardCharges : account.rentAmount;
 
   const storageRentTotal =
-    effectiveStorageAmount + account.extensions.reduce((sum, e) => sum + e.finalAmount, 0);
+    effectiveStorageAmount +
+    account.extensions.reduce((sum, e) => sum + e.finalAmount, 0) +
+    hamaliDue;
 
   const unsettledCount = useMemo(
     () => activeDeliveries.filter((d) => (d.rentRemainingBalance ?? d.rentCharge ?? 0) > 0).length,
