@@ -114,4 +114,20 @@ describe('Merge Step 4 Cleanup & Chamber Validation', () => {
     });
     expect(result).toBe('Audit reason must be at least 5 characters.');
   });
+
+  it('verifies MergeStep4RepackSection keeps storage mark read-only and allows manual merge date entry', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const source = fs.readFileSync(path.resolve(__dirname, '../MergeStep4RepackSection.tsx'), 'utf-8');
+
+    // Storage mark is read-only for surviving Target GRN
+    expect(source).toContain('id="merge-storage-mark"');
+    expect(source).toContain('readOnly');
+    expect(source).toContain('aria-label="Storage Mark (Target GRN, read-only)"');
+
+    // Merge date allows manual entry (not readOnly, has onChange handler)
+    expect(source).toContain('id="merge-date"');
+    expect(source).toContain('onChange={(e) => onMovementDateChange?.(e.target.value)}');
+    expect(source).not.toContain('aria-label="Merge Date (read-only)"');
+  });
 });
