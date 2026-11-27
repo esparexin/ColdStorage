@@ -68,6 +68,12 @@ describe('resolveTotalRentObligation (rent-obligation SSOT)', () => {
     ).toBe(50000);
   });
 
+  it('Seasonal expands to outward charges when multi-season deliveries exceed stored rent', () => {
+    expect(
+      resolveTotalRentObligation({ rentType: 'Seasonal', rentAmount: 6800, outwardRentCharges: 25600, hamaliShare: 2000 }),
+    ).toBe(25600);
+  });
+
   it('Seasonal falls back to outward charges when nothing is stored', () => {
     expect(
       resolveTotalRentObligation({ rentType: 'Seasonal', rentAmount: 0, outwardRentCharges: 7500 }),
@@ -110,6 +116,15 @@ describe('resolveTotalRentObligation (rent-obligation SSOT)', () => {
         hamaliShare: 5000,
       }),
     ).toBe(422250);
+  });
+
+  it('preserves uncollected inward Hamali on remaining stock after partial delivery', () => {
+    const input = {
+      rentType: 'Seasonal' as const, rentAmount: 0, outwardRentCharges: 2200,
+      hamaliShare: 2500, remainingBags: 80, totalBags: 100,
+    };
+    expect(resolveTotalRentObligation(input)).toBe(4200);
+    expect(splitRentObligation(input)).toEqual({ baseRent: 2200, hamali: 2000, total: 4200 });
   });
 
   it('ignores a non-finite or negative Hamali share', () => {
