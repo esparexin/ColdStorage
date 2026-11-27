@@ -208,7 +208,7 @@ export function parseRemarksToTableRows(currentGrn: Grn, allGrns: Grn[] = []): M
 
   // 4. Check sorting & repacking events
   const repackRx =
-    /\[SORTED & REPACKED on ([^:]+):\s*(\d+)\s*➔\s*([\s\S]*?)Inv:\s*#([^\s|]+)(?:[\s\S]*?Service:\s*₹?(\d+(?:\.\d+)?))?(?:[\s\S]*?\|\s*([^\]]+))?\]/gi;
+    /\[SORTED & REPACKED on ([^:]+):\s*(\d+)(?:\s*bags(?:\s*\([^)]*\))?)?\s*➔\s*([\s\S]*?)Inv:?\s*#([^\s|]+)(?:[\s\S]*?Service:\s*₹?(\d+(?:\.\d+)?))?(?:[\s\S]*?\|\s*([^\]]+))?\]/gi;
   let repackMatch: RegExpExecArray | null;
   while ((repackMatch = repackRx.exec(remarks)) !== null) {
     const [, date, originalBagsStr, details, invoiceNum, serviceFee, customReason] = repackMatch;
@@ -218,7 +218,7 @@ export function parseRemarksToTableRows(currentGrn: Grn, allGrns: Grn[] = []): M
     const varianceStr = varianceMatch ? ` (Variance: ${varianceMatch[1]} bags)` : '';
     const serviceSuffix = serviceFee ? ` • Service: ₹${serviceFee}` : '';
     const sbMatch = details.match(/\(S:\s*(\d+)\s*•\s*B:\s*(\d+)(?:,\s*BagType:\s*([^)]+))?\)/i);
-    const isHybrid = details.includes('(Hybrid)');
+    const isHybrid = details.includes('(Hybrid') || isHybridBagCategory(currentGrn.bagType);
     let sbDetail: string;
     if (isHybrid) {
       sbDetail = `Hybrid${serviceSuffix}`;

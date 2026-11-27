@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { computeRentBalance } from '../modules/common/rent-balance.js';
 import { assertSourceMergeable } from '../modules/internal-movement/handlers/merge-source-move.helper.js';
 import {
   formatMergeSourceAuditNote,
@@ -138,12 +139,7 @@ describe('formatMergeSourceAuditNote and formatMergeSourceSummary (SSOT)', () =>
     effectiveRentAmount: 2100,
     totalPaid: 2100,
     sourceTotalDue: 2100,
-    rentBal: {
-      rentAmount: 2100,
-      totalPaid: 2100,
-      remainingBalance: 0,
-      paymentStatus: 'PAID',
-    },
+    rentBal: computeRentBalance(2100, 2100),
     isSameSeason: true,
     isPendingVerification: false,
     paidAmount: 0,
@@ -181,7 +177,7 @@ describe('formatMergeSourceAuditNote and formatMergeSourceSummary (SSOT)', () =>
     });
 
     expect(summary).toBe(
-      'GRN 4009 (Receipt #IRN-4009, Date: 2026-03-01, Customer: Kalyan, Bags: 21 [Small -5, Big -16], Rent: ₹2100, Paid: ₹2100, Balance: ₹0, Status: PAID)',
+      'GRN 4009 (Receipt #IRN-4009, Date: 2026-03-01, Customer: Kalyan, Bags: 21 [Small -5, Big -16], Rent: ₹2100, Paid: ₹2100, Balance: ₹0, Status: Settled)',
     );
   });
 
@@ -216,7 +212,7 @@ describe('formatMergeSourceAuditNote and formatMergeSourceSummary (SSOT)', () =>
     });
 
     expect(summary).toBe(
-      'GRN 4009 (Receipt #IRN-4009, Date: 2026-03-01, Customer: Kalyan, Bags: 21 [Hybrid -21], Rent: ₹2100, Paid: ₹2100, Balance: ₹0, Status: PAID)',
+      'GRN 4009 (Receipt #IRN-4009, Date: 2026-03-01, Customer: Kalyan, Bags: 21 [Hybrid -21], Rent: ₹2100, Paid: ₹2100, Balance: ₹0, Status: Settled)',
     );
   });
 });

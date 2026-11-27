@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Grn, InternalMovementRecord } from '@cold-storage/contracts';
+import type { Grn } from '@cold-storage/contracts';
 import {
-  mapStructuredMovementsToTableRows,
   parseMergedGrnNotes,
   parseRemarksToTableRows,
 } from '../internalMovementNotes.helper';
@@ -146,105 +145,42 @@ describe('internalMovementNotes.helper', () => {
       expect(rows[0].totalBags).toBe('+21 bags');
       expect(rows[0].sbDetail).toBe('S: 5 • B: 16 (S/B)');
     });
-  });
 
-  describe('mapStructuredMovementsToTableRows (database SSOT)', () => {
-    it('maps structured MERGE In record cleanly', () => {
-      const structuredMergeIn: InternalMovementRecord = {
-        id: 'mov-1',
-        facilityId: 'fac-1',
-        movementType: 'MERGE',
-        movementDate: new Date('2026-10-12'),
-        targetGrnId: 'grn-1',
-        targetGrnNumber: 'GRN-0100',
-        sourceGrnIds: ['grn-2'],
-        sourceGrnNumbers: ['GRN-0050'],
-        totalBagsMoved: 60,
-        smallBagsMoved: 40,
-        bigBagsMoved: 20,
-        financialSnapshot: {
-          rentAmount: 36000,
-          totalPaid: 0,
-          remainingBalance: 36000,
-          paymentStatus: 'UNPAID',
-        },
-        remarks: 'Direct consolidation into target lot',
-        performedBy: 'user-admin',
-        createdAt: new Date('2026-10-12'),
+    it('parses modern sorting & repacking remarks with explicit outgoing and incoming bag composition', () => {
+      const repackedGrn: Grn = {
+        ...baseGrn,
+        grnNumber: '4009',
+        bags: 21,
+        bagType: 'S/B',
+        remarks:
+          '[SORTED & REPACKED on 2026-11-27: 21 bags (Small -5, Big -16, BagType: S/B) ➔ 21 bags (S: 10 • B: 11, BagType: S/B) | Inv #SRT-2026-0001 | Service: ₹1500 (Labor: ₹1000, Bardana: ₹500) | Sorted and repacked lot]',
       };
-
-      const rows = mapStructuredMovementsToTableRows([structuredMergeIn], baseGrn);
+      const rows = parseRemarksToTableRows(repackedGrn);
       expect(rows).toHaveLength(1);
-      expect(rows[0].badgeLabel).toBe('📥 Merge In');
-      expect(rows[0].badgeVariant).toBe('success');
-      expect(rows[0].grnLabel).toBe('From: GRN-0050');
-      expect(rows[0].totalBags).toBe('+60 bags');
-      expect(rows[0].sbDetail).toBe('S: 40 • B: 20 (S+B)');
-      expect(rows[0].reason).toBe('Direct consolidation into target lot');
+      expect(rows[0].badgeLabel).toBe('🔄 Repack');
+      expect(rows[0].grnLabel).toBe('#SRT-2026-0001');
+      expect(rows[0].totalBags).toBe('21 bags');
+      expect(rows[0].sbDetail).toContain('S: 10 • B: 11 (S/B)');
+      expect(rows[0].sbDetail).toContain('Service: ₹1500');
+      expect(rows[0].reason).toBe('Sorted and repacked lot');
     });
 
-    it('maps structured MERGE In record with repacking hamali rate and charge', () => {
-      const structuredMergeInWithHamali: InternalMovementRecord = {
-        id: 'mov-hamali-1',
-        facilityId: 'fac-1',
-        movementType: 'MERGE',
-        movementDate: new Date('2026-10-12'),
-        targetGrnId: 'grn-1',
-        targetGrnNumber: 'GRN-0100',
-        sourceGrnIds: ['grn-2'],
-        sourceGrnNumbers: ['GRN-0030'],
-        totalBagsMoved: 10,
-        smallBagsMoved: 10,
-        bigBagsMoved: 0,
-        hamaliBags: 10,
-        hamaliRate: 20,
-        hamaliCharge: 200,
-        financialSnapshot: {
-          rentAmount: 7200,
-          totalPaid: 0,
-          remainingBalance: 7200,
-          paymentStatus: 'UNPAID',
-        },
-        remarks: 'Re-bagging lot',
-        performedBy: 'user-admin',
-        createdAt: new Date('2026-10-12'),
+    it('parses modern sorting & repacking remarks for Hybrid lot', () => {
+      const repackedHybridGrn: Grn = {
+        ...baseGrn,
+        grnNumber: '4009',
+        bags: 21,
+        bagType: 'Hybrid',
+        remarks:
+          '[SORTED & REPACKED on 2026-11-27: 21 bags (Hybrid -21) ➔ 21 bags (Hybrid -21) | Inv #SRT-2026-0002 | Service: ₹500 | Cleaned hybrid lot]',
       };
-
-      const rows = mapStructuredMovementsToTableRows([structuredMergeInWithHamali], baseGrn);
+      const rows = parseRemarksToTableRows(repackedHybridGrn);
       expect(rows).toHaveLength(1);
-      expect(rows[0].sbDetail).toBe('S: 10 • B: 0 (S+B) • Hamali: ₹200 (@₹20/bag)');
-    });
-
-    it('maps structured MERGE Out record cleanly', () => {
-      const structuredMergeOut: InternalMovementRecord = {
-        id: 'mov-2',
-        facilityId: 'fac-1',
-        movementType: 'MERGE',
-        movementDate: new Date('2026-10-12'),
-        targetGrnId: 'grn-target-99',
-        targetGrnNumber: 'GRN-0999',
-        sourceGrnIds: ['grn-1'],
-        sourceGrnNumbers: ['GRN-0100'],
-        totalBagsMoved: 300,
-        smallBagsMoved: 150,
-        bigBagsMoved: 150,
-        financialSnapshot: {
-          rentAmount: 0,
-          totalPaid: 0,
-          remainingBalance: 0,
-          paymentStatus: 'SETTLED',
-        },
-        remarks: 'Merged into main stock',
-        performedBy: 'user-admin',
-        createdAt: new Date('2026-10-12'),
-      };
-
-      const rows = mapStructuredMovementsToTableRows([structuredMergeOut], baseGrn);
-      expect(rows).toHaveLength(1);
-      expect(rows[0].badgeLabel).toBe('📤 Merged Out');
-      expect(rows[0].badgeVariant).toBe('neutral');
-      expect(rows[0].grnLabel).toBe('Into: GRN-0999');
-      expect(rows[0].totalBags).toBe('300 bags');
+      expect(rows[0].badgeLabel).toBe('🔄 Repack');
+      expect(rows[0].grnLabel).toBe('#SRT-2026-0002');
+      expect(rows[0].totalBags).toBe('21 bags');
+      expect(rows[0].sbDetail).toContain('Hybrid');
+      expect(rows[0].sbDetail).toContain('Service: ₹500');
     });
   });
 });

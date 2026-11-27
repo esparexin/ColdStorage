@@ -5,6 +5,7 @@ import { GrnModel } from '../database/models/grn.model.js';
 import { InternalMovementModel } from '../database/models/internal-movement.model.js';
 import { InventoryTransactionModel } from '../database/models/inventory-transaction.model.js';
 import { getGrnMovementHistory } from '../modules/common/grn-movement-history.js';
+import { formatRepackAuditRemarks } from '../modules/internal-movement/handlers/repack-grn.rent.js';
 
 describe('Repack (Sorting) Movement History (Unit)', () => {
   it('records repack decant setting remaining bags to zero and repacked inward putaway with new composition', async () => {
@@ -111,5 +112,55 @@ describe('Repack (Sorting) Movement History (Unit)', () => {
     expect(history!.entries[2].remainingBigBags).toBe(40);
 
     vi.restoreAllMocks();
+  });
+
+  describe('formatRepackAuditRemarks (SSOT)', () => {
+    it('formats sorting & repacking remark with outgoing and incoming bag composition (e.g. Small -5, Big -16)', () => {
+      const remarks = formatRepackAuditRemarks({
+        dateStr: '2026-11-27',
+        previousBags: 21,
+        previousSmall: 5,
+        previousBig: 16,
+        previousBagType: 'S/B',
+        actualRepackedBags: 21,
+        repackedSmall: 10,
+        repackedBig: 11,
+        resultingBagType: 'S/B',
+        repackVariance: 0,
+        sortingInvoiceNumber: 'SRT-2026-0001',
+        totalServiceCharge: 1500,
+        sortingLaborCharge: 1000,
+        bardanaCharge: 500,
+        customRemarks: 'Re-bagged into custom sizes',
+      });
+
+      expect(remarks).toContain('[SORTED & REPACKED on 2026-11-27: 21 bags (Small -5, Big -16, BagType: S/B) ➔ 21 bags (S: 10 • B: 11, BagType: S/B)');
+      expect(remarks).toContain('Inv #SRT-2026-0001');
+      expect(remarks).toContain('Service: ₹1500 (Labor: ₹1000, Bardana: ₹500)');
+      expect(remarks).toContain('Re-bagged into custom sizes');
+    });
+
+    it('formats sorting & repacking remark with Hybrid lots (e.g. Hybrid -21)', () => {
+      const remarks = formatRepackAuditRemarks({
+        dateStr: '2026-11-27',
+        previousBags: 21,
+        previousSmall: 0,
+        previousBig: 0,
+        previousBagType: 'Hybrid',
+        actualRepackedBags: 21,
+        repackedSmall: 0,
+        repackedBig: 0,
+        resultingBagType: 'Hybrid',
+        repackVariance: 0,
+        sortingInvoiceNumber: 'SRT-2026-0002',
+        totalServiceCharge: 500,
+        sortingLaborCharge: 500,
+        bardanaCharge: 0,
+        customRemarks: 'Resorted hybrid lot',
+      });
+
+      expect(remarks).toContain('[SORTED & REPACKED on 2026-11-27: 21 bags (Hybrid -21) ➔ 21 bags (Hybrid -21)');
+      expect(remarks).toContain('Inv #SRT-2026-0002');
+    });
   });
 });

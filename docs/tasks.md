@@ -33,15 +33,19 @@ Strictly adheres to:
 
 ---
 
-### ⏳ PR 2: Sort Out & Repacking Remarks (PENDING)
-- **Status:** `PENDING`
+### ✅ PR 2: Sort Out & Repacking Remarks (DONE)
+- **Status:** `DONE`
 - **Scope:**
+  - `packages/backend/src/modules/internal-movement/handlers/repack-grn.rent.ts`:
+    - Updated `formatRepackAuditRemarks` to cleanly format outgoing lot composition (`Small -<small>, Big -<big>` or `Hybrid -<total>`) before the transition arrow and incoming lot composition (`S: <small> • B: <big>` or `Hybrid -<total>`).
   - `packages/backend/src/modules/internal-movement/handlers/repack-grn.handler.ts`:
-    - Record outgoing/decanted stock composition before the transition arrow in `authRemarks` (e.g., `21 bags (Small: 5, Big: 16) ➔ 21 bags (...)` or `21 bags (Hybrid) ➔ ...`).
-    - Include bag breakdown in `tx-out` inventory adjustment note.
+    - Included bag breakdown in `tx-out` decant inventory transaction note and `tx-in` repacked putaway inventory note.
+  - `packages/frontend/src/app/grns/components/internalMovementNotes.helper.ts`:
+    - Enhanced repacking parser to extract `(Hybrid -<qty>)` cleanly.
   - **Verification:**
-    - Unit tests in `repack-movement-history.unit.test.ts` & `grn-sorting-and-repack-workflow.test.ts`.
-    - `npm run build`
+    - Unit tests in `repack-movement-history.unit.test.ts`, `internalMovementNotes.helper.test.ts`, and `structuredMovementsTable.helper.test.ts`.
+    - Line budget audit passed (`bash scripts/hygiene-audit.sh`).
+    - Full workspace `npm run build` verified.
 
 ---
 

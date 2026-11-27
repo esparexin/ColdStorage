@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import {
   calculateHamaliAmount,
+  isHybridBagCategory,
   type Grn,
   type InternalMovementRecord,
   type RepackGrnInput,
@@ -18,7 +19,7 @@ import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { resolveEffectiveHamaliRate } from '../../common/hamali-resolution.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 import { toEqId } from '../../../utils/query-sanitizer.js';
-import { snapshotRepackRentObligation, updateRepackProspectiveRent } from './repack-grn.rent.js';
+import { formatRepackAuditRemarks, snapshotRepackRentObligation, updateRepackProspectiveRent } from './repack-grn.rent.js';
 
 export async function executeRepackGrn(
   facilityId: string,
@@ -98,6 +99,14 @@ export async function executeRepackGrn(
         const destinationChamber = input.destinationChamber?.trim() || grn.chamber;
         if (!destinationChamber) throw new Error('Destination chamber is required for repacking putaway');
 
+        const isSourceHybrid = grn.bagType === 'Hybrid' || isHybridBagCategory(grn.bagType);
+        const outTxComp = isSourceHybrid
+          ? `Hybrid -${bal.total}`
+          : `Small -${outSmall}, Big -${outBig}`;
+        const inTxComp = isHybrid
+          ? `Hybrid -${actualRepackedBags}`
+          : `Small -${inSmall}, Big -${inBig}`;
+
         // Ledger balance adjustment: outward old composition, inward repacked composition
         await InventoryTransactionModel.create([
           {
@@ -105,14 +114,14 @@ export async function executeRepackGrn(
             chamber: grn.chamber, commodityId: grn.commodityId, bagType: grn.bagType,
             transactionType: 'OUTWARD_DELIVERY', smallQuantity: outSmall, bigQuantity: outBig,
             referenceType: 'DELIVERY', referenceId: movementId,
-            notes: `Stock adjustment for repacking (Lot ${grn.grnNumber})`, createdBy: userId, createdAt: movementDate,
+            notes: `Stock adjustment for repacking out (Lot ${grn.grnNumber}, ${outTxComp})`, createdBy: userId, createdAt: movementDate,
           },
           {
             id: `tx-in-${randomUUID()}`, facilityId, grnId: grn.id, grnNumber: grn.grnNumber,
             chamber: destinationChamber, commodityId: grn.commodityId, bagType: input.resultingBagType,
             transactionType: 'INWARD_PUTAWAY', smallQuantity: inSmall, bigQuantity: inBig,
             referenceType: 'PUT_AWAY', referenceId: movementId,
-            notes: `Repacked stock putaway (Lot ${grn.grnNumber})`, createdBy: userId, createdAt: movementDate,
+            notes: `Repacked stock putaway (Lot ${grn.grnNumber}, ${inTxComp})`, createdBy: userId, createdAt: movementDate,
           },
         ], { session, ordered: true });
 
@@ -143,9 +152,24 @@ export async function executeRepackGrn(
 
         // Authoritative audit remarks with explicit composition and service invoice reference
         const dateStr = movementDate.toISOString().slice(0, 10);
-        const compStr = isHybrid ? `${actualRepackedBags} bags (Hybrid)` : `${actualRepackedBags} bags (S: ${inSmall} • B: ${inBig}, BagType: ${input.resultingBagType})`;
-        const variancePart = repackVariance !== 0 ? ` (Variance: ${repackVariance > 0 ? `+${repackVariance}` : repackVariance} bags${input.repackVarianceReason ? ` - ${input.repackVarianceReason}` : ''})` : '';
-        const authRemarks = `[SORTED & REPACKED on ${dateStr}: ${bal.total} ➔ ${compStr}${variancePart} | Inv #${sortingInvoiceNumber} | Service: ₹${totalServiceCharge} (Labor: ₹${sortingLaborCharge}, Bardana: ₹${bardanaCharge}) | ${input.remarks}]`;
+        const authRemarks = formatRepackAuditRemarks({
+          dateStr,
+          previousBags: bal.total,
+          previousSmall: outSmall,
+          previousBig: outBig,
+          previousBagType: grn.bagType,
+          actualRepackedBags,
+          repackedSmall: inSmall,
+          repackedBig: inBig,
+          resultingBagType: input.resultingBagType,
+          repackVariance,
+          repackVarianceReason: input.repackVarianceReason,
+          sortingInvoiceNumber,
+          totalServiceCharge,
+          sortingLaborCharge,
+          bardanaCharge,
+          customRemarks: input.remarks,
+        });
         grn.remarks = grn.remarks ? `${grn.remarks} | ${authRemarks}` : authRemarks;
         await grn.save({ session });
 
