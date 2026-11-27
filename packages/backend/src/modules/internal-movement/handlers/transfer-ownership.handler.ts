@@ -145,7 +145,7 @@ export async function transferOwnership(
         newCustomer, finalChamber, resultingBagType,
         finalBags: finalSmall + finalBig, finalSmall, finalBig,
         updatedRemarks, referenceWeight: input.referenceWeight,
-        effectiveObligation, isHybrid, input, previousRentAmount: grn.rentAmount,
+        effectiveObligation, isHybrid, input,
       });
 
       const updatedGrn = await GrnModel.findOneAndUpdate(

@@ -74,7 +74,7 @@ function deriveHamaliComponent(
 ): number {
   if (!Number.isFinite(hamaliShare) || hamaliShare <= 0) return 0;
   if (baseRent === rentAmount && rentAmount > 0) return hamaliShare;
-  if (outwardRentCharges === 0 && rentAmount === 0) return 0;
+  if (outwardRentCharges === 0) return hamaliShare;
   if (remainingBags != null && totalBags > 0 && remainingBags > 0) {
     const ratio = Math.min(1, Math.max(0, remainingBags / totalBags));
     return Number((hamaliShare * ratio).toFixed(2));

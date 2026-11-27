@@ -99,10 +99,10 @@ describe('resolveTotalRentObligation (rent-obligation SSOT)', () => {
     ).toBe(12000);
   });
 
-  it('does NOT add Hamali for zero-rent intake before outward delivery occurs (unbilled resting stock)', () => {
+  it('adds Hamali for zero-rent intake before outward delivery occurs', () => {
     expect(
       resolveTotalRentObligation({ rentType: 'Monthly', rentAmount: 0, outwardRentCharges: 0, hamaliShare: 500 }),
-    ).toBe(0);
+    ).toBe(500);
   });
 
   it('does NOT add Hamali when the base came from outward charges', () => {

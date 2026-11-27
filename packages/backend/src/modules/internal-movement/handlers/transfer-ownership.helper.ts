@@ -195,12 +195,11 @@ export function buildTransferGrnUpdateFields(params: {
   effectiveObligation: number;
   isHybrid: boolean;
   input: TransferOwnershipInput;
-  previousRentAmount?: number | null;
 }): Record<string, unknown> {
   const {
     newCustomer, finalChamber, resultingBagType, finalBags,
     finalSmall, finalBig, updatedRemarks, referenceWeight,
-    effectiveObligation, isHybrid, input, previousRentAmount,
+    effectiveObligation, isHybrid, input,
   } = params;
 
   const updateFields: Record<string, unknown> = {
@@ -221,7 +220,7 @@ export function buildTransferGrnUpdateFields(params: {
   if (input.partyMark !== undefined) {
     updateFields.partyMark = input.partyMark?.trim() || null;
   }
-  if (effectiveObligation > 0 && (previousRentAmount ?? 0) > 0) updateFields.rentAmount = effectiveObligation;
+  if (effectiveObligation > 0) updateFields.rentAmount = effectiveObligation;
   if (isHybrid) {
     if (typeof input.sourceBagPrice === 'number' && input.sourceBagPrice > 0) updateFields.bagPrice = input.sourceBagPrice;
     if (typeof input.sourceSeasonalBagPrice === 'number' && input.sourceSeasonalBagPrice > 0) updateFields.smallBagPrice = input.sourceSeasonalBagPrice;
