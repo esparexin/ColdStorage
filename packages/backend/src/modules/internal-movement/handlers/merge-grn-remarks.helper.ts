@@ -30,6 +30,8 @@ export interface BuildMergeTargetUpdatesParams {
     remarks?: string | null;
     storageMark?: string | null;
     partyMark?: string | null;
+    hamaliAmount?: number | null;
+    hamaliRate?: number | null;
   };
   input: MergeGrnInput;
 }
@@ -109,6 +111,11 @@ export function buildMergeTargetUpdates(params: BuildMergeTargetUpdatesParams): 
 
   if (input.partyMark?.trim()) targetUpdateFields.partyMark = input.partyMark.trim();
   if (input.storageMark?.trim()) targetUpdateFields.storageMark = input.storageMark.trim();
+  if (repackHamaliCharge > 0 || repackHamaliRate > 0) {
+    targetUpdateFields.hamaliRate = repackHamaliRate;
+    targetUpdateFields.hamaliAmount =
+      Number((((targetGrn as { hamaliAmount?: number | null }).hamaliAmount ?? 0) + repackHamaliCharge).toFixed(2));
+  }
   const combinedMarks = [input.storageMark?.trim() || targetGrn.storageMark, input.partyMark?.trim() || targetGrn.partyMark]
     .filter(Boolean)
     .join(' / ');

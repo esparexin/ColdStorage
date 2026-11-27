@@ -110,7 +110,7 @@ export function buildRentCalculationRows(params: BuildRentCalculationRowsParams)
   } else if (account.rentAmount > 0 && account.totalBags > 0) {
     formula = `${account.totalBags} bags (Contract Rent: ₹${account.rentAmount.toLocaleString('en-IN')})`;
   } else {
-    formula = 'Assessed at outward delivery dispatch';
+    formula = 'Pending assessment';
   }
 
   list.push({

@@ -24,20 +24,20 @@ export async function resolveMergeRepackHamali(params: {
   session: mongoose.ClientSession;
 }): Promise<RepackHamaliResolution> {
   const { commodityId, isRepackSelected, repackedSmallBags, repackedBigBags, repackedBagCount, totalMovedBags, session } = params;
-  if (!isRepackSelected || totalMovedBags <= 0) {
+  if (totalMovedBags <= 0) {
     return { isRepackingSelected: false, repackHamaliBags: 0, repackHamaliRate: 0, repackHamaliCharge: 0 };
   }
 
   // Calculate actual bags handled
   const actualRepackedBags =
-    repackedBagCount != null && repackedBagCount > 0
+    isRepackSelected && repackedBagCount != null && repackedBagCount > 0
       ? repackedBagCount
-      : typeof repackedSmallBags === 'number' && typeof repackedBigBags === 'number'
+      : isRepackSelected && typeof repackedSmallBags === 'number' && typeof repackedBigBags === 'number'
         ? repackedSmallBags + repackedBigBags
         : totalMovedBags;
 
   if (actualRepackedBags <= 0) {
-    return { isRepackingSelected: true, repackHamaliBags: 0, repackHamaliRate: 0, repackHamaliCharge: 0 };
+    return { isRepackingSelected: Boolean(isRepackSelected), repackHamaliBags: 0, repackHamaliRate: 0, repackHamaliCharge: 0 };
   }
 
   const commodity = await CommodityModel.findOne({ id: commodityId }, null, { session }).lean().exec();
@@ -49,7 +49,7 @@ export async function resolveMergeRepackHamali(params: {
   const charge = rate > 0 ? calculateHamaliAmount(actualRepackedBags, rate) : 0;
 
   return {
-    isRepackingSelected: true,
+    isRepackingSelected: Boolean(isRepackSelected),
     repackHamaliBags: actualRepackedBags,
     repackHamaliRate: rate,
     repackHamaliCharge: charge,

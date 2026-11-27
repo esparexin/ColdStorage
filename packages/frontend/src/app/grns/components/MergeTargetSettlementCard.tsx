@@ -162,7 +162,7 @@ export function MergeTargetSettlementCard({
           <span>Existing Target Stock ({targetGrn.closingBags ?? targetGrn.bags} bags):</span>
           <span style={{ fontWeight: 'var(--font-semibold)' }}>
             {hasTargetHistoricalRent
-              ? `Active Season (${formatGrnSeasonLabel(movementDate)}) Preserved (Billed at Outward)`
+              ? `Active Season (${formatGrnSeasonLabel(movementDate)}) Preserved`
               : `Preserved under active ${effectiveRentType} subscription (₹0 Merge Dues)`}
           </span>
         </div>

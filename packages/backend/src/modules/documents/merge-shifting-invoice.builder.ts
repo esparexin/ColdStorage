@@ -53,7 +53,7 @@ export async function buildMergeShiftingInvoiceDto(
       smallBags: movedSmall,
       bigBags: movedBig,
       bagType: s.bagType || 'S/B',
-      pendingRentSettled: 0,
+      pendingRentSettled: s.rentAmount ?? 0,
     };
   });
 

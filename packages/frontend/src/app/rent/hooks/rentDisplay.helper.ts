@@ -102,7 +102,7 @@ export function getRentCollectionNotice(input: RentAccountDisplayInput): string 
     return 'No fixed upfront contract rent configured for this Monthly GRN. Billing accrues dynamically per cycle.';
   }
   if (input.rentAmount === 0 && balance === 0) {
-    return 'Rent is assessed upon outward delivery dispatch. There are currently no outstanding outward dues for this GRN.';
+    return 'There are currently no outstanding dues for this GRN.';
   }
   if (delivered > 0 && balance > 0) {
     return `Rent obligation is derived from ${delivered} outward delivered bag${delivered === 1 ? '' : 's'}.`;
