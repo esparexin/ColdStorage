@@ -16,18 +16,20 @@ Strictly adheres to:
 
 ## Tasks / PR Roadmap
 
-### ⏳ PR 1: Merge Out & Merge In Notes & Remarks (PENDING)
-- **Status:** `PENDING`
+### ✅ PR 1: Merge Out & Merge In Notes & Remarks (DONE)
+- **Status:** `DONE`
 - **Scope:**
   - `packages/backend/src/modules/internal-movement/handlers/merge-grn.helper.ts`:
-    - Update `closeSourceGrnOnMerge` to format bag composition (`Small: <small>, Big: <big>, BagType: <type>` or `Hybrid: <total>`) in `sourceNote`.
-    - Update `closeSourceGrnOnMerge` return string (used in `sourceSummaries` for target GRN `[MERGE RECEIVED...]`).
-    - Update `InventoryTransactionModel.create` outward transaction notes to include bag breakdown `(Small: <small>, Big: <big>)` or `(Hybrid: <total>)`.
-  - `packages/frontend/src/app/grns/components/internalMovementNotes.helper.ts` & `structuredMovementsTable.helper.ts`:
-    - Ensure regex and mapper extract and present bag composition cleanly in `GrnMergedDetailsTable`.
+    - Implemented `formatMergeSourceAuditNote` formatting bag composition (`Small -<small>, Big -<big>, BagType: <type>` or `Hybrid -<total>`) in `sourceNote`.
+    - Implemented `formatMergeSourceSummary` return string (used in `sourceSummaries` for target GRN `[MERGE RECEIVED...]`).
+    - Updated `InventoryTransactionModel.create` outward transaction notes to include bag breakdown `(Small -<small>, Big -<big>)` or `(Hybrid -<total>)`.
+  - `packages/backend/src/modules/internal-movement/handlers/merge-grn-movement.helper.ts`:
+    - Recorded inward putaway transaction note with bag breakdown.
+  - `packages/frontend/src/app/grns/components/internalMovementNotes.helper.ts`:
+    - Enhanced table row mapping for `Merged Out` and `Merge In` to cleanly display composition (`Small -<qty>, Big -<qty>` or `Hybrid`).
   - **Verification:**
-    - Unit tests in `internal-movement.test.ts` & `internalMovementNotes.helper.test.ts` covering 21 bags (`5 Small + 16 Big` and `21 Hybrid`).
-    - `npm run build`
+    - Unit tests in `merge-source-move.unit.test.ts` & `internalMovementNotes.helper.test.ts` covering 21 bags (`5 Small + 16 Big` and `21 Hybrid`).
+    - Full workspace `npm run build` verified.
 
 ---
 

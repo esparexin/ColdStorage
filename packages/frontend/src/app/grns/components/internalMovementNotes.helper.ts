@@ -77,12 +77,19 @@ export function parseRemarksToTableRows(currentGrn: Grn, allGrns: Grn[] = []): M
         ((sourceGrn.bagPrice != null && sourceGrn.smallBagPrice == null && sourceGrn.bigBagPrice == null) ||
           isHybridBagCategory(sourceGrn.bagType))) ||
       bagType === 'Hybrid' ||
-      isHybridBagCategory(bagType);
+      isHybridBagCategory(bagType) ||
+      match[0].includes('[Hybrid') ||
+      match[0].includes('(Hybrid');
+
+    const sourceSbMatch = match[0].match(/\[Small\s*[-:]\s*(\d+)[,\s]*Big\s*[-:]\s*(\d+)\]/i);
+
     let sbDetail: string;
     if (repackedMatch) {
       sbDetail = `Repacked: ${repackedMatch[1]} S • ${repackedMatch[2]} B (${bagType})${hamaliNote}`;
     } else if (isSourceHybrid) {
       sbDetail = `Hybrid${hamaliNote}`;
+    } else if (sourceSbMatch) {
+      sbDetail = `S: ${Number(sourceSbMatch[1]).toLocaleString('en-IN')} • B: ${Number(sourceSbMatch[2]).toLocaleString('en-IN')} (${bagType})${hamaliNote}`;
     } else if (sourceGrn && (sourceGrn.smallBags > 0 || sourceGrn.bigBags > 0)) {
       sbDetail = `S: ${sourceGrn.smallBags.toLocaleString('en-IN')} • B: ${sourceGrn.bigBags.toLocaleString('en-IN')} (${bagType})${hamaliNote}`;
     } else {
@@ -121,30 +128,33 @@ export function parseRemarksToTableRows(currentGrn: Grn, allGrns: Grn[] = []): M
         ? new Date(currentGrn.updatedAt).toISOString().slice(0, 10)
         : new Date(currentGrn.date).toISOString().slice(0, 10);
     const reason = mergeOutMatch?.[3]?.trim() || 'Merged into surviving target lot';
-    const smallBags = currentGrn.smallBags != null ? currentGrn.smallBags.toLocaleString('en-IN') : 'N/A';
-    const bigBags =
-      currentGrn.bigBags != null
-        ? currentGrn.bigBags.toLocaleString('en-IN')
-        : currentGrn.bags.toLocaleString('en-IN');
     const bagType = currentGrn.bagType ?? 'S/B';
+    const hybridMatch = remarks.match(/cleared\s*\((?:Confirmed\s+)?Hybrid(?:\s*-\s*(\d+))?\)/i);
+    const sbMatch = remarks.match(
+      /cleared\s*\((?:Small\s*[-:]\s*(\d+)[,\s]*Big\s*[-:]\s*(\d+)|S:\s*(\d+)\s*•\s*B:\s*(\d+))(?:,\s*BagType:\s*([^)]+))?\)/i,
+    );
+
+    let sbDetail = 'Hybrid';
+    if (!hybridMatch && bagType !== 'Hybrid' && !isHybridBagCategory(bagType)) {
+      if (sbMatch) {
+        const sVal = sbMatch[1] ?? sbMatch[3];
+        const bVal = sbMatch[2] ?? sbMatch[4];
+        sbDetail = `S: ${Number(sVal).toLocaleString('en-IN')} • B: ${Number(bVal).toLocaleString('en-IN')} (${sbMatch[5]?.trim() || bagType})`;
+      } else {
+        const s = currentGrn.smallBags != null ? currentGrn.smallBags.toLocaleString('en-IN') : 'N/A';
+        const b = currentGrn.bigBags != null ? currentGrn.bigBags.toLocaleString('en-IN') : currentGrn.bags.toLocaleString('en-IN');
+        sbDetail = `S: ${s} • B: ${b} (${bagType})`;
+      }
+    }
 
     list.push({
-      id: `merge-out-${currentGrn.grnNumber}`,
-      badgeLabel: '📤 Merged Out',
-      badgeVariant: 'neutral',
-      date: dateStr,
-      grnLabel: `Into: ${currentGrn.mergedIntoGrnNumber}`,
-      refSub: `Surviving: ${targetGrn?.customerName || 'N/A'}`,
-      partyName: currentGrn.customerName || 'N/A',
-      partyMark: currentGrn.partyMark ? `PM: ${currentGrn.partyMark}` : 'PM: N/A',
-      commodity: currentGrn.commodityName || 'N/A',
+      id: `merge-out-${currentGrn.grnNumber}`, badgeLabel: '📤 Merged Out', badgeVariant: 'neutral',
+      date: dateStr, grnLabel: `Into: ${currentGrn.mergedIntoGrnNumber}`,
+      refSub: `Surviving: ${targetGrn?.customerName || 'N/A'}`, partyName: currentGrn.customerName || 'N/A',
+      partyMark: currentGrn.partyMark ? `PM: ${currentGrn.partyMark}` : 'PM: N/A', commodity: currentGrn.commodityName || 'N/A',
       chamber: currentGrn.chamber ? `Chamber: ${currentGrn.chamber}` : 'Chamber: N/A',
-      storageMark: currentGrn.storageMark
-        ? `SM: ${currentGrn.storageMark}`
-        : `SM: ${currentGrn.storageMark || currentGrn.grnNumber}`,
-      totalBags: `${currentGrn.bags.toLocaleString('en-IN')} bags`,
-      sbDetail: bagType === 'Hybrid' ? 'Hybrid' : `S: ${smallBags} • B: ${bigBags} (${bagType})`,
-      reason,
+      storageMark: currentGrn.storageMark ? `SM: ${currentGrn.storageMark}` : `SM: ${currentGrn.storageMark || currentGrn.grnNumber}`,
+      totalBags: `${currentGrn.bags.toLocaleString('en-IN')} bags`, sbDetail, reason,
     });
   }
 
@@ -232,8 +242,7 @@ export function parseRemarksToTableRows(currentGrn: Grn, allGrns: Grn[] = []): M
       chamber: currentGrn.chamber ? `Chamber: ${currentGrn.chamber}` : 'Chamber: N/A',
       storageMark: currentGrn.storageMark ? `SM: ${currentGrn.storageMark}` : `SM: ${currentGrn.grnNumber}`,
       totalBags: `${repackedBags.toLocaleString('en-IN')} bags${varianceStr}`,
-      sbDetail,
-      reason: customReason?.trim() || 'Sorted & Repacked Lot',
+      sbDetail, reason: customReason?.trim() || 'Sorted & Repacked Lot',
     });
   }
 

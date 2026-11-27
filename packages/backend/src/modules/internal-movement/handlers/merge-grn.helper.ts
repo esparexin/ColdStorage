@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import { GrnModel } from '../../../database/models/grn.model.js';
-import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { resolveMovementObligation } from './resolve-movement-obligation.js';
 import { computeRentBalance, type RentBalance } from '../../common/rent-balance.js';
@@ -191,55 +190,14 @@ export async function resolveSourceRentObligation(
   };
 }
 
-export interface CloseSourceGrnParams {
-  facilityId: string; sourceGrn: MergeSourceGrn; targetGrnNumber: string; targetGrnId: string;
-  movementId: string; movementDate: Date; ledgerBalance: LedgerBalance;
-  rentResolution: SourceRentResolution; remarks: string; userId: string;
-  session: mongoose.ClientSession; confirmedBagType?: string | null;
-}
+export {
+  formatMergeSourceAuditNote,
+  formatMergeSourceSummary,
+  type FormatMergeSourceAuditNoteParams,
+  type FormatMergeSourceSummaryParams,
+} from './merge-grn-remarks.helper.js';
 
-export async function closeSourceGrnOnMerge(params: CloseSourceGrnParams): Promise<string> {
-  const { facilityId, sourceGrn, targetGrnNumber, targetGrnId, movementId, movementDate, ledgerBalance, rentResolution, remarks, userId, session, confirmedBagType } = params;
-
-  await InventoryTransactionModel.create(
-    [
-      {
-        id: `tx-${randomUUID()}`, facilityId, grnId: sourceGrn.id, grnNumber: sourceGrn.grnNumber,
-        chamber: sourceGrn.chamber, commodityId: sourceGrn.commodityId, bagType: sourceGrn.bagType,
-        transactionType: 'OUTWARD_DELIVERY', smallQuantity: ledgerBalance.smallBags, bigQuantity: ledgerBalance.bigBags,
-        referenceType: 'DELIVERY', referenceId: `${movementId}-${sourceGrn.id}`,
-        notes: `Merged into GRN ${targetGrnNumber}: ${remarks.trim()}`, createdBy: userId, createdAt: movementDate,
-      },
-    ],
-    { session, ordered: true },
-  );
-
-  const moveDateStr = movementDate.toISOString().split('T')[0];
-  const sourceNote = `[MERGED into GRN ${targetGrnNumber} on ${moveDateStr}: ${ledgerBalance.total} bags cleared. Financial record preserved: Rent Obligation ₹${rentResolution.effectiveRentAmount}, Paid ₹${rentResolution.totalPaid}, Pending ₹${rentResolution.rentBal.remainingBalance} (Status: ${rentResolution.rentBal.paymentStatus}). Customer: ${sourceGrn.customerName}. Reason: ${remarks.trim()}]`;
-  const updatedSourceRemarks = sourceGrn.remarks ? `${sourceGrn.remarks}\n${sourceNote}` : sourceNote;
-
-  // Conforms strictly to @cold-storage/contracts SSOT:
-  // When a source lot is merged out, record confirmed bag type and mark isCompositionVerified: true
-  const resolvedBagType =
-    confirmedBagType ||
-    (sourceGrn.bagType === 'Hybrid' || isHybridBagCategory(sourceGrn.bagType) ? 'Hybrid' : (sourceGrn.bagType || 'S/B'));
-  const isHybrid = resolvedBagType === 'Hybrid' || isHybridBagCategory(resolvedBagType);
-
-  await GrnModel.updateOne(
-    { id: sourceGrn.id },
-    {
-      $set: {
-        status: 'CLOSED', remarks: updatedSourceRemarks,
-        mergedIntoGrnId: targetGrnId, mergedIntoGrnNumber: targetGrnNumber,
-        bagType: resolvedBagType,
-        smallBags: isHybrid ? 0 : (sourceGrn.smallBags ?? ledgerBalance.smallBags),
-        bigBags: isHybrid ? 0 : (sourceGrn.bigBags ?? ledgerBalance.bigBags),
-        isCompositionVerified: true, updatedAt: new Date(),
-      },
-    },
-    { session },
-  );
-
-  const inwardDateStr = new Date(sourceGrn.date).toISOString().split('T')[0];
-  return `GRN ${sourceGrn.grnNumber} (Receipt #${sourceGrn.inwardReceiptNumber}, Date: ${inwardDateStr}, Customer: ${sourceGrn.customerName}, Bags: ${ledgerBalance.total}, Rent: ₹${rentResolution.effectiveRentAmount}, Paid: ₹${rentResolution.totalPaid}, Balance: ₹${rentResolution.rentBal.remainingBalance}, Status: ${rentResolution.rentBal.paymentStatus})`;
-}
+export {
+  closeSourceGrnOnMerge,
+  type CloseSourceGrnParams,
+} from './merge-source-move.helper.js';

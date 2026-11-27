@@ -118,3 +118,51 @@ export function buildMergeTargetUpdates(params: BuildMergeTargetUpdatesParams): 
 
   return { targetNote, updatedTargetRemarks, targetUpdateFields };
 }
+
+export interface FormatMergeSourceAuditNoteParams {
+  targetGrnNumber: string;
+  movementDate: Date;
+  ledgerBalance: { total: number; smallBags: number; bigBags: number };
+  rentResolution: {
+    effectiveRentAmount: number;
+    totalPaid: number;
+    rentBal: { remainingBalance: number; paymentStatus: string };
+  };
+  customerName: string;
+  remarks: string;
+  resolvedBagType: string;
+}
+
+export function formatMergeSourceAuditNote(params: FormatMergeSourceAuditNoteParams): string {
+  const { targetGrnNumber, movementDate, ledgerBalance, rentResolution, customerName, remarks, resolvedBagType } = params;
+  const isHybrid = resolvedBagType === 'Hybrid' || isHybridBagCategory(resolvedBagType);
+  const moveDateStr = movementDate.toISOString().split('T')[0];
+  const compCleared = isHybrid
+    ? `${ledgerBalance.total} bags cleared (Hybrid -${ledgerBalance.total})`
+    : `${ledgerBalance.total} bags cleared (Small -${ledgerBalance.smallBags}, Big -${ledgerBalance.bigBags}, BagType: ${resolvedBagType})`;
+  return `[MERGED into GRN ${targetGrnNumber} on ${moveDateStr}: ${compCleared}. Financial record preserved: Rent Obligation ₹${rentResolution.effectiveRentAmount}, Paid ₹${rentResolution.totalPaid}, Pending ₹${rentResolution.rentBal.remainingBalance} (Status: ${rentResolution.rentBal.paymentStatus}). Customer: ${customerName}. Reason: ${remarks.trim()}]`;
+}
+
+export interface FormatMergeSourceSummaryParams {
+  grnNumber: string;
+  inwardReceiptNumber: string;
+  inwardDate: Date;
+  customerName: string;
+  ledgerBalance: { total: number; smallBags: number; bigBags: number };
+  rentResolution: {
+    effectiveRentAmount: number;
+    totalPaid: number;
+    rentBal: { remainingBalance: number; paymentStatus: string };
+  };
+  resolvedBagType: string;
+}
+
+export function formatMergeSourceSummary(params: FormatMergeSourceSummaryParams): string {
+  const { grnNumber, inwardReceiptNumber, inwardDate, customerName, ledgerBalance, rentResolution, resolvedBagType } = params;
+  const isHybrid = resolvedBagType === 'Hybrid' || isHybridBagCategory(resolvedBagType);
+  const inwardDateStr = new Date(inwardDate).toISOString().split('T')[0];
+  const bagDetail = isHybrid
+    ? `Bags: ${ledgerBalance.total} [Hybrid -${ledgerBalance.total}]`
+    : `Bags: ${ledgerBalance.total} [Small -${ledgerBalance.smallBags}, Big -${ledgerBalance.bigBags}]`;
+  return `GRN ${grnNumber} (Receipt #${inwardReceiptNumber}, Date: ${inwardDateStr}, Customer: ${customerName}, ${bagDetail}, Rent: ₹${rentResolution.effectiveRentAmount}, Paid: ₹${rentResolution.totalPaid}, Balance: ₹${rentResolution.rentBal.remainingBalance}, Status: ${rentResolution.rentBal.paymentStatus})`;
+}

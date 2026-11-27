@@ -91,6 +91,61 @@ describe('internalMovementNotes.helper', () => {
       expect(rows[0].grnLabel).toBe('Into: GRN-0200');
       expect(rows[0].reason).toBe('Stock consolidation into target lot');
     });
+
+    it('parses merged-out GRN remarks with explicit Small and Big bag composition (e.g. Small -5, Big -16)', () => {
+      const mergedOut4009: Grn = {
+        ...baseGrn,
+        grnNumber: '4009',
+        bags: 21,
+        smallBags: 0,
+        bigBags: 0,
+        status: 'CLOSED',
+        mergedIntoGrnNumber: '4005',
+        remarks:
+          '[MERGED into GRN 4005 on 2026-11-27: 21 bags cleared (Small -5, Big -16, BagType: S/B). Financial record preserved: Rent Obligation ₹2100, Paid ₹2100, Pending ₹0 (Status: Settled). Customer: Kalyan. Reason: Consolidation into 4005]',
+      };
+      const rows = parseRemarksToTableRows(mergedOut4009);
+      expect(rows).toHaveLength(1);
+      expect(rows[0].badgeLabel).toBe('📤 Merged Out');
+      expect(rows[0].grnLabel).toBe('Into: 4005');
+      expect(rows[0].totalBags).toBe('21 bags');
+      expect(rows[0].sbDetail).toBe('S: 5 • B: 16 (S/B)');
+      expect(rows[0].reason).toBe('Consolidation into 4005');
+    });
+
+    it('parses merged-out GRN remarks with Hybrid composition (e.g. Hybrid -21)', () => {
+      const mergedOutHybrid: Grn = {
+        ...baseGrn,
+        grnNumber: '4009',
+        bags: 21,
+        bagType: 'Hybrid',
+        status: 'CLOSED',
+        mergedIntoGrnNumber: '4005',
+        remarks:
+          '[MERGED into GRN 4005 on 2026-11-27: 21 bags cleared (Hybrid -21). Financial record preserved: Rent Obligation ₹2100, Paid ₹2100, Pending ₹0 (Status: Settled). Customer: Kalyan. Reason: Merged hybrid stock]',
+      };
+      const rows = parseRemarksToTableRows(mergedOutHybrid);
+      expect(rows).toHaveLength(1);
+      expect(rows[0].badgeLabel).toBe('📤 Merged Out');
+      expect(rows[0].grnLabel).toBe('Into: 4005');
+      expect(rows[0].totalBags).toBe('21 bags');
+      expect(rows[0].sbDetail).toBe('Hybrid');
+    });
+
+    it('parses merge-in remarks extracting source lot bag composition from summary', () => {
+      const targetGrnWithSummary: Grn = {
+        ...baseGrn,
+        grnNumber: '4005',
+        bagType: 'S/B',
+        remarks:
+          '[MERGE RECEIVED on 2026-11-27: +21 bags from GRN 4009 (Receipt #IRN-4009, Date: 2026-03-01, Customer: Kalyan, Bags: 21 [Small -5, Big -16], Rent: ₹2100, Paid: ₹2100, Balance: ₹0, Status: Settled). Reason: Consolidation from 4009]',
+      };
+      const rows = parseRemarksToTableRows(targetGrnWithSummary);
+      expect(rows).toHaveLength(1);
+      expect(rows[0].badgeLabel).toBe('📥 Merge In');
+      expect(rows[0].totalBags).toBe('+21 bags');
+      expect(rows[0].sbDetail).toBe('S: 5 • B: 16 (S/B)');
+    });
   });
 
   describe('mapStructuredMovementsToTableRows (database SSOT)', () => {
