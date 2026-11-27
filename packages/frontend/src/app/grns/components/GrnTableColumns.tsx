@@ -115,8 +115,8 @@ export function createGrnTableColumns({
             {(displayType === 'Small' || displayType === 'Big') && (
               <span className={styles.bagTypeSub}>{displayType}</span>
             )}
-            {displayType === 'Unconfirmed' && (
-              <span className={styles.bagTypeSub}>Unconfirmed</span>
+            {(displayType === 'Unconfirmed' || displayType === 'N/A') && (
+              <span className={styles.bagTypeSub}>N/A</span>
             )}
             {row.netDeliveredBags != null && row.netDeliveredBags > 0 && (
               <span className={styles.deliveredSub}>

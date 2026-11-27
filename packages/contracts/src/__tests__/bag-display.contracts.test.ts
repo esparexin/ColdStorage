@@ -17,12 +17,16 @@ describe('formatDisplayBagType contracts SSOT', () => {
 
   it('formats mixed or unsegregated S/B as Small & Big', () => {
     expect(formatDisplayBagType({ bagType: 'S/B', smallBags: 10, bigBags: 10 })).toBe('Small & Big');
-    expect(formatDisplayBagType({ bagType: 'S', isCompositionVerified: false })).toBe('Unconfirmed');
-    expect(formatDisplayBagType({ bagType: 'B', isCompositionVerified: false })).toBe('Unconfirmed');
-    expect(formatDisplayBagType({ bagType: 'S/B', smallBags: 10, bigBags: 0, isCompositionVerified: false })).toBe('Unconfirmed');
-    expect(formatDisplayBagType({ bagType: 'S/B', smallBags: 0, bigBags: 10, isCompositionVerified: false })).toBe('Unconfirmed');
-    expect(formatDisplayBagType({ bagType: 'S/B', smallBags: 0, bigBags: 0, isCompositionVerified: null })).toBe('Unconfirmed');
-    expect(formatDisplayBagType({ bagType: 'S/B', isCompositionVerified: null })).toBe('Unconfirmed');
+    expect(formatDisplayBagType({ bagType: 'S', isCompositionVerified: false })).toBe('N/A');
+    expect(formatDisplayBagType({ bagType: 'B', isCompositionVerified: false })).toBe('N/A');
+    expect(formatDisplayBagType({ bagType: 'S/B', smallBags: 10, bigBags: 0, isCompositionVerified: false })).toBe('N/A');
+    expect(formatDisplayBagType({ bagType: 'S/B', smallBags: 0, bigBags: 10, isCompositionVerified: false })).toBe('N/A');
+    expect(formatDisplayBagType({ bagType: 'S/B', smallBags: 0, bigBags: 0, isCompositionVerified: null })).toBe('N/A');
+    expect(formatDisplayBagType({ bagType: 'S/B', isCompositionVerified: null })).toBe('N/A');
+    expect(formatDisplayBagType({ bagType: undefined })).toBe('N/A');
+    expect(formatDisplayBagType({ bagType: null })).toBe('N/A');
+    expect(formatDisplayBagType({})).toBe('N/A');
+    expect(formatDisplayBagType({ bagType: 'Unconfirmed' })).toBe('N/A');
     expect(formatDisplayBagType({ bagType: 'S/B' })).toBe('Small & Big');
     expect(formatDisplayBagType({ bagType: 'S+B' })).toBe('Small & Big');
     expect(formatDisplayBagType({ category: 'Small & Big' })).toBe('Small & Big');

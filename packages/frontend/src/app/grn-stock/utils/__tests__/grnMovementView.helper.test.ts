@@ -17,37 +17,37 @@ describe('grnMovementView.helper parseMovementRow', () => {
     remarks: 'Genesis Inward',
   };
 
-  it('correctly parses genesis INWARD entry', () => {
+  it('correctly parses genesis INWARD entry with unconfirmed bag type as N/A', () => {
     const res = parseMovementRow(baseEntry);
     expect(res.typeLabel).toBe('INWARD');
     expect(res.badgeType).toBe('inward');
     expect(res.totalDisplay).toBe('100');
-    expect(res.smallDisplay).toBe('100');
-    expect(res.bigDisplay).toBe('0');
-    expect(res.hybridDisplay).toBe('—');
+    expect(res.smallDisplay).toBe('N/A');
+    expect(res.bigDisplay).toBe('N/A');
+    expect(res.hybridDisplay).toBe('N/A');
     expect(res.isReceived).toBe(true);
     expect(res.notes).toBe('Genesis Inward');
+
+    const confirmedSmallRes = parseMovementRow(baseEntry, 'Small');
+    expect(confirmedSmallRes.smallDisplay).toBe('100');
+    expect(confirmedSmallRes.bigDisplay).toBe('0');
+    expect(confirmedSmallRes.hybridDisplay).toBe('—');
   });
 
-  it('renders unclassified genesis INWARD with dashes for null or zero placeholder bags', () => {
+  it('renders unclassified genesis INWARD with N/A for null or zero placeholder bags', () => {
     for (const [sb, bb] of [[null, null], [0, 0]] as const) {
       const res = parseMovementRow({ ...baseEntry, smallBags: sb, bigBags: bb, receivedBags: 10, closingBags: 10 });
       expect(res.typeLabel).toBe('INWARD');
       expect(res.totalDisplay).toBe('10');
-      expect(res.smallDisplay).toBe('—');
-      expect(res.bigDisplay).toBe('—');
+      expect(res.smallDisplay).toBe('N/A');
+      expect(res.bigDisplay).toBe('N/A');
+      expect(res.hybridDisplay).toBe('N/A');
       expect(res.isReceived).toBe(true);
     }
   });
 
   it('renders verified genesis INWARD with confirmed small and big bags', () => {
-    const res = parseMovementRow({
-      ...baseEntry,
-      smallBags: 60,
-      bigBags: 40,
-      receivedBags: 100,
-      closingBags: 100,
-    });
+    const res = parseMovementRow({ ...baseEntry, smallBags: 60, bigBags: 40, receivedBags: 100, closingBags: 100 });
     expect(res.typeLabel).toBe('INWARD');
     expect(res.totalDisplay).toBe('100');
     expect(res.smallDisplay).toBe('60');
@@ -56,14 +56,8 @@ describe('grnMovementView.helper parseMovementRow', () => {
 
   it('correctly parses INTERNAL_MERGE_IN with source GRN extraction', () => {
     const res = parseMovementRow({
-      ...baseEntry,
-      type: 'INTERNAL_MERGE_IN',
-      openingBags: 100,
-      receivedBags: 631,
-      closingBags: 731,
-      smallBags: 631,
-      bigBags: 0,
-      remarks: 'Merged from GRNs 0011: Rebagging as per customer request',
+      ...baseEntry, type: 'INTERNAL_MERGE_IN', openingBags: 100, receivedBags: 631, closingBags: 731,
+      smallBags: 631, bigBags: 0, remarks: 'Merged from GRNs 0011: Rebagging as per customer request',
     });
     expect(res.typeLabel).toBe('MERGE_INTO_IN');
     expect(res.badgeType).toBe('mergeIn');
@@ -75,11 +69,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
 
   it('correctly parses INTERNAL_MERGE_OUT with target GRN extraction', () => {
     const res = parseMovementRow({
-      ...baseEntry,
-      type: 'INTERNAL_MERGE_OUT',
-      openingBags: 631,
-      deliveredBags: 631,
-      closingBags: 0,
+      ...baseEntry, type: 'INTERNAL_MERGE_OUT', openingBags: 631, deliveredBags: 631, closingBags: 0,
       remarks: 'Merged into GRN 0015: Merged for customer Kalyan',
     });
     expect(res.typeLabel).toBe('MERGE_INTO_OUT');
@@ -92,14 +82,8 @@ describe('grnMovementView.helper parseMovementRow', () => {
 
   it('correctly parses OWNERSHIP_TRANSFER without bag quantities and with parties', () => {
     const res = parseMovementRow({
-      ...baseEntry,
-      type: 'OWNERSHIP_TRANSFER',
-      openingBags: 100,
-      deliveredBags: 0,
-      closingBags: 100,
-      smallBags: undefined,
-      bigBags: undefined,
-      remarks: 'Ownership transferred: Penchaliah → NITISH: Transferred as requested',
+      ...baseEntry, type: 'OWNERSHIP_TRANSFER', openingBags: 100, deliveredBags: 0, closingBags: 100,
+      smallBags: undefined, bigBags: undefined, remarks: 'Ownership transferred: Penchaliah → NITISH: Transferred as requested',
     });
     expect(res.typeLabel).toBe('TRANSFER');
     expect(res.badgeType).toBe('transfer');
@@ -136,16 +120,8 @@ describe('grnMovementView.helper parseMovementRow', () => {
 
   it('correctly parses OUTWARD delivery with GP and challan numbers', () => {
     const res = parseMovementRow({
-      ...baseEntry,
-      type: 'FINAL_OUTWARD',
-      openingBags: 731,
-      deliveredBags: 731,
-      closingBags: 0,
-      smallBags: 731,
-      bigBags: 0,
-      gpNumber: 'GP-0001',
-      challanNumber: 'CHL-26-27-0014',
-      remarks: 'Final dispatch',
+      ...baseEntry, type: 'FINAL_OUTWARD', openingBags: 731, deliveredBags: 731, closingBags: 0,
+      smallBags: 731, bigBags: 0, gpNumber: 'GP-0001', challanNumber: 'CHL-26-27-0014', remarks: 'Final dispatch',
     });
     expect(res.typeLabel).toBe('OUTWARD');
     expect(res.badgeType).toBe('outward');
@@ -157,14 +133,8 @@ describe('grnMovementView.helper parseMovementRow', () => {
 
   it('correctly parses DELIVERY_REVERSAL', () => {
     const res = parseMovementRow({
-      ...baseEntry,
-      type: 'DELIVERY_REVERSAL',
-      openingBags: 0,
-      receivedBags: 100,
-      deliveredBags: 100,
-      closingBags: 100,
-      challanNumber: 'CHL-26-27-0014',
-      remarks: 'Truck breakdown',
+      ...baseEntry, type: 'DELIVERY_REVERSAL', openingBags: 0, receivedBags: 100, deliveredBags: 100, closingBags: 100,
+      challanNumber: 'CHL-26-27-0014', remarks: 'Truck breakdown',
     });
     expect(res.typeLabel).toBe('REVERSAL');
     expect(res.badgeType).toBe('reversal');
@@ -175,13 +145,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
 
   it('correctly parses INTERNAL_REPACK in and out entries as SORT_OUT and SORT_IN', () => {
     const outRes = parseMovementRow({
-      ...baseEntry,
-      type: 'INTERNAL_REPACK',
-      openingBags: 100,
-      receivedBags: 0,
-      deliveredBags: 100,
-      closingBags: 0,
-      remarks: 'Stock adjustment for repacking',
+      ...baseEntry, type: 'INTERNAL_REPACK', openingBags: 100, receivedBags: 0, deliveredBags: 100, closingBags: 0, remarks: 'Stock adjustment for repacking',
     });
     expect(outRes.typeLabel).toBe('SORT_OUT');
     expect(outRes.badgeType).toBe('mergeOut');
@@ -190,13 +154,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
     expect(outRes.isReceived).toBe(false);
 
     const inRes = parseMovementRow({
-      ...baseEntry,
-      type: 'INTERNAL_REPACK',
-      openingBags: 0,
-      receivedBags: 95,
-      deliveredBags: 0,
-      closingBags: 95,
-      remarks: 'Repacked stock putaway',
+      ...baseEntry, type: 'INTERNAL_REPACK', openingBags: 0, receivedBags: 95, deliveredBags: 0, closingBags: 95, remarks: 'Repacked stock putaway',
     });
     expect(inRes.typeLabel).toBe('SORT_IN');
     expect(inRes.badgeType).toBe('mergeIn');
@@ -207,14 +165,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
 
   it('correctly formats hybrid consignment inward in the hybrid column', () => {
     const res = parseMovementRow(
-      {
-        ...baseEntry,
-        smallBags: null,
-        bigBags: null,
-        receivedBags: 200,
-        closingBags: 200,
-        remarks: 'Genesis Inward (Hybrid)',
-      },
+      { ...baseEntry, smallBags: null, bigBags: null, receivedBags: 200, closingBags: 200, remarks: 'Genesis Inward (Hybrid)' },
       'Hybrid',
     );
     expect(res.typeLabel).toBe('INWARD');
@@ -226,12 +177,7 @@ describe('grnMovementView.helper parseMovementRow', () => {
 
   it('correctly formats hybrid repacked lot in the hybrid column', () => {
     const res = parseMovementRow({
-      ...baseEntry,
-      type: 'INTERNAL_MERGE_IN',
-      smallBags: null,
-      bigBags: null,
-      receivedBags: 30,
-      closingBags: 30,
+      ...baseEntry, type: 'INTERNAL_MERGE_IN', smallBags: null, bigBags: null, receivedBags: 30, closingBags: 30,
       remarks: 'Merged and repacked from GRNs 0008: 30 Hybrid bags',
     });
     expect(res.typeLabel).toBe('MERGE_INTO_IN');
@@ -239,5 +185,29 @@ describe('grnMovementView.helper parseMovementRow', () => {
     expect(res.bigDisplay).toBe('—');
     expect(res.hybridDisplay).toBe('30');
     expect(res.totalDisplay).toBe('30');
+  });
+
+  it('renders N/A when bag type is not defined/undefined in movement entry', () => {
+    const res = parseMovementRow({
+      ...baseEntry, type: 'OUTWARD', bagType: undefined, smallBags: null, bigBags: null, deliveredBags: 25, closingBags: 75,
+      remarks: 'Delivery without defined bag type',
+    });
+    expect(res.typeLabel).toBe('OUTWARD');
+    expect(res.smallDisplay).toBe('N/A');
+    expect(res.bigDisplay).toBe('N/A');
+    expect(res.hybridDisplay).toBe('N/A');
+    expect(res.totalDisplay).toBe('25');
+  });
+
+  it('correctly formats hybrid outward delivery in the hybrid column', () => {
+    const res = parseMovementRow({
+      ...baseEntry, type: 'PARTIAL_OUTWARD', bagType: 'Hybrid', smallBags: 0, bigBags: 0, deliveredBags: 50, closingBags: 50,
+      remarks: 'Outward Delivery Hybrid',
+    });
+    expect(res.typeLabel).toBe('OUTWARD');
+    expect(res.smallDisplay).toBe('—');
+    expect(res.bigDisplay).toBe('—');
+    expect(res.hybridDisplay).toBe('50');
+    expect(res.totalDisplay).toBe('50');
   });
 });

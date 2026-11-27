@@ -19,12 +19,16 @@ export function formatDisplayBagType(input: FormatDisplayBagTypeInput): string {
     return 'Hybrid';
   }
 
-  // An unverified lot cannot be resolved to a single bag type purely from DB fallback placeholders.
+  // An unverified lot or lot with undefined/unformed bag type cannot be resolved to a single bag type purely from DB fallback placeholders.
   if (input.isCompositionVerified === false || input.isCompositionVerified === null) {
-    return 'Unconfirmed';
+    return 'N/A';
   }
 
   const type = input.bagType ?? input.category;
+  if (!type || type === 'undefined' || type === 'null' || type === 'N/A' || type === 'Unconfirmed') {
+    return 'N/A';
+  }
+
   if (type === 'S' || type === 'Small') return 'Small';
   if (type === 'B' || type === 'Big') return 'Big';
 

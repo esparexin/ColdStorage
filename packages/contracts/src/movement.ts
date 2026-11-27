@@ -32,6 +32,7 @@ export const grnMovementEntrySchema = z.object({
   bigBags: z.number().int().min(0).nullable().optional(),
   remainingSmallBags: z.number().int().min(0).nullable().optional(),
   remainingBigBags: z.number().int().min(0).nullable().optional(),
+  bagType: z.string().nullable().optional(),
   challanNumber: challanNumberSchema.nullable().optional(),
   deliveryId: z.string().nullable().optional(),
   reversalId: z.string().nullable().optional(),

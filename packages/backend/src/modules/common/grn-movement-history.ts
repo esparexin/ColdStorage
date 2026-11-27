@@ -63,9 +63,8 @@ export async function getGrnMovementHistory(
     {
       date: grn.date, grnId: grn.id, grnNumber: grn.grnNumber, type: 'INWARD',
       openingBags: 0, receivedBags: initialTotal, deliveredBags: 0, closingBags: initialTotal,
-      smallBags: initialSmall, bigBags: initialBig, remainingSmallBags: initialSmall, remainingBigBags: initialBig,
-      marks: grn.partyMark || grn.storageMark || grn.marks || null,
-      gpNumber: grn.gpNumber ?? null, vehicleNumber: grn.vehicleNumber ?? null, remarks: grn.remarks ?? null, performedBy: grn.createdBy,
+      smallBags: initialSmall, bigBags: initialBig, remainingSmallBags: initialSmall, remainingBigBags: initialBig, bagType: grn.bagType ?? null,
+      marks: grn.partyMark || grn.storageMark || grn.marks || null, gpNumber: grn.gpNumber ?? null, vehicleNumber: grn.vehicleNumber ?? null, remarks: grn.remarks ?? null, performedBy: grn.createdBy,
     },
   ];
 
@@ -197,14 +196,14 @@ export async function getGrnMovementHistory(
       } else {
         const challan = challanMap.get(t.referenceId);
         const isLive = challan?.status === 'ISSUED';
+        const deliveryBagType = (challan?.bagCategory === 'Hybrid' || challan?.bagType === 'Hybrid' || t.bagType === 'Hybrid') ? 'Hybrid' : (challan?.bagType ?? t.bagType ?? null);
         entries.push({
           date: challan?.date ?? t.createdAt, grnId: grn.id, grnNumber: grn.grnNumber,
           type: isLive && closing === 0 ? 'FINAL_OUTWARD' : 'PARTIAL_OUTWARD',
           openingBags: opening, receivedBags: 0, deliveredBags: deltaTotal, closingBags: closing,
-          smallBags: t.smallQuantity, bigBags: t.bigQuantity, remainingSmallBags: closingSmall, remainingBigBags: closingBig,
+          smallBags: t.smallQuantity, bigBags: t.bigQuantity, remainingSmallBags: closingSmall, remainingBigBags: closingBig, bagType: deliveryBagType,
           challanNumber: challan?.challanNumber ?? null, deliveryId: challan?.id ?? t.referenceId,
-          marks: challan?.marks ?? grn.partyMark ?? grn.storageMark ?? grn.marks ?? null,
-          gpNumber: challan?.gpNumber ?? grn.gpNumber ?? null, vehicleNumber: challan?.vehicleNumber ?? null,
+          marks: challan?.marks ?? grn.partyMark ?? grn.storageMark ?? grn.marks ?? null, gpNumber: challan?.gpNumber ?? grn.gpNumber ?? null, vehicleNumber: challan?.vehicleNumber ?? null,
           driverName: challan?.driverName ?? null, remarks: challan?.remarks ?? t.notes ?? null, performedBy: challan?.issuedBy ?? t.createdBy,
         });
       }
