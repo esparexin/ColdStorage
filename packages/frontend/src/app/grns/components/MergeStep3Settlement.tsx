@@ -77,7 +77,7 @@ export function MergeStep3Settlement({
   const isTargetSettled =
     targetCalc.totalAmountToPay === 0 ||
     (targetPaid >= targetCalc.totalAmountToPay && targetCalc.totalAmountToPay > 0);
-  const hasTargetHistoricalRent = targetCalc.totalRent > 0;
+  const hasTargetHistoricalRent = targetCalc.totalAmountToPay > 0;
 
   const totalSettlementBill = useMemo(() => {
     return calculateMergeSettlementBill({

@@ -120,7 +120,7 @@ export function OutwardRentBreakdown({
   }
 
   const rows = useMemo<RentBreakdownItem[]>(() => {
-    if (isSeasonal && seasonalBreakdown && seasonalBreakdown.periods.length > 0) {
+    if (isSeasonal && seasonalBreakdown && (seasonalBreakdown.periods.length > 0 || (typeof hamaliRate === 'number' && hamaliRate > 0))) {
       return formatSeasonalBreakdownRows({
         periods: seasonalBreakdown.periods,
         isHybrid,
