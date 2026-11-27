@@ -1,4 +1,4 @@
-import type { Grn } from '@cold-storage/contracts';
+import { formatDisplayBagType, parseMergedConsignmentBreakdown, type Grn, type InternalMovementRecord } from '@cold-storage/contracts';
 import { getLoanStatusDisplay } from '../../../lib/loanStatusFormat';
 
 export interface MergedDetailItem {
@@ -129,10 +129,21 @@ export function deriveMergedAttributes(
     }
   }
 
+  // Conforms strictly to @cold-storage/contracts SSOT:
+  // When a lot underwent repacking with variance during merge, the resulting stock
+  // was transformed and cannot be naively represented as a simple additive (A + B) sum.
+  const breakdown = parseMergedConsignmentBreakdown(grn.remarks, grn.bags, grn.customerName || '');
+  const hasRepackVariance = Boolean(
+    breakdown?.repackVariance != null && breakdown.repackVariance !== 0,
+  );
+
   const totalMergedBags = mergedDetails.reduce((sum, m) => sum + (m.bags || 0), 0);
   const activeInitialBags = Math.max(0, grn.bags - totalMergedBags);
   const bagsBreakdown =
-    mergedDetails.length === 0 || totalMergedBags === 0 || totalMergedBags >= grn.bags
+    hasRepackVariance ||
+    mergedDetails.length === 0 ||
+    totalMergedBags === 0 ||
+    totalMergedBags >= grn.bags
       ? null
       : `${activeInitialBags.toLocaleString('en-IN')} + ${totalMergedBags.toLocaleString('en-IN')}`;
 
@@ -142,4 +153,29 @@ export function deriveMergedAttributes(
     mergedPartyMarks: Array.from(partyMarkSet),
     bagsBreakdown,
   };
+}
+
+/**
+ * Resolves verified bag type display for GRN detail modal, resolving from
+ * authoritative movement history or destination lot for merged stock.
+ */
+export function resolveDetailDisplayBagType(
+  grn: Grn,
+  destinationGrn: Grn | null,
+  movements?: InternalMovementRecord[] | null,
+): string {
+  const raw = formatDisplayBagType(grn);
+  if (raw !== 'N/A' && raw !== 'Unconfirmed') return raw;
+  if (movements && movements.length > 0) {
+    const type = movements[0].resultingBagType ?? movements[0].sourceBagType;
+    if (type) {
+      const formatted = formatDisplayBagType({ bagType: type, isCompositionVerified: true });
+      if (formatted !== 'N/A') return formatted;
+    }
+  }
+  if (destinationGrn) {
+    const destType = formatDisplayBagType(destinationGrn);
+    if (destType !== 'N/A' && destType !== 'Unconfirmed') return destType;
+  }
+  return raw;
 }

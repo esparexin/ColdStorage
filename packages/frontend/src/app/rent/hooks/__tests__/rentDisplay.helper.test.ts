@@ -14,9 +14,7 @@ import {
 describe('rentDisplay.helper', () => {
   describe('formatAgreedRates', () => {
     it('returns formatted rates when small and big rates are provided', () => {
-      expect(formatAgreedRates({ rentType: 'Seasonal', rentAmount: 0, smallBagPrice: 12, bigBagPrice: 18 })).toBe(
-        'S: ₹12.00 | B: ₹18.00',
-      );
+      expect(formatAgreedRates({ rentType: 'Seasonal', rentAmount: 0, smallBagPrice: 12, bigBagPrice: 18 })).toBe('S: ₹12.00 | B: ₹18.00');
     });
 
     it('returns formatted per bag price when single bagPrice provided', () => {
@@ -32,8 +30,16 @@ describe('rentDisplay.helper', () => {
       expect(formatRentStructure({ rentType: 'Monthly', rentAmount: 0 })).toBe('Dynamic');
     });
 
-    it('returns "At Outward" for Seasonal rent with zero rentAmount', () => {
+    it('returns "At Outward" for Seasonal rent with zero dues', () => {
       expect(formatRentStructure({ rentType: 'Seasonal', rentAmount: 0 })).toBe('At Outward');
+    });
+
+    it('returns formatted currency when rentAmount is 0 but totalDue is positive (e.g. dues from hamali/merge)', () => {
+      expect(formatRentStructure({ rentType: 'Seasonal', rentAmount: 0, totalDue: 50 })).toBe('₹50');
+    });
+
+    it('returns "GRN merge out" when rent is zero and lot was merged out', () => {
+      expect(formatRentStructure({ rentType: 'Seasonal', rentAmount: 0, mergedIntoGrnNumber: '5000' })).toBe('GRN merge out');
     });
 
     it('returns formatted INR currency string for positive rentAmount', () => {
@@ -221,30 +227,14 @@ describe('rentDisplay.helper', () => {
   });
 
   describe('deriveHamaliChargeFromSummary', () => {
-    it('returns positive hamali difference when totalDue exceeds rentAmount', () => {
+    it('derives hamali difference or uses explicit hamaliShare', () => {
       expect(deriveHamaliChargeFromSummary(5000, 3250, [])).toBe(1750);
-    });
-
-    it('accounts for extension amounts in deriving hamali difference', () => {
       expect(deriveHamaliChargeFromSummary(6000, 3250, [{ finalAmount: 1000 }])).toBe(1750);
-    });
-
-    it('returns 0 when totalDue equals rentAmount and extensions', () => {
       expect(deriveHamaliChargeFromSummary(3250, 3250, [])).toBe(0);
-    });
-
-    it('returns 0 when difference is negative or zero', () => {
       expect(deriveHamaliChargeFromSummary(3000, 3250, [])).toBe(0);
-    });
-
-    it('returns explicit hamaliShare when provided', () => {
       expect(deriveHamaliChargeFromSummary(5000, 3250, [], 500)).toBe(500);
-    });
-
-    it('returns 0 when explicit hamaliShare is 0, avoiding outward rent misclassification', () => {
+      expect(deriveHamaliChargeFromSummary(0, 0, [], 500)).toBe(0);
       expect(deriveHamaliChargeFromSummary(5000, 0, [], 0)).toBe(0);
     });
   });
 });
-
-

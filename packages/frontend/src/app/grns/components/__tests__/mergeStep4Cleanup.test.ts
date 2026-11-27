@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { validateMergeSubmit } from '../mergeStepValidation.helper';
 
@@ -113,5 +115,19 @@ describe('Merge Step 4 Cleanup & Chamber Validation', () => {
       reason: 'move',
     });
     expect(result).toBe('Audit reason must be at least 5 characters.');
+  });
+
+  it('verifies MergeStep4RepackSection keeps storage mark read-only and allows manual merge date entry', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, '../MergeStep4RepackSection.tsx'), 'utf-8');
+
+    // Storage mark is read-only for surviving Target GRN
+    expect(source).toContain('id="merge-storage-mark"');
+    expect(source).toContain('readOnly');
+    expect(source).toContain('aria-label="Storage Mark (Target GRN, read-only)"');
+
+    // Merge date allows manual entry (not readOnly, has onChange handler)
+    expect(source).toContain('id="merge-date"');
+    expect(source).toContain('onChange={(e) => onMovementDateChange?.(e.target.value)}');
+    expect(source).not.toContain('aria-label="Merge Date (read-only)"');
   });
 });

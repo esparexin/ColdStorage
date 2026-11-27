@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { computeRentBalance } from '../modules/common/rent-balance.js';
 import { assertSourceMergeable } from '../modules/internal-movement/handlers/merge-source-move.helper.js';
-import type { MergeSourceGrn } from '../modules/internal-movement/handlers/merge-grn.helper.js';
+import {
+  formatMergeSourceAuditNote,
+  formatMergeSourceSummary,
+  type MergeSourceGrn,
+  type SourceRentResolution,
+} from '../modules/internal-movement/handlers/merge-grn.helper.js';
+import type { LedgerBalance } from '../modules/inventory/ledger-balance.js';
 
 function makeGrn(overrides: Partial<MergeSourceGrn>): MergeSourceGrn {
   return {
@@ -124,5 +131,88 @@ describe('assertSourceMergeable (Unit)', () => {
     const target = makeGrn({ id: 'grn-tgt', grnNumber: '0012', rentType: 'Seasonal' });
 
     expect(() => assertSourceMergeable(source, target)).not.toThrow();
+  });
+});
+
+describe('formatMergeSourceAuditNote and formatMergeSourceSummary (SSOT)', () => {
+  const mockRentResolution: SourceRentResolution = {
+    effectiveRentAmount: 2100,
+    totalPaid: 2100,
+    sourceTotalDue: 2100,
+    rentBal: computeRentBalance(2100, 2100),
+    isSameSeason: true,
+    isPendingVerification: false,
+    paidAmount: 0,
+  };
+
+  it('formats merge source audit note and summary with Small and Big bag breakdown (e.g. 4009 into 4005: Small -5, Big -16)', () => {
+    const ledgerBalance: LedgerBalance = {
+      total: 21,
+      smallBags: 5,
+      bigBags: 16,
+    };
+
+    const auditNote = formatMergeSourceAuditNote({
+      targetGrnNumber: '4005',
+      movementDate: new Date('2026-11-27'),
+      ledgerBalance,
+      rentResolution: mockRentResolution,
+      customerName: 'Kalyan',
+      remarks: 'Consolidation of remaining stock',
+      resolvedBagType: 'S/B',
+    });
+
+    expect(auditNote).toContain('[MERGED into GRN 4005 on 2026-11-27: 21 bags cleared (Small -5, Big -16, BagType: S/B).');
+    expect(auditNote).toContain('Rent Obligation ₹2100, Paid ₹2100, Pending ₹0');
+    expect(auditNote).toContain('Reason: Consolidation of remaining stock');
+
+    const summary = formatMergeSourceSummary({
+      grnNumber: '4009',
+      inwardReceiptNumber: 'IRN-4009',
+      inwardDate: new Date('2026-03-01'),
+      customerName: 'Kalyan',
+      ledgerBalance,
+      rentResolution: mockRentResolution,
+      resolvedBagType: 'S/B',
+    });
+
+    expect(summary).toBe(
+      'GRN 4009 (Receipt #IRN-4009, Date: 2026-03-01, Customer: Kalyan, Bags: 21 [Small -5, Big -16], Rent: ₹2100, Paid: ₹2100, Balance: ₹0, Status: Settled)',
+    );
+  });
+
+  it('formats merge source audit note and summary with Hybrid composition (e.g. 4009 into 4005: Hybrid -21)', () => {
+    const ledgerBalance: LedgerBalance = {
+      total: 21,
+      smallBags: 0,
+      bigBags: 0,
+    };
+
+    const auditNote = formatMergeSourceAuditNote({
+      targetGrnNumber: '4005',
+      movementDate: new Date('2026-11-27'),
+      ledgerBalance,
+      rentResolution: mockRentResolution,
+      customerName: 'Kalyan',
+      remarks: 'Consolidation of hybrid lot',
+      resolvedBagType: 'Hybrid',
+    });
+
+    expect(auditNote).toContain('[MERGED into GRN 4005 on 2026-11-27: 21 bags cleared (Hybrid -21).');
+    expect(auditNote).toContain('Rent Obligation ₹2100, Paid ₹2100, Pending ₹0');
+
+    const summary = formatMergeSourceSummary({
+      grnNumber: '4009',
+      inwardReceiptNumber: 'IRN-4009',
+      inwardDate: new Date('2026-03-01'),
+      customerName: 'Kalyan',
+      ledgerBalance,
+      rentResolution: mockRentResolution,
+      resolvedBagType: 'Hybrid',
+    });
+
+    expect(summary).toBe(
+      'GRN 4009 (Receipt #IRN-4009, Date: 2026-03-01, Customer: Kalyan, Bags: 21 [Hybrid -21], Rent: ₹2100, Paid: ₹2100, Balance: ₹0, Status: Settled)',
+    );
   });
 });

@@ -2,11 +2,85 @@ import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import { calculateHamaliAmount, isHybridBagCategory, resolveEffectiveGrnRentType, type MergeGrnInput } from '@cold-storage/contracts';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
+import { GrnModel } from '../../../database/models/grn.model.js';
+import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { counterService } from '../../common/counter.service.js';
-import { readLedgerBalance } from '../../inventory/ledger-balance.js';
-import { resolveSourceRentObligation, closeSourceGrnOnMerge, type MergeSourceGrn } from './merge-grn.helper.js';
+import { readLedgerBalance, type LedgerBalance } from '../../inventory/ledger-balance.js';
+import { resolveSourceRentObligation, type MergeSourceGrn, type SourceRentResolution } from './merge-grn.helper.js';
 import { validateMergeRepackedCounts } from './merge-grn-validation.helper.js';
+import { formatMergeSourceAuditNote, formatMergeSourceSummary } from './merge-grn-remarks.helper.js';
+
+export interface CloseSourceGrnParams {
+  facilityId: string; sourceGrn: MergeSourceGrn; targetGrnNumber: string; targetGrnId: string;
+  movementId: string; movementDate: Date; ledgerBalance: LedgerBalance;
+  rentResolution: SourceRentResolution; remarks: string; userId: string;
+  session: mongoose.ClientSession; confirmedBagType?: string | null;
+}
+
+export async function closeSourceGrnOnMerge(params: CloseSourceGrnParams): Promise<string> {
+  const { facilityId, sourceGrn, targetGrnNumber, targetGrnId, movementId, movementDate, ledgerBalance, rentResolution, remarks, userId, session, confirmedBagType } = params;
+
+  // Conforms strictly to @cold-storage/contracts SSOT:
+  // When a source lot is merged out, record confirmed bag type and mark isCompositionVerified: true
+  const resolvedBagType =
+    confirmedBagType ||
+    (sourceGrn.bagType === 'Hybrid' || isHybridBagCategory(sourceGrn.bagType) ? 'Hybrid' : (sourceGrn.bagType || 'S/B'));
+  const isHybrid = resolvedBagType === 'Hybrid' || isHybridBagCategory(resolvedBagType);
+
+  const compTx = isHybrid
+    ? `Hybrid -${ledgerBalance.total}`
+    : `Small -${ledgerBalance.smallBags}, Big -${ledgerBalance.bigBags}`;
+
+  await InventoryTransactionModel.create(
+    [
+      {
+        id: `tx-${randomUUID()}`, facilityId, grnId: sourceGrn.id, grnNumber: sourceGrn.grnNumber,
+        chamber: sourceGrn.chamber, commodityId: sourceGrn.commodityId, bagType: sourceGrn.bagType,
+        transactionType: 'OUTWARD_DELIVERY', smallQuantity: ledgerBalance.smallBags, bigQuantity: ledgerBalance.bigBags,
+        referenceType: 'DELIVERY', referenceId: `${movementId}-${sourceGrn.id}`,
+        notes: `Merged into GRN ${targetGrnNumber} (${compTx}): ${remarks.trim()}`, createdBy: userId, createdAt: movementDate,
+      },
+    ],
+    { session, ordered: true },
+  );
+
+  const sourceNote = formatMergeSourceAuditNote({
+    targetGrnNumber,
+    movementDate,
+    ledgerBalance,
+    rentResolution,
+    customerName: sourceGrn.customerName,
+    remarks,
+    resolvedBagType,
+  });
+  const updatedSourceRemarks = sourceGrn.remarks ? `${sourceGrn.remarks}\n${sourceNote}` : sourceNote;
+
+  await GrnModel.updateOne(
+    { id: sourceGrn.id },
+    {
+      $set: {
+        status: 'CLOSED', remarks: updatedSourceRemarks,
+        mergedIntoGrnId: targetGrnId, mergedIntoGrnNumber: targetGrnNumber,
+        bagType: resolvedBagType,
+        smallBags: isHybrid ? 0 : (sourceGrn.smallBags ?? ledgerBalance.smallBags),
+        bigBags: isHybrid ? 0 : (sourceGrn.bigBags ?? ledgerBalance.bigBags),
+        isCompositionVerified: true, updatedAt: new Date(),
+      },
+    },
+    { session },
+  );
+
+  return formatMergeSourceSummary({
+    grnNumber: sourceGrn.grnNumber,
+    inwardReceiptNumber: sourceGrn.inwardReceiptNumber,
+    inwardDate: sourceGrn.date,
+    customerName: sourceGrn.customerName,
+    ledgerBalance,
+    rentResolution,
+    resolvedBagType,
+  });
+}
 
 /**
  * Pre-drain validation (D9): confirms the move composition from prospective
@@ -102,6 +176,7 @@ export async function processMergeSource(params: {
   const summary = await closeSourceGrnOnMerge({
     facilityId, sourceGrn: s, targetGrnNumber: targetGrn.grnNumber, targetGrnId: targetGrn.id,
     movementId, movementDate: moveDate, ledgerBalance: bal, rentResolution, remarks: input.remarks, userId, session,
+    confirmedBagType: effectiveCategory,
   });
   return { movedTotal: bal.total, movedSmall: bal.smallBags, movedBig: bal.bigBags, summary, pendingRent: rentResolution.rentBal.remainingBalance, paidAmount: rentResolution.paidAmount };
 }

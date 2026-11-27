@@ -80,7 +80,7 @@ describe('Transfer Ownership Movement History (Unit)', () => {
       bigQuantity: 0,
       referenceType: 'DELIVERY',
       referenceId: movTransfer.id,
-      notes: 'Stock adjustment for ownership transfer (Lot 0099)',
+      notes: 'Ownership Transfer Out (Lot 0099): 100 bags (Small -100, Big -0)',
       createdBy: 'usr-1',
       createdAt: new Date('2026-11-05T10:00:00.000Z'),
     };
@@ -98,7 +98,7 @@ describe('Transfer Ownership Movement History (Unit)', () => {
       bigQuantity: 40,
       referenceType: 'PUT_AWAY',
       referenceId: movTransfer.id,
-      notes: 'Confirmed stock putaway for ownership transfer (Lot 0099)',
+      notes: 'Ownership Transfer In (Lot 0099): 100 bags (Small -60, Big -40)',
       createdBy: 'usr-1',
       createdAt: new Date('2026-11-05T10:00:00.000Z'),
     };

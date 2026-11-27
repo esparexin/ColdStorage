@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import {
   calculateHamaliAmount,
   isHybridBagCategory,
+  resolveUncompletedPeriodKeys,
   type Grn,
   type OutwardBagCategory,
 } from '@cold-storage/contracts';
@@ -68,6 +69,11 @@ export function TransferRentAssessment({
     [currentGrn, propSeasonalRates, propMonthlyRates],
   );
 
+  const excludePeriodKeys = useMemo(
+    () => (currentGrn.date ? resolveUncompletedPeriodKeys(currentGrn.date, movementDate) : []),
+    [currentGrn.date, movementDate],
+  );
+
   const calculatedRent = useMemo(() => {
     if (propAssessedRent !== undefined) return propAssessedRent;
     return computeOutwardRentCharge({
@@ -86,10 +92,11 @@ export function TransferRentAssessment({
       bagPrice: currentGrn.bagPrice,
       monthlySmallBagPrice: resolvedRates.monthlyRates.small,
       monthlyBigBagPrice: resolvedRates.monthlyRates.big,
+      excludePeriodKeys,
     });
   }, [
     propAssessedRent, currentGrn, sourceBagCategory, smallBags, bigBags, isHybrid,
-    sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice, movementDate, resolvedRates,
+    sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice, movementDate, resolvedRates, excludePeriodKeys,
   ]);
 
   const totalRent = propAssessedRent ?? calculatedRent;
@@ -163,6 +170,7 @@ export function TransferRentAssessment({
         monthlyRates={resolvedRates.monthlyRates}
         totalRent={totalRent}
         hamaliRate={hamaliRate}
+        excludePeriodKeys={excludePeriodKeys}
       />
     </div>
   );

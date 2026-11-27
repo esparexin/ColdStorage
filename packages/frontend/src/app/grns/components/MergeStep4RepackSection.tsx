@@ -9,7 +9,7 @@ import styles from './InternalMovementModal.module.css';
 export interface MergeStep4RepackSectionProps {
   destinationChamber: string; onDestinationChamberChange: (val: string) => void;
   partyMark: string; onPartyMarkChange: (val: string) => void;
-  storageMark: string; onStorageMarkChange: (val: string) => void;
+  storageMark: string; onStorageMarkChange?: (val: string) => void;
   repackMode: boolean; onRepackModeChange?: (active: boolean) => void;
   repackBagType: OperationalBagType; onRepackBagTypeChange: (type: OperationalBagType) => void;
   repackSmall: number | ''; onRepackSmallChange: (val: number | '') => void;
@@ -20,7 +20,7 @@ export interface MergeStep4RepackSectionProps {
   repackBagPrice: number | ''; onRepackBagPriceChange: (val: number | '') => void;
   totalSourceBags: number; referenceWeight: number | ''; onReferenceWeightChange: (val: number | '') => void;
   repackHamaliCharge: number; actualRepackedBags: number; commodityHamaliRate: number;
-  movementDate: string; targetSmallRate: number; targetBigRate: number; submitting: boolean;
+  movementDate: string; onMovementDateChange?: (val: string) => void; targetSmallRate: number; targetBigRate: number; submitting: boolean;
   targetGrnRentType: RentType; targetGrnDate: Date | string;
   totalConsolidatedBags?: number;
 }
@@ -28,13 +28,13 @@ export interface MergeStep4RepackSectionProps {
 export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
   const {
     destinationChamber, onDestinationChamberChange,
-    partyMark, onPartyMarkChange, storageMark, onStorageMarkChange,
+    partyMark, onPartyMarkChange, storageMark,
     repackMode, repackBagType, onRepackBagTypeChange,
     repackSmall, onRepackSmallChange, repackBig, onRepackBigChange,
     repackQuantity, onRepackQuantityChange, repackSeasonalBagPrice, onRepackSeasonalBagPriceChange,
     repackMonthlyBagPrice, onRepackMonthlyBagPriceChange,
     referenceWeight, onReferenceWeightChange, repackHamaliCharge,
-    actualRepackedBags, commodityHamaliRate, movementDate, targetSmallRate,
+    actualRepackedBags, commodityHamaliRate, movementDate, onMovementDateChange, targetSmallRate,
     targetBigRate, submitting, targetGrnRentType,
   } = props;
 
@@ -125,7 +125,7 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
           <Input id="merge-party-mark" label="Party Mark" type="text" maxLength={20} value={partyMark} placeholder="e.g. KSN-99 (max 20)" onChange={(e) => onPartyMarkChange(e.target.value)} disabled={submitting} />
         </div>
         <div style={{ flex: 1 }}>
-          <Input id="merge-storage-mark" label="Storage Mark" type="text" maxLength={20} value={storageMark} placeholder="e.g. ST-01 (max 20)" onChange={(e) => onStorageMarkChange(e.target.value)} disabled={submitting} />
+          <Input id="merge-storage-mark" label="Storage Mark" type="text" maxLength={20} value={storageMark} readOnly disabled={submitting} aria-label="Storage Mark (Target GRN, read-only)" title="Target GRN storage mark (read-only)" />
         </div>
       </div>
 
@@ -134,7 +134,7 @@ export function MergeStep4RepackSection(props: MergeStep4RepackSectionProps) {
           <Input id="merge-ref-weight" label="Reference Weight (kg) — Optional" type="number" min={0} placeholder="e.g. 2500" value={referenceWeight} onChange={(e) => onReferenceWeightChange(e.target.value !== '' ? parseFloat(e.target.value) : '')} disabled={submitting} />
         </div>
         <div style={{ flex: 1 }}>
-          <Input id="merge-date" label="Merge Date *" type="date" value={movementDate} readOnly disabled={submitting} aria-label="Merge Date (read-only)" title="Authoritative operational date" required />
+          <Input id="merge-date" label="Merge Date *" type="date" value={movementDate} onChange={(e) => onMovementDateChange?.(e.target.value)} disabled={submitting} title="Authoritative operational date" required />
         </div>
       </div>
     </div>

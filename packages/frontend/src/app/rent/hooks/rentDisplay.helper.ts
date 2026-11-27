@@ -20,13 +20,17 @@ export interface RentAccountDisplayInput {
  * periods exist, else the original obligation. Pure display, no math duplicated.
  */
 export function formatRentStructure(input: RentAccountDisplayInput): string {
-  if (input.rentType === 'Monthly' && input.rentAmount === 0) {
+  const effectiveDue = input.totalDue ?? input.rentAmount;
+  if (input.rentType === 'Monthly' && effectiveDue === 0) {
     return 'Dynamic';
   }
-  if (input.rentAmount === 0) {
-    return 'At Outward';
+  if (effectiveDue > 0) {
+    return `₹${effectiveDue.toLocaleString('en-IN')}`;
   }
-  return `₹${(input.totalDue ?? input.rentAmount).toLocaleString('en-IN')}`;
+  if (input.mergedIntoGrnNumber) {
+    return 'GRN merge out';
+  }
+  return 'At Outward';
 }
 
 /**
@@ -163,19 +167,24 @@ export function formatHamaliCalculationSubtitle(params: {
   return 'Operational handling labor charge recorded on account';
 }
 
-/** Derives any applicable Hamali handling charge included in totalDue. */
+/**
+ * Derives any applicable Hamali handling charge included in totalDue.
+ * Unbilled resting stock (totalDue <= 0) strictly incurs 0 billed hamali.
+ */
 export function deriveHamaliChargeFromSummary(
   totalDue: number,
   rentAmount: number,
   extensions: { finalAmount: number }[],
   explicitHamaliShare?: number | null,
 ): number {
-  if (typeof explicitHamaliShare === 'number' && Number.isFinite(explicitHamaliShare)) {
-    return explicitHamaliShare > 0 ? Number(explicitHamaliShare.toFixed(2)) : 0;
-  }
+  if (totalDue <= 0 || explicitHamaliShare === 0) return 0;
   const sumExt = extensions.reduce((acc, e) => acc + e.finalAmount, 0);
   const diff = totalDue - (rentAmount + sumExt);
-  return diff > 0 ? Number(diff.toFixed(2)) : 0;
+  if (diff <= 0) return 0;
+  if (typeof explicitHamaliShare === 'number' && Number.isFinite(explicitHamaliShare) && explicitHamaliShare > 0) {
+    return Number(Math.min(diff, explicitHamaliShare).toFixed(2));
+  }
+  return Number(diff.toFixed(2));
 }
 
 export interface OwnershipTransferDisplayInfo {

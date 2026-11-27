@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import { GrnModel } from '../../../database/models/grn.model.js';
-import { InventoryTransactionModel } from '../../../database/models/inventory-transaction.model.js';
 import { rentRepository } from '../../rent/rent.repository.js';
 import { resolveMovementObligation } from './resolve-movement-obligation.js';
 import { computeRentBalance, type RentBalance } from '../../common/rent-balance.js';
@@ -12,7 +11,6 @@ import {
   resolveStoredCompositionVerified, seasonYearForInwardDate, toExcludedPeriodKeys,
   type BagType, type PaymentMode, type RentType,
 } from '@cold-storage/contracts';
-import type { LedgerBalance } from '../../inventory/ledger-balance.js';
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';
@@ -44,8 +42,7 @@ export interface ResolveSourceRentParams {
 export async function resolveSourceRentObligation(
   params: ResolveSourceRentParams,
 ): Promise<SourceRentResolution> {
-  const { facilityId, sourceGrn, targetGrnDate, movementDate,
-    sourcePaymentAmount, sourcePaymentMode, userId, session } = params;
+  const { facilityId, sourceGrn, targetGrnDate, movementDate, sourcePaymentAmount, sourcePaymentMode, userId, session } = params;
 
   const targetSeason = seasonYearForInwardDate(targetGrnDate);
   const sourceSeason = seasonYearForInwardDate(sourceGrn.date);
@@ -202,48 +199,14 @@ export async function resolveSourceRentObligation(
   };
 }
 
-export interface CloseSourceGrnParams {
-  facilityId: string; sourceGrn: MergeSourceGrn; targetGrnNumber: string; targetGrnId: string;
-  movementId: string; movementDate: Date; ledgerBalance: LedgerBalance;
-  rentResolution: SourceRentResolution; remarks: string; userId: string;
-  session: mongoose.ClientSession;
-}
+export {
+  formatMergeSourceAuditNote,
+  formatMergeSourceSummary,
+  type FormatMergeSourceAuditNoteParams,
+  type FormatMergeSourceSummaryParams,
+} from './merge-grn-remarks.helper.js';
 
-export async function closeSourceGrnOnMerge(params: CloseSourceGrnParams): Promise<string> {
-  const { facilityId, sourceGrn, targetGrnNumber, targetGrnId, movementId, movementDate, ledgerBalance, rentResolution, remarks, userId, session } = params;
-
-  await InventoryTransactionModel.create(
-    [
-      {
-        id: `tx-${randomUUID()}`, facilityId, grnId: sourceGrn.id, grnNumber: sourceGrn.grnNumber,
-        chamber: sourceGrn.chamber, commodityId: sourceGrn.commodityId, bagType: sourceGrn.bagType,
-        transactionType: 'OUTWARD_DELIVERY', smallQuantity: ledgerBalance.smallBags,
-        bigQuantity: ledgerBalance.bigBags, referenceType: 'DELIVERY',
-        referenceId: `${movementId}-${sourceGrn.id}`, notes: `Merged into GRN ${targetGrnNumber}: ${remarks.trim()}`,
-        createdBy: userId, createdAt: movementDate,
-      },
-    ],
-    { session, ordered: true },
-  );
-
-  const moveDateStr = movementDate.toISOString().split('T')[0];
-  const sourceNote = `[MERGED into GRN ${targetGrnNumber} on ${moveDateStr}: ${ledgerBalance.total} bags cleared. Financial record preserved: Rent Obligation ₹${rentResolution.effectiveRentAmount}, Paid ₹${rentResolution.totalPaid}, Pending ₹${rentResolution.rentBal.remainingBalance} (Status: ${rentResolution.rentBal.paymentStatus}). Customer: ${sourceGrn.customerName}. Reason: ${remarks.trim()}]`;
-  const updatedSourceRemarks = sourceGrn.remarks ? `${sourceGrn.remarks}\n${sourceNote}` : sourceNote;
-
-  await GrnModel.updateOne(
-    { id: sourceGrn.id },
-    {
-      $set: {
-        status: 'CLOSED',
-        remarks: updatedSourceRemarks,
-        mergedIntoGrnId: targetGrnId,
-        mergedIntoGrnNumber: targetGrnNumber,
-        updatedAt: new Date(),
-      },
-    },
-    { session },
-  );
-
-  const inwardDateStr = new Date(sourceGrn.date).toISOString().split('T')[0];
-  return `GRN ${sourceGrn.grnNumber} (Receipt #${sourceGrn.inwardReceiptNumber}, Date: ${inwardDateStr}, Customer: ${sourceGrn.customerName}, Bags: ${ledgerBalance.total}, Rent: ₹${rentResolution.effectiveRentAmount}, Paid: ₹${rentResolution.totalPaid}, Balance: ₹${rentResolution.rentBal.remainingBalance}, Status: ${rentResolution.rentBal.paymentStatus})`;
-}
+export {
+  closeSourceGrnOnMerge,
+  type CloseSourceGrnParams,
+} from './merge-source-move.helper.js';

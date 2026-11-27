@@ -5,6 +5,7 @@ import type { DeliveryChallan, Grn } from '@cold-storage/contracts';
 import { Badge, DataTable, type DataTableColumn } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
 import { formatDisplayDate } from '@/lib/date-format';
+import { formatOutwardCompositionText } from './grnOutwardDetails.helper';
 import styles from './GrnMergedDetailsTable.module.css';
 
 export interface GrnOutwardDetailsTableProps {
@@ -39,9 +40,7 @@ const columns: DataTableColumn<DeliveryChallan>[] = [
         <span className={`${styles.primaryText} ${styles.tabularNum}`}>
           {row.totalBags.toLocaleString('en-IN')} bags
         </span>
-        <span className={styles.subText}>
-          S: {row.smallBags.toLocaleString('en-IN')} • B: {row.bigBags.toLocaleString('en-IN')}
-        </span>
+        <span className={styles.subText}>{formatOutwardCompositionText(row)}</span>
       </div>
     ),
   },

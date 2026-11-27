@@ -107,17 +107,32 @@ export function GrnSortingModal({
     }
   };
 
+  /**
+   * SSOT State Synchronization:
+   * When closing the modal, if Step 1 sorting confirmation was completed (confirming bag type,
+   * counts, and settling obligations) but repacking was not executed, notify the parent via
+   * `onSuccess(currentGrn)`. This ensures parent views (Acknowledgement Details, Consignment Register,
+   * Stock Overview) immediately reflect the verified bag type without stale snapshots or manual page reload.
+   */
+  const handleClose = () => {
+    if (sortingResult?.isSortingComplete && !repackResult) {
+      onSuccess(currentGrn);
+    } else {
+      onClose();
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title={`Sorting & Repacking Workflow: GRN ${currentGrn.grnNumber}`}
       subtitle={`Customer: ${currentGrn.customerName} • Commodity: ${currentGrn.commodityName}`}
       size="lg"
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
-          <Button variant="outline" size="sm" onClick={onClose} disabled={submitting}>
-            Cancel / Close
+          <Button variant="outline" size="sm" onClick={handleClose} disabled={submitting}>
+            {sortingResult?.isSortingComplete ? 'Done / Close' : 'Cancel / Close'}
           </Button>
         </div>
       }

@@ -149,4 +149,35 @@ describe('Outward Rent Breakdown - Audit Reproduction Cases', () => {
     const totalPayable = rows.reduce((sum, r) => sum + r.amount, 0);
     expect(totalPayable).toBe(8980 + 450); // 9,430
   });
+
+  it('renders Hamali Charges row when active subscription periods are excluded', () => {
+    const breakdown = calculateOutwardSeasonalBreakdown({
+      inwardDate: '2026-11-25',
+      deliveryDate: '2026-11-27',
+      smallBags: 1,
+      bigBags: 0,
+      seasonalRates: { small: 100, big: 100 },
+      monthlyRates: { small: 10, big: 10 },
+      excludePeriodKeys: ['SEASON_2026'],
+      hamaliRate: 25,
+    });
+
+    expect(breakdown.periods).toHaveLength(0);
+    expect(breakdown.storageRent).toBe(0);
+    expect(breakdown.hamaliAmount).toBe(25);
+    expect(breakdown.totalAmount).toBe(25);
+
+    const rows = formatSeasonalBreakdownRows({
+      periods: breakdown.periods,
+      isHybrid: false,
+      totalWithdrawing: 1,
+      hamaliRate: 25,
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe('hamali-charges');
+    expect(rows[0].title).toBe('Hamali Charges');
+    expect(rows[0].details).toBe('1 bags × ₹25.00 / bag');
+    expect(rows[0].amount).toBe(25);
+  });
 });

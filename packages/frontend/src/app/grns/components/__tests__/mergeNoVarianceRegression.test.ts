@@ -62,4 +62,10 @@ describe('Merge Step 4 Repacking Net Variance Removal Regression Tests', () => {
     expect(hamali).toBe('₹1,350.00 (54 bags @ ₹25/bag)');
     expect(hamali).not.toContain('Variance');
   });
+
+  it('confirms GrnSortingStep2Success.tsx never renders Physical Variance', () => {
+    const successPath = path.join(componentsDir, 'GrnSortingStep2Success.tsx');
+    const source = fs.readFileSync(successPath, 'utf-8');
+    expect(source).not.toContain('Physical Variance');
+  });
 });

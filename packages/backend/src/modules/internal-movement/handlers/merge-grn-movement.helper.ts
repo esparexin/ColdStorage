@@ -106,9 +106,15 @@ export async function createMergePutawayTransaction(
     bigQuantity: totalMovedBig,
     referenceType: 'PUT_AWAY',
     referenceId: movementId,
-    notes: isRepackSelected
-      ? `Merged and repacked from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')}: ${remarks.trim()}`
-      : `Merged from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')}: ${remarks.trim()}`,
+    notes: (() => {
+      const isHybrid = isHybridBagCategory(resultingBagType) || resultingBagType === 'Hybrid';
+      const putawayComp = isHybrid
+        ? `Hybrid: ${totalMovedSmall + totalMovedBig}`
+        : `Small: ${totalMovedSmall}, Big: ${totalMovedBig}`;
+      return isRepackSelected
+        ? `Merged and repacked from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')} (${putawayComp}): ${remarks.trim()}`
+        : `Merged from GRNs ${sourceGrns.map((s) => s.grnNumber).join(', ')} (${putawayComp}): ${remarks.trim()}`;
+    })(),
     createdBy: userId,
     createdAt: new Date(),
   });

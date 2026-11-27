@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Edit2 } from 'lucide-react';
-import type { Grn } from '@cold-storage/contracts';
+import type { Grn, InternalMovementRecord } from '@cold-storage/contracts';
 import { Button, Modal } from '@/components/ui';
+import { requestWithAuth } from '@/lib/api-client';
 import { GrnDetailAttributesGrid } from './GrnDetailAttributesGrid';
 import { GrnDetailModalFooter } from './GrnDetailModalFooter';
 import { GrnMergedDetailsTable } from './GrnMergedDetailsTable';
@@ -43,6 +44,31 @@ export function GrnDetailModal({
   onInternalMove,
   onSortGrn,
 }: GrnDetailModalProps) {
+  const [movements, setMovements] = useState<InternalMovementRecord[] | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!grn.facilityId || !grn.id) return;
+
+    requestWithAuth(
+      `/api/facilities/${encodeURIComponent(grn.facilityId)}/internal-movements/grn/${encodeURIComponent(grn.id)}`,
+    )
+      .then(async (res) => {
+        if (!active) return;
+        if (res.ok) {
+          const data = (await res.json()) as { movements?: InternalMovementRecord[] };
+          if (Array.isArray(data.movements)) {
+            setMovements(data.movements);
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [grn.facilityId, grn.id]);
+
   return (
     <Modal
       isOpen
@@ -82,8 +108,8 @@ export function GrnDetailModal({
       }
     >
       <div className={styles.modalBody}>
-        <GrnDetailAttributesGrid grn={grn} allGrns={allGrns} />
-        <GrnMergedDetailsTable currentGrn={grn} allGrns={allGrns} />
+        <GrnDetailAttributesGrid grn={grn} allGrns={allGrns} movements={movements} />
+        <GrnMergedDetailsTable currentGrn={grn} allGrns={allGrns} movements={movements} />
         <GrnOutwardDetailsTable currentGrn={grn} />
       </div>
     </Modal>

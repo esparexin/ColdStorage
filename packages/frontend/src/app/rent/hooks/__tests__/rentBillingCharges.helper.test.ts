@@ -82,6 +82,12 @@ describe('rentBillingCharges.helper', () => {
       expect(resolveBillingHamaliRate(account, { hamaliRate: 25 })).toBeUndefined();
     });
 
+    it('prioritizes configured commodity hamaliRate over fractional ratio when stock was merged', () => {
+      // e.g. 50 hamaliShare but totalBags changed to 8 after a merge: must use 25, not 6.25
+      const account = makeMockAccount({ totalBags: 8, hamaliShare: 50 });
+      expect(resolveBillingHamaliRate(account, { hamaliRate: 25 })).toBe(25);
+    });
+
     it('returns undefined when neither is configured', () => {
       const account = makeMockAccount({ totalBags: 100, hamaliShare: 0 });
       expect(resolveBillingHamaliRate(account, null)).toBeUndefined();
@@ -137,6 +143,26 @@ describe('rentBillingCharges.helper', () => {
       });
       const totalFromRows = rows.reduce((sum, r) => sum + r.amount, 0);
       expect(totalFromRows).toBe(16500);
+    });
+
+    it('correctly calculates obligation bags for hamali row when total bags changed after merge (e.g. GRN 5000)', () => {
+      // 8 total bags in stock, but inward hamali was 2 bags @ ₹25 = ₹50
+      const account = {
+        ...makeMockAccount(),
+        totalBags: 8,
+      };
+      const rows = buildRentCalculationRows({
+        account,
+        originSeason: 2026,
+        effectiveStorageAmount: 0,
+        excludePeriodKeys: [],
+        hamaliDue: 50,
+        hamaliRate: 25,
+      });
+      const hamaliRow = rows.find((r) => r.id === 'hamali-charges');
+      expect(hamaliRow).toBeDefined();
+      expect(hamaliRow?.details).toBe('2 bags × ₹25.00 / bag');
+      expect(hamaliRow?.amount).toBe(50);
     });
   });
 });

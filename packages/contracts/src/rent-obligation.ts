@@ -50,10 +50,19 @@ export interface RentObligationInput {
 /**
  * Derives the applicable Hamali component for the resolved obligation.
  *
- * Hamali applies in full when the base is the stored rent amount (which carries
- * no labor charges) or before any outward delivery has occurred. For zero-rent
- * intakes where outward charges are already accumulated, Hamali applies pro-rata
- * strictly to the uncollected remaining undelivered bags, preventing double-counting.
+ * Cold Storage Lifecycle Billing Invariant (SSOT):
+ * - Bills/Invoices are generated ONLY upon confirmed operational activities:
+ *   1. Outward Delivery (CHL-YYYY-####)
+ *   2. Merge Out (MRG-INV-YYYY-####)
+ *   3. Ownership Transfer (TRN-INV-YYYY-####)
+ *   4. Sorting & Repacking (SRT-INV-YYYY-####)
+ * - Inward intake is a goods deposit acknowledgment (RCPT-YYYY-####), NEVER a cash bill.
+ * - Resting chamber stock with NO confirmed operational activity strictly incurs NO bill
+ *   (rentAmount === 0 && outwardRentCharges === 0 -> 0 billed obligation).
+ * - For stored obligations (rentAmount > 0, e.g. closed merge-out lot), Hamali applies
+ *   alongside the base rent.
+ * - For zero-rent intakes after outward deliveries occur, Hamali is carried on the
+ *   issued challans and any uncollected share on remaining bags is preserved pro-rata.
  */
 function deriveHamaliComponent(
   baseRent: number,

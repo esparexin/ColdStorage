@@ -72,12 +72,12 @@ export function createRentColumns({
             <span className={styles.tableSubtext}>{formatDisplayDate(row.inwardDate)}</span>
             {row.challanNumber && (
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary-text)', fontWeight: 'var(--font-medium)' }}>
-                {`GP: ${row.challanNumber}${row.gpNumber ? ` (${row.gpNumber})` : ''}`}
+                {`OutWard - ${row.challanNumber}${row.gpNumber ? ` (${row.gpNumber})` : ''}`}
               </span>
             )}
             {isMergedSource && row.mergedIntoGrnNumber && (
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary-text)', fontWeight: 'var(--font-medium)' }}>
-                Merged into #{row.mergedIntoGrnNumber}
+                GRN merge out - Into #{row.mergedIntoGrnNumber}
               </span>
             )}
             {isMergedTarget && !row.challanNumber && (
@@ -159,9 +159,10 @@ export function createRentColumns({
       sortAccessor: (row) => row.paymentStatus,
       render: (row) => {
         const isSettled = row.remainingBalance === 0 && row.totalPaid > 0;
+        const isUnbilled = row.remainingBalance === 0 && row.totalPaid === 0;
         const isPartial = row.remainingBalance > 0 && row.totalPaid > 0;
-        const label = isSettled ? 'Settled' : isPartial ? 'Partially Paid' : 'Pending';
-        const variant = isSettled ? 'success' : isPartial ? 'warning' : 'neutral';
+        const label = isSettled ? 'Settled' : isUnbilled ? 'Unbilled' : isPartial ? 'Partially Paid' : 'Pending';
+        const variant = isSettled ? 'success' : isUnbilled ? 'neutral' : isPartial ? 'warning' : 'neutral';
         const Icon = isSettled ? CheckCircle2 : Clock;
         return (
           <Badge variant={variant} icon={<Icon size={12} aria-hidden="true" />}>
@@ -175,10 +176,9 @@ export function createRentColumns({
       header: 'Actions',
       align: 'right',
       render: (row) => {
-        const isSettled = row.remainingBalance === 0 && row.totalPaid > 0;
         return (
           <div className={styles.actionGroup}>
-            {!isSettled && canCollect && (
+            {canCollect && row.remainingBalance > 0 && (
               <Button
                 variant="primary"
                 size="sm"

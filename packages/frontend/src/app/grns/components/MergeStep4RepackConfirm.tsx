@@ -28,7 +28,7 @@ interface MergeStep4RepackConfirmProps {
   totalSourceBags: number; referenceWeight: number | ''; onReferenceWeightChange: (val: number | '') => void;
   totalConsolidatedBags?: number;
   repackHamaliCharge: number; actualRepackedBags: number; commodityHamaliRate: number;
-  movementDate: string; targetGrn: Grn;
+  movementDate: string; onMovementDateChange?: (val: string) => void; targetGrn: Grn;
   reason: string; onReasonChange: (r: string) => void; remarks: string; onRemarksChange: (r: string) => void;
   selectedSourcesCount: number; submitting: boolean; onBack: () => void;
   commodities?: Commodity[];
@@ -43,7 +43,7 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
     repackQuantity, onRepackQuantityChange, repackSeasonalBagPrice, onRepackSeasonalBagPriceChange,
     repackMonthlyBagPrice, onRepackMonthlyBagPriceChange, repackBagPrice, onRepackBagPriceChange,
     totalSourceBags, referenceWeight, onReferenceWeightChange, repackHamaliCharge,
-    actualRepackedBags, commodityHamaliRate, movementDate, targetGrn,
+    actualRepackedBags, commodityHamaliRate, movementDate, onMovementDateChange, targetGrn,
     reason, onReasonChange, remarks, onRemarksChange, selectedSourcesCount,
     submitting, onBack, totalConsolidatedBags, commodities,
   } = props;
@@ -91,6 +91,7 @@ export function MergeStep4RepackConfirm(props: MergeStep4RepackConfirmProps) {
           actualRepackedBags={actualRepackedBags}
           commodityHamaliRate={commodityHamaliRate}
           movementDate={movementDate}
+          onMovementDateChange={onMovementDateChange}
           targetSmallRate={targetSmallRate}
           targetBigRate={targetBigRate}
           submitting={submitting}

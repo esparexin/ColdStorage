@@ -75,7 +75,10 @@ export async function executeSortGrn(
           );
         }
 
-        // Validate and apply confirmed small and big bags composition for S/B lots when supplied
+        // Validate and apply confirmed small and big bags composition for S/B lots when supplied.
+        // Conforms strictly to @cold-storage/contracts SSOT:
+        // When bag type and split are confirmed, persist exact counts and mark isCompositionVerified: true
+        // so downstream displays (Acknowledgement Details, Consignment Register, Stock Overview) reflect verified state.
         if (
           input.confirmedBagType === 'S/B' &&
           (input.confirmedSmallBags != null || input.confirmedBigBags != null)
@@ -90,10 +93,14 @@ export async function executeSortGrn(
               `CONFIRMATION_MISMATCH: Sum of small (${small}) and big (${big}) bags does not match existing stock (${bal.total})`,
             );
           }
+          grn.bagType = 'S/B';
           grn.smallBags = small;
           grn.bigBags = big;
           grn.isCompositionVerified = true;
         } else if (input.confirmedBagType === 'Hybrid') {
+          grn.bagType = 'Hybrid';
+          grn.smallBags = 0;
+          grn.bigBags = 0;
           grn.isCompositionVerified = true;
         }
 
