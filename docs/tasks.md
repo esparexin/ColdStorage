@@ -1,0 +1,66 @@
+# Task List: Clean Bag Type Composition Across Movements (Pending)
+
+## Overview & Goal
+Ensure that whenever bags are moved, sorted, merged, transferred, or outward-delivered (e.g., **GRN 4009** with **21 bags**), all notes, remarks, transaction logs, and UI tables cleanly and authoritatively record the bag type breakdown:
+- **S/B lots:** `Small -<qty>, Big -<qty>` (e.g., `Small -5, Big -16`)
+- **Hybrid lots:** `Hybrid -<qty>` (e.g., `Hybrid -21 merged into 4005`)
+
+Strictly adheres to:
+- One PR = One problem category
+- No cross-cutting refactors
+- No business logic or API contract changes
+- Clean SSOT contracts, zero dead/alien/dummy code
+- Full build and test verification (`npm run build`)
+
+---
+
+## Tasks / PR Roadmap
+
+### ⏳ PR 1: Merge Out & Merge In Notes & Remarks (PENDING)
+- **Status:** `PENDING`
+- **Scope:**
+  - `packages/backend/src/modules/internal-movement/handlers/merge-grn.helper.ts`:
+    - Update `closeSourceGrnOnMerge` to format bag composition (`Small: <small>, Big: <big>, BagType: <type>` or `Hybrid: <total>`) in `sourceNote`.
+    - Update `closeSourceGrnOnMerge` return string (used in `sourceSummaries` for target GRN `[MERGE RECEIVED...]`).
+    - Update `InventoryTransactionModel.create` outward transaction notes to include bag breakdown `(Small: <small>, Big: <big>)` or `(Hybrid: <total>)`.
+  - `packages/frontend/src/app/grns/components/internalMovementNotes.helper.ts` & `structuredMovementsTable.helper.ts`:
+    - Ensure regex and mapper extract and present bag composition cleanly in `GrnMergedDetailsTable`.
+  - **Verification:**
+    - Unit tests in `internal-movement.test.ts` & `internalMovementNotes.helper.test.ts` covering 21 bags (`5 Small + 16 Big` and `21 Hybrid`).
+    - `npm run build`
+
+---
+
+### ⏳ PR 2: Sort Out & Repacking Remarks (PENDING)
+- **Status:** `PENDING`
+- **Scope:**
+  - `packages/backend/src/modules/internal-movement/handlers/repack-grn.handler.ts`:
+    - Record outgoing/decanted stock composition before the transition arrow in `authRemarks` (e.g., `21 bags (Small: 5, Big: 16) ➔ 21 bags (...)` or `21 bags (Hybrid) ➔ ...`).
+    - Include bag breakdown in `tx-out` inventory adjustment note.
+  - **Verification:**
+    - Unit tests in `repack-movement-history.unit.test.ts` & `grn-sorting-and-repack-workflow.test.ts`.
+    - `npm run build`
+
+---
+
+### ⏳ PR 3: Outward Delivery Notes & UI Formatting (PENDING)
+- **Status:** `PENDING`
+- **Scope:**
+  - `packages/backend/src/modules/delivery/handlers/create-delivery.handler.ts`:
+    - Ensure `InventoryTransactionModel.create` notes default to clean structured note: `Outward Delivery: <total> bags (Small: <small>, Big: <big>) [or Hybrid: <total>] via Challan #<challanNumber>` when custom user remarks are omitted.
+  - `packages/frontend/src/app/grns/components/GrnOutwardDetailsTable.tsx`:
+    - Fix bag composition display for `Hybrid` lots so it renders `Hybrid - <total> bags` instead of `S: <total> • B: 0`.
+  - **Verification:**
+    - Delivery unit tests in `create-delivery.handler.test.ts` and frontend testkit.
+    - `npm run build`
+
+---
+
+### ⏳ PR 4: Internal Transfer / Ownership Notes Alignment (PENDING)
+- **Status:** `PENDING`
+- **Scope:**
+  - `packages/backend/src/modules/internal-movement/handlers/transfer-ownership.helper.ts`:
+    - Standardize inventory transaction notes in `alignTransferLedger` (`tx-out` and `tx-in`) to explicitly mention `(Small: <small>, Big: <big>)` or `(Hybrid: <total>)`.
+  - **Verification:**
+    - Unit tests in `transfer-ownership-movement-history.unit.test.ts`.
+    - `npm run build`
