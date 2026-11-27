@@ -96,6 +96,56 @@ export function buildTransferPayload(
   };
 }
 
+export function buildTransferExecutionArgs(params: {
+  isHybrid: boolean;
+  sourceBagCategory?: OutwardBagCategory;
+  remainingBags: number;
+  sourceBagPrice?: number | '';
+  sourceSeasonalBagPrice?: number | '';
+  sourceMonthlyBagPrice?: number | '';
+  confirmedSmallBags?: number | '';
+  confirmedBigBags?: number | '';
+  destinationChamber: string;
+  resultingBagType: BagType;
+  repackedSmallBags?: number | '';
+  repackedBigBags?: number | '';
+  repackedQuantity?: number | '';
+  referenceWeight?: number | '';
+  partyMark: string;
+  transferFeePerBag?: number | '';
+  transferFeeCharged: number;
+  paymentMode: PaymentMode;
+  feePaidBy?: 'BUYER' | 'SELLER';
+}) {
+  const conf = params.isHybrid ? {
+    sourceBagCategory: params.sourceBagCategory || undefined,
+    sourceQuantity: params.remainingBags,
+    sourceBagPrice: typeof params.sourceBagPrice === 'number' ? params.sourceBagPrice : undefined,
+    sourceSeasonalBagPrice: typeof params.sourceSeasonalBagPrice === 'number' ? params.sourceSeasonalBagPrice : undefined,
+    sourceMonthlyBagPrice: typeof params.sourceMonthlyBagPrice === 'number' ? params.sourceMonthlyBagPrice : undefined,
+  } : typeof params.confirmedSmallBags === 'number' && typeof params.confirmedBigBags === 'number'
+    ? { confirmedSmallBags: params.confirmedSmallBags, confirmedBigBags: params.confirmedBigBags } : undefined;
+
+  const repack = {
+    destinationChamber: params.destinationChamber.trim(),
+    resultingBagType: params.resultingBagType,
+    repackedSmallBags: params.resultingBagType === 'Hybrid' ? undefined : (typeof params.repackedSmallBags === 'number' ? params.repackedSmallBags : undefined),
+    repackedBigBags: params.resultingBagType === 'Hybrid' ? undefined : (typeof params.repackedBigBags === 'number' ? params.repackedBigBags : undefined),
+    repackedQuantity: params.resultingBagType === 'Hybrid' ? (typeof params.repackedQuantity === 'number' ? params.repackedQuantity : undefined) : undefined,
+    referenceWeight: typeof params.referenceWeight === 'number' && params.referenceWeight > 0 ? params.referenceWeight : undefined,
+    partyMark: params.partyMark.trim() || undefined,
+  };
+
+  const fee = typeof params.transferFeePerBag === 'number' && params.transferFeePerBag > 0 ? {
+    transferFeePerBag: params.transferFeePerBag,
+    totalTransferFee: params.transferFeeCharged,
+    feePaymentMode: params.paymentMode,
+    feePaidBy: params.feePaidBy,
+  } : undefined;
+
+  return { conf, repack, fee };
+}
+
 export function validateTransferPayment(
   decision: string,
   amount: number,

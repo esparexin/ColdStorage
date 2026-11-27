@@ -38,6 +38,8 @@ interface TransferStep3RepackProps {
   onRepackedQuantityChange: (val: number | '') => void;
   referenceWeight: number | '';
   onReferenceWeightChange: (val: number | '') => void;
+  effectiveHamaliRate?: number;
+  repackHamaliCharge?: number;
   submitting: boolean;
   onBack: () => void;
   onNext: () => void;
@@ -50,6 +52,7 @@ export function TransferStep3Repack(props: TransferStep3RepackProps) {
     resultingBagType, onResultingBagTypeChange, totalBags,
     repackedSmallBags, onRepackedSmallChange, repackedBigBags, onRepackedBigChange,
     repackedQuantity, onRepackedQuantityChange, referenceWeight, onReferenceWeightChange,
+    effectiveHamaliRate, repackHamaliCharge,
     submitting, onBack, onNext,
   } = props;
 
@@ -197,6 +200,14 @@ export function TransferStep3Repack(props: TransferStep3RepackProps) {
               {totalRepacked > 0 ? `${totalRepacked} Bags ✓` : '—'}
             </strong>
           </div>
+          {effectiveHamaliRate && effectiveHamaliRate > 0 && totalRepacked > 0 ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', background: 'var(--color-surface-2)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--color-primary)' }}>
+              <span>Repacking Hamali Labor:</span>
+              <strong style={{ color: 'var(--color-primary-text)' }}>
+                ₹{((repackHamaliCharge ?? (totalRepacked * effectiveHamaliRate))).toLocaleString('en-IN')} ({totalRepacked} bags @ ₹{effectiveHamaliRate}/bag)
+              </strong>
+            </div>
+          ) : null}
         </div>
       </div>
 

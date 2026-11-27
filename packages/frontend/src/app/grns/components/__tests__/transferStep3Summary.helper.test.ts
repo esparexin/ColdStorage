@@ -4,6 +4,7 @@ import {
   formatTransferHamali,
   formatTransferSettlement,
 } from '../transferStep3Summary.helper';
+import { buildTransferExecutionArgs } from '../transferPayload.helper';
 
 describe('transferStep3Summary.helper', () => {
   describe('formatTransferComposition', () => {
@@ -99,6 +100,64 @@ describe('transferStep3Summary.helper', () => {
           settleAmount: 0,
         }),
       ).toBe('Pay Later (Liability carried forward)');
+    });
+  });
+
+  describe('buildTransferExecutionArgs', () => {
+    it('builds S/B repack execution arguments with labor charges properly formatted', () => {
+      const args = buildTransferExecutionArgs({
+        isHybrid: false,
+        remainingBags: 100,
+        confirmedSmallBags: 60,
+        confirmedBigBags: 40,
+        destinationChamber: 'CH-02',
+        resultingBagType: 'S/B',
+        repackedSmallBags: 70,
+        repackedBigBags: 30,
+        referenceWeight: 5000,
+        partyMark: 'KSN-99',
+        transferFeePerBag: 5,
+        transferFeeCharged: 500,
+        paymentMode: 'Cash',
+        feePaidBy: 'BUYER',
+      });
+
+      expect(args.conf).toEqual({ confirmedSmallBags: 60, confirmedBigBags: 40 });
+      expect(args.repack).toEqual({
+        destinationChamber: 'CH-02',
+        resultingBagType: 'S/B',
+        repackedSmallBags: 70,
+        repackedBigBags: 30,
+        repackedQuantity: undefined,
+        referenceWeight: 5000,
+        partyMark: 'KSN-99',
+      });
+      expect(args.fee).toEqual({
+        transferFeePerBag: 5,
+        totalTransferFee: 500,
+        feePaymentMode: 'Cash',
+        feePaidBy: 'BUYER',
+      });
+    });
+
+    it('builds Hybrid repack execution arguments omitting S/B counts', () => {
+      const args = buildTransferExecutionArgs({
+        isHybrid: true,
+        sourceBagCategory: 'Hybrid',
+        remainingBags: 50,
+        destinationChamber: 'CH-01',
+        resultingBagType: 'Hybrid',
+        repackedQuantity: 50,
+        partyMark: '',
+        transferFeePerBag: '',
+        transferFeeCharged: 0,
+        paymentMode: 'Cash',
+      });
+
+      expect(args.conf?.sourceQuantity).toBe(50);
+      expect(args.repack.repackedQuantity).toBe(50);
+      expect(args.repack.repackedSmallBags).toBeUndefined();
+      expect(args.fee).toBeUndefined();
     });
   });
 });
