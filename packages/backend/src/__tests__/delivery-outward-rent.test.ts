@@ -1,7 +1,9 @@
+import mongoose from 'mongoose';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { resetAllFinancialCollections, seedCommodityWithRates } from './helpers/lifecycle-testkit.js';
 import { DeliveryChallanModel } from '../database/models/delivery-challan.model.js';
 import { deliveryService } from '../modules/delivery/delivery.service.js';
+import { computeExpectedDeliveryRent } from '../modules/delivery/handlers/delivery-rent.helper.js';
 import { grnService } from '../modules/grn/grn.service.js';
 import { seedCustomer, seedFacility } from './helpers/master-data-fixtures.js';
 import {
@@ -200,6 +202,31 @@ describe('Outward Rent Calculation & Boundary Flow (delivery-outward-rent.test.t
       expect(del.delivery.rentCharge).toBe(10220);
     } finally {
       process.env.ALLOW_HISTORICAL_TESTING_DATES = originalEnv;
+    }
+  });
+
+  it('applies Option A net storage deduction without skipping when rates <= hamali rate', async () => {
+    const session = await mongoose.startSession();
+    try {
+      const { expectedRentCharge } = await computeExpectedDeliveryRent({
+        grn: {
+          id: 'grn-nominal',
+          date: new Date('2025-03-15'),
+          rentType: 'Seasonal',
+          commodityId: 'cmd-wheat',
+          smallBagPrice: 10,
+          bigBagPrice: 15,
+          hamaliRate: 25,
+        },
+        withdrawal: { smallBags: 8, bigBags: 4 },
+        deliveryDate: new Date('2025-06-15'),
+        session,
+      });
+
+      // Under Option A, deriveNetStorageRate(10, 25) = 0 and deriveNetStorageRate(15, 25) = 0.
+      expect(expectedRentCharge).toBe(0);
+    } finally {
+      await session.endSession();
     }
   });
 });

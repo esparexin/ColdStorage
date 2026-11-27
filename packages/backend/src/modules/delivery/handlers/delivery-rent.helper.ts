@@ -114,9 +114,6 @@ export async function computeExpectedDeliveryRent(
     }
 
     if (isSeasonalEval) {
-      const isHybridInclusive = params.isRatesInclusiveOfHamali ?? (
-        typeof effectiveHamaliRate === 'number' && effectiveHamaliRate > 0 && sRate > effectiveHamaliRate
-      );
       const breakdown = calculateOutwardSeasonalBreakdown({
         inwardDate: grn.date,
         deliveryDate,
@@ -125,8 +122,8 @@ export async function computeExpectedDeliveryRent(
         seasonalRates: { small: sRate, big: sRate },
         monthlyRates: { small: mRate, big: mRate },
         excludePeriodKeys: params.excludePeriodKeys ?? undefined,
-        hamaliRate: isHybridInclusive ? effectiveHamaliRate : undefined,
-        isRatesInclusiveOfHamali: isHybridInclusive,
+        hamaliRate: effectiveHamaliRate ?? undefined,
+        isRatesInclusiveOfHamali: params.isRatesInclusiveOfHamali,
       });
       return { expectedRentCharge: breakdown.totalRent, effectiveRates: { small: sRate, big: sRate } };
     }
@@ -197,10 +194,6 @@ export async function computeExpectedDeliveryRent(
       return { expectedRentCharge: baseRent + extraRent, effectiveRates: seasonalRates };
     }
 
-    const isInclusive = params.isRatesInclusiveOfHamali ?? (
-      typeof effectiveHamaliRate === 'number' && effectiveHamaliRate > 0
-      && (seasonalRates.small > effectiveHamaliRate || seasonalRates.big > effectiveHamaliRate)
-    );
     const breakdown = calculateOutwardSeasonalBreakdown({
       inwardDate: grn.date,
       deliveryDate,
@@ -209,8 +202,8 @@ export async function computeExpectedDeliveryRent(
       seasonalRates,
       monthlyRates,
       excludePeriodKeys: params.excludePeriodKeys ?? undefined,
-      hamaliRate: isInclusive ? effectiveHamaliRate : undefined,
-      isRatesInclusiveOfHamali: isInclusive,
+      hamaliRate: effectiveHamaliRate ?? undefined,
+      isRatesInclusiveOfHamali: params.isRatesInclusiveOfHamali,
     });
 
     return { expectedRentCharge: breakdown.totalRent, effectiveRates: seasonalRates };

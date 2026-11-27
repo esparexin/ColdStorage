@@ -93,7 +93,7 @@ describe('Outward rent-vs-Hamali gate (F2)', () => {
     }
   }
 
-  it.each([[3, 30], [4, 40]] as const)(
+  it.each([[3, 0], [4, 0]] as const)(
     'rejects first-season delivery at/below Hamali (bagPrice %i)',
     async (bagPrice, expected) => {
       await reset();
