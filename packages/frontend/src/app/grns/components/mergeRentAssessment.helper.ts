@@ -37,6 +37,7 @@ export function calculateMergeSourceRentSummary(params: {
   summary?: RentSummaryDto | null;
   commodity?: Pick<Commodity, 'rates'> | null;
   resetRentState?: boolean;
+  isTargetGrn?: boolean;
 }): MergeSourceRentCalculation {
   const {
     source,
@@ -47,6 +48,7 @@ export function calculateMergeSourceRentSummary(params: {
     summary,
     commodity,
     resetRentState = false,
+    isTargetGrn = false,
   } = params;
 
   const sourceBags = source.closingBags ?? source.bags;
@@ -73,7 +75,7 @@ export function calculateMergeSourceRentSummary(params: {
   const bigBags = isHybrid ? 0 : confirmedBig;
   const bagCategory = (isHybrid ? 'Hybrid' : (confirmation?.category || 'S/B')) as OutwardBagCategory;
 
-  const excludePeriodKeys = source.date
+  const excludePeriodKeys = source.date && !isTargetGrn && targetGrnDate
     ? resolveMergeExcludedPeriodKeys({
         inwardDate: source.date,
         movementDate,
@@ -83,7 +85,7 @@ export function calculateMergeSourceRentSummary(params: {
 
   const elapsed = source.date ? resolveSeasonalElapsedPeriods(source.date, movementDate) : [];
   const completedPeriods = elapsed.filter((p) => !excludePeriodKeys.includes(p.key));
-  const hasCompletedPeriods = completedPeriods.length > 0;
+  const hasCompletedPeriods = isTargetGrn ? elapsed.length > 0 : completedPeriods.length > 0;
 
   const manualBagPrice = typeof confirmation?.bagPrice === 'number' && confirmation.bagPrice > 0
     ? confirmation.bagPrice
@@ -237,9 +239,9 @@ export function calculateMergeSettlementBill(params: {
     confirmation: targetConfirmation,
     movementDate,
     commodityHamaliRate,
-    targetGrnDate: targetGrn.date,
     summary: targetSummary,
     commodity: targetCommodity,
+    isTargetGrn: true,
   });
   const targetDue = Math.max(0, targetCalc.totalAmountToPay - (targetSummary?.totalPaid ?? 0));
 

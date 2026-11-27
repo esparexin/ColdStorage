@@ -62,9 +62,6 @@ export function useInternalMovementMergeTab({
   const settlementDecision: TransferPaymentDecision = 'AGREED_PENDING';
   const settleAmount = 0;
   const paymentMode: PaymentMode = 'Cash';
-  const setSettlementDecision = () => {};
-  const setSettleAmount = () => {};
-  const setPaymentMode = () => {};
   const repack = useMergeRepackForm();
   const {
     destinationChamber,
@@ -167,7 +164,7 @@ export function useInternalMovementMergeTab({
     setTargetConfirmation(deriveAutoInheritedBagComposition([targetGrn], targetCurrentRemaining));
     const derived = initialConfirmations[selectedSources[0]?.id] ?? deriveAutoInheritedBagComposition(selectedSources, totalSourceBags);
     setConfirmation(derived);
-    repack.applyDerivedRepackDefaults(derived, totalSourceBags);
+    repack.applyDerivedRepackDefaults(derived);
     setStep(2);
   };
 
@@ -223,7 +220,7 @@ export function useInternalMovementMergeTab({
     movementDate, reason, setReason, remarks, setRemarks, confirmation, setConfirmation,
     targetConfirmation, setTargetConfirmation, updateTargetConfirmation,
     sourceConfirmations, setSourceConfirmations, updateSourceConfirmation, sourceRentSummaries,
-    settlementDecision, setSettlementDecision, settleAmount, setSettleAmount, paymentMode, setPaymentMode,
+    settlementDecision, settleAmount, paymentMode,
     ...repack, validationError, setValidationError, openGrns, targetGrn, targetSeason,
     eligibleSources, futureSeasonCount, recommendedSwitchGrn, targetOptions, handleTargetChange, handleToggleSource, handleSwitchTarget: handleTargetChange,
     selectedSources, totalSourceBags, targetCurrentRemaining, isTargetLoanHold,

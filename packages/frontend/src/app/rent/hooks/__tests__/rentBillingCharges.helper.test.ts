@@ -101,6 +101,26 @@ describe('rentBillingCharges.helper', () => {
       expect(rows).toHaveLength(1);
       expect(rows[0].id).toBe('storage-rent');
     });
+
+    it('formats hamali charges row as bags x rate when hamaliDue is present', () => {
+      const account = {
+        ...makeMockAccount(),
+        totalBags: 50,
+      };
+      const rows = buildRentCalculationRows({
+        account,
+        originSeason: 2026,
+        effectiveStorageAmount: 15250,
+        excludePeriodKeys: [],
+        hamaliDue: 1250,
+        hamaliRate: 25,
+      });
+      const hamaliRow = rows.find((r) => r.id === 'hamali-charges');
+      expect(hamaliRow).toBeDefined();
+      expect(hamaliRow?.dates).toBe('Hamali Charges');
+      expect(hamaliRow?.details).toBe('50 bags × ₹25.00 / bag');
+      expect(hamaliRow?.amount).toBe(1250);
+    });
   });
 });
 

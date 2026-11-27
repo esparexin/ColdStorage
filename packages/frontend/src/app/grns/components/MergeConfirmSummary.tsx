@@ -40,8 +40,6 @@ export function MergeConfirmSummary({
   repackBagType,
   commodityHamaliRate,
   repackHamaliCharge,
-  settlementDecision: _settlementDecision,
-  settleAmount: _settleAmount,
   totalSourcePendingRent,
   totalConsolidatedBags,
 }: MergeConfirmSummaryProps) {

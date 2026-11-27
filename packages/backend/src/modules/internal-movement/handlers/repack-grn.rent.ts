@@ -1,7 +1,6 @@
 import type { ClientSession } from 'mongoose';
 import {
   calculateRentAmount, deriveBagPrice, resolveTotalRentObligation,
-  seasonYearForInwardDate,
 } from '@cold-storage/contracts';
 import type { GrnDoc } from '../../../database/models/grn.model.js';
 import { RentExtensionModel } from '../../../database/models/rent-extension.model.js';
@@ -22,11 +21,8 @@ export interface RecalculateRepackRentInput {
  * Prospective subscription recalculation: Continue ONLY newly repacked quantity into live running subscription.
  */
 export function updateRepackProspectiveRent(input: RecalculateRepackRentInput): void {
-  const { grn, previousTotalBags, actualRepackedBags, inSmall, inBig, movementDate } = input;
-  if (
-    seasonYearForInwardDate(grn.date) === seasonYearForInwardDate(movementDate) &&
-    (grn.rentType === 'Seasonal' || grn.rentType === 'Seasonal_3M')
-  ) {
+  const { grn, previousTotalBags, actualRepackedBags, inSmall, inBig } = input;
+  if (grn.rentType === 'Seasonal' || grn.rentType === 'Seasonal_3M') {
     const effectiveBagPrice = grn.bagPrice ?? deriveBagPrice({
       rentType: grn.rentType, bags: previousTotalBags, rentAmount: grn.rentAmount,
       smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice,
