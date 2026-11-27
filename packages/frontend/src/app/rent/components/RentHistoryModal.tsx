@@ -40,11 +40,9 @@ export function RentHistoryModal({
 
   const { deliveries } = useGrnDeliveries(selectedFacilityId, account.grnId);
   const selectedDelivery = useMemo(() => {
+    if (!selectedDeliveryId) return undefined;
     const valid = deliveries.filter((d) => d.status !== 'REVERSED');
-    if (selectedDeliveryId) {
-      return valid.find((d) => d.id === selectedDeliveryId);
-    }
-    return valid.length > 0 ? valid[valid.length - 1] : undefined;
+    return valid.find((d) => d.id === selectedDeliveryId);
   }, [deliveries, selectedDeliveryId]);
 
   const originSeason = seasonYearForInwardDate(new Date(account.inwardDate));
@@ -94,11 +92,17 @@ export function RentHistoryModal({
       title={
         selectedDelivery
           ? `Cash Memos & Rent Bill: Gate Pass ${selectedDelivery.challanNumber}${selectedDelivery.gpNumber ? ` (${selectedDelivery.gpNumber})` : ''}`
+          : account.mergedIntoGrnNumber
+          ? `Cash Memos & Rent Bill: GRN merge out - Into #${account.mergedIntoGrnNumber}`
           : `Cash Memos & Rent History: ${account.grnNumber}`
       }
       subtitle={
         selectedDelivery
           ? `${account.customerName} · GRN: ${account.grnNumber}`
+          : account.mergedIntoGrnNumber
+          ? `${account.customerName} · GRN merge out into #${account.mergedIntoGrnNumber}`
+          : account.remarks && account.remarks.includes('[MERGE RECEIVED')
+          ? `${account.customerName} · Merged Consignment`
           : account.customerName
       }
       size="lg"
@@ -162,6 +166,8 @@ export function RentHistoryModal({
                   ? 'Total Outward Rent'
                   : isOutwardAssessed
                   ? 'Total Outward Rent'
+                  : account.mergedIntoGrnNumber
+                  ? 'Total Billed (Merge Out)'
                   : account.rentType === 'Monthly' && account.rentAmount === 0
                   ? 'Rent Status'
                   : 'Total Billed'
