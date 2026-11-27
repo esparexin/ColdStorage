@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import {
-  appendGrnRemarks, isHybridBagCategory,
+  appendGrnRemarks, calculateHamaliAmount, isHybridBagCategory,
   resolveStoredCompositionVerified,
   type TransferOwnershipInput, type Grn, type InternalMovementRecord, type RentPayment,
 } from '@cold-storage/contracts';
@@ -101,6 +101,18 @@ export async function transferOwnership(
         ? 0
         : (typeof input.repackedBigBags === 'number' ? input.repackedBigBags : confBig);
       const finalChamber = input.destinationChamber ? input.destinationChamber.trim() : grn.chamber;
+      const isExplicitRepack =
+        typeof input.repackedSmallBags === 'number' ||
+        typeof input.repackedBigBags === 'number' ||
+        typeof input.repackedQuantity === 'number';
+      const isHamaliApp =
+        transferCommodity?.isHamaliApplicable ?? ((transferCommodity?.hamaliRate ?? 0) > 0);
+      const repackHamaliRate = isHamaliApp ? (transferCommodity?.hamaliRate ?? 0) : 0;
+      const repackedCount = isRepackedHybrid
+        ? (input.repackedQuantity ?? (finalSmall + finalBig))
+        : (finalSmall + finalBig);
+      const repackHamaliCharge =
+        isExplicitRepack && repackHamaliRate > 0 ? calculateHamaliAmount(repackedCount, repackHamaliRate) : 0;
 
       // Align inventory ledger: atomically decants original stock and puts away confirmed/repacked stock
       await alignTransferLedger({
@@ -146,6 +158,7 @@ export async function transferOwnership(
         finalBags: finalSmall + finalBig, finalSmall, finalBig,
         updatedRemarks, referenceWeight: input.referenceWeight,
         effectiveObligation, isHybrid, input,
+        repackHamaliCharge, repackHamaliRate,
       });
 
       const updatedGrn = await GrnModel.findOneAndUpdate(
@@ -163,6 +176,7 @@ export async function transferOwnership(
         isRepackedHybrid, transferCommodity,
         transferInvoiceNumber, transferFeeCharged, feePayer,
         effectiveRentBal,
+        repackHamaliCharge, repackHamaliRate, repackedCount, isExplicitRepack,
         userId, session,
       });
     }),

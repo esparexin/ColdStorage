@@ -118,6 +118,7 @@ export interface CreateTransferMovementParams {
   transferFeeCharged?: number;
   feePayer?: 'BUYER' | 'SELLER' | null;
   effectiveRentBal: RentBalance; userId: string; session: mongoose.ClientSession;
+  repackHamaliCharge?: number; repackHamaliRate?: number; repackedCount?: number; isExplicitRepack?: boolean;
 }
 
 export async function createTransferMovement(
@@ -131,18 +132,22 @@ export async function createTransferMovement(
     userId, session,
   } = params;
 
-  const isExplicitRepack =
+  const isExplicitRepack = params.isExplicitRepack ?? (
     typeof input.repackedSmallBags === 'number' ||
     typeof input.repackedBigBags === 'number' ||
-    typeof input.repackedQuantity === 'number';
-  const isHamaliApp =
-    transferCommodity?.isHamaliApplicable ?? ((transferCommodity?.hamaliRate ?? 0) > 0);
-  const repackHamaliRate = isHamaliApp ? (transferCommodity?.hamaliRate ?? 0) : 0;
-  const repackedCount = isRepackedHybrid
-    ? (input.repackedQuantity ?? (finalSmall + finalBig))
-    : (finalSmall + finalBig);
-  const repackHamaliCharge =
-    isExplicitRepack && repackHamaliRate > 0 ? calculateHamaliAmount(repackedCount, repackHamaliRate) : 0;
+    typeof input.repackedQuantity === 'number'
+  );
+  const repackHamaliRate = params.repackHamaliRate ?? (
+    (transferCommodity?.isHamaliApplicable ?? ((transferCommodity?.hamaliRate ?? 0) > 0))
+      ? (transferCommodity?.hamaliRate ?? 0)
+      : 0
+  );
+  const repackedCount = params.repackedCount ?? (
+    isRepackedHybrid ? (input.repackedQuantity ?? (finalSmall + finalBig)) : (finalSmall + finalBig)
+  );
+  const repackHamaliCharge = params.repackHamaliCharge ?? (
+    isExplicitRepack && repackHamaliRate > 0 ? calculateHamaliAmount(repackedCount, repackHamaliRate) : 0
+  );
 
   const docs = await InternalMovementModel.create(
     [
@@ -195,11 +200,13 @@ export function buildTransferGrnUpdateFields(params: {
   effectiveObligation: number;
   isHybrid: boolean;
   input: TransferOwnershipInput;
+  repackHamaliCharge?: number;
+  repackHamaliRate?: number;
 }): Record<string, unknown> {
   const {
     newCustomer, finalChamber, resultingBagType, finalBags,
     finalSmall, finalBig, updatedRemarks, referenceWeight,
-    effectiveObligation, isHybrid, input,
+    effectiveObligation, isHybrid, input, repackHamaliCharge, repackHamaliRate,
   } = params;
 
   const updateFields: Record<string, unknown> = {
@@ -221,6 +228,12 @@ export function buildTransferGrnUpdateFields(params: {
     updateFields.partyMark = input.partyMark?.trim() || null;
   }
   if (effectiveObligation > 0) updateFields.rentAmount = effectiveObligation;
+  if (repackHamaliCharge !== undefined && repackHamaliCharge > 0) {
+    updateFields.hamaliAmount = repackHamaliCharge;
+    if (repackHamaliRate !== undefined && repackHamaliRate > 0) {
+      updateFields.hamaliRate = repackHamaliRate;
+    }
+  }
   if (isHybrid) {
     if (typeof input.sourceBagPrice === 'number' && input.sourceBagPrice > 0) updateFields.bagPrice = input.sourceBagPrice;
     if (typeof input.sourceSeasonalBagPrice === 'number' && input.sourceSeasonalBagPrice > 0) updateFields.smallBagPrice = input.sourceSeasonalBagPrice;
