@@ -214,7 +214,7 @@ export class CommodityRateService {
     if (!commodity) throw new Error(`Commodity '${commodityId}' not found`);
     const hamaliRate = commodity.isHamaliApplicable ? (commodity.hamaliRate ?? 0) : 0;
     for (const r of rows) {
-      if (hamaliRate > 0 && (r.smallRate <= hamaliRate || r.bigRate <= hamaliRate)) {
+      if (r.rentType === 'Seasonal' && hamaliRate > 0 && (r.smallRate <= hamaliRate || r.bigRate <= hamaliRate)) {
         throw new Error(`Submitted ${r.rentType} rates must exceed Hamali ₹${hamaliRate}/bag`);
       }
     }

@@ -136,6 +136,23 @@ describe('Commodity rates — commodity-rate.service.test.ts', () => {
       expect(rate).toMatchObject({ smallRate: 21, bigRate: 30 });
     });
 
+    it('enforces hamali rate guard on seasonal rates in batch while permitting monthly rates below hamali', async () => {
+      await expect(
+        commodityRateService.upsertRateBatch('cmd-rate-1', [
+          { commodityId: 'cmd-rate-1', rentType: 'Seasonal', smallRate: 15, bigRate: 25 },
+          { commodityId: 'cmd-rate-1', rentType: 'Monthly', smallRate: 10, bigRate: 15 },
+        ]),
+      ).rejects.toThrow('Submitted Seasonal rates must exceed Hamali ₹20/bag');
+
+      const batch = await commodityRateService.upsertRateBatch('cmd-rate-1', [
+        { commodityId: 'cmd-rate-1', rentType: 'Seasonal', smallRate: 25, bigRate: 35 },
+        { commodityId: 'cmd-rate-1', rentType: 'Monthly', smallRate: 10, bigRate: 15 },
+      ]);
+      expect(batch).toHaveLength(2);
+      expect(batch[0]).toMatchObject({ rentType: 'Seasonal', smallRate: 25, bigRate: 35 });
+      expect(batch[1]).toMatchObject({ rentType: 'Monthly', smallRate: 10, bigRate: 15 });
+    });
+
     it('skips the policy when Hamali is disabled, even with a stale rate value', async () => {
       await CommodityModel.updateOne(
         { id: 'cmd-rate-1' },
