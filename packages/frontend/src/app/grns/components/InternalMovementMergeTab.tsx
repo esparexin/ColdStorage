@@ -46,7 +46,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
   const { currentGrn, facilityId, submitting, initiatingGrnId } = props;
   const {
     step, setStep, targetGrnId, selectedSourceIds,
-    movementDate, reason, setReason, remarks, setRemarks,
+    movementDate, setMovementDate, reason, setReason, remarks, setRemarks,
     targetConfirmation, updateTargetConfirmation,
     sourceConfirmations, updateSourceConfirmation, sourceRentSummaries,
     settlementDecision, settleAmount,
@@ -173,6 +173,7 @@ export function InternalMovementMergeTab(props: InternalMovementMergeTabProps) {
           actualRepackedBags={actualRepackedBags}
           commodityHamaliRate={commodityHamaliRate}
           movementDate={movementDate}
+          onMovementDateChange={setMovementDate}
           targetGrn={targetGrn}
           reason={reason}
           onReasonChange={setReason}

@@ -48,7 +48,7 @@ export function useInternalMovementMergeTab({
   const openGrns = useMemo(() => allGrns.filter((g) => g.status === 'OPEN'), [allGrns]);
   const [targetGrnId, setTargetGrnId] = useState<string>(() => resolveInitialMergeState(currentGrn, allGrns.filter((g) => g.status === 'OPEN'), initiatingGrnId).initialTargetId);
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>(() => resolveInitialMergeState(currentGrn, allGrns.filter((g) => g.status === 'OPEN'), initiatingGrnId).initialSourceIds);
-  const [movementDate] = useState(new Date().toISOString().slice(0, 10));
+  const [movementDate, setMovementDate] = useState(new Date().toISOString().slice(0, 10));
   const [reason, setReason] = useState(''); const [remarks, setRemarks] = useState('');
   const [confirmation, setConfirmation] = useState<BagConfirmationValue>(DEFAULT_BAG_CONFIRMATION);
   const [targetConfirmation, setTargetConfirmation] = useState<BagConfirmationValue>(DEFAULT_BAG_CONFIRMATION);
@@ -211,17 +211,19 @@ export function useInternalMovementMergeTab({
       undefined, undefined, resolvedCategory,
       effQuantity, effBagPrice, effSeasonalPrice, effMonthlyPrice, repackMode, effRepackedBagCount,
       effectiveChamber, tSmall, tBig, tCat, tQty, tPrice, tSeasonalPrice, tMonthlyPrice,
-      repack.partyMark.trim() || undefined, repack.storageMark.trim() || undefined,
+      repack.partyMark.trim() || undefined, (targetGrn.storageMark || targetGrn.grnNumber || '').trim() || undefined,
     );
   };
 
+  const targetStorageMark = targetGrn.storageMark || targetGrn.grnNumber || '';
+
   return {
     step, setStep, targetGrnId, setTargetGrnId, selectedSourceIds, setSelectedSourceIds,
-    movementDate, reason, setReason, remarks, setRemarks, confirmation, setConfirmation,
+    movementDate, setMovementDate, reason, setReason, remarks, setRemarks, confirmation, setConfirmation,
     targetConfirmation, setTargetConfirmation, updateTargetConfirmation,
     sourceConfirmations, setSourceConfirmations, updateSourceConfirmation, sourceRentSummaries,
     settlementDecision, settleAmount, paymentMode,
-    ...repack, validationError, setValidationError, openGrns, targetGrn, targetSeason,
+    ...repack, storageMark: targetStorageMark, validationError, setValidationError, openGrns, targetGrn, targetSeason,
     eligibleSources, futureSeasonCount, recommendedSwitchGrn, targetOptions, handleTargetChange, handleToggleSource, handleSwitchTarget: handleTargetChange,
     selectedSources, totalSourceBags, targetCurrentRemaining, isTargetLoanHold,
     totalSourcePendingRent: totalSettlementBill, totalSettlementBill, isTargetDiff, isRepackFilled, commodityHamaliRate, actualRepackedBags,
