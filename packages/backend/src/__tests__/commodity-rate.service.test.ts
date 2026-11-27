@@ -116,13 +116,17 @@ describe('Commodity rates — commodity-rate.service.test.ts', () => {
       );
     });
 
-    it('rejects rates at or below the Hamali rate when Hamali is enabled', async () => {
+    it('rejects seasonal rates at or below the Hamali rate when Hamali is enabled', async () => {
       await expect(
         commodityRateService.upsertRate({ commodityId: 'cmd-rate-1', rentType: 'Seasonal', smallRate: 20, bigRate: 30 }),
       ).rejects.toThrow('must exceed the Hamali rate of ₹20/bag');
-      await expect(
-        commodityRateService.upsertRate({ commodityId: 'cmd-rate-1', rentType: 'Monthly', smallRate: 30, bigRate: 5 }),
-      ).rejects.toThrow('must exceed the Hamali rate of ₹20/bag');
+    });
+
+    it('permits monthly rates at or below the Hamali rate', async () => {
+      const rate = await commodityRateService.upsertRate({
+        commodityId: 'cmd-rate-1', rentType: 'Monthly', smallRate: 10, bigRate: 15,
+      });
+      expect(rate).toMatchObject({ smallRate: 10, bigRate: 15 });
     });
 
     it('accepts rates above the Hamali rate', async () => {

@@ -50,6 +50,22 @@ describe('commodityRates.helper', () => {
     });
   });
 
+  it('allows monthly rates below hamaliRate while enforcing hamaliRate on seasonal rates', () => {
+    const errors = validateRatesForm(
+      {
+        seasonalSmall: 10,
+        seasonalBig: 15,
+        monthlySmall: 10,
+        monthlyBig: 15,
+      },
+      20,
+    );
+    expect(errors.seasonalSmall).toContain('must exceed the Hamali rate');
+    expect(errors.seasonalBig).toContain('must exceed the Hamali rate');
+    expect(errors.monthlySmall).toBeUndefined();
+    expect(errors.monthlyBig).toBeUndefined();
+  });
+
   it('builds synchronized seasonal and monthly upsert payloads', () => {
     expect(
       buildRatePayloads({ seasonalSmall: 12, seasonalBig: 18, monthlySmall: 10, monthlyBig: 15 }),
