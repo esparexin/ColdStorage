@@ -16,3 +16,6 @@ storage/
 .impeccable/bin/
 .impeccable/cache/
 .agents/skills/impeccable/scripts/bin/
+
+# IDE / Editor
+.vscode/
