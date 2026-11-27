@@ -6,7 +6,7 @@ describe('Transfer Ownership Repacking Hamali Labor (Unit)', () => {
   const baseInput = {
     grnId: 'grn-001',
     newCustomerId: 'cust-transferee-01',
-    movementDate: '2026-11-20',
+    movementDate: new Date('2026-11-20'),
     remarks: 'Buyer requested rebagging into standard 50kg bags',
   };
 
