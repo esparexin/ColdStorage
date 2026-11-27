@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { validateMergeSubmit } from '../mergeStepValidation.helper';
 
@@ -116,8 +118,6 @@ describe('Merge Step 4 Cleanup & Chamber Validation', () => {
   });
 
   it('verifies MergeStep4RepackSection keeps storage mark read-only and allows manual merge date entry', () => {
-    const fs = require('node:fs');
-    const path = require('node:path');
     const source = fs.readFileSync(path.resolve(__dirname, '../MergeStep4RepackSection.tsx'), 'utf-8');
 
     // Storage mark is read-only for surviving Target GRN

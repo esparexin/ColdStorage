@@ -10,8 +10,8 @@
  */
 import mongoose from 'mongoose';
 import { isHybridBagCategory } from '@cold-storage/contracts';
-import { connectToDatabase } from '../../dist/database/connection.js';
-import { logger } from '../../dist/utils/logger.js';
+import { connectToDatabase } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 
 interface ReconciliationPlan {
   grnId: string;

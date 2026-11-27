@@ -11,7 +11,6 @@ import {
   resolveStoredCompositionVerified, seasonYearForInwardDate, toExcludedPeriodKeys,
   type BagType, type PaymentMode, type RentType,
 } from '@cold-storage/contracts';
-import type { LedgerBalance } from '../../inventory/ledger-balance.js';
 import { computeExpectedDeliveryRent } from '../../delivery/handlers/delivery-rent.helper.js';
 import { CommodityModel } from '../../../database/models/commodity.model.js';
 import { computeFirstSeasonHamali } from '../../common/hamali-resolution.js';

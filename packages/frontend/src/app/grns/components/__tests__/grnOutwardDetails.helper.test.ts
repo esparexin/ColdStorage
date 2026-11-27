@@ -30,7 +30,7 @@ describe('formatOutwardCompositionText', () => {
       smallBags: 0,
       bigBags: 0,
       bagCategory: 'Hybrid',
-      bagType: 'Normal',
+      bagType: 'S/B',
     });
 
     expect(text).toBe('Hybrid - 50 bags');

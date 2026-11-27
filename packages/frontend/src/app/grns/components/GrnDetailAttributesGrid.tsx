@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { formatDisplayBagType, type Grn, type InternalMovementRecord } from '@cold-storage/contracts';
+import { type Grn, type InternalMovementRecord } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import { extractOwnershipTransferDate, parseOwnershipTransferDisplayInfo } from '@/app/rent/hooks/rentDisplay.helper';
 import {
