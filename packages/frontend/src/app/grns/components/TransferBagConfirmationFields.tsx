@@ -21,6 +21,9 @@ export function TransferBagConfirmationFields({
   onBigChange,
   disabled,
 }: Props) {
+  const maxSmall = Math.max(0, remainingBags - (typeof confirmedBigBags === 'number' ? confirmedBigBags : 0));
+  const maxBig = Math.max(0, remainingBags - (typeof confirmedSmallBags === 'number' ? confirmedSmallBags : 0));
+
   return (
     <div className={styles.formSection}>
       <div
@@ -35,7 +38,7 @@ export function TransferBagConfirmationFields({
           label="Small Bags"
           type="number"
           min={0}
-          max={remainingBags}
+          max={maxSmall}
           value={confirmedSmallBags}
           onChange={(e) => onSmallChange(e.target.value === '' ? '' : Number(e.target.value))}
           disabled={disabled}
@@ -46,7 +49,7 @@ export function TransferBagConfirmationFields({
           label="Big Bags"
           type="number"
           min={0}
-          max={remainingBags}
+          max={maxBig}
           value={confirmedBigBags}
           onChange={(e) => onBigChange(e.target.value === '' ? '' : Number(e.target.value))}
           disabled={disabled}

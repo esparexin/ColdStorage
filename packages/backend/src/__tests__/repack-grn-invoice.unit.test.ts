@@ -177,5 +177,28 @@ describe('Sorting, Grading & Repacking Service Invoice (Unit)', () => {
 
       expect(mockGrn.rentAmount).toBe(8000);
     });
+
+    it('preserves rentAmount=0 when lot is unbilled at outward', () => {
+      const mockGrn = {
+        date: new Date('2026-03-01'),
+        rentType: 'Seasonal',
+        bagType: 'S/B',
+        bags: 100,
+        rentAmount: 0,
+        smallBagPrice: 100,
+        bigBagPrice: 100,
+      } as unknown as GrnDoc;
+
+      updateRepackProspectiveRent({
+        grn: mockGrn,
+        previousTotalBags: 100,
+        actualRepackedBags: 120,
+        inSmall: 60,
+        inBig: 60,
+        movementDate: new Date('2026-04-01'),
+      });
+
+      expect(mockGrn.rentAmount).toBe(0);
+    });
   });
 });

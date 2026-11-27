@@ -22,6 +22,7 @@ export interface RecalculateRepackRentInput {
  */
 export function updateRepackProspectiveRent(input: RecalculateRepackRentInput): void {
   const { grn, previousTotalBags, actualRepackedBags, inSmall, inBig } = input;
+  if (grn.rentAmount === 0 || grn.rentAmount == null) return;
   if (grn.rentType === 'Seasonal' || grn.rentType === 'Seasonal_3M') {
     const effectiveBagPrice = grn.bagPrice ?? deriveBagPrice({
       rentType: grn.rentType, bags: previousTotalBags, rentAmount: grn.rentAmount,

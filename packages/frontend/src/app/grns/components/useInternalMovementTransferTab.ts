@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
-  isHybridBagCategory, resolveTotalRentObligation, toOperationalBagType,
+  clampBagAllocation, isHybridBagCategory, resolveTotalRentObligation, toOperationalBagType,
   type Commodity, type Customer, type Grn, type OperationalBagType, type OutwardBagCategory, type PaymentMode,
   type TransferPaymentDecision, type TransferSettlementDetails,
 } from '@cold-storage/contracts';
@@ -65,6 +65,22 @@ export function useInternalMovementTransferTab({
     ((currentGrn.smallBags ?? 0) + (currentGrn.bigBags ?? 0) === remainingBags);
   const [confirmedSmallBags, setConfirmedSmallBags] = useState<number | ''>(initialSb ? (currentGrn.smallBags ?? 0) : '');
   const [confirmedBigBags, setConfirmedBigBags] = useState<number | ''>(initialSb ? (currentGrn.bigBags ?? 0) : '');
+
+  const handleConfirmedSmallChange = (val: number | '') => {
+    if (val === '') { setConfirmedSmallBags(''); return; }
+    const other = typeof confirmedBigBags === 'number' ? confirmedBigBags : 0;
+    const clamped = clampBagAllocation(val, other, remainingBags);
+    setConfirmedSmallBags(clamped);
+    if (clamped === remainingBags) setConfirmedBigBags(0);
+  };
+
+  const handleConfirmedBigChange = (val: number | '') => {
+    if (val === '') { setConfirmedBigBags(''); return; }
+    const other = typeof confirmedSmallBags === 'number' ? confirmedSmallBags : 0;
+    const clamped = clampBagAllocation(val, other, remainingBags);
+    setConfirmedBigBags(clamped);
+    if (clamped === remainingBags) setConfirmedSmallBags(0);
+  };
   const [sourceBagCategory, setSourceBagCategory] = useState<OutwardBagCategory>(
     toOperationalBagType(currentGrn.bagType),
   );
@@ -179,8 +195,7 @@ export function useInternalMovementTransferTab({
   };
 
   const transferFeeCharged = typeof transferFeePerBag === 'number' && transferFeePerBag > 0
-    ? transferFeePerBag * remainingBags
-    : 0;
+    ? transferFeePerBag * remainingBags : 0;
 
   const doExecuteTransfer = async () => {
     const conf = isHybrid ? {
@@ -197,8 +212,7 @@ export function useInternalMovementTransferTab({
       effectiveDue > 0 && decision === 'SETTLE_NOW' ? { amountPaid: settleAmount, paymentMode } : undefined,
       conf,
       {
-        destinationChamber: destinationChamber.trim(),
-        resultingBagType,
+        destinationChamber: destinationChamber.trim(), resultingBagType,
         repackedSmallBags: resultingBagType === 'Hybrid' ? undefined : (typeof repackedSmallBags === 'number' ? repackedSmallBags : undefined),
         repackedBigBags: resultingBagType === 'Hybrid' ? undefined : (typeof repackedBigBags === 'number' ? repackedBigBags : undefined),
         repackedQuantity: resultingBagType === 'Hybrid' ? (typeof repackedQuantity === 'number' ? repackedQuantity : undefined) : undefined,
@@ -206,10 +220,8 @@ export function useInternalMovementTransferTab({
         partyMark: partyMark.trim() || undefined,
       },
       typeof transferFeePerBag === 'number' && transferFeePerBag > 0 ? {
-        transferFeePerBag,
-        totalTransferFee: transferFeeCharged,
-        feePaymentMode: paymentMode,
-        feePaidBy,
+        transferFeePerBag, totalTransferFee: transferFeeCharged,
+        feePaymentMode: paymentMode, feePaidBy,
       } : undefined,
     );
   };
@@ -219,11 +231,12 @@ export function useInternalMovementTransferTab({
     setCreatedCustomers, movementDate, reason, setReason, remarks, setRemarks,
     decision, setDecision, settleAmount, setSettleAmount, paymentMode, setPaymentMode,
     transferFeePerBag, setTransferFeePerBag, feePaidBy, setFeePaidBy, transferFeeCharged,
-    validationError, remainingBags, confirmedSmallBags, setConfirmedSmallBags,
-    confirmedBigBags, setConfirmedBigBags, sourceBagCategory, setSourceBagCategory,
-    sourceBagPrice, setSourceBagPrice, sourceSeasonalBagPrice, setSourceSeasonalBagPrice,
-    sourceMonthlyBagPrice, setSourceMonthlyBagPrice, destinationChamber, setDestinationChamber,
-    partyMark, setPartyMark,
+    validationError, remainingBags,
+    confirmedSmallBags, setConfirmedSmallBags: handleConfirmedSmallChange,
+    confirmedBigBags, setConfirmedBigBags: handleConfirmedBigChange,
+    sourceBagCategory, setSourceBagCategory, sourceBagPrice, setSourceBagPrice,
+    sourceSeasonalBagPrice, setSourceSeasonalBagPrice, sourceMonthlyBagPrice, setSourceMonthlyBagPrice,
+    destinationChamber, setDestinationChamber, partyMark, setPartyMark,
     resultingBagType, setResultingBagType, repackedSmallBags, setRepackedSmallBags,
     repackedBigBags, setRepackedBigBags, repackedQuantity, setRepackedQuantity,
     referenceWeight, setReferenceWeight, rentLoading, candidateCustomers, selectedNewCustomer,

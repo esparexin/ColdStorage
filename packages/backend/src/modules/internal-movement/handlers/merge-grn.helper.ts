@@ -58,17 +58,14 @@ export async function resolveSourceRentObligation(
     rentExtensionRepository.findExtensionsByGrn(facilityId, sourceGrn.id, session),
   ]);
   const excludedKeys = toExcludedPeriodKeys(extensions);
-  const isCrossSeason = targetSeason > sourceSeason && new Date(sourceGrn.date).getFullYear() < new Date(targetGrnDate).getFullYear();
-  if (isCrossSeason) {
-    const mergeExcluded = resolveMergeExcludedPeriodKeys({
-      inwardDate: sourceGrn.date,
-      movementDate,
-      targetGrnDate,
-      billedExtensionKeys: excludedKeys,
-    });
-    for (const k of mergeExcluded) {
-      if (!excludedKeys.includes(k)) excludedKeys.push(k);
-    }
+  const mergeExcluded = resolveMergeExcludedPeriodKeys({
+    inwardDate: sourceGrn.date,
+    movementDate,
+    targetGrnDate,
+    billedExtensionKeys: excludedKeys,
+  });
+  for (const k of mergeExcluded) {
+    if (!excludedKeys.includes(k)) excludedKeys.push(k);
   }
   const effectiveSourceRentType = resolveEffectiveGrnRentType({
     rentType: sourceGrn.rentType, inwardDate: sourceGrn.date, asOfDate: movementDate,

@@ -3,6 +3,7 @@ import {
   isHybridBagCategory,
   resolveMergeExcludedPeriodKeys,
   resolveSeasonalElapsedPeriods,
+  resolveUncompletedPeriodKeys,
   type Commodity,
   type Grn,
   type OutwardBagCategory,
@@ -53,10 +54,8 @@ export function calculateMergeSourceRentSummary(params: {
 
   const sourceBags = source.closingBags ?? source.bags;
 
-  const isHybrid =
-    confirmation?.category === 'Hybrid' ||
-    isHybridBagCategory(source.bagType) ||
-    isHybridBagCategory(confirmation?.category);
+  const isHybrid = confirmation?.category === 'Hybrid' ||
+    isHybridBagCategory(source.bagType) || isHybridBagCategory(confirmation?.category);
 
   const hasChoice = (typeof confirmation?.smallBags === 'number' && typeof confirmation?.bigBags === 'number') ||
     (typeof confirmation?.smallBags === 'number' && confirmation.smallBags === sourceBags) ||
@@ -74,17 +73,17 @@ export function calculateMergeSourceRentSummary(params: {
   const bigBags = isHybrid ? 0 : confirmedBig;
   const bagCategory = (isHybrid ? 'Hybrid' : (confirmation?.category || 'S/B')) as OutwardBagCategory;
 
-  const excludePeriodKeys = source.date && !isTargetGrn && targetGrnDate
-    ? resolveMergeExcludedPeriodKeys({
-        inwardDate: source.date,
-        movementDate,
-        targetGrnDate,
-      })
+  const excludePeriodKeys = source.date
+    ? (isTargetGrn
+        ? resolveUncompletedPeriodKeys(source.date, movementDate)
+        : (targetGrnDate
+            ? resolveMergeExcludedPeriodKeys({ inwardDate: source.date, movementDate, targetGrnDate })
+            : []))
     : [];
 
   const elapsed = source.date ? resolveSeasonalElapsedPeriods(source.date, movementDate) : [];
   const completedPeriods = elapsed.filter((p) => !excludePeriodKeys.includes(p.key));
-  const hasCompletedPeriods = isTargetGrn ? elapsed.length > 0 : completedPeriods.length > 0;
+  const hasCompletedPeriods = completedPeriods.length > 0;
 
   const manualBagPrice = typeof confirmation?.bagPrice === 'number' && confirmation.bagPrice > 0
     ? confirmation.bagPrice
