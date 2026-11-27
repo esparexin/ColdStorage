@@ -6,6 +6,7 @@ import {
   receiptDocumentDtoSchema,
   rentReceiptPreviewDtoSchema,
   systemSettingsSchema,
+  transferDeedDocumentDtoSchema,
 } from '../index.js';
 
 describe('P9 Documents & Settings Contracts Tests', () => {
@@ -220,5 +221,27 @@ describe('P9 Documents & Settings Contracts Tests', () => {
       expect(valid.data.backupPolicy.backupEnabled).toBe(true);
       expect(valid.data.timezone).toBe('Asia/Kolkata');
     }
+  });
+
+  it('validates transferDeedDocumentDtoSchema defaults and preserves repacking hamali labor fields', () => {
+    const base = {
+      organization: sampleOrg, facility: sampleFacility,
+      transferInvoiceNumber: 'TRF-INV-2026-0001', movementDate: new Date(),
+      grnNumber: 'GRN-2026-0001', commodityName: 'Chilli',
+      chamber: 'CH-01', storageMark: 'LOT-1',
+      sellerId: 'c1', sellerName: 'Seller', buyerId: 'c2', buyerName: 'Buyer',
+      transferredBags: 100, smallBags: 60, bigBags: 40, bagType: 'S/B',
+      paymentDecision: 'SETTLE_NOW', generatedAt: new Date(), generatedBy: 'usr-admin',
+    };
+    const parsedDefault = transferDeedDocumentDtoSchema.parse(base);
+    expect(parsedDefault.repackHamaliCharge).toBe(0);
+    expect(parsedDefault.repackHamaliRate).toBe(0);
+    expect(parsedDefault.repackHamaliBags).toBe(0);
+    const parsedWithHamali = transferDeedDocumentDtoSchema.parse({
+      ...base, repackHamaliCharge: 750, repackHamaliRate: 7.5, repackHamaliBags: 100,
+    });
+    expect(parsedWithHamali.repackHamaliCharge).toBe(750);
+    expect(parsedWithHamali.repackHamaliRate).toBe(7.5);
+    expect(parsedWithHamali.repackHamaliBags).toBe(100);
   });
 });
