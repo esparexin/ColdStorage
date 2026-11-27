@@ -122,7 +122,7 @@ export function RentBillingChargesSection({
   );
   const outwardCharges = account.outwardRentCharges ?? 0;
   const isBilledAtOutward =
-    outwardCharges > 0 || activeDeliveries.length > 0 || (account.deliveredBags ?? 0) > 0;
+    outwardCharges > 0 || activeDeliveries.length > 0;
   const effectiveStorageAmount = isBilledAtOutward ? outwardCharges : account.rentAmount;
 
   const storageRentTotal =
@@ -141,8 +141,9 @@ export function RentBillingChargesSection({
       effectiveStorageAmount,
       excludePeriodKeys,
       hamaliDue,
+      hamaliRate,
     });
-  }, [isBilledAtOutward, account, originSeason, effectiveStorageAmount, excludePeriodKeys, hamaliDue]);
+  }, [isBilledAtOutward, account, originSeason, effectiveStorageAmount, excludePeriodKeys, hamaliDue, hamaliRate]);
 
   return (
     <>

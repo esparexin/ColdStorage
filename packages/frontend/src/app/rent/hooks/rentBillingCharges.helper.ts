@@ -56,6 +56,7 @@ export interface BuildRentCalculationRowsParams {
   effectiveStorageAmount: number;
   excludePeriodKeys: string[];
   hamaliDue: number;
+  hamaliRate?: number;
 }
 
 export function buildRentCalculationRows(params: BuildRentCalculationRowsParams): RentCalculationRow[] {
@@ -64,6 +65,7 @@ export function buildRentCalculationRows(params: BuildRentCalculationRowsParams)
     originSeason,
     effectiveStorageAmount,
     hamaliDue,
+    hamaliRate,
   } = params;
 
   const list: RentCalculationRow[] = [];
@@ -159,10 +161,15 @@ export function buildRentCalculationRows(params: BuildRentCalculationRowsParams)
 
   // 3. Hamali Charges Row (only when confirmed eligible hamali exists)
   if (hamaliDue > 0) {
+    const rate = hamaliRate ?? (account.totalBags > 0 ? Number((hamaliDue / account.totalBags).toFixed(2)) : undefined);
+    const details = rate != null && account.totalBags > 0
+      ? `${account.totalBags} bags × ₹${rate.toFixed(2)} / bag`
+      : 'Inward unloading handling assessment';
+
     list.push({
       id: 'hamali-charges',
-      dates: 'Direct Hamali Inward',
-      details: 'Inward unloading handling assessment',
+      dates: 'Hamali Charges',
+      details,
       amount: hamaliDue,
     });
   }

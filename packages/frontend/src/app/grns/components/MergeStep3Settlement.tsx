@@ -66,9 +66,9 @@ export function MergeStep3Settlement({
         confirmation: targetConfirmation,
         movementDate,
         commodityHamaliRate,
-        targetGrnDate: targetGrn.date,
         summary: targetSummary,
         commodity: targetCommodity,
+        isTargetGrn: true,
       }),
     [targetGrn, targetConfirmation, movementDate, commodityHamaliRate, targetSummary, targetCommodity],
   );

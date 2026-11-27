@@ -18,7 +18,7 @@ export function useMergeRepackForm() {
   const [repackMonthlyBagPrice, setRepackMonthlyBagPrice] = useState<number | ''>('');
   const [repackBagPrice, setRepackBagPrice] = useState<number | ''>('');
 
-  const applyDerivedRepackDefaults = (derived: BagConfirmationValue, _totalBags?: number) => {
+  const applyDerivedRepackDefaults = (derived: BagConfirmationValue) => {
     setRepackBagType(isHybridBagCategory(derived.category) ? 'Hybrid' : 'S/B');
     setRepackQuantity('');
     setRepackSmall('');
