@@ -113,4 +113,35 @@ describe('mergeRentAssessment.helper - calculateMergeSourceRentSummary', () => {
     expect(result.isConfirmed).toBe(false);
     expect(result.bagCountLabel).toBe('Pending Split');
   });
+
+  it('calculates hamali from initial intake bags and respects snapshot even after partial deliveries', () => {
+    const source = makeSourceGrn({
+      id: 'grn-source-partially-delivered',
+      grnNumber: '0033',
+      date: new Date('2025-03-01'),
+      bags: 100,
+      closingBags: 60,
+      hamaliAmount: 500,
+      hamaliRate: 5,
+      bagType: 'Hybrid',
+      rentType: 'Seasonal',
+    });
+
+    const result = calculateMergeSourceRentSummary({
+      source,
+      confirmation: {
+        category: 'Hybrid',
+        quantity: 60,
+        smallBags: 60,
+        bigBags: 0,
+        seasonalBagPrice: 50,
+        monthlyBagPrice: 10,
+        bagPrice: 50,
+      },
+      movementDate: '2025-10-23',
+      commodityHamaliRate: 5,
+    });
+
+    expect(result.hamaliAmount).toBe(500);
+  });
 });

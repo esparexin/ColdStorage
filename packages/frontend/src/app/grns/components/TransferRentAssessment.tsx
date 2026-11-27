@@ -93,9 +93,11 @@ export function TransferRentAssessment({
   ]);
 
   const totalRent = propAssessedRent ?? calculatedRent;
-  const hamaliCharge = typeof hamaliRate === 'number' && hamaliRate > 0 && remainingBags > 0
-    ? calculateHamaliAmount(remainingBags, hamaliRate)
-    : 0;
+  const hamaliCharge = typeof currentGrn.hamaliAmount === 'number' && currentGrn.hamaliAmount >= 0
+    ? currentGrn.hamaliAmount
+    : (typeof hamaliRate === 'number' && hamaliRate > 0
+        ? calculateHamaliAmount(currentGrn.bags, hamaliRate)
+        : 0);
   const totalObligation = totalRent + hamaliCharge;
   const balance = outstandingBalance !== undefined ? outstandingBalance : Math.max(0, totalObligation - totalPaid);
   const inwardDateStr = currentGrn.date ? new Date(currentGrn.date).toISOString().slice(0, 10) : '—';

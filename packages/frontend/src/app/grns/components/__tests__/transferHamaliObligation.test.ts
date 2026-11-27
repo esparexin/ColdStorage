@@ -97,5 +97,18 @@ describe('Transfer Ownership: Hamali Rate Resolution and Obligation Alignment', 
     const hamaliAmount = calculateHamaliAmount(grn.bags ?? 0, effectiveHamaliRate);
     expect(hamaliAmount).toBe(500);
   });
+
+  it('prioritizes inward hamaliAmount snapshot when present', () => {
+    const grn: Partial<Grn> = {
+      bags: 100,
+      closingBags: 30,
+      hamaliAmount: 400,
+      hamaliRate: 10,
+    };
+    const hamaliCharge = typeof grn.hamaliAmount === 'number' && grn.hamaliAmount >= 0
+      ? grn.hamaliAmount
+      : calculateHamaliAmount(grn.bags ?? 0, grn.hamaliRate);
+    expect(hamaliCharge).toBe(400);
+  });
 });
 

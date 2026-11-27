@@ -58,8 +58,7 @@ export function calculateMergeSourceRentSummary(params: {
     isHybridBagCategory(source.bagType) ||
     isHybridBagCategory(confirmation?.category);
 
-  const hasChoice =
-    (typeof confirmation?.smallBags === 'number' && typeof confirmation?.bigBags === 'number') ||
+  const hasChoice = (typeof confirmation?.smallBags === 'number' && typeof confirmation?.bigBags === 'number') ||
     (typeof confirmation?.smallBags === 'number' && confirmation.smallBags === sourceBags) ||
     (typeof confirmation?.bigBags === 'number' && confirmation.bigBags === sourceBags);
   const isConfirmed = isHybrid || hasChoice || Boolean(source.isCompositionVerified);
@@ -131,8 +130,7 @@ export function calculateMergeSourceRentSummary(params: {
   });
 
   const storedRent = summary?.rentAmount ?? source.rentAmount ?? 0;
-  const hasManualRateOverride =
-    (typeof confirmation?.bagPrice === 'number' && confirmation.bagPrice > 0) ||
+  const hasManualRateOverride = (typeof confirmation?.bagPrice === 'number' && confirmation.bagPrice > 0) ||
     (typeof confirmation?.seasonalBagPrice === 'number' && confirmation.seasonalBagPrice > 0) ||
     (typeof confirmation?.monthlyBagPrice === 'number' && confirmation.monthlyBagPrice > 0);
 
@@ -148,7 +146,8 @@ export function calculateMergeSourceRentSummary(params: {
     totalRent = calculatedRent > 0 ? calculatedRent : (historicalObligation > 0 ? historicalObligation : 0);
   }
 
-  const hamaliAmount = calculateHamaliAmount(sourceBags, commodityHamaliRate);
+  const hamaliAmount = typeof source.hamaliAmount === 'number' && source.hamaliAmount >= 0
+    ? source.hamaliAmount : calculateHamaliAmount(source.bags, commodityHamaliRate);
   const totalAmountToPay = totalRent + hamaliAmount;
 
   let bagCountLabel = `${sourceBags} Bags`;

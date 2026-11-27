@@ -9,6 +9,8 @@ export interface ObligationGrn {
   rentAmount: number | null;
   rentType: RentObligationInput['rentType'];
   hamaliShare?: number | null;
+  remainingBags?: number | null;
+  totalBags?: number | null;
 }
 
 /**
@@ -41,6 +43,8 @@ export async function resolveMovementObligation(
       rentType: grn.rentType,
       outwardRentCharges,
       hamaliShare: grn.hamaliShare,
+      remainingBags: grn.remainingBags,
+      totalBags: grn.totalBags,
     },
     session,
   );

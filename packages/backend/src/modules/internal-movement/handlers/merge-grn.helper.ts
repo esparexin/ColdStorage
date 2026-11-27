@@ -21,7 +21,7 @@ import { rentExtensionRepository } from '../../rent/rent-extension.repository.js
 export interface MergeSourceGrn {
   id: string; grnNumber: string; inwardReceiptNumber: string; date: Date; customerId?: string; customerName: string;
   chamber: string; commodityId: string; bagType: BagType; rentType: RentType; rentAmount: number;
-  bags: number; smallBags: number; bigBags: number; bagPrice?: number | null;
+  bags: number; closingBags?: number | null; smallBags: number; bigBags: number; bagPrice?: number | null;
   smallBagPrice?: number | null; bigBagPrice?: number | null; remarks?: string | null;
   hamaliRate?: number | null; hamaliAmount?: number | null;
   isCompositionVerified?: boolean | null; status?: string; loanStatus?: string | null;
@@ -58,7 +58,8 @@ export async function resolveSourceRentObligation(
     rentExtensionRepository.findExtensionsByGrn(facilityId, sourceGrn.id, session),
   ]);
   const excludedKeys = toExcludedPeriodKeys(extensions);
-  if (targetSeason > sourceSeason && new Date(sourceGrn.date).getFullYear() < new Date(targetGrnDate).getFullYear()) {
+  const isCrossSeason = targetSeason > sourceSeason && new Date(sourceGrn.date).getFullYear() < new Date(targetGrnDate).getFullYear();
+  if (isCrossSeason) {
     const mergeExcluded = resolveMergeExcludedPeriodKeys({
       inwardDate: sourceGrn.date,
       movementDate,
@@ -150,7 +151,10 @@ export async function resolveSourceRentObligation(
 
   const sourceTotalDue = await resolveMovementObligation(
     facilityId,
-    { id: sourceGrn.id, rentAmount: effectiveRentAmount, rentType: effectiveSourceRentType, hamaliShare: sourceHamaliShare },
+    {
+      id: sourceGrn.id, rentAmount: effectiveRentAmount, rentType: effectiveSourceRentType,
+      hamaliShare: sourceHamaliShare, remainingBags: sourceGrn.closingBags ?? sourceGrn.bags, totalBags: sourceGrn.bags,
+    },
     session,
   );
 
