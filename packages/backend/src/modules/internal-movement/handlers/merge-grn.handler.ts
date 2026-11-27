@@ -15,6 +15,7 @@ import { auditService } from '../../audit/audit.service.js';
 import { toGrnEntity } from '../../grn/grn.mappers.js';
 import { validateProspectiveMergeMove, processMergeSource, settleTargetHamaliPayment } from './merge-source-move.helper.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
+import { toEqId } from '../../../utils/query-sanitizer.js';
 import { createMergePutawayTransaction, createMergeMovementRecord, resolveMergeTargetRentAmount } from './merge-grn-movement.helper.js';
 import { buildMergeTargetUpdates } from './merge-grn-remarks.helper.js';
 import { resolveMergeRepackHamali } from './merge-repack-hamali.helper.js';
@@ -45,7 +46,7 @@ export async function mergeGrn(
     await withMongoRetry(() =>
       session.withTransaction(async () => {
       if (input.idempotencyKey) {
-        const existing = await InternalMovementModel.findOne({ facilityId, idempotencyKey: input.idempotencyKey }, null, { session }).lean().exec();
+        const existing = await InternalMovementModel.findOne({ facilityId: toEqId(facilityId), idempotencyKey: toEqId(input.idempotencyKey) }, null, { session }).lean().exec();
         if (existing) {
           const existingTarget = await GrnModel.findOne({ id: existing.targetGrnId, facilityId }, null, { session }).lean().exec();
           if (existingTarget) {
@@ -57,7 +58,7 @@ export async function mergeGrn(
         }
       }
 
-      const targetGrn = await GrnModel.findOne({ id: input.targetGrnId, facilityId }, null, { session }).lean().exec();
+      const targetGrn = await GrnModel.findOne({ id: toEqId(input.targetGrnId), facilityId: toEqId(facilityId) }, null, { session }).lean().exec();
       if (!targetGrn) throw new Error(`Target GRN '${input.targetGrnId}' not found in facility '${facilityId}'`);
       if (targetGrn.status === 'CLOSED') throw new Error(`Cannot merge into CLOSED GRN '${targetGrn.grnNumber}'`);
       if (targetGrn.loanStatus === 'TAKEN') throw new Error(`Target GRN '${targetGrn.grnNumber}' has an active loan hold`);

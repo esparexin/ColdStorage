@@ -17,6 +17,7 @@ import { toGrnEntity } from '../../grn/grn.mappers.js';
 import { readLedgerBalance } from '../../inventory/ledger-balance.js';
 import { resolveEffectiveHamaliRate } from '../../common/hamali-resolution.js';
 import { withMongoRetry } from '../../common/mongo-retry.helper.js';
+import { toEqId } from '../../../utils/query-sanitizer.js';
 import { snapshotRepackRentObligation, updateRepackProspectiveRent } from './repack-grn.rent.js';
 
 export async function executeRepackGrn(
@@ -38,7 +39,7 @@ export async function executeRepackGrn(
     await withMongoRetry(() =>
       session.withTransaction(async () => {
         if (input.idempotencyKey) {
-          const existing = await InternalMovementModel.findOne({ facilityId, idempotencyKey: input.idempotencyKey }, null, { session }).lean().exec();
+          const existing = await InternalMovementModel.findOne({ facilityId: toEqId(facilityId), idempotencyKey: toEqId(input.idempotencyKey) }, null, { session }).lean().exec();
           if (existing) {
             const exGrn = await GrnModel.findOne({ id: existing.targetGrnId, facilityId }, null, { session }).lean().exec();
             if (exGrn) {
@@ -53,7 +54,7 @@ export async function executeRepackGrn(
           }
         }
 
-        const grn = await GrnModel.findOne({ id: input.grnId, facilityId }, null, { session });
+        const grn = await GrnModel.findOne({ id: toEqId(input.grnId), facilityId: toEqId(facilityId) }, null, { session });
         if (!grn) throw new Error(`GRN '${input.grnId}' not found in facility '${facilityId}'`);
         if (grn.status === 'CLOSED') throw new Error(`Cannot repack CLOSED GRN '${grn.grnNumber}'`);
         if (grn.loanStatus === 'TAKEN') throw new Error(`Cannot repack: Active loan hold against GRN '${grn.grnNumber}'`);

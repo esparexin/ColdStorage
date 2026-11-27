@@ -12,10 +12,12 @@ import {
   disconnectTestDatabase,
   resetStockCollections,
 } from './helpers/stock-reset.js';
+import { useHistoricalTestingDates } from './helpers/historical-dates-env.js';
 
 const USER_ID = 'usr-consolidated-settlement-tester';
 
 describe('GRN-Wise Consolidated Rent Settlement (grn-consolidated-rent-settlement.test.ts)', () => {
+  useHistoricalTestingDates();
   let facilityId: string;
   let customerId: string;
 

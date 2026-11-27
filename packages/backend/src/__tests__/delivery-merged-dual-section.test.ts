@@ -12,10 +12,12 @@ import {
   disconnectTestDatabase,
   resetStockCollections,
 } from './helpers/stock-reset.js';
+import { useHistoricalTestingDates } from './helpers/historical-dates-env.js';
 
 const USER_ID = 'usr-dual-section';
 
 describe('Delivery Merged Dual-Section Outward Dispatches', () => {
+  useHistoricalTestingDates();
   let facilityId: string;
   let customerId: string;
   const commodityId = 'cmd-mirchi';

@@ -10,6 +10,7 @@ import { rentService } from '../modules/rent/rent.service.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
 import { connectToTestDatabase, disconnectTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
+import { useHistoricalTestingDates } from './helpers/historical-dates-env.js';
 
 const app = createApp();
 const seedAuth = createAuthSeeder(config.jwtSecret);
@@ -17,6 +18,7 @@ const facilityId = 'fac-merge-continuity-e2e';
 const USER_ID = 'usr-merge-e2e-admin';
 
 describe('Merge into Existing GRN - Active Subscription Continuity E2E', () => {
+  useHistoricalTestingDates();
   let adminToken: string;
   let customerId: string;
   let commodityId: string;
