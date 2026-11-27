@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { formatDisplayBagType, type Grn } from '@cold-storage/contracts';
+import { formatDisplayBagType, type Grn, type InternalMovementRecord } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import { extractOwnershipTransferDate, parseOwnershipTransferDisplayInfo } from '@/app/rent/hooks/rentDisplay.helper';
 import {
@@ -9,15 +9,17 @@ import {
   deriveMergedAttributes,
   extractMergedDetails,
   getLoanBadgeInfo,
+  resolveDetailDisplayBagType,
 } from './grnDetailModal.helper';
 import styles from '../page.module.css';
 
 interface GrnDetailAttributesGridProps {
   grn: Grn;
   allGrns?: Grn[];
+  movements?: InternalMovementRecord[] | null;
 }
 
-export function GrnDetailAttributesGrid({ grn, allGrns = [] }: GrnDetailAttributesGridProps) {
+export function GrnDetailAttributesGrid({ grn, allGrns = [], movements }: GrnDetailAttributesGridProps) {
   const mergedDetails = useMemo(() => extractMergedDetails(grn, allGrns), [grn, allGrns]);
   const hasMerged = mergedDetails.length > 0;
   const transferInfo = useMemo(() => parseOwnershipTransferDisplayInfo(grn.remarks), [grn.remarks]);
@@ -27,6 +29,16 @@ export function GrnDetailAttributesGrid({ grn, allGrns = [] }: GrnDetailAttribut
   const { mergedChambers, mergedStorageMarks, mergedPartyMarks, bagsBreakdown } = useMemo(
     () => deriveMergedAttributes(grn, mergedDetails),
     [grn, mergedDetails],
+  );
+
+  const destinationGrn = useMemo(() => {
+    if (!grn.mergedIntoGrnNumber && !grn.mergedIntoGrnId) return null;
+    return allGrns.find((g) => g.grnNumber === grn.mergedIntoGrnNumber || (grn.mergedIntoGrnId && g.id === grn.mergedIntoGrnId)) ?? null;
+  }, [grn.mergedIntoGrnNumber, grn.mergedIntoGrnId, allGrns]);
+
+  const displayBagType = useMemo(
+    () => resolveDetailDisplayBagType(grn, destinationGrn, movements),
+    [grn, destinationGrn, movements],
   );
 
   return (
@@ -146,9 +158,9 @@ export function GrnDetailAttributesGrid({ grn, allGrns = [] }: GrnDetailAttribut
         <span className={styles.detailLabel}>Bag Type</span>
         <span className={styles.detailValue}>
           <strong style={{ color: 'var(--color-primary-text)' }}>
-            {formatDisplayBagType(grn)}
+            {displayBagType}
           </strong>
-          {formatDisplayBagType(grn) !== 'Hybrid' && grn.isCompositionVerified && grn.smallBags != null && grn.bigBags != null && (grn.smallBags > 0 || grn.bigBags > 0) ? (
+          {displayBagType !== 'Hybrid' && displayBagType !== 'N/A' && grn.smallBags != null && grn.bigBags != null && (grn.smallBags > 0 || grn.bigBags > 0) ? (
             <span className={styles.mergedSubValue}>
               {' '}(S: {grn.smallBags.toLocaleString('en-IN')} • B: {grn.bigBags.toLocaleString('en-IN')})
             </span>

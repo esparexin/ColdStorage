@@ -96,6 +96,25 @@ describe('grnDetailModal.helper', () => {
     expect(result.bagsBreakdown).toBe('50 + 50');
   });
 
+  it('suppresses misleading additive breakdown when stock was repacked with variance (e.g. Lot 5000)', () => {
+    const repackedWithVarianceGrn: Grn = {
+      ...baseGrn,
+      grnNumber: '5000',
+      bags: 8,
+      remarks:
+        '[MERGE RECEIVED on 2026-11-27: +8 bags. Repacking Hamali: ₹200 (8 bags @ ₹25/bag) (Confirmed Hybrid: 8 bags; Variance from 2 source bags: +6 bags) from GRN 5001 (Receipt #RCPT-23-24-5001, Date: 2024-03-19, Customer: Balaji, Bags: 2, Rent: ₹1600, Paid: ₹0, Balance: ₹1650, Status: Not Settled). Source pending rent: ₹1650 kept as separate pending bills. Active subscription continued for consolidated stock. Consolidated stock new inward date: 2026-11-27. Reason: test 2+2 bags added has to fix hamali chanrge only]',
+    };
+
+    const details = extractMergedDetails(repackedWithVarianceGrn, []);
+    expect(details).toHaveLength(1);
+    expect(details[0].grnNumber).toBe('5001');
+    expect(details[0].bags).toBe(2);
+
+    const result = deriveMergedAttributes(repackedWithVarianceGrn, details);
+    // When repacked with variance, bagsBreakdown is strictly null (no fake "6 + 2" display)
+    expect(result.bagsBreakdown).toBeNull();
+  });
+
   it('evaluates loan badge info accurately across loan statuses', () => {
     const unbonded = getLoanBadgeInfo(baseGrn, false);
     expect(unbonded.text).toBe('Standard Storage');

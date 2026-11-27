@@ -102,6 +102,7 @@ export async function processMergeSource(params: {
   const summary = await closeSourceGrnOnMerge({
     facilityId, sourceGrn: s, targetGrnNumber: targetGrn.grnNumber, targetGrnId: targetGrn.id,
     movementId, movementDate: moveDate, ledgerBalance: bal, rentResolution, remarks: input.remarks, userId, session,
+    confirmedBagType: effectiveCategory,
   });
   return { movedTotal: bal.total, movedSmall: bal.smallBags, movedBig: bal.bigBags, summary, pendingRent: rentResolution.rentBal.remainingBalance, paidAmount: rentResolution.paidAmount };
 }

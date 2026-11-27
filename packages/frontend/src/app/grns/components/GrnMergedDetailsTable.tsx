@@ -14,6 +14,7 @@ import styles from './GrnMergedDetailsTable.module.css';
 export interface GrnMergedDetailsTableProps {
   currentGrn: Grn;
   allGrns?: Grn[];
+  movements?: InternalMovementRecord[] | null;
 }
 
 const columns: DataTableColumn<MergeTableRow>[] = [
@@ -74,10 +75,11 @@ const columns: DataTableColumn<MergeTableRow>[] = [
   },
 ];
 
-export function GrnMergedDetailsTable({ currentGrn, allGrns = [] }: GrnMergedDetailsTableProps) {
+export function GrnMergedDetailsTable({ currentGrn, allGrns = [], movements: propMovements }: GrnMergedDetailsTableProps) {
   const [dbMovements, setDbMovements] = useState<InternalMovementRecord[] | null>(null);
 
   useEffect(() => {
+    if (propMovements !== undefined) return;
     let active = true;
     if (!currentGrn.facilityId || !currentGrn.id) return;
 
@@ -100,14 +102,16 @@ export function GrnMergedDetailsTable({ currentGrn, allGrns = [] }: GrnMergedDet
     return () => {
       active = false;
     };
-  }, [currentGrn.facilityId, currentGrn.id]);
+  }, [currentGrn.facilityId, currentGrn.id, propMovements]);
+
+  const effectiveMovements = propMovements !== undefined ? propMovements : dbMovements;
 
   const rows = useMemo<MergeTableRow[]>(() => {
-    if (dbMovements && dbMovements.length > 0) {
-      return mapStructuredMovementsToTableRows(dbMovements, currentGrn, allGrns);
+    if (effectiveMovements && effectiveMovements.length > 0) {
+      return mapStructuredMovementsToTableRows(effectiveMovements, currentGrn, allGrns);
     }
     return parseRemarksToTableRows(currentGrn, allGrns);
-  }, [dbMovements, currentGrn, allGrns]);
+  }, [effectiveMovements, currentGrn, allGrns]);
 
   if (rows.length === 0) return null;
 

@@ -44,8 +44,7 @@ export interface ResolveSourceRentParams {
 export async function resolveSourceRentObligation(
   params: ResolveSourceRentParams,
 ): Promise<SourceRentResolution> {
-  const { facilityId, sourceGrn, targetGrnDate, movementDate,
-    sourcePaymentAmount, sourcePaymentMode, userId, session } = params;
+  const { facilityId, sourceGrn, targetGrnDate, movementDate, sourcePaymentAmount, sourcePaymentMode, userId, session } = params;
 
   const targetSeason = seasonYearForInwardDate(targetGrnDate);
   const sourceSeason = seasonYearForInwardDate(sourceGrn.date);
@@ -57,16 +56,9 @@ export async function resolveSourceRentObligation(
     CommodityModel.findOne({ id: sourceGrn.commodityId }, null, { session }).lean().exec(),
     rentExtensionRepository.findExtensionsByGrn(facilityId, sourceGrn.id, session),
   ]);
-  const excludedKeys = toExcludedPeriodKeys(extensions);
-  const mergeExcluded = resolveMergeExcludedPeriodKeys({
-    inwardDate: sourceGrn.date,
-    movementDate,
-    targetGrnDate,
-    billedExtensionKeys: excludedKeys,
-  });
-  for (const k of mergeExcluded) {
-    if (!excludedKeys.includes(k)) excludedKeys.push(k);
-  }
+  const excludedKeys = Array.from(new Set([...toExcludedPeriodKeys(extensions), ...resolveMergeExcludedPeriodKeys({
+    inwardDate: sourceGrn.date, movementDate, targetGrnDate, billedExtensionKeys: toExcludedPeriodKeys(extensions),
+  })]));
   const effectiveSourceRentType = resolveEffectiveGrnRentType({
     rentType: sourceGrn.rentType, inwardDate: sourceGrn.date, asOfDate: movementDate,
   });
@@ -203,21 +195,20 @@ export interface CloseSourceGrnParams {
   facilityId: string; sourceGrn: MergeSourceGrn; targetGrnNumber: string; targetGrnId: string;
   movementId: string; movementDate: Date; ledgerBalance: LedgerBalance;
   rentResolution: SourceRentResolution; remarks: string; userId: string;
-  session: mongoose.ClientSession;
+  session: mongoose.ClientSession; confirmedBagType?: string | null;
 }
 
 export async function closeSourceGrnOnMerge(params: CloseSourceGrnParams): Promise<string> {
-  const { facilityId, sourceGrn, targetGrnNumber, targetGrnId, movementId, movementDate, ledgerBalance, rentResolution, remarks, userId, session } = params;
+  const { facilityId, sourceGrn, targetGrnNumber, targetGrnId, movementId, movementDate, ledgerBalance, rentResolution, remarks, userId, session, confirmedBagType } = params;
 
   await InventoryTransactionModel.create(
     [
       {
         id: `tx-${randomUUID()}`, facilityId, grnId: sourceGrn.id, grnNumber: sourceGrn.grnNumber,
         chamber: sourceGrn.chamber, commodityId: sourceGrn.commodityId, bagType: sourceGrn.bagType,
-        transactionType: 'OUTWARD_DELIVERY', smallQuantity: ledgerBalance.smallBags,
-        bigQuantity: ledgerBalance.bigBags, referenceType: 'DELIVERY',
-        referenceId: `${movementId}-${sourceGrn.id}`, notes: `Merged into GRN ${targetGrnNumber}: ${remarks.trim()}`,
-        createdBy: userId, createdAt: movementDate,
+        transactionType: 'OUTWARD_DELIVERY', smallQuantity: ledgerBalance.smallBags, bigQuantity: ledgerBalance.bigBags,
+        referenceType: 'DELIVERY', referenceId: `${movementId}-${sourceGrn.id}`,
+        notes: `Merged into GRN ${targetGrnNumber}: ${remarks.trim()}`, createdBy: userId, createdAt: movementDate,
       },
     ],
     { session, ordered: true },
@@ -227,15 +218,23 @@ export async function closeSourceGrnOnMerge(params: CloseSourceGrnParams): Promi
   const sourceNote = `[MERGED into GRN ${targetGrnNumber} on ${moveDateStr}: ${ledgerBalance.total} bags cleared. Financial record preserved: Rent Obligation ₹${rentResolution.effectiveRentAmount}, Paid ₹${rentResolution.totalPaid}, Pending ₹${rentResolution.rentBal.remainingBalance} (Status: ${rentResolution.rentBal.paymentStatus}). Customer: ${sourceGrn.customerName}. Reason: ${remarks.trim()}]`;
   const updatedSourceRemarks = sourceGrn.remarks ? `${sourceGrn.remarks}\n${sourceNote}` : sourceNote;
 
+  // Conforms strictly to @cold-storage/contracts SSOT:
+  // When a source lot is merged out, record confirmed bag type and mark isCompositionVerified: true
+  const resolvedBagType =
+    confirmedBagType ||
+    (sourceGrn.bagType === 'Hybrid' || isHybridBagCategory(sourceGrn.bagType) ? 'Hybrid' : (sourceGrn.bagType || 'S/B'));
+  const isHybrid = resolvedBagType === 'Hybrid' || isHybridBagCategory(resolvedBagType);
+
   await GrnModel.updateOne(
     { id: sourceGrn.id },
     {
       $set: {
-        status: 'CLOSED',
-        remarks: updatedSourceRemarks,
-        mergedIntoGrnId: targetGrnId,
-        mergedIntoGrnNumber: targetGrnNumber,
-        updatedAt: new Date(),
+        status: 'CLOSED', remarks: updatedSourceRemarks,
+        mergedIntoGrnId: targetGrnId, mergedIntoGrnNumber: targetGrnNumber,
+        bagType: resolvedBagType,
+        smallBags: isHybrid ? 0 : (sourceGrn.smallBags ?? ledgerBalance.smallBags),
+        bigBags: isHybrid ? 0 : (sourceGrn.bigBags ?? ledgerBalance.bigBags),
+        isCompositionVerified: true, updatedAt: new Date(),
       },
     },
     { session },

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import type { DeliveryChallan, Grn } from '@cold-storage/contracts';
+import { isHybridBagCategory, type DeliveryChallan, type Grn } from '@cold-storage/contracts';
 import { Badge, DataTable, type DataTableColumn } from '@/components/ui';
 import { requestWithAuth } from '@/lib/api-client';
 import { formatDisplayDate } from '@/lib/date-format';
@@ -34,16 +34,27 @@ const columns: DataTableColumn<DeliveryChallan>[] = [
   {
     key: 'bags',
     header: 'Bags & Composition',
-    render: (row) => (
-      <div style={{ textAlign: 'right' }}>
-        <span className={`${styles.primaryText} ${styles.tabularNum}`}>
-          {row.totalBags.toLocaleString('en-IN')} bags
-        </span>
-        <span className={styles.subText}>
-          S: {row.smallBags.toLocaleString('en-IN')} • B: {row.bigBags.toLocaleString('en-IN')}
-        </span>
-      </div>
-    ),
+    render: (row) => {
+      // Conforms strictly to @cold-storage/contracts SSOT:
+      // For Hybrid dispatches, display 'Hybrid' rather than misleading 'S: 0 • B: 0' counts.
+      const isHybrid =
+        row.bagCategory === 'Hybrid' ||
+        row.bagType === 'Hybrid' ||
+        isHybridBagCategory(row.bagCategory) ||
+        isHybridBagCategory(row.bagType);
+      return (
+        <div style={{ textAlign: 'right' }}>
+          <span className={`${styles.primaryText} ${styles.tabularNum}`}>
+            {row.totalBags.toLocaleString('en-IN')} bags
+          </span>
+          <span className={styles.subText}>
+            {isHybrid
+              ? 'Hybrid'
+              : `S: ${row.smallBags.toLocaleString('en-IN')} • B: ${row.bigBags.toLocaleString('en-IN')}`}
+          </span>
+        </div>
+      );
+    },
   },
   {
     key: 'status',

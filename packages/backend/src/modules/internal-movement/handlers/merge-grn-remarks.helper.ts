@@ -93,12 +93,13 @@ export function buildMergeTargetUpdates(params: BuildMergeTargetUpdatesParams): 
   const targetNote = `[MERGE RECEIVED on ${moveDateStr}${invoiceRef}: +${actualMovedBags} bags${repackedNote}${repackHamaliNote}${categoryNote} from ${sourceSummaries.join('; ')}${carriedRentNote}${sourceBillsNote}${activeSubNote}${inwardHistoryNote}. Reason: ${input.remarks.trim()}]`;
   const updatedTargetRemarks = appendGrnRemarks(targetGrn.remarks, targetNote);
 
+  const isHybrid = resultingBagType === 'Hybrid' || isHybridBagCategory(resultingBagType);
   const targetUpdateFields: Record<string, unknown> = {
     chamber: destinationChamber,
     bagType: resultingBagType,
     bags: newBags,
-    smallBags: newSmall,
-    bigBags: newBig,
+    smallBags: isHybrid ? 0 : newSmall,
+    bigBags: isHybrid ? 0 : newBig,
     isCompositionVerified: newIsCompositionVerified,
     rentAmount: newRentAmount,
     mergedAt: moveDate,
