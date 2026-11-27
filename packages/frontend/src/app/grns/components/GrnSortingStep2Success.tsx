@@ -21,7 +21,6 @@ export function GrnSortingStep2Success({
   const [printing, setPrinting] = useState(false);
   const invoiceNumber = repackResult.sortingInvoiceNumber;
   const serviceCharge = repackResult.totalServiceCharge ?? repackResult.hamaliCharge ?? 0;
-  const variance = repackResult.repackVariance;
 
   const handlePrint = async () => {
     setPrinting(true);
@@ -53,13 +52,6 @@ export function GrnSortingStep2Success({
       <div className={styles.billDetailRow}>
         <span>Resulting Stock:</span>
         <strong>{repackResult.grn.bags} bags ({repackResult.grn.bagType})</strong>
-      </div>
-
-      <div className={styles.billDetailRow}>
-        <span>Physical Variance:</span>
-        <strong style={{ color: variance !== 0 ? 'var(--color-warning-text)' : 'inherit' }}>
-          {variance !== 0 ? (variance > 0 ? `+${variance}` : `${variance}`) : '0'} bags
-        </strong>
       </div>
 
       <div className={styles.billDetailRow}>

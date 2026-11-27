@@ -183,6 +183,7 @@ describe('Consignment Merge & Internal Shifting Invoice (Unit)', () => {
       expect(html).toContain('CERTIFICATE OF CONSIGNMENT MERGE &amp; INTERNAL SHIFTING');
       expect(html).toContain('Warehouse Manager');
       expect(html).toContain('Labor Mukaddam');
+      expect(html).not.toContain('Repack Physical Variance');
     });
   });
 });

@@ -7,11 +7,6 @@ export function renderMergeShiftingInvoiceTemplate(dto: MergeShiftingInvoiceDocu
       ? `${dto.survivingBags.toLocaleString('en-IN')} bags (Hybrid)`
       : `${dto.survivingBags.toLocaleString('en-IN')} bags (S: ${dto.survivingSmallBags} · B: ${dto.survivingBigBags})`;
 
-  const varianceStr =
-    dto.repackVariance !== 0
-      ? `<span style="color: ${dto.repackVariance < 0 ? '#dc3545' : '#28a745'}; font-weight: bold;">${dto.repackVariance > 0 ? `+${dto.repackVariance}` : dto.repackVariance} bags</span>`
-      : '<span style="color: #666;">Nil (Exact count matched)</span>';
-
   const laborDetailStr =
     dto.repackHamaliCharge > 0
       ? `₹${dto.repackHamaliCharge.toFixed(2)}${dto.repackHamaliRate > 0 ? ` (@ ₹${dto.repackHamaliRate}/bag)` : ''}`
@@ -96,14 +91,12 @@ export function renderMergeShiftingInvoiceTemplate(dto: MergeShiftingInvoiceDocu
       <tr>
         <th style="width: 25%;">Repacking &amp; Shifting Labor</th>
         <td style="width: 25%;"><strong>${laborDetailStr}</strong></td>
-        <th style="width: 25%;">Repack Physical Variance</th>
-        <td style="width: 25%;">${varianceStr}</td>
+        <th style="width: 25%;">Carried Rent Liability</th>
+        <td style="width: 25%;">${dto.carriedRentAmount > 0 ? `₹${dto.carriedRentAmount.toFixed(2)}` : '₹0.00 (Separate Source Bills)'}</td>
       </tr>
       <tr>
-        <th>Carried Rent Liability</th>
-        <td>${dto.carriedRentAmount > 0 ? `₹${dto.carriedRentAmount.toFixed(2)}` : '₹0.00 (Separate Source Bills)'}</td>
         <th>Outstanding Rent at Merge</th>
-        <td><strong>₹${dto.totalDueAtMerge.toFixed(2)}</strong></td>
+        <td colspan="3"><strong>₹${dto.totalDueAtMerge.toFixed(2)}</strong></td>
       </tr>
       ${dto.remarks ? `
       <tr>
