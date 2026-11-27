@@ -7,6 +7,19 @@ import { Badge, Input, Select } from '@/components/ui';
 import { WizardStepActions } from './WizardStepActions';
 import styles from './InternalMovementModal.module.css';
 
+/**
+ * TransferStep3Repack — Repacking, Rebagging & Destination Chamber Selection.
+ *
+ * During ownership transfer, the new owner (buyer) may optionally request:
+ * 1. Physical Rebagging / Repacking: converting between S/B split and Hybrid compositions.
+ * 2. Relocation: moving the transferred stock to a designated destination chamber.
+ * 3. Party Mark: assigning the buyer's custom identification mark.
+ * 4. Reference Weight: recording updated physical consignment weight.
+ *
+ * If no repacking or relocation is requested, the current chamber and stock composition
+ * are preserved by default without modification.
+ */
+
 interface TransferStep3RepackProps {
   currentChamber: string;
   destinationChamber: string;

@@ -88,6 +88,10 @@ export async function transferOwnership(
       });
 
       const movementId = `mov-${randomUUID()}`;
+      // Repacking / Rebagging during Ownership Transfer:
+      // If the buyer/seller agreed on physical rebagging as part of the ownership transfer,
+      // the resulting bag composition and counts are applied. Otherwise, the confirmed stock
+      // composition is retained.
       const isRepackedHybrid = input.resultingBagType === 'Hybrid' || (!input.resultingBagType && isHybrid);
       const resultingBagType = input.resultingBagType ?? (isHybrid ? 'Hybrid' : 'S/B');
       const finalSmall = isRepackedHybrid
@@ -98,6 +102,7 @@ export async function transferOwnership(
         : (typeof input.repackedBigBags === 'number' ? input.repackedBigBags : confBig);
       const finalChamber = input.destinationChamber ? input.destinationChamber.trim() : grn.chamber;
 
+      // Align inventory ledger: atomically decants original stock and puts away confirmed/repacked stock
       await alignTransferLedger({
         facilityId, grn, movementId, movementDate, userId, bal,
         confSmall: finalSmall, confBig: finalBig, resultingBagType,

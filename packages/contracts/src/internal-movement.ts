@@ -80,6 +80,19 @@ export const transferOwnershipInputSchema = z.object({
   sourceMonthlyBagPrice: bagPriceSchema.nullish(),
   destinationChamber: chamberTextSchema.nullish(),
   partyMark: z.string().trim().max(20, 'Party mark cannot exceed 20 characters').nullish(),
+  /**
+   * Repacking / Rebagging in Transfer Ownership:
+   * While physical grading, sorting, and standalone bag conversions have their dedicated
+   * workflow in `grn-sorting.ts` (`repackGrnInputSchema`), Transfer Ownership intentionally
+   * supports simultaneous physical rebagging and chamber relocation as part of the transfer agreement.
+   *
+   * Example: A buyer (transferee) purchases a stored consignment and requests that it be repacked
+   * into a different bag composition (e.g., S/B split or Hybrid) or relocated to a designated chamber
+   * under their party mark upon transfer.
+   *
+   * When these optional fields are provided, the transfer transaction atomically applies the
+   * resulting bag type, chamber, and repacked counts to the transferred GRN.
+   */
   resultingBagType: bagTypeSchema.nullish(),
   repackedSmallBags: z.number().int().min(0).max(100000).nullish(),
   repackedBigBags: z.number().int().min(0).max(100000).nullish(),
