@@ -74,7 +74,14 @@ export async function calculateTransferDues(params: CalculateTransferDuesParams)
 
   const totalDue = await resolveMovementObligation(
     facilityId,
-    { id: grn.id, rentAmount: effectiveObligation, rentType: grn.rentType, hamaliShare: transferHamaliShare },
+    {
+      id: grn.id,
+      rentAmount: effectiveObligation,
+      rentType: grn.rentType,
+      hamaliShare: transferHamaliShare,
+      remainingBags: bal.total,
+      totalBags: grn.bags,
+    },
     session,
   );
   const rentBal = computeRentBalance(totalDue, totalPaid);

@@ -129,6 +129,8 @@ export function useInternalMovementTransferTab({
     outwardRentCharges: 0,
     extensionAmounts: rentSummary?.extensions?.map((e) => e.finalAmount),
     hamaliShare: rentCalc.hamaliAmount,
+    remainingBags: currentGrn.closingBags ?? currentGrn.bags,
+    totalBags: currentGrn.bags,
   });
   const effectiveDue = Math.max(0, effectiveObligation - totalPaid);
   const isUnbilled = totalPaid === 0 && effectiveDue === 0 && (rentSummary?.rentAmount ?? 0) === 0;

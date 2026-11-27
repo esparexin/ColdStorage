@@ -116,6 +116,8 @@ export class RentExtensionRepository {
       rentType: RentObligationInput['rentType'];
       outwardRentCharges?: number | null;
       hamaliShare?: number | null;
+      remainingBags?: number | null;
+      totalBags?: number | null;
     },
     session?: mongoose.ClientSession,
   ): Promise<number> {
@@ -129,6 +131,8 @@ export class RentExtensionRepository {
       outwardRentCharges: grn.outwardRentCharges,
       hamaliShare: grn.hamaliShare,
       extensionAmounts: [Number(agg[0]?.total ?? 0)],
+      remainingBags: grn.remainingBags,
+      totalBags: grn.totalBags,
     });
   }
 }
