@@ -47,6 +47,13 @@ export function renderTransferDeedTemplate(dto: TransferDeedDocumentDto): string
         <th>Fee Status</th>
         <td>${dto.transferFeeCharged > 0 ? '<span style="color: #28a745;">Assessed / Billed</span>' : 'Waived'}</td>
       </tr>
+      ${dto.repackHamaliCharge > 0 ? `
+      <tr>
+        <th>Repacking Hamali Labor</th>
+        <td><strong>₹${dto.repackHamaliCharge.toFixed(2)}</strong> (${dto.repackHamaliBags.toLocaleString('en-IN')} bags @ ₹${dto.repackHamaliRate}/bag)</td>
+        <th>Labor Status</th>
+        <td><span style="color: #28a745;">Assessed / Billed</span></td>
+      </tr>` : ''}
       <tr>
         <th>Storage Rent Obligation</th>
         <td>₹${dto.totalRentObligation.toFixed(2)}</td>

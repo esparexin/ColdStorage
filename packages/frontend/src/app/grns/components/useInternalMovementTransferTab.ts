@@ -10,6 +10,7 @@ import { useRentGate } from '@/hooks/useRentGate';
 import { calculateMergeSourceRentSummary } from './mergeRentAssessment.helper';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
 import { validateTransferPayment } from './internalMovementPayload.helper';
+import { buildTransferExecutionArgs } from './transferPayload.helper';
 import { validateTransferConfirmation, validateTransferRepack } from './transferTabValidation.helper';
 import { resolveCandidateTransferees } from './transferCandidateCustomer.helper';
 import { resolveTransferRates } from './transferRentRates.helper';
@@ -50,8 +51,7 @@ export function useInternalMovementTransferTab({
   const [newCustomerId, setNewCustomerId] = useState('');
   const [createdCustomers, setCreatedCustomers] = useState<Customer[]>([]);
   const [movementDate] = useState(new Date().toISOString().slice(0, 10));
-  const [reason, setReason] = useState('');
-  const [remarks, setRemarks] = useState('');
+  const [reason, setReason] = useState(''); const [remarks, setRemarks] = useState('');
   const [decision, setDecision] = useState<TransferPaymentDecision>('AGREED_PENDING');
   const [settleAmount, setSettleAmount] = useState<number>(0);
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('Cash');
@@ -84,15 +84,10 @@ export function useInternalMovementTransferTab({
   const [sourceBagCategory, setSourceBagCategory] = useState<OutwardBagCategory>(
     toOperationalBagType(currentGrn.bagType),
   );
-  const [sourceBagPrice, setSourceBagPrice] = useState<number | ''>('');
-  const [sourceSeasonalBagPrice, setSourceSeasonalBagPrice] = useState<number | ''>('');
-  const [sourceMonthlyBagPrice, setSourceMonthlyBagPrice] = useState<number | ''>('');
-  const [destinationChamber, setDestinationChamber] = useState<string>(currentGrn.chamber || '');
-  const [partyMark, setPartyMark] = useState<string>(currentGrn.partyMark || '');
+  const [sourceBagPrice, setSourceBagPrice] = useState<number | ''>(''); const [sourceSeasonalBagPrice, setSourceSeasonalBagPrice] = useState<number | ''>(''); const [sourceMonthlyBagPrice, setSourceMonthlyBagPrice] = useState<number | ''>('');
+  const [destinationChamber, setDestinationChamber] = useState<string>(currentGrn.chamber || ''); const [partyMark, setPartyMark] = useState<string>(currentGrn.partyMark || '');
   const [resultingBagType, setResultingBagType] = useState<OperationalBagType>(toOperationalBagType(currentGrn.bagType));
-  const [repackedSmallBags, setRepackedSmallBags] = useState<number | ''>('');
-  const [repackedBigBags, setRepackedBigBags] = useState<number | ''>('');
-  const [repackedQuantity, setRepackedQuantity] = useState<number | ''>('');
+  const [repackedSmallBags, setRepackedSmallBags] = useState<number | ''>(''); const [repackedBigBags, setRepackedBigBags] = useState<number | ''>(''); const [repackedQuantity, setRepackedQuantity] = useState<number | ''>('');
   const [referenceWeight, setReferenceWeight] = useState<number | ''>(currentGrn.totalBagsWeight != null ? currentGrn.totalBagsWeight : '');
 
   const { rentSummary, rentLoading, refreshRentGate } = useRentGate();
@@ -197,32 +192,32 @@ export function useInternalMovementTransferTab({
   const transferFeeCharged = typeof transferFeePerBag === 'number' && transferFeePerBag > 0
     ? transferFeePerBag * remainingBags : 0;
 
+  const isExplicitRepack = Boolean(
+    resultingBagType === 'Hybrid'
+      ? typeof repackedQuantity === 'number' && repackedQuantity > 0
+      : (typeof repackedSmallBags === 'number' || typeof repackedBigBags === 'number'),
+  );
+  const repackedCount = resultingBagType === 'Hybrid'
+    ? (typeof repackedQuantity === 'number' ? repackedQuantity : 0)
+    : ((typeof repackedSmallBags === 'number' ? repackedSmallBags : 0) + (typeof repackedBigBags === 'number' ? repackedBigBags : 0));
+  const repackHamaliCharge = isExplicitRepack && effectiveHamaliRate > 0
+    ? repackedCount * effectiveHamaliRate : 0;
+
   const doExecuteTransfer = async () => {
-    const conf = isHybrid ? {
-      sourceBagCategory: sourceBagCategory || undefined, sourceQuantity: remainingBags,
-      sourceBagPrice: typeof sourceBagPrice === 'number' ? sourceBagPrice : undefined,
-      sourceSeasonalBagPrice: typeof sourceSeasonalBagPrice === 'number' ? sourceSeasonalBagPrice : undefined,
-      sourceMonthlyBagPrice: typeof sourceMonthlyBagPrice === 'number' ? sourceMonthlyBagPrice : undefined,
-    } : typeof confirmedSmallBags === 'number' && typeof confirmedBigBags === 'number'
-      ? { confirmedSmallBags, confirmedBigBags } : undefined;
+    const { conf, repack, fee } = buildTransferExecutionArgs({
+      isHybrid, sourceBagCategory, remainingBags,
+      sourceBagPrice, sourceSeasonalBagPrice, sourceMonthlyBagPrice,
+      confirmedSmallBags, confirmedBigBags, destinationChamber,
+      resultingBagType, repackedSmallBags, repackedBigBags, repackedQuantity,
+      referenceWeight, partyMark, transferFeePerBag, transferFeeCharged,
+      paymentMode, feePaidBy,
+    });
 
     await onExecuteTransfer(
       newCustomerId, movementDate, reason.trim(), remarks.trim() || undefined,
       effectiveDue > 0 ? decision : undefined,
       effectiveDue > 0 && decision === 'SETTLE_NOW' ? { amountPaid: settleAmount, paymentMode } : undefined,
-      conf,
-      {
-        destinationChamber: destinationChamber.trim(), resultingBagType,
-        repackedSmallBags: resultingBagType === 'Hybrid' ? undefined : (typeof repackedSmallBags === 'number' ? repackedSmallBags : undefined),
-        repackedBigBags: resultingBagType === 'Hybrid' ? undefined : (typeof repackedBigBags === 'number' ? repackedBigBags : undefined),
-        repackedQuantity: resultingBagType === 'Hybrid' ? (typeof repackedQuantity === 'number' ? repackedQuantity : undefined) : undefined,
-        referenceWeight: typeof referenceWeight === 'number' && referenceWeight > 0 ? referenceWeight : undefined,
-        partyMark: partyMark.trim() || undefined,
-      },
-      typeof transferFeePerBag === 'number' && transferFeePerBag > 0 ? {
-        transferFeePerBag, totalTransferFee: transferFeeCharged,
-        feePaymentMode: paymentMode, feePaidBy,
-      } : undefined,
+      conf, repack, fee,
     );
   };
 
@@ -241,6 +236,7 @@ export function useInternalMovementTransferTab({
     repackedBigBags, setRepackedBigBags, repackedQuantity, setRepackedQuantity,
     referenceWeight, setReferenceWeight, rentLoading, candidateCustomers, selectedNewCustomer,
     isUnverified, seasonalRates, monthlyRates, assessedRent, effectiveHamaliRate, hamaliAmount,
+    repackHamaliCharge, repackedCount, isExplicitRepack,
     totalPaid, pendingAmount, isUnbilled, effectiveDue,
     handleProceedToStep2, handleProceedToStep3, handleProceedToStep4, handleTransferSubmit, doExecuteTransfer,
   };

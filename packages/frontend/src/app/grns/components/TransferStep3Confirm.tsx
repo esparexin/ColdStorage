@@ -25,6 +25,9 @@ interface TransferStep3ConfirmProps {
   referenceWeight?: number | '';
   hamaliRate?: number | null;
   hamaliAmount?: number;
+  repackHamaliCharge?: number;
+  repackHamaliRate?: number;
+  repackedBags?: number;
   assessedRent: number;
   totalPaid: number;
   effectiveDue: number;
@@ -53,6 +56,9 @@ export function TransferStep3Confirm({
   referenceWeight,
   hamaliRate,
   hamaliAmount,
+  repackHamaliCharge,
+  repackHamaliRate,
+  repackedBags,
   assessedRent,
   totalPaid,
   effectiveDue,
@@ -144,6 +150,14 @@ export function TransferStep3Confirm({
               {formatTransferHamali({ hamaliRate, hamaliAmount: totalLabor })}
             </span>
           </div>
+          {typeof repackHamaliCharge === 'number' && repackHamaliCharge > 0 ? (
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Repacking Hamali Labor:</span>
+              <span className={styles.detailValue} style={{ color: 'var(--color-primary-text)', fontWeight: 'var(--font-semibold)' }}>
+                ₹{repackHamaliCharge.toLocaleString('en-IN')}{repackHamaliRate ? ` (${repackedBags ?? remainingBags} bags @ ₹${repackHamaliRate}/bag)` : ''}
+              </span>
+            </div>
+          ) : null}
           <div className={styles.detailRow} style={{ borderTop: '1px dashed var(--color-border)', paddingTop: 'var(--space-1)' }}>
             <span className={styles.detailLabel}>Total Rent Assessed:</span>
             <span className={styles.detailValue}>₹{totalApplicableRent.toLocaleString('en-IN')}</span>

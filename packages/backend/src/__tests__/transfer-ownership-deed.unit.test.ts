@@ -104,6 +104,9 @@ describe('Transfer Ownership Deed & Invoice (Unit)', () => {
         isHybrid: false,
         transferFeeCharged: 500,
         feePayer: 'BUYER',
+        repackHamaliCharge: 0,
+        repackHamaliRate: 0,
+        repackHamaliBags: 0,
         paymentDecision: 'SETTLE_NOW',
         settledAmount: 12000,
         rentReceiptNumber: 'RCPT-2026-0088',
@@ -128,6 +131,61 @@ describe('Transfer Ownership Deed & Invoice (Unit)', () => {
       expect(html).toContain('Transferor (Seller) Signature');
       expect(html).toContain('Transferee (Buyer) Signature');
       expect(html).toContain('Authorized Cold Storage Signatory');
+      expect(html).not.toContain('Repacking Hamali Labor');
+    });
+
+    it('renders repacking hamali labor charge row when repacking is assessed', () => {
+      const dto: TransferDeedDocumentDto = {
+        organization: {
+          orgName: 'Apex Cold Chain Systems',
+          address: 'Main Road, Market Yard, Guntur, AP',
+          contact: '+91 98480 12345',
+          gstin: '37AAAAA0000A1Z5',
+          printFooter: 'Cold Storage Management System',
+          timezone: 'Asia/Kolkata',
+        },
+        facility: {
+          facilityId: 'fac-001',
+          facilityName: 'Sri Krishna Cold Storage',
+          facilityCode: 'SKCS-01',
+          facilityAddress: 'NH-16, Guntur, AP',
+        },
+        transferInvoiceNumber: 'TRF-INV-2026-0043',
+        movementDate: new Date('2026-11-05T10:00:00.000Z'),
+        grnNumber: 'GRN-008',
+        commodityName: 'Dry Red Chilli',
+        chamber: 'Chamber 3',
+        storageMark: 'LOT-B2',
+        sellerId: 'cust-seller',
+        sellerName: 'Venkata Ramana',
+        buyerId: 'cust-buyer',
+        buyerName: 'Narayana Traders',
+        transferredBags: 120,
+        smallBags: 70,
+        bigBags: 50,
+        bagType: 'S/B',
+        isHybrid: false,
+        transferFeeCharged: 0,
+        feePayer: null,
+        repackHamaliCharge: 900,
+        repackHamaliRate: 7.5,
+        repackHamaliBags: 120,
+        paymentDecision: 'SETTLE_NOW',
+        settledAmount: 14000,
+        rentReceiptNumber: 'RCPT-2026-0089',
+        carriedRentAmount: 0,
+        totalRentObligation: 14000,
+        remarks: 'Physical rebagging and ownership transfer',
+        generatedAt: new Date('2026-11-05T12:00:00.000Z'),
+        generatedBy: 'Manager Rao',
+      };
+
+      const html = renderTransferDeedTemplate(dto);
+
+      expect(html).toContain('TRF-INV-2026-0043');
+      expect(html).toContain('Repacking Hamali Labor');
+      expect(html).toContain('₹900.00');
+      expect(html).toContain('120 bags @ ₹7.5/bag');
     });
   });
 });

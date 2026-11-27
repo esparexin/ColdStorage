@@ -102,6 +102,7 @@ export function InternalMovementTransferTab(props: InternalMovementTransferTabPr
             repackedBigBags={tab.repackedBigBags} onRepackedBigChange={tab.setRepackedBigBags}
             repackedQuantity={tab.repackedQuantity} onRepackedQuantityChange={tab.setRepackedQuantity}
             referenceWeight={tab.referenceWeight} onReferenceWeightChange={tab.setReferenceWeight}
+            effectiveHamaliRate={tab.effectiveHamaliRate} repackHamaliCharge={tab.repackHamaliCharge}
             submitting={submitting} onBack={() => tab.setStep(2)} onNext={tab.handleProceedToStep4}
           />
         )}
@@ -115,6 +116,7 @@ export function InternalMovementTransferTab(props: InternalMovementTransferTabPr
             partyMark={tab.partyMark}
             referenceWeight={tab.referenceWeight}
             hamaliRate={tab.effectiveHamaliRate} hamaliAmount={tab.hamaliAmount}
+            repackHamaliCharge={tab.repackHamaliCharge} repackHamaliRate={tab.effectiveHamaliRate} repackedBags={tab.repackedCount}
             assessedRent={tab.assessedRent} totalPaid={tab.totalPaid} effectiveDue={tab.effectiveDue}
             decision={tab.decision} settleAmount={tab.settleAmount}
             transferFeeCharged={tab.transferFeeCharged} feePayer={tab.feePaidBy}
