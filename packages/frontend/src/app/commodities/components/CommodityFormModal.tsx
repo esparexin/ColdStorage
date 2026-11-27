@@ -28,16 +28,22 @@ export function CommodityFormModal({ commodity, onClose, onSuccess }: CommodityF
     commodity?.hamaliRate != null && commodity.hamaliRate > 0 ? String(commodity.hamaliRate) : '0',
   );
   const [formIsActive, setFormIsActive] = useState(commodity?.isActive ?? true);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [hamaliError, setHamaliError] = useState<string | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setModalError(null);
+    setNameError(null);
+    setHamaliError(null);
 
     const trimmedName = formName.trim();
     if (!trimmedName) {
-      setModalError('Commodity name is required');
+      const msg = 'Commodity name is required';
+      setNameError(msg);
+      setModalError(msg);
       return;
     }
 
@@ -46,7 +52,9 @@ export function CommodityFormModal({ commodity, onClose, onSuccess }: CommodityF
       parsedHamali = parseFloat(hamaliRate);
       const hamaliCheck = hamaliRateSchema.safeParse(parsedHamali);
       if (!hamaliCheck.success) {
-        setModalError(hamaliCheck.error.issues[0]?.message ?? 'Hamali rate must be a non-negative number');
+        const msg = hamaliCheck.error.issues[0]?.message ?? 'Hamali rate must be a non-negative number';
+        setHamaliError(msg);
+        setModalError(msg);
         return;
       }
     }
@@ -102,10 +110,13 @@ export function CommodityFormModal({ commodity, onClose, onSuccess }: CommodityF
               required
               maxLength={100}
               value={formName}
-              onChange={(e) => setFormName(e.target.value)}
+              onChange={(e) => {
+                setFormName(e.target.value);
+                if (nameError) setNameError(null);
+              }}
               placeholder="e.g. Potato (Jyoti)"
               disabled={submitting}
-              error={modalError}
+              error={nameError}
             />
 
             <div className={styles.rateSection}>
@@ -160,6 +171,7 @@ export function CommodityFormModal({ commodity, onClose, onSuccess }: CommodityF
                     onChange={(e) => {
                       const checked = e.target.checked;
                       setIsHamaliApplicable(checked);
+                      if (hamaliError) setHamaliError(null);
                       if (!checked) setHamaliRate('0');
                     }}
                     disabled={submitting}
@@ -175,9 +187,13 @@ export function CommodityFormModal({ commodity, onClose, onSuccess }: CommodityF
                   min="0"
                   step="0.5"
                   value={hamaliRate}
-                  onChange={(e) => setHamaliRate(e.target.value)}
+                  onChange={(e) => {
+                    setHamaliRate(e.target.value);
+                    if (hamaliError) setHamaliError(null);
+                  }}
                   placeholder="0.00"
                   disabled={submitting || !isHamaliApplicable}
+                  error={hamaliError}
                   helperText={!isHamaliApplicable ? 'Check Hamali Applicable to configure rate' : undefined}
                 />
               </div>
