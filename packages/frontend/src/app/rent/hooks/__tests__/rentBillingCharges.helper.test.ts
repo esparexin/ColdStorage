@@ -121,6 +121,23 @@ describe('rentBillingCharges.helper', () => {
       expect(hamaliRow?.details).toBe('50 bags × ₹25.00 / bag');
       expect(hamaliRow?.amount).toBe(1250);
     });
+
+    it('ensures itemized calculation rows sum equals storage rent plus hamali', () => {
+      const account = {
+        ...makeMockAccount(),
+        totalBags: 50,
+      };
+      const rows = buildRentCalculationRows({
+        account,
+        originSeason: 2026,
+        effectiveStorageAmount: 15250,
+        excludePeriodKeys: [],
+        hamaliDue: 1250,
+        hamaliRate: 25,
+      });
+      const totalFromRows = rows.reduce((sum, r) => sum + r.amount, 0);
+      expect(totalFromRows).toBe(16500);
+    });
   });
 });
 
