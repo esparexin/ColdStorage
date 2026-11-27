@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import {
   calculate3MAdditionalMonths,
+  calculateHamaliAmount,
   calculateOutwardSeasonalBreakdown,
   isHybridBagCategory,
   resolveDiscriminatedOutwardRates,
@@ -190,9 +191,7 @@ export function OutwardRentBreakdown({
     hamaliRate,
   ]);
 
-  const effectiveHamaliAmount = typeof hamaliRate === 'number' && hamaliRate > 0 && totalWithdrawing > 0
-    ? Number((totalWithdrawing * hamaliRate).toFixed(2))
-    : 0;
+  const effectiveHamaliAmount = calculateHamaliAmount(totalWithdrawing, hamaliRate);
 
   if (totalWithdrawing <= 0) {
     return null;

@@ -3,7 +3,7 @@
  * payments, settled status, and carried repack hamali for merge sources.
  */
 
-import type { Grn, RentSummaryDto } from '@cold-storage/contracts';
+import { calculateHamaliAmount, type Grn, type RentSummaryDto } from '@cold-storage/contracts';
 
 export interface DerivedMergeRentAssessment {
   historicalObligation: number;
@@ -57,8 +57,8 @@ export function deriveMergeRentAssessment(params: {
   const isSettled = outstandingBalance === 0 && (historicalObligation === 0 || amountPaid >= historicalObligation);
   const carriedRent = outstandingBalance;
 
-  const repackHamali = repackMode && commodityHamaliRate > 0
-    ? sourceBags * commodityHamaliRate
+  const repackHamali = repackMode
+    ? calculateHamaliAmount(sourceBags, commodityHamaliRate)
     : 0;
   const totalCarried = carriedRent + repackHamali;
   const inwardDateStr = source.date ? new Date(source.date).toLocaleDateString('en-IN') : '—';
