@@ -75,6 +75,15 @@ export async function alignTransferLedger(params: {
   const { facilityId, grn, movementId, movementDate, userId, bal, confSmall, confBig, resultingBagType, destinationChamber, session } = params;
   const targetChamber = destinationChamber || grn.chamber;
 
+  const isSourceHybrid = grn.bagType === 'Hybrid' || isHybridBagCategory(grn.bagType);
+  const isTargetHybrid = resultingBagType === 'Hybrid' || isHybridBagCategory(resultingBagType);
+  const outCompStr = isSourceHybrid
+    ? `Hybrid -${bal.total}`
+    : `Small -${bal.smallBags}, Big -${bal.bigBags}`;
+  const inCompStr = isTargetHybrid
+    ? `Hybrid -${confSmall + confBig}`
+    : `Small -${confSmall}, Big -${confBig}`;
+
   await InventoryTransactionModel.create(
     [
       {
@@ -82,7 +91,7 @@ export async function alignTransferLedger(params: {
         chamber: grn.chamber, commodityId: grn.commodityId, bagType: grn.bagType,
         transactionType: 'OUTWARD_DELIVERY', smallQuantity: bal.smallBags, bigQuantity: bal.bigBags,
         referenceType: 'DELIVERY', referenceId: movementId,
-        notes: `Stock adjustment for ownership transfer (Lot ${grn.grnNumber})`,
+        notes: `Ownership Transfer Out (Lot ${grn.grnNumber}): ${bal.total} bags (${outCompStr})`,
         createdBy: userId, createdAt: movementDate,
       },
       {
@@ -90,7 +99,7 @@ export async function alignTransferLedger(params: {
         chamber: targetChamber, commodityId: grn.commodityId, bagType: resultingBagType,
         transactionType: 'INWARD_PUTAWAY', smallQuantity: confSmall, bigQuantity: confBig,
         referenceType: 'PUT_AWAY', referenceId: movementId,
-        notes: `Confirmed stock putaway for ownership transfer (Lot ${grn.grnNumber})`,
+        notes: `Ownership Transfer In (Lot ${grn.grnNumber}): ${confSmall + confBig} bags (${inCompStr})`,
         createdBy: userId, createdAt: movementDate,
       },
     ],

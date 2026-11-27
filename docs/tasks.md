@@ -65,11 +65,14 @@ Strictly adheres to:
 
 ---
 
-### ⏳ PR 4: Internal Transfer / Ownership Notes Alignment (PENDING)
-- **Status:** `PENDING`
+### ✅ PR 4: Internal Transfer / Ownership Notes Alignment (DONE)
+- **Status:** `DONE`
 - **Scope:**
   - `packages/backend/src/modules/internal-movement/handlers/transfer-ownership.helper.ts`:
-    - Standardize inventory transaction notes in `alignTransferLedger` (`tx-out` and `tx-in`) to explicitly mention `(Small: <small>, Big: <big>)` or `(Hybrid: <total>)`.
+    - Standardized `alignTransferLedger` inventory transaction notes to include bag composition:
+      - tx-out: `Ownership Transfer Out (Lot <grnNumber>): <total> bags (Small -<small>, Big -<big>)` or `(Hybrid -<total>)`
+      - tx-in: `Ownership Transfer In (Lot <grnNumber>): <total> bags (Small -<small>, Big -<big>)` or `(Hybrid -<total>)`
   - **Verification:**
-    - Unit tests in `transfer-ownership-movement-history.unit.test.ts`.
-    - `npm run build`
+    - Unit tests in `transfer-ledger-notes.unit.test.ts`, `transfer-ownership-deed.unit.test.ts`, and `transfer-ownership-movement-history.unit.test.ts`.
+    - Line budget check passed (`bash scripts/hygiene-audit.sh`).
+    - Full workspace `npm run build` verified.
