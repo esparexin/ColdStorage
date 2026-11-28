@@ -48,14 +48,15 @@ describe('Consignment Merge Under Live Subscription - Hamali Cash Memo Only', ()
     await mongoose.connection.collection('internalmovements').deleteMany({});
     await seedFacility({ id: facilityId, code: 'MMEM', name: 'Merge Memo Facility' });
     customerId = await seedCustomer({ id: 'cust-mmem-1', facilityId, name: 'Farmer Srinivas' });
-  });
-
-  it('generates a Cash Memo for Hamali charges only without creating or altering rent charges', async () => {
     const commodity = await CommodityModel.create({
       id: 'cmd-memo-chilli', name: 'Guntur Chilli', normalizedName: 'guntur chilli',
       isHamaliApplicable: true, hamaliRate: 6, isActive: true,
     });
     await seedControllerRates(commodity.id, { small: 25, big: 30 }, { small: 25, big: 30 });
+  });
+
+  it('generates a Cash Memo for Hamali charges only without creating or altering rent charges', async () => {
+    const commodity = (await CommodityModel.findOne({ id: 'cmd-memo-chilli' }).lean().exec())!;
 
     const targetInwardDate = new Date('2026-04-10');
     const moveDate = new Date('2026-06-15');
@@ -125,5 +126,43 @@ describe('Consignment Merge Under Live Subscription - Hamali Cash Memo Only', ()
     const invoiceHtml = renderMergeShiftingInvoiceTemplate(invoiceDto);
     expect(invoiceHtml).toContain(payment.receiptNumber);
     expect(invoiceHtml).toContain('Cash Memo: #');
+  });
+
+  it('generates hamali cash memo when target GRN was inwarded in January of current year (2026 Jan GRN)', async () => {
+    const commodity = await CommodityModel.findOne({ id: 'cmd-memo-chilli' }).lean().exec();
+
+    // 2026 January Inward Target GRN
+    const targetGrnId = await seedGrn({
+      facilityId, customerId, customerName: 'Farmer Srinivas', commodityId: commodity!.id, commodityName: 'Guntur Chilli',
+      chamber: 'CH-02', bags: 80, rentType: 'Seasonal', rentAmount: 2400, grnNumber: 'GRN-26-27-0303',
+      date: new Date('2026-01-15'),
+    });
+
+    // 2023 Source GRN
+    const sourceGrnId = await seedGrn({
+      facilityId, customerId, customerName: 'Farmer Srinivas', commodityId: commodity!.id, commodityName: 'Guntur Chilli',
+      chamber: 'CH-03', bags: 40, rentType: 'Seasonal', rentAmount: 1200, grnNumber: 'GRN-23-24-0304',
+      date: new Date('2023-04-10'),
+    });
+
+    const res = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        targetGrnId,
+        sourceGrnIds: [sourceGrnId],
+        movementDate: new Date('2026-01-20'),
+        remarks: 'Merge 2023 source lot into 2026 Jan target lot',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    // Hamali Cash Memo must NOT be missing!
+    const payment = res.body.payment;
+    expect(payment).toBeDefined();
+    expect(payment.receiptNumber).toMatch(/^RRCPT-\d{2}-\d{2}-\d{4}$/);
+    expect(payment.amountPaid).toBe(240); // 40 bags * ₹6 = ₹240
+    expect(payment.notes).toContain('Consignment Merge Hamali Labor: 40 bags @ ₹6/bag');
   });
 });
