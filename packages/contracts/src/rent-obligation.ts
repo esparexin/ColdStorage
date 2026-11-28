@@ -135,12 +135,7 @@ export function splitRentObligation(input: RentObligationInput): {
   const totalBags = Number(input.totalBags ?? 0);
   const remainingBags = input.remainingBags != null ? Number(input.remainingBags) : null;
 
-  const baseRent =
-    input.rentType === 'Monthly' || input.rentType === 'Seasonal_3M'
-      ? Math.max(rentAmount, outwardRentCharges)
-      : rentAmount > 0
-        ? rentAmount
-        : outwardRentCharges;
+  const baseRent = Math.max(rentAmount, outwardRentCharges);
   const hamali = deriveHamaliComponent(
     baseRent,
     rentAmount,

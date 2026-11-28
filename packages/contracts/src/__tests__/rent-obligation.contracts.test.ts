@@ -215,6 +215,18 @@ describe('resolveTotalRentObligation (rent-obligation SSOT)', () => {
     expect(s.total).toBe(422250);
   });
 
+  it('splitRentObligation reconciles Seasonal rent when outwardRentCharges expands the base', () => {
+    const s = splitRentObligation({
+      rentType: 'Seasonal',
+      rentAmount: 6800,
+      outwardRentCharges: 25600,
+      hamaliShare: 2000,
+    });
+    expect(s.baseRent).toBe(25600);
+    expect(s.total).toBe(25600);
+    expect(s.baseRent + s.hamali).toBe(s.total);
+  });
+
   // --- agreement with the pre-existing primitives ------------------------
   it('agrees with totalRentDue when only extensions are in play', () => {
     expect(totalRentDue(20000, [5000, 2500])).toBe(27500);
