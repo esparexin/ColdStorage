@@ -105,9 +105,9 @@ export async function resolveMergeRepackHamali(params: {
 
   // Calculate actual bags handled
   const actualRepackedBags =
-    isRepackSelected && repackedBagCount != null && repackedBagCount > 0
+    repackedBagCount != null && repackedBagCount > 0
       ? repackedBagCount
-      : isRepackSelected && typeof repackedSmallBags === 'number' && typeof repackedBigBags === 'number'
+      : typeof repackedSmallBags === 'number' && typeof repackedBigBags === 'number'
         ? repackedSmallBags + repackedBigBags
         : totalMovedBags;
 
