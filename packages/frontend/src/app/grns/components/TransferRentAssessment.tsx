@@ -140,7 +140,7 @@ export function TransferRentAssessment({
             <span className={styles.detailValue}>{inwardDateStr} to {movementDate}</span>
           </div>
           <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>Total Applicable Rent:</span>
+            <span className={styles.detailLabel}>Total Applicable Dues:</span>
             <span className={styles.detailValue}>₹{totalObligation.toLocaleString('en-IN')}</span>
           </div>
           <div className={styles.detailRow}>
@@ -171,6 +171,7 @@ export function TransferRentAssessment({
         totalRent={totalRent}
         hamaliRate={hamaliRate}
         excludePeriodKeys={excludePeriodKeys}
+        caption="Transfer Dues Breakdown"
       />
     </div>
   );

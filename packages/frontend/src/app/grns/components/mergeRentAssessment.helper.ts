@@ -50,19 +50,15 @@ export function calculateMergeSourceRentSummary(params: {
 
   const sourceBags = source.closingBags ?? source.bags;
 
-  const isHybrid = confirmation?.category === 'Hybrid' ||
-    isHybridBagCategory(source.bagType) || isHybridBagCategory(confirmation?.category);
-
+  const isHybrid = confirmation?.category === 'Hybrid' || isHybridBagCategory(source.bagType) || isHybridBagCategory(confirmation?.category);
   const hasChoice = (typeof confirmation?.smallBags === 'number' && typeof confirmation?.bigBags === 'number') ||
     (typeof confirmation?.smallBags === 'number' && confirmation.smallBags === sourceBags) ||
     (typeof confirmation?.bigBags === 'number' && confirmation.bigBags === sourceBags);
   const isConfirmed = isHybrid || hasChoice || Boolean(source.isCompositionVerified);
 
-  const confirmedSmall = typeof confirmation?.smallBags === 'number'
-    ? confirmation.smallBags
+  const confirmedSmall = typeof confirmation?.smallBags === 'number' ? confirmation.smallBags
     : (typeof confirmation?.bigBags === 'number' && confirmation.bigBags === sourceBags ? 0 : (source.smallBags ?? sourceBags));
-  const confirmedBig = typeof confirmation?.bigBags === 'number'
-    ? confirmation.bigBags
+  const confirmedBig = typeof confirmation?.bigBags === 'number' ? confirmation.bigBags
     : (typeof confirmation?.smallBags === 'number' && confirmation.smallBags === sourceBags ? 0 : (source.bigBags ?? 0));
 
   const smallBags = isHybrid ? sourceBags : confirmedSmall;
@@ -139,8 +135,10 @@ export function calculateMergeSourceRentSummary(params: {
 
   let totalRent: number;
   if (!hasCompletedPeriods) {
-    // When all elapsed periods are uncompleted/active, storage rent is strictly ₹0 for pre-merge settlement.
-    totalRent = 0;
+    // When all elapsed periods are uncompleted/active:
+    // - For pre-merge settlement: storage rent is strictly ₹0 (carried by target subscription)
+    // - For transfer: retain existing stored rent obligation if set, otherwise ₹0
+    totalRent = isTransfer && storedRent > 0 ? storedRent : 0;
   } else if (resetRentState || hasManualRateOverride) {
     totalRent = calculatedRent;
   } else if (storedRent > 0) {
@@ -201,5 +199,4 @@ export function calculateMergeGrandTotal(params: {
     return acc + calc.totalAmountToPay;
   }, 0);
 }
-
 

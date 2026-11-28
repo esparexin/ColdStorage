@@ -68,18 +68,13 @@ export function TransferStep2Dues(props: TransferStep2DuesProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-      {/* Bag Type Confirmation Card (FIRST) */}
+      {/* Bag Details Card */}
       <div className={styles.compactCard}>
         <div className={styles.cardHeader}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <ShieldCheck size={14} aria-hidden="true" />
-            <span>Bag Type & Composition Confirmation</span>
+            <span>Bag Details</span>
           </span>
-          <Badge variant="primary">Bag Confirmation First</Badge>
-        </div>
-
-        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
-          Confirm stored bag type and composition FIRST before settling rent dues.
         </div>
 
         <TransferOwnershipConfirmation

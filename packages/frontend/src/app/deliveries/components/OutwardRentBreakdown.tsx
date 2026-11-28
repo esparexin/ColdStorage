@@ -44,13 +44,14 @@ export interface OutwardRentBreakdownProps {
   grnNumber?: string;
   hideHeader?: boolean;
   isRatesInclusiveOfHamali?: boolean;
+  caption?: string;
 }
 
 export function OutwardRentBreakdown({
   rentType, inwardDate, deliveryDate, smallBags, bigBags,
   bagType, bagCategory, bagPrice, seasonalBagPrice, monthlyBagPrice,
   seasonalRates, monthlyRates, rentMonths, totalRent, hamaliRate,
-  excludePeriodKeys, grnNumber, hideHeader, isRatesInclusiveOfHamali,
+  excludePeriodKeys, grnNumber, hideHeader, isRatesInclusiveOfHamali, caption,
 }: OutwardRentBreakdownProps) {
   const isSeasonalTransitioned = shouldEvaluateSeasonalBreakdown({
     rentType,
@@ -203,7 +204,7 @@ export function OutwardRentBreakdown({
         columns={breakdownColumns}
         rows={rows}
         rowKey={(r) => r.id}
-        caption={hideHeader ? undefined : "Outward Rent Calculation Breakdown"}
+        caption={hideHeader ? undefined : (caption ?? "Outward Rent Calculation Breakdown")}
         footer={
           <>
             <tr className={styles.totalRow}>
