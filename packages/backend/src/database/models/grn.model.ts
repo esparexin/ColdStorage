@@ -75,7 +75,7 @@ export interface GrnDoc extends Document {
 
 const grnSchema = new Schema<GrnDoc>(
   {
-    id: { type: String, required: true, unique: true, index: true },
+    id: { type: String, required: true, unique: true },
     facilityId: { type: String, required: true, index: true },
     grnNumber: { type: String, required: true, index: true },
     inwardReceiptNumber: { type: String, required: true, index: true },

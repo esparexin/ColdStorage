@@ -1,6 +1,7 @@
 import type { Grn } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
-import { grnService } from '../../grn/grn.service.js';
+import { toGrnEntity } from '../../grn/grn.mappers.js';
+import { readLedgerBalanceMany, readLedgerNetDeliveredMany } from '../../inventory/ledger-balance.js';
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -55,16 +56,27 @@ export async function listEligibleGrns(
     GrnModel.countDocuments(filter).exec(),
   ]);
 
-  const grnResult = await grnService.listGrns(facilityId, {
-    page,
-    limit,
-    customerId: options.customerId,
-    commodityId: options.commodityId,
-    search: options.search,
-  });
+  const grnIds = docs.map((d) => d.id);
+  const [balanceMap, deliveredMap] = await Promise.all([
+    readLedgerBalanceMany(facilityId, grnIds),
+    readLedgerNetDeliveredMany(facilityId, grnIds),
+  ]);
 
-  const eligibleIds = new Set(docs.map((d) => d.id));
-  const items = grnResult.items.filter((item) => eligibleIds.has(item.id));
+  const items: Grn[] = docs.map((d) => {
+    const netDelivered = deliveredMap.get(d.id)?.total ?? 0;
+    const bal = balanceMap.get(d.id);
+    const isMergedSource = Boolean(
+      (d as Record<string, unknown>).mergedIntoGrnId ||
+      (d as Record<string, unknown>).mergedIntoGrnNumber,
+    );
+    const closing = isMergedSource
+      ? 0
+      : (bal != null ? bal.total : Math.max(0, d.bags - netDelivered));
+    return toGrnEntity(d, {
+      netDeliveredBags: netDelivered,
+      closingBags: closing,
+    });
+  });
 
   return { items, total, page, limit };
 }

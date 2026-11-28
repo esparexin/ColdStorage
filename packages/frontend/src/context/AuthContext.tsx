@@ -6,34 +6,14 @@
  */
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import type { TokenPayload, UserSummary } from '@cold-storage/contracts';
 import { AUTH_BOOTSTRAP_OVERALL_TIMEOUT_MS, LOGIN_REQUEST_TIMEOUT_MS, executeSingleFlightRefresh, fetchWithTimeout, requestWithAuth, setAccessToken, setOnAuthExpired } from '@/lib/api-client';
 import { LoginApiError, parseLoginResponse } from '@/lib/auth-errors';
 
-export interface AuthUser {
-  userId: string;
-  username: string;
-  fullName: string;
-  role: string;
-  roleId?: string;
-  permissions?: string[];
-  facilityIds: string[];
-  mustChangePassword?: boolean;
-}
-
-interface RawAuthUserData {
-  id?: string;
-  userId?: string;
-  username: string;
-  fullName: string;
-  role: string;
-  roleId?: string;
-  permissions?: string[];
-  facilityIds: string[];
-  mustChangePassword?: boolean;
-}
+export type SessionUser = TokenPayload & { fullName: string };
 
 interface AuthContextValue {
-  user: AuthUser | null;
+  user: SessionUser | null;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -42,14 +22,14 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function toAuthUser(raw: RawAuthUserData): AuthUser {
+function toSessionUser(raw: UserSummary & { userId?: string }): SessionUser {
   return {
     userId: raw.userId ?? raw.id ?? '',
     username: raw.username,
     fullName: raw.fullName,
     role: raw.role,
     roleId: raw.roleId,
-    permissions: raw.permissions,
+    permissions: raw.permissions as TokenPayload['permissions'],
     facilityIds: raw.facilityIds,
     mustChangePassword: Boolean(raw.mustChangePassword),
   };
@@ -60,11 +40,11 @@ function toAuthUser(raw: RawAuthUserData): AuthUser {
  * Previously `refreshUserFromMe` and the `changePassword` fallback each
  * implemented their own `/api/auth/me` fetch+parse. Both now share this.
  */
-async function fetchMeRaw(): Promise<RawAuthUserData | null> {
+async function fetchMeRaw(): Promise<UserSummary | null> {
   try {
     const meRes = await requestWithAuth('/api/auth/me');
     if (!meRes.ok) return null;
-    const meData = (await meRes.json()) as { user: RawAuthUserData };
+    const meData = (await meRes.json()) as { user: UserSummary };
     return meData.user ?? null;
   } catch {
     return null;
@@ -72,7 +52,7 @@ async function fetchMeRaw(): Promise<RawAuthUserData | null> {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // ---------------------------------------------------------------------------
@@ -90,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function bootstrap() {
       try {
-        const refreshTask = executeSingleFlightRefresh<RawAuthUserData>();
+        const refreshTask = executeSingleFlightRefresh<UserSummary>();
         const deadlineTask = new Promise<null>((resolve) => {
           setTimeout(() => resolve(null), AUTH_BOOTSTRAP_OVERALL_TIMEOUT_MS);
         });
@@ -98,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (cancelled) return;
 
         if (result?.user) {
-          setUser(toAuthUser(result.user));
+          setUser(toSessionUser(result.user));
         } else {
           setAccessToken(null);
           setUser(null);
@@ -155,9 +135,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw err;
     }
 
-    const data = await parseLoginResponse<RawAuthUserData>(res);
+    const data = await parseLoginResponse<UserSummary>(res);
     setAccessToken(data.token);
-    const mapped = toAuthUser(data.user);
+    const mapped = toSessionUser(data.user);
     // Top-level mustChangePassword (from login response) wins when present;
     // otherwise fall back to the embedded user record. Canonical contract
     // keeps password-only flow — no OTP/MFA second step.
@@ -186,7 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUserFromMe = useCallback(async (): Promise<boolean> => {
     const raw = await fetchMeRaw();
     if (!raw) return false;
-    setUser(toAuthUser(raw));
+    setUser(toSessionUser(raw));
     return true;
   }, []);
 

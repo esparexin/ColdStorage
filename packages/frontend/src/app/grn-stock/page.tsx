@@ -77,11 +77,14 @@ export default function GrnStockPage() {
   };
 
   const handleOpenDelete = (grn: Grn) => {
+    if (process.env.NODE_ENV === 'production') return;
+    setDeleteError(null);
     setDeleteTargetGrn(grn);
     setDeleteOpen(true);
   };
 
   const handleConfirmDelete = async () => {
+    if (process.env.NODE_ENV === 'production') return;
     if (!selectedFacilityId || !deleteTargetGrn) return;
     setDeleteError(null);
     try {
@@ -112,15 +115,17 @@ export default function GrnStockPage() {
   const currentFacilityName =
     availableFacilities.find((f) => f.id === selectedFacilityId)?.name || 'Cold Storage Facility';
 
+  const isTestingEnv = process.env.NODE_ENV !== 'production';
+
   const columns = useMemo(
     () =>
       createGrnStockColumns({
         onOpenMovement: handleOpenMovement,
         onMerge: handleOpenMerge,
-        onDelete: handleOpenDelete,
+        onDelete: isTestingEnv ? handleOpenDelete : undefined,
         mergeInMap,
       }),
-    [selectedFacilityId, mergeInMap],
+    [selectedFacilityId, mergeInMap, isTestingEnv],
   );
 
   if (!canViewGrnStock) {
@@ -212,13 +217,15 @@ export default function GrnStockPage() {
         />
       )}
 
-      <GrnDeleteConfirmDialog
-        isOpen={deleteOpen}
-        targetGrn={deleteTargetGrn}
-        deleteError={deleteError}
-        onConfirm={() => void handleConfirmDelete()}
-        onCancel={() => setDeleteOpen(false)}
-      />
+      {isTestingEnv && (
+        <GrnDeleteConfirmDialog
+          isOpen={deleteOpen}
+          targetGrn={deleteTargetGrn}
+          deleteError={deleteError}
+          onConfirm={() => void handleConfirmDelete()}
+          onCancel={() => setDeleteOpen(false)}
+        />
+      )}
     </div>
   );
 }

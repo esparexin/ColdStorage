@@ -1,13 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { RoleDefinition } from '@cold-storage/contracts';
+import type { Facility, RoleDefinition } from '@cold-storage/contracts';
 import { indianMobileSchema } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
-import type { FacilityOption } from '@/context/FacilityContext';
 
 interface UseProvisionUserFormProps {
-  availableFacilities: FacilityOption[];
+  availableFacilities: Facility[];
   availableRoles: RoleDefinition[];
   onClose: () => void;
   onSuccess: (message: string) => void;

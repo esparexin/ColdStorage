@@ -36,7 +36,7 @@ forbidden = {
 DECL = re.compile(r"^\s*(?:export\s+)?(?:interface\s+(\w+)|type\s+(\w+)\s*(?:=|extends))", re.M)
 
 hits = []
-for path in fe.rglob("*.ts"):
+for path in sorted(list(fe.rglob("*.ts")) + list(fe.rglob("*.tsx"))):
     if "__tests__" in path.as_posix():
         continue
     text = path.read_text(encoding="utf-8", errors="ignore")

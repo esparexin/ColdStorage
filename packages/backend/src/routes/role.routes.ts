@@ -17,7 +17,7 @@ roleRouter.get('/', requirePermission('user:manage'), async (_req: Request, res:
     const roles = await roleService.listRoles();
     res.status(200).json({ roles });
   } catch (err: unknown) {
-        sendInternalError(res, err, 'Role listing failed');
+    sendInternalError(res, err, 'Role listing failed');
   }
 });
 

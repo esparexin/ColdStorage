@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { FacilityOption } from '@/context/FacilityContext';
+import type { Facility } from '@cold-storage/contracts';
 import styles from '../page.module.css';
 
 export function FieldError({ id, message }: { id: string; message?: string }) {
@@ -14,7 +14,7 @@ export function FieldError({ id, message }: { id: string; message?: string }) {
 }
 
 interface FacilityFieldsetProps {
-  facilities: FacilityOption[];
+  facilities: Facility[];
   selectedIds: string[];
   error?: string;
   onToggle: (id: string) => void;

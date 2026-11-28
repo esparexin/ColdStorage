@@ -3,12 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import {
   indianMobileSchema,
+  type Facility,
   type RoleDefinition,
   type UserSummary,
 } from '@cold-storage/contracts';
 import { Button, Modal, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
-import type { FacilityOption } from '@/context/FacilityContext';
 import { toUserEditDraft, type UserEditDraft } from '../hooks/useUserLifecycle';
 import { resolveUserSystemRole } from '../hooks/userEditPayload.helper';
 import { FacilityFieldset, FieldError } from './UserFormFields';
@@ -16,7 +16,7 @@ import styles from '../page.module.css';
 
 interface EditUserModalProps {
   user: UserSummary;
-  availableFacilities: FacilityOption[];
+  availableFacilities: Facility[];
   availableRoles: RoleDefinition[];
   saving: boolean;
   error: string | null;
