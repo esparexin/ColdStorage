@@ -78,6 +78,34 @@ describe('mergeStepValidation.helper', () => {
       closingBags: 50,
     } as unknown as Grn;
 
+    it('allows proceeding without target composition confirmation when target is current-year live subscription', () => {
+      const liveTarget = {
+        id: 'tgt-live', grnNumber: '5001', date: new Date('2026-04-01'),
+        bags: 100, closingBags: 100, bagType: 'S/B', isCompositionVerified: false, rentType: 'Seasonal',
+      } as unknown as Grn;
+      const res = validateStep3Proceed({
+        selectedSources: [sampleSource],
+        sourceConfirmations: { 'src-1': { ...DEFAULT_BAG_CONFIRMATION, category: 'S/B', smallBags: 25, bigBags: 25 } },
+        targetGrn: liveTarget, targetCurrentRemaining: 100, movementDate: '2026-08-01',
+      });
+      expect(res).toBeNull();
+    });
+
+    it('requires target composition confirmation when target belongs to historical season', () => {
+      const historicalTarget = {
+        id: 'tgt-hist', grnNumber: '4001', date: new Date('2023-04-01'),
+        bags: 100, closingBags: 100, bagType: 'S/B', isCompositionVerified: false, rentType: 'Seasonal',
+      } as unknown as Grn;
+      const res = validateStep3Proceed({
+        selectedSources: [sampleSource],
+        sourceConfirmations: { 'src-1': { ...DEFAULT_BAG_CONFIRMATION, category: 'S/B', smallBags: 25, bigBags: 25 } },
+        targetGrn: historicalTarget,
+        targetConfirmation: { ...DEFAULT_BAG_CONFIRMATION, category: 'S/B', smallBags: 20, bigBags: 20 },
+        targetCurrentRemaining: 100, movementDate: '2026-08-01',
+      });
+      expect(res).toBe("Target GRN '4001': Confirmed Small (20) and Big (20) bags must equal 100 bags.");
+    });
+
     it('rejects S/B confirmation if small + big != closingBags', () => {
       expect(
         validateStep3Proceed({

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
-  calculateHamaliAmount, resolveMergedBagType,
+  calculateHamaliAmount, isEligibleCurrentLiveSubscriptionGrn, resolveMergedBagType,
   seasonYearForInwardDate,
   type Commodity, type Grn, type OutwardBagCategory, type PaymentMode,
   type RentSummaryDto, type TransferPaymentDecision,
@@ -171,7 +171,9 @@ export function useInternalMovementMergeTab({
 
   const handleProceedToStep3 = () => {
     setValidationError(null);
-    const err = validateStep3Proceed({ selectedSources, sourceConfirmations, targetGrn, targetConfirmation, targetCurrentRemaining });
+    const err = validateStep3Proceed({
+      selectedSources, sourceConfirmations, targetGrn, targetConfirmation, targetCurrentRemaining, movementDate,
+    });
     if (err) return setValidationError(err);
     setStep(3);
   };
@@ -186,11 +188,16 @@ export function useInternalMovementMergeTab({
     setValidationError(null);
     const effectiveChamber = destinationChamber.trim();
     const totalConsolidatedBags = targetCurrentRemaining + totalSourceBags;
+    const isTargetLiveSubscription = Boolean(
+      targetGrn && movementDate && isEligibleCurrentLiveSubscriptionGrn({
+        inwardDate: targetGrn.date, asOfDate: movementDate, rentType: targetGrn.rentType,
+      }),
+    );
     const err = validateMergeSubmit({
       selectedSourceIds, reason, isTargetLoanHold, targetGrnNumber: targetGrn.grnNumber,
       destinationChamber: effectiveChamber, repackMode, repackBagType, isRepackFilled,
       repackSmall, repackBig, repackQuantity, repackBagPrice, repackSeasonalBagPrice, repackMonthlyBagPrice,
-      totalConsolidatedBags,
+      totalConsolidatedBags, isTargetLiveSubscription,
     });
     if (err) return setValidationError(err);
 
@@ -198,13 +205,14 @@ export function useInternalMovementMergeTab({
     const { effSmall, effBig, effQuantity, effBagPrice, effSeasonalPrice, effMonthlyPrice, effRepackedBagCount, resolvedCategory } =
       buildMergeExecutionPayload({ repackMode, repackBagType, repackSmall, repackBig, repackQuantity, repackBagPrice, repackSeasonalBagPrice, repackMonthlyBagPrice, isRepackFilled, isRepackRequired, movedSmall, movedBig, totalSourceBags, primaryConf });
 
-    const tSmall = !targetGrn.isCompositionVerified && targetConfirmation.category !== 'Hybrid' && typeof targetConfirmation.smallBags === 'number' ? targetConfirmation.smallBags : undefined;
-    const tBig = !targetGrn.isCompositionVerified && targetConfirmation.category !== 'Hybrid' && typeof targetConfirmation.bigBags === 'number' ? targetConfirmation.bigBags : undefined;
-    const tCat = !targetGrn.isCompositionVerified ? targetConfirmation.category : undefined;
-    const tQty = !targetGrn.isCompositionVerified && targetConfirmation.category === 'Hybrid' ? (typeof targetConfirmation.quantity === 'number' ? targetConfirmation.quantity : targetCurrentRemaining) : undefined;
-    const tPrice = !targetGrn.isCompositionVerified && typeof targetConfirmation.bagPrice === 'number' ? targetConfirmation.bagPrice : undefined;
-    const tSeasonalPrice = !targetGrn.isCompositionVerified && typeof targetConfirmation.seasonalBagPrice === 'number' ? targetConfirmation.seasonalBagPrice : undefined;
-    const tMonthlyPrice = !targetGrn.isCompositionVerified && typeof targetConfirmation.monthlyBagPrice === 'number' ? targetConfirmation.monthlyBagPrice : undefined;
+    const skipTargetComposition = isTargetLiveSubscription || targetGrn.isCompositionVerified;
+    const tSmall = !skipTargetComposition && targetConfirmation.category !== 'Hybrid' && typeof targetConfirmation.smallBags === 'number' ? targetConfirmation.smallBags : undefined;
+    const tBig = !skipTargetComposition && targetConfirmation.category !== 'Hybrid' && typeof targetConfirmation.bigBags === 'number' ? targetConfirmation.bigBags : undefined;
+    const tCat = !skipTargetComposition ? targetConfirmation.category : undefined;
+    const tQty = !skipTargetComposition && targetConfirmation.category === 'Hybrid' ? (typeof targetConfirmation.quantity === 'number' ? targetConfirmation.quantity : targetCurrentRemaining) : undefined;
+    const tPrice = !skipTargetComposition && typeof targetConfirmation.bagPrice === 'number' ? targetConfirmation.bagPrice : undefined;
+    const tSeasonalPrice = !skipTargetComposition && typeof targetConfirmation.seasonalBagPrice === 'number' ? targetConfirmation.seasonalBagPrice : undefined;
+    const tMonthlyPrice = !skipTargetComposition && typeof targetConfirmation.monthlyBagPrice === 'number' ? targetConfirmation.monthlyBagPrice : undefined;
 
     await onExecuteMerge(
       targetGrnId, selectedSourceIds, reason.trim(), remarks.trim() || undefined, movementDate, 0, effSmall, effBig,

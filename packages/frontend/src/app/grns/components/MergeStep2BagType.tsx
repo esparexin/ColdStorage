@@ -103,15 +103,17 @@ export function MergeStep2BagType({
     ? targetConfirmation.bigBags
     : (targetGrn.bigBags ?? 0);
 
-  const confirmedClassificationLabel = isTargetConfirmed
-    ? isTargetHybrid
-      ? 'Confirmed: Hybrid'
-      : targetConfirmedSmall > 0 && targetConfirmedBig > 0
-        ? `Confirmed: S/B (${targetConfirmedSmall} Small, ${targetConfirmedBig} Big)`
-        : targetConfirmedSmall > 0
-          ? `Confirmed: Small (${targetConfirmedSmall} Bags)`
-          : `Confirmed: Big (${targetConfirmedBig} Bags)`
-    : targetDisplayType;
+  const confirmedClassificationLabel = isTargetLiveSubscription
+    ? targetDisplayType
+    : isTargetConfirmed
+      ? isTargetHybrid
+        ? 'Confirmed: Hybrid'
+        : targetConfirmedSmall > 0 && targetConfirmedBig > 0
+          ? `Confirmed: S/B (${targetConfirmedSmall} Small, ${targetConfirmedBig} Big)`
+          : targetConfirmedSmall > 0
+            ? `Confirmed: Small (${targetConfirmedSmall} Bags)`
+            : `Confirmed: Big (${targetConfirmedBig} Bags)`
+      : targetDisplayType;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>

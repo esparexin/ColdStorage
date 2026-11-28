@@ -22,6 +22,7 @@ export interface ValidateMergeRepackedParams {
     date: Date;
     grnNumber: string;
     isCompositionVerified?: boolean | null;
+    rentType?: string | null;
   };
   sourceGrns: MergeSourceGrn[];
   repackedSmallBags?: number | null;
@@ -85,7 +86,7 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
   const isTargetLiveSub = isEligibleCurrentLiveSubscriptionGrn({
     inwardDate: targetGrn.date,
     asOfDate: movementDate,
-    rentType: (targetGrn as unknown as { rentType?: string }).rentType,
+    rentType: targetGrn.rentType,
   });
   const isTargetVerified = isTargetLiveSub || resolveStoredCompositionVerified(targetGrn);
   const hasUnverifiedSource = sourceGrns.some(

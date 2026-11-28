@@ -118,6 +118,7 @@ export async function validateProspectiveMergeMove(params: {
       bigBags: targetGrn.bigBags, smallBagPrice: targetGrn.smallBagPrice, bigBagPrice: targetGrn.bigBagPrice,
       date: targetGrn.date, grnNumber: targetGrn.grnNumber,
       isCompositionVerified: targetGrn.isCompositionVerified ?? null,
+      rentType: targetGrn.rentType,
     },
     sourceGrns,
     repackedSmallBags: input.repackedSmallBags, repackedBigBags: input.repackedBigBags,
