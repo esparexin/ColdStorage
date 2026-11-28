@@ -51,7 +51,7 @@ export class InternalMovementService {
     facilityId: string,
     input: MergeGrnInput,
     userId: string,
-  ): Promise<{ targetGrn: Grn; movement: InternalMovementRecord }> {
+  ): Promise<{ targetGrn: Grn; movement: InternalMovementRecord; payment?: RentPayment }> {
     return mergeGrn(facilityId, input, userId);
   }
 

@@ -113,8 +113,6 @@ export function buildMergeTargetUpdates(params: BuildMergeTargetUpdatesParams): 
   if (input.storageMark?.trim()) targetUpdateFields.storageMark = input.storageMark.trim();
   if (repackHamaliCharge > 0 || repackHamaliRate > 0) {
     targetUpdateFields.hamaliRate = repackHamaliRate;
-    targetUpdateFields.hamaliAmount =
-      Number((((targetGrn as { hamaliAmount?: number | null }).hamaliAmount ?? 0) + repackHamaliCharge).toFixed(2));
   }
   const combinedMarks = [input.storageMark?.trim() || targetGrn.storageMark, input.partyMark?.trim() || targetGrn.partyMark]
     .filter(Boolean)

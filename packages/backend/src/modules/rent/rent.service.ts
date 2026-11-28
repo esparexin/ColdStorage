@@ -195,6 +195,7 @@ export class RentService {
     );
 
     const opInfo = resolveReceiptOperationInfo(payment.notes, grn.grnNumber);
+    const isHamaliOnly = Boolean(opInfo.isHamaliOnly || payment.notes?.includes('Consignment Merge Hamali Labor'));
     const docDto: RentReceiptDocumentDto = {
       organization, facility, receiptNumber: payment.receiptNumber,
       grnNumber: grn.grnNumber, inwardReceiptNumber: grn.inwardReceiptNumber, inwardDate: grn.date,
@@ -204,10 +205,12 @@ export class RentService {
       chamber: grn.chamber, bagType: grn.bagType, inwardBags: grn.bags, deliveredBags: netDeliveredBags,
       remainingBags, bagPrice: grn.bagPrice ?? null, smallBagPrice: grn.smallBagPrice ?? null,
       bigBagPrice: grn.bigBagPrice ?? null, rentType: grn.rentType, rentMonths: grn.rentMonths ?? null,
-      billingCyclePeriod, totalRentObligation: delInfo.deliveryObligation ?? summary.totalDue,
-      previousPaidAmount, amountPaid: payment.amountPaid, paymentMode: payment.paymentMode,
-      remainingBalance: delInfo.deliveryRemaining ?? summary.remainingBalance,
-      paymentStatus: summary.paymentStatus, isPreview: false, notes: payment.notes,
+      billingCyclePeriod: isHamaliOnly ? 'Active Subscription Preserved (Rent: ₹0.00)' : billingCyclePeriod,
+      totalRentObligation: isHamaliOnly ? payment.amountPaid : (delInfo.deliveryObligation ?? summary.totalDue),
+      previousPaidAmount: isHamaliOnly ? 0 : previousPaidAmount,
+      amountPaid: payment.amountPaid, paymentMode: payment.paymentMode,
+      remainingBalance: isHamaliOnly ? 0 : (delInfo.deliveryRemaining ?? summary.remainingBalance),
+      paymentStatus: isHamaliOnly ? 'Settled' : summary.paymentStatus, isPreview: false, notes: payment.notes,
       movementType: opInfo.movementType, operationDescription: opInfo.operationDescription,
       previousStockBags: grn.bags,
       confirmedComposition: grn.bagType ? `${grn.bagType} (${grn.smallBags ?? 0}S / ${grn.bigBags ?? 0}B)` : undefined,

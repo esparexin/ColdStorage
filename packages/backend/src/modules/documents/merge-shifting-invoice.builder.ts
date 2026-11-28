@@ -5,6 +5,7 @@ import {
 import { GrnModel } from '../../database/models/grn.model.js';
 import { InternalMovementModel } from '../../database/models/internal-movement.model.js';
 import { InventoryTransactionModel } from '../../database/models/inventory-transaction.model.js';
+import { RentPaymentModel } from '../../database/models/rent-payment.model.js';
 import {
   getFacilitySubHeader,
   getVerifiedOrganization,
@@ -63,6 +64,12 @@ export async function buildMergeShiftingInvoiceDto(
   const resultingBagType = movement.resultingBagType || targetGrn.bagType || 'S/B';
   const destinationChamber = movement.destinationChamber || targetGrn.chamber || 'N/A';
 
+  const hamaliPayment = await RentPaymentModel.findOne({
+    facilityId,
+    grnId: targetGrn.id,
+    notes: { $regex: /Consignment Merge Hamali Labor/i },
+  }).sort({ createdAt: -1 }).lean().exec();
+
   return {
     organization,
     facility,
@@ -84,6 +91,7 @@ export async function buildMergeShiftingInvoiceDto(
     sourceLots,
     repackHamaliCharge: movement.hamaliCharge ?? 0,
     repackHamaliRate: movement.hamaliRate ?? 0,
+    hamaliReceiptNumber: hamaliPayment?.receiptNumber ?? null,
     repackVariance: movement.repackVariance ?? 0,
     carriedRentAmount: movement.carriedRentAmount ?? 0,
     totalDueAtMerge: movement.financialSnapshot?.remainingBalance ?? 0,

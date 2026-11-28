@@ -6,6 +6,10 @@ export function renderRentReceiptTemplate(
 ): string {
   const isPreview = 'isPreview' in dto && Boolean(dto.isPreview);
   const isMultiOutward = Boolean(dto.creditedChallans && dto.creditedChallans.length > 1);
+  const isHamaliReceipt = Boolean(
+    dto.operationDescription?.includes('Hamali') ||
+    (dto.notes && dto.notes.includes('Consignment Merge Hamali Labor')),
+  );
 
   const priceStr =
     dto.smallBagPrice != null || dto.bigBagPrice != null
@@ -95,7 +99,7 @@ export function renderRentReceiptTemplate(
         <td>${escapeHtml(dto.billingCyclePeriod || (dto.rentType ? `${dto.rentType}${dto.rentMonths ? ` (${dto.rentMonths}m)` : ''}` : 'Season total (Mar–Dec)'))}</td>
       </tr>
       <tr>
-        <th>Total Rent Obligation</th>
+        <th>${isHamaliReceipt ? 'Total Hamali Obligation' : 'Total Rent Obligation'}</th>
         <td>${dto.totalRentObligation > 0 ? `₹${escapeHtml(dto.totalRentObligation.toFixed(2))}` : (dto.rentType === 'Monthly' ? 'Dynamic (Cycle Billing)' : '₹0.00')}</td>
         <th>Payment Mode</th>
         <td><strong>${escapeHtml(dto.paymentMode)}</strong></td>
@@ -107,7 +111,7 @@ export function renderRentReceiptTemplate(
         <td><strong>${escapeHtml(dto.paymentStatus)}</strong></td>
       </tr>
       <tr>
-        <th>Remaining Rent Balance</th>
+        <th>${isHamaliReceipt ? 'Remaining Balance' : 'Remaining Rent Balance'}</th>
         <td colspan="3"><strong style="color: ${dto.remainingBalance === 0 ? '#28a745' : '#c00'};">₹${escapeHtml(dto.remainingBalance.toFixed(2))}</strong></td>
       </tr>
       ${
@@ -131,15 +135,22 @@ export function renderRentReceiptTemplate(
     }
   `;
 
+  const docTitle = isHamaliReceipt
+    ? 'CASH MEMO / HAMALI PAYMENT RECEIPT'
+    : isMultiOutward
+      ? 'CONSOLIDATED RENT PAYMENT RECEIPT'
+      : 'CASH MEMO / RENT PAYMENT RECEIPT';
+  const pageTitle = isHamaliReceipt
+    ? 'Cash Memo / Hamali Receipt'
+    : isMultiOutward
+      ? 'Consolidated Rent Receipt'
+      : 'Cash Memo / Rent Receipt';
+
   return renderBaseLayout({
-    title: isPreview
-      ? `${isMultiOutward ? 'Consolidated Rent Receipt' : 'Cash Memo / Rent Receipt'} [PREVIEW] - ${dto.receiptNumber}`
-      : `${isMultiOutward ? 'Consolidated Rent Receipt' : 'Cash Memo / Rent Receipt'} - ${dto.receiptNumber}`,
+    title: `${pageTitle}${isPreview ? ' [PREVIEW]' : ''} - ${dto.receiptNumber}`,
     organization: dto.organization,
     facility: dto.facility,
-    documentTitle: isPreview
-      ? isMultiOutward ? 'CONSOLIDATED RENT PAYMENT RECEIPT [PREVIEW]' : 'CASH MEMO / RENT PAYMENT RECEIPT [PREVIEW]'
-      : isMultiOutward ? 'CONSOLIDATED RENT PAYMENT RECEIPT' : 'CASH MEMO / RENT PAYMENT RECEIPT',
+    documentTitle: `${docTitle}${isPreview ? ' [PREVIEW]' : ''}`,
     documentNumber: dto.receiptNumber,
     documentNumberLabel: 'Receipt #',
     documentDate:
