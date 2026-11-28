@@ -99,7 +99,7 @@ export async function resolveMergeRepackHamali(params: {
     commodityId, targetHamaliRate, isRepackSelected, repackedSmallBags,
     repackedBigBags, repackedBagCount, totalMovedBags, session,
   } = params;
-  if (totalMovedBags <= 0) {
+  if (!isRepackSelected || totalMovedBags <= 0) {
     return { isRepackingSelected: false, repackHamaliBags: 0, repackHamaliRate: 0, repackHamaliCharge: 0 };
   }
 

@@ -127,10 +127,9 @@ export function useInternalMovementMergeTab({
     deriveRepackCompositionStatus({ targetGrn, selectedSources, repackMode, repackBagType, repackQuantity, repackSmall, repackBig });
 
   const repackHamaliCharge = useMemo(() => {
-    const bagsToCharge = repackMode && actualRepackedBags > 0 ? actualRepackedBags : totalSourceBags;
-    if (bagsToCharge <= 0 || commodityHamaliRate <= 0) return 0;
-    return calculateHamaliAmount(bagsToCharge, commodityHamaliRate);
-  }, [repackMode, actualRepackedBags, totalSourceBags, commodityHamaliRate]);
+    if (!repackMode || actualRepackedBags <= 0 || commodityHamaliRate <= 0) return 0;
+    return calculateHamaliAmount(actualRepackedBags, commodityHamaliRate);
+  }, [repackMode, actualRepackedBags, commodityHamaliRate]);
 
   const { movedSmall, movedBig, addedBagsToTarget, targetNewRemaining, effectiveIsHybrid } =
     deriveMovedAndTargetBags({ selectedSources, sourceConfirmations, repackMode, repackBagType, isRepackFilled, repackSmall, repackBig, repackQuantity, totalSourceBags, targetCurrentRemaining, targetBagType: targetGrn.bagType, actualRepackedBags });

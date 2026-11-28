@@ -139,9 +139,11 @@ export async function mergeGrn(
 
       const baseTSmall = input.targetSmallBags != null ? input.targetSmallBags : (targetWasVerified ? targetGrn.smallBags : targetGrn.bags);
       const baseTBig = input.targetBigBags != null ? input.targetBigBags : (targetWasVerified ? targetGrn.bigBags : 0);
-      const newBags = input.isRepackSelected ? actualMovedBags : targetGrn.bags + actualMovedBags;
-      const newSmall = input.isRepackSelected ? totalMovedSmall : baseTSmall + totalMovedSmall;
-      const newBig = input.isRepackSelected ? totalMovedBig : baseTBig + totalMovedBig;
+      const hasExplicitRepackCounts = input.isRepackSelected &&
+        (input.repackedSmallBags != null || input.repackedBigBags != null || input.repackedBagCount != null);
+      const newBags = hasExplicitRepackCounts ? actualMovedBags : targetGrn.bags + actualMovedBags;
+      const newSmall = hasExplicitRepackCounts ? totalMovedSmall : baseTSmall + totalMovedSmall;
+      const newBig = hasExplicitRepackCounts ? totalMovedBig : baseTBig + totalMovedBig;
       const isRepackedHybrid = Boolean(input.isRepackSelected &&
         (input.sourceBagCategory === 'Hybrid' || input.sourceBagType === 'Hybrid' || input.targetBagCategory === 'Hybrid' || input.targetBagType === 'Hybrid'));
       const effectiveSourceBagTypes = isRepackedHybrid ? ['Hybrid' as const] : sourceGrns.map((s) => s.bagType);
