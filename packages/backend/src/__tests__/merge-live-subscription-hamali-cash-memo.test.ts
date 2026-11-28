@@ -152,7 +152,9 @@ describe('Consignment Merge Under Live Subscription - Hamali Cash Memo Only', ()
         targetGrnId,
         sourceGrnIds: [sourceGrnId],
         movementDate: new Date('2026-01-20'),
-        remarks: 'Merge 2023 source lot into 2026 Jan target lot',
+        sourcePaymentAmount: 240,
+        sourcePaymentMode: 'Cash',
+        remarks: 'Merge 2023 source lot into 2026 Jan target lot with payment',
       });
 
     expect(res.status).toBe(200);

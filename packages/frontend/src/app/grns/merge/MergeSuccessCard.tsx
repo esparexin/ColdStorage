@@ -55,20 +55,15 @@ export function MergeSuccessCard({
         <div><span>Updated Rent Obligation: </span><strong>₹{(mergedTarget.rentAmount ?? 0).toLocaleString('en-IN')}</strong></div>
       </div>
       <div className={styles.successActions}>
-        <Button variant="primary" onClick={onViewInward}>
-          View Surviving GRN in Inward
-        </Button>
+        <Button variant="primary" onClick={onViewInward}>View Surviving GRN in Inward</Button>
         {mergedMovement?.id && facilityId && (
           <Button
             variant="secondary"
             leftIcon={<Printer size={14} aria-hidden="true" />}
-            onClick={() =>
-              printHtmlDocument({
-                url: `/api/facilities/${encodeURIComponent(facilityId)}/documents/merge-shifting-invoice/${encodeURIComponent(mergedMovement.id)}`,
-                popupBlockedMessage: PRINT_MESSAGES.popupBlocked,
-                failureMessage: PRINT_MESSAGES.grnFailed,
-              })
-            }
+            onClick={() => printHtmlDocument({
+              url: `/api/facilities/${encodeURIComponent(facilityId)}/documents/merge-shifting-invoice/${encodeURIComponent(mergedMovement.id)}`,
+              popupBlockedMessage: PRINT_MESSAGES.popupBlocked, failureMessage: PRINT_MESSAGES.grnFailed,
+            })}
           >
             Print Merge Invoice
           </Button>
@@ -77,20 +72,15 @@ export function MergeSuccessCard({
           <Button
             variant="secondary"
             leftIcon={<Printer size={14} aria-hidden="true" />}
-            onClick={() =>
-              printHtmlDocument({
-                url: `/api/facilities/${encodeURIComponent(facilityId)}/rent/receipts/${encodeURIComponent(mergedPayment.receiptNumber)}/print`,
-                popupBlockedMessage: PRINT_MESSAGES.popupBlocked,
-                failureMessage: PRINT_MESSAGES.grnFailed,
-              })
-            }
+            onClick={() => printHtmlDocument({
+              url: `/api/facilities/${encodeURIComponent(facilityId)}/rent/receipts/${encodeURIComponent(mergedPayment.receiptNumber)}/print`,
+              popupBlockedMessage: PRINT_MESSAGES.popupBlocked, failureMessage: PRINT_MESSAGES.grnFailed,
+            })}
           >
             Print Hamali Cash Memo
           </Button>
         )}
-        <Button variant="outline" onClick={onReset}>
-          Perform Another Merge
-        </Button>
+        <Button variant="outline" onClick={onReset}>Perform Another Merge</Button>
       </div>
     </div>
   );
