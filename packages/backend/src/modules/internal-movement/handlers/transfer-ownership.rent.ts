@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import type { RentPayment, RentType, TransferOwnershipInput } from '@cold-storage/contracts';
-import { resolveUncompletedPeriodKeys, toExcludedPeriodKeys } from '@cold-storage/contracts';
+import { toExcludedPeriodKeys } from '@cold-storage/contracts';
 import { counterService } from '../../common/counter.service.js';
 import { computeRentBalance, type RentBalance } from '../../common/rent-balance.js';
 import { rentRepository } from '../../rent/rent.repository.js';
@@ -48,8 +48,6 @@ export async function calculateTransferDues(params: CalculateTransferDuesParams)
 
   const transferExtensions = await rentExtensionRepository.findExtensionsByGrn(facilityId, grn.id, session);
   const billedKeys = toExcludedPeriodKeys(transferExtensions);
-  const uncompletedKeys = resolveUncompletedPeriodKeys(grn.date, movementDate);
-  const excludePeriodKeys = Array.from(new Set([...billedKeys, ...uncompletedKeys]));
 
   const { expectedRentCharge } = await computeExpectedDeliveryRent({
     grn: {
@@ -57,7 +55,7 @@ export async function calculateTransferDues(params: CalculateTransferDuesParams)
       smallBagPrice: grn.smallBagPrice, bigBagPrice: grn.bigBagPrice, bagPrice: grn.bagPrice,
     },
     withdrawal: { smallBags: confSmall, bigBags: confBig }, quantity: isHybrid ? (input.sourceQuantity ?? bal.total) : undefined,
-    deliveryDate: movementDate, session, excludePeriodKeys,
+    deliveryDate: movementDate, session, excludePeriodKeys: billedKeys,
     bagCategory: input.sourceBagCategory, bagPrice: input.sourceBagPrice, seasonalBagPrice: input.sourceSeasonalBagPrice, monthlyBagPrice: input.sourceMonthlyBagPrice,
     isRatesInclusiveOfHamali: false,
   });

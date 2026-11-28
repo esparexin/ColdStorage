@@ -216,7 +216,7 @@ describe('GRN lifecycle matrix (Phase 7)', () => {
     expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
     const sum = await request(app).get(`/api/facilities/${FAC}/rent/grn/${source}`).set(auth());
     expect(sum.status, JSON.stringify(sum.body).slice(0, 300)).toBe(200);
-    // 2200 prospective (excluding uncompleted SEASON_2025) + 1200 extension = 3400 (not 4600).
-    expect(sum.body.remainingBalance).toBe(3400);
+    // 3200 prospective + 1200 extension = 4400 (not 5600).
+    expect(sum.body.remainingBalance).toBe(4400);
   });
 });
