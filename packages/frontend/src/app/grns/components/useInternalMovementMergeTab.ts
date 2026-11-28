@@ -223,7 +223,7 @@ export function useInternalMovementMergeTab({
     ...repack, storageMark: targetStorageMark, validationError, setValidationError, openGrns, targetGrn, targetSeason,
     eligibleSources, futureSeasonCount, recommendedSwitchGrn, targetOptions, handleTargetChange, handleToggleSource, handleSwitchTarget: handleTargetChange,
     selectedSources, totalSourceBags, targetCurrentRemaining, isTargetLoanHold,
-    totalSourcePendingRent: 0, totalSettlementBill: 0, isTargetDiff, isRepackFilled, commodityHamaliRate, actualRepackedBags,
+    totalSourcePendingRent: 0, isTargetDiff, isRepackFilled, commodityHamaliRate, actualRepackedBags,
     repackHamaliCharge, movedSmall, movedBig, addedBagsToTarget, targetNewRemaining,
     resultingBagType, handleProceedToStep2, handleProceedToStep3, handleProceedToStep4, handleMergeSubmit,
   };

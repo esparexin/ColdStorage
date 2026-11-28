@@ -202,39 +202,4 @@ export function calculateMergeGrandTotal(params: {
   }, 0);
 }
 
-export function calculateMergeSettlementBill(params: {
-  selectedSources: Grn[];
-  sourceConfirmations?: Record<string, BagConfirmationValue>;
-  movementDate: string;
-  commodityHamaliRate?: number;
-  targetGrn: Grn;
-  targetConfirmation?: BagConfirmationValue;
-  sourceRentSummaries?: Record<string, RentSummaryDto>;
-  commodities?: Commodity[];
-}): number {
-  const {
-    selectedSources, sourceConfirmations = {}, movementDate,
-    commodityHamaliRate = 0, targetGrn, targetConfirmation, sourceRentSummaries, commodities,
-  } = params;
-
-  const sourcesTotal = selectedSources.reduce((acc, source) => {
-    const commodity = commodities?.find((c) => c.id === source.commodityId);
-    const summary = sourceRentSummaries?.[source.id];
-    const calc = calculateMergeSourceRentSummary({
-      source, confirmation: sourceConfirmations[source.id], movementDate,
-      commodityHamaliRate, targetGrnDate: targetGrn.date, summary, commodity,
-    });
-    return acc + Math.max(0, calc.totalAmountToPay - (summary?.totalPaid ?? 0));
-  }, 0);
-
-  const targetCommodity = commodities?.find((c) => c.id === targetGrn.commodityId);
-  const targetSummary = sourceRentSummaries?.[targetGrn.id];
-  const targetCalc = calculateMergeSourceRentSummary({
-    source: targetGrn, confirmation: targetConfirmation, movementDate,
-    commodityHamaliRate, summary: targetSummary, commodity: targetCommodity, isTargetGrn: true,
-  });
-  const targetDue = Math.max(0, targetCalc.totalAmountToPay - (targetSummary?.totalPaid ?? 0));
-
-  return sourcesTotal + targetDue;
-}
 
