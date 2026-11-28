@@ -9,7 +9,7 @@ export function renderMergeShiftingInvoiceTemplate(dto: MergeShiftingInvoiceDocu
 
   const laborDetailStr =
     dto.repackHamaliCharge > 0
-      ? `₹${dto.repackHamaliCharge.toFixed(2)}${dto.repackHamaliRate > 0 ? ` (@ ₹${dto.repackHamaliRate}/bag)` : ''}${dto.hamaliReceiptNumber ? ` · Cash Memo: #${escapeHtml(dto.hamaliReceiptNumber)}` : ''}`
+      ? `₹${dto.repackHamaliCharge.toFixed(2)}${dto.repackHamaliRate > 0 ? ` (@ ₹${dto.repackHamaliRate}/bag)` : ''}${dto.hamaliReceiptNumber ? ` · Cash Memo: #${escapeHtml(dto.hamaliReceiptNumber)}` : ' · Status: UNPAID (Pending)'}`
       : '₹0.00';
 
   const sourceRows = dto.sourceLots.length > 0

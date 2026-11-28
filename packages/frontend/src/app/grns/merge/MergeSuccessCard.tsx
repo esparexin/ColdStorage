@@ -40,14 +40,21 @@ export function MergeSuccessCard({
             <strong style={{ color: 'var(--color-primary)' }}>#{mergedMovement.mergeInvoiceNumber}</strong>
           </div>
         )}
-        {mergedPayment?.receiptNumber && (
+        {mergedPayment?.receiptNumber ? (
           <div>
             <span>Cash Memo (Hamali Charges): </span>
             <strong style={{ color: '#166534' }}>
               #{mergedPayment.receiptNumber} (₹{mergedPayment.amountPaid.toFixed(2)})
             </strong>
           </div>
-        )}
+        ) : (mergedMovement?.hamaliCharge ?? 0) > 0 ? (
+          <div>
+            <span>Hamali Charges: </span>
+            <strong style={{ color: 'var(--color-warning-text)' }}>
+              ₹{(mergedMovement?.hamaliCharge ?? 0).toFixed(2)} (Unpaid / Pending)
+            </strong>
+          </div>
+        ) : null}
         <div><span>Customer: </span><strong>{mergedTarget.customerName}</strong></div>
         <div><span>Commodity: </span><strong>{mergedTarget.commodityName} (Chamber {mergedTarget.chamber})</strong></div>
         <div><span>Consolidated Remaining Bags: </span><strong>{mergedTarget.closingBags ?? mergedTarget.bags} Bags</strong></div>

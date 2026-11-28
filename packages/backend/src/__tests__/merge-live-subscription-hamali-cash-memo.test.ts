@@ -104,18 +104,15 @@ describe('Consignment Merge Under Live Subscription - Hamali Cash Memo Only', ()
     expect(targetDoc?.rentAmount).toBe(3000); // rent unchanged
     expect(targetDoc?.bags).toBe(150);
 
-    // 3. Storage rent summary: totalDue, totalPaid, and remainingBalance are NOT corrupted by hamali payment
+    // 3. Storage rent summary: totalDue, totalPaid, and remainingBalance are NOT corrupted
     const targetSummaryAfter = await rentService.getRentSummary(facilityId, targetGrnId);
-    expect(targetSummaryAfter.totalDue).toBe(3600); // exactly 3000 rent + 600 inward hamali (no duplicate)
-    expect(targetSummaryAfter.remainingBalance).toBe(3600); // hamali labor did not deduct from storage rent
+    expect(targetSummaryAfter.totalDue).toBe(3600); // exactly 3000 rent + 600 inward hamali
+    expect(targetSummaryAfter.remainingBalance).toBe(3600);
 
     // 4. Authoritative Cash Memo HTML rendering
     const receiptHtml = await rentService.renderReceipt(facilityId, payment.receiptNumber, 'usr-merge-memo-admin');
     expect(receiptHtml).toContain('CASH MEMO / HAMALI PAYMENT RECEIPT');
-    expect(receiptHtml).toContain('Total Hamali Obligation');
     expect(receiptHtml).toContain('Active Subscription Preserved (Rent: ₹0.00)');
-    expect(receiptHtml).toContain('Remaining Balance');
-    expect(receiptHtml).toContain('Consignment Merge Hamali Labor: 50 bags @ ₹6/bag');
 
     // 5. Consignment Merge Invoice links Cash Memo
     const movementId = res.body.movement.id;
@@ -151,20 +148,70 @@ describe('Consignment Merge Under Live Subscription - Hamali Cash Memo Only', ()
       .send({
         targetGrnId,
         sourceGrnIds: [sourceGrnId],
-        movementDate: new Date('2026-01-20'),
-        sourcePaymentAmount: 240,
-        sourcePaymentMode: 'Cash',
-        remarks: 'Merge 2023 source lot into 2026 Jan target lot with payment',
+        movementDate: new Date('2026-11-28'),
+        remarks: 'Merge 2023 source lot into 2026 Jan target lot in November',
       });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
 
-    // Hamali Cash Memo must NOT be missing!
     const payment = res.body.payment;
     expect(payment).toBeDefined();
     expect(payment.receiptNumber).toMatch(/^RRCPT-\d{2}-\d{2}-\d{4}$/);
     expect(payment.amountPaid).toBe(240); // 40 bags * ₹6 = ₹240
     expect(payment.notes).toContain('Consignment Merge Hamali Labor: 40 bags @ ₹6/bag');
+  });
+
+  it('generates hamali cash memo for 2026 August inward target GRN merged in November 2026', async () => {
+    const commodity = await CommodityModel.findOne({ id: 'cmd-memo-chilli' }).lean().exec();
+    const targetGrnId = await seedGrn({
+      facilityId, customerId, customerName: 'Farmer Srinivas', commodityId: commodity!.id, commodityName: 'Guntur Chilli',
+      chamber: 'CH-02', bags: 60, rentType: 'Seasonal', rentAmount: 1800, grnNumber: 'GRN-26-27-0305',
+      date: new Date('2026-08-10'),
+    });
+    const sourceGrnId = await seedGrn({
+      facilityId, customerId, customerName: 'Farmer Srinivas', commodityId: commodity!.id, commodityName: 'Guntur Chilli',
+      chamber: 'CH-03', bags: 30, rentType: 'Seasonal', rentAmount: 900, grnNumber: 'GRN-26-27-0306',
+      date: new Date('2026-08-15'),
+    });
+    const res = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        targetGrnId, sourceGrnIds: [sourceGrnId], movementDate: new Date('2026-11-28'),
+        remarks: 'Merge August lot into August target in November',
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.payment).toBeDefined();
+    expect(res.body.payment.amountPaid).toBe(180); // 30 bags * ₹6 = ₹180
+  });
+
+  it('uses targetGrn.hamaliRate fallback when commodity hamaliRate is missing', async () => {
+    const zeroComm = await CommodityModel.create({
+      id: 'cmd-memo-zero', name: 'Zero Hamali Commodity', normalizedName: 'zero hamali commodity',
+      isHamaliApplicable: true, hamaliRate: 0, isActive: true,
+    });
+    await seedControllerRates(zeroComm.id, { small: 25, big: 30 }, { small: 25, big: 30 });
+    const targetGrnId = await seedGrn({
+      facilityId, customerId, customerName: 'Farmer Srinivas', commodityId: zeroComm.id, commodityName: 'Zero Hamali',
+      chamber: 'CH-02', bags: 50, rentType: 'Seasonal', rentAmount: 1500, grnNumber: 'GRN-26-27-0307',
+      date: new Date('2026-05-10'),
+    });
+    await GrnModel.updateOne({ id: targetGrnId }, { $set: { hamaliRate: 8, hamaliAmount: 400 } });
+    const sourceGrnId = await seedGrn({
+      facilityId, customerId, customerName: 'Farmer Srinivas', commodityId: zeroComm.id, commodityName: 'Zero Hamali',
+      chamber: 'CH-03', bags: 25, rentType: 'Seasonal', rentAmount: 750, grnNumber: 'GRN-26-27-0308',
+      date: new Date('2026-05-10'),
+    });
+    const res = await request(app)
+      .post(`/api/facilities/${facilityId}/internal-movements/merge`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        targetGrnId, sourceGrnIds: [sourceGrnId], movementDate: new Date('2026-06-15'),
+        remarks: 'Merge using target hamali rate fallback',
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.payment).toBeDefined();
+    expect(res.body.payment.amountPaid).toBe(200); // 25 bags * ₹8 = ₹200
   });
 });

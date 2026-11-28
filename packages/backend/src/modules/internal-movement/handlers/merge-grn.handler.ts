@@ -130,13 +130,10 @@ export async function mergeGrn(
       finalCarriedRent = 0;
 
       const repackHamali = await resolveMergeRepackHamali({
-        commodityId: targetGrn.commodityId,
+        commodityId: targetGrn.commodityId, targetHamaliRate: targetGrn.hamaliRate,
         isRepackSelected: input.isRepackSelected,
-        repackedSmallBags: input.repackedSmallBags,
-        repackedBigBags: input.repackedBigBags,
-        repackedBagCount: input.repackedBagCount,
-        totalMovedBags: actualMovedBags,
-        session,
+        repackedSmallBags: input.repackedSmallBags, repackedBigBags: input.repackedBigBags,
+        repackedBagCount: input.repackedBagCount, totalMovedBags: actualMovedBags, session,
       });
       repackHamaliCharge = repackHamali.repackHamaliCharge;
 
@@ -190,15 +187,18 @@ export async function mergeGrn(
 
       const hamaliPayment = await generateMergeHamaliCashMemo({
         facilityId, targetGrn, repackHamali, moveDate,
-        paymentMode: input.sourcePaymentMode ?? 'Cash', userId, session,
+        paymentMode: input.sourcePaymentMode ?? 'Cash',
+        userId, session,
       });
       if (hamaliPayment) resultPaymentDoc = hamaliPayment;
 
       const targetPaid = (await rentRepository.findPaymentsByGrnId(facilityId, targetGrn.id, session))
-        .filter((p) => !p.notes?.includes('Consignment Merge Hamali Labor'))
         .reduce((sum, p) => sum + p.amountPaid, 0);
       const effectiveTargetRentType = resolveEffectiveGrnRentType({ rentType: targetGrn.rentType, inwardDate: targetGrn.date, asOfDate: moveDate });
-      const target = { id: targetGrn.id, rentAmount: newRentAmount, rentType: effectiveTargetRentType };
+      const target = {
+        id: targetGrn.id, rentAmount: newRentAmount, rentType: effectiveTargetRentType,
+        hamaliShare: (targetUpdateFields.hamaliAmount as number | undefined) ?? repackHamali.repackHamaliCharge,
+      };
       const targetTotalDue = await resolveMovementObligation(facilityId, target, session);
       const targetRentBal = computeRentBalance(targetTotalDue, targetPaid);
 

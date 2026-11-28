@@ -187,15 +187,24 @@ describe('merge-periods & active period SSOT contracts', () => {
       })).toBe(true);
     });
 
-    it('returns true for current-year January target inwarded in Jan and merged in Jan', () => {
+    it('returns true for current-year January target inwarded in Jan and merged in Jan or Nov', () => {
       expect(isEligibleCurrentLiveSubscriptionGrn({
         inwardDate: '2026-01-15', asOfDate: '2026-01-20', rentType: 'Seasonal',
       })).toBe(true);
+      expect(isEligibleCurrentLiveSubscriptionGrn({
+        inwardDate: '2026-01-15', asOfDate: '2026-11-28', rentType: 'Seasonal',
+      })).toBe(true);
+      expect(isEligibleCurrentLiveSubscriptionGrn({
+        inwardDate: '2026-02-10', asOfDate: '2026-11-28', rentType: 'Seasonal',
+      })).toBe(true);
     });
 
-    it('returns true for current-year August target inwarded in Aug and merged in Aug', () => {
+    it('returns true for current-year August target inwarded in Aug and merged in Aug or Nov', () => {
       expect(isEligibleCurrentLiveSubscriptionGrn({
         inwardDate: '2026-08-01', asOfDate: '2026-08-15', rentType: 'Seasonal',
+      })).toBe(true);
+      expect(isEligibleCurrentLiveSubscriptionGrn({
+        inwardDate: '2026-08-10', asOfDate: '2026-11-28', rentType: 'Seasonal',
       })).toBe(true);
     });
 

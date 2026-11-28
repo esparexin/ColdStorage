@@ -54,7 +54,6 @@ export async function generateMergeHamaliCashMemo(params: {
 }): Promise<RentPayment | null> {
   const { facilityId, targetGrn, repackHamali, moveDate, paymentMode, userId, session } = params;
   if (repackHamali.repackHamaliCharge <= 0) return null;
-  if (!isLiveSubscriptionTarget(targetGrn, moveDate)) return null;
 
   const receiptNumber = await counterService.generateRentReceiptNumber(facilityId, moveDate, session);
   const paymentDoc = await rentRepository.createPayment(
@@ -85,6 +84,7 @@ export async function generateMergeHamaliCashMemo(params: {
  */
 export async function resolveMergeRepackHamali(params: {
   commodityId: string;
+  targetHamaliRate?: number | null;
   isRepackSelected?: boolean;
   repackedSmallBags?: number | null;
   repackedBigBags?: number | null;
@@ -92,7 +92,10 @@ export async function resolveMergeRepackHamali(params: {
   totalMovedBags: number;
   session: mongoose.ClientSession;
 }): Promise<RepackHamaliResolution> {
-  const { commodityId, isRepackSelected, repackedSmallBags, repackedBigBags, repackedBagCount, totalMovedBags, session } = params;
+  const {
+    commodityId, targetHamaliRate, isRepackSelected, repackedSmallBags,
+    repackedBigBags, repackedBagCount, totalMovedBags, session,
+  } = params;
   if (totalMovedBags <= 0) {
     return { isRepackingSelected: false, repackHamaliBags: 0, repackHamaliRate: 0, repackHamaliCharge: 0 };
   }
@@ -110,11 +113,12 @@ export async function resolveMergeRepackHamali(params: {
   }
 
   const commodity = await CommodityModel.findOne({ id: commodityId }, null, { session }).lean().exec();
+  const effectiveHamaliRate: number = (commodity?.hamaliRate ?? 0) > 0 ? (commodity?.hamaliRate ?? 0) : (targetHamaliRate ?? 0);
   const isApplicable =
     commodity?.isHamaliApplicable !== undefined && commodity?.isHamaliApplicable !== null
       ? commodity.isHamaliApplicable
-      : (commodity?.hamaliRate ?? 0) > 0;
-  const rate = isApplicable ? (commodity?.hamaliRate ?? 0) : 0;
+      : effectiveHamaliRate > 0;
+  const rate: number = isApplicable ? effectiveHamaliRate : 0;
   const charge = rate > 0 ? calculateHamaliAmount(actualRepackedBags, rate) : 0;
 
   return {

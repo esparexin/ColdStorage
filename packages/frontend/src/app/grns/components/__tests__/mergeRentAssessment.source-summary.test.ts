@@ -181,8 +181,6 @@ describe('mergeRentAssessment.helper - calculateMergeSourceRentSummary', () => {
       bagType: 'Hybrid',
       rentType: 'Seasonal',
       bagPrice: 100,
-      seasonalBagPrice: 100,
-      monthlyBagPrice: 50,
     });
 
     const result = calculateMergeSourceRentSummary({

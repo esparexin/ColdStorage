@@ -157,7 +157,12 @@ export function isEligibleCurrentLiveSubscriptionGrn(params: {
     return inParts.year >= opParts.year;
   }
   const uncompleted = resolveUncompletedPeriodKeys(inDate, opDate);
-  const completedHistoricalPeriods = elapsed.filter((p) => !uncompleted.includes(p.key));
+  const completedHistoricalPeriods = elapsed.filter((p) => {
+    if (uncompleted.includes(p.key)) return false;
+    // Intra-year periods from the same calendar year as inward/operation are not historical prior-year subscriptions
+    if (inParts.year === opParts.year && p.calendarYear === opParts.year) return false;
+    return true;
+  });
   if (completedHistoricalPeriods.length > 0) {
     return false;
   }
