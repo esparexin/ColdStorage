@@ -35,6 +35,7 @@ export * from './loan.js';
 export * from './internal-movement.js';
 export * from './group.js';
 export * from './seasonal-periods.js';
+export * from './merge-periods.js';
 export * from './outward-seasonal-transition.js';
 export * from './hamali.js';
 export * from './bag-display.js';
