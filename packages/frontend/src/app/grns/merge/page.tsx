@@ -2,19 +2,19 @@
 
 import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, CheckCircle, Printer } from 'lucide-react';
-import type { Commodity, Grn, InternalMovementRecord, OutwardBagCategory, PaymentMode } from '@cold-storage/contracts';
-import { Banner, Button, FeedbackStates, PRINT_MESSAGES } from '@/components/ui';
+import { ArrowLeft } from 'lucide-react';
+import type { Commodity, Grn, InternalMovementRecord, OutwardBagCategory, PaymentMode, RentPayment } from '@cold-storage/contracts';
+import { Banner, Button, FeedbackStates } from '@/components/ui';
 import { ACCESS_MESSAGES, EMPTY_MESSAGES, ERROR_TITLES, LOADING_LABELS } from '@/components/ui/stateCopy';
 import { useFacility } from '@/context/FacilityContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { requestWithAuth } from '@/lib/api-client';
 import { cachedRequestWithAuth } from '@/lib/api-cache';
 import { formatApiErrorMessage, parseApiResponse } from '@/lib/api-response';
-import { printHtmlDocument } from '@/lib/print-document';
 import { InternalMovementMergeTab } from '../components/InternalMovementMergeTab';
 import { buildMergePayload } from '../components/internalMovementPayload.helper';
 import { findForwardMergeTarget } from '../components/mergeEligibility.helper';
+import { MergeSuccessCard } from './MergeSuccessCard';
 import styles from './page.module.css';
 
 function MergeScreenContent() {
@@ -31,6 +31,7 @@ function MergeScreenContent() {
   const [error, setError] = useState<string | null>(null);
   const [mergedTarget, setMergedTarget] = useState<Grn | null>(null);
   const [mergedMovement, setMergedMovement] = useState<InternalMovementRecord | null>(null);
+  const [mergedPayment, setMergedPayment] = useState<RentPayment | null>(null);
 
   const fetchMergeData = useCallback(async () => {
     if (!selectedFacilityId || !canMerge) return;
@@ -113,12 +114,17 @@ function MergeScreenContent() {
           ),
         },
       );
-      const parsed = await parseApiResponse<{ targetGrn?: Grn; movement?: InternalMovementRecord }>(res);
+      const parsed = await parseApiResponse<{
+        targetGrn?: Grn;
+        movement?: InternalMovementRecord;
+        payment?: RentPayment;
+      }>(res);
       if (!parsed.ok || !parsed.data.targetGrn) {
         throw new Error(parsed.ok ? 'GRN Merge failed' : formatApiErrorMessage(parsed));
       }
       setMergedTarget(parsed.data.targetGrn);
       setMergedMovement(parsed.data.movement ?? null);
+      setMergedPayment(parsed.data.payment ?? null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Internal Movement Merge failed');
     } finally {
@@ -170,52 +176,19 @@ function MergeScreenContent() {
       {loading ? (
         <FeedbackStates.Loading label={LOADING_LABELS.grns} />
       ) : mergedTarget ? (
-        <div className={styles.successCard}>
-          <div className={styles.successHeader}>
-            <CheckCircle size={20} aria-hidden="true" />
-            <span>GRN Merge Successfully Executed!</span>
-          </div>
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
-            Source batches have been consolidated into surviving GRN <strong>{mergedTarget.grnNumber}</strong>.
-          </p>
-          <div className={styles.successDetails}>
-            {mergedMovement?.mergeInvoiceNumber && (
-              <div><span>Service Receipt / Invoice #: </span><strong style={{ color: 'var(--color-primary)' }}>#{mergedMovement.mergeInvoiceNumber}</strong></div>
-            )}
-            <div><span>Customer: </span><strong>{mergedTarget.customerName}</strong></div>
-            <div><span>Commodity: </span><strong>{mergedTarget.commodityName} (Chamber {mergedTarget.chamber})</strong></div>
-            <div><span>Consolidated Remaining Bags: </span><strong>{mergedTarget.closingBags ?? mergedTarget.bags} Bags</strong></div>
-            <div><span>Resulting Bag Type: </span><strong>{mergedTarget.bagType}</strong></div>
-            <div><span>Updated Rent Obligation: </span><strong>₹{(mergedTarget.rentAmount ?? 0).toLocaleString('en-IN')}</strong></div>
-          </div>
-          <div className={styles.successActions}>
-            <Button
-              variant="primary"
-              onClick={() => router.push(`/grns?selectedGrnId=${encodeURIComponent(mergedTarget.id)}`)}
-            >
-              View Surviving GRN in Inward
-            </Button>
-            {mergedMovement?.id && selectedFacilityId && (
-              <Button
-                variant="secondary"
-                leftIcon={<Printer size={14} aria-hidden="true" />}
-                onClick={() => printHtmlDocument({
-                  url: `/api/facilities/${encodeURIComponent(selectedFacilityId)}/documents/merge-shifting-invoice/${encodeURIComponent(mergedMovement.id)}`,
-                  popupBlockedMessage: PRINT_MESSAGES.popupBlocked,
-                  failureMessage: PRINT_MESSAGES.grnFailed,
-                })}
-              >
-                Print Merge Invoice
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              onClick={() => { setMergedTarget(null); setMergedMovement(null); void fetchMergeData(); }}
-            >
-              Perform Another Merge
-            </Button>
-          </div>
-        </div>
+        <MergeSuccessCard
+          mergedTarget={mergedTarget}
+          mergedMovement={mergedMovement}
+          mergedPayment={mergedPayment}
+          facilityId={selectedFacilityId}
+          onViewInward={() => router.push(`/grns?selectedGrnId=${encodeURIComponent(mergedTarget.id)}`)}
+          onReset={() => {
+            setMergedTarget(null);
+            setMergedMovement(null);
+            setMergedPayment(null);
+            void fetchMergeData();
+          }}
+        />
       ) : grns.length < 2 || !initialTargetGrn ? (
         <FeedbackStates.Empty
           message="At least two open Inward of Goods (GRNs) in this facility are required to perform a merge."

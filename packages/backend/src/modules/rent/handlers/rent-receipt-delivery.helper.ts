@@ -109,10 +109,19 @@ export interface ResolvedReceiptOperationInfo {
   movementType?: string;
   operationDescription?: string;
   traceDetails?: string;
+  isHamaliOnly?: boolean;
 }
 
 export function resolveReceiptOperationInfo(notes?: string | null, grnNumber?: string): ResolvedReceiptOperationInfo {
   const n = (notes || '').toLowerCase();
+  if (n.includes('consignment merge hamali labor') || (n.includes('merge') && n.includes('hamali'))) {
+    return {
+      movementType: 'MERGE_HAMALI_LABOR',
+      operationDescription: notes || 'Consignment Merge Hamali Labor Charges',
+      traceDetails: `Audit Trace: Op=MERGE_HAMALI_LABOR | Lot=${grnNumber || '—'}`,
+      isHamaliOnly: true,
+    };
+  }
   if (n.includes('transfer')) {
     return {
       movementType: 'TRANSFER_OWNERSHIP',

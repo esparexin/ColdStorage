@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import {
   isHybridBagCategory, resolveEffectiveGrnRentType, resolveMergedBagType,
-  resolveStoredCompositionVerified, type Grn, type InternalMovementRecord, type MergeGrnInput,
+  resolveStoredCompositionVerified, type Grn, type InternalMovementRecord,
+  type MergeGrnInput, type RentPayment,
 } from '@cold-storage/contracts';
 import { GrnModel } from '../../../database/models/grn.model.js';
 import { InternalMovementModel } from '../../../database/models/internal-movement.model.js';
@@ -18,24 +19,21 @@ import { withMongoRetry } from '../../common/mongo-retry.helper.js';
 import { toEqId } from '../../../utils/query-sanitizer.js';
 import { createMergePutawayTransaction, createMergeMovementRecord, resolveMergeTargetRentAmount } from './merge-grn-movement.helper.js';
 import { buildMergeTargetUpdates } from './merge-grn-remarks.helper.js';
-import { resolveMergeRepackHamali } from './merge-repack-hamali.helper.js';
+import { resolveMergeRepackHamali, generateMergeHamaliCashMemo } from './merge-repack-hamali.helper.js';
 import { validateOperationalDate } from '../../common/operational-date.helper.js';
 
 export async function mergeGrn(
   facilityId: string,
   input: MergeGrnInput,
   userId: string,
-): Promise<{ targetGrn: Grn; movement: InternalMovementRecord }> {
-  if (input.sourceGrnIds.includes(input.targetGrnId)) {
-    throw new Error('Target GRN cannot be included in source GRNs list');
-  }
-  if (new Set(input.sourceGrnIds).size !== input.sourceGrnIds.length) {
-    throw new Error('Duplicate source GRN IDs are not allowed');
-  }
+): Promise<{ targetGrn: Grn; movement: InternalMovementRecord; payment?: RentPayment }> {
+  if (input.sourceGrnIds.includes(input.targetGrnId)) throw new Error('Target GRN cannot be included in source GRNs list');
+  if (new Set(input.sourceGrnIds).size !== input.sourceGrnIds.length) throw new Error('Duplicate source GRN IDs are not allowed');
 
   const session = await mongoose.startSession();
   let resultTargetDoc!: unknown;
   let resultMovementDoc!: unknown;
+  let resultPaymentDoc: RentPayment | undefined;
   let finalCarriedRent = 0;
   let repackHamaliCharge = 0;
   let totalSourcePendingRent = 0;
@@ -132,21 +130,20 @@ export async function mergeGrn(
       finalCarriedRent = 0;
 
       const repackHamali = await resolveMergeRepackHamali({
-        commodityId: targetGrn.commodityId,
+        commodityId: targetGrn.commodityId, targetHamaliRate: targetGrn.hamaliRate,
         isRepackSelected: input.isRepackSelected,
-        repackedSmallBags: input.repackedSmallBags,
-        repackedBigBags: input.repackedBigBags,
-        repackedBagCount: input.repackedBagCount,
-        totalMovedBags: actualMovedBags,
-        session,
+        repackedSmallBags: input.repackedSmallBags, repackedBigBags: input.repackedBigBags,
+        repackedBagCount: input.repackedBagCount, totalMovedBags: actualMovedBags, session,
       });
       repackHamaliCharge = repackHamali.repackHamaliCharge;
 
       const baseTSmall = input.targetSmallBags != null ? input.targetSmallBags : (targetWasVerified ? targetGrn.smallBags : targetGrn.bags);
       const baseTBig = input.targetBigBags != null ? input.targetBigBags : (targetWasVerified ? targetGrn.bigBags : 0);
-      const newBags = input.isRepackSelected ? actualMovedBags : targetGrn.bags + actualMovedBags;
-      const newSmall = input.isRepackSelected ? totalMovedSmall : baseTSmall + totalMovedSmall;
-      const newBig = input.isRepackSelected ? totalMovedBig : baseTBig + totalMovedBig;
+      const hasExplicitRepackCounts = input.isRepackSelected &&
+        (input.repackedSmallBags != null || input.repackedBigBags != null || input.repackedBagCount != null);
+      const newBags = hasExplicitRepackCounts ? actualMovedBags : targetGrn.bags + actualMovedBags;
+      const newSmall = hasExplicitRepackCounts ? totalMovedSmall : baseTSmall + totalMovedSmall;
+      const newBig = hasExplicitRepackCounts ? totalMovedBig : baseTBig + totalMovedBig;
       const isRepackedHybrid = Boolean(input.isRepackSelected &&
         (input.sourceBagCategory === 'Hybrid' || input.sourceBagType === 'Hybrid' || input.targetBagCategory === 'Hybrid' || input.targetBagType === 'Hybrid'));
       const effectiveSourceBagTypes = isRepackedHybrid ? ['Hybrid' as const] : sourceGrns.map((s) => s.bagType);
@@ -190,10 +187,22 @@ export async function mergeGrn(
 
       resultTargetDoc = updatedTarget;
 
+      const hamaliPayment = await generateMergeHamaliCashMemo({
+        facilityId, targetGrn, repackHamali, moveDate,
+        sourceGrnNumbers: sourceGrns.map((s) => s.grnNumber),
+        paymentMode: input.sourcePaymentMode ?? 'Cash',
+        paymentAmount: input.sourcePaymentAmount,
+        userId, session,
+      });
+      if (hamaliPayment) resultPaymentDoc = hamaliPayment;
+
       const targetPaid = (await rentRepository.findPaymentsByGrnId(facilityId, targetGrn.id, session))
         .reduce((sum, p) => sum + p.amountPaid, 0);
       const effectiveTargetRentType = resolveEffectiveGrnRentType({ rentType: targetGrn.rentType, inwardDate: targetGrn.date, asOfDate: moveDate });
-      const target = { id: targetGrn.id, rentAmount: newRentAmount, rentType: effectiveTargetRentType };
+      const target = {
+        id: targetGrn.id, rentAmount: newRentAmount, rentType: effectiveTargetRentType,
+        hamaliShare: (targetUpdateFields.hamaliAmount as number | undefined) ?? repackHamali.repackHamaliCharge,
+      };
       const targetTotalDue = await resolveMovementObligation(facilityId, target, session);
       const targetRentBal = computeRentBalance(targetTotalDue, targetPaid);
 
@@ -237,5 +246,5 @@ export async function mergeGrn(
     });
   }
 
-  return { targetGrn: targetEntity, movement: movementRecord };
+  return { targetGrn: targetEntity, movement: movementRecord, payment: resultPaymentDoc };
 }

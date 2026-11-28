@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   calculateOutwardSeasonalBreakdown,
   deriveHybridRateVisibility,
+  isEligibleCurrentLiveSubscriptionGrn,
   resolveActiveSubscriptionPeriodKey,
   resolveMergeExcludedPeriodKeys,
 } from '../seasonal-periods.js';
@@ -176,6 +177,59 @@ describe('merge-periods & active period SSOT contracts', () => {
       });
       expect(vis.showSeasonalRate).toBe(false);
       expect(vis.showMonthlyRate).toBe(true);
+    });
+  });
+
+  describe('isEligibleCurrentLiveSubscriptionGrn', () => {
+    it('returns true for current-year Seasonal target inwarded in April and merged in June', () => {
+      expect(isEligibleCurrentLiveSubscriptionGrn({
+        inwardDate: '2026-04-10', asOfDate: '2026-06-15', rentType: 'Seasonal',
+      })).toBe(true);
+    });
+
+    it('returns true for current-year January target inwarded in Jan and merged in Jan or Nov', () => {
+      expect(isEligibleCurrentLiveSubscriptionGrn({
+        inwardDate: '2026-01-15', asOfDate: '2026-01-20', rentType: 'Seasonal',
+      })).toBe(true);
+      expect(isEligibleCurrentLiveSubscriptionGrn({
+        inwardDate: '2026-01-15', asOfDate: '2026-11-28', rentType: 'Seasonal',
+      })).toBe(true);
+      expect(isEligibleCurrentLiveSubscriptionGrn({
+        inwardDate: '2026-02-10', asOfDate: '2026-11-28', rentType: 'Seasonal',
+      })).toBe(true);
+    });
+
+    it('returns true for current-year August target inwarded in Aug and merged in Aug or Nov', () => {
+      expect(isEligibleCurrentLiveSubscriptionGrn({
+        inwardDate: '2026-08-01', asOfDate: '2026-08-15', rentType: 'Seasonal',
+      })).toBe(true);
+      expect(isEligibleCurrentLiveSubscriptionGrn({
+        inwardDate: '2026-08-10', asOfDate: '2026-11-28', rentType: 'Seasonal',
+      })).toBe(true);
+    });
+
+    it('returns true for current-year Monthly target inwarded in current year', () => {
+      expect(isEligibleCurrentLiveSubscriptionGrn({
+        inwardDate: '2026-05-10', asOfDate: '2026-07-15', rentType: 'Monthly',
+      })).toBe(true);
+    });
+
+    it('returns false for previous-year 2023 target merged in 2026', () => {
+      expect(isEligibleCurrentLiveSubscriptionGrn({
+        inwardDate: '2023-04-10', asOfDate: '2026-06-15', rentType: 'Seasonal',
+      })).toBe(false);
+    });
+
+    it('returns false for previous-year Monthly target inwarded in 2024 and merged in 2026', () => {
+      expect(isEligibleCurrentLiveSubscriptionGrn({
+        inwardDate: '2024-05-10', asOfDate: '2026-06-15', rentType: 'Monthly',
+      })).toBe(false);
+    });
+
+    it('returns false when target has billed extensions', () => {
+      expect(isEligibleCurrentLiveSubscriptionGrn({
+        inwardDate: '2026-04-10', asOfDate: '2026-06-15', rentType: 'Seasonal', hasBilledExtensions: true,
+      })).toBe(false);
     });
   });
 });

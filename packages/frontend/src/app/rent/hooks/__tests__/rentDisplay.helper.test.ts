@@ -98,10 +98,10 @@ describe('rentDisplay.helper', () => {
       ).toContain('Billing accrues dynamically per cycle');
     });
 
-    it('returns outward dispatch notice when rentAmount and balance are 0', () => {
+    it('returns zero balance notice when rentAmount and balance are 0', () => {
       expect(
         getRentCollectionNotice({ rentType: 'Seasonal', rentAmount: 0, remainingBalance: 0 }),
-      ).toContain('Rent is assessed upon outward delivery dispatch');
+      ).toContain('There are currently no outstanding dues for this GRN.');
     });
 
     it('returns bag count derivation notice when delivered bags exist with outstanding balance', () => {

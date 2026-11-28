@@ -91,5 +91,49 @@ describe('validateMergeRepackedCounts (Unit)', () => {
     expect(result.actualMovedBags).toBe(50);
     expect(result.explicitConfirmation).toBe(true);
   });
+
+  it('exempts unverified composition check for current-year live subscription target GRN', () => {
+    const unverifiedLiveTarget = {
+      ...targetGrn,
+      date: new Date('2026-04-01'),
+      isCompositionVerified: false,
+      rentType: 'Seasonal',
+    };
+    const verifiedSource = {
+      ...sourceGrn,
+      isCompositionVerified: true,
+    };
+    const result = validateMergeRepackedCounts({
+      targetGrn: unverifiedLiveTarget,
+      sourceGrns: [verifiedSource],
+      totalMovedBags: 96,
+      movementDate: new Date('2026-06-01'),
+      isRepackSelected: false,
+    });
+    expect(result.actualMovedBags).toBe(96);
+  });
+
+  it('enforces composition check when target GRN belongs to historical season', () => {
+    const historicalTarget = {
+      ...targetGrn,
+      date: new Date('2024-04-01'),
+      isCompositionVerified: false,
+      rentType: 'Seasonal',
+    };
+    const verifiedSource = {
+      ...sourceGrn,
+      date: new Date('2024-04-01'),
+      isCompositionVerified: true,
+    };
+    expect(() =>
+      validateMergeRepackedCounts({
+        targetGrn: historicalTarget,
+        sourceGrns: [verifiedSource],
+        totalMovedBags: 96,
+        movementDate: new Date('2026-06-01'),
+        isRepackSelected: false,
+      }),
+    ).toThrow('Confirmed small and big bag counts are required when merging lots with unverified composition');
+  });
 });
 

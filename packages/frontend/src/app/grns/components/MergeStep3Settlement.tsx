@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui';
 import { formatDisplayDate } from '@/lib/date-format';
 import { OutwardRentBreakdown } from '@/app/deliveries/components/OutwardRentBreakdown';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
-import { calculateMergeSettlementBill, calculateMergeSourceRentSummary } from './mergeRentAssessment.helper';
+import { calculateMergeSourceRentSummary } from './mergeRentAssessment.helper';
 import { resolveTransferRates } from './transferRentRates.helper';
 import { formatGrnSeasonLabel } from './mergeSeasonDisplay.helper';
 import { MergeTargetSettlementCard } from './MergeTargetSettlementCard';
@@ -73,33 +73,8 @@ export function MergeStep3Settlement({
     [targetGrn, targetConfirmation, movementDate, commodityHamaliRate, targetSummary, targetCommodity],
   );
 
-  const targetPaid = targetSummary?.totalPaid ?? 0;
-  const isTargetSettled =
-    targetCalc.totalAmountToPay === 0 ||
-    (targetPaid >= targetCalc.totalAmountToPay && targetCalc.totalAmountToPay > 0);
-  const hasTargetHistoricalRent = targetCalc.totalAmountToPay > 0;
-
-  const totalSettlementBill = useMemo(() => {
-    return calculateMergeSettlementBill({
-      selectedSources,
-      sourceConfirmations,
-      movementDate,
-      commodityHamaliRate,
-      targetGrn,
-      targetConfirmation,
-      sourceRentSummaries,
-      commodities,
-    });
-  }, [
-    selectedSources,
-    sourceConfirmations,
-    sourceRentSummaries,
-    commodities,
-    movementDate,
-    commodityHamaliRate,
-    targetGrn,
-    targetConfirmation,
-  ]);
+  const isTargetSettled = true;
+  const hasTargetHistoricalRent = false;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
@@ -110,9 +85,6 @@ export function MergeStep3Settlement({
             <DollarSign size={14} aria-hidden="true" />
             <span>Step 3: Rent Settlement</span>
           </span>
-          <Badge variant={totalSettlementBill > 0 ? 'warning' : 'success'}>
-            Settlement Bill: ₹{totalSettlementBill.toLocaleString('en-IN')}
-          </Badge>
         </div>
       </div>
 

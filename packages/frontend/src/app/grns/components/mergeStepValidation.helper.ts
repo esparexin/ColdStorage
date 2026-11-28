@@ -2,6 +2,7 @@ import {
   chamberTextSchema,
   hasPositiveHybridRate,
   HYBRID_RATE_REQUIRED_MESSAGE,
+  isEligibleCurrentLiveSubscriptionGrn,
   isHybridBagCategory,
   type Grn,
   type OperationalBagType,
@@ -31,11 +32,17 @@ export interface Step3ValidationParams {
   targetGrn?: Grn;
   targetConfirmation?: BagConfirmationValue;
   targetCurrentRemaining?: number;
+  movementDate?: string;
 }
 
 export function validateStep3Proceed(params: Step3ValidationParams): string | null {
-  const { selectedSources, sourceConfirmations, targetGrn, targetConfirmation, targetCurrentRemaining } = params;
-  if (targetGrn && !targetGrn.isCompositionVerified && targetConfirmation && targetCurrentRemaining !== undefined) {
+  const { selectedSources, sourceConfirmations, targetGrn, targetConfirmation, targetCurrentRemaining, movementDate } = params;
+  const isTargetLiveSub = Boolean(
+    targetGrn && movementDate && isEligibleCurrentLiveSubscriptionGrn({
+      inwardDate: targetGrn.date, asOfDate: movementDate, rentType: targetGrn.rentType,
+    }),
+  );
+  if (!isTargetLiveSub && targetGrn && !targetGrn.isCompositionVerified && targetConfirmation && targetCurrentRemaining !== undefined) {
     if (!isHybridBagCategory(targetConfirmation.category)) {
       const tSm = typeof targetConfirmation.smallBags === 'number' ? targetConfirmation.smallBags : 0;
       const tBg = typeof targetConfirmation.bigBags === 'number' ? targetConfirmation.bigBags : 0;
@@ -78,6 +85,7 @@ export interface MergeSubmitValidationParams {
   repackSeasonalBagPrice: number | '';
   repackMonthlyBagPrice: number | '';
   totalConsolidatedBags?: number;
+  isTargetLiveSubscription?: boolean;
 }
 
 export function validateMergeSubmit(params: MergeSubmitValidationParams): string | null {
@@ -85,6 +93,7 @@ export function validateMergeSubmit(params: MergeSubmitValidationParams): string
     selectedSourceIds, reason, isTargetLoanHold, targetGrnNumber,
     destinationChamber, repackMode, repackBagType, isRepackFilled, repackSmall, repackBig,
     repackQuantity, repackBagPrice, repackSeasonalBagPrice, repackMonthlyBagPrice,
+    isTargetLiveSubscription,
   } = params;
 
   if (selectedSourceIds.length === 0) return 'Select at least one source GRN to merge.';
@@ -109,12 +118,14 @@ export function validateMergeSubmit(params: MergeSubmitValidationParams): string
       if (!isRepackFilled || Number(repackQuantity) <= 0) {
         return 'Repacked Hybrid bag count is required and must be greater than zero.';
       }
-      const hasRate = hasPositiveHybridRate({
-        bagPrice: typeof repackBagPrice === 'number' ? repackBagPrice : undefined,
-        seasonalBagPrice: typeof repackSeasonalBagPrice === 'number' ? repackSeasonalBagPrice : undefined,
-        monthlyBagPrice: typeof repackMonthlyBagPrice === 'number' ? repackMonthlyBagPrice : undefined,
-      });
-      if (!hasRate) return HYBRID_RATE_REQUIRED_MESSAGE;
+      if (!isTargetLiveSubscription) {
+        const hasRate = hasPositiveHybridRate({
+          bagPrice: typeof repackBagPrice === 'number' ? repackBagPrice : undefined,
+          seasonalBagPrice: typeof repackSeasonalBagPrice === 'number' ? repackSeasonalBagPrice : undefined,
+          monthlyBagPrice: typeof repackMonthlyBagPrice === 'number' ? repackMonthlyBagPrice : undefined,
+        });
+        if (!hasRate) return HYBRID_RATE_REQUIRED_MESSAGE;
+      }
     }
   }
 

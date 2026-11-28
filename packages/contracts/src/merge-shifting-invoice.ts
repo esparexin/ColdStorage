@@ -43,6 +43,7 @@ export const mergeShiftingInvoiceDocumentDtoSchema = z.object({
   sourceLots: z.array(mergeSourceLotSummarySchema),
   repackHamaliCharge: rentalAmountSchema.default(0),
   repackHamaliRate: z.number().min(0).default(0),
+  hamaliReceiptNumber: z.string().nullable().optional(),
   repackVariance: z.number().int().default(0),
   carriedRentAmount: rentalAmountSchema.default(0),
   totalDueAtMerge: rentalAmountSchema.default(0),

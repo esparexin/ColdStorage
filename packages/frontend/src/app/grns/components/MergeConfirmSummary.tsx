@@ -40,7 +40,7 @@ export function MergeConfirmSummary({
   repackBagType,
   commodityHamaliRate,
   repackHamaliCharge,
-  totalSourcePendingRent,
+  totalSourcePendingRent: _totalSourcePendingRent,
   totalConsolidatedBags,
 }: MergeConfirmSummaryProps) {
   const composition = formatRepackComposition(
@@ -91,15 +91,6 @@ export function MergeConfirmSummary({
           <div className={styles.item}>
             <span className={styles.label}>Repacking Labor Hamali</span>
             <span className={styles.value}>{hamali}</span>
-          </div>
-
-          <div className={styles.item}>
-            <span className={styles.label}>Settlement Bills (Step 3)</span>
-            <span className={styles.value}>
-              {totalSourcePendingRent > 0
-                ? `₹${totalSourcePendingRent.toLocaleString('en-IN')} (Billed Separately per GRN)`
-                : 'Fully Settled (₹0 Due)'}
-            </span>
           </div>
         </div>
       </div>

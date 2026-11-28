@@ -144,4 +144,62 @@ describe('mergeRentAssessment.helper - calculateMergeSourceRentSummary', () => {
 
     expect(result.hamaliAmount).toBe(500);
   });
+
+  it('exempts current-year live subscription target GRN from rent and hamali dues calculation', () => {
+    const target = makeSourceGrn({
+      id: 'grn-target-2026',
+      grnNumber: '5001',
+      date: new Date('2026-04-01'),
+      bags: 100,
+      closingBags: 100,
+      bagType: 'Hybrid',
+      rentType: 'Seasonal',
+      hamaliAmount: 2500,
+    });
+
+    const result = calculateMergeSourceRentSummary({
+      source: target,
+      movementDate: '2026-08-01',
+      commodityHamaliRate: 25,
+      isTargetGrn: true,
+    });
+
+    expect(result.totalRent).toBe(0);
+    expect(result.hamaliAmount).toBe(0);
+    expect(result.totalAmountToPay).toBe(0);
+    expect(result.isConfirmed).toBe(true);
+    expect(result.bagCountLabel).toBe('100 Bags');
+  });
+
+  it('computes historical rent dues when target GRN belongs to previous closed season', () => {
+    const target = makeSourceGrn({
+      id: 'grn-target-2023',
+      grnNumber: '4001',
+      date: new Date('2023-04-01'),
+      bags: 100,
+      closingBags: 100,
+      bagType: 'Hybrid',
+      rentType: 'Seasonal',
+      bagPrice: 100,
+    });
+
+    const result = calculateMergeSourceRentSummary({
+      source: target,
+      confirmation: {
+        category: 'Hybrid',
+        quantity: 100,
+        smallBags: 100,
+        bigBags: 0,
+        seasonalBagPrice: 100,
+        monthlyBagPrice: 50,
+        bagPrice: 100,
+      },
+      movementDate: '2026-08-01',
+      commodityHamaliRate: 25,
+      isTargetGrn: true,
+    });
+
+    expect(result.totalRent).toBeGreaterThan(0);
+    expect(result.totalAmountToPay).toBeGreaterThan(0);
+  });
 });

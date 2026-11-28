@@ -154,7 +154,7 @@ export function RentBillingChargesSection({
           {loading ? (
             <FeedbackStates.Loading label="Loading outward rent bills..." />
           ) : activeDeliveries.length === 0 ? (
-            <FeedbackStates.Empty message="No outward transactions recorded for this lot yet. Each outward gate pass will generate an independent rent bill upon dispatch." />
+            <FeedbackStates.Empty message="No outward or settlement billing transactions recorded for this lot yet." />
           ) : (
             <div className={styles.gatePassBillsList}>
               {canCollect && account.remainingBalance > 0 && unsettledCount > 1 && onCollectDelivery && (

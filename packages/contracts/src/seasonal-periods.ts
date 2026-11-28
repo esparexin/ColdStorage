@@ -240,5 +240,6 @@ export {
   resolveUncompletedPeriodKeys,
   resolveMergeExcludedPeriodKeys,
   deriveHybridRateVisibility,
+  isEligibleCurrentLiveSubscriptionGrn,
 } from './merge-periods.js';
 
