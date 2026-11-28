@@ -44,35 +44,35 @@ export function TransferOwnershipConfirmation(p: Props) {
   });
 
   return (
-    <>
-      <Input
-        id="transfer-total-bags"
-        label="Total Bags"
-        type="number"
-        value={p.remainingBags}
-        readOnly
-        disabled={p.disabled}
-        aria-label="Total Bags (read-only)"
-        title="Authoritative remaining stock"
-      />
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 'var(--space-2)' }}>
+        <Input
+          id="transfer-total-bags"
+          label="Total Bags"
+          type="number"
+          value={p.remainingBags}
+          readOnly
+          disabled={p.disabled}
+          aria-label="Total Bags (read-only)"
+          title="Authoritative remaining stock"
+        />
 
-      <Select
-        id="transfer-bag-type-select"
-        label="Bag Type"
-        value={isHybrid ? 'Hybrid' : 'S/B'}
-        onChange={(e) => {
-          const val = e.target.value as OutwardBagCategory;
-          p.onCategoryChange?.(val);
-        }}
-        disabled={p.disabled}
-      >
-        <option value="S/B">S/B</option>
-        <option value="Hybrid">Hybrid</option>
-      </Select>
+        <Select
+          id="transfer-bag-type-select"
+          label="Bag Type"
+          value={isHybrid ? 'Hybrid' : 'S/B'}
+          onChange={(e) => {
+            const val = e.target.value as OutwardBagCategory;
+            p.onCategoryChange?.(val);
+          }}
+          disabled={p.disabled}
+        >
+          <option value="S/B">S/B</option>
+          <option value="Hybrid">Hybrid</option>
+        </Select>
 
-      {isHybrid ? (
-        <div className={styles.formSection}>
-          <div style={{ marginBottom: 'var(--space-2)' }}>
+        {isHybrid ? (
+          <>
             <Input
               id="transfer-hybrid-quantity-bags"
               label="Hybrid Bags"
@@ -83,8 +83,6 @@ export function TransferOwnershipConfirmation(p: Props) {
               aria-label="Hybrid Bags (read-only)"
               title="Confirmed Hybrid quantity matches total available stock"
             />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--space-2)' }}>
             {visibility.showSeasonalRate && (
               <Input
                 id="transfer-seasonal-rate"
@@ -121,22 +119,22 @@ export function TransferOwnershipConfirmation(p: Props) {
                 disabled={p.disabled}
               />
             )}
-          </div>
-          <div className={styles.noticeBox}>Rates are informational — rent follows source GRN rules and is recomputed at execution.</div>
-        </div>
-      ) : null}
-
-      {!isHybrid ? (
-        <TransferBagConfirmationFields
-          remainingBags={p.remainingBags}
-          confirmedSmallBags={p.confirmedSmallBags}
-          confirmedBigBags={p.confirmedBigBags}
-          onSmallChange={p.onSmallChange}
-          onBigChange={p.onBigChange}
-          disabled={p.disabled}
-        />
-      ) : null}
-    </>
+          </>
+        ) : (
+          <TransferBagConfirmationFields
+            remainingBags={p.remainingBags}
+            confirmedSmallBags={p.confirmedSmallBags}
+            confirmedBigBags={p.confirmedBigBags}
+            onSmallChange={p.onSmallChange}
+            onBigChange={p.onBigChange}
+            disabled={p.disabled}
+          />
+        )}
+      </div>
+      <div className={styles.noticeBox} style={{ marginTop: 'var(--space-2)' }}>
+        Rates are informational — rent follows source GRN rules and is recomputed at execution.
+      </div>
+    </div>
   );
 }
 

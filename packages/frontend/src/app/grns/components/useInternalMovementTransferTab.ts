@@ -128,6 +128,7 @@ export function useInternalMovementTransferTab({
     commodityHamaliRate: effectiveHamaliRate,
     summary: rentSummary,
     commodity,
+    isTransfer: true,
   }), [currentGrn, bagConfirmation, movementDate, effectiveHamaliRate, rentSummary, commodity]);
 
   const assessedRent = rentCalc.totalRent;

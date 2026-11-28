@@ -39,34 +39,25 @@ export function calculateMergeSourceRentSummary(params: {
   commodity?: Pick<Commodity, 'rates'> | null;
   resetRentState?: boolean;
   isTargetGrn?: boolean;
+  isTransfer?: boolean;
 }): MergeSourceRentCalculation {
   const {
-    source,
-    confirmation,
-    movementDate,
-    commodityHamaliRate = 0,
-    targetGrnDate,
-    summary,
-    commodity,
-    resetRentState = false,
-    isTargetGrn = false,
+    source, confirmation, movementDate, commodityHamaliRate = 0,
+    targetGrnDate, summary, commodity, resetRentState = false,
+    isTargetGrn = false, isTransfer = false,
   } = params;
 
   const sourceBags = source.closingBags ?? source.bags;
 
-  const isHybrid = confirmation?.category === 'Hybrid' ||
-    isHybridBagCategory(source.bagType) || isHybridBagCategory(confirmation?.category);
-
+  const isHybrid = confirmation?.category === 'Hybrid' || isHybridBagCategory(source.bagType) || isHybridBagCategory(confirmation?.category);
   const hasChoice = (typeof confirmation?.smallBags === 'number' && typeof confirmation?.bigBags === 'number') ||
     (typeof confirmation?.smallBags === 'number' && confirmation.smallBags === sourceBags) ||
     (typeof confirmation?.bigBags === 'number' && confirmation.bigBags === sourceBags);
   const isConfirmed = isHybrid || hasChoice || Boolean(source.isCompositionVerified);
 
-  const confirmedSmall = typeof confirmation?.smallBags === 'number'
-    ? confirmation.smallBags
+  const confirmedSmall = typeof confirmation?.smallBags === 'number' ? confirmation.smallBags
     : (typeof confirmation?.bigBags === 'number' && confirmation.bigBags === sourceBags ? 0 : (source.smallBags ?? sourceBags));
-  const confirmedBig = typeof confirmation?.bigBags === 'number'
-    ? confirmation.bigBags
+  const confirmedBig = typeof confirmation?.bigBags === 'number' ? confirmation.bigBags
     : (typeof confirmation?.smallBags === 'number' && confirmation.smallBags === sourceBags ? 0 : (source.bigBags ?? 0));
 
   const smallBags = isHybrid ? sourceBags : confirmedSmall;
@@ -74,7 +65,7 @@ export function calculateMergeSourceRentSummary(params: {
   const bagCategory = (isHybrid ? 'Hybrid' : (confirmation?.category || 'S/B')) as OutwardBagCategory;
 
   const excludePeriodKeys = source.date
-    ? (isTargetGrn
+    ? (isTargetGrn || isTransfer
         ? resolveUncompletedPeriodKeys(source.date, movementDate)
         : (targetGrnDate
             ? resolveMergeExcludedPeriodKeys({ inwardDate: source.date, movementDate, targetGrnDate })
@@ -85,15 +76,9 @@ export function calculateMergeSourceRentSummary(params: {
   const completedPeriods = elapsed.filter((p) => !excludePeriodKeys.includes(p.key));
   const hasCompletedPeriods = completedPeriods.length > 0;
 
-  const manualBagPrice = typeof confirmation?.bagPrice === 'number' && confirmation.bagPrice > 0
-    ? confirmation.bagPrice
-    : source.bagPrice;
-  const seasonalBagPrice = typeof confirmation?.seasonalBagPrice === 'number' && confirmation.seasonalBagPrice > 0
-    ? confirmation.seasonalBagPrice
-    : undefined;
-  const monthlyBagPrice = typeof confirmation?.monthlyBagPrice === 'number' && confirmation.monthlyBagPrice > 0
-    ? confirmation.monthlyBagPrice
-    : undefined;
+  const manualBagPrice = typeof confirmation?.bagPrice === 'number' && confirmation.bagPrice > 0 ? confirmation.bagPrice : source.bagPrice;
+  const seasonalBagPrice = typeof confirmation?.seasonalBagPrice === 'number' && confirmation.seasonalBagPrice > 0 ? confirmation.seasonalBagPrice : undefined;
+  const monthlyBagPrice = typeof confirmation?.monthlyBagPrice === 'number' && confirmation.monthlyBagPrice > 0 ? confirmation.monthlyBagPrice : undefined;
 
   const { seasonalRates, monthlyRates } = resolveTransferRates(source, commodity);
 
@@ -151,17 +136,10 @@ export function calculateMergeSourceRentSummary(params: {
 
   let bagCountLabel = `${sourceBags} Bags`;
   if (!isHybrid) {
-    if (!isConfirmed) {
-      bagCountLabel = 'Pending Split';
-    } else if (smallBags > 0 && bigBags > 0) {
-      bagCountLabel = `${sourceBags} Bags (${smallBags} Small, ${bigBags} Big)`;
-    } else if (smallBags > 0) {
-      bagCountLabel = `${sourceBags} Bags (${smallBags} Small)`;
-    } else if (bigBags > 0) {
-      bagCountLabel = `${sourceBags} Bags (${bigBags} Big)`;
-    } else {
-      bagCountLabel = `${sourceBags} Bags`;
-    }
+    if (!isConfirmed) bagCountLabel = 'Pending Split';
+    else if (smallBags > 0 && bigBags > 0) bagCountLabel = `${sourceBags} Bags (${smallBags} Small, ${bigBags} Big)`;
+    else if (smallBags > 0) bagCountLabel = `${sourceBags} Bags (${smallBags} Small)`;
+    else if (bigBags > 0) bagCountLabel = `${sourceBags} Bags (${bigBags} Big)`;
   }
 
   return {
@@ -233,13 +211,8 @@ export function calculateMergeSettlementBill(params: {
   const targetCommodity = commodities?.find((c) => c.id === targetGrn.commodityId);
   const targetSummary = sourceRentSummaries?.[targetGrn.id];
   const targetCalc = calculateMergeSourceRentSummary({
-    source: targetGrn,
-    confirmation: targetConfirmation,
-    movementDate,
-    commodityHamaliRate,
-    summary: targetSummary,
-    commodity: targetCommodity,
-    isTargetGrn: true,
+    source: targetGrn, confirmation: targetConfirmation, movementDate,
+    commodityHamaliRate, summary: targetSummary, commodity: targetCommodity, isTargetGrn: true,
   });
   const targetDue = Math.max(0, targetCalc.totalAmountToPay - (targetSummary?.totalPaid ?? 0));
 

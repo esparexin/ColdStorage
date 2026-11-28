@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { Grn } from '@cold-storage/contracts';
+import { isHybridBagCategory, type Grn } from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import styles from './InternalMovementModal.module.css';
 
@@ -12,6 +12,26 @@ interface Props {
   pendingAmount: number;
   isUnbilled: boolean;
   rentLoading: boolean;
+}
+
+function formatBagCompositionSummary(grn: Grn, remainingBags: number): string {
+  if (isHybridBagCategory(grn.bagType)) {
+    return `${remainingBags} Bags (Hybrid: ${remainingBags})`;
+  }
+  if (grn.bagType === 'S') {
+    return `${remainingBags} Bags (Small: ${remainingBags})`;
+  }
+  if (grn.bagType === 'B') {
+    return `${remainingBags} Bags (Big: ${remainingBags})`;
+  }
+  const s = grn.smallBags;
+  const b = grn.bigBags;
+  if (typeof s === 'number' && typeof b === 'number' && (s > 0 || b > 0)) {
+    if (s > 0 && b > 0) return `${remainingBags} Bags (Small: ${s}, Big: ${b})`;
+    if (s > 0) return `${remainingBags} Bags (Small: ${s})`;
+    if (b > 0) return `${remainingBags} Bags (Big: ${b})`;
+  }
+  return `${remainingBags} Bags (Bag Type: N/A)`;
 }
 
 export function TransferSummaryStrip({
@@ -36,8 +56,8 @@ export function TransferSummaryStrip({
         <span className={styles.metaValue}>{currentGrn.commodityName} (Ch. {currentGrn.chamber})</span>
       </div>
       <div className={styles.metaItem}>
-        <span className={styles.metaLabel}>Remaining Stock</span>
-        <span className={styles.metaValue}>{remainingBags} Bags</span>
+        <span className={styles.metaLabel}>Total Bags</span>
+        <span className={styles.metaValue}>{formatBagCompositionSummary(currentGrn, remainingBags)}</span>
       </div>
       <div className={styles.metaItem}>
         <span className={styles.metaLabel}>Rent State</span>
