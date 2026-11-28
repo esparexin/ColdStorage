@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Input } from '@/components/ui';
-import styles from './InternalMovementModal.module.css';
 
 interface Props {
   remainingBags: number;

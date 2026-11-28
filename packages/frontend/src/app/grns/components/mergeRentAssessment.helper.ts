@@ -120,8 +120,10 @@ export function calculateMergeSourceRentSummary(params: {
 
   let totalRent: number;
   if (!hasCompletedPeriods) {
-    // When all elapsed periods are uncompleted/active, storage rent is strictly ₹0 for pre-merge settlement.
-    totalRent = 0;
+    // When all elapsed periods are uncompleted/active:
+    // - For pre-merge settlement: storage rent is strictly ₹0 (carried by target subscription)
+    // - For transfer: retain existing stored rent obligation if set, otherwise ₹0
+    totalRent = isTransfer && storedRent > 0 ? storedRent : 0;
   } else if (resetRentState || hasManualRateOverride) {
     totalRent = calculatedRent;
   } else if (storedRent > 0) {
