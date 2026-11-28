@@ -40,7 +40,7 @@ export function MergeConfirmSummary({
   repackBagType,
   commodityHamaliRate,
   repackHamaliCharge,
-  totalSourcePendingRent,
+  totalSourcePendingRent: _totalSourcePendingRent,
   totalConsolidatedBags,
 }: MergeConfirmSummaryProps) {
   const composition = formatRepackComposition(
