@@ -9,7 +9,6 @@ import {
 } from '@cold-storage/contracts';
 import { requestWithAuth } from '@/lib/api-client';
 import { DEFAULT_BAG_CONFIRMATION, deriveAutoInheritedBagComposition, type BagConfirmationValue } from './bagConfirmation.helper';
-import { calculateMergeSettlementBill } from './mergeRentAssessment.helper';
 import {
   filterEligibleTargetGrns, findForwardMergeTarget, partitionMergeSources,
   resolveInitialMergeState, resolveNextSelectedSources,
@@ -124,17 +123,6 @@ export function useInternalMovementMergeTab({
     return (targetCommodity.isHamaliApplicable ?? (targetCommodity.hamaliRate ?? 0) > 0) ? (targetCommodity.hamaliRate ?? 0) : 0;
   }, [targetCommodity]);
 
-  const totalSettlementBill = useMemo(() => calculateMergeSettlementBill({
-    selectedSources,
-    sourceConfirmations,
-    movementDate,
-    commodityHamaliRate,
-    targetGrn,
-    targetConfirmation,
-    sourceRentSummaries,
-    commodities,
-  }), [selectedSources, sourceConfirmations, movementDate, commodityHamaliRate, targetGrn, targetConfirmation, sourceRentSummaries, commodities]);
-
   const { isTargetDiff, isRepackRequired, isRepackFilled, actualRepackedBags } =
     deriveRepackCompositionStatus({ targetGrn, selectedSources, repackMode, repackBagType, repackQuantity, repackSmall, repackBig });
 
@@ -235,7 +223,7 @@ export function useInternalMovementMergeTab({
     ...repack, storageMark: targetStorageMark, validationError, setValidationError, openGrns, targetGrn, targetSeason,
     eligibleSources, futureSeasonCount, recommendedSwitchGrn, targetOptions, handleTargetChange, handleToggleSource, handleSwitchTarget: handleTargetChange,
     selectedSources, totalSourceBags, targetCurrentRemaining, isTargetLoanHold,
-    totalSourcePendingRent: totalSettlementBill, totalSettlementBill, isTargetDiff, isRepackFilled, commodityHamaliRate, actualRepackedBags,
+    totalSourcePendingRent: 0, totalSettlementBill: 0, isTargetDiff, isRepackFilled, commodityHamaliRate, actualRepackedBags,
     repackHamaliCharge, movedSmall, movedBig, addedBagsToTarget, targetNewRemaining,
     resultingBagType, handleProceedToStep2, handleProceedToStep3, handleProceedToStep4, handleMergeSubmit,
   };

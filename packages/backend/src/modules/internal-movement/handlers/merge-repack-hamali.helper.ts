@@ -46,6 +46,7 @@ export async function generateMergeHamaliCashMemo(params: {
     date: Date;
     rentType: string;
   };
+  sourceGrnNumbers?: string[];
   repackHamali: RepackHamaliResolution;
   moveDate: Date;
   paymentMode?: string | null;
@@ -53,11 +54,12 @@ export async function generateMergeHamaliCashMemo(params: {
   userId: string;
   session: mongoose.ClientSession;
 }): Promise<RentPayment | null> {
-  const { facilityId, targetGrn, repackHamali, moveDate, paymentMode, paymentAmount, userId, session } = params;
+  const { facilityId, targetGrn, sourceGrnNumbers = [], repackHamali, moveDate, paymentMode, paymentAmount, userId, session } = params;
   if (repackHamali.repackHamaliCharge <= 0) return null;
   if (!isLiveSubscriptionTarget(targetGrn, moveDate)) return null;
   if (typeof paymentAmount !== 'number' || paymentAmount <= 0) return null;
 
+  const sourceStr = sourceGrnNumbers.length > 0 ? `, Source GRN(s) ${sourceGrnNumbers.map((s) => `#${s}`).join(', ')}` : '';
   const receiptNumber = await counterService.generateRentReceiptNumber(facilityId, moveDate, session);
   const paymentDoc = await rentRepository.createPayment(
     {
@@ -71,7 +73,7 @@ export async function generateMergeHamaliCashMemo(params: {
       amountPaid: repackHamali.repackHamaliCharge,
       paymentMode: (paymentMode ?? 'Cash') as 'Cash' | 'UPI',
       paymentDate: moveDate,
-      notes: `Consignment Merge Hamali Labor: ${repackHamali.repackHamaliBags} bags @ ₹${repackHamali.repackHamaliRate}/bag (Surviving GRN ${targetGrn.grnNumber})`,
+      notes: `Consignment Merge Hamali Labor: ${repackHamali.repackHamaliBags} bags @ ₹${repackHamali.repackHamaliRate}/bag (Target GRN #${targetGrn.grnNumber}${sourceStr})`,
       createdBy: userId,
     },
     session,
