@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { calculateOutwardSeasonalBreakdown } from '../seasonal-periods.js';
 import {
-  calculateOutwardSeasonalBreakdown,
   deriveHybridRateVisibility,
   isEligibleCurrentLiveSubscriptionGrn,
   resolveActiveSubscriptionPeriodKey,
   resolveMergeExcludedPeriodKeys,
-} from '../seasonal-periods.js';
+} from '../merge-periods.js';
 
 describe('merge-periods & active period SSOT contracts', () => {
   it('identifies active subscription period across season and extension months', () => {

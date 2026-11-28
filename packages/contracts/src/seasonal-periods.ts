@@ -235,11 +235,3 @@ export function toExcludedPeriodKeys(extensions: Array<{ seasonYear: number; per
   return extensions.map((e) => extensionPeriodKey(e.seasonYear, e.period));
 }
 
-export {
-  resolveActiveSubscriptionPeriodKey,
-  resolveUncompletedPeriodKeys,
-  resolveMergeExcludedPeriodKeys,
-  deriveHybridRateVisibility,
-  isEligibleCurrentLiveSubscriptionGrn,
-} from './merge-periods.js';
-
