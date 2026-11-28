@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type mongoose from 'mongoose';
 import {
   calculateHamaliAmount,
+  isEligibleCurrentLiveSubscriptionGrn,
   resolveActiveSubscriptionPeriodKey,
   seasonYearForInwardDate,
   type RentPayment,
@@ -25,19 +26,11 @@ export function isLiveSubscriptionTarget(
   targetGrn: { date: Date | string; rentType: string },
   moveDate: Date | string,
 ): boolean {
-  if (targetGrn.rentType === 'Monthly') return true;
-  const activeKey = resolveActiveSubscriptionPeriodKey(moveDate);
-  if (activeKey?.startsWith('JANUARY_') || activeKey?.startsWith('FEBRUARY_')) {
-    return true;
-  }
-  const targetSeason = seasonYearForInwardDate(targetGrn.date);
-  if (activeKey?.startsWith('SEASON_')) {
-    const activeYear = parseInt(activeKey.replace('SEASON_', ''), 10);
-    if (activeYear >= targetSeason) return true;
-  }
-  const moveYear = new Date(moveDate).getFullYear();
-  const targetYear = new Date(targetGrn.date).getFullYear();
-  return moveYear >= targetYear;
+  return isEligibleCurrentLiveSubscriptionGrn({
+    inwardDate: targetGrn.date,
+    asOfDate: moveDate,
+    rentType: targetGrn.rentType,
+  });
 }
 
 /**

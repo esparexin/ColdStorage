@@ -2,7 +2,14 @@
 
 import React, { useMemo } from 'react';
 import { Package, ShieldCheck } from 'lucide-react';
-import { formatDisplayBagType, resolveEffectiveGrnRentType, type Commodity, type Grn, type RentSummaryDto } from '@cold-storage/contracts';
+import {
+  formatDisplayBagType,
+  isEligibleCurrentLiveSubscriptionGrn,
+  resolveEffectiveGrnRentType,
+  type Commodity,
+  type Grn,
+  type RentSummaryDto,
+} from '@cold-storage/contracts';
 import { Badge } from '@/components/ui';
 import { formatDisplayDate } from '@/lib/date-format';
 import type { BagConfirmationValue } from './bagConfirmation.helper';
@@ -64,6 +71,15 @@ export function MergeStep2BagType({
     () => resolveTransferRates(targetGrn, targetCommodity),
     [targetGrn, targetCommodity],
   );
+  const isTargetLiveSubscription = useMemo(
+    () => isEligibleCurrentLiveSubscriptionGrn({
+      inwardDate: targetGrn.date,
+      asOfDate: movementDate,
+      rentType: targetGrn.rentType,
+    }),
+    [targetGrn.date, movementDate, targetGrn.rentType],
+  );
+
   const targetDisplayType = formatDisplayBagType({
     bagType: targetGrn.bagType,
     smallBags: targetGrn.smallBags,
@@ -73,6 +89,7 @@ export function MergeStep2BagType({
   });
 
   const isTargetConfirmed =
+    isTargetLiveSubscription ||
     isTargetHybrid ||
     Boolean(targetGrn.isCompositionVerified) ||
     (typeof targetConfirmation?.smallBags === 'number' && typeof targetConfirmation?.bigBags === 'number') ||
@@ -141,7 +158,11 @@ export function MergeStep2BagType({
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Badge variant="primary">Receiving Lot (Surviving)</Badge>
               <Badge variant="neutral">Season {targetSeason}</Badge>
-              {!isTargetConfirmed && <Badge variant="warning">Awaiting Bag Confirmation</Badge>}
+              {isTargetLiveSubscription ? (
+                <Badge variant="success">Active Subscription (No Bag Confirmation Required)</Badge>
+              ) : !isTargetConfirmed ? (
+                <Badge variant="warning">Awaiting Bag Confirmation</Badge>
+              ) : null}
             </div>
           </div>
 
@@ -168,7 +189,7 @@ export function MergeStep2BagType({
             </div>
           </div>
 
-          {!targetGrn.isCompositionVerified && targetConfirmation && onTargetConfirmationChange && (
+          {!isTargetLiveSubscription && !targetGrn.isCompositionVerified && targetConfirmation && onTargetConfirmationChange && (
             <div style={{ marginTop: 'var(--space-1-5)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-1-5)' }}>
               <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', marginBottom: 'var(--space-1)', color: 'var(--color-primary-text)' }}>
                 Bag Type Configuration

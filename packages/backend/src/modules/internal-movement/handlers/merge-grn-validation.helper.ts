@@ -1,6 +1,7 @@
 import {
   allocateHybridSplit,
   hasPositiveHybridRate,
+  isEligibleCurrentLiveSubscriptionGrn,
   isHybridBagCategory,
   resolveStoredCompositionVerified,
   seasonYearForInwardDate,
@@ -80,9 +81,13 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
     }
   }
 
-  // 3. Explicit stored flag preferred: any unverified lot requires confirmation,
-  // even when rates are equal — uniform `{bags, 0}` placeholders must not propagate silently.
-  const isTargetVerified = resolveStoredCompositionVerified(targetGrn);
+  // 3. Current-year live subscription target GRNs are exempt from bag composition re-confirmation and rent rates.
+  const isTargetLiveSub = isEligibleCurrentLiveSubscriptionGrn({
+    inwardDate: targetGrn.date,
+    asOfDate: movementDate,
+    rentType: (targetGrn as unknown as { rentType?: string }).rentType,
+  });
+  const isTargetVerified = isTargetLiveSub || resolveStoredCompositionVerified(targetGrn);
   const hasUnverifiedSource = sourceGrns.some(
     (s) =>
       !resolveStoredCompositionVerified({
@@ -131,7 +136,7 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
       }
       actualMovedBags = hybridQty;
     }
-    if (!hasPositiveHybridRate({
+    if (!isTargetLiveSub && !hasPositiveHybridRate({
       bagPrice: sourceBagPrice,
       seasonalBagPrice: sourceSeasonalBagPrice,
       monthlyBagPrice: sourceMonthlyBagPrice,

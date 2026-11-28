@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { DollarSign } from 'lucide-react';
 import {
+  isEligibleCurrentLiveSubscriptionGrn,
   seasonYearForInwardDate,
   type Commodity,
   type Grn,
@@ -73,11 +74,20 @@ export function MergeStep3Settlement({
     [targetGrn, targetConfirmation, movementDate, commodityHamaliRate, targetSummary, targetCommodity],
   );
 
+  const isTargetLiveSubscription = useMemo(
+    () => isEligibleCurrentLiveSubscriptionGrn({
+      inwardDate: targetGrn.date,
+      asOfDate: movementDate,
+      rentType: targetGrn.rentType,
+    }),
+    [targetGrn.date, movementDate, targetGrn.rentType],
+  );
   const targetPaid = targetSummary?.totalPaid ?? 0;
   const isTargetSettled =
+    isTargetLiveSubscription ||
     targetCalc.totalAmountToPay === 0 ||
     (targetPaid >= targetCalc.totalAmountToPay && targetCalc.totalAmountToPay > 0);
-  const hasTargetHistoricalRent = targetCalc.totalAmountToPay > 0;
+  const hasTargetHistoricalRent = !isTargetLiveSubscription && targetCalc.totalAmountToPay > 0;
 
   const totalSettlementBill = useMemo(() => {
     return calculateMergeSettlementBill({

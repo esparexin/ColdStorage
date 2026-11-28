@@ -39,17 +39,12 @@ export function calculateMergeSourceRentSummary(params: {
   commodity?: Pick<Commodity, 'rates'> | null;
   resetRentState?: boolean;
   isTargetGrn?: boolean;
+  isTransfer?: boolean;
 }): MergeSourceRentCalculation {
   const {
-    source,
-    confirmation,
-    movementDate,
-    commodityHamaliRate = 0,
-    targetGrnDate,
-    summary,
-    commodity,
-    resetRentState = false,
-    isTargetGrn = false,
+    source, confirmation, movementDate, commodityHamaliRate = 0,
+    targetGrnDate, summary, commodity, resetRentState = false,
+    isTargetGrn = false, isTransfer = false,
   } = params;
 
   const sourceBags = source.closingBags ?? source.bags;
@@ -74,7 +69,7 @@ export function calculateMergeSourceRentSummary(params: {
   const bagCategory = (isHybrid ? 'Hybrid' : (confirmation?.category || 'S/B')) as OutwardBagCategory;
 
   const excludePeriodKeys = source.date
-    ? (isTargetGrn
+    ? (isTargetGrn || isTransfer
         ? resolveUncompletedPeriodKeys(source.date, movementDate)
         : (targetGrnDate
             ? resolveMergeExcludedPeriodKeys({ inwardDate: source.date, movementDate, targetGrnDate })

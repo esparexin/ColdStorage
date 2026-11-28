@@ -117,3 +117,59 @@ export function resolveMergeExcludedPeriodKeys(params: {
 
   return Array.from(excluded);
 }
+
+/**
+ * Authoritative SSOT: Determines if a target GRN belongs to the current running year
+ * and is covered by an active/live subscription, with NO previous-season subscription
+ * or closed subscription history requiring rent settlement.
+ *
+ * When true:
+ * - Target GRN is exempt from monthly/seasonal rent calculation during merging.
+ * - No Hybrid/Small/Big bag-type confirmation or quantity allocation is required.
+ * - No rent rates are required for that target GRN.
+ * - Only Hamali charges apply for the merge operation.
+ */
+export function isEligibleCurrentLiveSubscriptionGrn(params: {
+  inwardDate?: Date | string | null;
+  date?: Date | string | null;
+  asOfDate?: Date | string | null;
+  movementDate?: Date | string | null;
+  rentType?: RentType | string | null;
+  hasBilledExtensions?: boolean;
+}): boolean {
+  const inDate = params.inwardDate ?? params.date;
+  const opDate = params.asOfDate ?? params.movementDate;
+  if (!inDate || !opDate || params.hasBilledExtensions) return false;
+
+  const inParts = toKolkataDateParts(inDate);
+  const opParts = toKolkataDateParts(opDate);
+  if (!inParts || !opParts) return false;
+
+  const activeKey = resolveActiveSubscriptionPeriodKey(opDate);
+  if (!activeKey) return false;
+
+  if (params.rentType === 'Monthly') {
+    return inParts.year === opParts.year;
+  }
+
+  const elapsed = resolveSeasonalElapsedPeriods(inDate, opDate);
+  if (elapsed.length === 0) {
+    return inParts.year >= opParts.year;
+  }
+  const uncompleted = resolveUncompletedPeriodKeys(inDate, opDate);
+  const completedHistoricalPeriods = elapsed.filter((p) => !uncompleted.includes(p.key));
+  if (completedHistoricalPeriods.length > 0) {
+    return false;
+  }
+
+  const targetSeason = seasonYearForInwardDate(inDate);
+  if (activeKey.startsWith('SEASON_')) {
+    const activeYear = parseInt(activeKey.replace('SEASON_', ''), 10);
+    return targetSeason === activeYear || inParts.year === opParts.year;
+  }
+  if (activeKey.startsWith('JANUARY_') || activeKey.startsWith('FEBRUARY_')) {
+    return inParts.year === opParts.year;
+  }
+
+  return false;
+}
