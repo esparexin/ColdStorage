@@ -9,20 +9,15 @@
  */
 
 import React, { createContext, useCallback, useContext, useEffect, useState, useMemo } from 'react';
+import type { Facility } from '@cold-storage/contracts';
 import { useAuth } from './AuthContext';
 import { cachedRequestWithAuth, invalidateCache } from '@/lib/api-cache';
-
-export interface FacilityOption {
-  id: string;
-  name: string;
-  code: string;
-}
 
 interface FacilityContextValue {
   /** Currently selected facility ID (UI state only — not authorization) */
   selectedFacilityId: string | null;
   setSelectedFacilityId: (id: string) => void;
-  availableFacilities: FacilityOption[];
+  availableFacilities: Facility[];
   isLoadingFacilities: boolean;
   /** Non-null when the facility list could not be loaded; no synthetic facilities are used. */
   facilitiesError: string | null;
@@ -34,7 +29,7 @@ const FacilityContext = createContext<FacilityContextValue | null>(null);
 export function FacilityProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(null);
-  const [availableFacilities, setAvailableFacilities] = useState<FacilityOption[]>([]);
+  const [availableFacilities, setAvailableFacilities] = useState<Facility[]>([]);
   const [isLoadingFacilities, setIsLoadingFacilities] = useState<boolean>(false);
   const [facilitiesError, setFacilitiesError] = useState<string | null>(null);
 
@@ -56,7 +51,7 @@ export function FacilityProvider({ children }: { children: React.ReactNode }) {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
-      const data = (await res.json()) as { items?: FacilityOption[] };
+      const data = (await res.json()) as { items?: Facility[] };
       const facilities = data.items ?? [];
       setAvailableFacilities(facilities);
       setFacilitiesError(null);

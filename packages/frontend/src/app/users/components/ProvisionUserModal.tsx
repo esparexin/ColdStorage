@@ -1,16 +1,15 @@
 'use client';
 
 import React from 'react';
-import type { RoleDefinition } from '@cold-storage/contracts';
+import type { Facility, RoleDefinition } from '@cold-storage/contracts';
 import { Button, Modal, Select } from '@/components/ui';
 import { Banner } from '@/components/ui/Banner';
 import { useProvisionUserForm } from '../hooks/useProvisionUserForm';
 import { FacilityFieldset, FieldError } from './UserFormFields';
-import type { FacilityOption } from '@/context/FacilityContext';
 import styles from '../page.module.css';
 
 interface ProvisionUserModalProps {
-  availableFacilities: FacilityOption[];
+  availableFacilities: Facility[];
   availableRoles: RoleDefinition[];
   onClose: () => void;
   onSuccess: (message: string) => void;

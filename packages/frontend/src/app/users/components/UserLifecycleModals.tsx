@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { RoleDefinition, UserSummary } from '@cold-storage/contracts';
-import type { FacilityOption } from '@/context/FacilityContext';
+import type { Facility, RoleDefinition, UserSummary } from '@cold-storage/contracts';
 import type { UserEditDraft } from '../hooks/useUserLifecycle';
 import { EditUserModal } from './EditUserModal';
 import { ProvisionUserModal } from './ProvisionUserModal';
@@ -12,7 +11,7 @@ interface UserLifecycleModalsProps {
   provisioningOpen: boolean;
   editingUser: UserSummary | null;
   resettingUser: UserSummary | null;
-  availableFacilities: FacilityOption[];
+  availableFacilities: Facility[];
   availableRoles: RoleDefinition[];
   saving: boolean;
   error: string | null;
