@@ -137,7 +137,7 @@ export function validateMergeRepackedCounts(params: ValidateMergeRepackedParams)
       }
       actualMovedBags = hybridQty;
     }
-    if (!isTargetLiveSub && !hasPositiveHybridRate({
+    if (!hasPositiveHybridRate({
       bagPrice: sourceBagPrice,
       seasonalBagPrice: sourceSeasonalBagPrice,
       monthlyBagPrice: sourceMonthlyBagPrice,

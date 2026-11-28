@@ -8,6 +8,7 @@ import { GrnModel } from '../database/models/grn.model.js';
 import { createAuthSeeder } from './helpers/auth-fixtures.js';
 import { seedControllerRates } from './helpers/lifecycle-testkit.js';
 import { seedCustomer, seedFacility, seedGrn } from './helpers/master-data-fixtures.js';
+import { seedOrganizationSettings } from './helpers/rent-fixtures.js';
 import { connectToTestDatabase, disconnectTestDatabase, resetStockCollections } from './helpers/stock-reset.js';
 import { rentService } from '../modules/rent/rent.service.js';
 import { buildMergeShiftingInvoiceDto } from '../modules/documents/merge-shifting-invoice.builder.js';
@@ -42,6 +43,7 @@ describe('Consignment Merge Under Live Subscription - Hamali Cash Memo Only', ()
 
   beforeEach(async () => {
     await resetStockCollections();
+    await seedOrganizationSettings();
     await mongoose.connection.collection('rentpayments').deleteMany({});
     await mongoose.connection.collection('internalmovements').deleteMany({});
     await seedFacility({ id: facilityId, code: 'MMEM', name: 'Merge Memo Facility' });
