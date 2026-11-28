@@ -188,6 +188,7 @@ export async function mergeGrn(
       const hamaliPayment = await generateMergeHamaliCashMemo({
         facilityId, targetGrn, repackHamali, moveDate,
         paymentMode: input.sourcePaymentMode ?? 'Cash',
+        paymentAmount: input.sourcePaymentAmount,
         userId, session,
       });
       if (hamaliPayment) resultPaymentDoc = hamaliPayment;

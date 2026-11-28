@@ -124,8 +124,7 @@ export function buildRentSummary(
   const isLegacyUnverifiedHamali =
     grn.hamaliRate == null && grn.hamaliAmount == null && hamaliShare > 0 && payments.length === 0;
   const isPendingVerification = isCompositionUnverified || isLegacyUnverifiedHamali;
-  const storagePayments = payments.filter((p) => !p.notes?.includes('Consignment Merge Hamali Labor'));
-  const totalPaid = storagePayments.reduce((sum, p) => sum + p.amountPaid, 0);
+  const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
   const effectiveTotalDue = totalPaid > totalDue ? totalPaid : totalDue;
   const effectiveBaseRent = totalPaid > baseRent && baseRent === totalDue ? totalPaid : baseRent;
   const balance = computeRentBalance(

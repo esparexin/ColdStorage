@@ -92,37 +92,49 @@ describe('Consignment Merge Under Live Subscription - Hamali Cash Memo Only', ()
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
 
-    // 1. A Cash Memo was generated for Hamali charges only
-    const payment = res.body.payment;
-    expect(payment).toBeDefined();
-    expect(payment.receiptNumber).toMatch(/^RRCPT-\d{2}-\d{2}-\d{4}$/);
-    expect(payment.amountPaid).toBe(300); // 50 moved bags * ₹6 hamaliRate = ₹300
-    expect(payment.notes).toContain('Consignment Merge Hamali Labor: 50 bags @ ₹6/bag');
+    // 1. By default, customer has not paid hamali yet: no payment/cash memo generated
+    expect(res.body.payment).toBeUndefined();
 
     // 2. Target GRN rent obligation is NOT inflated with extra rent
     const targetDoc = await GrnModel.findOne({ id: targetGrnId }).lean().exec();
     expect(targetDoc?.rentAmount).toBe(3000); // rent unchanged
     expect(targetDoc?.bags).toBe(150);
+    expect(targetDoc?.hamaliAmount).toBe(900); // 600 base + 300 repack hamali accrued as liability
 
-    // 3. Storage rent summary: totalDue, totalPaid, and remainingBalance are NOT corrupted
+    // 3. Storage rent summary: unpaid repack hamali reflected in totalDue & remainingBalance
     const targetSummaryAfter = await rentService.getRentSummary(facilityId, targetGrnId);
-    expect(targetSummaryAfter.totalDue).toBe(3600); // exactly 3000 rent + 600 inward hamali
-    expect(targetSummaryAfter.remainingBalance).toBe(3600);
+    expect(targetSummaryAfter.totalDue).toBe(3900); // 3000 rent + 900 hamali (600 intake + 300 repack)
+    expect(targetSummaryAfter.totalPaid).toBe(0);
+    expect(targetSummaryAfter.remainingBalance).toBe(3900);
 
-    // 4. Authoritative Cash Memo HTML rendering
-    const receiptHtml = await rentService.renderReceipt(facilityId, payment.receiptNumber, 'usr-merge-memo-admin');
-    expect(receiptHtml).toContain('CASH MEMO / HAMALI PAYMENT RECEIPT');
-    expect(receiptHtml).toContain('Active Subscription Preserved (Rent: ₹0.00)');
-
-    // 5. Consignment Merge Invoice links Cash Memo
+    // 4. Consignment Merge Invoice displays UNPAID (Pending) status
     const movementId = res.body.movement.id;
     const invoiceDto = await buildMergeShiftingInvoiceDto(facilityId, movementId, 'usr-merge-memo-admin');
-    expect(invoiceDto.hamaliReceiptNumber).toBe(payment.receiptNumber);
+    expect(invoiceDto.hamaliReceiptNumber).toBeNull();
     expect(invoiceDto.repackHamaliCharge).toBe(300);
 
     const invoiceHtml = renderMergeShiftingInvoiceTemplate(invoiceDto);
-    expect(invoiceHtml).toContain(payment.receiptNumber);
-    expect(invoiceHtml).toContain('Cash Memo: #');
+    expect(invoiceHtml).toContain('Status: UNPAID (Pending)');
+
+    // 5. Customer pays 5 minutes later via Collect Payment
+    const payRes = await request(app)
+      .post(`/api/facilities/${facilityId}/rent/collect`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        grnId: targetGrnId,
+        amountPaid: 300,
+        paymentMode: 'Cash',
+        paymentDate: moveDate,
+        notes: 'Paid Hamali charges for merge lot',
+      });
+
+    expect(payRes.status).toBe(201);
+    expect(payRes.body.payment.receiptNumber).toMatch(/^RRCPT-\d{2}-\d{2}-\d{4}$/);
+    expect(payRes.body.payment.amountPaid).toBe(300);
+
+    const targetSummaryPaid = await rentService.getRentSummary(facilityId, targetGrnId);
+    expect(targetSummaryPaid.totalPaid).toBe(300);
+    expect(targetSummaryPaid.remainingBalance).toBe(3600);
   });
 
   it('generates hamali cash memo when target GRN was inwarded in January of current year (2026 Jan GRN)', async () => {
@@ -149,6 +161,8 @@ describe('Consignment Merge Under Live Subscription - Hamali Cash Memo Only', ()
         targetGrnId,
         sourceGrnIds: [sourceGrnId],
         movementDate: new Date('2026-11-28'),
+        sourcePaymentAmount: 240,
+        sourcePaymentMode: 'Cash',
         remarks: 'Merge 2023 source lot into 2026 Jan target lot in November',
       });
 
@@ -179,6 +193,7 @@ describe('Consignment Merge Under Live Subscription - Hamali Cash Memo Only', ()
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         targetGrnId, sourceGrnIds: [sourceGrnId], movementDate: new Date('2026-11-28'),
+        sourcePaymentAmount: 180, sourcePaymentMode: 'Cash',
         remarks: 'Merge August lot into August target in November',
       });
     expect(res.status).toBe(200);
@@ -208,6 +223,7 @@ describe('Consignment Merge Under Live Subscription - Hamali Cash Memo Only', ()
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         targetGrnId, sourceGrnIds: [sourceGrnId], movementDate: new Date('2026-06-15'),
+        sourcePaymentAmount: 200, sourcePaymentMode: 'Cash',
         remarks: 'Merge using target hamali rate fallback',
       });
     expect(res.status).toBe(200);

@@ -49,11 +49,14 @@ export async function generateMergeHamaliCashMemo(params: {
   repackHamali: RepackHamaliResolution;
   moveDate: Date;
   paymentMode?: string | null;
+  paymentAmount?: number | null;
   userId: string;
   session: mongoose.ClientSession;
 }): Promise<RentPayment | null> {
-  const { facilityId, targetGrn, repackHamali, moveDate, paymentMode, userId, session } = params;
+  const { facilityId, targetGrn, repackHamali, moveDate, paymentMode, paymentAmount, userId, session } = params;
   if (repackHamali.repackHamaliCharge <= 0) return null;
+  if (!isLiveSubscriptionTarget(targetGrn, moveDate)) return null;
+  if (typeof paymentAmount !== 'number' || paymentAmount <= 0) return null;
 
   const receiptNumber = await counterService.generateRentReceiptNumber(facilityId, moveDate, session);
   const paymentDoc = await rentRepository.createPayment(
